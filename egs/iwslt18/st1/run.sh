@@ -17,7 +17,6 @@ N=0             # number of minibatches to be used (mainly for debugging). "0" u
 verbose=0       # verbose option
 resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
-sp_prtb=true    # Speed perturbation
 # feature configuration
 do_delta=false
 
@@ -57,13 +56,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodevtest.de
-train_set_prefix=train_nodevtest
-if [ ${sp_prtb} = true ]; then
-    train_set=train_nodevtest_sp.de
-    train_set_ori_prefix=train_nodevtest
-    train_set_prefix=train_nodevtest_sp
-fi
+train_set=train_nodevtest_sp.de
+train_set_prefix=train_nodevtest_sp
 train_dev=train_dev.de
 recog_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
 
@@ -80,20 +74,20 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
 
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/data_prep_eval.sh ${st_ted} ${part}
+    done
+
     # data cleaning
     ### local/forced_align.sh ${st_ted} data/train
     cp -rf data/train data/train.tmp
-    reduce_data_dir.sh data/train.tmp local/reclist data/train
+    reduce_data_dir.sh data/train.tmp data/local/downloads/reclist data/train
     for lang in en de; do
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.tc.${lang} >data/train/text.tc.${lang}
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.${lang} >data/train/text.lc.${lang}
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.rm.${lang} >data/train/text.lc.rm.${lang}
     done
     rm -rf data/train.tmp
-
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh ${st_ted} ${part}
-    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -133,38 +127,40 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.lc.rm.${lang} >data/test/text.lc.rm.${lang}
     done
 
-    if [ ${sp_prtb} = true ]; then
-        # speed-perturbed
-        utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
-        utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
-        utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
-        utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
-        rm -r data/temp1 data/temp2 data/temp3
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
-        for lang in en de; do
-            awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
-            awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-            awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-        done
-    fi
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
+    for lang in en de; do
+        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
+        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+    done
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/divide_lang.sh ${x}
     done
 
-    cp -rf data/dev.en data/train_dev.en
-    cp -rf data/dev.de data/train_dev.de
+    for lang in en de; do
+        if [ -d data/train_dev.${lang} ];then
+            rm -rf data/train_dev.${lang}
+        fi
+        cp -rf data/dev.${lang} data/train_dev.${lang}
+    done
 
     for x in ${train_set_prefix} train_dev; do
         # remove utt having more than 3000 frames
@@ -212,10 +208,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
+<<<<<<< HEAD
 dict=data/lang_1char/${train_set_prefix}_units_${case}.txt
 if [ ${sp_prtb} = true ]; then
     dict=data/lang_1char/${train_set_ori_prefix}_units_${case}.txt
 fi
+=======
+dict=data/lang_1char/${train_set}_units_${case}.txt
+>>>>>>> upstream/v.0.5.0
 nlsyms=data/lang_1char/non_lang_syms_${case}.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -224,22 +224,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    if [ ${sp_prtb} = true ]; then
-        grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | tr " " "\n" | sort | uniq | grep -o -P '&[^;]*;' | uniq > ${nlsyms}
-    else
-        cut -f 2- -d' ' data/${train_set}/text.${case} | tr " " "\n" | sort | uniq | grep -o -P '&[^;]*;' | uniq > ${nlsyms}
-    fi
+    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    if [ ${sp_prtb} = true ]; then
-        grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    else
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text.${case} | cut -f 2- -d" " | tr " " "\n" \
-            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    fi
+    grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
@@ -250,11 +241,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-          local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --nlsyms ${nlsyms} \
-              data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
+            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --nlsyms ${nlsyms} \
+                data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
         else
-          local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
-              data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
+            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
+                data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
         fi
     done
 
@@ -275,10 +266,10 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -330,14 +321,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model} \
-            ${recog_opts}
+            --model ${expdir}/results/${recog_model}
 
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-          local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+            local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         else
-          set=$(echo ${rtask} | cut -f -1 -d ".")
-          local/score_bleu_reseg.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
+            set=$(echo ${rtask} | cut -f -1 -d ".")
+            local/score_bleu_reseg.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
         fi
     ) &
     pids+=($!) # store background pids

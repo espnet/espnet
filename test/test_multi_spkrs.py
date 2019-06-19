@@ -44,9 +44,9 @@ def make_arg(**kwargs):
         ctc_type="warpctc",
         num_spkrs=1,
         context_residual=False,
+        spa=False,
         replace_sos=False,
-        tgt_lang=False,
-        spa=False
+        tgt_lang=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

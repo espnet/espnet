@@ -133,7 +133,8 @@ def batchfy_by_bin(sorted_data, batch_bins, num_batches=0, min_batch_size=1, sho
         minibatches = minibatches[:num_batches]
     lengths = [len(x) for x in minibatches]
     logging.info(str(len(minibatches)) + " batches containing from " +
-                 str(min(lengths)) + " to " + str(max(lengths)) + " samples.")
+                 str(min(lengths)) + " to " + str(max(lengths)) + " samples " +
+                 "(avg " + str(int(np.mean(lengths))) + " samples).")
     return minibatches
 
 
@@ -213,7 +214,8 @@ def batchfy_by_frame(sorted_data, max_frames_in, max_frames_out, max_frames_inou
         minibatches = minibatches[:num_batches]
     lengths = [len(x) for x in minibatches]
     logging.info(str(len(minibatches)) + " batches containing from " +
-                 str(min(lengths)) + " to " + str(max(lengths)) + " samples.")
+                 str(min(lengths)) + " to " + str(max(lengths)) + " samples" +
+                 "(avg " + str(int(np.mean(lengths))) + " samples).")
 
     return minibatches
 

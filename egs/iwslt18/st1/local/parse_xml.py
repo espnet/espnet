@@ -38,7 +38,7 @@ def main():
                 ref = e.text
 
                 # Remove Al Gore:, Video: etc.
-                ref = ref.split(':')[-1].lstrip()
+                # ref = ref.split(':')[-1].lstrip()
 
                 # Remove consecutive spaces
                 ref = re.sub(r'[\s]+', ' ', ref).lstrip().rstrip()

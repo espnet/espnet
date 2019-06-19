@@ -205,8 +205,6 @@ def main(cmd_args):
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
     # speech translation related
-    parser.add_argument('--input-feeding', default='', nargs='?',
-                        help='')
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='')
     parser.add_argument('--asr-model', default=False, nargs='?',
