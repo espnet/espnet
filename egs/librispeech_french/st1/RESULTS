@@ -1,0 +1,5 @@
+# baseline: exp/train_sp.fr_lc_pytorch_train
+dev
+BLEU = 18.03, 48.0/23.1/12.9/7.4 (BP=1.000, ratio=1.015, hyp_len=23822, ref_len=23467)
+test
+BLEU = 17.19, 47.4/22.4/12.1/6.8 (BP=1.000, ratio=1.007, hyp_len=46482, ref_len=46141)
