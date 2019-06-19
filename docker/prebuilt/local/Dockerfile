@@ -30,7 +30,7 @@ RUN if [ -z "$( nvcc -V )" ]; then \
         sed -i '159s|install.py|install.py --no-cupy|' Makefile && \
         sed -i '19s|nvidia-smi|nvcc|' Makefile && \
         make KALDI=/kaldi CUDA_VERSION=${CUDA_VER}; \
-fi
+    fi
 
 RUN rm -rf ../espnet
 
