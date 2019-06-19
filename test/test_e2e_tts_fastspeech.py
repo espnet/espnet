@@ -125,8 +125,8 @@ def make_feedforward_transformer_args(**kwargs):
         transformer_init="pytorch",
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
-        init_encoder_from_teacher=False,
-        init_encoder_module="all",
+        transfer_encoder_from_teacher=False,
+        transferred_encoder_module="all",
         reduction_factor=1,
         teacher_model=None,
     )
@@ -319,11 +319,11 @@ def test_initialization(model_dict):
 
     # define model
     model_args["teacher_model"] = tmpdir + "/model.dummy.best"
-    model_args["init_encoder_from_teacher"] = True
+    model_args["transfer_encoder_from_teacher"] = True
     model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
 
     # check initialization
-    if model_args["init_encoder_module"] == "all":
+    if model_args["transferred_encoder_module"] == "all":
         for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
             np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
     else:

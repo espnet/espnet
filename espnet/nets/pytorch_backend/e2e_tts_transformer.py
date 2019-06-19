@@ -20,7 +20,7 @@ from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attention
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
@@ -412,34 +412,14 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(args)
 
     def _reset_parameters(self, args):
+        # initialize parameters
+        initialize(self, args.transformer_init)
+
+        # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            # alpha in scaled positional encoding init
             self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
-        if args.transformer_init == "pytorch":
-            return
-        # weight init
-        for p in self.parameters():
-            if p.dim() > 1:
-                if args.transformer_init == "xavier_uniform":
-                    torch.nn.init.xavier_uniform_(p.data)
-                elif args.transformer_init == "xavier_normal":
-                    torch.nn.init.xavier_normal_(p.data)
-                elif args.transformer_init == "kaiming_uniform":
-                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
-                elif args.transformer_init == "kaiming_normal":
-                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
-                else:
-                    raise ValueError("Unknown initialization: " + args.transformer_init)
-        # bias init
-        for p in self.parameters():
-            if p.dim() == 1:
-                p.data.zero_()
-        # reset some modules with default init
-        for m in self.modules():
-            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
-                m.reset_parameters()
 
     def _add_first_frame_and_remove_last_frame(self, ys):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
