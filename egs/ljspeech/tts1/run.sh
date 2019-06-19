@@ -19,16 +19,18 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=22050    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+fs=22050      # sampling frequency
+fmax=""       # maximum frequency
+fmin=""       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_pytorch_tacotron2.yaml
+train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
+                                               # now we support tacotron2 and transformer for TTS.
+                                               # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
 # decoding related
