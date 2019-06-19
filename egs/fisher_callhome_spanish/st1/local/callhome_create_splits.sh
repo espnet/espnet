@@ -19,11 +19,11 @@ for split in train devtest evltest; do
     cp $train_all/* $data_dir/$dirName
 
     awk 'BEGIN {FS=" "}; FNR==NR { a[$1]; next } ((substr($2,0,length($2)-2) ".sph") in a)' \
-    $splitFile/$split $train_all/segments > $data_dir/$dirName/segments
+        $splitFile/$split $train_all/segments > $data_dir/$dirName/segments
     awk 'BEGIN {FS=" "}; FNR==NR { a[$1]; next } ((substr($1,0,length($1)-16) ".sph") in a)' \
-    $splitFile/$split $train_all/text > $data_dir/$dirName/text
+        $splitFile/$split $train_all/text > $data_dir/$dirName/text
 
-    n=`awk 'BEGIN {FS = " "}; {print substr($2,0,length($2)-2)}' $data_dir/$dirName/segments | sort | uniq | wc -l`
+    n=$(awk 'BEGIN {FS = " "}; {print substr($2,0,length($2)-2)}' $data_dir/$dirName/segments | sort | uniq | wc -l)
 
     echo "$n conversations left in split $dirName"
 
