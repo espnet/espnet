@@ -1,6 +1,5 @@
 # NOTE: apostrophe is included both in hyp and ref
 
-# baseline: exp/train_sp.en_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_add1024_adadelta_sampprob0.2_lsm0.1_drop0.30.0_bs15_mli800_mlo150_wd0.000001
 exp/train_sp.en_lc_pytorch_train
 fisher_dev.en
 BLEU = 40.42, 71.4/49.0/33.6/22.7 (BP=1.000, ratio=1.018, hyp_len=40695, ref_len=39981)
