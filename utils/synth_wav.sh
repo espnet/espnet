@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
-    echo "Please change directory to e.g., egs/ljspeech/tts1"
+    echo "Please change directory to e.g., egs/libritts/tts1"
     exit 1
 fi
 
@@ -55,7 +55,12 @@ txt=$1
 download_dir=${decode_dir}/download
 
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <text>"
+    echo "Usage:"
+    echo "    $0 <text>"
+    echo ""
+    echo "Example:"
+    echo "    echo \"This is a demonstration of text to speech.\" > example.txt"
+    echo "    $0 example.txt"
     exit 1;
 fi
 

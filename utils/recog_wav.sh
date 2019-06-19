@@ -46,7 +46,12 @@ wav=$1
 download_dir=${decode_dir}/download
 
 if [ $# -gt 1 ]; then
-    echo "Usage: $0 <wav>"
+    echo "Usage:"
+    echo "    $0 <wav>"
+    echo ""
+    echo "Example:"
+    echo "    rec -c 1 -r 16000 example.wav trim 0 5"
+    echo "    $0 example.wav"
     exit 1;
 fi
 
