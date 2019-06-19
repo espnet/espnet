@@ -463,7 +463,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             raise NotImplementedError("Support only all or embed.")
 
-
     @property
     def attention_plot_class(self):
         return TTSPlot

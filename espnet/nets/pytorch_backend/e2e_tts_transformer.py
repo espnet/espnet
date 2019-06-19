@@ -420,7 +420,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
-
     def _add_first_frame_and_remove_last_frame(self, ys):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
         return ys_in
