@@ -9,6 +9,7 @@ results=""
 # e.g., "exp/tr_it_pytorch_train/decode_dt_it_decode/result.wrd.txt
 #        exp/tr_it_pytorch_train/decode_et_it_decode/result.wrd.txt"'
 lm=""
+dict=""
 etc=""
 outfile="model"
 
@@ -97,6 +98,18 @@ if [ -n "${lm}" ]; then
 	fi
     else
 	echo "missing ${lm}"
+	exit 1
+    fi
+fi
+
+# dict
+if [ -n "${dict}" ]; then
+    if [ -e ${dict} ]; then
+	tar rfh ${outfile}.tar ${dict}
+	echo -n "    - dict file: \`"
+	echo ${dict} | sed -e "s/$/\`/"
+    else
+	echo "missing ${dict}"
 	exit 1
     fi
 fi
