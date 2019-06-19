@@ -135,7 +135,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for duration predictor")
         group.add_argument("--init-encoder-from-teacher", default=True, type=strtobool,
-                           help="Whether to initialize encoder using teacher's parameters.")
+                           help="Whether to initialize encoder using teacher's parameters")
+        group.add_argument("--init-encoder-module", default="all", type=str,
+                           choices=["all", "embed"],
+                           help="Encoder modeules to be initilized")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -237,7 +240,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # transfer teacher encoder parameters
         if args.init_encoder_from_teacher:
-            self._init_encoder_from_teacher()
+            self._init_encoder_from_teacher(args.init_encoder_module)
 
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
@@ -428,11 +431,20 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return model
 
-    def _init_encoder_from_teacher(self):
-        for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(), self.teacher.encoder.named_parameters()):
-            assert n1 == n2
-            assert p1.shape == p2.shape
-            p1.data.copy_(p2.data)
+    def _init_encoder_from_teacher(self, init_module="all"):
+        if init_module == "all":
+            for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(), self.teacher.encoder.named_parameters()):
+                assert n1 == n2, "It seems that encoder structure is different."
+                assert p1.shape == p2.shape, "It seems that encoder size is different."
+                p1.data.copy_(p2.data)
+        elif init_module == "embed":
+            student_shape = self.encoder.embed[0].weight.data.shape
+            teacher_shape = self.teacher.encoder.embed[0].weight.data.shape
+            assert student_shape == teacher_shape, "It seems that embed dimension is different."
+            self.encoder.embed[0].weight.data.copy_(
+                self.teacher.encoder.embed[0].weight.data)
+        else:
+            raise NotImplementedError("Support only all or embed.")
 
     def _reset_parameters(self, args):
         if self.use_scaled_pos_enc:
