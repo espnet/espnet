@@ -29,6 +29,15 @@ cd data/local/fisher-callhome-corpus
 ./bin/build_callhome.sh $2/callhome_spanish_trans_970711
 cd $cur_dir
 
+# example
+# orignial:
+#     So, here, we've been this year. And later, I'm going home, in Barranquilla. Eh, next, next year, God willing.
+# truecase + tokenization (tc):
+#     So , here , we &apos;ve been this year . And later , I &apos;m going home , in Barranquilla . Eh , next , next year , God willing .
+# lowercase + tokenization (lc):
+#     so , here , we &apos;ve been this year. and later , i &apos;m going home , in barranquilla. eh , next , next year , god willing .
+# lowercase w/o punctuation + tokenization (lc.rm):
+#     so here we &apos;ve been this year and later i &apos;m going home in barranquilla eh next next year god willing
 
 for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callhome_devtest callhome_evltest; do
     # concatenate short utterances
