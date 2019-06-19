@@ -43,6 +43,15 @@ griffin_lim_iters=1000
 # download related
 models=libritts.v1
 
+help_message=$(cat <<EOF
+Usage:
+    $0 <text>
+
+Example:
+    echo \"This is a demonstration of text to speech.\" > example.txt
+    $0 example.txt
+EOF
+)
 . utils/parse_options.sh || exit 1;
 
 # make shellcheck happy
@@ -55,12 +64,7 @@ txt=$1
 download_dir=${decode_dir}/download
 
 if [ $# -ne 1 ]; then
-    echo "Usage:"
-    echo "    $0 <text>"
-    echo ""
-    echo "Example:"
-    echo "    echo \"This is a demonstration of text to speech.\" > example.txt"
-    echo "    $0 example.txt"
+    echo $help_message
     exit 1;
 fi
 

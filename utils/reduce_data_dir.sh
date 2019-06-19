@@ -4,9 +4,16 @@
 
 # Reduce a data set based on a list of turn-ids
 
+help_message="usage: $0 srcdir turnlist destdir"
+
+if [ $1 == "--help" ]; then
+    echo $help_message
+    exit 0;
+fi
+
 if [ $# != 3 ]; then
-echo "usage: $0 srcdir turnlist destdir"
-exit 1;
+    echo $help_message
+    exit 1;
 fi
 
 srcdir=$1

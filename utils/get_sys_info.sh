@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 [ -f ./path.sh ] && . ./path.sh
-
+# shellcheck disable=SC2034
 help_message="Usage: $0"
 
 . utils/parse_options.sh
