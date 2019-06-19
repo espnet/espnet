@@ -32,7 +32,7 @@ class DurationCalculator(torch.nn.Module):
         :param torch.Tensor ilens: list of lengths of each output batch (B)
         :return torch.Tensor: batch of durations (B, Tmax)
         """
-        att_ws = self._calculate_attentions(xs, ilens, ys, olens)
+        att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens)
         # TODO(kan-bayashi): fix this issue
         # this does not work in multi-gpu case. registered buffer is not saved.
         if int(self.diag_head_idx) == -1:
@@ -50,7 +50,7 @@ class DurationCalculator(torch.nn.Module):
         diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H * L,)
         self.register_buffer("diag_head_idx", diagonal_scores.argmax())
 
-    def _calculate_attentions(self, xs, ilens, ys, olens):
+    def _calculate_encoder_decoder_attentions(self, xs, ilens, ys, olens):
         att_dict = self.teacher_model.calculate_all_attentions(
             xs, ilens, ys, olens, skip_output=True, keep_tensor=True)
         return torch.cat([att_dict[k] for k in att_dict.keys() if "src_attn" in k], dim=1)  # (B, H*L, Lmax, Tmax)
