@@ -8,7 +8,7 @@
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
 adim: 384
-aheads: 4
+aheads: 2
 elayers: 6
 eunits: 1536
 dlayers: 6
@@ -16,6 +16,8 @@ dunits: 1536
 duration-predictor-layers: 2
 duration-predictor-chans: 384
 duration-predictor-kernel-size: 3
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 3
 use-scaled-pos-enc: True
 encoder-normalize-before: False
 decoder-normalize-before: False
@@ -44,6 +46,7 @@ transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 duration-predictor-dropout-rate: 0.1
 init-encoder-from-teacher: True
+init-encoder-module: embed
 
 # optimization related
 opt: noam
