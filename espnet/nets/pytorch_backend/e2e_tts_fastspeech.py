@@ -40,6 +40,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         (int) eunits: number of encoder hidden units
         (int) dlayers: number of decoder layers
         (int) dunits: number of decoder hidden units
+        (str) positionwise_layer_type: layer type in positionwise operation
+        (str) positionwise_conv_kernel_size: kernel size of positionwise conv layer
         (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
         (bool) encoder_normalize_before: whether to perform layer normalization before encoder block
         (bool) decoder_normalize_before: whether to perform layer normalization before decoder block
@@ -61,6 +63,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
         (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
         (bool) init_encoder_from_teacher: whether to initialize encoder using teacher encoder parameters
+        (str) init_encoder_module: encoder module to be initialized using teacher parameters
         (bool) use_masking: whether to use masking in calculation of loss
     """
 
