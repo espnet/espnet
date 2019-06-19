@@ -452,6 +452,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor olens: batch of the lengths of each target (B)
+        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
