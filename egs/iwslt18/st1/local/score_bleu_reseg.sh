@@ -64,6 +64,7 @@ detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 if [ ${case} = tc ]; then
     ### case-sensitive
     exit 1  # TODO
+    echo ${set} > ${dir}/result.tc.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
     cat ${dir}/result.tc.txt
 fi
@@ -74,6 +75,7 @@ lowercase.perl < ${xml_tgt} > ${dir}/ref.xml
 # NOTE: these are used for segementation
 
 ### case-insensitive
+echo ${set} > ${dir}/result.lc.txt
 # segment hypotheses with RWTH tool
 segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
 sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
