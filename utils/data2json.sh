@@ -20,11 +20,7 @@ filetype=""
 preprocess_conf=""
 category=""
 out="" # If omitted, write in stdout
-
-. utils/parse_options.sh
-
-if [ $# != 2 ]; then
-    cat << EOF 1>&2
+help_message=$(cat << EOF
 Usage: $0 <data-dir> <dict>
 e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
@@ -37,6 +33,11 @@ Options:
   --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
   --verbose <num>                                  # Default: 0
 EOF
+)
+. utils/parse_options.sh
+
+if [ $# != 2 ]; then
+    echo $help_message 1>&2
     exit 1;
 fi
 
