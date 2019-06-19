@@ -5,6 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import codecs
 import os
 
 
@@ -21,7 +22,7 @@ def main():
     segments = {}
     lineno = 1
     session_prev = ''
-    with open(args.segments, 'r') as f:
+    with codecs.open(args.segments, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             session = line.split('-')[0]
@@ -34,8 +35,8 @@ def main():
             session_prev = session
             lineno += 1
 
-    with open(os.path.join(os.path.dirname(args.segments), 'segments'), 'w') as f:
-        for line in open(args.mapping, 'r'):
+    with codecs.open(os.path.join(os.path.dirname(args.segments), 'segments'), 'w', encoding='utf-8') as f:
+        for line in codecs.open(args.mapping, 'r', encoding='utf-8'):
             session, ids = line.strip().split()
             if len(ids.split('_')) == 1:
                 line_new = segments[(session, int(ids))]
@@ -51,7 +52,7 @@ def main():
     texts = {}
     lineno = 1
     session_prev = ''
-    with open(args.text, 'r') as f:
+    with codecs.open(args.text, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             session = line.split('-')[0]
@@ -64,8 +65,8 @@ def main():
             session_prev = session
             lineno += 1
 
-    with open(os.path.join(os.path.dirname(args.text), 'text'), 'w') as f:
-        for line in open(args.mapping, 'r'):
+    with codecs.open(os.path.join(os.path.dirname(args.text), 'text'), 'w', encoding='utf-8') as f:
+        for line in codecs.open(args.mapping, 'r', encoding='utf-8'):
             session, ids = line.strip().split()
             if len(ids.split('_')) == 1:
                 line_new = texts[(session, int(ids))]

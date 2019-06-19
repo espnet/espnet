@@ -10,9 +10,11 @@ while(<STDIN>) {
   $_ = " $_ ";
 
   # remove punctuation except apostrophe
+  s/<space>/spacemark/g;  # for scoring
   s/'/apostrophe/g;
   s/[[:punct:]]//g;
   s/apostrophe/'/g;
+  s/spacemark/<space>/g;  # for scoring
 
   # remove consecutive commas and spaces
   s/\s+/ /g;
