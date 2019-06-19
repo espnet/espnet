@@ -4,6 +4,11 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import json
+import os
+import shutil
+import tempfile
+
 from argparse import Namespace
 
 import numpy as np
@@ -15,6 +20,8 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransforme
 from espnet.nets.pytorch_backend.e2e_tts_fastspeech import LengthRegularizer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+
+
 
 
 def prepare_inputs(idim, odim, ilens, olens,
@@ -153,11 +160,17 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     olens = [20, 15]
     batch = prepare_inputs(idim, odim, ilens, olens)
 
-    # define model
-    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
-    model.teacher = teacher_model
-    model.duration_calculator = DurationCalculator(model.teacher)
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
+    with open(tmpdir + "/model.json", 'wb') as f:
+        f.write(json.dumps((idim, odim, teacher_model_args),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+
+    # define model
+    model_args["teacher_model"] = tmpdir + "/model.dummy.best"
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
     optimizer = torch.optim.Adam(model.parameters())
 
     # trainable
@@ -166,10 +179,15 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     loss.backward()
     optimizer.step()
 
+    # decodable
     model.eval()
     with torch.no_grad():
         model.inference(batch["xs"][0][:batch["ilens"][0]])
         model.calculate_all_attentions(**batch)
+
+    # remove tmpdir
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
@@ -197,11 +215,17 @@ def test_fastspeech_gpu_trainable(model_dict):
     device = torch.device('cuda')
     batch = prepare_inputs(idim, odim, ilens, olens, device=device)
 
-    # define model
-    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
-    model.teacher = teacher_model
-    model.duration_calculator = DurationCalculator(model.teacher)
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
+    with open(tmpdir + "/model.json", 'wb') as f:
+        f.write(json.dumps((idim, odim, teacher_model_args),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+
+    # define model
+    model_args["teacher_model"] = tmpdir + "/model.dummy.best"
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -210,6 +234,10 @@ def test_fastspeech_gpu_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    # remove tmpdir
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
@@ -237,13 +265,19 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
     device = torch.device('cuda')
     batch = prepare_inputs(idim, odim, ilens, olens, device=device)
 
+    # define teacher model and save it
+    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
+    with open(tmpdir + "/model.json", 'wb') as f:
+        f.write(json.dumps((idim, odim, teacher_model_args),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+
     # define model
     ngpu = 2
     device_ids = list(range(ngpu))
+    model_args["teacher_model"] = tmpdir + "/model.dummy.best"
     model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
-    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
-    model.teacher = teacher_model
-    model.duration_calculator = DurationCalculator(model.teacher)
     model = torch.nn.DataParallel(model, device_ids)
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters())
@@ -254,11 +288,14 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
     loss.backward()
     optimizer.step()
 
+    # remove tmpdir
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
+
 
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"init_encoder_module": "embed"}),
         ({"encoder_normalize_before": False}),
@@ -274,16 +311,21 @@ def test_initialization(model_dict):
     teacher_model_args = make_transformer_args(**model_dict)
     model_args = make_feedforward_transformer_args(**model_dict)
 
-    # define model
-    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
-    model.teacher = teacher_model
-    model.duration_calculator = DurationCalculator(model.teacher)
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
+    with open(tmpdir + "/model.json", 'wb') as f:
+        f.write(json.dumps((idim, odim, teacher_model_args),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+
+    # define model
+    model_args["teacher_model"] = tmpdir + "/model.dummy.best"
+    model_args["init_encoder_from_teacher"] = True
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
 
     # check initialization
-    init_encoder_module = model_args["init_encoder_module"]
-    model._init_encoder_from_teacher(init_encoder_module)
-    if init_encoder_module == "all":
+    if model_args["init_encoder_module"] == "all":
         for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
             np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
     else:
@@ -291,6 +333,10 @@ def test_initialization(model_dict):
             model.encoder.embed[0].weight.data.cpu().numpy(),
             model.teacher.encoder.embed[0].weight.data.cpu().numpy()
         )
+
+    # remove tmpdir
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
 
 
 def test_length_regularizer():
