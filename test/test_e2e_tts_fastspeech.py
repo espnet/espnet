@@ -121,6 +121,7 @@ def make_feedforward_transformer_args(**kwargs):
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
         init_encoder_from_teacher=False,
+        init_encoder_module="all",
         reduction_factor=1,
         teacher_model=None,
     )
@@ -259,6 +260,7 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
         ({}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
+        ({"init_encoder_module": "embed"}),
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
@@ -279,9 +281,16 @@ def test_initialization(model_dict):
     model.duration_calculator = DurationCalculator(model.teacher)
 
     # check initialization
-    model._init_encoder_from_teacher()
-    for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
-        np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
+    init_encoder_module = model_args["init_encoder_module"]
+    model._init_encoder_from_teacher(init_encoder_module)
+    if init_encoder_module == "all":
+        for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
+            np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
+    else:
+        np.testing.assert_array_equal(
+            model.encoder.embed[0].weight.data.cpu().numpy(),
+            model.teacher.encoder.embed[0].weight.data.cpu().numpy()
+        )
 
 
 def test_length_regularizer():
