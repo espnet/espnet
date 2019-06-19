@@ -265,40 +265,20 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # remove unnecessary padded part (for multi-gpus)
-        max_ilen = max(ilens)
-        max_olen = max(olens)
-        if max_ilen != xs.shape[1]:
-            xs = xs[:, :max_ilen]
-        if max_olen != ys.shape[1]:
-            ys = ys[:, :max_olen]
+        xs = xs[:, :max(ilens)]
+        ys = ys[:, :max(olens)]
 
-        # forward encoder
-        x_masks = self._source_mask(ilens)
-        hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
-
-        # calculate groundtruth duration
-        with torch.no_grad():
-            ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
-
-        # calculate predicted duration
-        d_masks = make_pad_mask(ilens).to(xs.device)
-        d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
-
-        # apply length regulator
-        hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
-
-        # forward decoder
-        h_masks = self._source_mask(olens)
-        zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+        # forward propagation
+        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, is_inference=False)
 
         # apply mask to remove padded part
         if self.use_masking:
-            y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            outs = outs.masked_select(y_masks)
-            ys = ys.masked_select(y_masks)
-            d_outs = d_outs.masked_select(~d_masks)
-            ds = ds.masked_select(~d_masks)
+            in_masks = make_non_pad_mask(ilens).to(xs.device)
+            d_outs = d_outs.masked_select(in_masks)
+            ds = ds.masked_select(in_masks)
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            outs = outs.masked_select(out_masks)
+            ys = ys.masked_select(out_masks)
 
         # calculate loss
         l1_loss = self.criterion(outs, ys)
@@ -332,28 +312,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # remove unnecessary padded part (for multi-gpus)
-            max_ilen = max(ilens)
-            max_olen = max(olens)
-            if max_ilen != xs.shape[1]:
-                xs = xs[:, :max_ilen]
-            if max_olen != ys.shape[1]:
-                ys = ys[:, :max_olen]
+            xs = xs[:, :max(ilens)]
+            ys = ys[:, :max(olens)]
 
-            # forward encoder
-            x_masks = self._source_mask(ilens)
-            hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
-
-            # calculate groundtruth duration
-            with torch.no_grad():
-                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
-
-            # apply length regulator
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
-
-            # forward decoder
-            h_masks = self._source_mask(olens)
-            zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-            outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+            # forward propagation
+            outs = self._forward(xs, ilens, ys, olens, is_inference=False)[0]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
@@ -371,8 +334,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 else:
                     logging.warning("unknown attention module: " + name)
                 att_ws_dict[name] = attn
-
         att_ws_dict["predicted_fbank"] = [m[:l].T for m, l in zip(outs.cpu().numpy(), olens.tolist())]
+
         return att_ws_dict
 
     def inference(self, x, *args, **kwargs):
@@ -382,22 +345,44 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         :return: the sequence of generated features (1, L, odim)
         :rtype: torch.Tensor
         """
-        # forward encoder
+        # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
         xs = x.unsqueeze(0)
-        hs, _ = self.encoder(xs, None)  # (B, Tmax, adim)
 
-        d_outs = self.duration_predictor.inference(hs, None)  # (B, Tmax)
-
-        # apply length regulator
-        hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
-
-        # forward decoder
-        zs, _ = self.decoder(hs, None)  # (B, Lmax, adim)
-        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+        # inference
+        outs = self._forward(xs, ilens, is_inference=True)  # (1, L, odim)
 
         # keep batch axis to be compatible with the other models
         return outs
+
+    def _forward(self, xs, ilens, ys=None, olens=None, is_inference=False):
+        # forward encoder
+        x_masks = self._source_mask(ilens)
+        hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
+
+        # forward duration predictor and length regulator
+        d_masks = make_pad_mask(ilens).to(xs.device)
+        if is_inference:
+            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
+            hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
+        else:
+            with torch.no_grad():
+                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
+            d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
+            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+
+        # forward decoder
+        if olens is not None:
+            h_masks = self._source_mask(olens)
+        else:
+            h_masks = None
+        zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
+        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        if is_inference:
+            return outs
+        else:
+            return outs, ds, d_outs
 
     def _source_mask(self, ilens):
         """Make mask for MultiHeadedAttention using padded sequences
