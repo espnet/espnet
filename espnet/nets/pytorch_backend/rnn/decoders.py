@@ -52,6 +52,7 @@ class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
                  dropout=0.0, context_residual=False, replace_sos=False):
+
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -684,7 +685,7 @@ class Decoder(torch.nn.Module):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att,
-                   args.verbose, args.char_list, labeldist,
+    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
+                   args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
                    args.context_residual, args.replace_sos)

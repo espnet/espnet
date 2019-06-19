@@ -57,11 +57,11 @@ def make_arg(**kwargs):
         ctc_type="warpctc",
         sym_space="<space>",
         sym_blank="<blank>",
+        sortagrad=0,
         context_residual=False,
+        use_frontend=False,
         replace_sos=False,
-        tgt_lang=False,
-        sortagrad=0
-        use_frontend=False
+        tgt_lang=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -589,3 +589,23 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_context_residual(module):
+    args = make_arg(context_residual=True)
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        raise NotImplementedError
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(50, 20)
+        model.recognize(in_data, args, args.char_list)

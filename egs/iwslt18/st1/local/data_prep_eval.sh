@@ -25,7 +25,7 @@ xml_de=${src}/IWSLT.TED.${set}.en-de.de.xml
 if [ ${set} = tst2018 ]; then
     yml=${src}/IWSLT.TED.${set}.en-de.yaml
 else
-    yml=${src}/test-db.yaml
+    yml=data/local/downloads/test-db-${set}.yaml
 fi
 
 mkdir -p ${dst} || exit 1;
@@ -62,6 +62,11 @@ if [ ${set} = tst2018 ]; then
 fi
 # TODO(hirofumi): Remove this after updating download URL
 
+
+# downloads test-db.yaml and reclist (for removing noisy training utterances)
+if [ ! -d data/local/downloads ]; then
+    download_from_google_drive.sh https://drive.google.com/open?id=1agQOUEm47LIeLZAFF8RTZ5qx6OsOFGTM data/local
+fi
 
 # (1a) Transcriptions and translations preparation
 if [ ${set} != tst2018 ]; then
@@ -106,11 +111,19 @@ if [ ${set} != tst2018 ]; then
     # add segmentation based ctm files provided by organizers
     # for f in $(cat ${src}/CTM_LIST); do
     #     talkid=$(echo ${f} | cut -d "."  -f 3)
+<<<<<<< HEAD
     #     cat ${src}/${f} | sort | sed -e "/#/d" > ${dst}/ctm.$talkid
     #     paste -d " " <(cut -d " " -f 1 ${dst}/en.org) <(cat ${dst}/en.norm.lc.rm) | grep $talkid > ${dst}/text.en.$talkid
     #     local/ctm2segments.py ${dst}/text.en.$talkid ${dst}/ctm.$talkid ${set} $talkid > ${dst}/segments.$talkid || exit 1;
     # done
     # cat ${dst}/segments* | sort > ${dst}/segments
+=======
+    #     sort ${src}/${f} | sed -e "/#/d" > ${dst}/ctm.$talkid
+    #     paste -d " " <(cut -d " " -f 1 ${dst}/en.org) <(cat ${dst}/en.norm.lc.rm) | grep $talkid > ${dst}/text.en.$talkid
+    #     local/ctm2segments.py ${dst}/text.en.$talkid ${dst}/ctm.$talkid ${set} $talkid > ${dst}/segments.$talkid || exit 1;
+    # done
+    # sort ${dst}/segments* > ${dst}/segments
+>>>>>>> upstream/v.0.5.0
 
     # error check
     n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
@@ -118,7 +131,7 @@ if [ ${set} != tst2018 ]; then
     [ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data data files, found ${n_de}" && exit 1;
 fi
 
-
+# NOTE: This is how to extract test-db-****.yaml. But that is downloaded form Google drive instead.
 # (1b) Segmente audio file with LIUM diarization tool
 # if [ ${set} != tst2018 ]; then
 #     echo "" > ${src}/test-db.yaml
@@ -183,7 +196,7 @@ if [ ${set} != tst2018 ]; then
     cp ${dst}/text.tc.de data/${set}/text_noseg.tc.de
     cp ${dst}/text.lc.de data/${set}/text_noseg.lc.de
     cp ${dst}/text.lc.rm.de data/${set}/text_noseg.lc.rm.de
-    # NOTE: for passing utils/validate_data_dir.sh
+    # NOTE: text -> text_noseg for passing utils/validate_data_dir.sh
 fi
 
 

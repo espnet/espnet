@@ -12,7 +12,10 @@ tmp*
 .hypothesis/
 .idea
 .pytest_cache/
+__pycache__/
 check_autopep8
+.coverage*
+coverage.xml*
 
 # recipe related
 egs/*/*/data*
@@ -34,6 +37,7 @@ tools/kaldi*
 tools/mecab/
 tools/miniconda.sh
 tools/moses/
+tools/mwerSegmenter/
 tools/nkf/
 tools/venv/
 tools/sentencepiece/
