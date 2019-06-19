@@ -43,7 +43,7 @@ transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 duration-predictor-dropout-rate: 0.1
-init-encoder-from-teacher: True
+transfer-encoder-from-teacher: True
 
 # optimization related
 opt: noam
