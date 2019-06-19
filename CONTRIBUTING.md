@@ -111,12 +111,6 @@ Add the shared link to `utils/recog_wav.sh` or `utils/synth_wav.sh` as follows:
 The model name is arbitrary for now.
 
 
-## Python 2 and 3 portability tips
-
-See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
-We do not block your PR even if it is not portable.
-
-
 ## On CI failure
 
 ### Travis CI
