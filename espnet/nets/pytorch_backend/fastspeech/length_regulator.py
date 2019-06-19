@@ -9,8 +9,8 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-class LengthRegularizer(torch.nn.Module):
-    """Length regularizer module
+class LengthRegulator(torch.nn.Module):
+    """Length regulator module
 
     Reference:
         FastSpeech: Fast, Robust and Controllable Text to Speech
@@ -20,11 +20,11 @@ class LengthRegularizer(torch.nn.Module):
     """
 
     def __init__(self, pad_value=0.0):
-        super(LengthRegularizer, self).__init__()
+        super(LengthRegulator, self).__init__()
         self.pad_value = pad_value
 
     def forward(self, xs, ds, ilens, alpha=1.0):
-        """Apply length regularizer
+        """Apply length regulator
 
         :param torch.Tensor xs: input tensor with the shape (B, Tmax, D)
         :param torch.Tensor ds: duration of each components of each sequence (B, T)
