@@ -239,9 +239,11 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
 
 def add_gradient_noise(model, epoch, eta):
     """Adds noise from a std normal distribution to the gradients
-    This reduces overfitting issue for larger vocab corpus and can be
-    treated as an annealing factor Ref: http://deliprao.com/archives/156
-    and http://deliprao.com/archives/153."""
+
+    :param model Torch model
+    :param iteration int
+    :param eta float
+    """
 
     sigma = eta / epoch**0.55
     for param in model.predictor.parameters():
