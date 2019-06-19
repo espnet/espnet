@@ -8,6 +8,7 @@ class PositionwiseFeedForward(torch.nn.Module):
     :param int hidden_units: number of hidden units
     :param float dropout_rate: dropout rate
     """
+
     def __init__(self, idim, hidden_units, dropout_rate):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = torch.nn.Linear(idim, hidden_units)
