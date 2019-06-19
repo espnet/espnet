@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.machinery as imm
 import importlib.util as iu
+import logging
 import pathlib
 import re
 import os
@@ -32,18 +33,16 @@ args = parser.parse_args()
 modinfo = []
 
 for p in args.src:
-    try:
-        modinfo.append(ModuleInfo(p))
-    except (ValueError, ModuleNotFoundError) as e:
-        import logging
-        logging.warning(f"ignore {p} ({e})")
+    if "__init__.py" in p:
+        continue
+    modinfo.append(ModuleInfo(p))
 
 
 # print refs
 for m in modinfo:
+    logging.info(f"processing: {m.path.name}")
     d = m.module.get_parser().description
-    if d is None:
-        d = "(no description provided)"
+    assert d is not None
     print(f"- :ref:`{m.path.name}`: {d}")
 
 print()
