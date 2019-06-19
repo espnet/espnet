@@ -204,6 +204,8 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--grad-noise', action='store_true',
+                        help='Noise injection to gradients during training')
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='')
