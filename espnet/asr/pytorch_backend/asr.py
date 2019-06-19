@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.asr_interface import FrontendInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
@@ -247,9 +248,15 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args)
-    assert isinstance(model, ASRInterface)
+    if args.frontend_module is not None:
+        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
+        _idim = args.n_mels
+    else:
+        _idim = idim
+    model = model_class(_idim, odim, args)
+    assert isinstance(model, ASRInterface), type(model)
     subsampling_factor = model.subsample[0]
+    reporter = model.reporter
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -258,6 +265,11 @@ def train(args):
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch.load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
+
+    if args.frontend_module is not None:
+        frontend_class = dynamic_import(args.frontend_module)
+        assert issubclass(frontend_class, FrontendInterface), model_class
+        model = frontend_class(idim, args, model)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -269,8 +281,6 @@ def train(args):
                            indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
-
-    reporter = model.reporter
 
     # check the use of multi-gpu
     if args.ngpu > 1:

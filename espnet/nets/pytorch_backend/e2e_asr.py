@@ -18,10 +18,6 @@ import torch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.frontends.feature_transform \
-    import feature_transform_for
-from espnet.nets.pytorch_backend.frontends.frontend \
-    import frontend_for
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
@@ -91,13 +87,6 @@ class E2E(ASRInterface, torch.nn.Module):
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
-
-        if args.use_frontend:
-            self.frontend = frontend_for(args, idim)
-            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
-            idim = args.n_mels
-        else:
-            self.frontend = None
 
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
@@ -191,14 +180,9 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: float
         """
         # 0. Frontend
-        if self.frontend is not None:
-            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
-            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
-        else:
-            hs_pad, hlens = xs_pad, ilens
-
+        xs_pad = to_torch_tensor(xs_pad)
         # 1. Encoder
-        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -315,15 +299,8 @@ class E2E(ASRInterface, torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
-        # 0. Frontend
-        if self.frontend is not None:
-            enhanced, hlens, mask = self.frontend(hs, ilens)
-            hs, hlens = self.feature_transform(enhanced, hlens)
-        else:
-            hs, hlens = hs, ilens
-
         # 1. encoder
-        hs, _, _ = self.enc(hs, hlens)
+        hs, _, _ = self.enc(hs, ilens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -359,15 +336,8 @@ class E2E(ASRInterface, torch.nn.Module):
         xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
 
-        # 0. Frontend
-        if self.frontend is not None:
-            enhanced, hlens, mask = self.frontend(xs_pad, ilens)
-            hs_pad, hlens = self.feature_transform(enhanced, hlens)
-        else:
-            hs_pad, hlens = xs_pad, ilens
-
         # 1. encoder
-        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -383,27 +353,6 @@ class E2E(ASRInterface, torch.nn.Module):
             self.train()
         return y
 
-    def enhance(self, xs):
-        """Forwarding only the frontend stage
-
-        :param ndarray xs: input acoustic feature (T, C, F)
-        """
-
-        if self.frontend is None:
-            raise RuntimeError('Frontend does\'t exist')
-        prev = self.training
-        self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
-        xs_pad = pad_list(xs, 0.0)
-        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
-        if prev:
-            self.train()
-        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
-
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
@@ -416,15 +365,9 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-            # 0. Frontend
-            if self.frontend is not None:
-                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
-                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
-            else:
-                hs_pad, hlens = xs_pad, ilens
-
+            xs_pad = to_torch_tensor(xs_pad)
             # 1. Encoder
-            hpad, hlens, _ = self.enc(hs_pad, hlens)
+            hpad, hlens, _ = self.enc(xs_pad, ilens)
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)

@@ -1,5 +1,5 @@
 # network architecture
-use-frontend: true   # Enable frontend and feature transform part in E2E forwarding
+frontend-module: "espnet.nets.pytorch_backend.frontend_asr:FrontendASR"
 # beamformer related
 use-beamformer: true
 blayers: 3
