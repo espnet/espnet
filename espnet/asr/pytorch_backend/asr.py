@@ -33,7 +33,7 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.asr_interface import FrontendInterface
+from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
@@ -265,7 +265,7 @@ def train(args):
     if args.frontend_module is not None:
         # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
         frontend_class = dynamic_import(args.frontend_module)
-        assert issubclass(frontend_class, FrontendInterface), frontend_class
+        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
         # Wrap model by frontend_class.
         model = frontend_class(idim, args, model)
 
@@ -510,7 +510,7 @@ def recog(args):
     if train_args.frontend_module is not None:
         # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
         frontend_class = dynamic_import(train_args.frontend_module)
-        assert issubclass(frontend_class, FrontendInterface), frontend_class
+        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
         # Wrap model by frontend_class.
         model = frontend_class(idim, train_args, model)
     torch_load(args.model, model)
@@ -642,7 +642,7 @@ def enhance(args):
         raise RuntimeError('--frontend_module is not set when training.')
 
     frontend_class = dynamic_import(train_args.frontend_module)
-    assert issubclass(frontend_class, FrontendInterface), frontend_class
+    assert issubclass(frontend_class, FrontendASRInterface), frontend_class
     model = frontend_class(idim, train_args, model)
     torch_load(args.model, model)
 

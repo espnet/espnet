@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.asr_interface import FrontendInterface
+from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.frontends.feature_transform import FeatureTransform
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -16,7 +16,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.utils.cli_utils import strtobool
 
 
-class FrontendASR(FrontendInterface, torch.nn.Module):
+class FrontendASR(FrontendASRInterface, torch.nn.Module):
     """An implementation of FrontendASR with WPE and MVDR"""
     @staticmethod
     def add_arguments(parser: Union[argparse.ArgumentParser,

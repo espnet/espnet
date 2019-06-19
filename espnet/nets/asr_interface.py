@@ -68,7 +68,7 @@ class ASRInterface(object):
         return PlotAttentionReport
 
 
-class FrontendInterface(ASRInterface):
+class FrontendASRInterface(ASRInterface):
     def __init__(self, idim: int, args: argparse.Namespace,
                  asr_model: torch.nn.Module):
         raise NotImplementedError("__init__ method is not implemented")
