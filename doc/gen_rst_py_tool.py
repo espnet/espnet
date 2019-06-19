@@ -15,7 +15,8 @@ class ModuleInfo:
         name = name.replace("/", ".")
         self.name = re.sub(r"^[\.]+", "", name)
         self.module = imm.SourceFileLoader(self.name, path).load_module()
-        assert hasattr(self.module, "get_parser"), f"{path} does not have get_parser()"
+        if not hasattr(self.module, "get_parser"):
+            raise ValueError(f"{path} does not have get_parser()")
 
 
 # parser
@@ -28,7 +29,15 @@ parser.add_argument('src', type=str, nargs='+',
 args = parser.parse_args()
 
 
-modinfo = [ModuleInfo(p) for p in args.src if "__init__.py" not in p]
+modinfo = []
+
+for p in args.src:
+    try:
+        modinfo.append(ModuleInfo(p))
+    except (ValueError, ModuleNotFoundError) as e:
+        import logging
+        logging.warning(f"ignore {p} ({e})")
+
 
 # print refs
 for m in modinfo:

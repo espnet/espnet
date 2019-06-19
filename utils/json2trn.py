@@ -14,15 +14,20 @@ import sys
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def main(args):
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert a json to a transcription file with a token dictionary',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('--num-spkrs', type=int, default=1, help='number of speakers')
     parser.add_argument('--refs', type=str, nargs='+', help='ref for all speakers')
     parser.add_argument('--hyps', type=str, nargs='+', help='hyp for all outputs')
-    args = parser.parse_args(args)
+    return parser
+
+
+def main(args):
+    args = get_parser().parse_args(args)
     convert(args.json, args.dict, args.refs, args.hyps, args.num_spkrs)
 
 
