@@ -38,7 +38,7 @@ class DurationPredictor(torch.nn.Module):
             )]
         self.linear = torch.nn.Linear(n_chans, 1)
 
-    def _forward(self, xs, x_masks=None, is_inferece=False):
+    def _forward(self, xs, x_masks=None, is_inference=False):
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for f in self.conv:
             xs = f(xs)  # (B, C, Tmax)
@@ -46,7 +46,7 @@ class DurationPredictor(torch.nn.Module):
         # NOTE: calculate in log domain
         xs = self.linear(xs.transpose(1, -1)).squeeze(-1)  # (B, Tmax)
 
-        if is_inferece:
+        if is_inference:
             # NOTE: calculate in linear domain
             xs = torch.clamp(torch.round(xs.exp() - self.offset), min=0).long()  # avoid negative value
 
