@@ -102,6 +102,70 @@ To test:
 - [setup.cfg](setup.cfg) configures pytest and flake8.
 - [.travis.yml](.travis.yml) configures Travis-CI.
 
+## Writing new tools
+
+You can place your new tools under
+- `espnet/bin`: heavy and large (e.g., neural network related) core tools.
+- `utils`: lightweight self-contained python/bash scripts.
+
+For `utils` scripts, do not forget to add test scripts under `test_utils`.
+
+### Python tools guideline
+
+To generate doc, do not forget `def get_parser(): -> ArgumentParser` in the main file.
+
+```python
+#!/usr/bin/env python3
+# Copyright XXX
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+import argparse
+
+# NOTE: do not forget this
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description="awsome tool",  # DO NOT forget this
+    )
+    ...
+    return parser
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
+    ...
+```
+
+### Bash tools guideline
+
+To generate doc, do not forget to write `. utils/parse_options` and its usage
+
+```bash
+#!/usr/bin/env bash
+
+# Copyright XXX
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+echo "$0 $*"  # Print the command line for logging
+# NOTE: do not forget this
+. ./path.sh
+
+verbose=0
+compress=true
+
+# NOTE: do not forget this
+. utils/parse_options.sh
+
+scp=$1
+cvmnark=$2
+
+# NOTE: do not forget this
+if [ $# != 4 ]; then
+    echo "Usage: $0 <scp> <cmvnark> (--verbose 0) (--compress true)"
+    exit 1;
+fi
+
+# NOTE: do not forget this
+set -euo pipefail
+```
+
 
 ## Writing documentation
 
