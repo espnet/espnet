@@ -35,6 +35,33 @@ $ cd docker
 $ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker_env "CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B" --ngpu 1
 ```
 
+## Local builds
+
+When building the docker container on a local machine, the espnet source is downloaded from the github espnet master branch.
+However, in some cases, "local" builds are preferable, that are built based on the source code from the local repository:
+
+1. After writing own modifications on the espnet code, the build environment, etc., and to test it in the docker container. Prebuilt docker containers do not import these.
+
+2. Reproducability: It is possible to go back to an espnet version at a certain commit and test the neural network with an older version of a library.
+
+The script `build.sh` supports making local builds for this purpose. During the docker build process, the local espnet source code is imported through a git archive based on git HEAD (the previous commit), and copied over within a file.
+
+For example, a local build that the base image from Docker Hub (`espnet/espnet:runtime`, based on Ubuntu 16), that already contains a kaldi installation, using Cuda 10.0:
+```
+./build.sh local 10.0
+```
+
+Also, docker images can also be built based on the Ubuntu version specified in `prebuilt/runtime/Dockerfile` (currently set to Ubuntu 18.04), in this example case using the cpu:
+```
+./build.sh fully_local cpu
+```
+
+Local container builds then can be started using `run.sh`, for example by:
+```
+$ ./run.sh --docker_os --docker_cuda 10.0 --docker_gpu 0 ...
+```
+
+
 ## Deprecated
 
 Containers build on ubuntu-16.04 will be deprecated and no longer receive support. However, these container will remain in Docker Hub.
