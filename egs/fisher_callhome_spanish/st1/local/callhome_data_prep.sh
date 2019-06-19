@@ -49,7 +49,8 @@ if [ ! -d links/LDC96S35 -o ! -d links/LDC96T17 ]; then
     exit 1;
 fi
 
-if [ ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ]; then
+if [ ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ] && \
+   [ ! -d links/LDC96S35/callhome/spanish/speech/devtest -o ! -d links/LDC96S35/callhome/spanish/speech/evltest -o ! -d links/LDC96S35/callhome/spanish/speech/train ]; then
     echo "Dev, Eval or Train directories missing or not properly organised within the speech data dir"
     exit 1;
 fi
