@@ -205,7 +205,7 @@ class Decoder(torch.nn.Module):
         logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
 
         # compute perplexity
-        ppl = np.exp(self.loss.item() * np.mean([len(x) for x in ys_in]) / np.sum([len(x) for x in ys_in]))
+        ppl = np.exp(self.loss.item())
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
