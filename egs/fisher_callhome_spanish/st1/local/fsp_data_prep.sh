@@ -23,13 +23,13 @@ if [ $# -lt 2 ]; then
     exit 1;
 fi
 
-cdir=`pwd`
-dir=`pwd`/data/local/data
-lmdir=`pwd`/data/local/nist_lm
+cdir=$(pwd)
+dir=$(pwd)/data/local/data
+lmdir=$(pwd)/data/local/nist_lm
 mkdir -p $dir $lmdir
-local=`pwd`/local
-utils=`pwd`/utils
-tmpdir=`pwd`/data/local/tmp
+local=$(pwd)/local
+utils=$(pwd)/utils
+tmpdir=$(pwd)/data/local/tmp
 mkdir -p $tmpdir
 
 . ./path.sh || exit 1; # Needed for KALDI_ROOT
@@ -72,10 +72,10 @@ fi
 speech=$dir/links/LDC2010S01/data/speech
 transcripts=$dir/links/LDC2010T04/fisher_spa_tr/data/transcripts
 
-#fcount_d1=`find ${speech_d1} -iname '*.sph' | wc -l`
-#fcount_d2=`find ${speech_d2} -iname '*.sph' | wc -l`
-fcount_s=`find ${speech} -iname '*.sph' | wc -l`
-fcount_t=`find ${transcripts} -iname '*.tdf' | wc -l`
+#fcount_d1=$(find ${speech_d1} -iname '*.sph' | wc -l)
+#fcount_d2=$(find ${speech_d2} -iname '*.sph' | wc -l)
+fcount_s=$(find ${speech} -iname '*.sph' | wc -l)
+fcount_t=$(find ${transcripts} -iname '*.tdf' | wc -l)
 #TODO:it seems like not all speech files have transcripts
 #Now check if we got all the files that we needed
 #if [ $fcount_d1 != 411 -o $fcount_d2 != 408 -o $fcount_t != 819 ];
@@ -107,50 +107,50 @@ fi
 
 if [ $stage -le 2 ]; then
     # sort $tmpdir/text.1 | grep -v '((' | \
-    cat $tmpdir/text.1 | grep -v '((' | \
-    # awk '{if (NF > 1){ print; }}' | \  # NOTE: do not remove here
+        cat $tmpdir/text.1 | grep -v '((' | \
+        # awk '{if (NF > 1){ print; }}' | \  # NOTE: do not remove here
     sed 's:<\s*[/]*\s*\s*for[ei][ei]g[nh]\s*\w*>::g' | \
-    sed 's:<lname>\([^<]*\)<\/lname>:\1:g' | \
-    sed 's:<lname[\/]*>::g' | \
-    # sed 's:<laugh>[^<]*<\/laugh>:[laughter]:g' | \  # NOTE: do not remove inside
+        sed 's:<lname>\([^<]*\)<\/lname>:\1:g' | \
+        sed 's:<lname[\/]*>::g' | \
+        # sed 's:<laugh>[^<]*<\/laugh>:[laughter]:g' | \  # NOTE: do not remove inside
     sed 's:<laugh>::g' | \
-    sed 's:<\/laugh>::g' | \
-    sed 's:<\s*cough[\/]*>:[noise]:g' | \
-    sed 's:<sneeze[\/]*>:[noise]:g' | \
-    sed 's:<breath[\/]*>:[noise]:g' | \
-    sed 's:<lipsmack[\/]*>:[noise]:g' | \
-    # sed 's:<background>[^<]*<\/background>:[noise]:g' | \  # NOTE: do not remove inside
+        sed 's:<\/laugh>::g' | \
+        sed 's:<\s*cough[\/]*>:[noise]:g' | \
+        sed 's:<sneeze[\/]*>:[noise]:g' | \
+        sed 's:<breath[\/]*>:[noise]:g' | \
+        sed 's:<lipsmack[\/]*>:[noise]:g' | \
+        # sed 's:<background>[^<]*<\/background>:[noise]:g' | \  # NOTE: do not remove inside
     sed 's:<background>::g' | \
-    sed 's:<\/background>::g' | \
-    sed -r 's:<[/]?background[/]?>:[noise]:g' | \
-    #One more time to take care of nested stuff
+        sed 's:<\/background>::g' | \
+        sed -r 's:<[/]?background[/]?>:[noise]:g' | \
+        #One more time to take care of nested stuff
     # sed 's:<laugh>[^<]*<\/laugh>:[laughter]:g' | \  # NOTE: do not remove inside
     sed 's:<laugh>::g' | \
-    sed 's:<\/laugh>::g' | \
-    sed -r 's:<[/]?laugh[/]?>:[laughter]:g' | \
-    #now handle the exceptions, find a cleaner way to do this?
+        sed 's:<\/laugh>::g' | \
+        sed -r 's:<[/]?laugh[/]?>:[laughter]:g' | \
+        #now handle the exceptions, find a cleaner way to do this?
     sed 's:<foreign langenglishhip hop::g' | \
-    sed 's:<foreign langenglishonline::g' | \
-    sed 's:<foreign langenglish::g' | \
-    sed 's:</foreign::g' | \
-    sed -r 's:<[/]?foreing\s*\w*>::g' | \
-    sed 's:</b::g' | \
-    sed 's:<foreign langengullís>::g' | \
-    sed 's:foreign>::g' | \
-    sed 's:>::g' | \
-    #How do you handle numbers?
+        sed 's:<foreign langenglishonline::g' | \
+        sed 's:<foreign langenglish::g' | \
+        sed 's:</foreign::g' | \
+        sed -r 's:<[/]?foreing\s*\w*>::g' | \
+        sed 's:</b::g' | \
+        sed 's:<foreign langengullís>::g' | \
+        sed 's:foreign>::g' | \
+        sed 's:>::g' | \
+        #How do you handle numbers?
     grep -v '()' | \
-    # NOTE: added
+        # NOTE: added
     sed 's:\[noise\]::g' | \
-    sed 's:\[laughter\]::g' | \
-    #Now go after the non-printable characters and multiple spaces
+        sed 's:\[laughter\]::g' | \
+        #Now go after the non-printable characters and multiple spaces
     # sed -r 's:¿::g'  | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
     sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
     cp $tmpdir/text.2 $dir/train_all/text
 
     #Create segments file and utt2spk file
     ! cat $dir/train_all/text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/train_all/utt2spk \
-    && echo "Error producing utt2spk file" && exit 1;
+        && echo "Error producing utt2spk file" && exit 1;
 
     # cat $dir/train_all/text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
     # $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); if ($s != $e) {print "$utt $reco $s $e\n"}; ' >$dir/train_all/segments
@@ -162,14 +162,14 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-    for f in `cat $tmpdir/train_sph.flist`; do
+    for f in $(cat $tmpdir/train_sph.flist); do
         # convert to absolute path
         make_absolute.sh $f
     done > $tmpdir/train_sph_abs.flist
 
     cat $tmpdir/train_sph_abs.flist | perl -ane 'm:/([^/]+)\.sph$: || die "bad line $_; ";  print "$1 $_"; ' > $tmpdir/sph.scp
     cat $tmpdir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
-    sort -k1,1 -u  > $dir/train_all/wav.scp || exit 1;
+        sort -k1,1 -u  > $dir/train_all/wav.scp || exit 1;
 fi
 
 if [ $stage -le 4 ]; then
