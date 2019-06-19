@@ -4,13 +4,17 @@ import argparse
 import yaml
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='get a specified attribute from a YAML file',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
     parser.add_argument('inyaml')
     parser.add_argument('attr', help='foo.bar will access yaml.load(inyaml)["foo"]["bar"]')
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    args = get_parser().parse_args()
     with open(args.inyaml, 'r') as f:
         indict = yaml.load(f, Loader=yaml.Loader)
 

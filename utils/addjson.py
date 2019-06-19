@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -16,6 +16,8 @@ import sys
 from distutils.util import strtobool
 
 from espnet.utils.cli_utils import get_commandline_args
+
+is_python2 = sys.version_info[0] == 2
 
 
 def get_parser():

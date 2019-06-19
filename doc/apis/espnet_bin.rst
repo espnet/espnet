@@ -1,7 +1,7 @@
-.. _NN tools:
+.. _core tools:
 
-NN tools
-========
+core tools
+==========
 
 ESPnet provides several command-line tools for training and evaluating neural networks (NN) under ``espnet/bin``:
 
