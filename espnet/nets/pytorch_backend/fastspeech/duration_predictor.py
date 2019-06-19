@@ -48,6 +48,8 @@ class DurationPredictor(torch.nn.Module):
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for idx in range(len(self.conv)):
             xs = self.conv[idx](xs)  # (B, C, Tmax)
+
+        # NOTE: calculate in log domain
         xs = self.linear(xs.transpose(1, -1)).squeeze(-1)  # (B, Tmax)
 
         if x_masks is not None:
@@ -66,6 +68,8 @@ class DurationPredictor(torch.nn.Module):
         for idx in range(len(self.conv)):
             xs = self.conv[idx](xs)  # (B, C, Tmax)
         xs = self.linear(xs.transpose(1, -1))  # (B, Tmax, 1)
+
+        # NOTE: calculate in linear domain
         xs = torch.clamp(torch.round(torch.exp(xs) - self.offset), min=0)  # avoid negative value
         xs = xs.squeeze(-1).long()
 
