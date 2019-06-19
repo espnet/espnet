@@ -102,6 +102,8 @@ def make_feedforward_transformer_args(**kwargs):
         duration_predictor_chans=128,
         duration_predictor_kernel_size=3,
         duration_predictor_dropout_rate=0.1,
+        positionwise_layer_type="linear",
+        positionwise_conv_kernel_size=1,
         transformer_enc_dropout_rate=0.1,
         transformer_enc_positional_dropout_rate=0.1,
         transformer_enc_attn_dropout_rate=0.0,
@@ -131,6 +133,7 @@ def make_feedforward_transformer_args(**kwargs):
         ({}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
+        ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
@@ -155,11 +158,6 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     model.teacher = teacher_model
     model.duration_calculator = DurationCalculator(model.teacher)
     optimizer = torch.optim.Adam(model.parameters())
-
-    # check initialization
-    model._init_encoder_from_teacher()
-    for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
-        np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
 
     # trainable
     loss = model(**batch).mean()
@@ -254,6 +252,36 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_masking": False}),
+        ({"use_scaled_pos_enc": False}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"encoder_concat_after": True}),
+        ({"decoder_concat_after": True}),
+        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+    ])
+def test_initialization(model_dict):
+    # make args
+    idim, odim = 10, 25
+    teacher_model_args = make_transformer_args(**model_dict)
+    model_args = make_feedforward_transformer_args(**model_dict)
+
+    # define model
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    model.teacher = teacher_model
+    model.duration_calculator = DurationCalculator(model.teacher)
+
+    # check initialization
+    model._init_encoder_from_teacher()
+    for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
+        np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
 
 
 def test_length_regularizer():
