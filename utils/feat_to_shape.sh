@@ -8,12 +8,7 @@ filetype=""
 preprocess_conf=""
 # End configuration section.
 
-echo "$0 $*" 1>&2 # Print the command line for logging
-
-. parse_options.sh || exit 1;
-
-if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-   cat << EOF 1>&2
+help_message=$(cat << EOF
 Usage: $0 [options] <input-scp> <output-scp> [<log-dir>]
 e.g.: $0 data/train/feats.scp data/train/shape.scp data/train/log
 Options:
@@ -23,7 +18,15 @@ Options:
   --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
   --verbose <num>                                  # Default: 0
 EOF
-   exit 1;
+)
+
+echo "$0 $*" 1>&2 # Print the command line for logging
+
+. parse_options.sh || exit 1;
+
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo $help_message  1>&2
+    exit 1;
 fi
 
 set -euo pipefail

@@ -5,6 +5,8 @@
 
 [ -f ./path.sh ] && . ./path.sh
 
+help_message="Usage: $0"
+
 . utils/parse_options.sh
 
 echo "  - Environments (obtained by \`\$ get_sys_info.sh\`)"

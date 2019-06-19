@@ -22,7 +22,7 @@ class ModuleInfo:
 
 # parser
 parser = configargparse.ArgumentParser(
-    description='generate rst file from argparse options',
+    description='generate RST from argparse options',
     config_file_parser_class=configargparse.YAMLConfigFileParser,
     formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('src', type=str, nargs='+',

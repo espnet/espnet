@@ -48,7 +48,7 @@ script:
     if $USE_CONDA; then
       source tools/venv/bin/activate
     fi
-    travis-sphinx build --source=doc --nowarn
+    ./ci/doc.sh
 
 sudo: false
 
