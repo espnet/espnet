@@ -15,13 +15,11 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import DurationCalculator
 from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformer
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import LengthRegularizer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
+from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
+from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-
-
 
 
 def prepare_inputs(idim, odim, ilens, olens,
@@ -339,7 +337,7 @@ def test_initialization(model_dict):
         shutil.rmtree(tmpdir)
 
 
-def test_length_regularizer():
+def test_length_regulator():
     # prepare inputs
     idim = 5
     ilens = [10, 5, 3]
@@ -347,13 +345,13 @@ def test_length_regularizer():
     ds = pad_list([torch.arange(ilen) for ilen in ilens], 0)
 
     # test with non-zero durations
-    length_regularizer = LengthRegularizer()
-    xs_expand = length_regularizer(xs, ds, ilens)
+    length_regulator = LengthRegulator()
+    xs_expand = length_regulator(xs, ds, ilens)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
 
     # test with duration including zero
     ds[:, 2] = 0
-    xs_expand = length_regularizer(xs, ds, ilens)
+    xs_expand = length_regulator(xs, ds, ilens)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
 
 

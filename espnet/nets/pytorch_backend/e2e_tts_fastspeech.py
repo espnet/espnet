@@ -15,7 +15,7 @@ from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictorLoss
-from espnet.nets.pytorch_backend.fastspeech.length_regularizer import LengthRegularizer
+from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -205,8 +205,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             dropout_rate=args.duration_predictor_dropout_rate,
         )
 
-        # define length regularizer
-        self.length_regularizer = LengthRegularizer()
+        # define length regulator
+        self.length_regulator = LengthRegulator()
 
         # define decoder
         # NOTE: we use encoder as decoder because fastspeech's decoder is the same as encoder
@@ -284,8 +284,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         d_masks = make_pad_mask(ilens).to(xs.device)
         d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
 
-        # apply length regularizer
-        hs = self.length_regularizer(hs, ds, ilens)  # (B, Lmax, adim)
+        # apply length regulator
+        hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
         # forward decoder
         h_masks = self._source_mask(olens)
@@ -347,8 +347,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             with torch.no_grad():
                 ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
 
-            # apply length regularizer
-            hs = self.length_regularizer(hs, ds, ilens)  # (B, Lmax, adim)
+            # apply length regulator
+            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
             # forward decoder
             h_masks = self._source_mask(olens)
@@ -389,8 +389,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         d_outs = self.duration_predictor.inference(hs, None)  # (B, Tmax)
 
-        # apply length regularizer
-        hs = self.length_regularizer(hs, d_outs, ilens)  # (B, Lmax, adim)
+        # apply length regulator
+        hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
 
         # forward decoder
         zs, _ = self.decoder(hs, None)  # (B, Lmax, adim)
