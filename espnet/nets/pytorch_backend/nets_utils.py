@@ -1,5 +1,8 @@
+from typing import Union
+
 import numpy as np
 import torch
+from torch_complex.tensor import ComplexTensor
 
 
 def to_device(m, x):
@@ -147,11 +150,9 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
     return new_state
 
 
-def to_torch_tensor(x):
+def to_torch_tensor(x: Union[np.ndarray, torch.Tensor, ComplexTensor]) \
+        -> Union[torch.Tensor, ComplexTensor]:
     """Change to torch.Tensor or ComplexTensor from numpy.ndarray
-
-    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
-    :rtype: Union[torch.Tensor, ComplexTensor]:
 
         >>> xs = np.ones(3, dtype=np.float32)
         >>> xs = to_torch_tensor(xs)
@@ -171,17 +172,12 @@ def to_torch_tensor(x):
     # If numpy, change to torch tensor
     if isinstance(x, np.ndarray):
         if x.dtype.kind == 'c':
-            # Dynamically importing because torch_complex requires python3
-            from torch_complex.tensor import ComplexTensor
             return ComplexTensor(x)
         else:
             return torch.from_numpy(x)
 
     # If {'real': ..., 'imag': ...}, convert to ComplexTensor
     elif isinstance(x, dict):
-        # Dynamically importing because torch_complex requires python3
-        from torch_complex.tensor import ComplexTensor
-
         if 'real' not in x or 'imag' not in x:
             raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
         # Relative importing because of using python3 syntax
@@ -195,14 +191,7 @@ def to_torch_tensor(x):
         error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
                  "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
                  "but got {}".format(type(x)))
-        try:
-            from torch_complex.tensor import ComplexTensor
-        except Exception:
-            # If PY2
-            raise ValueError(error)
+        if isinstance(x, ComplexTensor):
+            return x
         else:
-            # If PY3
-            if isinstance(x, ComplexTensor):
-                return x
-            else:
-                raise ValueError(error)
+            raise ValueError(error)
