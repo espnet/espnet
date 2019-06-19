@@ -639,7 +639,7 @@ def enhance(args):
     model.recog_args = args
 
     if train_args.frontend_module is None:
-        raise RuntimeError('--frontend_module is not set when training.')
+        raise RuntimeError('--frontend-module is not set when training.')
 
     frontend_class = dynamic_import(train_args.frontend_module)
     assert issubclass(frontend_class, FrontendASRInterface), frontend_class
