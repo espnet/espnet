@@ -1,8 +1,8 @@
-.. _command-line tools for NN:
+.. _NN tools:
 
-command-line tools under espnet/bin
-===================================
+NN tools
+========
 
-ESPnet provides several command-line tools for training and evaluating neural networks (NN):
+ESPnet provides several command-line tools for training and evaluating neural networks (NN) under ``espnet/bin``:
 
 .. include:: ../_gen/espnet_bin.rst

@@ -20,7 +20,7 @@ class ModuleInfo:
 
 # parser
 parser = configargparse.ArgumentParser(
-    description='generate rst file from argparse options'
+    description='generate rst file from argparse options',
     config_file_parser_class=configargparse.YAMLConfigFileParser,
     formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('src', type=str, nargs='+',
@@ -34,7 +34,7 @@ modinfo = [ModuleInfo(p) for p in args.src if "__init__.py" not in p]
 for m in modinfo:
     d = m.module.get_parser().description
     if d is None:
-        d = "to be documented"
+        d = "(no description provided)"
     print(f"- :ref:`{m.path.name}`: {d}")
 
 print()

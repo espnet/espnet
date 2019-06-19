@@ -16,10 +16,17 @@ espnet is an end-to-end speech processing toolkit.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Reference Manual:
+   :caption: Package Reference:
 
    ./apis/nets.rst
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tool Reference:
+
    ./apis/espnet_bin.rst
+   ./apis/utils_py.rst
+   ./apis/utils_sh.rst
 
 
 Indices and tables
