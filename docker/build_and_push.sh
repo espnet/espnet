@@ -32,9 +32,14 @@ cmd_usage() {
             push            push to docker hub
             build_and_push  automated build, test and push
             local           build a docker container from the local ESPnet repository
-                            using the base image from docker hub (espnet/espnet:runtime)
+                            using the base image from Docker Hub (espnet/espnet:runtime)
                             optional: cpu or CUDA version (default: cpu)
-            fully_local     like local, but also build the base image
+            fully_local     like local, but also builds the base image
+
+    CAVEATS
+        For local builds, the image pulled from Docker Hub is based on Ubuntu 16,
+        whereas a fully_local build uses the distribution specified in
+        prebuilt/runtime/Dockerfile (currently set to Ubuntu 18.04).
 
 	_EOF
     exit 1
