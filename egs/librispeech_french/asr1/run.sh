@@ -20,18 +20,19 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
-decode_config=conf/decode.yaml
+train_config=conf/tuning_asr/train_rnn_char.yaml
+lm_config=conf/tuning_asr/lm_char.yaml
+decode_config=conf/tuning_asr/decode_rnn_char.yaml
+
+# rnnlm related
+lm_resume=        # specify a snapshot file to resume LM training
+lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# pre-training related
-asr_model=
-mt_model=
-
 # preprocessing related
-case=lc
+case=lc.rm
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
@@ -62,10 +63,10 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.fr
+train_set=train_sp.en
 train_set_prefix=train_sp
-train_dev=train_dev.fr
-recog_set="dev.fr test.fr"
+train_dev=train_dev.en
+recog_set="dev.en test.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -152,12 +153,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/asr2/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/asr2/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -193,42 +194,53 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --nlsyms ${nlsyms} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.${case}.json
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set_prefix}.fr.gtranslate/text.${case} --nlsyms ${nlsyms} \
-        data/${train_set_prefix}.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate.${case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --nlsyms ${nlsyms} \
+    local/data2json.sh --nj 16 --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --nlsyms ${nlsyms} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.${case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
     done
-
-    # update json (add source references)
-    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data.${case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict}
-    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data_gtranslate.${case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict}
-    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_dt_dir}/data.${case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".en ${dict}
-
-    # concatenate Fr and Fr (Google translation) jsons
-    local/concat_json_multiref.py \
-        ${feat_tr_dir}/data.${case}.json \
-        ${feat_tr_dir}/data_gtranslate.${case}.json > ${feat_tr_dir}/data_2ref.${case}.json
 fi
 
-# NOTE: skip stage 3: LM Preparation
+# You can skip this and remove --rnnlm option in the recognition (stage 3)
+if [ -z ${lmtag} ]; then
+    lmtag=$(basename ${lm_config%.*})_${case}
+fi
+lmexpname=${train_set}_${case}_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
+mkdir -p ${lmexpdir}
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_${train_set}
+    mkdir -p ${lmdatadir}
+    grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
+        > ${lmdatadir}/train_${case}.txt
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text.${case} | cut -f 2- -d " " \
+        > ${lmdatadir}/valid_${case}.txt
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+    fi
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+        lm_train.py \
+        --config ${lm_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train_${case}.txt \
+        --valid-label ${lmdatadir}/valid_${case}.txt \
+        --resume ${lm_resume} \
+        --dict ${dict}
+fi
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${case}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
-    fi
-    if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
-    fi
-    if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
@@ -253,7 +265,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_2ref.${case}.json \
+        --train-json ${feat_tr_dir}/data.${case}.json \
         --valid-json ${feat_dt_dir}/data.${case}.json
 fi
 
@@ -283,7 +295,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_sclite.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
