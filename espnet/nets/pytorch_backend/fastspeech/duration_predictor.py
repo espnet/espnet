@@ -46,8 +46,8 @@ class DurationPredictor(torch.nn.Module):
         :return torch.Tensor: predicted duration tensor in log domain (B, Tmax)
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
-        for idx in range(len(self.conv)):
-            xs = self.conv[idx](xs)  # (B, C, Tmax)
+        for f in self.conv:
+            xs = f(xs)  # (B, C, Tmax)
 
         # NOTE: calculate in log domain
         xs = self.linear(xs.transpose(1, -1)).squeeze(-1)  # (B, Tmax)
@@ -65,8 +65,8 @@ class DurationPredictor(torch.nn.Module):
         :return torch.Tensor: predicted duration in linear domain with the shape (B, Tmax)
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
-        for idx in range(len(self.conv)):
-            xs = self.conv[idx](xs)  # (B, C, Tmax)
+        for f in self.conv:
+            xs = f(xs)  # (B, C, Tmax)
         xs = self.linear(xs.transpose(1, -1))  # (B, Tmax, 1)
 
         # NOTE: calculate in linear domain
