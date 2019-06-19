@@ -1,4 +1,4 @@
-# transformer (accum grad 8)
+# pytorch Transformer (accum grad 8, single GPU)
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Wed Jun 19 16:58:42 EDT 2019`
     - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
@@ -8,7 +8,7 @@
     - pytorch version: `pytorch 1.0.1.post2`
     - Git hash: `b32af59f229b54801a2cf7e4b8a48cadccd5fe5a`
   - Model files (archived to model.v1.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/open?id=1bOaOEIZBveERti0x6mnBYiNsn6MSRd2E
     - training config file: `conf/tuning/train_pytorch_transformer_lr5.0_ag8.v2.yaml`
     - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
     - cmvn file: `data/train_960/cmvn.ark`
@@ -33,7 +33,7 @@ exp/train_960_pytorch_train_pytorch_transformer_lr5.0_ag8.v2/decode_test_other_d
 ```
 
 # pytorch Transformer without any hyper-parameter tuning
-# #train_960_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu3_bs32_lr10.0_warmup25000_mli512_mlo150_epochs100_accum2_lennormFalse_lsmunigram0.1/
+## train_960_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu3_bs32_lr10.0_warmup25000_mli512_mlo150_epochs100_accum2_lennormFalse_lsmunigram0.1/
 ```
 decode_dev_clean_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 3.8
 decode_dev_other_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 9.9
