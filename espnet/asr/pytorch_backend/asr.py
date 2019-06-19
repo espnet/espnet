@@ -120,7 +120,7 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, grad_noise, accum_grad=1):
+                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -369,7 +369,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.grad_noise, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
