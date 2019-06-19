@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 
 import configargparse
 import logging
@@ -19,8 +18,10 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
-def main(cmd_args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -277,7 +278,11 @@ def main(cmd_args):
                         help='')
     parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
+    return parser
 
+
+def main(cmd_args):
+    parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 
     from espnet.utils.dynamic_import import dynamic_import

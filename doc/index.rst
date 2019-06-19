@@ -19,6 +19,7 @@ espnet is an end-to-end speech processing toolkit.
    :caption: Reference Manual:
 
    ./apis/nets.rst
+   ./apis/espnet_bin.rst
 
 
 Indices and tables
