@@ -3,6 +3,8 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+export LC_ALL=C
+
 . ./path.sh
 
 nlsyms=""
@@ -40,35 +42,19 @@ if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/ref.trn
 fi
 
-# case-sensitive
-if [ ${case} = tc ]; then
-  sclite -s -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.tc.txt
-
-  echo "write a case-sensitive CER (or TER) result in ${dir}/result.tc.txt"
-  grep -e Avg -e SPKR -m 2 ${dir}/result.tc.txt
-
-  if ${wer}; then
-      if [ -n "$bpe" ]; then
-          spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
-          spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
-      else
-          sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
-          sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
-      fi
-      sclite -s -r ${dir}/ref.wrd.trn trn -h ${dir}/hyp.wrd.trn trn -i rm -o all stdout > ${dir}/result.wrd.tc.txt
-
-      echo "write a case-sensitive WER result in ${dir}/result.wrd.tc.txt"
-      grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.tc.txt
-  fi
-fi
+# lowercasing
+lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.lc
+lowercase.perl < ${dir}/ref.trn > ${dir}/ref.trn.lc
 
 # remove punctuation
-paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn | local/remove_punctuation.pl | sed -e "s/¿//g" | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn) \
-    > ${dir}/hyp.trn.lc.rm
-paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn | local/remove_punctuation.pl | sed -e "s/¿//g" | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn) \
-    > ${dir}/ref.trn.lc.rm
+paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn.lc) > ${dir}/hyp.trn.lc.rm
+paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn.lc) > ${dir}/ref.trn.lc.rm
 
-sclite -r ${dir}/ref.trn.lc.rm trn -h ${dir}/hyp.trn.lc.rm trn -i rm -o all stdout > ${dir}/result.txt
+# detokenize
+detokenizer.perl -l en -q < ${dir}/ref.trn.lc.rm > ${dir}/ref.trn.lc.rm.detok
+detokenizer.perl -l en -q < ${dir}/hyp.trn.lc.rm > ${dir}/hyp.trn.lc.rm.detok
+
+sclite -r ${dir}/ref.trn.lc.rm.detok trn -h ${dir}/hyp.trn.lc.rm.detok trn -i rm -o all stdout > ${dir}/result.txt
 
 echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
@@ -81,7 +67,12 @@ if ${wer}; then
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn.lc.rm > ${dir}/ref.wrd.trn.lc.rm
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm
     fi
-    sclite -r ${dir}/ref.wrd.trn.lc.rm trn -h ${dir}/hyp.wrd.trn.lc.rm trn -i rm -o all stdout > ${dir}/result.wrd.txt
+
+    # detokenize
+    detokenizer.perl -l en -q < ${dir}/ref.wrd.trn.lc.rm > ${dir}/ref.wrd.trn.lc.rm.detok
+    detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm.detok
+
+    sclite -r ${dir}/ref.wrd.trn.lc.rm.detok trn -h ${dir}/hyp.wrd.trn.lc.rm.detok trn -i rm -o all stdout > ${dir}/result.wrd.txt
 
     echo "write a WER result in ${dir}/result.wrd.txt"
     grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt

@@ -32,8 +32,8 @@ tmpdir=$(pwd)/data/local/tmp
 export PATH=$PATH:$KALDI_ROOT/tools/irstlm/bin
 sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
 if [ ! -x $sph2pipe ]; then
-   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
-   exit 1;
+    echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
+    exit 1;
 fi
 cd $dir
 
@@ -123,7 +123,7 @@ if [ $stage -le 2 ]; then
 
     #Create segments file and utt2spk file
     ! cat $dir/callhome_train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/callhome_train_all/callhome_utt2spk \
-    && echo "Error producing utt2spk file" && exit 1;
+        && echo "Error producing utt2spk file" && exit 1;
 
     cat $dir/callhome_train_all/callhome.text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
     $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); print "$utt $reco $s $e\n"; ' >$dir/callhome_train_all/callhome_segments
@@ -139,14 +139,14 @@ if [ $stage -le 3 ]; then
 
     cat $tmpdir/callhome_train_sph_abs.flist | perl -ane 'm:/([^/]+)\.(SPH|sph)$: || die "bad line $_; ";  print lc($1)," $_"; ' > $tmpdir/callhome_sph.scp
     cat $tmpdir/callhome_sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
-    sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
+        sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
 fi
 
 if [ $stage -le 4 ]; then
-      # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
-      cd $cdir
-      #TODO: needs to be rewritten
-      $local/callhome_make_spk2gender.py > $dir/callhome_train_all/callhome_spk2gender
+    # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
+    cd $cdir
+    #TODO: needs to be rewritten
+    $local/callhome_make_spk2gender.py > $dir/callhome_train_all/callhome_spk2gender
 fi
 
 # Rename files from the callhome directory

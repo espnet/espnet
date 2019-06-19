@@ -11,7 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-case=lc.rm
+case=lc
 set=""
 
 . utils/parse_options.sh
@@ -26,12 +26,12 @@ dic_tgt=$2
 dic_src=$3
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-json2trn_mt.py ${dir}/data.json ${dic_tgt} --ref ${dir}/ref.trn.org \
-    --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org --dict-src ${dic_src}
+json2trn_mt.py ${dir}/data.json ${dic_tgt} --refs ${dir}/ref.trn.org \
+    --hyps ${dir}/hyp.trn.org --srcs ${dir}/src.trn.org --dict-src ${dic_src}
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    json2trn_mt.py ${dir}/data_ref1.json ${dic_tgt} --ref ${dir}/ref1.trn.org
-    json2trn_mt.py ${dir}/data_ref2.json ${dic_tgt} --ref ${dir}/ref2.trn.org
-    json2trn_mt.py ${dir}/data_ref3.json ${dic_tgt} --ref ${dir}/ref3.trn.org
+    json2trn_mt.py ${dir}/data_ref1.json ${dic_tgt} --refs ${dir}/ref1.trn.org
+    json2trn_mt.py ${dir}/data_ref2.json ${dic_tgt} --refs ${dir}/ref2.trn.org
+    json2trn_mt.py ${dir}/data_ref3.json ${dic_tgt} --refs ${dir}/ref3.trn.org
 fi
 
 # remove uttterance id
@@ -42,33 +42,6 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     perl -pe 's/\([^\)]+\)//g;' ${dir}/ref1.trn.org > ${dir}/ref1.trn
     perl -pe 's/\([^\)]+\)//g;' ${dir}/ref2.trn.org > ${dir}/ref2.trn
     perl -pe 's/\([^\)]+\)//g;' ${dir}/ref3.trn.org > ${dir}/ref3.trn
-fi
-
-if [ ! -z ${nlsyms} ]; then
-    cp ${dir}/ref.trn ${dir}/ref.trn.org
-    cp ${dir}/hyp.trn ${dir}/hyp.trn.org
-    cp ${dir}/src.trn ${dir}/src.trn.org
-    filt.py -v $nlsyms ${dir}/ref.trn.org > ${dir}/ref.trn
-    filt.py -v $nlsyms ${dir}/hyp.trn.org > ${dir}/hyp.trn
-    filt.py -v $nlsyms ${dir}/src.trn.org > ${dir}/src.trn
-    if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-        cp ${dir}/ref1.trn ${dir}/ref1.trn.org
-        cp ${dir}/ref2.trn ${dir}/ref2.trn.org
-        cp ${dir}/ref3.trn ${dir}/ref3.trn.org
-        filt.py -v $nlsyms ${dir}/ref1.trn.org > ${dir}/ref1.trn
-        filt.py -v $nlsyms ${dir}/ref2.trn.org > ${dir}/ref2.trn
-        filt.py -v $nlsyms ${dir}/ref3.trn.org > ${dir}/ref3.trn
-    fi
-fi
-if [ ! -z ${filter} ]; then
-    sed -i.bak3 -f ${filter} ${dir}/hyp.trn
-    sed -i.bak3 -f ${filter} ${dir}/ref.trn
-    sed -i.bak3 -f ${filter} ${dir}/src.trn
-    if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-        sed -i.bak3 -f ${filter} ${dir}/ref1.trn
-        sed -i.bak3 -f ${filter} ${dir}/ref2.trn
-        sed -i.bak3 -f ${filter} ${dir}/ref3.trn
-    fi
 fi
 
 if [ ! -z ${bpemodel} ]; then
@@ -101,6 +74,33 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     detokenizer.perl -l en -q < ${dir}/ref3.wrd.trn > ${dir}/ref3.wrd.trn.detok
 fi
 
+if [ ! -z ${nlsyms} ]; then
+    cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.org
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.org
+    cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.org
+    filt.py -v $nlsyms ${dir}/ref.wrd.trn.detok.org > ${dir}/ref.wrd.trn.detok
+    filt.py -v $nlsyms ${dir}/hyp.wrd.trn.detok.org > ${dir}/hyp.wrd.trn.detok
+    filt.py -v $nlsyms ${dir}/src.wrd.trn.detok.org > ${dir}/src.wrd.trn.detok
+    if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+        cp ${dir}/ref1.wrd.trn.detok ${dir}/ref1.wrd.trn.detok.org
+        cp ${dir}/ref2.wrd.trn.detok ${dir}/ref2.wrd.trn.detok.org
+        cp ${dir}/ref3.wrd.trn.detok ${dir}/ref3.wrd.trn.detok.org
+        filt.py -v $nlsyms ${dir}/ref1.wrd.trn.detok.org > ${dir}/ref1.wrd.trn.detok
+        filt.py -v $nlsyms ${dir}/ref2.wrd.trn.detok.org > ${dir}/ref2.wrd.trn.detok
+        filt.py -v $nlsyms ${dir}/ref3.wrd.trn.detok.org > ${dir}/ref3.wrd.trn.detok
+    fi
+fi
+if [ ! -z ${filter} ]; then
+    sed -i.bak3 -f ${filter} ${dir}/hyp.wrd.trn.detok
+    sed -i.bak3 -f ${filter} ${dir}/ref.wrd.trn.detok
+    sed -i.bak3 -f ${filter} ${dir}/src.wrd.trn.detok
+    if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+        sed -i.bak3 -f ${filter} ${dir}/ref1.wrd.trn.detok
+        sed -i.bak3 -f ${filter} ${dir}/ref2.wrd.trn.detok
+        sed -i.bak3 -f ${filter} ${dir}/ref3.wrd.trn.detok
+    fi
+fi
+
 if [ ${case} = tc ]; then
     echo ${set} > ${dir}/result.tc.txt
     if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
@@ -114,20 +114,20 @@ if [ ${case} = tc ]; then
     cat ${dir}/result.tc.txt
 fi
 
-# detokenize
-cat ${dir}/ref.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok.lc.rm
-cat ${dir}/hyp.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok.lc.rm
-cat ${dir}/src.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok.lc.rm
+# detokenize & remove punctuation except apostrophi
+local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    cat ${dir}/ref1.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok.lc.rm
-    cat ${dir}/ref2.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok.lc.rm
-    cat ${dir}/ref3.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok.lc.rm
+    local/remove_punctuation.pl < ${dir}/ref1.wrd.trn.detok > ${dir}/ref1.wrd.trn.detok.lc.rm
+    local/remove_punctuation.pl < ${dir}/ref2.wrd.trn.detok > ${dir}/ref2.wrd.trn.detok.lc.rm
+    local/remove_punctuation.pl < ${dir}/ref3.wrd.trn.detok > ${dir}/ref3.wrd.trn.detok.lc.rm
 fi
 
 echo ${set} > ${dir}/result.lc.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     # 4 references
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm \
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm  \
                               ${dir}/ref1.wrd.trn.detok.lc.rm \
                               ${dir}/ref2.wrd.trn.detok.lc.rm \
                               ${dir}/ref3.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
@@ -137,6 +137,5 @@ else
 fi
 echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 cat ${dir}/result.lc.txt
-
 
 # TODO(hirofumi): add TER & METEOR metrics here
