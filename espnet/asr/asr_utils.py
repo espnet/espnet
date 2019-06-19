@@ -237,6 +237,20 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
         shutil.rmtree(tmpdir)
 
 
+def add_gradient_noise(model, epoch, eta):
+    """Adds noise from a std normal distribution to the gradients
+    This reduces overfitting issue for larger vocab corpus and can be
+    treated as an annealing factor Ref: http://deliprao.com/archives/156
+    and http://deliprao.com/archives/153."""
+
+    sigma = eta / epoch**0.55
+    for param in model.predictor.parameters():
+        if param.grad is not None:
+            _shape = param.grad.size()
+            noise = sigma * torch.randn(_shape).cuda()
+            param.grad += noise
+
+
 # * -------------------- general -------------------- *
 class AttributeDict(object):
     def __init__(self, obj):
