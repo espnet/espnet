@@ -27,10 +27,10 @@ WORKDIR /espnet/tools
 RUN if [ -z "$( nvcc -V )" ]; then \
         make KALDI=/kaldi CUPY_VERSION=''; \
     else \
-        sed -i '158s|install.py|install.py --no-cupy|' Makefile && \
+        sed -i '159s|install.py|install.py --no-cupy|' Makefile && \
         sed -i '19s|nvidia-smi|nvcc|' Makefile && \
-        make KALDI=/kaldi; \
-    fi
+        make KALDI=/kaldi CUDA_VERSION=${CUDA_VER}; \
+fi
 
 RUN rm -rf ../espnet
 
