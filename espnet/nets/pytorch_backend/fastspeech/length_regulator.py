@@ -12,6 +12,9 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class LengthRegulator(torch.nn.Module):
     """Length regulator module
 
+    The length regulator expands char or phoneme-level embedding features to frame-level
+    by repeating each feature based on the corresponding predicted durations.
+
     Reference:
         FastSpeech: Fast, Robust and Controllable Text to Speech
         (https://arxiv.org/pdf/1905.09263.pdf)
@@ -26,8 +29,8 @@ class LengthRegulator(torch.nn.Module):
     def forward(self, xs, ds, ilens, alpha=1.0):
         """Apply length regulator
 
-        :param torch.Tensor xs: input tensor with the shape (B, Tmax, D)
-        :param torch.Tensor ds: duration of each components of each sequence (B, T)
+        :param torch.Tensor xs: char or phoneme embedding tensor with the shape (B, Tmax, D)
+        :param torch.Tensor ds: duration of each frame of each sequence (B, T)
         :param torch.Tensor ilens: batch of input lengths (B,)
         :param float alpha: alpha value to control speed of speech
         :return torch.Tensor: length regularized input tensor (B, T*, D)
