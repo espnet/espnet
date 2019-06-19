@@ -219,7 +219,7 @@ def main(cmd_args):
 
     if args.frontend_module is not None:
         frontend_class = dynamic_import(args.frontend_module)
-        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr.py
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
         frontend_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)

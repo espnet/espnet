@@ -156,18 +156,34 @@ class FrontendASR(FrontendInterface, torch.nn.Module):
         ilens = [x.shape[0]]
 
         # subsample frame
-        x = x[::self.subsample[0], :]
+        x = x[::self.asr_model.subsample[0], :]
         h = to_device(self, to_torch_tensor(x).float())
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
-        # 0. Frontend
-        if self.frontend is not None:
-            enhanced, hlens, mask = self.frontend(hs, ilens)
-            hs, hlens = self.feature_transform(enhanced, hlens)
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr.py
+        enhanced, hlens, mask = self.frontend(hs, ilens)
+        hs, hlens = self.feature_transform(enhanced, hlens)
+
         if prev:
             self.train()
-        return self.asr_model(hs, recog_args, char_list, rnnlm=None)
+        return self.asr_model.recognize(hs[0], recog_args, char_list, rnnlm=None)
+
+    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
+        prev = self.training
+        self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
+        # subsample frame
+        xs = [xx[::self.asr_model.subsample[0], :] for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
+
+        enhanced, hlens, mask = self.frontend(xs_pad, ilens)
+        hs_pad, hlens = self.feature_transform(enhanced, hlens)
+        if prev:
+            self.train()
+        return self.asr_model.recognize_batch(hs_pad, recog_args, char_list, rnnlm=None)
 
     def enhance(self, xs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Forwarding only the frontend stage
@@ -179,10 +195,18 @@ class FrontendASR(FrontendInterface, torch.nn.Module):
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
 
         # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
+        xs = [xx[::self.asr_model.subsample[0], :] for xx in xs]
         xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
         enhanced, hlens, mask = self.frontend(xs_pad, ilens)
         if prev:
             self.train()
-        return enhanced.cpu().numpy(), hlens.cpu().numpy(), mask.cpu().numpy()
+        if mask is not None:
+            mask = mask.cpu().numpy()
+        return enhanced.cpu().numpy(), hlens.cpu().numpy(), mask
+
+    def calculate_all_attentions(self, xs: list, ilens: np.ndarray, ys: list):
+        xs = to_torch_tensor(xs)
+        enhanced, hlens, mask = self.frontend(xs, ilens)
+        hs, hlens = self.feature_transform(enhanced, hlens)
+        return self.asr_model.calculate_all_attentions(hs, hlens, ys)

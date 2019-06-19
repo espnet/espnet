@@ -5,11 +5,11 @@
 
 
 import copy
+from itertools import zip_longest
 import json
 import logging
 import math
 import os
-import sys
 
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
@@ -18,6 +18,7 @@ from chainer.training import extensions
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
+import yaml
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
@@ -52,11 +53,6 @@ from espnet.utils.training.train_utils import set_early_stop
 
 import matplotlib
 matplotlib.use('Agg')
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
 
 REPORT_INTERVAL = 100
 
@@ -267,8 +263,10 @@ def train(args):
         model.rnnlm = rnnlm
 
     if args.frontend_module is not None:
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
         frontend_class = dynamic_import(args.frontend_module)
-        assert issubclass(frontend_class, FrontendInterface), model_class
+        assert issubclass(frontend_class, FrontendInterface), frontend_class
+        # Wrap model by frontend_class.
         model = frontend_class(idim, args, model)
 
     # write model config
@@ -489,9 +487,13 @@ def recog(args):
     else:
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
     model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
-    assert isinstance(model, ASRInterface)
-    torch_load(args.model, model)
+    if train_args.frontend_module is not None:
+        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
+        _idim = train_args.n_mels
+    else:
+        _idim = idim
+    model = model_class(_idim, odim, train_args)
+    assert isinstance(model, ASRInterface), type(model)
     model.recog_args = args
 
     # read rnnlm
@@ -504,6 +506,14 @@ def recog(args):
         rnnlm.eval()
     else:
         rnnlm = None
+
+    if train_args.frontend_module is not None:
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
+        frontend_class = dynamic_import(train_args.frontend_module)
+        assert issubclass(frontend_class, FrontendInterface), frontend_class
+        # Wrap model by frontend_class.
+        model = frontend_class(idim, train_args, model)
+    torch_load(args.model, model)
 
     if args.word_rnnlm:
         rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
@@ -619,10 +629,22 @@ def enhance(args):
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
     model_class = dynamic_import(train_args.model_module)
-    model = model_class(idim, odim, train_args)
-    assert isinstance(model, ASRInterface)
-    torch_load(args.model, model)
+    if train_args.frontend_module is not None:
+        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
+        _idim = train_args.n_mels
+    else:
+        _idim = idim
+    model = model_class(_idim, odim, train_args)
+    assert isinstance(model, ASRInterface), type(model)
     model.recog_args = args
+
+    if train_args.frontend_module is None:
+        raise RuntimeError('--frontend_module is not set when training.')
+
+    frontend_class = dynamic_import(train_args.frontend_module)
+    assert issubclass(frontend_class, FrontendInterface), frontend_class
+    model = frontend_class(idim, train_args, model)
+    torch_load(args.model, model)
 
     # gpu
     if args.ngpu == 1:
@@ -671,7 +693,7 @@ def enhance(args):
                 #                  "n_fft": 512, "n_shift": 160,
                 #                  "window": "han"},
                 #                 {"type": "foo", ...}, ...]}
-                conf = json.load(f)
+                conf = yaml.load(f, Loader=yaml.Loader)
                 assert 'process' in conf, conf
                 # Find stft setting
                 for p in conf['process']:
@@ -718,7 +740,8 @@ def enhance(args):
             feats = org_feats
 
         with torch.no_grad():
-            enhanced, mask, ilens = model.enhance(feats)
+            # FIXME(kamo): Assuming using mask
+            enhanced, ilens, mask = model.enhance(feats)
 
         for idx, name in enumerate(names):
             # Assuming mask, feats : [Batch, Time, Channel. Freq]
