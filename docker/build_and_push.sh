@@ -147,7 +147,7 @@ elif [[ $1 == "local" ]]; then
     build_local
 elif [[ $1 == "fully_local" ]]; then
     build_base_image=true
-    build_local_gpu
+    build_local
 elif [[ $1 == "push" ]]; then
     push
 elif [[ $1 == "build_and_push" ]]; then
