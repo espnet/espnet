@@ -50,7 +50,6 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-
 import matplotlib
 matplotlib.use('Agg')
 
