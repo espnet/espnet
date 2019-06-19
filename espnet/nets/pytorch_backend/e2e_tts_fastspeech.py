@@ -10,13 +10,13 @@ import torch
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictorLoss
 from espnet.nets.pytorch_backend.fastspeech.length_regularizer import LengthRegularizer
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding

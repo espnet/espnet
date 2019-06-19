@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
