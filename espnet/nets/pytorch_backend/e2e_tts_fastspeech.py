@@ -209,6 +209,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.length_regularizer = LengthRegularizer()
 
         # define decoder
+        # NOTE: we use encoder as decoder because fastspeech's decoder is the same as encoder
         self.decoder = Encoder(
             idim=0,
             attention_dim=args.adim,
