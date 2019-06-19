@@ -134,7 +134,6 @@ push(){
 }
 
 
-
 ## Parameter initialization: cpu or gpu docker container (default: cpu)
 if [[ -z "$2" ]]; then
     ver='cpu'
