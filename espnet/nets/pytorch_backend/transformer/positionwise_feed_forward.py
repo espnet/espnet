@@ -23,4 +23,4 @@ class PositionwiseConv1d(torch.nn.Module):
 
     def forward(self, x):
         x = torch.relu(self.w_1(x.transpose(-1, 1))).transpose(-1, 1)
-        return self.w_2(self.dropout(x)).transpose(-1, 1)
+        return self.w_2(self.dropout(x).transpose(-1, 1)).transpose(-1, 1)
