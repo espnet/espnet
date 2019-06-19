@@ -254,6 +254,35 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # TODO(kan-bayashi): support knowledge distillation loss
         self.criterion = torch.nn.L1Loss()
 
+    def _forward(self, xs, ilens, ys=None, olens=None, is_inference=False):
+        # forward encoder
+        x_masks = self._source_mask(ilens)
+        hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
+
+        # forward duration predictor and length regulator
+        d_masks = make_pad_mask(ilens).to(xs.device)
+        if is_inference:
+            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
+            hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
+        else:
+            with torch.no_grad():
+                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
+            d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
+            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+
+        # forward decoder
+        if olens is not None:
+            h_masks = self._source_mask(olens)
+        else:
+            h_masks = None
+        zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
+        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        if is_inference:
+            return outs
+        else:
+            return outs, ds, d_outs
+
     def forward(self, xs, ilens, ys, olens, *args, **kwargs):
         """Transformer forward computation
 
@@ -354,35 +383,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # keep batch axis to be compatible with the other models
         return outs
-
-    def _forward(self, xs, ilens, ys=None, olens=None, is_inference=False):
-        # forward encoder
-        x_masks = self._source_mask(ilens)
-        hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
-
-        # forward duration predictor and length regulator
-        d_masks = make_pad_mask(ilens).to(xs.device)
-        if is_inference:
-            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
-        else:
-            with torch.no_grad():
-                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
-            d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
-
-        # forward decoder
-        if olens is not None:
-            h_masks = self._source_mask(olens)
-        else:
-            h_masks = None
-        zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
-
-        if is_inference:
-            return outs
-        else:
-            return outs, ds, d_outs
 
     def _source_mask(self, ilens):
         """Make mask for MultiHeadedAttention using padded sequences
