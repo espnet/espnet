@@ -4,7 +4,7 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseConv1d
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
@@ -77,7 +77,7 @@ class Encoder(torch.nn.Module):
             positionwise_layer = PositionwiseFeedForward(
                 attention_dim, linear_units, dropout_rate)
         elif positionwise_layer_type == "conv1d":
-            positionwise_layer = PositionwiseConv1d(
+            positionwise_layer = MultiLayeredConv1d(
                 attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
         else:
             raise NotImplementedError("Support only linear or conv1d.")
