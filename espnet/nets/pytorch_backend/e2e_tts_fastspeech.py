@@ -254,7 +254,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # TODO(kan-bayashi): support knowledge distillation loss
         self.criterion = torch.nn.L1Loss()
 
-    def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
+    def forward(self, xs, ilens, ys, olens, *args, **kwargs):
         """Transformer forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
