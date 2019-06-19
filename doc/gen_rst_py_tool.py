@@ -56,6 +56,3 @@ for m in modinfo:
    :prog: {cmd}
 
 """)
-
-# generate
-# os.makedirs(exists_ok=True)
