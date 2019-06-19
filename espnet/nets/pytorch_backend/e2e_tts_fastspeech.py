@@ -624,15 +624,12 @@ class LengthRegularizer(torch.nn.Module):
 class DurationPredictor(torch.nn.Module):
     """Duration predictor module
 
-    Reference:
-        - FastSpeech: Fast, Robust and Controllable Text to Speech
-          (https://arxiv.org/pdf/1905.09263.pdf)
-
     :param int idim: input dimension
     :param int n_layers: number of convolutional layers
     :param int n_chans: number of channels of convolutional layers
     :param int kernel_size: kernel size of convolutional layers
     :param float dropout_rate: dropout rate
+    :param float offset: offset value to avoid nan in log domain
     """
 
     def __init__(self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0):
