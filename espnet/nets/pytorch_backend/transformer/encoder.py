@@ -74,11 +74,11 @@ class Encoder(torch.nn.Module):
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
         if positionwise_layer_type == "linear":
-            positionwise_layer = PositionwiseFeedForward(
-                attention_dim, linear_units, dropout_rate)
+            positionwise_layer = PositionwiseFeedForward
+            positionwise_layer_args = (attention_dim, linear_units, dropout_rate)
         elif positionwise_layer_type == "conv1d":
-            positionwise_layer = MultiLayeredConv1d(
-                attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
+            positionwise_layer = MultiLayeredConv1d
+            positionwise_layer_args = (attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
         else:
             raise NotImplementedError("Support only linear or conv1d.")
         self.encoders = repeat(
@@ -86,7 +86,7 @@ class Encoder(torch.nn.Module):
             lambda: EncoderLayer(
                 attention_dim,
                 MultiHeadedAttention(attention_heads, attention_dim, attention_dropout_rate),
-                positionwise_layer,
+                positionwise_layer(*positionwise_layer_args),
                 dropout_rate,
                 normalize_before,
                 concat_after
