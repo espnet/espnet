@@ -235,6 +235,10 @@ class Tacotron2Loss(torch.nn.Module):
 class Tacotron2(TTSInterface, torch.nn.Module):
     """Tacotron2 based Seq2Seq converts chars to features
 
+    Reference:
+       Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions
+       (https://arxiv.org/abs/1712.05884)
+
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
     :param Namespace args: argments containing following attributes
