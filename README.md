@@ -57,7 +57,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.6.1+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0, 1.0.1
@@ -119,7 +119,7 @@ If you do not want to use miniconda, you need to specify your python interpreter
 
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
+$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python3.6
 ```
 
 ### Step 2-B) installation including Kaldi installation
@@ -137,7 +137,7 @@ $ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 ```sh
 $ cd tools
-$ make -j 10 PYTHON=/usr/bin/python2.7
+$ make -j 10 PYTHON=/usr/bin/python3.6
 ```
 
 

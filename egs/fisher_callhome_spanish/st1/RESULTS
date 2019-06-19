@@ -1,13 +1,14 @@
 # NOTE: apostrophe is included both in hyp and ref
 
 # baseline: exp/train_sp.en_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_add1024_adadelta_sampprob0.2_lsm0.1_drop0.30.0_bs15_mli800_mlo150_wd0.000001
+exp/train_sp.en_lc_pytorch_train
 fisher_dev.en
-BLEU = 44.87
+BLEU = 40.42, 71.4/49.0/33.6/22.7 (BP=1.000, ratio=1.018, hyp_len=40695, ref_len=39981)
 fisher_dev2.en
-BLEU = 45.21
+BLEU = 41.49, 71.9/49.9/34.8/23.8 (BP=1.000, ratio=1.027, hyp_len=40285, ref_len=39213)
 fisher_test.en
-BLEU = 47.30
+BLEU = 41.51, 72.9/50.1/34.6/23.5 (BP=1.000, ratio=1.034, hyp_len=40358, ref_len=39049)
 callhome_devtest.en
-BLEU = 15.96
+BLEU = 14.10, 41.3/19.0/9.8/5.2 (BP=0.996, ratio=0.996, hyp_len=37268, ref_len=37424)
 callhome_evltest.en
-BLEU = 16.18
+BLEU = 14.20, 41.4/19.1/10.0/5.5 (BP=0.982, ratio=0.982, hyp_len=18139, ref_len=18463)
