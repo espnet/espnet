@@ -164,8 +164,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for rtask in fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         for no in 1 2 3; do
-          local/data2json.sh --text data/${rtask}/text.${tgt_case}.${no} --nlsyms ${nlsyms} \
-              data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json
+            local/data2json.sh --text data/${rtask}/text.${tgt_case}.${no} --nlsyms ${nlsyms} \
+                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json
         done
     done
 fi
@@ -231,7 +231,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
             for no in 1 2 3; do
-              cp ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json ${expdir}/${decode_dir}/data_ref${no}.json
+                cp ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json ${expdir}/${decode_dir}/data_ref${no}.json
             done
         fi
 
