@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -22,6 +22,7 @@ is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
+        description='add jons files to new json',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')

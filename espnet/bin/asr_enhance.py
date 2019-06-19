@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import configargparse
 from distutils.util import strtobool
 import logging
@@ -11,8 +11,10 @@ import numpy as np
 from espnet.asr.pytorch_backend.asr import enhance
 
 
-def main(args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description='Enhance noisy speech to be clean for speech recognition',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -80,7 +82,11 @@ def main(args):
                         help='The window type for istft. '
                              'This option is ignored '
                              'if stft is found in the preprocess-conf')
+    return parser
 
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
 
     # logging info
