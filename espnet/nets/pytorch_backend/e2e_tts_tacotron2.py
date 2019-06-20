@@ -204,7 +204,7 @@ class Tacotron2Loss(torch.nn.Module):
             logits (Tensor): Batch of stop logits (B, Lmax).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             labels (LongTensor): Batch of the sequences of stop token labels (B, Lmax).
-            olens (LongTensor): Batch of the lengths of each target (B).
+            olens (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
             Tensor: L1 loss value.
