@@ -68,16 +68,7 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
                                 'By default, the channel is estimated by DNN.')
         group.add_argument('--beamformer-dropout-rate', type=float, default=0.0,
                            help='')
-        # Feature transform: Normalization
-        group.add_argument('--stats-file', type=str, default=None,
-                           help='The stats file for the feature normalization')
-        group.add_argument('--apply-uttmvn', type=strtobool, default=True,
-                           help='Apply utterance level mean '
-                                'variance normalization.')
-        group.add_argument('--uttmvn-norm-means', type=strtobool,
-                           default=True, help='')
-        group.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
-                           help='')
+
         # Feature transform: Fbank
         group.add_argument('--fbank-fs', type=int, default=16000,
                            help='The sample frequency used for '
@@ -87,6 +78,16 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         group.add_argument('--fbank-fmin', type=float, default=0.,
                            help='')
         group.add_argument('--fbank-fmax', type=float, default=None,
+                           help='')
+        # Feature transform: Normalization
+        group.add_argument('--mvn-stats-file', type=str, default=None,
+                           help='The stats file for the feature normalization')
+        group.add_argument('--apply-uttmvn', type=strtobool, default=True,
+                           help='Apply utterance level mean '
+                                'variance normalization.')
+        group.add_argument('--uttmvn-norm-means', type=strtobool,
+                           default=True, help='')
+        group.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
                            help='')
         return parser
 
@@ -126,7 +127,7 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
             fmax=args.fbank_fmax,
 
             # Normalization
-            stats_file=args.stats_file,
+            stats_file=args.mvn_stats_file,
             apply_uttmvn=args.apply_uttmvn,
             uttmvn_norm_means=args.uttmvn_norm_means,
             uttmvn_norm_vars=args.uttmvn_norm_vars)
