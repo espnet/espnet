@@ -100,6 +100,10 @@ cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 # 4. Merge scp files into a JSON file
 opts=""
 for intype in input output other; do
+    if [ -z "$(find "${tmpdir}/${intype}" -name "*.scp")" ]; then
+        continue
+    fi
+
     if [ ${intype} != other ]; then
         opts+="--${intype}-scps "
     else
