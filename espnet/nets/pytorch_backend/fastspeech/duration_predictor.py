@@ -111,6 +111,9 @@ class DurationPredictorLoss(torch.nn.Module):
         Returns:
             Tensor: Mean squared error loss value.
 
+        Note:
+            `outputs` is in log domain but `targets` is in linear domain.
+
         """
         # NOTE: outputs is in log domain while targets in linear
         targets = torch.log(targets.float() + self.offset)
