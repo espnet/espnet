@@ -2,10 +2,10 @@
 frontend-module: "espnet.nets.pytorch_backend.frontend_asr:FrontendASR"
 # beamformer related
 use-beamformer: true
-blayers: 3
-bunits: 300
-bprojs: 300
-ref-channel: -1  # Specified ref mic for beamformer. If <0, use attention dnn
+beamformer-layers: 3
+beamformer-units: 300 
+beamformer-projs: 300 
+beamformer-ref-channel: -1  # Specified ref mic for beamformer. If <0, use attention dnn
 
 # encoder related
 etype: vggblstmp     # encoder architecture type
