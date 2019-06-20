@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -19,8 +19,10 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
-def main(cmd_args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description='Train a new text-to-speech (TTS) model on one CPU, one or multiple GPUs',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
@@ -115,7 +117,11 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
+    return parser
 
+
+def main(cmd_args):
+    parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 
     from espnet.utils.dynamic_import import dynamic_import

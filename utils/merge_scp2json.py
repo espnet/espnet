@@ -41,7 +41,7 @@ def shape(x):
     return list(map(int, x.split(',')))
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Given each file paths with such format as '
                     '<key>:<file>:<type>. type> can be omitted and the default '
@@ -65,7 +65,11 @@ if __name__ == '__main__':
     parser.add_argument('--out', '-O', type=str,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
+    return parser
 
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
     args.scps = [args.scps]
 

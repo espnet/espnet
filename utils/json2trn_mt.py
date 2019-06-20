@@ -15,8 +15,9 @@ import sys
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def main(args):
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert json to machine translation transcription',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict for target language')
@@ -25,6 +26,11 @@ def main(args):
     parser.add_argument('--srcs', type=str, nargs='+', help='src for all outputs')
     parser.add_argument('--dict-src', type=str, help='dict for source language',
                         default=False, nargs='?')
+    return parser
+
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
     convert(args.json, args.dict, args.refs, args.hyps, args.srcs, args.dict_src)
 
