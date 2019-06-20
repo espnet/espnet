@@ -12,11 +12,12 @@ bpemodel=""
 remove_blank=true
 filter=""
 num_spkrs=1
+help_message="Usage: $0 <data-dir> <dict>"
 
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
-    echo "Usage: $0 <data-dir> <dict>";
+    echo $help_message
     exit 1;
 fi
 

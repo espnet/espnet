@@ -61,10 +61,9 @@ class MaskEstimator(torch.nn.Module):
             # xs: (B, C, T, D) -> mask:(B, C, T, F)
             mask = linear(xs)
 
+            mask = torch.sigmoid(mask)
             # Zero padding
             mask.masked_fill(make_pad_mask(ilens, mask, length_dim=2), 0)
-
-            mask = torch.sigmoid(mask)
 
             # (B, C, T, F) -> (B, F, C, T)
             mask = mask.permute(0, 3, 1, 2)

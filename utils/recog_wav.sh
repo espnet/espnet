@@ -34,6 +34,15 @@ decode_dir=decode
 # download related
 models=tedlium.demo
 
+help_message=$(cat <<EOF
+Usage:
+    $0 <wav>
+
+Example:
+    rec -c 1 -r 16000 example.wav trim 0 5
+    $0 example.wav
+EOF
+)
 . utils/parse_options.sh || exit 1;
 
 # make shellcheck happy
@@ -46,12 +55,7 @@ wav=$1
 download_dir=${decode_dir}/download
 
 if [ $# -gt 1 ]; then
-    echo "Usage:"
-    echo "    $0 <wav>"
-    echo ""
-    echo "Example:"
-    echo "    rec -c 1 -r 16000 example.wav trim 0 5"
-    echo "    $0 example.wav"
+    echo $help_message
     exit 1;
 fi
 
