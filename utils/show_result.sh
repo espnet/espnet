@@ -17,7 +17,6 @@ cat << EOF
 # RESULTS
 ## Environments
 - date: \`$(LC_ALL=C date)\`
-- system information: \`$(uname -a)\`
 EOF
 
 python << EOF
