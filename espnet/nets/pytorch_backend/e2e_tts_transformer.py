@@ -574,7 +574,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - threshold (float): Threshold in inference.
                 - minlenratio (float): Minimum length ratio in inference.
                 - maxlenratio (float): Maximum length ratio in inference.
-            spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
             Tensor: Output sequence of features (L, odim).
