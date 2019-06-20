@@ -20,9 +20,8 @@ import torch
 from chainer import reporter
 from nltk.translate import bleu_score
 
-from espnet.nets.mt_interface import MTInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-
+from espnet.nets.mt_interface import MTInterface
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
