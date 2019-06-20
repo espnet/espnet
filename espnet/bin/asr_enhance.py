@@ -14,7 +14,7 @@ from espnet.asr.pytorch_backend.asr import enhance
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
     parser = configargparse.ArgumentParser(
-        description='Enhance noisy speech to be clean for speech recognition',
+        description='Enhance noisy speech for speech recognition',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration

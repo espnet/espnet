@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
 ### Bash tools guideline
 
-To generate doc, support `--help` to show its usage
+To generate doc, support `--help` to show its usage. If you use Kaldi's `utils/parse_option.sh`, define `help_message="Usage: $0 ..."`.
 
 
 ## Writing documentation
