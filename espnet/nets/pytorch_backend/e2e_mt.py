@@ -165,11 +165,8 @@ class E2E(MTInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :return: loss value
         :rtype: torch.Tensor
-        :return: attention loss value
-        :rtype: torch.Tensor
-        :return: accuracy in attention decoder
-        :rtype: float
         """
         # 1. Encoder
         if self.replace_sos:
