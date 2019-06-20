@@ -28,50 +28,53 @@ from espnet.utils.cli_utils import strtobool
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
-    """Feed Forward Transformer for TTS a.k.a. FastSpeech
+    """Feed Forward Transformer for TTS a.k.a. FastSpeech.
 
-    Reference:
-        FastSpeech: Fast, Robust and Controllable Text to Speech
-        (https://arxiv.org/pdf/1905.09263.pdf)
+    This is a module of FastSpeech, feed-forward Transformer with duration predictor described in
+    `FastSpeech: Fast, Robust and Controllable Text to Speech`_, which does not require any auto-regressive
+    processing during inference, resulting in fast decoding compared with auto-regressive Transformer.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param Namespace args: argments containing following attributes
-        (int) adim: number of attention transformation dimensions
-        (int) aheads: number of heads for multi head attention
-        (int) elayers: number of encoder layers
-        (int) eunits: number of encoder hidden units
-        (int) dlayers: number of decoder layers
-        (int) dunits: number of decoder hidden units
-        (str) positionwise_layer_type: layer type in positionwise operation
-        (str) positionwise_conv_kernel_size: kernel size of positionwise conv layer
-        (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
-        (bool) encoder_normalize_before: whether to perform layer normalization before encoder block
-        (bool) decoder_normalize_before: whether to perform layer normalization before decoder block
-        (bool) encoder_concat_after: whether to concatenate attention layer's input and output in encoder
-        (bool) decoder_concat_after: whether to concatenate attention layer's input and output in decoder
-        (int) duration_predictor_layers: number of duration predictor layers
-        (int) duration_predictor_chans: number of duration predictor channels
-        (int) duration_predictor_kernel_size: kernel size of duration predictor
-        (str) teacher_model: teacher auto-regressive transformer model path
-        (int) reduction_factor: reduction factor
-        (float) transformer_init: how to initialize transformer parameters
-        (float) transformer_lr: initial value of learning rate
-        (int) transformer_warmup_steps: optimizer warmup steps
-        (float) transformer_enc_dropout_rate: dropout rate in encoder except for attention and positional encoding
-        (float) transformer_enc_positional_dropout_rate: dropout rate after encoder positional encoding
-        (float) transformer_enc_attn_dropout_rate: dropout rate in encoder self-attention module
-        (float) transformer_dec_dropout_rate: dropout rate in decoder except for attention and positional encoding
-        (float) transformer_dec_positional_dropout_rate:  dropout rate after decoder positional encoding
-        (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
-        (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
-        (bool) init_encoder_from_teacher: whether to initialize encoder using teacher encoder parameters
-        (str) init_encoder_module: encoder module to be initialized using teacher parameters
-        (bool) use_masking: whether to use masking in calculation of loss
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        args (Namespace):
+            - elayers (int): Number of encoder layers.
+            - eunits (int): Number of encoder hidden units.
+            - adim (int): Number of attention transformation dimensions.
+            - aheads (int): Number of heads for multi head attention.
+            - dlayers (int): Number of decoder layers.
+            - dunits (int): Number of decoder hidden units.
+            - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
+            - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
+            - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
+            - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
+            - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+            - duration_predictor_layers (int): Number of duration predictor layers.
+            - duration_predictor_chans (int): Number of duration predictor channels.
+            - duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            - teacher_model (str): Teacher auto-regressive transformer model path.
+            - reduction_factor (int): Reduction factor.
+            - transformer_init (float): How to initialize transformer parameters.
+            - transformer_lr (float): Initial value of learning rate.
+            - transformer_warmup_steps (int): Optimizer warmup steps.
+            - transformer_enc_dropout_rate (float): Dropout rate in encoder except for attention & positional encoding.
+            - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
+            - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
+            - transformer_dec_dropout_rate (float): Dropout rate in decoder except for attention & positional encoding.
+            - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
+            - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
+            - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
+            - use_masking (bool): Whether to use masking in calculation of loss.
+            - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
+            - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
+
+    .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`: https://arxiv.org/pdf/1905.09263.pdf
+
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Add model-specific arguments to the parser."""
         group = parser.add_argument_group("feed-forward transformer model setting")
         # network structure related
         group.add_argument("--adim", default=384, type=int,
@@ -284,14 +287,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             return outs, ds, d_outs
 
     def forward(self, xs, ilens, ys, olens, *args, **kwargs):
-        """Transformer forward computation
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor olens: batch of the lengths of each target (B)
-        :return: loss value
-        :rtype: torch.Tensor
+        Args:
+            xs (Tensor): Batch of padded character ids (B, Tmax).
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: Loss value.
+
         """
         # remove unnecessary padded part (for multi-gpus)
         xs = xs[:, :max(ilens)]
@@ -368,11 +374,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         return att_ws_dict
 
     def inference(self, x, *args, **kwargs):
-        """Generates the sequence of features from given a sequences of characters
+        """Generate the sequence of features given the sequences of characters.
 
-        :param torch.Tensor x: the sequence of character ids (T)
-        :return: the sequence of generated features (1, L, odim)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): Input sequence of characters (T,).
+
+        Returns:
+            Tensor: Output sequence of features (1, L, odim).
+
         """
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
@@ -385,21 +394,23 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         return outs
 
     def _source_mask(self, ilens):
-        """Make mask for MultiHeadedAttention using padded sequences
+        """Make masks for self-attention.
 
-        >>> ilens = [5, 3]
-        >>> self._source_mask(ilens)
-        tensor([[[1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1]],
+        Example:
+            >>> ilens = [5, 3]
+            >>> self._source_mask(ilens)
+            tensor([[[1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1]],
 
-                [[1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                    [[1, 1, 1, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
         return x_masks.unsqueeze(-2) & x_masks.unsqueeze(-1)
@@ -450,16 +461,19 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
     @property
     def attention_plot_class(self):
+        """Return plot class for attention weight plot."""
         return TTSPlot
 
     @property
     def base_plot_keys(self):
-        """base key names to plot during training. keys should match what `chainer.reporter` reports
+        """Return base key names to plot during training. keys should match what `chainer.reporter` reports.
 
-        if you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
+        If you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
         also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
 
-        :rtype list[str] plot_keys: base keys to plot during training
+        Returns:
+            list: List of strings which are base keys to plot during training.
+
         """
         plot_keys = ["loss", "l1_loss", "duration_loss"]
         if self.use_scaled_pos_enc:
