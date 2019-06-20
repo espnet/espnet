@@ -197,7 +197,7 @@ def eval_PESQ(ref, enh, fs, compute_permutation=True):
     return tuple(value), tuple(perm)
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Evaluate enhanced speech. '
                     'e.g. {c} --ref ref.scp --enh enh.scp --outdir outputdir'
@@ -234,6 +234,11 @@ def main():
     parser.add_argument('--bss-eval-version', type=str,
                         default='v3', choices=['v3', 'v4'],
                         help='Specify bss-eval-version: v3 or v4')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"

@@ -11,7 +11,7 @@ else:
     from itertools import zip_longest
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Mixing wav.scp files into a multi-channel wav.scp '
@@ -21,6 +21,11 @@ def main():
                         default=sys.stdout,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     fscps = [io.open(scp, 'r', encoding='utf-8') for scp in args.scp]
