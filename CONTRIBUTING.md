@@ -70,7 +70,7 @@ $ pip install -e ".[test]"
 
 ### python
 
-Then you can run the entire test suite with lint and coverage by
+Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
 ./ci/test_python.sh
 ```
