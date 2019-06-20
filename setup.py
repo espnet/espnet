@@ -60,6 +60,7 @@ requirements = {
     'doc': [
         'Sphinx==1.7.4',
         'sphinx-rtd-theme>=0.2.4',
+        'sphinx-argparse>=0.2.5',
         'commonmark==0.8.1',
         'recommonmark>=0.4.0',
         'travis-sphinx>=2.0.1']}

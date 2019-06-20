@@ -48,7 +48,8 @@ script:
     if $USE_CONDA; then
       source tools/venv/bin/activate
     fi
-    travis-sphinx build --source=doc --nowarn
+    cd tools; git clone https://github.com/kaldi-asr/kaldi --depth 1; cd -
+    ./ci/doc.sh
 
 sudo: false
 
