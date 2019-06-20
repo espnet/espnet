@@ -18,12 +18,17 @@ from espnet.utils.cli_utils import get_commandline_args
 is_python2 = sys.version_info[0] == 2
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='concatenate json files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
 
     # logging info
     logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
