@@ -16,6 +16,8 @@ parser.add_argument('root', type=str,
                     help='root module to generate docs recursively')
 parser.add_argument('dst', type=str,
                     help='destination path to generate RSTs')
+parser.add_argument('--exclude', nargs='*', default=[],
+                    help='exclude module name')
 args = parser.parse_args()
 
 
@@ -86,6 +88,8 @@ modules_rst = """
 gendir = args.dst + "/_gen"
 os.makedirs(gendir, exist_ok=True)
 for c in children(root, recursive=False):
+    if c.__name__ in args.exclude:
+        continue
     fname = c.__name__.replace(".", "-") + ".rst"
     dst = f"{gendir}/{fname}"
     modules_rst += f"   ./_gen/{fname}\n"
