@@ -188,7 +188,7 @@ class E2E(MTInterface, torch.nn.Module):
         self.acc = acc
         self.ppl = ppl
 
-        # 5. compute bleu without beam search
+        # 4. compute bleu without beam search
         if self.training or not self.report_bleu:
             bleu = 0.0
         else:
