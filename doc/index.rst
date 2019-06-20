@@ -3,9 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-espnet: end-to-end speech processing toolkit
+ESPnet: end-to-end speech processing toolkit
 ============================================
-espnet is an end-to-end speech processing toolkit.
+.. image:: ./image/espnet_logo1.png
+
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 
 .. toctree::
    :maxdepth: 1
