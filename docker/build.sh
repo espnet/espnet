@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 2019, Nelson Yalta
+# 2019, Ludwig Kürzinger, Technische Universität München
+
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
@@ -89,12 +92,12 @@ build_local(){
     if [[ ${ver} == "cpu" ]]; then
         echo "building ESPnet CPU Image"
         docker build --build-arg FROM_TAG=runtime  --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
-                     -f prebuilt/local/Dockerfile -t espnet/espnet:cpu . || exit 1
+                     -f prebuilt/local/Dockerfile -t espnet/espnet:cpu-local . || exit 1
     elif [[ ${ver} =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
         echo "building ESPnet GPU Image for ${ver}"
         docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
         docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
-                     -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7 . || exit 1
+                     -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-local . || exit 1
     else
         echo "Parameter invalid: " ${ver}
     fi
