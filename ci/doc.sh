@@ -4,15 +4,15 @@
 # build sphinx document under doc/
 mkdir -p doc/_gen
 
+# NOTE allow unbound variable (-u) inside kaldi scripts
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}
+set -euo pipefail
 # generate tools doc
 (
-    # NOTE allow undefined variable (-u) inside kaldi scripts
-    set -eo pipefail
     cd ./utils
     ../doc/argparse2rst.py ./*.py > ../doc/_gen/utils_py.rst
 )
 
-set -euo pipefail
 ./doc/argparse2rst.py ./espnet/bin/*.py > ./doc/_gen/espnet_bin.rst
 
 
