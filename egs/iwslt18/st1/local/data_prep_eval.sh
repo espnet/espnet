@@ -116,11 +116,6 @@ if [ ${set} != tst2018 ]; then
     #     local/ctm2segments.py ${dst}/text.en.$talkid ${dst}/ctm.$talkid ${set} $talkid > ${dst}/segments.$talkid || exit 1;
     # done
     # sort ${dst}/segments* > ${dst}/segments
-    #     sort ${src}/${f} | sed -e "/#/d" > ${dst}/ctm.$talkid
-    #     paste -d " " <(cut -d " " -f 1 ${dst}/en.org) <(cat ${dst}/en.norm.lc.rm) | grep $talkid > ${dst}/text.en.$talkid
-    #     local/ctm2segments.py ${dst}/text.en.$talkid ${dst}/ctm.$talkid ${set} $talkid > ${dst}/segments.$talkid || exit 1;
-    # done
-    # sort ${dst}/segments* > ${dst}/segments
 
     # error check
     n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
