@@ -217,12 +217,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: ctc loass value
+        :return: loass value
         :rtype: torch.Tensor
-        :return: attention loss value
-        :rtype: torch.Tensor
-        :return: accuracy in attention decoder
-        :rtype: float
         """
         # 0. Frontend
         if self.frontend is not None:
