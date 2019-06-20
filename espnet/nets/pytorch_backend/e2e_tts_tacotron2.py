@@ -83,7 +83,7 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_guided_attention_mask(ilen, olen, sigma):
         """Make guided attention mask.
 
-        Example:
+        Examples:
             >>> guided_attn_mask =_make_guided_attention(5, 5, 0.4)
             >>> guided_attn_mask.shape
             torch.Size([5, 5])
@@ -113,7 +113,7 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_masks(ilens, olens):
         """Make masks indicating non-padded part.
 
-        Example:
+        Examples:
             >>> ilens, olens = [5, 2], [8, 5]
             >>> _make_mask(ilens, olens)
             tensor([[[1, 1, 1, 1, 1],
