@@ -244,12 +244,9 @@ class E2E(MTInterface, torch.nn.Module):
             id2token = {i: x for i, x in enumerate(char_list)}
             logging.info('src (multilingual): %s', ' '.join([id2token[int(y)] for y in x[0][1:]]))
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
-            h = h.contiguous()
-            h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
         else:
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
-            h = h.contiguous()
-            h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
+        h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
         hs, _, _ = self.enc(h_emb, ilen)
 
         # 2. decoder
@@ -276,13 +273,11 @@ class E2E(MTInterface, torch.nn.Module):
 
         # 1. Encoder
         if self.replace_sos:
-            hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
-            xpad = pad_list(hs, self.pad)
-            xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
+            hs = [to_device(self, torch.from_numpy(xx[1:])) for xx in xs]
         else:
             hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
-            xpad = pad_list(hs, self.pad)
-            xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
+        xpad = pad_list(hs, self.pad)
+        xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
         hs_pad, hlens, _ = self.enc(xpad_emb, ilens)
 
         # 2. Decoder
