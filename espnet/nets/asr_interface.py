@@ -76,6 +76,7 @@ class FrontendASRInterface(ASRInterface):
     >>> frontend_asr.register_asr(asr_model)
 
     """
+
     def __init__(self, idim: int, args: argparse.Namespace):
         raise NotImplementedError("__init__ method is not implemented")
 
