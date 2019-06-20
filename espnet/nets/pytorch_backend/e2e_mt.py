@@ -169,15 +169,7 @@ class E2E(MTInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # 1. Encoder
-        if self.replace_sos:
-            # remove source language ID in the beggining
-            tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
-            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
-            ilens -= 1
-        else:
-            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-            tgt_lang_ids = None
+        xs_pad_emb, tgt_lang_ids = self.source_embedding(xs_pad, ilens, ys_pad)
         hs_pad, hlens, _ = self.enc(xs_pad_emb, ilens)
 
         # 3. attention loss
@@ -220,6 +212,27 @@ class E2E(MTInterface, torch.nn.Module):
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
+
+    def source_embedding(self, xs_pad, ilens, ys_pad):
+        """Path through the source embedding
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: output of the source embedding layer (B, Tmax, eunits)
+        :rtype: torch.Tensor
+        :return: loss value
+        :rtype: torch.Tensor (B, 1)
+        """
+        if self.replace_sos:
+            # remove source language ID in the beggining
+            tgt_lang_ids = ys_pad[:, 0:1]
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
+            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
+            ilens -= 1
+        else:
+            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
+            tgt_lang_ids = None
+        return xs_pad_emb, tgt_lang_ids
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search
