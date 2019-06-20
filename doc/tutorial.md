@@ -62,6 +62,13 @@ cd egs/tedlium/asr1
 ../../../utils/recog_wav.sh --models tedlium.demo foo.wav
 ```
 where `foo.wav` is a WAV file that contains speech to be recognized and `tedlium.demo` is a model name.
+
+You can also perform speech synthesis as follows:
+```sh
+cd egs/libritts/tts1
+../../../utils/synth_wav.sh --models libritts.v1 --input_wav bar.wav foo.txt
+```
+where `foo.txt` is a TXT file that contains text to be synthesized and `bar.wav` is a WAV file for controlling meta information such as speaker characteristics of synthesized speech.
 The name list of available pretrained models will be summarized.
 
 ## Installation using Docker

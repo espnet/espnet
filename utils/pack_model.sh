@@ -9,17 +9,22 @@ results=""
 # e.g., "exp/tr_it_pytorch_train/decode_dt_it_decode/result.wrd.txt
 #        exp/tr_it_pytorch_train/decode_et_it_decode/result.wrd.txt"'
 lm=""
+dict=""
 etc=""
 outfile="model"
 
+help_message=$(cat <<EOF
+Usage: $0 <tr_conf> <dec_conf> <cmvn> <e2e>, for example:
+<tr_conf>:  conf/train.yaml
+<dec_conf>: conf/decode.yaml
+<cmvn>:     data/tr_it/cmvn.ark
+<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best
+EOF
+)
 . utils/parse_options.sh
 
 if [ $# != 4 ]; then
-    echo "Usage: $0 <tr_conf> <dec_conf> <cmvn> <e2e>, for example:"
-    echo "<tr_conf>:  conf/train.yaml"
-    echo "<dec_conf>: conf/decode.yaml"
-    echo "<cmvn>:     data/tr_it/cmvn.ark"
-    echo "<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best"
+    echo $help_message
     exit 1
 fi
 
@@ -97,6 +102,18 @@ if [ -n "${lm}" ]; then
 	fi
     else
 	echo "missing ${lm}"
+	exit 1
+    fi
+fi
+
+# dict
+if [ -n "${dict}" ]; then
+    if [ -e ${dict} ]; then
+	tar rfh ${outfile}.tar ${dict}
+	echo -n "    - dict file: \`"
+	echo ${dict} | sed -e "s/$/\`/"
+    else
+	echo "missing ${dict}"
 	exit 1
     fi
 fi
