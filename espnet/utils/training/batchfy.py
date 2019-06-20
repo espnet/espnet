@@ -257,8 +257,9 @@ BATCH_SORT_KEY_CHOICES = ["input", "output", "shuffle"]
 
 
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
-                  num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input", swap_io=False, mt=False,
-                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
+                  num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input",
+                  swap_io=False, mt=False, count="auto",
+                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
     """Make batch set from json dictionary
 
     if utts have "category" value,
