@@ -11,8 +11,10 @@ import sys
 
 is_python2 = sys.version_info[0] == 2
 
-if __name__ == "__main__":
+
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='create a vocabulary file from text files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--output', '-o', default='', type=str,
                         help='output a vocabulary file')
@@ -22,6 +24,11 @@ if __name__ == "__main__":
                         help='vocabulary size')
     parser.add_argument('text_files', nargs='*',
                         help='input text files')
+    return parser
+
+
+if __name__ == "__main__":
+    parser = get_parser()
     args = parser.parse_args()
 
     # count the word occurrences
