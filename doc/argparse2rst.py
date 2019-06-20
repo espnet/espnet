@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import importlib.machinery as imm
-import importlib.util as iu
 import logging
 import pathlib
 import re
-import os
 
 import configargparse
 
@@ -20,14 +18,18 @@ class ModuleInfo:
             raise ValueError(f"{path} does not have get_parser()")
 
 
+def get_parser():
+    parser = configargparse.ArgumentParser(
+        description='generate RST from argparse options',
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('src', type=str, nargs='+',
+                        help='source python files that contain get_parser() func')
+    return parser
+
+
 # parser
-parser = configargparse.ArgumentParser(
-    description='generate RST from argparse options',
-    config_file_parser_class=configargparse.YAMLConfigFileParser,
-    formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('src', type=str, nargs='+',
-                    help='source python files that contain get_parser() func')
-args = parser.parse_args()
+args = get_parser().parse_args()
 
 
 modinfo = []

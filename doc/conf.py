@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# flake8: noqa
 #
 # ESPnet documentation build configuration file, created by
 # sphinx-quickstart on Thu Dec  7 15:46:00 2017.
@@ -90,7 +91,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', "_gen", "README.md"]
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', "README.md"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
