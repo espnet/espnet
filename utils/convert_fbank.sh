@@ -14,6 +14,15 @@ win_length=
 n_mels=
 iters=1000
 cmd=run.pl
+help_message=$(cat <<EOF
+Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]
+e.g.: $0 data/train exp/griffin_lim/train wav
+Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+EOF
+)
 # End configuration section.
 
 echo "$0 $*"  # Print the command line for logging
@@ -21,13 +30,8 @@ echo "$0 $*"  # Print the command line for logging
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]";
-   echo "e.g.: $0 data/train exp/griffin_lim/train wav"
-   echo "Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data"
-   echo "Options: "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   exit 1;
+    echo "${help_message}"
+    exit 1;
 fi
 
 data=$1
