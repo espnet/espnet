@@ -13,14 +13,19 @@ import logging
 from espnet.utils.cli_utils import get_commandline_args
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert ASR recognized json to text',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('ref', type=str, help='ref')
     parser.add_argument('hyp', type=str, help='hyp')
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
 
     # logging info
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
