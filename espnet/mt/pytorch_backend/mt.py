@@ -267,18 +267,12 @@ def train(args):
                                          'epoch', file_name='acc.png'))
     trainer.extend(extensions.PlotReport(['main/ppl', 'validation/main/ppl'],
                                          'epoch', file_name='ppl.png'))
-    if args.report_bleu:
-        trainer.extend(extensions.PlotReport(['main/bleu', 'validation/main/bleu'],
-                                             'epoch', file_name='bleu.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     trainer.extend(snapshot_object(model, 'model.acc.best'),
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
-    if args.report_bleu:
-        trainer.extend(extensions.snapshot_object(model, 'model.bleu.best'),
-                       trigger=training.triggers.MinValueTrigger('validation/main/bleu'))
 
     # save snapshot which contains model and optimizer states
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
@@ -303,16 +297,6 @@ def train(args):
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
-        elif args.criterion == 'bleu':
-            assert args.report_bleu
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.bleu.best', load_fn=torch_load),
-                           trigger=CompareValueTrigger(
-                               'validation/main/bleu',
-                               lambda best_value, current_value: best_value > current_value))
-            trainer.extend(adadelta_eps_decay(args.eps_decay),
-                           trigger=CompareValueTrigger(
-                               'validation/main/bleu',
-                               lambda best_value, current_value: best_value > current_value))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
@@ -325,8 +309,6 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
-    if args.report_bleu:
-        report_keys.append('validation/main/bleu')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 

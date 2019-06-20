@@ -18,7 +18,6 @@ import six
 import torch
 
 from chainer import reporter
-from nltk.translate import bleu_score
 
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.mt_interface import MTInterface
@@ -33,11 +32,10 @@ from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
 
-    def report(self, loss, acc, ppl, bleu):
+    def report(self, loss, acc, ppl):
         reporter.report({'loss': loss}, self)
         reporter.report({'acc': acc}, self)
         reporter.report({'ppl': ppl}, self)
-        reporter.report({'bleu': bleu}, self)
 
 
 class E2E(MTInterface, torch.nn.Module):
@@ -93,19 +91,6 @@ class E2E(MTInterface, torch.nn.Module):
         # weight initialization
         self.init_like_chainer()
 
-        # options for beam search
-        if 'report_bleu' in vars(args) and args.report_bleu:
-            trans_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
-                          'ctc_weight': 0.0, 'maxlenratio': args.maxlenratio,
-                          'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
-                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
-                          'space': args.sym_space, 'blank': args.sym_blank,
-                          'tgt_lang': False}
-
-            self.trans_args = argparse.Namespace(**trans_args)
-            self.report_bleu = args.report_bleu
-        else:
-            self.report_bleu = False
         self.rnnlm = None
 
         self.logzero = -10000000000.0
@@ -176,38 +161,10 @@ class E2E(MTInterface, torch.nn.Module):
         self.acc = acc
         self.ppl = ppl
 
-        # 4. compute bleu without beam search
-        if self.training or not self.report_bleu:
-            bleu = 0.0
-        else:
-            bleus = []
-            nbest_hyps = self.dec.recognize_beam_batch(
-                hs_pad, torch.tensor(hlens), None,
-                self.trans_args, self.char_list,
-                self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
-            # remove <sos> and <eos>
-            y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
-            for i, y_hat in enumerate(y_hats):
-                y_true = ys_pad[i]
-
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
-                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                seq_hat_text = "".join(seq_hat).replace(self.trans_args.space, ' ')
-                seq_hat_text = seq_hat_text.replace(self.trans_args.blank, '')
-                seq_true_text = "".join(seq_true).replace(self.trans_args.space, ' ')
-
-                hyp_words = seq_hat_text.split()
-                ref_words = seq_true_text.split()
-
-                bleus.append(bleu_score.sentence_bleu([ref_words], hyp_words))
-
-            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
-
         self.loss = loss
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, acc, ppl, bleu)
+            self.reporter.report(loss_data, acc, ppl)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
