@@ -31,7 +31,7 @@ import random
 import torch
 
 
-def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_with_zero=False):
+def specaug(spec, W=40, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, replace_with_zero=False):
     """SpecAugment
 
     Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
@@ -48,9 +48,9 @@ def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_w
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     return time_mask(
-        freq_mask(time_warp(spec, W=W),
+        freq_mask(time_warp(spec.transpose(0, 1), W=W),
                   F=F, num_masks=num_freq_masks, replace_with_zero=replace_with_zero),
-        T=T, num_masks=num_time_masks, replace_with_zero=replace_with_zero)
+        T=T, num_masks=num_time_masks, p=p, replace_with_zero=replace_with_zero).transpose(0, 1)
 
 
 def time_warp(spec, W=5):
@@ -106,7 +106,7 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
     return cloned.squeeze(0)
 
 
-def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
+def time_mask(spec, T=40, num_masks=1, p=0.2, replace_with_zero=False):
     """Time masking
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
@@ -116,6 +116,7 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
     """
     cloned = spec.unsqueeze(0).clone()
     len_spectro = cloned.shape[2]
+    T = min(T, int(len_spectro * p))
 
     for i in range(0, num_masks):
         t = random.randrange(0, T)
