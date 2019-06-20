@@ -109,8 +109,6 @@ def main(cmd_args):
     parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
     # recognition options to compute CER/WER
-    parser.add_argument('--report-bleu', default=False, action='store_true',
-                        help='Compute BLEU on development set')
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=4,
@@ -174,7 +172,7 @@ def main(cmd_args):
     parser.add_argument('--weight-decay', default=0.0, type=float,
                         help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
-                        choices=['loss', 'acc', 'bleu'],
+                        choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')
