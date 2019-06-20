@@ -41,8 +41,8 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 # duplicate
-from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
+from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
 
 import matplotlib
