@@ -29,6 +29,7 @@ class Encoder(torch.nn.Module):
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     :param str positionwise_layer_type: linear of conv1d
     :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
+    :param int padding_idx: padding_idx for input_layer=embed
     """
 
     def __init__(self, idim,
@@ -44,7 +45,8 @@ class Encoder(torch.nn.Module):
                  normalize_before=True,
                  concat_after=False,
                  positionwise_layer_type="linear",
-                 positionwise_conv_kernel_size=1):
+                 positionwise_conv_kernel_size=1,
+                 padding_idx=-1):
         super(Encoder, self).__init__()
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -58,7 +60,7 @@ class Encoder(torch.nn.Module):
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(idim, attention_dim),
+                torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
                 pos_enc_class(attention_dim, positional_dropout_rate)
             )
         elif isinstance(input_layer, torch.nn.Module):
