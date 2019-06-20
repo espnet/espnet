@@ -358,26 +358,29 @@ go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/maste
 
 ## Results
 
+### ASR results
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-|           | CER (%) | WER (%)  |
-|-----------|:----:|:----:|
-| Aishell dev | 6.0 | N/A |
-| Aishell test | 6.7 | N/A |
-| CSJ eval1 | 5.7 | N/A  |
-| CSJ eval2 | 4.1 | N/A  |
-| CSJ eval3 | 4.5 | N/A  |
-| HKUST dev       | 23.5 | N/A  |
-| Librispeech dev_clean  | N/A |  3.7 |
-| Librispeech dev_other  | N/A |  9.8 |
-| Librispeech test_clean | N/A |  4.0 |
-| Librispeech test_other | N/A | 10.0 |
-| TEDLIUM2 dev  | N/A | 12.2 |
-| TEDLIUM2 test | N/A | 10.4 |
-| WSJ dev93 | 3.2 | 7.0 |
-| WSJ eval92| 2.1 | 4.7 |
+|           | CER (%) | WER (%)  | Pretrained model |
+|-----------|:----:|:----:|:----:|
+| Aishell dev            |  6.0 |  N/A | [Link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
+| Aishell test           |  6.7 |  N/A | same as above |
+| CSJ eval1              |  5.7 |  N/A | N/A |
+| CSJ eval2              |  4.1 |  N/A | N/A |
+| CSJ eval3              |  4.5 |  N/A | N/A |
+| HKUST dev              | 23.5 |  N/A | [Link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
+| Librispeech dev_clean  |  N/A |  3.7 | [Link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-transformer-accum-grad-8-single-gpu) |
+| Librispeech dev_other  |  N/A |  9.8 | same as above |
+| Librispeech test_clean |  N/A |  4.0 | same as above |
+| Librispeech test_other |  N/A | 10.0 | same as above |
+| TEDLIUM2 dev           |  N/A | 12.2 | [Link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
+| TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| WSJ dev93              |  3.2 |  7.0 | N/A |
+| WSJ eval92             |  2.1 |  4.7 | N/A |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
+
+### TTS results
 
 You can access the samples of TTS recips from following links:
 
