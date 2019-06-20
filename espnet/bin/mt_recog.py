@@ -56,16 +56,14 @@ def main(args):
                         help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=1,
                         help='Beam size')
-    parser.add_argument('--penalty', type=float, default=0.0,
+    parser.add_argument('--penalty', type=float, default=0.1,
                         help='Incertion penalty')
-    parser.add_argument('--maxlenratio', type=float, default=0.0,
+    parser.add_argument('--maxlenratio', type=float, default=3.0,
                         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', type=float, default=0.0,
-                        help='dummy')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
