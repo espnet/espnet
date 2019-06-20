@@ -247,7 +247,7 @@ def add_gradient_noise(model, epoch, eta):
 
     scale_factor = 0.55
     sigma = eta / epoch**scale_factor
-    for param in model.predictor.parameters():
+    for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()
             noise = sigma * torch.randn(_shape).cuda()
