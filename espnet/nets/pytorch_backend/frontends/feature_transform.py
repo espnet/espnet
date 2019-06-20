@@ -176,11 +176,11 @@ class GlobalMVN(torch.nn.Module):
             -> Tuple[torch.Tensor, torch.LongTensor]:
         # feat: (B, T, D)
         if self.norm_means:
-            x += self.bias.type_as(x)
+            x = x + self.bias.type_as(x)
             x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
 
         if self.norm_vars:
-            x *= self.scale.type_as(x)
+            x = x * self.scale.type_as(x)
         return x, ilens
 
 
@@ -236,22 +236,6 @@ def utterance_mvn(
     if norm_vars:
         var = x_.pow(2).sum(dim=1) / ilens_[:, None]
         var = torch.clamp(var, min=eps)
-        x /= var.sqrt()[:, None, :]
+        x = x / var.sqrt()[:, None, :]
         x_ = x
     return x_, ilens
-
-
-def feature_transform_for(args, n_fft):
-    return FeatureTransform(
-        # Mel options,
-        fs=args.fbank_fs,
-        n_fft=n_fft,
-        n_mels=args.n_mels,
-        fmin=args.fbank_fmin,
-        fmax=args.fbank_fmax,
-
-        # Normalization
-        stats_file=args.stats_file,
-        apply_uttmvn=args.apply_uttmvn,
-        uttmvn_norm_means=args.uttmvn_norm_means,
-        uttmvn_norm_vars=args.uttmvn_norm_vars)
