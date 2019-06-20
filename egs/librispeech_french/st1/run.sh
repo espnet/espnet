@@ -37,8 +37,7 @@ case=lc
 # lc.rm: lowercase with punctuation removal
 
 # Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  You'll want to change this
-# if you're not on the CLSP grid.
+# someone else has already put it.
 datadir=/n/sd3/inaguma/corpus/libri_french/data
 # libri_french
 #  |_ train/
