@@ -195,7 +195,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
             - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
 
-    .. _`Neural Speech Synthesis with Transformer Network`: https://arxiv.org/pdf/1809.08895.pdf
+    .. _`Neural Speech Synthesis with Transformer Network`:
+        https://arxiv.org/pdf/1809.08895.pdf
 
     """
 
@@ -709,7 +710,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _source_mask(self, ilens):
         """Make masks for self-attention.
 
-        Example:
+        Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
             tensor([[[1, 1, 1, 1, 1],
@@ -731,7 +732,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _target_mask(self, olens):
         """Make masks for masked self-attention.
 
-        Example:
+        Examples:
             >>> olens = [5, 3]
             >>> self._target_mask(olens)
             tensor([[[1, 0, 0, 0, 0],
@@ -754,7 +755,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _source_to_target_mask(self, ilens, olens):
         """Make masks for encoder-decoder attention.
 
-        Example:
+        Examples:
             >>> ilens = [4, 2]
             >>> olens = [5, 3]
             >>> self._source_to_target_mask(ilens)

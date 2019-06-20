@@ -68,7 +68,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
             - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
-    .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`: https://arxiv.org/pdf/1905.09263.pdf
+    .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
+        https://arxiv.org/pdf/1905.09263.pdf
 
     """
 
@@ -396,7 +397,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     def _source_mask(self, ilens):
         """Make masks for self-attention.
 
-        Example:
+        Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
             tensor([[[1, 1, 1, 1, 1],
