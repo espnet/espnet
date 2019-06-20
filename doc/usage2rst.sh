@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+if [ $1 == "--help" ]; then
+    echo "Usage: $0 <shell-script>"
+    exit 0;
+fi
+
 cd ./egs/wsj/asr1
 . path.sh
 
