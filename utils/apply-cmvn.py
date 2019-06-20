@@ -13,8 +13,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='apply mean-variance normalization to files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -58,7 +59,11 @@ def main():
                         help='Read specifier id. e.g. ark:some.ark')
     parser.add_argument('wspecifier', type=str,
                         help='Write specifier id. e.g. ark:some.ark')
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    args = get_parser().parse_args()
 
     # logging info
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
