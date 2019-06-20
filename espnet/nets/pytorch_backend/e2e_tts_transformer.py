@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
@@ -20,7 +20,7 @@ from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attention
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
@@ -412,34 +412,13 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(args)
 
     def _reset_parameters(self, args):
+        # initialize parameters
+        initialize(self, args.transformer_init)
+
+        # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            # alpha in scaled positional encoding init
             self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
-
-        if args.transformer_init == "pytorch":
-            return
-        # weight init
-        for p in self.parameters():
-            if p.dim() > 1:
-                if args.transformer_init == "xavier_uniform":
-                    torch.nn.init.xavier_uniform_(p.data)
-                elif args.transformer_init == "xavier_normal":
-                    torch.nn.init.xavier_normal_(p.data)
-                elif args.transformer_init == "kaiming_uniform":
-                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
-                elif args.transformer_init == "kaiming_normal":
-                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
-                else:
-                    raise ValueError("Unknown initialization: " + args.transformer_init)
-        # bias init
-        for p in self.parameters():
-            if p.dim() == 1:
-                p.data.zero_()
-        # reset some modules with default init
-        for m in self.modules():
-            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
-                m.reset_parameters()
 
     def _add_first_frame_and_remove_last_frame(self, ys):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
@@ -452,6 +431,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor olens: batch of the lengths of each target (B)
+        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -623,13 +603,15 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return outs, probs
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
         """Calculate attention weights of all of the layers
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor ilens: list of lengths of each output batch (B)
+        :param bool skip_output: whether to skip calculate the final output
+        :param bool keep_tensor: whether to keep original tensor
         :return: attention weights dict
         :rtype: dict
         """
@@ -652,37 +634,50 @@ class Transformer(TTSInterface, torch.nn.Module):
             y_masks = self._target_mask(olens_in)
             xy_masks = self._source_to_target_mask(ilens, olens_in)
             zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
-            # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
-            before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-            # postnet -> (B, Lmax//r * r, odim)
-            if self.postnet is None:
-                after_outs = before_outs
-            else:
-                after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
-        # modifiy mod part of groundtruth
+            # calculate final outputs
+            if not skip_output:
+                before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+                if self.postnet is None:
+                    after_outs = before_outs
+                else:
+                    after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+
+        # modifiy mod part of output lengths due to reduction factor > 1
         if self.reduction_factor > 1:
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
 
+        # store into dict
         att_ws_dict = dict()
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention):
-                attn = m.attn.cpu().numpy()
-                if "encoder" in name:
-                    attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
-                elif "decoder" in name:
-                    if "src" in name:
-                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_in.tolist())]
-                    elif "self" in name:
-                        attn = [a[:, :l, :l] for a, l in zip(attn, olens_in.tolist())]
+        if keep_tensor:
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention):
+                    att_ws_dict[name] = m.attn
+            if not skip_output:
+                att_ws_dict["before_postnet_fbank"] = before_outs
+                att_ws_dict["after_postnet_fbank"] = after_outs
+        else:
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention):
+                    attn = m.attn.cpu().numpy()
+                    if "encoder" in name:
+                        attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
+                    elif "decoder" in name:
+                        if "src" in name:
+                            attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_in.tolist())]
+                        elif "self" in name:
+                            attn = [a[:, :l, :l] for a, l in zip(attn, olens_in.tolist())]
+                        else:
+                            logging.warning("unknown attention module: " + name)
                     else:
                         logging.warning("unknown attention module: " + name)
-                else:
-                    logging.warning("unknown attention module: " + name)
-                att_ws_dict[name] = attn
+                    att_ws_dict[name] = attn
+            if not skip_output:
+                before_outs = before_outs.cpu().numpy()
+                after_outs = after_outs.cpu().numpy()
+                att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs, olens.tolist())]
+                att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs, olens.tolist())]
 
-        att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs.cpu().numpy(), olens.tolist())]
-        att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
         return att_ws_dict
 
     def _source_mask(self, ilens):

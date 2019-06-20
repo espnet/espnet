@@ -33,6 +33,28 @@ def pad_list(xs, pad_value):
     return pad
 
 
+def make_non_pad_mask(lengths):
+    """Function to make tensor mask containing indices of the non-padded part
+
+    e.g.: lengths = [5, 3, 2]
+          mask = [[1, 1, 1, 1 ,1],
+                  [1, 1, 1, 0, 0],
+                  [1, 1, 0, 0, 0]]
+
+    :param list lengths: list of lengths (B)
+    :return: mask tensor containing indices of non-padded part (B, Tmax)
+    :rtype: torch.Tensor
+    """
+    if not isinstance(lengths, list):
+        lengths = lengths.tolist()
+    bs = int(len(lengths))
+    maxlen = int(max(lengths))
+    seq_range = torch.arange(0, maxlen, dtype=torch.int64)
+    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
+    seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
+    return seq_range_expand < seq_length_expand
+
+
 def make_pad_mask(lengths, xs=None, length_dim=-1):
     """Function to make mask tensor containing indices of padded part
 
