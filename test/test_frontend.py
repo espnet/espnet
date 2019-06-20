@@ -2,6 +2,7 @@ import argparse
 from typing import Union
 
 import numpy as np
+import pytest
 import torch
 from torch_complex.tensor import ComplexTensor
 
@@ -10,6 +11,7 @@ from espnet.nets.pytorch_backend.frontend_asr import FrontendASR
 from espnet.nets.pytorch_backend.frontends.dnn_beamformer import DNN_Beamformer
 from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
 from espnet.nets.pytorch_backend.frontends.feature_transform import FeatureTransform
+from espnet.nets.pytorch_backend.frontends.feature_transform import GlobalMVN
 from espnet.nets.pytorch_backend.frontends.feature_transform import LogMel
 from espnet.nets.pytorch_backend.frontends.feature_transform import UtteranceMVN
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
@@ -246,10 +248,40 @@ def test_LogMel_forward_backward():
     return y.sum().backward()
 
 
-def test_UtteranceMVN_forward_backward():
+@pytest.mark.parametrize('norm_means', [True, False])
+@pytest.mark.parametrize('norm_vars', [True, False])
+def test_GlobalMVN_forward_backward(tmpdir, norm_means, norm_vars):
+    p = tmpdir.join("stats.npy")
+    featdim = 80
+    # stats_array: The first half is sum, the second half is sum square,
+    # and the last is number of samples. This starange format comes from kaldi style.
+    nsample = 100
+    feats = np.random.rand(nsample, featdim)
+    stats_array = np.concatenate([feats.sum(axis=0),
+                                  (feats ** 2).sum(axis=0),
+                                  np.array([nsample])])
+    np.save(str(p), stats_array)
+    model = GlobalMVN(
+        str(p),
+        norm_means=norm_means,
+        norm_vars=norm_vars,
+        eps=1.0e-20)
+
+    # feat: (B, T, D1)
+    feat = torch.randn(2, 10, featdim, requires_grad=True, dtype=torch.float)
+    ilens = torch.LongTensor([10, 10])
+    y, _ = model(feat, ilens)
+    assert y.shape == (2, 10, 80), y.shape
+    # (Batch, Channel, TimeFrame, FreqBin)
+    return y.sum().backward()
+
+
+@pytest.mark.parametrize('norm_means', [True, False])
+@pytest.mark.parametrize('norm_vars', [True, False])
+def test_UtteranceMVN_forward_backward(norm_means, norm_vars):
     model = UtteranceMVN(
-        norm_means=True,
-        norm_vars=False,
+        norm_means=norm_means,
+        norm_vars=norm_vars,
         eps=1.0e-20)
     # feat: (B, T, D1)
     feat = torch.randn(2, 10, 80, requires_grad=True, dtype=torch.float)
@@ -260,23 +292,40 @@ def test_UtteranceMVN_forward_backward():
     return y.sum().backward()
 
 
-def test_FeatureTransform_forward_backward():
+@pytest.mark.parametrize('_global', [True, False])
+def test_FeatureTransform_forward_backward(tmpdir, _global):
+    if _global:
+        p = tmpdir.join("stats.npy")
+        stats_file = str(p)
+        featdim = 80
+        # stats_array: The first half is sum, the second half is sum square,
+        # and the last is number of samples. This starange format comes from kaldi style.
+        nsample = 100
+        feats = np.random.rand(nsample, featdim)
+        stats_array = np.concatenate([feats.sum(axis=0),
+                                      (feats ** 2).sum(axis=0),
+                                      np.array([nsample])])
+        np.save(stats_file, stats_array)
+    else:
+        stats_file = None
+
+    nfft = 512
     model = FeatureTransform(
         # Mel options,
         fs=16000,
-        n_fft=512,
+        n_fft=nfft,
         n_mels=80,
         fmin=0.0,
         fmax=None,
         # Normalization
-        stats_file=None,
-        apply_uttmvn=True,
+        stats_file=stats_file,
+        apply_uttmvn=not _global,
         uttmvn_norm_means=True,
         uttmvn_norm_vars=False)
 
     # (Batch, Channel, TimeFrame, FreqBin)
-    xr = torch.randn(2, 10, 3, 257, requires_grad=True, dtype=torch.float)
-    xi = torch.randn(2, 10, 3, 257, requires_grad=True, dtype=torch.float)
+    xr = torch.randn(2, 10, 3, nfft // 2 + 1, requires_grad=True, dtype=torch.float)
+    xi = torch.randn(2, 10, 3, nfft // 2 + 1, requires_grad=True, dtype=torch.float)
     x = ComplexTensor(xr, xi)
     ilens = torch.LongTensor([10, 10])
     y, _ = model(x, ilens)
