@@ -204,9 +204,11 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--grad-noise', type=strtobool, default=False,
+                        help='The flag to switch to use noise injection to gradients during training')
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
-                        help='')
+                        help='The flag to switch to use context vector residual in the decoder network')
     parser.add_argument('--asr-model', default=False, nargs='?',
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
@@ -215,6 +217,7 @@ def main(cmd_args):
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
+    # front end related
     parser.add_argument('--use-frontend', type=strtobool, default=False,
                         help='The flag to switch to use frontend system.')
 
