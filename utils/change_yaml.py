@@ -5,8 +5,9 @@ from pathlib import Path
 import yaml
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='change specified attributes of a YAML file',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('inyaml', nargs='?')
@@ -15,7 +16,11 @@ def main():
                         help="e.g -a a.b.c=4 -> {'a': {'b': {'c': 4}}}")
     parser.add_argument('-d', '--delete', action='append', default=[],
                         help='e.g -d a -> "a" is removed from the input yaml')
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    args = get_parser().parse_args()
 
     if args.inyaml is None:
         indict = {}

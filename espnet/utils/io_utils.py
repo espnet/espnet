@@ -115,7 +115,7 @@ class LoadInputsAndTargets(object):
             # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
             elif self.mode == 'tts' and self.use_speaker_embedding:
                 for idx, inp in enumerate(info['input']):
-                    if idx != 1:
+                    if idx != 1 and len(info['input']) > 1:
                         x = None
                     else:
                         x = self._get_from_loader(
@@ -288,11 +288,18 @@ class LoadInputsAndTargets(object):
                                         (spembs_name, spembs),
                                         (spcs_name, spcs)])
         elif self.use_speaker_embedding:
-            spembs = list(x_feats_dict.values())[1]
+            if len(x_feats_dict) == 0:
+                raise IndexError('No speaker embedding is provided')
+            elif len(x_feats_dict) == 1:
+                spembs_idx = 0
+            else:
+                spembs_idx = 1
+
+            spembs = list(x_feats_dict.values())[spembs_idx]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
 
             x_name = list(y_feats_dict.keys())[0]
-            spembs_name = list(x_feats_dict.keys())[1]
+            spembs_name = list(x_feats_dict.keys())[spembs_idx]
 
             return_batch = OrderedDict([(x_name, xs),
                                         (spembs_name, spembs)])

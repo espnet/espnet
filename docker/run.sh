@@ -3,11 +3,11 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
-docker_cuda=9.1
+docker_cuda=10.0
 docker_user=true
 docker_env=
 docker_cmd=
-
+docker_os=u18
 
 while test $# -gt 0
 do
@@ -60,6 +60,10 @@ if [ ! "${docker_gpu}" == "-1" ]; then
   else
     from_tag="gpu-cuda${docker_cuda}-cudnn7"
   fi
+fi
+
+if [ ! -z "${docker_os}" ]; then
+  from_tag="${from_tag}-${docker_os}"
 fi
 
 # Check if image exists in the system and download if required

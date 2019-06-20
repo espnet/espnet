@@ -16,6 +16,9 @@ __pycache__/
 check_autopep8
 .coverage*
 coverage.xml*
+bats-core/
+shellcheck*
+check_shellcheck*
 
 # recipe related
 egs/*/*/data*
