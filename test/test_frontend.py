@@ -92,8 +92,9 @@ def test_FrontendASR_forward():
     xs, ilens, ys = prepare_inputs(nfft)
 
     # Test2: Instantiate
+    model = FrontendASR(nfft // 2 + 1, args)
     asr_model = MockAsr([2, 150, nmels], [2, 4], ilens)
-    model = FrontendASR(nfft // 2 + 1, args, asr_model)
+    model.register_asr(asr_model)
 
     # Test3: Forward
     model.forward(xs, ilens, ys)
@@ -121,19 +122,21 @@ def test_FrontendASR_recognize():
     nmels = 80
     args, _ = parser.parse_known_args(['--use-wpe', 'true',
                                        '--use-beamformer', 'true',
-                                       '--n-mels', str(nmels)])
+                                       '--fbank-n-mels', str(nmels)])
     for k, v in defaults.items():
         setattr(args, k, v)
     nfft = 512
     # Test2: Instantiate
-    asr_model = MockAsr([3, nmels], None, None)
-    model = FrontendASR(nfft // 2 + 1, args, asr_model)
+    model = FrontendASR(nfft // 2 + 1, args)
+    asr_model = MockAsr([3, model.featdim], None, None)
+    model.register_asr(asr_model)
     x = np.random.randn(3, nfft // 2 + 1) + 1j * np.random.randn(3, nfft // 2 + 1)
     model.recognize(x, args, args.char_list)  # decodable
 
     if hasattr(model, 'recognize_batch'):
-        asr_model = MockAsr([2, 3, nmels], None, None)
-        model = FrontendASR(nfft // 2 + 1, args, asr_model)
+        model = FrontendASR(nfft // 2 + 1, args)
+        asr_model = MockAsr([2, 3, model.featdim], None, None)
+        model.register_asr(asr_model)
         x = np.random.randn(2, 3, nfft // 2 + 1) + 1j * np.random.randn(2, 3, nfft // 2 + 1)
         model.recognize_batch(x, args, args.char_list)  # decodable
 
@@ -145,14 +148,15 @@ def test_FrontendASR_calculate_all_attentions():
     nmels = 80
     args, _ = parser.parse_known_args(['--use-wpe', 'true',
                                        '--use-beamformer', 'true',
-                                       '--n-mels', str(nmels)])
+                                       '--fbank-n-mels', str(nmels)])
 
     nfft = 512
     xs, ilens, ys = prepare_inputs(nfft)
 
     # Test2: Instantiate
-    asr_model = MockAsr([2, 150, nmels], [2, 4], ilens)
-    model = FrontendASR(nfft // 2 + 1, args, asr_model)
+    model = FrontendASR(nfft // 2 + 1, args)
+    asr_model = MockAsr([2, 150, model.featdim], [2, 4], ilens)
+    model.register_asr(asr_model)
 
     # Test3: Forward
     model.calculate_all_attentions(xs, ilens, ys)

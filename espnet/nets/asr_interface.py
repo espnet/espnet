@@ -69,9 +69,26 @@ class ASRInterface(object):
 
 
 class FrontendASRInterface(ASRInterface):
-    def __init__(self, idim: int, args: argparse.Namespace,
-                 asr_model: torch.nn.Module):
+    """Frontend part of ASR Interface
+
+    >>> frontend_asr = FrontendASR(infeatdim, args)
+    >>> asr_model = E2E(frontend.featdim, args)
+    >>> frontend_asr.register_asr(asr_model)
+
+    """
+    def __init__(self, idim: int, args: argparse.Namespace):
         raise NotImplementedError("__init__ method is not implemented")
+
+    @property
+    def featdim(self) -> int:
+        """The dimention of the output feature from Frontend block,
+
+        Frontend -> Feature(Batch, time, featdim) -> E2E class
+        """
+        raise NotImplementedError("featdim method is not implemented")
+
+    def register_asr(asr_model: torch.nn.Module):
+        raise NotImplementedError("register_model method is not implemented")
 
     def enhance(self, xs: np.ndarray):
         """Forwarding only the frontend stage

@@ -26,18 +26,18 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         # WPE related
         group.add_argument('--use-wpe', type=strtobool, default=False,
                            help='Apply Weighted Prediction Error')
-        group.add_argument('--wtype', default='blstmp', type=str,
+        group.add_argument('--wpe-type', default='blstmp', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
                                     'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                            help='Type of encoder network architecture '
                                 'of the mask estimator for WPE. ')
-        group.add_argument('--wlayers', type=int, default=2,
+        group.add_argument('--wpe-layers', type=int, default=2,
                            help='')
-        group.add_argument('--wunits', type=int, default=300,
+        group.add_argument('--wpe-units', type=int, default=300,
                            help='')
-        group.add_argument('--wprojs', type=int, default=300,
+        group.add_argument('--wpe-projs', type=int, default=300,
                            help='')
-        group.add_argument('--wdropout-rate', type=float, default=0.0,
+        group.add_argument('--wpe-dropout-rate', type=float, default=0.0,
                            help='')
         group.add_argument('--wpe-taps', type=int, default=5,
                            help='')
@@ -50,23 +50,23 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         # Beamformer related
         group.add_argument('--use-beamformer', type=strtobool,
                            default=True, help='')
-        group.add_argument('--btype', default='blstmp', type=str,
+        group.add_argument('--beamformer-type', default='blstmp', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
                                     'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                            help='Type of encoder network architecture '
                                 'of the mask estimator for Beamformer.')
-        group.add_argument('--blayers', type=int, default=2,
+        group.add_argument('--beamformer-layers', type=int, default=2,
                            help='')
-        group.add_argument('--bunits', type=int, default=300,
+        group.add_argument('--beamformer-units', type=int, default=300,
                            help='')
-        group.add_argument('--bprojs', type=int, default=300,
+        group.add_argument('--beamformer-projs', type=int, default=300,
                            help='')
-        group.add_argument('--badim', type=int, default=320,
+        group.add_argument('--beamformer-adim', type=int, default=320,
                            help='')
-        group.add_argument('--ref-channel', type=int, default=-1,
+        group.add_argument('--beamformer-ref-channel', type=int, default=-1,
                            help='The reference channel used for beamformer. '
                                 'By default, the channel is estimated by DNN.')
-        group.add_argument('--bdropout-rate', type=float, default=0.0,
+        group.add_argument('--beamformer-dropout-rate', type=float, default=0.0,
                            help='')
         # Feature transform: Normalization
         group.add_argument('--stats-file', type=str, default=None,
@@ -82,7 +82,7 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         group.add_argument('--fbank-fs', type=int, default=16000,
                            help='The sample frequency used for '
                                 'the mel-fbank creation.')
-        group.add_argument('--n-mels', type=int, default=80,
+        group.add_argument('--fbank-n-mels', type=int, default=80,
                            help='The number of mel-frequency bins.')
         group.add_argument('--fbank-fmin', type=float, default=0.,
                            help='')
@@ -90,41 +90,38 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
                            help='')
         return parser
 
-    def __init__(self, idim: int, args: argparse.Namespace,
-                 asr_model: torch.nn.Module):
+    def __init__(self, idim: int, args: argparse.Namespace):
         torch.nn.Module.__init__(self)
-        assert isinstance(asr_model, ASRInterface), type(asr_model)
-        self.asr_model = asr_model
 
         self.frontend = Frontend(
             idim=idim,
             # WPE options
             use_wpe=args.use_wpe,
-            wtype=args.wtype,
-            wlayers=args.wlayers,
-            wunits=args.wunits,
-            wprojs=args.wprojs,
-            wdropout_rate=args.wdropout_rate,
+            wtype=args.wpe_type,
+            wlayers=args.wpe_layers,
+            wunits=args.wpe_units,
+            wprojs=args.wpe_projs,
+            wdropout_rate=args.wpe_dropout_rate,
             taps=args.wpe_taps,
             delay=args.wpe_delay,
             use_dnn_mask_for_wpe=args.use_dnn_mask_for_wpe,
 
             # Beamformer options
             use_beamformer=args.use_beamformer,
-            btype=args.btype,
-            blayers=args.blayers,
-            bunits=args.bunits,
-            bprojs=args.bprojs,
-            badim=args.badim,
-            ref_channel=args.ref_channel,
-            bdropout_rate=args.bdropout_rate)
+            btype=args.beamformer_type,
+            blayers=args.beamformer_layers,
+            bunits=args.beamformer_units,
+            bprojs=args.beamformer_projs,
+            badim=args.beamformer_adim,
+            ref_channel=args.beamformer_ref_channel,
+            bdropout_rate=args.beamformer_dropout_rate)
 
         n_fft = (idim - 1) * 2
         self.feature_transform = FeatureTransform(
             # Mel options,
             fs=args.fbank_fs,
             n_fft=n_fft,
-            n_mels=args.n_mels,
+            n_mels=args.fbank_n_mels,
             fmin=args.fbank_fmin,
             fmax=args.fbank_fmax,
 
@@ -133,8 +130,18 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
             apply_uttmvn=args.apply_uttmvn,
             uttmvn_norm_means=args.uttmvn_norm_means,
             uttmvn_norm_vars=args.uttmvn_norm_vars)
+        self._featdim = args.fbank_n_mels
+
+    @property
+    def featdim(self) -> int:
+        return self._featdim
+
+    def register_asr(self, asr_model: torch.nn.Module):
+        assert isinstance(asr_model, ASRInterface), type(asr_model)
+        self.asr_model = asr_model
 
     def forward(self, xs_pad, ilens, ys_pad):
+        # Assume the inputs in Stft domain
         xs_pad = to_torch_tensor(xs_pad)
         enhanced, hlens, mask = self.frontend(xs_pad, ilens)
         hs_pad, hlens = self.feature_transform(enhanced, hlens)

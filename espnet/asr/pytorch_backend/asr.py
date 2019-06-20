@@ -242,13 +242,19 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
+    if args.frontend_module is not None:
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
+        frontend_class = dynamic_import(args.frontend_module)
+        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
+        # Wrap model by frontend_class.
+        frontend_asr = frontend_class(idim, args)
+        _idim = frontend_asr.featdim
+    else:
+        frontend_asr = None
+        _idim = idim
+
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    if args.frontend_module is not None:
-        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
-        _idim = args.n_mels
-    else:
-        _idim = idim
     model = model_class(_idim, odim, args)
     assert isinstance(model, ASRInterface), type(model)
     subsampling_factor = model.subsample[0]
@@ -261,13 +267,9 @@ def train(args):
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch.load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
-
-    if args.frontend_module is not None:
-        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
-        frontend_class = dynamic_import(args.frontend_module)
-        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
-        # Wrap model by frontend_class.
-        model = frontend_class(idim, args, model)
+    if frontend_asr is not None:
+        frontend_asr.register_asr(model)
+        model = frontend_asr
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -486,15 +488,25 @@ def recog(args):
         model_module = train_args.model_module
     else:
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
     if train_args.frontend_module is not None:
-        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
-        _idim = train_args.n_mels
+        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
+        frontend_class = dynamic_import(train_args.frontend_module)
+        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
+        # Wrap model by frontend_class.
+        frontend_asr = frontend_class(idim, train_args)
+        _idim = frontend_asr.featdim
     else:
+        frontend_asr = None
         _idim = idim
+
+    model_class = dynamic_import(model_module)
     model = model_class(_idim, odim, train_args)
     assert isinstance(model, ASRInterface), type(model)
     model.recog_args = args
+    if frontend_asr is not None:
+        frontend_asr.register_asr(model)
+        model = frontend_asr
+    torch_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
@@ -506,14 +518,6 @@ def recog(args):
         rnnlm.eval()
     else:
         rnnlm = None
-
-    if train_args.frontend_module is not None:
-        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
-        frontend_class = dynamic_import(train_args.frontend_module)
-        assert issubclass(frontend_class, FrontendASRInterface), frontend_class
-        # Wrap model by frontend_class.
-        model = frontend_class(idim, train_args, model)
-    torch_load(args.model, model)
 
     if args.word_rnnlm:
         rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
@@ -628,22 +632,23 @@ def enhance(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model_class = dynamic_import(train_args.model_module)
-    if train_args.frontend_module is not None:
-        # FIXME(kamo): Assuming fbank feature, so you need to change with the other frontend type
-        _idim = train_args.n_mels
-    else:
-        _idim = idim
-    model = model_class(_idim, odim, train_args)
-    assert isinstance(model, ASRInterface), type(model)
-    model.recog_args = args
-
     if train_args.frontend_module is None:
         raise RuntimeError('--frontend-module is not set when training.')
 
+    # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
     frontend_class = dynamic_import(train_args.frontend_module)
     assert issubclass(frontend_class, FrontendASRInterface), frontend_class
-    model = frontend_class(idim, train_args, model)
+    # Wrap model by frontend_class.
+    frontend_asr = frontend_class(idim, train_args)
+    _idim = frontend_asr.featdim
+
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(_idim, odim, train_args)
+    assert isinstance(model, ASRInterface), type(model)
+    model.recog_args = args
+    if frontend_asr is not None:
+        frontend_asr.register_asr(model)
+        model = frontend_asr
     torch_load(args.model, model)
 
     # gpu
