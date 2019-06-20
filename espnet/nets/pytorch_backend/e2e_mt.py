@@ -96,14 +96,14 @@ class E2E(MTInterface, torch.nn.Module):
 
         # options for beam search
         if 'report_bleu' in vars(args) and args.report_bleu:
-            recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
+            trans_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': 0.0, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
                           'space': args.sym_space, 'blank': args.sym_blank,
                           'tgt_lang': False}
 
-            self.recog_args = argparse.Namespace(**recog_args)
+            self.trans_args = argparse.Namespace(**trans_args)
             self.report_bleu = args.report_bleu
         else:
             self.report_bleu = False
@@ -193,10 +193,11 @@ class E2E(MTInterface, torch.nn.Module):
             bleu = 0.0
         else:
             bleus = []
-            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), None,
-                                                       self.recog_args, self.char_list,
-                                                       self.rnnlm,
-                                                       tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+            nbest_hyps = self.dec.recognize_beam_batch(
+                hs_pad, torch.tensor(hlens), None,
+                self.trans_args, self.char_list,
+                self.rnnlm,
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -204,9 +205,9 @@ class E2E(MTInterface, torch.nn.Module):
 
                 seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
                 seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
-                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
-                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
+                seq_hat_text = "".join(seq_hat).replace(self.trans_args.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.trans_args.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.trans_args.space, ' ')
 
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
@@ -216,7 +217,6 @@ class E2E(MTInterface, torch.nn.Module):
             bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
 
         self.loss = loss
-
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
             self.reporter.report(loss_data, acc, ppl, bleu)
@@ -224,11 +224,11 @@ class E2E(MTInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def translate(self, x, recog_args, char_list, rnnlm=None):
+    def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search
 
         :param ndarray x: input source text feature (T, D)
-        :param Namespace recog_args: argument Namespace containing options
+        :param Namespace trans_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
@@ -254,17 +254,17 @@ class E2E(MTInterface, torch.nn.Module):
 
         # 2. decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(hs[0], None, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], None, trans_args, char_list, rnnlm)
 
         if prev:
             self.train()
         return y
 
-    def translate_batch(self, xs, recog_args, char_list, rnnlm=None):
+    def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
         """E2E beam search
 
         :param list xs: list of input source text feature arrays [(T_1, D), (T_2, D), ...]
-        :param Namespace recog_args: argument Namespace containing options
+        :param Namespace trans_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
@@ -287,7 +287,7 @@ class E2E(MTInterface, torch.nn.Module):
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
-        y = self.dec.recognize_beam_batch(hs_pad, hlens, None, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, None, trans_args, char_list, rnnlm)
 
         if prev:
             self.train()

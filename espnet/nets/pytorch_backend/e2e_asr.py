@@ -288,10 +288,11 @@ class E2E(ASRInterface, torch.nn.Module):
                 lpz = None
 
             word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
-                                                       self.recog_args, self.char_list,
-                                                       self.rnnlm,
-                                                       tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+            nbest_hyps = self.dec.recognize_beam_batch(
+                hs_pad, torch.tensor(hlens), lpz,
+                self.recog_args, self.char_list,
+                self.rnnlm,
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
