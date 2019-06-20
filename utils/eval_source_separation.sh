@@ -10,11 +10,7 @@ permutation=true
 bss_eval_images=true
 bss_eval_version=v3
 
-. ./path.sh
-. utils/parse_options.sh
-
-if [ $# != 3 ]; then
-    cat << EOF 1>&2
+help_message=$(cat << EOF
 Usage: $0 reffiles enffiles <dir>
     e.g. $0 reference.scp enhanced.scp outdir
 
@@ -25,6 +21,13 @@ Options:
   --nj <nj>                                        # number of parallel jobs
   --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
 EOF
+)
+
+. ./path.sh
+. utils/parse_options.sh
+
+if [ $# != 3 ]; then
+    echo $help_message  1>&2
     exit 1;
 fi
 

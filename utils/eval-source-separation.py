@@ -1,19 +1,15 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 from collections import OrderedDict
 from distutils.util import strtobool
 import itertools
 import logging
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import sys
-import tempfile
+from tempfile import TemporaryDirectory
 import warnings
 
 import museval
@@ -22,9 +18,6 @@ from pystoi.stoi import stoi
 import soundfile
 
 from espnet.utils.cli_utils import get_commandline_args
-
-
-PY2 = sys.version_info[0] == 2
 
 
 def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
@@ -73,33 +66,12 @@ def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
     return tuple(value), tuple(perm)
 
 
-if PY2:
-    class TemporaryDirectory(object):
-        """Ported from python3 tempflie.TemporaryDirectory"""
-
-        def __init__(self, suffix=None, prefix=None, dir=None):
-            self.name = tempfile.mkdtemp(suffix, prefix, dir)
-
-        def __repr__(self):
-            return "<{} {!r}>".format(self.__class__.__name__, self.name)
-
-        def __enter__(self):
-            return self.name
-
-        def __exit__(self, exc, value, tb):
-            self.cleanup()
-
-        def cleanup(self):
-            shutil.rmtree(self.name)
-else:
-    from tempfile import TemporaryDirectory
-
-
-def eval_PESQ(ref, enh, fs, compute_permutation=True):
+def eval_PESQ(ref, enh, fs, compute_permutation: bool = True,
+              wideband: bool = True):
     """Evaluate PESQ
 
     PESQ program can be downloaded from here:
-        https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items
+        http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items
 
     Reference:
         Perceptual evaluation of speech quality (PESQ)-a new method
@@ -111,16 +83,8 @@ def eval_PESQ(ref, enh, fs, compute_permutation=True):
     :param fs (int): Sample frequency
     :param compute_permutation (bool):
     """
-    if PY2:
-        p = subprocess.Popen(['which', 'PESQ'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        _, _ = p.communicate()
-        if p.returncode != 0:
-            raise RuntimeError('PESQ: command not found: Please install')
-    else:
-        import shutil
-        if shutil.which('PESQ') is None:
-            raise RuntimeError('PESQ: command not found: Please install')
+    if shutil.which('PESQ') is None:
+        raise RuntimeError('PESQ: command not found: Please install')
     if fs not in (8000, 16000):
         raise ValueError('Sample frequency must be 8000 or 16000: {}'
                          .format(fs))
@@ -133,10 +97,6 @@ def eval_PESQ(ref, enh, fs, compute_permutation=True):
     n_src = ref.shape[0]
     n_mic = ref.shape[2]
     with TemporaryDirectory() as d:
-        # TODO(kamo): Should we use python-binding for PESQ?
-        # Such as https://github.com/vBaiCai/python-pesq
-        # I'm not sure this approach is permitted as the licence agreement.
-
         # Dumping wav files temporary
         ref_files = []
         enh_files = []
@@ -166,28 +126,28 @@ def eval_PESQ(ref, enh, fs, compute_permutation=True):
                 lis = []
                 for imic in range(n_mic):
                     # PESQ +<8000|16000> <ref.wav> <enh.wav> [smos] [cond]
-                    commands = ['PESQ', '+{}'.format(fs),
-                                ref_files[i][imic], enh_files[j][imic]]
-                    # Change cwd because PESQ writes the result in the cwd
-                    with subprocess.Popen(
-                            commands, stdout=subprocess.PIPE, cwd=d) as p:
-                        stdout, _ = p.communicate()
-
-                    # Get the PESQ value from the stdout
-                    last_line = stdout.decode().rstrip().split('\n')[-1]
-                    if 'Prediction : PESQ_MOS = ' in last_line:
-                        value = last_line.replace(
-                            'Prediction : PESQ_MOS = ', '')
-                        lis.append(float(value))
-                    elif 'Processing error!' in last_line:
-                        warnings.warn('Processing error is found.')
-                        # Note(kamo):
-                        # Sometimes PESQ is failed. I don't know why.
-                        lis.append(1.)
+                    if wideband:
+                        commands = ['PESQ', '+{}'.format(fs), '+wb',
+                                    ref_files[i][imic], enh_files[j][imic]]
                     else:
-                        raise RuntimeError(
-                            'Failed: {}\n{}'.format(' '.join(commands),
-                                                    stdout.decode()))
+                        commands = ['PESQ', '+{}'.format(fs),
+                                    ref_files[i][imic], enh_files[j][imic]]
+                    with subprocess.Popen(commands, stdout=subprocess.DEVNULL,
+                                          cwd=d) as p:
+                        _, _ = p.communicate()
+
+                    # e.g.
+                    # REFERENCE	 DEGRADED	 PESQMOS	 MOSLQO	 SAMPLE_FREQ	 MODE
+                    # /tmp/tmp9k5rxgjd/ref.0.wav	 /tmp/tmp9k5rxgjd/enh.0.wav	 -1.000	 4.644	 16000	wb
+                    result_txt = (Path(d) / 'pesq_results.txt')
+                    if result_txt.exists():
+                        with result_txt.open('r') as f:
+                            lis.append(float(f.readlines()[1].split()[3]))
+                    else:
+                        # Sometimes PESQ is failed. I don't know why.
+                        warnings.warn('Processing error is found.')
+                        lis.append(1.)
+                    # Averaging over n_mic
                 # Averaging over n_mic
                 values2.append(sum(lis) / len(lis))
             values.append(values2)
@@ -197,7 +157,7 @@ def eval_PESQ(ref, enh, fs, compute_permutation=True):
     return tuple(value), tuple(perm)
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Evaluate enhanced speech. '
                     'e.g. {c} --ref ref.scp --enh enh.scp --outdir outputdir'
@@ -234,6 +194,11 @@ def main():
     parser.add_argument('--bss-eval-version', type=str,
                         default='v3', choices=['v3', 'v4'],
                         help='Specify bss-eval-version: v3 or v4')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"

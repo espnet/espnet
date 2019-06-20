@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -11,8 +11,10 @@ import subprocess
 import sys
 
 
-def main(args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description='Synthesize speech from text using a TTS model on one CPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -51,6 +53,11 @@ def main(args):
                         help='Minimum length ratio in decoding')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='Threshold value in decoding')
+    return parser
+
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
 
     # logging info
