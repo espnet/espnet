@@ -135,18 +135,6 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
             uttmvn_norm_vars=args.uttmvn_norm_vars)
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """E2E forward
-
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
-        :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: ctc loass value
-        :rtype: torch.Tensor
-        :return: attention loss value
-        :rtype: torch.Tensor
-        :return: accuracy in attention decoder
-        :rtype: float
-        """
         xs_pad = to_torch_tensor(xs_pad)
         enhanced, hlens, mask = self.frontend(xs_pad, ilens)
         hs_pad, hlens = self.feature_transform(enhanced, hlens)
@@ -163,7 +151,6 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
-        # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr.py
         enhanced, hlens, mask = self.frontend(hs, ilens)
         hs, hlens = self.feature_transform(enhanced, hlens)
 
@@ -188,10 +175,6 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         return self.asr_model.recognize_batch(hs_pad, recog_args, char_list, rnnlm=None)
 
     def enhance(self, xs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Forwarding only the frontend stage
-
-        :param ndarray xs: input acoustic feature (T, C, F)
-        """
         prev = self.training
         self.eval()
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
