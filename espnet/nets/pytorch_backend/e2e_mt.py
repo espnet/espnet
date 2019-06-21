@@ -265,15 +265,7 @@ class E2E(MTInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # 1. Encoder
-            if self.replace_sos:
-                # remove source language ID in the beggining
-                tgt_lang_ids = ys_pad[:, 0:1]
-                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
-                xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
-                ilens -= 1
-            else:
-                xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-                tgt_lang_ids = None
+            xs_pad_emb, tgt_lang_ids = self.source_embedding(xs_pad, ilens, ys_pad)
             hpad, hlens, _ = self.enc(xs_pad_emb, ilens)
 
             # 2. Decoder
