@@ -44,7 +44,7 @@ cat << EOF
 
 EOF
 
-for expdir in $(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d); do
+while IFS= read -r expdir; do
     if ls ${expdir}/decode_*/result.txt &> /dev/null; then
     # 1. Show the result table
     cat << EOF
@@ -73,4 +73,4 @@ EOF
             echo
         fi
     fi
-done
+done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
