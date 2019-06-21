@@ -64,7 +64,7 @@ def make_arg(**kwargs):
 def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
-    xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
+    xs = [np.random.randint(1, 5, ilen).astype(np.int32) for ilen in ilens]
     ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
@@ -94,7 +94,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 
 
 def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
-    ilens = np.array([x[1]['input'][0]['shape'][0] for x in batch])
+    ilens = np.array([x[1]['output'][1]['shape'][0] for x in batch])
     olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
     xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
@@ -195,7 +195,7 @@ def test_sortagrad_trainable_with_batch_bins(module):
     for batch in batchset:
         n = 0
         for uttid, info in batch:
-            ilen = int(info['input'][0]['shape'][0])
+            ilen = int(info['output'][1]['shape'][0])
             olen = int(info['output'][0]['shape'][0])
             n += ilen * idim + olen * odim
         assert olen < batch_elems
@@ -226,12 +226,13 @@ def test_sortagrad_trainable_with_batch_frames(module):
     batchset = make_batchset(dummy_json,
                              batch_frames_in=batch_frames_in,
                              batch_frames_out=batch_frames_out,
-                             shortest_first=True)
+                             shortest_first=True,
+                             mt=True)
     for batch in batchset:
         i = 0
         o = 0
         for uttid, info in batch:
-            i += int(info['input'][0]['shape'][0])
+            i += int(info['output'][1]['shape'][0])
             o += int(info['output'][0]['shape'][0])
         assert i <= batch_frames_in
         assert o <= batch_frames_out
@@ -348,7 +349,7 @@ def test_calculate_all_attentions(module, atype):
 
 def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_mt')
-    utils = importlib.import_module('espnet.mt.mt_utils')
+    utils = importlib.import_module('espnet.mt.asr_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
