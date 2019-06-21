@@ -25,8 +25,8 @@ dic_tgt=$2
 dic_src=$3
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-json2trn_mt.py ${dir}/data.json ${dic_tgt} --ref ${dir}/ref.trn.org \
-    --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org --dict-src ${dic_src}
+json2trn_mt.py ${dir}/data.json ${dic_tgt} --refs ${dir}/ref.trn.org \
+    --hyps ${dir}/hyp.trn.org --srcs ${dir}/src.trn.org --dict-src ${dic_src}
 
 # remove uttterance id
 perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn.org > ${dir}/ref.trn
@@ -38,9 +38,9 @@ if [ ! -z ${bpemodel} ]; then
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn
 else
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/src.trn > ${dir}/src.wrd.trn
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/src.trn > ${dir}/src.wrd.trn
 fi
 
 # detokenize
