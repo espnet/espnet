@@ -39,7 +39,7 @@ case=lc
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-# st_ted=/export/b08/inaguma/IWSLT
+st_ted=/export/b08/inaguma/IWSLT
 # st_ted=/n/sd3/inaguma/corpus/iwslt18/data
 
 # exp tag

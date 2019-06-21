@@ -75,8 +75,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     cp -r data/local/data/callhome_train_all data/callhome_train_all
 fi
 
-
-
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -127,8 +125,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-fi
-
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -140,7 +136,6 @@ fi
             ${feat_recog_dir}
     done
 fi
-
 
 dict=data/lang_1char/${train_set_ori}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
@@ -172,8 +167,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
-
-
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -229,14 +222,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --dict ${lmdict}
 fi
 
-
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
 else
-    expname=${train_set}_${case}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
