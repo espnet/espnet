@@ -11,21 +11,24 @@ from torch.nn.utils.rnn import pad_packed_sequence
 
 
 class CBHG(torch.nn.Module):
-    """CBHG module to convert log mel-fbank to linear spectrogram
+    """CBHG module to convert log Mel-filterbanks to linear spectrogram.
 
-    Reference:
-        Tacotron: Towards End-to-End Speech Synthesis
-        (https://arxiv.org/abs/1703.10135)
+    This is a module of CBHG introduced in `Tacotron: Towards End-to-End Speech Synthesis`_.
+    The CBHG converts the sequence of log Mel-filterbanks into linear spectrogram.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param int conv_bank_layers: the number of convolution bank layers
-    :param int conv_bank_chans: the number of channels in convolution bank
-    :param int conv_proj_filts: kernel size of convolutional projection layer
-    :param int conv_proj_chans: the number of channels in convolutional projection layer
-    :param int highway_layers: the number of highway network layers
-    :param int highway_units: the number of highway network units
-    :param int gru_units: the number of GRU units (for both directions)
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        conv_bank_layers (int, optional): The number of convolution bank layers.
+        conv_bank_chans (int, optional): The number of channels in convolution bank.
+        conv_proj_filts (int, optional): Kernel size of convolutional projection layer.
+        conv_proj_chans (int, optional): The number of channels in convolutional projection layer.
+        highway_layers (int, optional): The number of highway network layers.
+        highway_units (int, optional): The number of highway network units.
+        gru_units (int, optional): The number of GRU units (for both directions).
+
+    .. _`Tacotron: Towards End-to-End Speech Synthesis`: https://arxiv.org/abs/1703.10135
+
     """
 
     def __init__(self,
@@ -95,14 +98,16 @@ class CBHG(torch.nn.Module):
         self.output = torch.nn.Linear(gru_units, odim, bias=True)
 
     def forward(self, xs, ilens):
-        """CBHG module forward
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of the sequences of inputs (B, Tmax, idim)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :return: batch of sequences of padded outputs (B, Tmax, eunits)
-        :rtype: torch.Tensor
-        :return: batch of lengths of each encoder states (B)
-        :rtype: list
+        Args:
+            xs (Tensor): Batch of the padded sequences of inputs (B, Tmax, idim).
+            ilens (LongTensor): Batch of lengths of each input sequence (B,).
+
+        Return:
+            Tensor: Batch of the padded sequence of outputs (B, Tmax, odim).
+            LongTensor: Batch of lengths of each output sequence (B,).
+
         """
         xs = xs.transpose(1, 2)  # (B, idim, Tmax)
         convs = []
@@ -135,11 +140,14 @@ class CBHG(torch.nn.Module):
         return xs, ilens
 
     def inference(self, x):
-        """CBHG module inference
+        """Inference.
 
-        :param torch.Tensor x: input (T, idim)
-        :return: the sequence encoder states (T, odim)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): The sequences of inputs (T, idim).
+
+        Return:
+            Tensor: The sequence of outputs (T, odim).
+
         """
         assert len(x.size()) == 2
         xs = x.unsqueeze(0)
