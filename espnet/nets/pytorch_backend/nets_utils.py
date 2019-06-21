@@ -320,6 +320,22 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
 
 
 def get_last_yseq(exp_yseq):
+    """Get list of the last components from list of tensors.
+
+    Args:
+        exp_yseq (List): List of tensors [(T_1), (T_2), ..., (T_B)].
+
+    Returns:
+        List: list of the last components.
+
+    Examples:
+        >>> yseq = [torch.arange(5), torch.arange(3), torch.arange(2)]
+        >>> yseq
+        [tensor([0, 1, 2, 3, 4]), tensor([0, 1, 2]), tensor([0, 1])]
+        >>> get_last_yseq(yseq)
+        [tensor(4), tensor(2), tensor(1)]
+
+    """
     last = []
     for y_seq in exp_yseq:
         last.append(y_seq[-1])
@@ -334,15 +350,6 @@ def append_ids(yseq, ids):
         for i in range(len(yseq)):
             yseq[i].append(ids)
     return yseq
-
-
-def expand_yseq(yseqs, next_ids):
-    new_yseq = []
-    for yseq in yseqs:
-        for next_id in next_ids:
-            new_yseq.append(yseq[:])
-            new_yseq[-1].append(next_id)
-    return new_yseq
 
 
 def index_select_list(yseq, lst):
