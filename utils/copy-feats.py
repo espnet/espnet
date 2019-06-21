@@ -10,8 +10,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='copy feature with preprocessing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -36,6 +37,11 @@ def main():
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier', type=str,
                         help='Write specifier. e.g. ark:some.ark')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info

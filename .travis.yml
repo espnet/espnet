@@ -47,11 +47,15 @@ script:
   - |
     if $USE_CONDA; then
       source tools/venv/bin/activate
+      cd tools; git clone https://github.com/kaldi-asr/kaldi --depth 1; cd -
+      ./ci/doc.sh
     fi
-    travis-sphinx build --source=doc --nowarn
 
 sudo: false
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - travis-sphinx deploy
+  - |
+    if $USE_CONDA; then
+      travis-sphinx deploy -m "Update documentation [ci skip]"
+    fi

@@ -9,12 +9,16 @@ import sys
 is_python2 = sys.version_info[0] == 2
 
 
-def main(args):
-    parser = argparse.ArgumentParser()
+def get_parser():
+    parser = argparse.ArgumentParser(description='convert trn to ctm')
     parser.add_argument('trn', type=str, default=None, nargs='?',
                         help='input trn')
     parser.add_argument('ctm', type=str, default=None, nargs='?', help='output ctm')
-    args = parser.parse_args(args)
+    return parser
+
+
+def main(args):
+    args = get_parser().parse_args(args)
     convert(args.trn, args.ctm)
 
 
