@@ -244,7 +244,7 @@ if [ -z ${tag} ]; then
       expname=${expname}_mttrans
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}

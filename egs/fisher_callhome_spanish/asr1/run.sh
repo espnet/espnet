@@ -7,17 +7,16 @@
 . ./cmd.sh
 
 # general configuration
-backend=pytorch
-stage=0        # start from 0 if you need to start from data preparation
+backend=pytorch # chainer or pytorch
+stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
-dumpdir=dump   # directory to dump full features
-N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
-resume=        # Resume the training from snapshot
-seed=1
-sp_prtb=true   # Speed perturbation
+dumpdir=dump    # directory to dump full features
+N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=0       # verbose option
+resume=         # Resume the training from snapshot
+seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
@@ -44,7 +43,6 @@ callhome_speech=/export/corpora/LDC/LDC96S35
 callhome_transcripts=/export/corpora/LDC/LDC96T17
 split_callhome=local/splits/split_callhome
 
-
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -59,11 +57,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-if [ ${sp_prtb} = true ]; then
-    train_set_ori=train
-    train_set=train_sp
-fi
+train_set_ori=train
+train_set=train_sp
 train_dev=dev
 train_test="test"
 recog_set="dev test callhome_dev callhome_test callhome_train"
@@ -106,45 +101,32 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/create_splits.sh ${split}
     local/callhome_create_splits.sh ${split_callhome}
 
-    if [ ${sp_prtb} = true ]; then
-        # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
-        utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
-        utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
-        utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
-        utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-        rm -r data/temp1 data/temp2 data/temp3
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
-            data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
+    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
 
-        utils/fix_data_dir.sh data/train_sp
-        utils/validate_data_dir.sh data/train_sp
-    fi
+    utils/fix_data_dir.sh data/train_sp
+    utils/validate_data_dir.sh data/train_sp
+
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-if [ ${sp_prtb} = true ]; then
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
-            ${feat_tr_dir}/storage
-        fi
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
-            ${feat_dt_dir}/storage
-        fi
-else
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
-            ${feat_tr_dir}/storage
-        fi
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
-            ${feat_dt_dir}/storage
-        fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
+    fi
 fi
 
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
@@ -160,10 +142,7 @@ fi
 fi
 
 
-dict=data/lang_1char/${train_set}_units.txt
-if [ ${sp_prtb} = true ]; then
-    dict=data/lang_1char/${train_set_ori}_units.txt
-fi
+dict=data/lang_1char/${train_set_ori}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
@@ -173,30 +152,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    if [ ${sp_prtb} = true ]; then
-        cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
-    else
-        cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
-
-    fi
+    cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    if [ ${sp_prtb} = true ]; then
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
-            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    else
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    fi
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -225,11 +194,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        if [ ${sp_prtb} = true ]; then
-            cut -f 2- -d" " data/${train_set_ori}/text > ${lmdatadir}/train.txt
-        else
-            cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
-        fi
+        cut -f 2- -d" " data/${train_set_ori}/text > ${lmdatadir}/train.txt
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
@@ -237,13 +202,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lmdatadir=data/local/lm_train
         lmdict=${dict}
         mkdir -p ${lmdatadir}
-        if [ ${sp_prtb} = true ]; then
-            text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text \
-                | cut -f 2- -d" " > ${lmdatadir}/train.txt
-        else
-            text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
-                | cut -f 2- -d" " > ${lmdatadir}/train.txt
-        fi
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
@@ -276,7 +236,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -295,9 +255,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
+        --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json
 fi
@@ -328,10 +288,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
-            ${recog_opts}
+            --model ${expdir}/results/${recog_model}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
