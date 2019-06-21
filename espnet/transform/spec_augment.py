@@ -1,4 +1,4 @@
-"""Spec Augment module for preprocessing i.e., data agumentation"""
+"""Spec Augment module for preprocessing i.e., data augmentation"""
 
 import random
 
@@ -10,7 +10,7 @@ from espnet.transform.functional import FuncTrans
 
 
 def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
-    """time warp for spec agument
+    """time warp for spec augment
 
     move random center frame by the random width ~ uniform(-window, window)
     :param numpy.ndarray x: spectrogram (time, freq)
