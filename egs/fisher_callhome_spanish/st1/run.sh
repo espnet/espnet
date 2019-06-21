@@ -36,6 +36,9 @@ case=lc
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
+# evaluation related
+single_ref=false
+
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
@@ -65,7 +68,6 @@ train_set=train_sp.en
 train_set_prefix=train_sp
 train_dev=train_dev.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
-single_ref=false
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
