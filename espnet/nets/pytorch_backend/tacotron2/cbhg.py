@@ -165,9 +165,15 @@ class CBHG(torch.nn.Module):
 
 
 class HighwayNet(torch.nn.Module):
-    """Highway Network
+    """Highway Network module.
 
-    :param int idim: dimension of the inputs
+    This is a module of Highway Network introduced in `Highway Networks`_.
+
+    Args:
+        idim (int): Dimension of the inputs.
+
+    .. _`Highway Networks`: https://arxiv.org/abs/1505.00387
+
     """
 
     def __init__(self, idim):
@@ -181,11 +187,14 @@ class HighwayNet(torch.nn.Module):
             torch.nn.Sigmoid())
 
     def forward(self, x):
-        """Highway Network forward
+        """Calculate forward propagation.
 
-        :param torch.Tensor x: batch of inputs (B, *, idim)
-        :return: batch of outputs (B, *, idim)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): Batch of inputs (B, *, idim).
+
+        Returns:
+            Tensor: Batch of outputs, which are the same shape as inputs (B, *, idim).
+
         """
         proj = self.projection(x)
         gate = self.gate(x)
