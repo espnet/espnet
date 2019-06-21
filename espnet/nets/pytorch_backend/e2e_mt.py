@@ -152,8 +152,8 @@ class E2E(MTInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # 1. Encoder
-        xs_pad_emb, tgt_lang_ids = self.source_embedding(xs_pad, ilens, ys_pad)
-        hs_pad, hlens, _ = self.enc(xs_pad_emb, ilens)
+        xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing(xs_pad, ilens, ys_pad)
+        hs_pad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xs_pad)), ilens)
 
         # 3. attention loss
         loss, acc, ppl = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
@@ -168,14 +168,16 @@ class E2E(MTInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def source_embedding(self, xs_pad, ilens, ys_pad):
-        """Path through the source embedding during training.
+    def target_lang_biasing(self, xs_pad, ilens, ys_pad):
+        """Replace <sos> with target language IDs for multilingual MT during training.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: output of the source embedding layer (B, Tmax, eunits)
+        :return: source text without language IDs
         :rtype: torch.Tensor
-        :return: loss value
+        :return: target text without language IDs
+        :rtype: torch.Tensor
+        :return: target language IDs
         :rtype: torch.Tensor (B, 1)
         """
         tgt_lang_ids = None
@@ -185,8 +187,7 @@ class E2E(MTInterface, torch.nn.Module):
             ys_pad = ys_pad[:, 1:]
             tgt_lang_ids = ys_pad[:, 0:1]
             ilens -= 1
-        xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-        return xs_pad_emb, tgt_lang_ids
+        return xs_pad, ys_pad, tgt_lang_ids
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search
@@ -210,8 +211,7 @@ class E2E(MTInterface, torch.nn.Module):
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
         else:
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
-        h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
-        hs, _, _ = self.enc(h_emb, ilen)
+        hs, _, _ = self.enc(self.dropout_emb_src(self.embed_src(h.unsqueeze(0))), ilen)
 
         # 2. decoder
         # decode the first utterance
@@ -241,8 +241,7 @@ class E2E(MTInterface, torch.nn.Module):
         else:
             hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
         xpad = pad_list(hs, self.pad)
-        xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
-        hs_pad, hlens, _ = self.enc(xpad_emb, ilens)
+        hs_pad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xpad)), ilens)
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
@@ -265,8 +264,8 @@ class E2E(MTInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # 1. Encoder
-            xs_pad_emb, tgt_lang_ids = self.source_embedding(xs_pad, ilens, ys_pad)
-            hpad, hlens, _ = self.enc(xs_pad_emb, ilens)
+            xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing(xs_pad, ilens, ys_pad)
+            hpad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xs_pad)), ilens)
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
