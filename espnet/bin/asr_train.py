@@ -130,7 +130,7 @@ def main(cmd_args):
     parser.add_argument('--beam-size', type=int, default=4,
                         help='Beam size')
     parser.add_argument('--penalty', default=0.0, type=float,
-                        help='Incertion penalty')
+                        help='Insertion penalty')
     parser.add_argument('--maxlenratio', default=0.0, type=float,
                         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
@@ -182,7 +182,7 @@ def main(cmd_args):
                         choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
-                        help='Number of gradient accumuration')
+                        help='Number of gradient accumulation')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,

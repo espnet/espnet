@@ -19,9 +19,13 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
-train_config=conf/train.yaml
+train_asr_config=conf/train_asr.yaml
+train_asrtts_config=conf/train_asrtts.yaml
+train_tts_config=conf/train_pytorch_tacotron2+spkemb.yaml
+decode_tts_config=conf/decode_tts.yaml
 lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+decode_asr_config=conf/decode_asr.yaml
+
 # feature extraction related
 fs=16000      # sampling frequency
 fmax=""       # maximum frequency
@@ -31,32 +35,8 @@ n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
 
-# network architecture
-# encoder related
-etype=blstmp     # encoder architecture type
-elayers=5
-eunits=1024
-eprojs=1024
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=1024
-# attention related
-atype=location
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.0
-
-# minibatch related
-batchsize=20
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
 # optimization related
 opt=adadelta
-epochs=10
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
@@ -339,7 +319,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
-        --config ${train_config} \
+        --config ${train_asr_config} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
@@ -367,7 +347,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu 0 \
-            --config $decode_config \
+            --config $decode_asr_config \
             --backend ${backend} \
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
@@ -397,11 +377,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     seed=1
     # decoding related
     model=model.loss.best
-    threshold=0.5    # threshold to stop the generation
-    maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
-    minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
-    train_config=conf/train_pytorch_tacotron2+spkemb.yaml
-    #decode_config=conf/decode.yaml
 
     for name in ${train_paired_set} ${dev_set}; do
         cp ${dumpdir}/${name}/data.json ${dumpdir}/${name}/data_tts.json
@@ -415,7 +390,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         tts_train.py \
            --backend ${backend} \
            --ngpu $ngpu \
-           --config $train_config \
+           --config $train_tts_config \
            --outdir ${ttsexpdir}/results \
            --tensorboard-dir tensorboard/${ttsexpdir} \
            --verbose ${verbose} \
@@ -425,7 +400,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --valid-json ${dt_json} 
         fi
     if [ $tts_decode == 'true' ]; then
-    outdir=${ttsexpdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
+    outdir=${ttsexpdir}/outputs_${model}
     for name in ${dev_set} ${eval_set};do
         [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
@@ -439,9 +414,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                 --out ${outdir}/${name}/feats.JOB \
                 --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${ttsexpdir}/results/${model} \
-                --threshold ${threshold} \
-                --maxlenratio ${maxlenratio} \
-                --minlenratio ${minlenratio}
+                --config ${decode_tts_config}
         # concatenate scp files
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/feats.$n.scp" || exit 1;
@@ -471,10 +444,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: ASR-TTS training, decode and synthesize"
     asrttsexpdir=exp/asrtts_${tag}
     train_opts=
-    sample_topk=0
-    sample_scaling=0.1
-    teacher_weight=0.1
-    n_samples=5
 
     if [ ! -s  ${feat_tr_up_dir}/data_rnd.json ]; then
         bash utils/copy_data_dir.sh data/${train_unpaired_set} data/${train_unpaired_set}_rnd
@@ -509,6 +478,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ $asrtts_train == 'true' ]; then
         ${cuda_cmd} --gpu 1 ${asrttsexpdir}/train.log \
         asrtts_train.py \
+        --config ${train_asrtts_config} \
         --ngpu $ngpu \
         --backend ${backend} \
         --outdir ${asrttsexpdir}/results \
@@ -520,37 +490,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         --resume ${resume} \
         --train-json ${tr_json_list} \
         --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs} \
         --asr-model-conf $asr_model_conf \
         --asr-model $asr_model \
         --tts-model-conf $tts_model_conf \
         --tts-model $tts_model \
-        --criterion acc \
         --update-asr-only \
-        --generator tts \
-        --sample-topk $sample_topk \
-        --sample-scaling $sample_scaling \
-        --teacher-weight $teacher_weight \
-        --n-samples-per-input $n_samples \
         $train_opts
     fi
     if [ $asrtts_decode == 'true' ]; then
         nj=32
+        pids=()
         for rtask in ${recog_set}; do
         (
             recog_opts=
@@ -570,25 +520,23 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
             ${decode_cmd} JOB=1:${nj} ${asrttsexpdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_asr_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${asrttsexpdir}/${decode_dir}/data.JOB.json \
             --model ${asrttsexpdir}/results/model.${recog_model}  \
             --model-conf ${asrttsexpdir}/results/model.json  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            $recog_opts \
-            &
+            $recog_opts 
             wait
             score_sclite.sh --wer true ${asrttsexpdir}/${decode_dir} ${dict}
 
         ) &
+        pids+=($!) # store background pids
         done
-        wait
+        i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+        [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
         echo "Finished"
     fi
 fi

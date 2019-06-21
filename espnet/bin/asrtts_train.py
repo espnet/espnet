@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -18,9 +19,17 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
-def main():
-    parser = argparse.ArgumentParser()
+def main(cmd_args):
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -42,6 +51,7 @@ def main():
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, default=None, nargs='+',
                         help='Filenames of train label data (json)')
@@ -59,7 +69,7 @@ def main():
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
-    parser.add_argument('--subsample', default=1, type=str,
+    parser.add_argument('--subsample', default="1", type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
@@ -253,7 +263,19 @@ def main():
                         help='Soft assignment of token embeddings to TTS input')
     parser.add_argument('--lm-loss-weight', default=1.0, type=float,
                         help='LM loss weight')
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args(cmd_args)
+
+    from espnet.utils.dynamic_import import dynamic_import
+    if args.model_module is not None:
+        model_class = dynamic_import(args.model_module)
+        model_class.add_arguments(parser)
+    args = parser.parse_args(cmd_args)
+    if args.model_module is None:
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    if 'chainer_backend' in args.model_module:
+        args.backend = 'chainer'
+    if 'pytorch_backend' in args.model_module:
+        args.backend = 'pytorch'
 
     # logging info
     if args.verbose > 0:
@@ -339,4 +361,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
