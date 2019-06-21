@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
@@ -19,28 +20,6 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
-
-
-def make_non_pad_mask(lengths):
-    """Function to make tensor mask containing indices of the non-padded part
-
-    e.g.: lengths = [5, 3, 2]
-          mask = [[1, 1, 1, 1 ,1],
-                  [1, 1, 1, 0, 0],
-                  [1, 1, 0, 0, 0]]
-
-    :param list lengths: list of lengths (B)
-    :return: mask tensor containing indices of non-padded part (B, Tmax)
-    :rtype: torch.Tensor
-    """
-    if not isinstance(lengths, list):
-        lengths = lengths.tolist()
-    bs = int(len(lengths))
-    maxlen = int(max(lengths))
-    seq_range = torch.arange(0, maxlen, dtype=torch.int64)
-    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
-    seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
-    return seq_range_expand < seq_length_expand
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -234,6 +213,10 @@ class Tacotron2Loss(torch.nn.Module):
 
 class Tacotron2(TTSInterface, torch.nn.Module):
     """Tacotron2 based Seq2Seq converts chars to features
+
+    Reference:
+       Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions
+       (https://arxiv.org/abs/1712.05884)
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
