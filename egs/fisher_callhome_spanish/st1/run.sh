@@ -65,6 +65,7 @@ train_set=train_sp.en
 train_set_prefix=train_sp
 train_dev=train_dev.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+single_ref=false
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -302,7 +303,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} --single_ref ${single_ref} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
