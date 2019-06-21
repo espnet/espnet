@@ -169,7 +169,7 @@ class E2E(MTInterface, torch.nn.Module):
         return self.loss
 
     def source_embedding(self, xs_pad, ilens, ys_pad):
-        """Path through the source embedding
+        """Path through the source embedding during training.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -178,15 +178,14 @@ class E2E(MTInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor (B, 1)
         """
+        tgt_lang_ids = None
         if self.replace_sos:
-            # remove source language ID in the beggining
+            # remove language ID in the beggining
+            xs_pad = xs_pad[:, 1:]
+            ys_pad = ys_pad[:, 1:]
             tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
-            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
             ilens -= 1
-        else:
-            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-            tgt_lang_ids = None
+        xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
         return xs_pad_emb, tgt_lang_ids
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
