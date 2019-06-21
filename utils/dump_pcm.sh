@@ -11,21 +11,25 @@ keep_length=true
 format=wav
 # End configuration section.
 
+help_message=$(cat <<EOF
+Usage: $0 [options] <data-dir> [<log-dir> [<pcm-dir>] ]
+e.g.: $0 data/train exp/dump_pcm/train pcm
+Note: <log-dir> defaults to <data-dir>/log, and <pcm-dir> defaults to <data-dir>/data
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --write-utt2num-frames <true|false>     # If true, write utt2num_frames file.
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+EOF
+)
 echo "$0 $*"  # Print the command line for logging
 
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <data-dir> [<log-dir> [<pcm-dir>] ]";
-   echo "e.g.: $0 data/train exp/dump_pcm/train pcm"
-   echo "Note: <log-dir> defaults to <data-dir>/log, and <pcm-dir> defaults to <data-dir>/data"
-   echo "Options: "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   echo "  --write-utt2num-frames <true|false>     # If true, write utt2num_frames file."
-   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
-   exit 1;
+    echo $help_message
+    exit 1;
 fi
 
 set -euo pipefail
