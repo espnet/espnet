@@ -1,0 +1,6 @@
+exp/train_sp.en_lc.rm_pytorch_train_rnn_char/decode_dev.en_decode_rnn_char/hyp.wrd.trn.lc.rm.detok
+|  SPKR          |  # Snt      # Wrd   |  Corr       Sub       Del        Ins       Err     S.Err  |
+|  Sum/Avg       |  1071      18651   |  91.3        7.8       0.8       1.0       9.6      62.7   |
+exp/train_sp.en_lc.rm_pytorch_train_rnn_char/decode_test.en_decode_rnn_char/hyp.wrd.trn.lc.rm.detok
+|  SPKR          |  # Snt      # Wrd   |  Corr       Sub       Del        Ins       Err     S.Err   |
+|  Sum/Avg       |  2048       36336   |  90.7       8.3       0.9        1.2      10.4      62.1   |

@@ -45,7 +45,7 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
-# Version policy and development branches
+## Version policy and development branches
 
 We basically maintain the `master` and `v.0.X.0` branches for our major developments.
 
@@ -60,10 +60,6 @@ We basically maintain the `master` and `v.0.X.0` branches for our major developm
    recipe related changes periodically (every two months or so).
    This is developed at the `master` branch, and these changes are also reflected to the `v.0.X.0` branch frequently.
 
-## Developing locally with ESPnet
-
-TBD
-
 ## Unit testing
 
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
@@ -72,22 +68,19 @@ $ cd <espnet_root>
 $ pip install -e ".[test]"
 ```
 
-Then you can run the entire test suite with
+### python
+
+Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
-$ pytest
+./ci/test_python.sh
 ```
 
 To create new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
 [Pytest](https://docs.pytest.org/en/latest/) will automatically test them.
 
-We also recommend you to follow our coding style that can be checked as
-``` console
-$ flake8 espnet test
-$ autopep8 -r espnet test --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
-$ test ! -s check_autopep8
-```
-
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
+
+### bash scripts
 
 You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
 
@@ -101,6 +94,42 @@ To test:
 
 - [setup.cfg](setup.cfg) configures pytest and flake8.
 - [.travis.yml](.travis.yml) configures Travis-CI.
+- [.circleci/config.yml](.circleci/config.yml) configures Circle-CI.
+
+## Writing new tools
+
+You can place your new tools under
+- `espnet/bin`: heavy and large (e.g., neural network related) core tools.
+- `utils`: lightweight self-contained python/bash scripts.
+
+For `utils` scripts, do not forget to add test scripts under `test_utils`.
+
+### Python tools guideline
+
+To generate doc, do not forget `def get_parser(): -> ArgumentParser` in the main file.
+
+```python
+#!/usr/bin/env python3
+# Copyright XXX
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+import argparse
+
+# NOTE: do not forget this
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description="awsome tool",  # DO NOT forget this
+    )
+    ...
+    return parser
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
+    ...
+```
+
+### Bash tools guideline
+
+To generate doc, support `--help` to show its usage. If you use Kaldi's `utils/parse_option.sh`, define `help_message="Usage: $0 ..."`.
 
 
 ## Writing documentation
@@ -117,12 +146,6 @@ Add the shared link to `utils/recog_wav.sh` or `utils/synth_wav.sh` as follows:
 The model name is arbitrary for now.
 
 
-## Python 2 and 3 portability tips
-
-See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
-We do not block your PR even if it is not portable.
-
-
 ## On CI failure
 
 ### Travis CI
@@ -136,3 +159,7 @@ We do not block your PR even if it is not portable.
 3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
 4. try anything you can to pass the CI
 
+### Codecov
+
+1. write more tests to increase coverage
+2. explain to reviewers why you can't increase coverage

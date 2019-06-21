@@ -14,20 +14,11 @@ $ pip install -e ".[doc]"
 You can generate local HTML manually using sphinx Makefile
 
 ```sh
-$ cd <espnet_root>/doc
-$ make html
-```
-
-`index.html` will be created at `doc/_build/html/index.html`
-
-or using travis-sphinx
-
-```sh
 $ cd <espnet_root>
-$ travis-sphinx build --source=doc --nowarn
+$ ./ci/doc.sh
 ```
 
-`index.html` will be created at `doc/build/index.html`
+open `doc/build/html/index.html`
 
 ## Deploy
 
