@@ -152,7 +152,7 @@ class E2E(MTInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # 1. Encoder
-        xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing(xs_pad, ilens, ys_pad)
+        xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing_train(xs_pad, ilens, ys_pad)
         hs_pad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xs_pad)), ilens)
 
         # 3. attention loss
@@ -168,7 +168,7 @@ class E2E(MTInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def target_lang_biasing(self, xs_pad, ilens, ys_pad):
+    def target_lang_biasing_train(self, xs_pad, ilens, ys_pad):
         """Replace <sos> with target language IDs for multilingual MT during training.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -201,15 +201,16 @@ class E2E(MTInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
-        ilen = [len(x[0])]
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         if self.replace_sos:
             id2token = {i: x for i, x in enumerate(char_list)}
             logging.info('src (multilingual): %s', ' '.join([id2token[int(y)] for y in x[0][1:]]))
+            ilen = [len(x[0][1:])]
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
         else:
+            ilen = [len(x[0])]
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
         hs, _, _ = self.enc(self.dropout_emb_src(self.embed_src(h.unsqueeze(0))), ilen)
 
@@ -233,12 +234,13 @@ class E2E(MTInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
-        ilens = np.fromiter((len(xx) for xx in xs), dtype=np.int64)
 
         # 1. Encoder
         if self.replace_sos:
+            ilens = np.fromiter((len(xx[1:]) for xx in xs), dtype=np.int64)
             hs = [to_device(self, torch.from_numpy(xx[1:])) for xx in xs]
         else:
+            ilens = np.fromiter((len(xx) for xx in xs), dtype=np.int64)
             hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
         xpad = pad_list(hs, self.pad)
         hs_pad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xpad)), ilens)
@@ -264,7 +266,7 @@ class E2E(MTInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # 1. Encoder
-            xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing(xs_pad, ilens, ys_pad)
+            xs_pad, ys_pad, tgt_lang_ids = self.target_lang_biasing_train(xs_pad, ilens, ys_pad)
             hpad, hlens, _ = self.enc(self.dropout_emb_src(self.embed_src(xs_pad)), ilens)
 
             # 2. Decoder
