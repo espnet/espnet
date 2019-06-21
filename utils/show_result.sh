@@ -1,10 +1,12 @@
 #!/bin/bash
-base=exp
+exp=exp
+mindepth=0
+maxdepth=1
 
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
-    echo "Usage: $0 --base exp" 1>&2
+    echo "Usage: $0 --exp exp --mindepth 0 --maxdepth 1" 1>&2
     exit 1
 fi
 
@@ -35,8 +37,7 @@ cat << EOF
 
 EOF
 
-
-for expdir in "${base}"/*; do
+for expdir in $(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d); do
     if ls ${expdir}/decode_*/result.txt &> /dev/null; then
     # 1. Show the result table
     cat << EOF
