@@ -319,64 +319,16 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     return float(numerator) / float(denominator)
 
 
-def get_last_yseq(exp_yseq):
-    """Get list of the last components from list of tensors.
+def to_torch_tensor(x):
+    """Change to torch.Tensor or ComplexTensor from numpy.ndarray.
 
     Args:
-        exp_yseq (List): List of tensors [(T_1), (T_2), ..., (T_B)].
+        x: Inputs. It should be one of numpy.ndarray, Tensor, ComplexTensor, and dict.
 
     Returns:
-        List: list of the last components.
+        Tensor or ComplexTensor: Type converted inputs.
 
     Examples:
-        >>> yseq = [torch.arange(5), torch.arange(3), torch.arange(2)]
-        >>> yseq
-        [tensor([0, 1, 2, 3, 4]), tensor([0, 1, 2]), tensor([0, 1])]
-        >>> get_last_yseq(yseq)
-        [tensor(4), tensor(2), tensor(1)]
-
-    """
-    last = []
-    for y_seq in exp_yseq:
-        last.append(y_seq[-1])
-    return last
-
-
-def append_ids(yseq, ids):
-    if isinstance(ids, list):
-        for i, j in enumerate(ids):
-            yseq[i].append(j)
-    else:
-        for i in range(len(yseq)):
-            yseq[i].append(ids)
-    return yseq
-
-
-def index_select_list(yseq, lst):
-    new_yseq = []
-    for l in lst:
-        new_yseq.append(yseq[l][:])
-    return new_yseq
-
-
-def index_select_lm_state(rnnlm_state, dim, vidx):
-    if isinstance(rnnlm_state, dict):
-        new_state = {}
-        for k, v in rnnlm_state.items():
-            new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
-    elif isinstance(rnnlm_state, list):
-        new_state = []
-        for i in vidx:
-            new_state.append(rnnlm_state[int(i)][:])
-    return new_state
-
-
-def to_torch_tensor(x):
-    """Change to torch.Tensor or ComplexTensor from numpy.ndarray
-
-    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
-    :rtype: Union[torch.Tensor, ComplexTensor]:
-
         >>> xs = np.ones(3, dtype=np.float32)
         >>> xs = to_torch_tensor(xs)
         tensor([1., 1., 1.])
@@ -390,8 +342,8 @@ def to_torch_tensor(x):
         Imag;
         tensor([1., 1., 1.])
         )
-    """
 
+    """
     # If numpy, change to torch tensor
     if isinstance(x, np.ndarray):
         if x.dtype.kind == 'c':
