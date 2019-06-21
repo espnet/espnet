@@ -238,10 +238,10 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
