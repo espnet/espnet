@@ -12,6 +12,7 @@ import sys
 
 from itertools import groupby
 
+
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     """End detection
 
@@ -176,30 +177,3 @@ class ER_Calculator(object):
             word_eds.append(editdistance.eval(hyp_words, ref_words))
             word_ref_lens.append(len(ref_words))
         return float(sum(word_eds)) / sum(word_ref_lens)
-        
-
-def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
-
-
-    word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-    for i, y_hat in enumerate(y_hats):
-        y_true = y_pads[i]
-        eos_true = np.where(y_true == -1)[0]
-        eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-        # To avoid wrong higger WER than the one obtained from the decoding
-        # eos from y_true is used to mark the eos in y_hat
-        # because of that y_hats has not padded outs with -1.
-        seq_hat = [char_list[int(idx)] for idx in y_hat[:eos_true]]
-        seq_true = [char_list[int(idx)] for idx in y_true if int(idx) != -1]
-        seq_hat_text = "".join(seq_hat).replace(sym_space, ' ')
-        seq_hat_text = seq_hat_text.replace(sym_blank, '')
-        seq_true_text = "".join(seq_true).replace(sym_space, ' ')
-        hyp_words = seq_hat_text.split()
-        ref_words = seq_true_text.split()
-        word_eds.append(editdistance.eval(hyp_words, ref_words))
-        word_ref_lens.append(len(ref_words))
-        hyp_chars = seq_hat_text.replace(' ', '')
-        ref_chars = seq_true_text.replace(' ', '')
-        char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-        char_ref_lens.append(len(ref_chars))
-    return word_eds, word_ref_lens, char_eds, char_ref_lens
