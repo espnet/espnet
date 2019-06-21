@@ -18,8 +18,10 @@ import numpy as np
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
-def main(cmd_args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -28,6 +30,7 @@ def main(cmd_args):
                help='second config file path that overwrites the settings in `--config`.')
     parser.add('--config3', is_config_file=True,
                help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -187,8 +190,6 @@ def main(cmd_args):
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
     # decoder related
-    parser.add_argument('--input-feeding', default='', nargs='?',
-                        help='')
     parser.add_argument('--context-residual', default='', nargs='?',
                         help='')
     # multilingual NMT related
@@ -196,6 +197,11 @@ def main(cmd_args):
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
+    return parser
+
+
+def main(cmd_args):
+    parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 
     from espnet.utils.dynamic_import import dynamic_import
