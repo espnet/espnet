@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
@@ -14,8 +14,10 @@ import sys
 import numpy as np
 
 
-def main(args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -74,6 +76,11 @@ def main(args):
     # multilingual related
     parser.add_argument('--tgt-lang', default=False, type=str,
                         help='target language ID (e.g., <en>, <de>, <fr> etc.)')
+    return parser
+
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
 
     # logging info
