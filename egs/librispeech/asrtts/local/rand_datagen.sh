@@ -1,6 +1,6 @@
 #!/bin/bash
-# Copyright 2019  Karthick Baskar, Shinji Watanabe
-#           2019  Brno University, Johns Hopkins University
+# Copyright 2019  Karthick Baskar
+#           2019  Brno University
 # Apache 2.0
 
 # New data directory is created in Kaldi format. The speech data directory and text data dir are provided as input. The script randomly allocates features from speech dir to labels (text seq) from text dir. This directory acts as unsupervised data dir for ASRTTS training. Any amount of speech and text data dir can be provided as input. Eg: speech from SWBD and text from Librispeech. In this script for simplicty we use librispeech.

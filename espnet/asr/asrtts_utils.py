@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2017 Brno University (Karthick Baskar)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging

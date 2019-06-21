@@ -414,7 +414,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu 1 ${ttsexpdir}/train.log \
         tts_train.py \
            --backend ${backend} \
-           --ngpu 1 \
+           --ngpu $ngpu \
            --config $train_config \
            --outdir ${ttsexpdir}/results \
            --tensorboard-dir tensorboard/${ttsexpdir} \
@@ -509,7 +509,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ $asrtts_train == 'true' ]; then
         ${cuda_cmd} --gpu 1 ${asrttsexpdir}/train.log \
         asrtts_train.py \
-        --ngpu 6 \
+        --ngpu $ngpu \
         --backend ${backend} \
         --outdir ${asrttsexpdir}/results \
         --debugmode ${debugmode} \
