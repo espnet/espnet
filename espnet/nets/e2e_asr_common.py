@@ -10,6 +10,7 @@ import numpy as np
 import six
 import sys
 
+from itertools import groupby
 
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     """End detection
@@ -83,8 +84,8 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     return int(idim) * out_channel  # numer of channels
 
 
-def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
-    """Calculate CER and WER for E2E_ASR models during training
+class ER_Calculator(object):
+    """Calculate CER and WER for E2E_ASR and CTC models during training
 
     :param y_hats: numpy array with predicted text
     :param y_pads: numpy array with true (target) text
@@ -93,6 +94,92 @@ def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
     :param sym_blank:
     :return:
     """
+    def __init__(self, char_list, sym_space, sym_blank,
+                 report_cer=False, report_wer=False):
+        super(ER_Calculator, self).__init__()
+        self.char_list = char_list
+        self.space = sym_space
+        self.blank = sym_blank
+        self.report_cer = report_cer
+        self.report_wer = report_wer
+
+    def __call__(self, ys_hat, ys_pad, is_ctc=False):
+        cer, wer = 0.0, 0.0
+        if is_ctc:
+            return self.calculate_cer_ctc(ys_hat, ys_pad)
+        elif not self.report_wer and not self.report_wer:
+            return cer, wer
+
+        seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad)
+        if self.report_cer:
+            cer = self.calculate_cer(seqs_hat, seqs_true)
+
+        if self.report_wer:
+            wer = self.calculate_wer(seqs_hat, seqs_true)
+        return cer, wer
+
+    def calculate_cer_ctc(self, ys_hat, ys_pad):
+        cers, char_ref_lens = [], []
+        for i, y in enumerate(ys_hat):
+            y_hat = [x[0] for x in groupby(y)]
+            y_true = ys_pad[i]
+
+            seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+            seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+            seq_hat_text = seq_hat_text.replace(self.blank, '')
+            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+            hyp_chars = seq_hat_text.replace(' ', '')
+            ref_chars = seq_true_text.replace(' ', '')
+            if len(ref_chars) > 0:
+                cers.append(editdistance.eval(hyp_chars, ref_chars))
+                char_ref_lens.append(len(ref_chars))
+
+        cer_ctc = float(sum(cers)) / sum(char_ref_lens) if cers else None
+        return cer_ctc
+
+    def convert_to_char(self, ys_hat, ys_pad):
+        seqs_hat, seqs_true = [], []
+        for i, y_hat in enumerate(ys_hat):
+            y_true = ys_pad[i]
+            eos_true = np.where(y_true == -1)[0]
+            eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
+            # To avoid wrong higger WER than the one obtained from the decoding
+            # eos from y_true is used to mark the eos in y_hat
+            # because of that y_hats has not padded outs with -1.
+            seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
+            seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+            seq_hat_text = seq_hat_text.replace(self.blank, '')
+            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+            seqs_hat.append(seq_hat_text)
+            seqs_true.append(seq_true_text)
+        return seqs_hat, seqs_true
+
+    def calculate_cer(self, seqs_hat, seqs_true):
+        char_eds, char_ref_lens = [], []
+        for i, seq_hat_text in enumerate(seqs_hat):
+            seq_true_text = seqs_true[i]
+            hyp_chars = seq_hat_text.replace(' ', '')
+            ref_chars = seq_true_text.replace(' ', '')
+            char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+            char_ref_lens.append(len(ref_chars))
+        return float(sum(char_eds)) / sum(char_ref_lens)
+
+    def calculate_wer(self, seqs_hat, seqs_true):
+        word_eds, word_ref_lens = [], []
+        for i, seq_hat_text in enumerate(seqs_hat):
+            seq_true_text = seqs_true[i]
+            hyp_words = seq_hat_text.split()
+            ref_words = seq_true_text.split()
+            word_eds.append(editdistance.eval(hyp_words, ref_words))
+            word_ref_lens.append(len(ref_words))
+        return float(sum(word_eds)) / sum(word_ref_lens)
+        
+
+def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
+
 
     word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
     for i, y_hat in enumerate(y_hats):
