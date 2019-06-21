@@ -26,6 +26,10 @@ class DurationPredictor(torch.nn.Module):
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
+    Note:
+        The calculation domain of outputs is different between in `forward` and in `inference`. In `forward`,
+        the outputs are calculated in log domain but in `inference`, those are calculated in linear domain.
+
     """
 
     def __init__(self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0):
