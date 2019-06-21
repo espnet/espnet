@@ -29,9 +29,9 @@ If you are interested in contributing to ESPnet, your contributions will fall in
 	   ```
 	   $ show_result.sh
 	   ```
-	 - execute `pack_model.sh` at a recipe main directory as follows. You'll get model information and results in a markdown format
+	 - execute `pack_model.sh` at a recipe main directory as follows. You'll get model information in a markdown format
 	   ```
-	   $ pack_model.sh --lm <language model> --results "<dev result.txt> <test.result.txt>" <tr_conf> <dec_conf> <cmvn> <e2e>
+	   $ pack_model.sh --lm <language model> <tr_conf> <dec_conf> <cmvn> <e2e>
 	   ```
 	 - `pack_model.sh` also produces a packed espnet model (`model.tar.gz`). If you upload this model to somewhere with a download link,
 	   please put the link information to `RESULTS.md`.
