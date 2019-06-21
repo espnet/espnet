@@ -16,20 +16,21 @@ import pytest
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.utils.training.batchfy import make_batchset
 from test.utils_test import make_dummy_json
 
 
 def make_arg(**kwargs):
     defaults = dict(
-        elayers=4,
-        subsample="1_2_2_1_1",
-        etype="vggblstm",
+        elayers=2,
+        subsample="2_2",
+        etype="blstm",
         eunits=100,
         eprojs=100,
         dtype="lstm",
         dlayers=1,
         dunits=300,
-        atype="location",
+        atype="add",
         aheads=4,
         awin=5,
         aconv_chans=10,
@@ -46,16 +47,15 @@ def make_arg(**kwargs):
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
-        ctc_weight=0.2,
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
-        ctc_type="warpctc",
         sym_space="<space>",
+        sortagrad=0,
         context_residual=False,
+        use_frontend=False,
         replace_sos=False,
-        tgt_lang=False,
-        sortagrad=0
+        tgt_lang=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -123,35 +123,19 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
 
 @pytest.mark.parametrize(
     "module, etype, atype, dtype", [
-        ('espnet.nets.pytorch_backend.e2e_mt', 'vggblstmp', 'location', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'noatt', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'dot', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'add', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'location', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'coverage', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'coverage_location', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'location2d', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'location_recurrent', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'multi_head_dot', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'multi_head_add', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'multi_head_loc', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'multi_head_multi_res_loc', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'location', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'vggbgrup', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'noatt', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'dot', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'noatt', 'lstm'),  # Test Pytorch Attentions
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'add', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'dot', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'coverage', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'multi_head_dot', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'multi_head_add', 'lstm'),
+
+        ('espnet.nets.pytorch_backend.e2e_mt', 'grup', 'add', 'lstm'),  # Test Pytorch Encoders
+        ('espnet.nets.pytorch_backend.e2e_mt', 'lstmp', 'add', 'lstm'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'add', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'coverage', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'coverage_location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'location2d', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'location_recurrent', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'multi_head_dot', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'multi_head_add', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'multi_head_loc', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'multi_head_multi_res_loc', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgrup', 'multi_head_multi_res_loc', 'gru'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'bgru', 'location', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstmp', 'add', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'bgru', 'add', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_mt', 'blstm', 'add', 'lstm'),
     ]
 )
 def test_model_trainable_and_decodable(module, etype, atype, dtype):
@@ -169,6 +153,9 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
         model.recognize(in_data, args, args.char_list)  # decodable
+        if "pytorch" in module:
+            batch_in_data = [np.random.randn(100, 40), np.random.randn(50, 40)]
+            model.recognize_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
 @pytest.mark.parametrize(
@@ -176,8 +163,7 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(8, [1, 700], [1, 700], idim=20, odim=5)
-    from espnet.asr.asr_utils import make_batchset
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_mt as m
     else:
@@ -188,8 +174,150 @@ def test_sortagrad_trainable(module):
         attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(50, 20)
+        model.recognize(in_data, args, args.char_list)
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_sortagrad_trainable_with_batch_bins(module):
+    args = make_arg(sortagrad=1)
+    idim = 20
+    odim = 5
+    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_mt as m
+    else:
+        import espnet.nets.chainer_backend.e2e_mt as m
+    batch_elems = 20000
+    batchset = make_batchset(dummy_json, batch_bins=batch_elems, shortest_first=True)
+    for batch in batchset:
+        n = 0
+        for uttid, info in batch:
+            ilen = int(info['input'][0]['shape'][0])
+            olen = int(info['output'][0]['shape'][0])
+            n += ilen * idim + olen * odim
+        assert olen < batch_elems
+
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
         model.recognize(in_data, args, args.char_list)
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_sortagrad_trainable_with_batch_frames(module):
+    args = make_arg(sortagrad=1)
+    idim = 20
+    odim = 5
+    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_mt as m
+    else:
+        import espnet.nets.chainer_backend.e2e_mt as m
+    batch_frames_in = 100
+    batch_frames_out = 100
+    batchset = make_batchset(dummy_json,
+                             batch_frames_in=batch_frames_in,
+                             batch_frames_out=batch_frames_out,
+                             shortest_first=True)
+    for batch in batchset:
+        i = 0
+        o = 0
+        for uttid, info in batch:
+            i += int(info['input'][0]['shape'][0])
+            o += int(info['output'][0]['shape'][0])
+        assert i <= batch_frames_in
+        assert o <= batch_frames_out
+
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 20)
+        model.recognize(in_data, args, args.char_list)
+
+
+def init_torch_weight_const(m, val):
+    for p in m.parameters():
+        if p.dim() > 1:
+            p.data.fill_(val)
+
+
+@pytest.mark.parametrize("etype", ["blstm"])
+def test_loss(etype):
+    # ch = importlib.import_module('espnet.nets.chainer_backend.e2e_mt')
+    th = importlib.import_module('espnet.nets.pytorch_backend.e2e_mt')
+    args = make_arg(etype=etype)
+    # ch_model = ch.E2E(40, 5, args)
+    # ch_model.cleargrads()
+    th_model = th.E2E(40, 5, args)
+
+    const = 1e-4
+    init_torch_weight_const(th_model, const)
+    # init_chainer_weight_const(ch_model, const)
+
+    # ch_batch = prepare_inputs("chainer")
+    th_batch = prepare_inputs("pytorch")
+
+    # _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    th_model(*th_batch)
+    th_att = th_model.loss_att
+
+    # test masking
+    # ch_ench = ch_model.att.pre_compute_enc_h.data
+    # th_ench = th_model.att[0].pre_compute_enc_h.detach().numpy()
+    # np.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
+
+    # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
+    # np.testing.assert_allclose(ch_att.data, th_att.detach().numpy())
+
+    # test cross-entropy grads
+    # ch_model.cleargrads()
+    th_model.zero_grad()
+
+    # _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    th_model(*th_batch)
+    th_att = th_model.loss_att
+    # ch_att.backward()
+    th_att.backward()
+    # np.testing.assert_allclose(ch_model.dec.output.W.grad,
+    #                            th_model.dec.output.weight.grad.data.numpy(), 1e-7, 1e-8)
+    # np.testing.assert_allclose(ch_model.dec.output.b.grad,
+    #                            th_model.dec.output.bias.grad.data.numpy(), 1e-5, 1e-6)
+
+
+@pytest.mark.parametrize("etype", ["blstm"])
+def test_zero_length_target(etype):
+    # ch = importlib.import_module('espnet.nets.chainer_backend.e2e_mt')
+    th = importlib.import_module('espnet.nets.pytorch_backend.e2e_mt')
+    args = make_arg(etype=etype)
+    # ch_model = ch.E2E(40, 5, args)
+    # ch_model.cleargrads()
+    th_model = th.E2E(40, 5, args)
+
+    # ch_batch = prepare_inputs("chainer", olens=[4, 0])
+    th_batch = prepare_inputs("pytorch", olens=[4, 0])
+
+    # ch_model(*ch_batch)
+    th_model(*th_batch)
+
+    # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
+    # out_data = ""
+    # data = [
+    #     ("aaa", dict(feat=np.random.randn(200, 40).astype(np.float32), tokenid="")),
+    #     ("bbb", dict(feat=np.random.randn(100, 40).astype(np.float32), tokenid="")),
+    #     ("cc", dict(feat=np.random.randn(100, 40).astype(np.float32), tokenid=""))
+    # ]
+    # ch_ctc, ch_att, ch_acc = ch_model(data)
+    # th_ctc, th_att, th_acc = th_model(data)
 
 
 @pytest.mark.parametrize(
@@ -197,15 +325,9 @@ def test_sortagrad_trainable(module):
         ('espnet.nets.pytorch_backend.e2e_mt', 'noatt'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'dot'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'add'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'location'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'coverage'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'coverage_location'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'location2d'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'location_recurrent'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'multi_head_dot'),
         ('espnet.nets.pytorch_backend.e2e_mt', 'multi_head_add'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'multi_head_loc'),
-        ('espnet.nets.pytorch_backend.e2e_mt', 'multi_head_multi_res_loc')
     ]
 )
 def test_calculate_all_attentions(module, atype):
@@ -217,34 +339,16 @@ def test_calculate_all_attentions(module, atype):
         batch = prepare_inputs("chainer")
     model = m.E2E(40, 5, args)
     with chainer.no_backprop_mode():
-        att_ws = model.calculate_all_attentions(*batch)[0]
+        if "pytorch" in module:
+            att_ws = model.calculate_all_attentions(*batch)[0]
+        else:
+            att_ws = model.calculate_all_attentions(*batch)
         print(att_ws.shape)
-
-
-def test_chainer_save_and_load():
-    m = importlib.import_module('espnet.nets.chainer_backend.e2e_mt')
-    utils = importlib.import_module('espnet.asr.asr_utils')
-    args = make_arg()
-    model = m.E2E(40, 5, args)
-    # initialize randomly
-    for p in model.params():
-        p.data = np.random.randn(*p.data.shape)
-    tmppath = tempfile.mktemp()
-    chainer.serializers.save_npz(tmppath, model)
-    p_saved = [p.data for p in model.params()]
-    # set constant value
-    for p in model.params():
-        p.data = np.zeros_like(p.data)
-    utils.chainer_load(tmppath, model)
-    for p1, p2 in zip(p_saved, model.params()):
-        np.testing.assert_array_equal(p1, p2.data)
-    if os.path.exists(tmppath):
-        os.remove(tmppath)
 
 
 def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_mt')
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    utils = importlib.import_module('espnet.mt.mt_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
@@ -309,3 +413,23 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_context_residual(module):
+    args = make_arg(context_residual=True)
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_mt as m
+    else:
+        raise NotImplementedError
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(50, 20)
+        model.recognize(in_data, args, args.char_list)
