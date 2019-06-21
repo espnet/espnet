@@ -11,9 +11,14 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class DurationCalculator(torch.nn.Module):
-    """Duration calculator using teacher model
+    """Duration calculator module for FastSpeech.
 
-    :param torch.nn.Module teacher_model: teacher auto-regressive Transformer
+    Args:
+        teacher_model (e2e_tts_transformer.Transformer): Pretrained auto-regressive Transformer.
+
+    Todo:
+        * Fix the duplicated calculation of diagonal head decision
+
     """
 
     def __init__(self, teacher_model):
@@ -24,13 +29,16 @@ class DurationCalculator(torch.nn.Module):
         self.register_buffer("diag_head_idx", torch.tensor(-1))
 
     def forward(self, xs, ilens, ys, olens):
-        """Calculate duration of each inputs
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor ilens: list of lengths of each output batch (B)
-        :return torch.Tensor: batch of durations (B, Tmax)
+        xs (Tensor): Batch of the padded sequences of character ids (B, Tmax).
+        ilens (Tensor): Batch of lengths of each input sequence (B,).
+        ys (Tensor): Batch of the padded sequence of target features (B, Lmax, odim).
+        olens (Tensor): Batch of lengths of each output sequence (B,).
+
+        Returns:
+            Tensor: Batch of durations (B, Tmax).
+
         """
         att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens)
         # TODO(kan-bayashi): fix this issue
