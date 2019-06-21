@@ -20,8 +20,9 @@ from espnet.utils.cli_utils import get_commandline_args
 is_python2 = sys.version_info[0] == 2
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='add multiple json values to an input or output value',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
@@ -29,6 +30,11 @@ if __name__ == '__main__':
                         help='If true, add to input. If false, add to output')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    return parser
+
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info
