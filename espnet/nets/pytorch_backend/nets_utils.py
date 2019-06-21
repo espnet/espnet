@@ -263,11 +263,36 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
     return ~make_pad_mask(lengths, xs, length_dim)
 
 
+def mask_by_length(xs, lengths, fill=0):
+    """Mask tensor according to length.
 
-def mask_by_length(xs, length, fill=0):
-    assert xs.size(0) == len(length)
+    Args:
+        xs (Tensor): Batch of input tensor (B, *).
+        lengths (LongTensor or List): Batch of lengths (B,).
+        fill (int or float): Value to fill masked part.
+
+    Returns:
+        (Tensor): Batch of masked input tensor (B, *)
+
+    Todo:
+        * Replace this functions with `torch.masked_fill`
+
+    Examples:
+        >>> x = torch.arange(5).repeat(3, 1) + 1
+        >>> x
+        tensor([[1, 2, 3, 4, 5],
+                [1, 2, 3, 4, 5],
+                [1, 2, 3, 4, 5]])
+        >>> lengths = [5, 3, 2]
+        >>> mask_by_length(x, lengths)
+        tensor([[1, 2, 3, 4, 5],
+                [1, 2, 3, 0, 0],
+                [1, 2, 0, 0, 0]])
+
+    """
+    assert xs.size(0) == len(lengths)
     ret = xs.data.new(*xs.size()).fill_(fill)
-    for i, l in enumerate(length):
+    for i, l in enumerate(lengths):
         ret[i, :l] = xs[i, :l]
     return ret
 
