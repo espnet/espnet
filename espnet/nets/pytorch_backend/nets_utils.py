@@ -1,14 +1,21 @@
+# -*- coding: utf-8 -*-
+
+"""Network related utility tools."""
+
 import numpy as np
 import torch
 
 
 def to_device(m, x):
-    """Function to send tensor into corresponding device
+    """Send tensor into the device of the module.
 
-    :param torch.nn.Module m: torch module
-    :param torch.Tensor x: torch tensor
-    :return: torch tensor located in the same place as torch module
-    :rtype: torch.Tensor
+    Args:
+        m (torch.nn.Module): Torch module.
+        x (Tensor): Torch tensor.
+
+    Returns:
+        Tensor: Torch tensor located in the same place as torch module.
+
     """
     assert isinstance(m, torch.nn.Module)
     device = next(m.parameters()).device
@@ -16,12 +23,24 @@ def to_device(m, x):
 
 
 def pad_list(xs, pad_value):
-    """Function to pad values
+    """Perform padding for the list of tensors.
 
-    :param list xs: list of torch.Tensor [(L_1, D), (L_2, D), ..., (L_B, D)]
-    :param float pad_value: value for padding
-    :return: padded tensor (B, Lmax, D)
-    :rtype: torch.Tensor
+    Args:
+        xs (List): List of Tensors [(T_1, *), (T_2, *), ..., (T_B, *)].
+        pad_value (float): Value for padding.
+
+    Returns:
+        Tensor: Padded tensor (B, Tmax, *).
+
+    Examples:
+        >>> x = [torch.ones(4), torch.ones(2), torch.ones(1)]
+        >>> x
+        [tensor([1., 1., 1., 1.]), tensor([1., 1.]), tensor([1.])]
+        >>> pad_list(x, 0)
+        tensor([[1., 1., 1., 1.],
+                [1., 1., 0., 0.],
+                [1., 0., 0., 0.]])
+
     """
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
@@ -34,16 +53,21 @@ def pad_list(xs, pad_value):
 
 
 def make_non_pad_mask(lengths):
-    """Function to make tensor mask containing indices of the non-padded part
+    """Make tensor mask containing indices of the non-padded part.
 
-    e.g.: lengths = [5, 3, 2]
-          mask = [[1, 1, 1, 1 ,1],
-                  [1, 1, 1, 0, 0],
-                  [1, 1, 0, 0, 0]]
+    Args:
+        lengths (LongTensor or List): Batch of lengths (B,).
 
-    :param list lengths: list of lengths (B)
-    :return: mask tensor containing indices of non-padded part (B, Tmax)
-    :rtype: torch.Tensor
+    Returns:
+        ByteTensor: Batch of masks containing indices of non-padded part (B, Tmax).
+
+    Examples:
+        >>> lengths = [5, 3, 2]
+        >>> make_non_pad_mask(lengths)
+        masks = [[1, 1, 1, 1 ,1],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 0, 0, 0]]
+
     """
     if not isinstance(lengths, list):
         lengths = lengths.tolist()
@@ -56,18 +80,94 @@ def make_non_pad_mask(lengths):
 
 
 def make_pad_mask(lengths, xs=None, length_dim=-1):
-    """Function to make mask tensor containing indices of padded part
+    """Make mask tensor containing indices of padded part.
 
-    e.g.: lengths = [5, 3, 2]
-          mask = [[0, 0, 0, 0 ,0],
-                  [0, 0, 0, 1, 1],
-                  [0, 0, 1, 1, 1]]
+    Args:
+        lengths (LongTensor or List): Batch of lengths (B,).
+        xs (Tensor, optional): The reference tensor. If set, masks will be the same shape as this tensor.
+        length_dim (int, optional): Dimension indicator of the above tensor. See the example.
 
-    :param list lengths: list of lengths (B)
-    :param torch.Tensor xs: Make the shape to be like.
-    :param int length_dim:
-    :return: mask tensor containing indices of padded part (B, Tmax)
-    :rtype: torch.Tensor
+    Returns:
+        Tensor: mask tensor containing indices of padded part.
+
+    Examples:
+        With only lengths.
+
+        >>> lengths = [5, 3, 2]
+        >>> make_non_pad_mask(lengths)
+        masks = [[0, 0, 0, 0 ,0],
+                 [0, 0, 0, 1, 1],
+                 [0, 0, 1, 1, 1]]
+
+        With the reference tensor.
+
+        >>> xs = torch.zeros((3, 2, 4))
+        >>> make_pad_mask(lengths, xs)
+        tensor([[[0, 0, 0, 0],
+                 [0, 0, 0, 0]],
+
+                [[0, 0, 0, 1],
+                 [0, 0, 0, 1]],
+
+                [[0, 0, 1, 1],
+                 [0, 0, 1, 1]]], dtype=torch.uint8)
+        >>> xs = torch.zeros((3, 2, 6))
+        >>> make_pad_mask(lengths, xs)
+        tensor([[[0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1]],
+
+                [[0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1]],
+
+                [[0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1]]], dtype=torch.uint8)
+
+        With the reference tensor and dimension indicator.
+
+        >>> xs = torch.zeros((3, 6, 6))
+        >>> make_pad_mask(lengths, xs, 1)
+        tensor([[[0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [1, 1, 1, 1, 1, 1]],
+
+                [[0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1]],
+
+                [[0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1]]], dtype=torch.uint8)
+        >>> make_pad_mask(lengths, xs, 2)
+        tensor([[[0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 1]],
+
+                [[0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1],
+                 [0, 0, 0, 1, 1, 1]],
+
+                [[0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 1]]], dtype=torch.uint8)
+
     """
     if length_dim == 0:
         raise ValueError('length_dim cannot be 0: {}'.format(length_dim))
