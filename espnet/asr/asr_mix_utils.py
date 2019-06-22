@@ -138,11 +138,11 @@ class PlotAttentionReport(extension.Extension):
         """Return attention weights.
 
         Returns:
-            arr_ws_sd (float ndarray): attention weights. It's shape would be 
+            arr_ws_sd (float ndarray): attention weights. It's shape would be
                 differ from bachend.
-                * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                             2) other case => attention weights (B, Lmax, Tmax).
-                * chainer -> (B, Lmax, Tmax)
+            * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                         2) other case => attention weights (B, Lmax, Tmax).
+            * chainer -> (B, Lmax, Tmax)
 
         """
         batch = self.converter([self.converter.transform(self.data)], self.device)
@@ -192,7 +192,7 @@ class PlotAttentionReport(extension.Extension):
 
 
 def add_results_to_json(js, nbest_hyps_sd, char_list):
-    """Function to add N-best results to json.
+    """Add N-best results to json.
 
     Args:
         js (Dict): groundtruth utterance dict
