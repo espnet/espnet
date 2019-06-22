@@ -1,10 +1,7 @@
 import logging
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 from espnet.asr import asr_utils
+import matplotlib.pyplot as plt
 
 
 def _plot_and_save_attention(att_w, filename):
