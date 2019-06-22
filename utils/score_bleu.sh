@@ -50,7 +50,7 @@ detokenizer.perl -l ${tgt_lang} -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.det
 detokenizer.perl -l ${tgt_lang} -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
 # remove language IDs
-if [ ! -z ${nlsyms} ]; then
+if [ -n "${nlsyms}" ]; then
     cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.tmp
     cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.tmp
     cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.tmp
@@ -58,7 +58,7 @@ if [ ! -z ${nlsyms} ]; then
     filt.py -v $nlsyms ${dir}/hyp.wrd.trn.detok.tmp > ${dir}/hyp.wrd.trn.detok
     filt.py -v $nlsyms ${dir}/src.wrd.trn.detok.tmp > ${dir}/src.wrd.trn.detok
 fi
-if [ ! -z ${filter} ]; then
+if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp.wrd.trn.detok
     sed -i.bak3 -f ${filter} ${dir}/ref.wrd.trn.detok
     sed -i.bak3 -f ${filter} ${dir}/src.wrd.trn.detok
