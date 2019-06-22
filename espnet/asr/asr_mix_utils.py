@@ -12,12 +12,12 @@ from chainer.training import extension
 import matplotlib
 import numpy as np
 
-'''
+"""
 reuse modules in asr_utils:
     CompareValueTrigger, restore_snapshot, _restore_snapshot, adadelta_eps_decay,
     _adadelta_eps_decay, torch_snapshot, _torch_snapshot_object, AttributeDict,
     get_model_conf, chainer_load, torch_save, torch_load, torch_resume
-'''
+"""
 from espnet.asr.asr_utils import parse_hypothesis
 
 
@@ -27,15 +27,19 @@ matplotlib.use('Agg')
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1):
-    """Make batch set from json dictionary
+    """Make batch set from json dictionary.
 
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
-    :param int batch_size: batch size
-    :param int max_length_in: maximum length of input to decide adaptive batch size
-    :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: mininum batch size (for multi-gpu)
-    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
+    Args:
+        data (Dict[str, Dict[str, Any]]): Dictionary loaded from data.json.
+        batch_size (int): batch size.
+        max_length_in (int): maximum length of input to decide adaptive batch size.
+        max_length_out (int): maximum length of output to decide adaptive batch size.
+        num_batches (int): # number of batches to use (for debug).
+        min_batch_size (int): mininum batch size (for multi-gpu).
+
+    Returns:
+        List[Tuple[str, Dict[str, List[Dict[str, Any]]]]: list of batches
+
     """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
@@ -88,14 +92,16 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
 # * -------------------- chainer extension related -------------------- *
 class PlotAttentionReport(extension.Extension):
-    """Plot attention reporter
+    """Plot attention reporter.
 
-    :param function att_vis_fn: function of attention visualization
-    :param list data: list json utt key items
-    :param str outdir: directory to save figures
-    :param CustomConverter converter: function to convert data
-    :param int | torch.device device: device
-    :param bool reverse: If True, input and output length are reversed
+    Args:
+        att_vis_fn (Function): function of attention visualization
+        data (List): list json utt key items
+        outdir (str): directory to save figures
+        converter (CustomConverter): function to convert data
+        device (int | torch.device): device
+        reverse (bool): If True, input and output length are reversed
+
     """
 
     def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
@@ -109,6 +115,7 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
+        """Plot and save imaged matrix of att_ws."""
         att_ws_sd = self.get_attention_weights()
         for ns, att_ws in enumerate(att_ws_sd):
             for idx, att_w in enumerate(att_ws):
@@ -118,6 +125,7 @@ class PlotAttentionReport(extension.Extension):
                 self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def log_attentions(self, logger, step):
+        """Add image files of attention matrix to tensorboard."""
         att_ws_sd = self.get_attention_weights()
         for ns, att_ws in enumerate(att_ws_sd):
             for idx, att_w in enumerate(att_ws):
@@ -127,11 +135,22 @@ class PlotAttentionReport(extension.Extension):
                 plot.clf()
 
     def get_attention_weights(self):
+        """Return attention weights.
+
+        Returns:
+            arr_ws_sd (float ndarray): attention weights. It's shape would be 
+                differ from bachend.
+                * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                             2) other case => attention weights (B, Lmax, Tmax).
+                * chainer -> (B, Lmax, Tmax)
+
+        """
         batch = self.converter([self.converter.transform(self.data)], self.device)
         att_ws_sd = self.att_vis_fn(*batch)
         return att_ws_sd
 
     def get_attention_weight(self, idx, att_w, spkr_idx):
+        """Transform attention weight in regard to self.reverse."""
         if self.reverse:
             dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
             enc_len = int(self.data[idx][1]['output'][spkr_idx]['shape'][0])
@@ -145,6 +164,12 @@ class PlotAttentionReport(extension.Extension):
         return att_w
 
     def draw_attention_plot(self, att_w):
+        """Visualize attention weights matrix.
+
+        Returns:
+            plt (matplotlib.pyplot): pyplot object with attention matrix image.
+
+        """
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -160,18 +185,23 @@ class PlotAttentionReport(extension.Extension):
         return plt
 
     def _plot_and_save_attention(self, att_w, filename):
+        """Plot matrix and save image."""
         plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
 
 def add_results_to_json(js, nbest_hyps_sd, char_list):
-    """Function to add N-best results to json
+    """Function to add N-best results to json.
 
-    :param dict js: groundtruth utterance dict
-    :param list nbest_hyps_sd: list of hypothesis for multi_speakers: nutts x nspkrs
-    :param list char_list: list of characters
-    :return: N-best results added utterance dict
+    Args:
+        js (Dict): groundtruth utterance dict
+        nbest_hyps_sd (List): list of hypothesis for multi_speakers: nutts x nspkrs
+        char_list (List): list of characters
+
+    Returns:
+        new_js (Dict): N-best results added utterance dict
+
     """
     # copy old json info
     new_js = dict()

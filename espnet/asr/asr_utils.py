@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
 import json
@@ -31,11 +31,13 @@ matplotlib.use('Agg')
 
 
 class CompareValueTrigger(object):
-    """Trigger invoked when key value getting bigger or lower than before
+    """Trigger invoked when key value getting bigger or lower than before.
 
-    :param str key : Key of value
-    :param function compare_fn : Function to compare the values
-    :param (int, str) trigger : Trigger that decide the comparison interval
+    Args:
+        key (str) : Key of value
+        compare_fn (Function) : Function to compare the values
+        trigger (Tuple(int, str)) : Trigger that decide the comparison interval
+
     """
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
@@ -46,6 +48,7 @@ class CompareValueTrigger(object):
         self._compare_fn = compare_fn
 
     def __call__(self, trainer):
+        """Get value related to the key and compare with current value."""
         observation = trainer.observation
         summary = self._summary
         key = self._key
@@ -70,18 +73,21 @@ class CompareValueTrigger(object):
             return False
 
     def _init_summary(self):
+        """Get summary information."""
         self._summary = chainer.reporter.DictSummary()
 
 
 class PlotAttentionReport(extension.Extension):
-    """Plot attention reporter
+    """Plot attention reporter.
 
-    :param function att_vis_fn: function of attention visualization
-    :param list data: list json utt key items
-    :param str outdir: directory to save figures
-    :param CustomConverter converter: function to convert data
-    :param int | torch.device device: device
-    :param bool reverse: If True, input and output length are reversed
+    Args:
+        att_vis_fn (Function): function of attention visualization
+        data (List): list json utt key items
+        outdir (str): directory to save figures
+        converter (CustomConverter): function to convert data
+        device (int | torch.device): device
+        reverse (bool): If True, input and output length are reversed
+
     """
 
     def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
@@ -96,6 +102,7 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
+        """Plot and save image file of att_ws matrix."""
         att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
@@ -104,6 +111,7 @@ class PlotAttentionReport(extension.Extension):
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def log_attentions(self, logger, step):
+        """Add image files of att_ws matrix to the tensorboard."""
         att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
@@ -112,6 +120,16 @@ class PlotAttentionReport(extension.Extension):
             plot.clf()
 
     def get_attention_weights(self):
+        """Return attention weights.
+
+        Returns:
+            arr_ws_sd (float ndarray): attention weights. It's shape would be
+                differ from bachend.
+                * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                             2) other case => attention weights (B, Lmax, Tmax).
+                * chainer -> (B, Lmax, Tmax)
+
+        """
         batch = self.converter([self.transform(self.data)], self.device)
         if isinstance(batch, tuple):
             att_ws = self.att_vis_fn(*batch)
@@ -120,6 +138,7 @@ class PlotAttentionReport(extension.Extension):
         return att_ws
 
     def get_attention_weight(self, idx, att_w):
+        """Transform attention matrix with regard to self.reverse."""
         if self.reverse:
             dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
             enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
@@ -133,6 +152,12 @@ class PlotAttentionReport(extension.Extension):
         return att_w
 
     def draw_attention_plot(self, att_w):
+        """Plot the att_w matrix.
+
+        Returns:
+            plt (matplotlib.pyplot): pyplot object with attention matrix image.
+
+        """
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -148,14 +173,19 @@ class PlotAttentionReport(extension.Extension):
         return plt
 
     def _plot_and_save_attention(self, att_w, filename):
+        """Plot matrix and save image."""
         plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    """Extension to restore snapshot"""
+    """Extension to restore snapshot.
 
+    Returns:
+        An extension function.
+
+    """
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)
@@ -164,13 +194,18 @@ def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
+    """Restore snapshot."""
     load_fn(snapshot, model)
     logging.info('restored from ' + str(snapshot))
 
 
 def adadelta_eps_decay(eps_decay):
-    """Extension to perform adadelta eps decay"""
+    """Extension to perform adadelta eps decay.
 
+    Returns:
+        An extension function.
+
+    """
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -179,6 +214,7 @@ def adadelta_eps_decay(eps_decay):
 
 
 def _adadelta_eps_decay(trainer, eps_decay):
+    """Perform adadelta eps decay."""
     optimizer = trainer.updater.get_optimizer('main')
     # for chainer
     if hasattr(optimizer, 'eps'):
@@ -194,8 +230,12 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 def torch_snapshot(savefun=torch.save,
                    filename='snapshot.ep.{.updater.epoch}'):
-    """Returns a trainer extension to take snapshots of the trainer for pytorch."""
+    """Extension to take snapshot of the trainer for pytorch.
 
+    Returns:
+        An extension function.
+
+    """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
         _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
@@ -204,6 +244,7 @@ def torch_snapshot(savefun=torch.save,
 
 
 def _torch_snapshot_object(trainer, target, filename, savefun):
+    """Take snapchot of the trainer."""
     # make snapshot_dict dictionary
     s = DictionarySerializer()
     s.save(trainer)
@@ -238,13 +279,14 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
 
 
 def add_gradient_noise(model, epoch, eta):
-    """Adds noise from a std normal distribution to the gradients
+    """Adds noise from a std normal distribution to the gradients.
 
-    :param model Torch model
-    :param iteration int
-    :param eta float {0.01,0.3,1.0}
+    Args:
+        model (Torch model): model
+        iteration (int): number of iteration
+        eta (float): {0.01,0.3,1.0} 
+
     """
-
     scale_factor = 0.55
     sigma = eta / epoch**scale_factor
     for param in model.parameters():
@@ -291,12 +333,16 @@ class AttributeDict(object):
 
 
 def get_model_conf(model_path, conf_path=None):
-    """Get model config information by reading a model config file (model.json)
+    """Get model config information by reading a model config file (model.json).
 
-    :param str model_path: model path
-    :param str conf_path: optional model config path
+    Args:
+        model_path (str): model path
+        conf_path (str): optional model config path
+
+    Returns:
+        Dictionary: config information loaded from json file.
+
     """
-
     if conf_path is None:
         model_conf = os.path.dirname(model_path) + '/model.json'
     else:
@@ -307,10 +353,12 @@ def get_model_conf(model_path, conf_path=None):
 
 
 def chainer_load(path, model):
-    """Function to load chainer model parameters
+    """Load chainer model parameters.
 
-    :param str path: model file or snapshot file to be loaded
-    :param chainer.Chain model: chainer model
+    Args:
+        path (str): model file or snapshot file to be loaded
+        model (chainer.Chain): chainer model
+
     """
     if 'snapshot' in path:
         chainer.serializers.load_npz(path, model, path='updater/model:main/')
@@ -319,10 +367,12 @@ def chainer_load(path, model):
 
 
 def torch_save(path, model):
-    """Function to save torch model states
+    """Save torch model states.
 
-    :param str path: file path to be saved
-    :param torch.nn.Module model: torch model
+    Args:
+        path (str): file path to be saved
+        model (torch.nn.Module): torch model
+
     """
     if hasattr(model, 'module'):
         torch.save(model.module.state_dict(), path)
@@ -337,13 +387,15 @@ def snapshot_object(target, filename):
         target: Object to serialize.
         filename (str): Name of the file into which the object is serialized.
             It can be a format string, where the trainer object is passed to
-            the :meth:`str.format` method. For example,
+            the :meth: `str.format` method. For example,
             ``'snapshot_{.updater.iteration}'`` is converted to
             ``'snapshot_10000'`` at the 10,000th iteration.
         savefun: Function to save the object. It takes two arguments: the
             output file path and the object to serialize.
+
     Returns:
         An extension function.
+
     """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def snapshot_object(trainer):
@@ -353,10 +405,12 @@ def snapshot_object(target, filename):
 
 
 def torch_load(path, model):
-    """Function to load torch model states
+    """Load torch model states.
 
-    :param str path: model file or snapshot file to be loaded
-    :param torch.nn.Module model: torch model
+    Args:
+        path (str): model file or snapshot file to be loaded
+        model (torch.nn.Module): torch model
+
     """
     if 'snapshot' in path:
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
@@ -371,10 +425,12 @@ def torch_load(path, model):
 
 
 def torch_resume(snapshot_path, trainer):
-    """Function to resume from snapshot for pytorch
+    """Resume from snapshot for pytorch.
 
-    :param str snapshot_path: snapshot file path
-    :param instance trainer: chainer trainer instance
+    Args:
+        snapshot_path (str): snapshot file path
+        trainer (Instance): chainer trainer instance
+
     """
     # load snapshot
     snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
@@ -406,13 +462,17 @@ def torch_resume(snapshot_path, trainer):
 
 # * ------------------ recognition related ------------------ *
 def parse_hypothesis(hyp, char_list):
-    """Function to parse hypothesis
+    """Parse hypothesis.
 
-    :param list hyp: recognition hypothesis
-    :param list char_list: list of characters
-    :return: recognition text string
-    :return: recognition token string
-    :return: recognition tokenid string
+    Args:
+        hyp (List): recognition hypothesis
+        char_list (List): list of characters
+
+    Returns:
+        text (str): recognition text.
+        token (str):  recognition token.
+        tokenid (str): recognition tokenid
+
     """
     # remove sos and get results
     tokenid_as_list = list(map(int, hyp['yseq'][1:]))
@@ -428,12 +488,16 @@ def parse_hypothesis(hyp, char_list):
 
 
 def add_results_to_json(js, nbest_hyps, char_list):
-    """Function to add N-best results to json
+    """Add N-best results to json.
 
-    :param dict js: groundtruth utterance dict
-    :param list nbest_hyps: list of hypothesis
-    :param list char_list: list of characters
-    :return: N-best results added utterance dict
+    Args:
+        js (Dict): groundtruth utterance dict.
+        nbest_hyps (List): list of hypothesis.
+        char_list (List): list of characters.
+
+    Returns:
+        new_js (Dict):  N-best results added utterance.
+
     """
     # copy old json info
     new_js = dict()
@@ -476,22 +540,23 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
                      bottom=True, left=True, right=True, top=False,
                      labelbottom=True, labelleft=True, labelright=True,
                      labeltop=False, cmap='inferno'):
-    """Plot spectrogram using matplotlib
+    """Plot spectrogram using matplotlib.
 
-    :param matplotlib.pyplot plt:
-    :param np.ndarray spec: Input stft (Freq, Time)
-    :param str mode: db or linear.
-    :param int fs: Sample frequency. To convert y-axis to kHz unit.
-    :param int frame_shift: The frame shift of stft. To convert x-axis to second unit.
-    :param bool bottom:
-    :param bool left:
-    :param bool right:
-    :param bool top:
-    :param bool labelbottom:
-    :param bool labelleft:
-    :param bool labelright:
-    :param bool labeltop:
-    :param str cmap: colormap defined in matplotlib
+    Args:
+        plt (matplotlib.pyplot): pyplot object.
+        spec (numpy.ndarray): Input stft (Freq, Time)
+        mode (str): db or linear.
+        fs (int): Sample frequency. To convert y-axis to kHz unit.
+        frame_shift (int): The frame shift of stft. To convert x-axis to second unit.
+        bottom (bool):Whether to draw the respective ticks.
+        left (bool):
+        right (bool):
+        top (bool):
+        labelbottom (bool):Whether to draw the respective tick labels.
+        labelleft (bool):
+        labelright (bool):
+        labeltop (bool):
+        cmap (str): colormap defined in matplotlib
 
     """
     spec = np.abs(spec)
