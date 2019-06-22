@@ -81,7 +81,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], -1)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
         if is_cuda:
             xs_pad = xs_pad.cuda()
@@ -349,7 +349,7 @@ def test_calculate_all_attentions(module, atype):
 
 def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_mt')
-    utils = importlib.import_module('espnet.mt.asr_utils')
+    utils = importlib.import_module('espnet.asr.asr_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
