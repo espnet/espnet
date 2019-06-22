@@ -224,10 +224,10 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
@@ -282,7 +282,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
 
     ) &
     pids+=($!) # store background pids

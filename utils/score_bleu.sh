@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Kyoto University (Hirofumi Inaguma)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 export LC_ALL=C
@@ -15,14 +15,15 @@ case=lc
 
 . utils/parse_options.sh
 
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <decode-dir> <dict-tgt> <dict-src>";
+if [ $# -lt 3 ]; then
+    echo "Usage: $0 <decode-dir> <tgt_lang> <dict-tgt> <dict-src>";
     exit 1;
 fi
 
 dir=$1
-dic_tgt=$2
-dic_src=$3
+tgt_lang=$2
+dic_tgt=$3
+dic_src=$4
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2trn_mt.py ${dir}/data.json ${dic_tgt} --refs ${dir}/ref.trn.org \
@@ -44,9 +45,9 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l de -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l de -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
+detokenizer.perl -l ${tgt_lang} -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l ${tgt_lang} -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l ${tgt_lang} -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
 if [ ! -z ${nlsyms} ]; then
     cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.org
@@ -69,13 +70,8 @@ if [ ${case} = tc ]; then
     cat ${dir}/result.tc.txt
 fi
 
-# detokenize
-local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
-local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
-local/remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
-
 echo ${set} > ${dir}/result.lc.txt
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
+multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.lc.txt
 echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 cat ${dir}/result.lc.txt
 
