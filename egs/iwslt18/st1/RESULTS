@@ -1,7 +1,7 @@
 exp/train_nodevtest_sp.de_lc_pytorch_train/decode_dev.de_decode
-BLEU = 13.52, 41.1/18.3/9.2/4.8 (BP=1.000, ratio=1.068, hyp_len=30195, ref_len=28271)
+BLEU = 14.91, 45.4/19.6/10.1/5.5 (BP=1.000, ratio=1.077, hyp_len=35818, ref_len=33261)
 exp/train_nodevtest_sp.de_lc_pytorch_train/decode_test.de_decode
-BLEU = 14.48, 42.9/19.3/9.9/5.3 (BP=1.000, ratio=1.032, hyp_len=31036, ref_len=30081)
+BLEU = 16.03, 47.6/20.7/11.0/6.1 (BP=1.000, ratio=1.033, hyp_len=36709, ref_len=35529)
 exp/train_nodevtest_sp.de_lc_pytorch_train/decode_dev2010.de_decode
 BLEU = 14.11, 48.6/20.3/10.3/5.3 (BP=0.924, ratio=0.927, hyp_len=17686, ref_len=19083)
 exp/train_nodevtest_sp.de_lc_pytorch_train/decode_tst2010.de_decode
