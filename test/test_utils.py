@@ -6,11 +6,11 @@ import pytest
 import torch
 from torch_complex.tensor import ComplexTensor
 
+from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import SoundHDF5File
 from espnet.utils.training.batchfy import make_batchset
-from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
-from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from test.utils_test import make_dummy_json
 
 
