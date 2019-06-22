@@ -37,6 +37,7 @@ from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
+from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
@@ -279,6 +280,7 @@ def train(args):
         model.rnnlm = rnnlm
     if frontend_asr is not None:
         frontend_asr.register_asr(model)
+        # Replace model with frontend_asr
         model = frontend_asr
 
     # write model config
@@ -312,7 +314,6 @@ def train(args):
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
     elif args.opt == 'noam':
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
         optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
