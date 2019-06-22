@@ -51,8 +51,8 @@ while IFS= read -r expdir; do
 ## $(basename ${expdir})
 ### CER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 EOF
         grep -e Avg ${expdir}/decode_*/result.txt \
             | sed -e "s#${expdir}/\([^/]*\)/result.txt:#|\1#g" \
@@ -64,8 +64,8 @@ EOF
             cat << EOF
 ### WER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 EOF
             grep -e Avg ${expdir}/decode_*/result.wrd.txt \
                 | sed -e "s#${expdir}/\([^/]*\)/result.wrd.txt:#|\1#g" \
