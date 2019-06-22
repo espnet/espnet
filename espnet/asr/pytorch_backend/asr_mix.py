@@ -58,9 +58,11 @@ REPORT_INTERVAL = 100
 
 
 class CustomConverter(object):
-    """Custom batch converter for Pytorch
+    """Custom batch converter for Pytorch.
 
-    :param int subsampling_factor : The subsampling factor
+    Args:
+        subsampling_factor (int): The subsampling factor.
+
     """
 
     def __init__(self, subsampling_factor=1, preprocess_conf=None):
@@ -70,15 +72,30 @@ class CustomConverter(object):
         self.ignore_id = -1
 
     def transform(self, item):
+        """Create a mini-batch.
+
+        Args:
+            item (List(Tuple(String, Dict[String, Dict]))): List of batch.
+
+        Returns:
+            Tuple(List, List, List): tuple of the following
+                * List of input token id sentences (numpy.ndarray, float)
+                * List of input feature sequences (numpy.ndarray, float)
+                * List of target token id sequences (numpy.ndarray, int)
+
+        """
         return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device
+        """Transforms a batch and send it to a device.
 
-        :param list batch: The batch to transform
-        :param torch.device device: The device to send to
-        :return: a tuple xs_pad, ilens, ys_pad
-        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        Args:
+            batch (List(Tuple(String, Dict[String, Dict]))): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            Tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -103,9 +120,11 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments
+
     """
     set_deterministic_pytorch(args)
 
@@ -314,9 +333,11 @@ def train(args):
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments
+
     """
     set_deterministic_pytorch(args)
     # read training config

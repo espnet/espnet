@@ -68,7 +68,7 @@ def sum_sqnorm(arr):
         arr (numpy.ndarray)
 
     Returns:
-        object (float): sum of the norm calculated from the given array.
+        Float: Sum of the norm calculated from the given array.
 
     """
     sq_sum = collections.defaultdict(float)
@@ -101,7 +101,7 @@ class CustomUpdater(training.StandardUpdater):
             by default.
         device : Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
-        accum_grad (int): number of times that accumulated the gradients.
+        accum_grad (int): Number of times that accumulated the gradients.
 
     """
 
@@ -160,7 +160,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             by default.
         device : Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
-        accum_grad (int): number of times that accumulated the gradients.
+        accum_grad (int): Number of times that accumulated the gradients.
 
     """
 
@@ -222,7 +222,7 @@ class CustomConverter(object):
     """Custom Converter.
 
     Args:
-        subsampling_factor (int): The subsampling factor
+        subsampling_factor (int): The subsampling factor.
 
     """
 
@@ -233,13 +233,13 @@ class CustomConverter(object):
         """Perform sabsampling.
 
         Args:
-            batch (List): batch that will be sabsampled
-            device (Device): gpu device.
+            batch (List): Batch that will be sabsampled.
+            device (Device): GPU device.
 
         Returns:
-            xs (chainer.Variable): xp.array that sabsampled from batch.
-            ilens (xp.array): xp.array of the length of the mini-batches.
-            ys (chainer.Variable): xp.array that sabsampled from batch.
+            chainer.Variable: xp.array that sabsampled from batch.
+            xp.array: xp.array of the length of the mini-batches.
+            chainer.Variable: xp.array that sabsampled from batch.
 
         """
         # set device
@@ -268,7 +268,7 @@ def train(args):
     """Train with the given args.
 
     Args:
-        args (namespace): The program arguments
+        args (namespace): The program arguments.
 
     """
     # display chainer version
@@ -566,7 +566,7 @@ def recog(args):
     """Decode with the given args.
 
     Args:
-        args (namespace): The program arguments
+        args (namespace): The program arguments.
 
     """
     # display chainer version

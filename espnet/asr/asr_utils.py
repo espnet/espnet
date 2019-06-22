@@ -73,7 +73,6 @@ class CompareValueTrigger(object):
             return False
 
     def _init_summary(self):
-        """Get summary information."""
         self._summary = chainer.reporter.DictSummary()
 
 
@@ -123,8 +122,8 @@ class PlotAttentionReport(extension.Extension):
         """Return attention weights.
 
         Returns:
-            arr_ws_sd (float ndarray): attention weights. It's shape would be
-                differ from bachend.
+            numpy.ndarray: attention weights.float. Its shape would be
+                differ from backend.
                 * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                              2) other case => attention weights (B, Lmax, Tmax).
                 * chainer -> (B, Lmax, Tmax)
@@ -155,7 +154,7 @@ class PlotAttentionReport(extension.Extension):
         """Plot the att_w matrix.
 
         Returns:
-            plt (matplotlib.pyplot): pyplot object with attention matrix image.
+            matplotlib.pyplot: pyplot object with attention matrix image.
 
         """
         import matplotlib.pyplot as plt
@@ -173,7 +172,6 @@ class PlotAttentionReport(extension.Extension):
         return plt
 
     def _plot_and_save_attention(self, att_w, filename):
-        """Plot matrix and save image."""
         plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
@@ -194,7 +192,6 @@ def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    """Restore snapshot."""
     load_fn(snapshot, model)
     logging.info('restored from ' + str(snapshot))
 
@@ -214,7 +211,6 @@ def adadelta_eps_decay(eps_decay):
 
 
 def _adadelta_eps_decay(trainer, eps_decay):
-    """Perform adadelta eps decay."""
     optimizer = trainer.updater.get_optimizer('main')
     # for chainer
     if hasattr(optimizer, 'eps'):
@@ -244,7 +240,6 @@ def torch_snapshot(savefun=torch.save,
 
 
 def _torch_snapshot_object(trainer, target, filename, savefun):
-    """Take snapchot of the trainer."""
     # make snapshot_dict dictionary
     s = DictionarySerializer()
     s.save(trainer)
@@ -284,7 +279,7 @@ def add_gradient_noise(model, epoch, eta):
     Args:
         model (Torch model): model
         iteration (int): number of iteration
-        eta (float): {0.01,0.3,1.0} 
+        eta (float): {0.01,0.3,1.0}
 
     """
     scale_factor = 0.55
@@ -469,9 +464,9 @@ def parse_hypothesis(hyp, char_list):
         char_list (List): list of characters
 
     Returns:
-        text (str): recognition text.
-        token (str):  recognition token.
-        tokenid (str): recognition tokenid
+        String: recognition text.
+        String: recognition token.
+        String: recognition tokenid
 
     """
     # remove sos and get results
@@ -496,7 +491,7 @@ def add_results_to_json(js, nbest_hyps, char_list):
         char_list (List): list of characters.
 
     Returns:
-        new_js (Dict):  N-best results added utterance.
+        Dictionary:  N-best results added utterance.
 
     """
     # copy old json info
