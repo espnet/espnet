@@ -43,49 +43,54 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn.org > ${dir}/hyp.trn
 if ${remove_blank}; then
     sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
 fi
-if [ -n "${nlsyms}" ]; then
-    cp ${dir}/hyp.trn ${dir}/hyp.trn.org
-    filt.py -v ${nlsyms} ${dir}/hyp.trn.org > ${dir}/hyp.trn
-fi
+# if [ -n "${nlsyms}" ]; then
+#     cp ${dir}/hyp.trn ${dir}/hyp.trn.org
+#     filt.py -v ${nlsyms} ${dir}/hyp.trn.org > ${dir}/hyp.trn
+# fi
 if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp.trn
 fi
 
 # reorder text based on the order of the xml file
-if [ -z ${text} ]; then
-  text=data/${set}.en/text_noseg.${case}
-fi
-local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
-# grep "<seg id" ${xml_src} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
-
-# lowercasing
-lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.lc
-lowercase.perl < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.lc
-
-# remove punctuation
-local/remove_punctuation.pl < ${dir}/hyp.trn.lc | sed -e "s/  / /g" > ${dir}/hyp.trn.lc.rm
-local/remove_punctuation.pl < ${dir}/ref.wrd.trn.lc | sed -e "s/  / /g" > ${dir}/ref.wrd.trn.lc.rm
+# if [ -z ${text} ]; then
+#   text=data/${set}.en/text_noseg.${case}
+# fi
+# local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
+grep "<seg id" ${xml_src} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
 if [ ! -z ${bpemodel} ]; then
-    spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn.lc.rm | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn.lc.rm
+    spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
 else
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+fi
+
+# remove language IDs
+if [ -n "${nlsyms}" ]; then
+    cp ${dir}/hyp.wrd.trn ${dir}/hyp.wrd.trn.org
+    filt.py -v ${nlsyms} ${dir}/hyp.wrd.trn.org > ${dir}/hyp.wrd.trn
 fi
 
 # detokenize
-cut -d " " -f 2- ${dir}/ref.wrd.trn.lc.rm | detokenizer.perl -l en -q > ${dir}/ref.wrd.trn.lc.rm.detok
-detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm.detok
+detokenizer.perl -l en -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 # NOTE: uttterance IDs are dummy
 
-perl local/wrap-xml.perl en ${xml_src} ${system} < ${dir}/ref.wrd.trn.lc.rm.detok > ${dir}/ref.xml
+# lowercasing
+lowercase.perl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc
+lowercase.perl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc
+
+# remove punctuation (including apostrophe)
+local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/hyp.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/ref.wrd.trn.detok.lc.rm
 
 # segment hypotheses with RWTH tool
-# segmentBasedOnMWER.sh ${xml_src} ${xml_src} ${dir}/hyp.wrd.trn.lc.rm.detok ${system} en ${dir}/hyp.wrd.trn.lc.rm.detok.sgm.xml "" 0 || exit 1;
-segmentBasedOnMWER.sh ${dir}/ref.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.lc.rm.detok ${system} en ${dir}/hyp.wrd.trn.lc.rm.detok.sgm.xml "" 0 || exit 1;
-sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.lc.rm.detok.sgm.xml | awk '{print $0 "(uttID-"NR")"}' > ${dir}/hyp.wrd.trn.lc.rm.detok.sgm
-awk '{print $0 "(uttID-"NR")"}' < ${dir}/ref.wrd.trn.lc.rm.detok > ${dir}/ref.wrd.trn.lc.rm.detok.tmp
-mv ${dir}/ref.wrd.trn.lc.rm.detok.tmp ${dir}/ref.wrd.trn.lc.rm.detok
-sclite -r ${dir}/ref.wrd.trn.lc.rm.detok trn -h ${dir}/hyp.wrd.trn.lc.rm.detok.sgm trn -i rm -o all stdout > ${dir}/result.wrd.txt
+perl local/wrap-xml.perl en ${xml_src} ${system} < ${dir}/ref.wrd.trn.detok.lc.rm > ${dir}/ref.xml
+# segmentBasedOnMWER.sh ${xml_src} ${xml_src} ${dir}/hyp.wrd.trn.detok.lc.rm ${system} en ${dir}/hyp.wrd.trn.detok.lc.rm.sgm.xml "" 0 || exit 1;
+segmentBasedOnMWER.sh ${dir}/ref.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok.lc.rm ${system} en ${dir}/hyp.wrd.trn.detok.lc.rm.sgm.xml "" 0 || exit 1;
+sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.lc.rm.sgm.xml | awk '{print $0 "(uttID-"NR")"}' > ${dir}/hyp.wrd.trn.detok.lc.rm.sgm
+awk '{print $0 "(uttID-"NR")"}' < ${dir}/ref.wrd.trn.detok.lc.rm > ${dir}/ref.wrd.trn.detok.lc.rm.tmp
+mv ${dir}/ref.wrd.trn.detok.lc.rm.tmp ${dir}/ref.wrd.trn.detok.lc.rm
+sclite -r ${dir}/ref.wrd.trn.detok.lc.rm trn -h ${dir}/hyp.wrd.trn.detok.lc.rm.sgm trn -i rm -o all stdout > ${dir}/result.wrd.txt
 
 echo "write a WER result in ${dir}/result.wrd.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
