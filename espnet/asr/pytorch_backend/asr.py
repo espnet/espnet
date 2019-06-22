@@ -21,6 +21,7 @@ import torch
 import yaml
 
 from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import add_gradient_noise
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
@@ -35,6 +36,7 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
@@ -147,7 +149,6 @@ class CustomUpdater(training.StandardUpdater):
         loss.backward()  # Backprop
         # gradient noise injection
         if self.grad_noise:
-            from espnet.asr.asr_utils import add_gradient_noise
             eta = 0.5  # {0.01,0.3,1.0}
             duration = 1000
             itr = (self.iteration // duration) + 1
@@ -207,10 +208,10 @@ class CustomConverter(object):
             xs_pad_imag = pad_list(
                 [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
             # Note(kamo):
-            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
+            # RealImagTensor, which is a namedtuple, will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
-            # because torch.nn.DataParellel can't handle it.
-            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
+            # because torch.nn.DataParellel can't handle ComplexTensor.
+            xs_pad = RealImagTensor(xs_pad_real, xs_pad_imag)
         else:
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 

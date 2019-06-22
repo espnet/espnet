@@ -3,10 +3,14 @@ import h5py
 import kaldiio
 import numpy as np
 import pytest
+import torch
+from torch_complex.tensor import ComplexTensor
 
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import SoundHDF5File
 from espnet.utils.training.batchfy import make_batchset
+from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from test.utils_test import make_dummy_json
 
 
@@ -140,3 +144,19 @@ def test_sound_hdf5_file(tmpdir, fmt):
         t, r = f[k]
         assert r == 8000
         np.testing.assert_array_equal(t, v)
+
+
+def test_to_torch_tensor():
+    x = np.random.randn(10, 10)
+    t = to_torch_tensor(x)
+    assert isinstance(t, torch.Tensor)
+    assert tuple(t.shape) == tuple(x.shape)
+
+    t = to_torch_tensor(t)
+    assert isinstance(t, torch.Tensor)
+    assert tuple(t.shape) == tuple(x.shape)
+
+    t = RealImagTensor(x, x)
+    t = to_torch_tensor(t)
+    assert isinstance(t, ComplexTensor)
+    assert tuple(t.shape) == tuple(x.shape)

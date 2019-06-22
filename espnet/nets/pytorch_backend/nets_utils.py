@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import NamedTuple
 from typing import Union
 
 import numpy as np
@@ -300,11 +301,16 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     return float(numerator) / float(denominator)
 
 
-def to_torch_tensor(x):
+class RealImagTensor(NamedTuple):
+    real: torch.Tensor
+    imag: torch.Tensor
+
+
+def to_torch_tensor(x: Union[torch.Tensor, ComplexTensor, RealImagTensor]):
     """Change to torch.Tensor or ComplexTensor from numpy.ndarray.
 
     Args:
-        x: Inputs. It should be one of numpy.ndarray, Tensor, ComplexTensor, and dict.
+        x: Inputs. It should be one of numpy.ndarray, Tensor, ComplexTensor, RealImagTensor
 
     Returns:
         Tensor or ComplexTensor: Type converted inputs.
@@ -315,7 +321,7 @@ def to_torch_tensor(x):
         tensor([1., 1., 1.])
         >>> xs = torch.ones(3, 4, 5)
         >>> assert to_torch_tensor(xs) is xs
-        >>> xs = {'real': xs, 'imag': xs}
+        >>> xs = RealImagTensor(xs, xs)
         >>> to_torch_tensor(xs)
         ComplexTensor(
         Real:
@@ -332,22 +338,18 @@ def to_torch_tensor(x):
         else:
             return torch.from_numpy(x)
 
-    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
-    elif isinstance(x, dict):
-        if 'real' not in x or 'imag' not in x:
-            raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
+    elif isinstance(x, RealImagTensor):
         # Relative importing because of using python3 syntax
-        return ComplexTensor(x['real'], x['imag'])
+        return ComplexTensor(x.real, x.imag)
 
     # If torch.Tensor, as it is
     elif isinstance(x, torch.Tensor):
         return x
 
+    elif isinstance(x, ComplexTensor):
+        return x
+
     else:
-        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
-                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
-                 "but got {}".format(type(x)))
-        if isinstance(x, ComplexTensor):
-            return x
-        else:
-            raise ValueError(error)
+        raise ValueError(
+            f"x must be numpy.ndarray, torch.Tensor, or RealImagTensor. "
+            f"but got {type(x)}")
