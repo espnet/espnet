@@ -115,7 +115,7 @@ if [ ${case} = tc ]; then
     cat ${dir}/result.tc.txt
 fi
 
-# detokenize & remove punctuation except apostrophi
+# detokenize & remove punctuation except apostrophe
 local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
 local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
 local/remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
