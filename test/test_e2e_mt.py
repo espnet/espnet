@@ -81,7 +81,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
-        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], -1)
+        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], max(xs) + 1)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
         if is_cuda:
             xs_pad = xs_pad.cuda()
@@ -93,14 +93,14 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
         raise ValueError("Invalid mode")
 
 
-def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
+def convert_batch(batch, backend="pytorch", is_cuda=False, idim=5, odim=5):
     ilens = np.array([x[1]['output'][1]['shape'][0] for x in batch])
     olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
     xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
-        xs = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+        xs = pad_list([torch.from_numpy(x).float() for x in xs], max(xs) + 1)
         ilens = torch.from_numpy(ilens).long()
         ys = pad_list([torch.from_numpy(y).long() for y in ys], -1)
 
@@ -163,7 +163,7 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=6, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_mt as m
     else:
@@ -171,7 +171,7 @@ def test_sortagrad_trainable(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(50, 20)
@@ -202,7 +202,7 @@ def test_sortagrad_trainable_with_batch_bins(module):
 
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
@@ -239,7 +239,7 @@ def test_sortagrad_trainable_with_batch_frames(module):
 
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
@@ -421,7 +421,7 @@ def test_multi_gpu_trainable(module):
 )
 def test_context_residual(module):
     args = make_arg(context_residual=True)
-    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=6, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_mt as m
     else:
@@ -429,7 +429,7 @@ def test_context_residual(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(50, 20)
