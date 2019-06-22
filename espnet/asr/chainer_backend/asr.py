@@ -89,10 +89,10 @@ class CustomUpdater(training.StandardUpdater):
     Args:
         train_iter (Iterator | Dict[str] -> Iterator): Dataset iterator for the
             training dataset. It can also be a dictionary that maps strings to
-            iterators. If this is just an iterator, then the iterator is 
+            iterators. If this is just an iterator, then the iterator is
             registered by the name ``'main'``.
-        optimizer (Optimizer | Dict[str] -> Optimizer): Optimizer to update 
-            parameters. It can also be a dictionary that maps strings to 
+        optimizer (Optimizer | Dict[str] -> Optimizer): Optimizer to update
+            parameters. It can also be a dictionary that maps strings to
             optimizers. If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
         converter (Function): Converter function to build input arrays. Each batch
