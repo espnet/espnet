@@ -10,18 +10,26 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class DurationPredictor(torch.nn.Module):
-    """Duration predictor module
+    """Duration predictor module.
 
-    Reference:
-        FastSpeech: Fast, Robust and Controllable Text to Speech
-        (https://arxiv.org/pdf/1905.09263.pdf)
+    This is a module of duration predictor described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
+    The duration predictor predicts a duration of each frame in log domain from the hidden embeddings of encoder.
 
-    :param int idim: input dimension
-    :param int n_layers: number of convolutional layers
-    :param int n_chans: number of channels of convolutional layers
-    :param int kernel_size: kernel size of convolutional layers
-    :param float dropout_rate: dropout rate
-    :param float offset: offset value to avoid nan in log domain
+    Args:
+        idim (int): Input dimension.
+        n_layers (int, optional): Number of convolutional layers.
+        n_chans (int, optional): Number of channels of convolutional layers.
+        kernel_size (int, optional): Kernel size of convolutional layers.
+        dropout_rate (float, optional): Dropout rate.
+        offset (float, optional): Offset value to avoid nan in log domain.
+
+    .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
+        https://arxiv.org/pdf/1905.09263.pdf
+
+    Note:
+        The calculation domain of outputs is different between in `forward` and in `inference`. In `forward`,
+        the outputs are calculated in log domain but in `inference`, those are calculated in linear domain.
+
     """
 
     def __init__(self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0):
@@ -56,28 +64,40 @@ class DurationPredictor(torch.nn.Module):
         return xs
 
     def forward(self, xs, x_masks=None):
-        """Calculate duration predictor forward propagation
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: input tensor (B, Tmax, idim)
-        :param torch.Tensor x_masks: mask for removing padded part (B, Tmax)
-        :return torch.Tensor: predicted duration tensor in log domain (B, Tmax)
+        Args:
+            xs (Tensor): Batch of input sequences (B, Tmax, idim).
+            x_masks (ByteTensor, optional): Batch of masks indicating padded part (B, Tmax).
+
+        Returns:
+            Tensor: Batch of predicted durations in log domain (B, Tmax).
+
         """
         return self._forward(xs, x_masks, False)
 
     def inference(self, xs, x_masks=None):
-        """Inference duration
+        """Inference duration.
 
-        :param torch.Tensor xs: input tensor with tha shape (B, Tmax, idim)
-        :param torch.Tensor x_masks: mask for removing padded part (B, Tmax)
-        :return torch.Tensor: predicted duration in linear domain with the shape (B, Tmax)
+        Args:
+            xs (Tensor): Batch of input sequences (B, Tmax, idim).
+            x_masks (ByteTensor, optional): Batch of masks indicating padded part (B, Tmax).
+
+        Returns:
+            LongTensor: Batch of predicted durations in linear domain (B, Tmax).
+
         """
         return self._forward(xs, x_masks, True)
 
 
 class DurationPredictorLoss(torch.nn.Module):
-    """Duration predictor loss module
+    """Loss function module for duration predictor.
 
-    :param float offset: offset value to avoid nan in log domain
+    The loss value is Calculated in log domain to make it Gaussian.
+
+    Args:
+        offset (float, optional): Offset value to avoid nan in log domain.
+
     """
 
     def __init__(self, offset=1.0):
@@ -86,10 +106,18 @@ class DurationPredictorLoss(torch.nn.Module):
         self.offset = offset
 
     def forward(self, outputs, targets):
-        """Calculate loss value
+        """Calculate forward propagation.
 
-        :param torch.Tensor outputs: prediction duration in log domain (B, T)
-        :param torch.Tensor targets: groundtruth duration in linear domain (B, T)
+        Args:
+            outputs (Tensor): Batch of prediction durations in log domain (B, T)
+            targets (LongTensor): Batch of groundtruth durations in linear domain (B, T)
+
+        Returns:
+            Tensor: Mean squared error loss value.
+
+        Note:
+            `outputs` is in log domain but `targets` is in linear domain.
+
         """
         # NOTE: outputs is in log domain while targets in linear
         targets = torch.log(targets.float() + self.offset)

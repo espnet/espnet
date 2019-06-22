@@ -57,5 +57,5 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
   - |
     if $USE_CONDA; then
-      travis-sphinx deploy
+      travis-sphinx deploy -m "Update documentation [ci skip]"
     fi
