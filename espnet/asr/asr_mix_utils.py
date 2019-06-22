@@ -31,14 +31,14 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
     Args:
         data (Dict[str, Dict[str, Any]]): Dictionary loaded from data.json.
-        batch_size (int): batch size.
-        max_length_in (int): maximum length of input to decide adaptive batch size.
-        max_length_out (int): maximum length of output to decide adaptive batch size.
-        num_batches (int): # number of batches to use (for debug).
-        min_batch_size (int): mininum batch size (for multi-gpu).
+        batch_size (int): Batch size.
+        max_length_in (int): Maximum length of input to decide adaptive batch size.
+        max_length_out (int): Maximum length of output to decide adaptive batch size.
+        num_batches (int): # Number of batches to use (for debug).
+        min_batch_size (int): Mininum batch size (for multi-gpu).
 
     Returns:
-        List[Tuple[str, Dict[str, List[Dict[str, Any]]]]: list of batches
+        List[Tuple[str, Dict[str, List[Dict[str, Any]]]]: List of batches
 
     """
     # sort it by input lengths (long to short)
@@ -95,12 +95,12 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn (Function): function of attention visualization
-        data (List): list json utt key items
-        outdir (str): directory to save figures
-        converter (CustomConverter): function to convert data
-        device (int | torch.device): device
-        reverse (bool): If True, input and output length are reversed
+        att_vis_fn (Function): Function of attention visualization.
+        data (List): List json utt key items.
+        outdir (str): Directory to save figures.
+        converter (CustomConverter): Function to convert data.
+        device (int | torch.device): Device.
+        reverse (bool): If True, input and output length are reversed.
 
     """
 
@@ -142,7 +142,7 @@ class PlotAttentionReport(extension.Extension):
                 differ from bachend.
             * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                          2) other case => attention weights (B, Lmax, Tmax).
-            * chainer -> (B, Lmax, Tmax)
+            * chainer -> attention weights (B, Lmax, Tmax).
 
         """
         batch = self.converter([self.converter.transform(self.data)], self.device)
@@ -167,7 +167,7 @@ class PlotAttentionReport(extension.Extension):
         """Visualize attention weights matrix.
 
         Returns:
-            plt (matplotlib.pyplot): pyplot object with attention matrix image.
+            matplotlib.pyplot: pyplot object with attention matrix image.
 
         """
         import matplotlib.pyplot as plt
@@ -185,7 +185,6 @@ class PlotAttentionReport(extension.Extension):
         return plt
 
     def _plot_and_save_attention(self, att_w, filename):
-        """Plot matrix and save image."""
         plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
@@ -195,12 +194,12 @@ def add_results_to_json(js, nbest_hyps_sd, char_list):
     """Add N-best results to json.
 
     Args:
-        js (Dict): groundtruth utterance dict
-        nbest_hyps_sd (List): list of hypothesis for multi_speakers: nutts x nspkrs
-        char_list (List): list of characters
+        js (Dict): Groundtruth utterance dict.
+        nbest_hyps_sd (List): List of hypothesis for multi_speakers: nutts x nspkrs.
+        char_list (List): List of characters.
 
     Returns:
-        new_js (Dict): N-best results added utterance dict
+        Dict[]: N-best results added utterance dict.
 
     """
     # copy old json info
