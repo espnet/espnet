@@ -15,10 +15,6 @@ from espnet.nets.e2e_asr_common import end_detect
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
-from espnet.nets.pytorch_backend.nets_utils import append_ids
-from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
-from espnet.nets.pytorch_backend.nets_utils import index_select_list
-from espnet.nets.pytorch_backend.nets_utils import index_select_lm_state
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -492,7 +488,7 @@ class Decoder(torch.nn.Module):
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
+            vy = to_device(self, torch.LongTensor(self._get_last_yseq(yseq)))
             ey = self.dropout_emb(self.embed(vy))
             att_c, att_w = self.att[att_idx](exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
             ey = torch.cat((ey, att_c), dim=1)
@@ -551,8 +547,8 @@ class Decoder(torch.nn.Module):
             accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
-            yseq = index_select_list(yseq, accum_padded_beam_ids)
-            yseq = append_ids(yseq, accum_odim_ids)
+            yseq = self._index_select_list(yseq, accum_padded_beam_ids)
+            yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
@@ -571,7 +567,7 @@ class Decoder(torch.nn.Module):
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
             if rnnlm:
-                rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
+                rnnlm_prev = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
                 ctc_vidx = to_device(self, torch.LongTensor(accum_padded_odim_ids))
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
@@ -682,6 +678,42 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
+
+    @staticmethod
+    def _get_last_yseq(exp_yseq):
+        last = []
+        for y_seq in exp_yseq:
+            last.append(y_seq[-1])
+        return last
+
+    @staticmethod
+    def _append_ids(yseq, ids):
+        if isinstance(ids, list):
+            for i, j in enumerate(ids):
+                yseq[i].append(j)
+        else:
+            for i in range(len(yseq)):
+                yseq[i].append(ids)
+        return yseq
+
+    @staticmethod
+    def _index_select_list(yseq, lst):
+        new_yseq = []
+        for l in lst:
+            new_yseq.append(yseq[l][:])
+        return new_yseq
+
+    @staticmethod
+    def _index_select_lm_state(rnnlm_state, dim, vidx):
+        if isinstance(rnnlm_state, dict):
+            new_state = {}
+            for k, v in rnnlm_state.items():
+                new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+        elif isinstance(rnnlm_state, list):
+            new_state = []
+            for i in vidx:
+                new_state.append(rnnlm_state[int(i)][:])
+        return new_state
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
