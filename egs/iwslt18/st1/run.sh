@@ -39,8 +39,8 @@ case=lc
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-st_ted=/n/sd3/inaguma/corpus/iwslt18/data
-# st_ted=/export/b08/inaguma/IWSLT
+st_ted=/export/b08/inaguma/IWSLT
+# st_ted=/n/sd3/inaguma/corpus/iwslt18/data
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -265,7 +265,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_mttrans
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
