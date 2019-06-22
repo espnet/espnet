@@ -26,11 +26,11 @@ def pad_list(xs, pad_value):
     """Perform padding for the list of tensors.
 
     Args:
-        xs (List): List of Tensors [(T_1, *), (T_2, *), ..., (T_B, *)].
+        xs (List): List of Tensors [(T_1, `*`), (T_2, `*`), ..., (T_B, `*`)].
         pad_value (float): Value for padding.
 
     Returns:
-        Tensor: Padded tensor (B, Tmax, *).
+        Tensor: Padded tensor (B, Tmax, `*`).
 
     Examples:
         >>> x = [torch.ones(4), torch.ones(2), torch.ones(1)]
@@ -61,7 +61,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
         length_dim (int, optional): Dimension indicator of the above tensor. See the example.
 
     Returns:
-        Tensor: mask tensor containing indices of padded part.
+        Tensor: Mask tensor containing indices of padded part.
 
     Examples:
         With only lengths.
@@ -78,20 +78,16 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
         >>> make_pad_mask(lengths, xs)
         tensor([[[0, 0, 0, 0],
                  [0, 0, 0, 0]],
-
                 [[0, 0, 0, 1],
                  [0, 0, 0, 1]],
-
                 [[0, 0, 1, 1],
                  [0, 0, 1, 1]]], dtype=torch.uint8)
         >>> xs = torch.zeros((3, 2, 6))
         >>> make_pad_mask(lengths, xs)
         tensor([[[0, 0, 0, 0, 0, 1],
                  [0, 0, 0, 0, 0, 1]],
-
                 [[0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1]],
-
                 [[0, 0, 1, 1, 1, 1],
                  [0, 0, 1, 1, 1, 1]]], dtype=torch.uint8)
 
@@ -105,14 +101,12 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
                  [0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0],
                  [1, 1, 1, 1, 1, 1]],
-
                 [[0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0],
                  [1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1]],
-
                 [[0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0],
                  [1, 1, 1, 1, 1, 1],
@@ -126,14 +120,12 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
                  [0, 0, 0, 0, 0, 1],
                  [0, 0, 0, 0, 0, 1],
                  [0, 0, 0, 0, 0, 1]],
-
                 [[0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1],
                  [0, 0, 0, 1, 1, 1]],
-
                 [[0, 0, 1, 1, 1, 1],
                  [0, 0, 1, 1, 1, 1],
                  [0, 0, 1, 1, 1, 1],
@@ -196,20 +188,16 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
         >>> make_non_pad_mask(lengths, xs)
         tensor([[[1, 1, 1, 1],
                  [1, 1, 1, 1]],
-
                 [[1, 1, 1, 0],
                  [1, 1, 1, 0]],
-
                 [[1, 1, 0, 0],
                  [1, 1, 0, 0]]], dtype=torch.uint8)
         >>> xs = torch.zeros((3, 2, 6))
         >>> make_non_pad_mask(lengths, xs)
         tensor([[[1, 1, 1, 1, 1, 0],
                  [1, 1, 1, 1, 1, 0]],
-
                 [[1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0]],
-
                 [[1, 1, 0, 0, 0, 0],
                  [1, 1, 0, 0, 0, 0]]], dtype=torch.uint8)
 
@@ -223,14 +211,12 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
                  [1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1],
                  [0, 0, 0, 0, 0, 0]],
-
                 [[1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1],
                  [0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0]],
-
                 [[1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1],
                  [0, 0, 0, 0, 0, 0],
@@ -244,14 +230,12 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
                  [1, 1, 1, 1, 1, 0],
                  [1, 1, 1, 1, 1, 0],
                  [1, 1, 1, 1, 1, 0]],
-
                 [[1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0, 0]],
-
                 [[1, 1, 0, 0, 0, 0],
                  [1, 1, 0, 0, 0, 0],
                  [1, 1, 0, 0, 0, 0],
@@ -267,15 +251,12 @@ def mask_by_length(xs, lengths, fill=0):
     """Mask tensor according to length.
 
     Args:
-        xs (Tensor): Batch of input tensor (B, *).
+        xs (Tensor): Batch of input tensor (B, `*`).
         lengths (LongTensor or List): Batch of lengths (B,).
         fill (int or float): Value to fill masked part.
 
     Returns:
-        (Tensor): Batch of masked input tensor (B, *)
-
-    Todo:
-        * Replace this functions with `torch.masked_fill`
+        Tensor: Batch of masked input tensor (B, `*`).
 
     Examples:
         >>> x = torch.arange(5).repeat(3, 1) + 1
