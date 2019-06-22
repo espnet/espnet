@@ -14,6 +14,7 @@ bpemodel=""
 remove_blank=true
 filter=""
 case=lc.rm
+text=""
 
 . utils/parse_options.sh
 
@@ -25,7 +26,7 @@ fi
 dir=$1
 dic=$2
 set=$4
-src=$3/$set/IWSLT.$set
+src=$3/${set}/IWSLT.${set}
 
 sl=en
 tl=de
@@ -51,7 +52,11 @@ if [ -n "${filter}" ]; then
 fi
 
 # reorder text based on the order of the xml file
-local/reorder_text.py data/${set}.en/text_noseg.${case} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
+if [ -z ${text} ]; then
+  text=data/${set}.en/text_noseg.${case}
+fi
+local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
+# grep "<seg id" ${xml_src} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
 # lowercasing
 lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.lc

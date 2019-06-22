@@ -12,6 +12,7 @@ bpe=""
 bpemodel=""
 filter=""
 case=lc
+text=""
 
 . utils/parse_options.sh
 
@@ -23,7 +24,7 @@ fi
 dir=$1
 dic=$2
 set=$4
-src=$3/$set/IWSLT.$set
+src=$3/${set}/IWSLT.${set}
 
 sl=en
 tl=de
@@ -46,9 +47,11 @@ if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp.trn
 fi
 
-# local/reorder_text.py data/${set}.en/text_noseg ${src}/FILE_ORDER > ${dir}/src.wrd.trn || exit 1;
-# local/reorder_text.py data/${set}.de/text_noseg ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
-grep "<seg id" ${xml_src} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/src.wrd.trn
+# reorder text based on the order of the xml file
+# if [ -z ${text} ]; then
+#   text=data/${set}.en/text_noseg.${case}
+# fi
+# local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
 grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
 if [ ! -z ${bpemodel} ]; then
