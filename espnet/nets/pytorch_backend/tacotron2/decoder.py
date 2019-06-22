@@ -13,17 +13,31 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 
 
 def decoder_init(m):
+    """Initialize decoder parameters."""
     if isinstance(m, torch.nn.Conv1d):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
 class ZoneOutCell(torch.nn.Module):
-    """ZoneOut Cell
+    """ZoneOut Cell module.
 
-    This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
+    This is a module of zoneout described in `Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations`_.
+    This code is modified from `eladhoffer/seq2seq.pytorch`_.
 
-    :param torch.nn.Module cell: pytorch recurrent cell
-    :param float zoneout_rate: probability of zoneout
+    Args:
+        cell (torch.nn.Module): Pytorch recurrent cell module e.g. `torch.nn.Module.LSTMCell`.
+        zoneout_rate (float, optional): Probability of zoneout from 0.0 to 1.0.
+
+    Examples:
+        >>> lstm = torch.nn.LSTMCell(16, 32)
+        >>> lstm = ZoneOutCell(lstm, 0.5)
+
+    .. _`Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations`:
+        https://arxiv.org/abs/1606.01305
+
+    .. _`eladhoffer/seq2seq.pytorch`:
+        https://github.com/eladhoffer/seq2seq.pytorch
+
     """
 
     def __init__(self, cell, zoneout_rate=0.1):
@@ -35,6 +49,20 @@ class ZoneOutCell(torch.nn.Module):
             raise ValueError("zoneout probability must be in the range from 0.0 to 1.0.")
 
     def forward(self, inputs, hidden):
+        """Calculate forward propagation.
+
+        Args:
+            inputs (Tensor): Batch of input tensor (B, input_size).
+            hidden (tuple):
+                - Tensor: Batch of initial hidden states (B, hidden_size).
+                - Tensor: Batch of initial cell states (B, hidden_size).
+
+        Returns:
+            tuple:
+                - Tensor: Batch of next hidden states (B, hidden_size).
+                - Tensor: Batch of next cell states (B, hidden_size).
+
+        """
         next_hidden = self.cell(inputs, hidden)
         next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_rate)
         return next_hidden
@@ -55,12 +83,25 @@ class ZoneOutCell(torch.nn.Module):
 
 
 class Prenet(torch.nn.Module):
-    """Prenet for tacotron2 decoder
+    """Prenet module for decoder of Spectrogram prediction network.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param int n_layers: the number of prenet layers
-    :param int n_units: the number of prenet units
+    This is a module of Prenet in the decoder of Spectrogram prediction network, which described in `Natural TTS
+    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_. The Prenet preforms nonlinear conversion
+    of inputs before input to auto-regressive lstm, which helps to learn diagonal attentions.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        n_layers (int, optional): The number of prenet layers.
+        n_units (int, optional): The number of prenet units.
+
+    Note:
+        This module alway applies dropout even in evaluation See the detail in _`Natural TTS Synthesis by
+        Conditioning WaveNet on Mel Spectrogram Predictions`_.
+
+    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
+       https://arxiv.org/abs/1712.05884
+
     """
 
     def __init__(self, idim, n_layers=2, n_units=256, dropout_rate=0.5):
@@ -74,11 +115,14 @@ class Prenet(torch.nn.Module):
                 torch.nn.ReLU())]
 
     def forward(self, x):
-        """Prenet forward calculation
+        """Calculate forward propagation.
 
-        :param torch.Tensor x: batch of input tensor (B, idim)
-        :return: output tensor (B, odim)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): Batch of input tensors (B, *, idim).
+
+        Returns:
+            Tensor: Batch of output tensors (B, *, odim).
+
         """
         for l in six.moves.range(len(self.prenet)):
             x = F.dropout(self.prenet[l](x), self.dropout_rate)
@@ -86,15 +130,25 @@ class Prenet(torch.nn.Module):
 
 
 class Postnet(torch.nn.Module):
-    """Postnet for tacotron2 decoder
+    """Postnet module for Spectrogram prediction network.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param int n_layers: the number of postnet layers
-    :param int n_filts: the number of postnet filter size
-    :param int n_chans: the number of postnet filter channels
-    :param bool use_batch_norm: whether to use batch normalization
-    :param float dropout_rate: dropout_rate rate
+    This is a module of Postnet in Spectrogram prediction network, which described in `Natural TTS Synthesis by
+    Conditioning WaveNet on Mel Spectrogram Predictions`_. The Postnet predicts refines the predicted
+    Mel-filterbank of the decoder, which helps to compensate the detail sturcture of spectrogram.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        n_layers (int, optional): The number of layers.
+        n_filts (int, optional): The number of filter size.
+        n_units (int, optional): The number of filter channels.
+        use_batch_norm (bool, optional): Whether to use batch normalization..
+        dropout_rate (float, optional): Dropout rate..
+
+
+    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
+       https://arxiv.org/abs/1712.05884
+
     """
 
     def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout_rate=0.5, use_batch_norm=True):
@@ -130,11 +184,14 @@ class Postnet(torch.nn.Module):
                 torch.nn.Dropout(dropout_rate))]
 
     def forward(self, xs):
-        """Postnet forward calculation
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of the sequences of padded input tensor (B, idim, Tmax)
-        :return: outputs without postnets (B, odim, Tmax)
-        :rtype: torch.Tensor
+        Args:
+            xs (Tensor): Batch of the sequences of padded input tensors (B, idim, Tmax).
+
+        Returns:
+            Tensor: Batch of padded output tensor. (B, odim, Tmax).
+
         """
         for l in six.moves.range(len(self.postnet)):
             xs = self.postnet[l](xs)
@@ -142,32 +199,34 @@ class Postnet(torch.nn.Module):
 
 
 class Decoder(torch.nn.Module):
-    """Decoder to predict the sequence of features
+    """Decoder module of Spectrogram prediction network.
 
-    This the decoder which generate the sequence of features from
-    the sequence of the hidden states. The network structure is
-    based on that of the tacotron2 in the field of speech synthesis.
+    This is a module of decoder of Spectrogram prediction network in Tacotron2, which described in `Natural TTS
+    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_. The decoder generates the sequence of
+    features from the sequence of the hidden states.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param instance att: instance of attention class
-    :param int dlayers: the number of decoder lstm layers
-    :param int dunits: the number of decoder lstm units
-    :param int prenet_layers: the number of prenet layers
-    :param int prenet_units: the number of prenet units
-    :param int postnet_layers: the number of postnet layers
-    :param int postnet_filts: the number of postnet filter size
-    :param int postnet_chans: the number of postnet filter channels
-    :param function output_activation_fn: activation function for outputs
-    :param bool cumulate_att_w: whether to cumulate previous attention weight
-    :param bool use_batch_norm: whether to use batch normalization
-    :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param float dropout_rate: dropout rate
-    :param float zoneout_rate: zoneout rate
-    :param int reduction_factor: reduction factor
-    :param float threshold: threshold in inference
-    :param float minlenratio: minimum length ratio in inference
-    :param float maxlenratio: maximum length ratio in inference
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        att (torch.nn.Module): Instance of attention class.
+        dlayers (int, optional): The number of decoder lstm layers.
+        dunits (int, optional): The number of decoder lstm units.
+        prenet_layers (int, optional): The number of prenet layers.
+        prenet_units (int, optional): The number of prenet units.
+        postnet_layers (int, optional): The number of postnet layers.
+        postnet_filts (int, optional): The number of postnet filter size.
+        postnet_chans (int, optional): The number of postnet filter channels.
+        output_activation_fn (torch.nn.Module, optional): Activation function for outputs.
+        cumulate_att_w (bool, optional): Whether to cumulate previous attention weight.
+        use_batch_norm (bool, optional): Whether to use batch normalization.
+        use_concate (bool, optional): Whether to concatenate encoder embedding with decoder lstm outputs.
+        dropout_rate (float, optional): Dropout rate.
+        zoneout_rate (float, optional): Zoneout rate.
+        reduction_factor (int, optional): Reduction factor.
+
+    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
+       https://arxiv.org/abs/1712.05884
+
     """
 
     def __init__(self, idim, odim, att,
@@ -243,24 +302,27 @@ class Decoder(torch.nn.Module):
         # initialize
         self.apply(decoder_init)
 
-    def zero_state(self, hs):
+    def _zero_state(self, hs):
         init_hs = hs.new_zeros(hs.size(0), self.lstm[0].hidden_size)
         return init_hs
 
     def forward(self, hs, hlens, ys):
-        """Decoder forward computation
+        """Calculate forward propagation.
 
-        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
-        :param list hlens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: outputs with postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: outputs without postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: stop logits (B, Lmax)
-        :rtype: torch.Tensor
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: torch.Tensor
+        Args:
+            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).
+            hlens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of the sequences of padded target features (B, Lmax, odim).
+
+        Returns:
+            Tensor: Batch of output tensors after postnet (B, Lmax, odim).
+            Tensor: Batch of output tensors before postnet (B, Lmax, odim).
+            Tensor: Batch of logits of stop prediction (B, Lmax).
+            Tensor: Batch of attention weights (B, Lmax, Tmax).
+
+        Note:
+            This computation is performed in teacher-forcing manner.
+
         """
         # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
         if self.reduction_factor > 1:
@@ -270,11 +332,11 @@ class Decoder(torch.nn.Module):
         hlens = list(map(int, hlens))
 
         # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
+        c_list = [self._zero_state(hs)]
+        z_list = [self._zero_state(hs)]
         for _ in six.moves.range(1, len(self.lstm)):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
+            c_list += [self._zero_state(hs)]
+            z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
 
         # initialize attention
@@ -327,18 +389,24 @@ class Decoder(torch.nn.Module):
         return after_outs, before_outs, logits, att_ws
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
-        """Generate the sequence of features given the encoder hidden states
+        """Generate the sequence of features given the sequences of characters.
 
-        :param torch.Tensor h: the sequence of encoder states (T, C)
-        :param float threshold: threshold in inference
-        :param float minlenratio: minimum length ratio in inference
-        :param float maxlenratio: maximum length ratio in inference
-        :return: the sequence of features (L, D)
-        :rtype: torch.Tensor
-        :return: the sequence of stop probabilities (L)
-        :rtype: torch.Tensor
-        :return: the sequence of attention weight (L, T)
-        :rtype: torch.Tensor
+        Args:
+            h (Tensor): Input sequence of encoder hidden states (T, C).
+            threshold (float, optional): Threshold to stop generation.
+            minlenratio (float, optional): Minimum length ratio. If set to 1.0 and the length of input is 10,
+                the minimum length of outputs will be 10 * 1 = 10.
+            minlenratio (float, optional): Minimum length ratio. If set to 10 and the length of input is 10,
+                the maximum length of outputs will be 10 * 10 = 100.
+
+        Returns:
+            Tensor: Output sequence of features (L, odim).
+            Tensor: Output sequence of stop probabilities (L,).
+            Tensor: Attention weights (L, T).
+
+        Note:
+            This computation is performed in auto-regressive manner.
+
         """
         # setup
         assert len(h.size()) == 2
@@ -348,11 +416,11 @@ class Decoder(torch.nn.Module):
         minlen = int(h.size(0) * minlenratio)
 
         # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
+        c_list = [self._zero_state(hs)]
+        z_list = [self._zero_state(hs)]
         for _ in six.moves.range(1, len(self.lstm)):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
+            c_list += [self._zero_state(hs)]
+            z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(1, self.odim)
 
         # initialize attention
@@ -409,13 +477,19 @@ class Decoder(torch.nn.Module):
         return outs, probs, att_ws
 
     def calculate_all_attentions(self, hs, hlens, ys):
-        """Decoder attention calculation
+        """Calculate all of the attention weights.
 
-        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
-        :param list hlens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: numpy array
+        Args:
+            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).
+            hlens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of the sequences of padded target features (B, Lmax, odim).
+
+        Returns:
+            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).
+
+        Note:
+            This computation is performed in teacher-forcing manner.
+
         """
         # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
         if self.reduction_factor > 1:
@@ -425,11 +499,11 @@ class Decoder(torch.nn.Module):
         hlens = list(map(int, hlens))
 
         # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
+        c_list = [self._zero_state(hs)]
+        z_list = [self._zero_state(hs)]
         for _ in six.moves.range(1, len(self.lstm)):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
+            c_list += [self._zero_state(hs)]
+            z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
 
         # initialize attention

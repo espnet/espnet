@@ -28,19 +28,25 @@ from espnet.utils.cli_utils import strtobool
 
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
-    """Guided attention loss for multi head attention
+    """Guided attention loss function module for multi head attention.
 
-    :param float sigma: standard deviation to control how close attention to a diagonal
-    :param bool reset_always: whether to always reset mask
+    Args:
+        sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+        reset_always (bool, optional): Whether to always reset masks.
+
     """
 
     def forward(self, att_ws, ilens, olens):
-        """Calculate guided attention loss for multi head attention
+        """Calculate forward propagation.
 
-        :param torch.Tenosr att_ws: attention weights (B, H, T_max_out, T_max_in)
-        :param torch.Tensor ilens: batch of input lenghts (B,)
-        :param torch.Tensor olens: batch of output lenghts (B,)
-        :return torch.tensor: guided attention loss value
+        Args:
+            att_ws (Tensor): Batch of multi head attention weights (B, H, T_max_out, T_max_in).
+            ilens (LongTensor): Batch of input lenghts (B,).
+            olens (LongTensor): Batch of output lenghts (B,).
+
+        Returns:
+            Tensor: Guided attention loss value.
+
         """
         if self.guided_attn_masks is None:
             self.guided_attn_masks = self._make_guided_attention_masks(ilens, olens).to(att_ws.device).unsqueeze(1)
@@ -49,17 +55,19 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         losses = self.guided_attn_masks * att_ws
         loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
-            self.reset_masks()
+            self._reset_masks()
 
         return loss
 
 
 class TransformerLoss(torch.nn.Module):
-    """Transformer loss function
+    """Loss function module for TTS-Transformer.
 
-    :param Namespace args: argments containing following attributes
-        (bool) use_masking: whether to mask padded part in loss calculation
-        (float) bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
+    Args:
+        args (Namespace):
+            - use_masking (bool): Whether to mask padded part in loss calculation.
+            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+
     """
 
     def __init__(self, args):
@@ -68,20 +76,21 @@ class TransformerLoss(torch.nn.Module):
         self.bce_pos_weight = args.bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
-        """Calculate trasnformer loss
+        """Calculate forward propagation.
 
-        :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
-        :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
-        :param torch.Tensor logits: stop logits (B, Lmax)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
-        :param list olens: batch of the lengths of each target (B)
-        :return: l1 loss value
-        :rtype: torch.Tensor
-        :return: mean square error loss value
-        :rtype: torch.Tensor
-        :return: binary cross entropy loss value
-        :rtype: torch.Tensor
+        Args:
+            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            logits (Tensor): Batch of stop logits (B, Lmax).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            labels (LongTensor): Batch of the sequences of stop token labels (B, Lmax).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: L1 loss value.
+            Tensor: Mean square error loss value.
+            Tensor: Binary cross entropy loss value.
+
         """
         # perform masking for padded values
         if self.use_masking:
@@ -102,15 +111,19 @@ class TransformerLoss(torch.nn.Module):
 
 
 class TTSPlot(PlotAttentionReport):
-    def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
-        """Plot multi head attentions
+    """Attention plot module for TTS-Transformer."""
 
-        :param dict data: utts info from json file
-        :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
-            values should be torch.Tensor (head, input_length, output_length)
-        :param str outdir: dir to save fig
-        :param str suffix: filename suffix including image type (e.g., png)
-        :param savefn: function to save
+    def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
+        """Plot multi head attentions.
+
+        Args:
+            data (dict): Utts info from json file.
+            attn_dict (dict): Multi head attention dict.
+                Values should be numpy.ndarray (H, L, T)
+            outdir (str): Directory name to save figures.
+            suffix (str): Filename suffix including image type (e.g., png).
+            savefn (function): Function to save figures.
+
         """
         import matplotlib.pyplot as plt
         for name, att_ws in attn_dict.items():
@@ -130,61 +143,66 @@ class TTSPlot(PlotAttentionReport):
 
 
 class Transformer(TTSInterface, torch.nn.Module):
-    """Text-to-Speech Transformer
+    """Text-to-Speech Transformer module.
 
-    Reference:
-        Neural Speech Synthesis with Transformer Network
-        (https://arxiv.org/pdf/1809.08895.pdf)
+    This is a module of text-to-speech Transformer described in `Neural Speech Synthesis with Transformer Network`_,
+    which convert the sequence of characters or phonemes into the sequence of Mel-filterbanks.
 
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param Namespace args: argments containing following attributes
-        (int) embed_dim: dimension of character embedding
-        (int) eprenet_conv_layers: number of encoder prenet convolution layers
-        (int) eprenet_conv_chans: number of encoder prenet convolution channels
-        (int) eprenet_conv_filts: filter size of encoder prenet convolution
-        (int) dprenet_layers: number of decoder prenet layers
-        (int) dprenet_units: number of decoder prenet hidden units
-        (int) elayers: number of encoder layers
-        (int) eunits: number of encoder hidden units
-        (int) adim: number of attention transformation dimensions
-        (int) aheads: number of heads for multi head attention
-        (int) dlayers: number of decoder layers
-        (int) dunits: number of decoder hidden units
-        (int) postnet_layers: number of postnet layers
-        (int) postnet_chans: number of postnet channels
-        (int) postnet_filts: filter size of postnet
-        (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
-        (bool) use_batch_norm: whether to use batch normalization in encoder prenet
-        (bool) encoder_normalize_before: whether to perform layer normalization before encoder block
-        (bool) decoder_normalize_before: whether to perform layer normalization before decoder block
-        (bool) encoder_concat_after: whether to concatenate attention layer's input and output in encoder
-        (bool) decoder_concat_after: whether to concatenate attention layer's input and output in decoder
-        (int) reduction_factor: reduction factor
-        (float) transformer_init: how to initialize transformer parameters
-        (float) transformer_lr: initial value of learning rate
-        (int) transformer_warmup_steps: optimizer warmup steps
-        (float) transformer_enc_dropout_rate: dropout rate in encoder except for attention and positional encoding
-        (float) transformer_enc_positional_dropout_rate: dropout rate after encoder positional encoding
-        (float) transformer_enc_attn_dropout_rate: dropout rate in encoder self-attention module
-        (float) transformer_dec_dropout_rate: dropout rate in decoder except for attention and positional encoding
-        (float) transformer_dec_positional_dropout_rate:  dropout rate after decoder positional encoding
-        (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
-        (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
-        (float) eprenet_dropout_rate: dropout rate in encoder prenet
-        (float) dprenet_dropout_rate: dropout rate in decoder prenet
-        (float) postnet_dropout_rate: dropout rate in postnet
-        (bool) use_masking: whether to use masking in calculation of loss
-        (float) bce_pos_weight: positive sample weight in bce calculation (only for use_masking=true)
-        (str) loss_type: how to calculate loss
-        (bool) use_guided_attn_loss: whether to use guided attention loss
-        (int) num_heads_applied_guided_attn: number of heads in each layer to be applied guided attention loss
-        (int) num_layers_applied_guided_attn: number of layers to be applied guided attention loss
-        (list) modules_applied_guided_attn: list of module names to be applied guided attention loss
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        args (Namespace):
+            - embed_dim (int): Dimension of character embedding.
+            - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
+            - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
+            - eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+            - dprenet_layers (int): Number of decoder prenet layers.
+            - dprenet_units (int): Number of decoder prenet hidden units.
+            - elayers (int): Number of encoder layers.
+            - eunits (int): Number of encoder hidden units.
+            - adim (int): Number of attention transformation dimensions.
+            - aheads (int): Number of heads for multi head attention.
+            - dlayers (int): Number of decoder layers.
+            - dunits (int): Number of decoder hidden units.
+            - postnet_layers (int): Number of postnet layers.
+            - postnet_chans (int): Number of postnet channels.
+            - postnet_filts (int): Filter size of postnet.
+            - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
+            - use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+            - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
+            - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
+            - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
+            - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+            - reduction_factor (int): Reduction factor.
+            - transformer_init (float): How to initialize transformer parameters.
+            - transformer_lr (float): Initial value of learning rate.
+            - transformer_warmup_steps (int): Optimizer warmup steps.
+            - transformer_enc_dropout_rate (float): Dropout rate in encoder except for attention & positional encoding.
+            - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
+            - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
+            - transformer_dec_dropout_rate (float): Dropout rate in decoder except for attention & positional encoding.
+            - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
+            - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
+            - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
+            - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
+            - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
+            - postnet_dropout_rate (float): Dropout rate in postnet.
+            - use_masking (bool): Whether to use masking in calculation of loss.
+            - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
+            - loss_type (str): How to calculate loss.
+            - use_guided_attn_loss (bool): Whether to use guided attention loss.
+            - num_heads_applied_guided_attn (int): Number of heads in each layer to be applied guided attention loss.
+            - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
+            - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
+
+    .. _`Neural Speech Synthesis with Transformer Network`:
+        https://arxiv.org/pdf/1809.08895.pdf
+
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Add model-specific arguments to the parser."""
         group = parser.add_argument_group("transformer model setting")
         # network structure related
         group.add_argument("--embed-dim", default=512, type=int,
@@ -288,6 +306,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     @property
     def attention_plot_class(self):
+        """Return plot class for attention weight plot."""
         return TTSPlot
 
     def __init__(self, idim, odim, args):
@@ -425,15 +444,17 @@ class Transformer(TTSInterface, torch.nn.Module):
         return ys_in
 
     def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
-        """Calculate forward propagation
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor olens: batch of the lengths of each target (B)
-        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
-        :return: loss value
-        :rtype: torch.Tensor
+        Args:
+            xs (Tensor): Batch of padded character ids (B, Tmax).
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: Loss value.
+
         """
         # remove unnecessary padded part (for multi-gpus)
         max_ilen = max(ilens)
@@ -546,16 +567,19 @@ class Transformer(TTSInterface, torch.nn.Module):
         return loss
 
     def inference(self, x, inference_args, *args, **kwargs):
-        """Generates the sequence of features from given a sequences of characters
+        """Generate the sequence of features given the sequences of characters.
 
-        :param torch.Tensor x: the sequence of character ids (T)
-        :param Namespace inference_args: argments containing following attributes
-            (float) threshold: threshold in inference
-            (float) minlenratio: minimum length ratio in inference
-            (float) maxlenratio: maximum length ratio in inference
-        :rtype: torch.Tensor
-        :return: the sequence of stop probabilities (L)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): Input sequence of characters (T,).
+            inference_args (Namespace):
+                - threshold (float): Threshold in inference.
+                - minlenratio (float): Minimum length ratio in inference.
+                - maxlenratio (float): Maximum length ratio in inference.
+
+        Returns:
+            Tensor: Output sequence of features (L, odim).
+            Tensor: Output sequence of stop probabilities (L,).
+
         """
         # get options
         threshold = inference_args.threshold
@@ -604,16 +628,19 @@ class Transformer(TTSInterface, torch.nn.Module):
         return outs, probs
 
     def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
-        """Calculate attention weights of all of the layers
+        """Calculate all of the attention weights.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor ilens: list of lengths of each output batch (B)
-        :param bool skip_output: whether to skip calculate the final output
-        :param bool keep_tensor: whether to keep original tensor
-        :return: attention weights dict
-        :rtype: dict
+        Args:
+            xs (Tensor): Batch of padded character ids (B, Tmax).
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+            skip_output (bool, optional): Whether to skip calculate the final output.
+            keep_tensor (bool, optional): Whether to keep original tensor.
+
+        Returns:
+            dict: Dict of attention weights and outputs.
+
         """
         with torch.no_grad():
             # forward encoder
@@ -681,63 +708,69 @@ class Transformer(TTSInterface, torch.nn.Module):
         return att_ws_dict
 
     def _source_mask(self, ilens):
-        """Make mask for MultiHeadedAttention using padded sequences
+        """Make masks for self-attention.
 
-        >>> ilens = [5, 3]
-        >>> self._source_mask(ilens)
-        tensor([[[1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1]],
+        Examples:
+            >>> ilens = [5, 3]
+            >>> self._source_mask(ilens)
+            tensor([[[1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1]],
 
-                [[1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                    [[1, 1, 1, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
         return x_masks.unsqueeze(-2) & x_masks.unsqueeze(-1)
 
     def _target_mask(self, olens):
-        """Make mask for MaskedMultiHeadedAttention using padded sequences
+        """Make masks for masked self-attention.
 
-        >>> olens = [5, 3]
-        >>> self._target_mask(olens)
-        tensor([[[1, 0, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [1, 1, 1, 1, 0],
-                 [1, 1, 1, 1, 1]],
+        Examples:
+            >>> olens = [5, 3]
+            >>> self._target_mask(olens)
+            tensor([[[1, 0, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [1, 1, 1, 1, 0],
+                     [1, 1, 1, 1, 1]],
 
-                [[1, 0, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                    [[1, 0, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [1, 1, 1, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+
         """
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks & y_masks.unsqueeze(-1)
 
     def _source_to_target_mask(self, ilens, olens):
-        """Make source to target mask for MultiHeadedAttention using padded sequences
+        """Make masks for encoder-decoder attention.
 
-        >>> ilens = [4, 2]
-        >>> olens = [5, 3]
-        >>> self._source_to_target_mask(ilens)
-        tensor([[[1, 1, 1, 1],
-                 [1, 1, 1, 1],
-                 [1, 1, 1, 1],
-                 [1, 1, 1, 1],
-                 [1, 1, 1, 1]],
+        Examples:
+            >>> ilens = [4, 2]
+            >>> olens = [5, 3]
+            >>> self._source_to_target_mask(ilens)
+            tensor([[[1, 1, 1, 1],
+                     [1, 1, 1, 1],
+                     [1, 1, 1, 1],
+                     [1, 1, 1, 1],
+                     [1, 1, 1, 1]],
 
-                [[1, 1, 0, 0],
-                 [1, 1, 0, 0],
-                 [1, 1, 0, 0],
-                 [0, 0, 0, 0],
-                 [0, 0, 0, 0]]], dtype=torch.uint8)
+                    [[1, 1, 0, 0],
+                     [1, 1, 0, 0],
+                     [1, 1, 0, 0],
+                     [0, 0, 0, 0],
+                     [0, 0, 0, 0]]], dtype=torch.uint8)
+
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
@@ -745,12 +778,14 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     @property
     def base_plot_keys(self):
-        """base key names to plot during training. keys should match what `chainer.reporter` reports
+        """Return base key names to plot during training. keys should match what `chainer.reporter` reports.
 
-        if you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
+        If you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
         also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
 
-        :rtype list[str] plot_keys: base keys to plot during training
+        Returns:
+            list: List of strings which are base keys to plot during training.
+
         """
         plot_keys = ["loss", "l1_loss", "l2_loss", "bce_loss"]
         if self.use_scaled_pos_enc:
