@@ -37,7 +37,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace): Model hyperparameters.
+        args (Namespace):
             - elayers (int): Number of encoder layers.
             - eunits (int): Number of encoder hidden units.
             - adim (int): Number of attention transformation dimensions.

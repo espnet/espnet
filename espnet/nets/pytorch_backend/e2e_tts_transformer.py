@@ -64,7 +64,7 @@ class TransformerLoss(torch.nn.Module):
     """Loss function module for TTS-Transformer.
 
     Args:
-        args (Namespace): Model hyperparameters.
+        args (Namespace):
             - use_masking (bool): Whether to mask padded part in loss calculation.
             - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
 
@@ -151,7 +151,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace): Model hyperparameters.
+        args (Namespace):
             - embed_dim (int): Dimension of character embedding.
             - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
             - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
@@ -571,7 +571,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         Args:
             x (Tensor): Input sequence of characters (T,).
-            inference_args (Namespace): Inference hyperparameters.
+            inference_args (Namespace):
                 - threshold (float): Threshold in inference.
                 - minlenratio (float): Minimum length ratio in inference.
                 - maxlenratio (float): Maximum length ratio in inference.
