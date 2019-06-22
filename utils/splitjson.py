@@ -20,14 +20,19 @@ import numpy as np
 from espnet.utils.cli_utils import get_commandline_args
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='split a json file for parallel processing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str,
                         help='json file')
     parser.add_argument('--parts', '-p', type=int,
                         help='Number of subparts to be prepared', default=0)
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
 
     # logging info
     logging.basicConfig(level=logging.INFO,

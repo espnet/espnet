@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -14,8 +14,10 @@ import sys
 import numpy as np
 
 
-def main(args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -95,6 +97,11 @@ def main(args):
                         help='Onset margin')
     parser.add_argument('--streaming-offset-margin', type=int, default=1,
                         help='Offset margin')
+    return parser
+
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
 
     # logging info

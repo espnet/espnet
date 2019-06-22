@@ -5,8 +5,10 @@ LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 ARG CUDA_VER
 WORKDIR /
 
+ARG ESPNET_LOCATION=https://github.com/espnet/espnet
+
 # Download ESPnet
-RUN git clone https://github.com/espnet/espnet && \
+RUN git clone ${ESPNET_LOCATION} && \
     cd espnet && \
     rm -rf docker egs test utils
 
