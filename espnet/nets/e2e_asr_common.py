@@ -121,18 +121,30 @@ class ER_Calculator(object):
 
     def calculate_cer_ctc(self, ys_hat, ys_pad):
         cers, char_ref_lens = [], []
+        blank = self.char_list.index(self.blank)
+        space = self.char_list.index(self.space)
         for i, y in enumerate(ys_hat):
             y_hat = [x[0] for x in groupby(y)]
             y_true = ys_pad[i]
+            seq_hat, seq_true = [], []
+            for idx in y_hat:
+                idx = int(idx)
+                if idx != -1 and idx != blank and idx != space:
+                    seq_hat.append(self.char_list[int(idx)])
 
-            seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
-            seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
-            seq_hat_text = seq_hat_text.replace(self.blank, '')
-            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+            for idx in y_true:
+                idx = int(idx)
+                if idx != -1 and idx != blank and idx != space:
+                    seq_true.append(self.char_list[int(idx)])
 
-            hyp_chars = seq_hat_text.replace(' ', '')
-            ref_chars = seq_true_text.replace(' ', '')
+            #seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1 and int(idx) != blank and int(idx) != space]
+            #seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1 and int(idx) != blank and int(idx) != space]
+            seq_hat_text = "".join(seq_hat) #.replace(self.space, ' ')
+            #seq_hat_text = seq_hat_text.replace(self.blank, '')
+            seq_true_text = "".join(seq_true) #.replace(self.space, ' ')
+
+            hyp_chars = seq_hat_text #.replace(' ', '')
+            ref_chars = seq_true_text #.replace(' ', '')
             if len(ref_chars) > 0:
                 cers.append(editdistance.eval(hyp_chars, ref_chars))
                 char_ref_lens.append(len(ref_chars))
