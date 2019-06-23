@@ -96,7 +96,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 def convert_batch(batch, backend="pytorch", is_cuda=False, idim=5, odim=5):
     ilens = np.array([x[1]['output'][1]['shape'][0] for x in batch])
     olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
-    xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
+    xs = [np.random.randint(1, idim, ilen).astype(np.int32) for ilen in ilens]
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
