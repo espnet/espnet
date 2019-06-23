@@ -30,7 +30,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     """Make batch set from json dictionary.
 
     Args:
-        data (Dict[str, Dict[str, Any]]): Dictionary loaded from data.json.
+        data (dict[str, list[Any]): Dictionary loaded from data.json.
         batch_size (int): Batch size.
         max_length_in (int): Maximum length of input to decide adaptive batch size.
         max_length_out (int): Maximum length of output to decide adaptive batch size.
@@ -38,7 +38,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         min_batch_size (int): Mininum batch size (for multi-gpu).
 
     Returns:
-        List[Tuple[str, Dict[str, List[Dict[str, Any]]]]: List of batches
+        list[tuple[str, dict[str, list[dict[str, Any]]]]: List of batches.
 
     """
     # sort it by input lengths (long to short)
@@ -95,11 +95,12 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn (Function): Function of attention visualization.
-        data (List): List json utt key items.
+        att_vis_fn ((list[torch.Tensor], list[torch.Tensor], list[torch.Tensor) -> numpy.array):
+            Function of attention visualization.
+        data (list[tuple(str, dict[str, dict[str, Any]])]): List json utt key items.
         outdir (str): Directory to save figures.
-        converter (CustomConverter): Function to convert data.
-        device (int | torch.device): Device.
+        converter (CustomConverter): CustomConverter object. Function to convert data.
+        device (device): Device.
         reverse (bool): If True, input and output length are reversed.
 
     """
@@ -138,8 +139,8 @@ class PlotAttentionReport(extension.Extension):
         """Return attention weights.
 
         Returns:
-            arr_ws_sd (float ndarray): attention weights. It's shape would be
-                differ from bachend.
+            arr_ws_sd (numpy.ndarray): attention weights. It's shape would be
+                differ from bachend.dtype=float
             * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                          2) other case => attention weights (B, Lmax, Tmax).
             * chainer -> attention weights (B, Lmax, Tmax).
@@ -194,12 +195,12 @@ def add_results_to_json(js, nbest_hyps_sd, char_list):
     """Add N-best results to json.
 
     Args:
-        js (Dict): Groundtruth utterance dict.
-        nbest_hyps_sd (List): List of hypothesis for multi_speakers: nutts x nspkrs.
-        char_list (List): List of characters.
+        js (dict[str, Any]): Groundtruth utterance dict.
+        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers: nutts x nspkrs.
+        char_list (list[str]): List of characters.
 
     Returns:
-        Dict[]: N-best results added utterance dict.
+        dict[str, Any]: N-best results added utterance dict.
 
     """
     # copy old json info

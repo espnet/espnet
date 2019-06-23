@@ -59,7 +59,6 @@ matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
-
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
     """Calculate the norm of the array.
@@ -87,19 +86,19 @@ class CustomUpdater(training.StandardUpdater):
     Defines the main update routine.
 
     Args:
-        train_iter (Iterator | Dict[str] -> Iterator): Dataset iterator for the
+        train_iter (iterator | dict[str, iterator]): Dataset iterator for the
             training dataset. It can also be a dictionary that maps strings to
             iterators. If this is just an iterator, then the iterator is
             registered by the name ``'main'``.
-        optimizer (Optimizer | Dict[str] -> Optimizer): Optimizer to update
+        optimizer (optimizer | dict[str, optimizer]): Optimizer to update
             parameters. It can also be a dictionary that maps strings to
             optimizers. If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
-        converter (Function): Converter function to build input arrays. Each batch
+        converter (CustomConverter): Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
             to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
-        device : Device to which the training data is sent. Negative value
+        device (torch.device): Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
         accum_grad (int): Number of times that accumulated the gradients.
 
@@ -146,19 +145,19 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     Defines the main update routine.
 
     Args:
-        train_iter (Iterator | Dict[str] -> Iterator): Dataset iterator for the
+        train_iter (iterator | dict[str, iterator]): Dataset iterator for the
             training dataset. It can also be a dictionary that maps strings to
             iterators. If this is just an iterator, then the iterator is
             registered by the name ``'main'``.
-        optimizer (Optimizer | Dict[str] -> Optimizer): Optimizer to update
+        optimizer (optimizer | dict[str, optimizer]): Optimizer to update
             parameters. It can also be a dictionary that maps strings to
             optimizers. If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
-        converter (Function): Converter function to build input arrays. Each batch
+        converter (CustomConverter): Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
             to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
-        device : Device to which the training data is sent. Negative value
+        device (torch.device): Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
         accum_grad (int): Number of times that accumulated the gradients.
 
@@ -233,8 +232,8 @@ class CustomConverter(object):
         """Perform sabsampling.
 
         Args:
-            batch (List): Batch that will be sabsampled.
-            device (Device): GPU device.
+            batch (list): Batch that will be sabsampled.
+            device (device): GPU device.
 
         Returns:
             chainer.Variable: xp.array that sabsampled from batch.
