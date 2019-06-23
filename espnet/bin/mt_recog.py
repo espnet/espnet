@@ -66,6 +66,8 @@ def get_parser():
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', type=float, default=0.0,
+                        help='dummy')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
