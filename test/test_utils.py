@@ -174,8 +174,6 @@ def test_error_calculator(tmpdir, typ):
         assert _wer is not None
     elif typ == 'cer':
         _cer, _wer = ec(ys_pad, ys_hat)
-        print(_cer, cer)
-        print(_wer)
         assert _cer is not None
         assert _wer is None
     else:
