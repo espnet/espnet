@@ -59,6 +59,7 @@ matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
+
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
     """Calculate the norm of the array.
@@ -83,8 +84,6 @@ def sum_sqnorm(arr):
 class CustomUpdater(training.StandardUpdater):
     """Custom updater for chainer.
 
-    Defines the main update routine.
-
     Args:
         train_iter (iterator | dict[str, iterator]): Dataset iterator for the
             training dataset. It can also be a dictionary that maps strings to
@@ -101,7 +100,6 @@ class CustomUpdater(training.StandardUpdater):
         device (torch.device): Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
         accum_grad (int): Number of times that accumulated the gradients.
-
     """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
