@@ -11,10 +11,12 @@ maxchars=200
 minchars=0
 nlsyms=""
 
+help_message="usage: $0 olddatadir newdatadir"
+
 . utils/parse_options.sh || exit 1;
 
 if [ $# != 2 ]; then
-    echo "usage: $0 olddatadir newdatadir"
+    echo $help_message
     exit 1;
 fi
 

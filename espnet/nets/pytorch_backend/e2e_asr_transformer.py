@@ -18,8 +18,8 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 
 
@@ -123,29 +123,8 @@ class E2E(ASRInterface, torch.nn.Module):
         self.rnnlm = None
 
     def reset_parameters(self, args):
-        if args.transformer_init == "pytorch":
-            return
-        # weight init
-        for p in self.parameters():
-            if p.dim() > 1:
-                if args.transformer_init == "xavier_uniform":
-                    torch.nn.init.xavier_uniform_(p.data)
-                elif args.transformer_init == "xavier_normal":
-                    torch.nn.init.xavier_normal_(p.data)
-                elif args.transformer_init == "kaiming_uniform":
-                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
-                elif args.transformer_init == "kaiming_normal":
-                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
-                else:
-                    raise ValueError("Unknown initialization: " + args.transformer_init)
-        # bias init
-        for p in self.parameters():
-            if p.dim() == 1:
-                p.data.zero_()
-        # reset some modules with default init
-        for m in self.modules():
-            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
-                m.reset_parameters()
+        # initialize parameters
+        initialize(self, args.transformer_init)
 
     def add_sos_eos(self, ys_pad):
         from espnet.nets.pytorch_backend.nets_utils import pad_list
