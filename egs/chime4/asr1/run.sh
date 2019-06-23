@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -32,6 +32,7 @@ lmtag=              # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
@@ -186,10 +187,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
+        cut -f 2- -d" " data-fbank/${train_set}/text > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
                 | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
-        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data-fbank/${train_dev}/text > ${lmdatadir}/valid.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
@@ -256,6 +257,13 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+	recog_model=model.last${n_average}.avg.best
+	average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
