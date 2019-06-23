@@ -29,9 +29,9 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done pesq
+extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -83,7 +83,7 @@ endif
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
-	git clone https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/espnet/warp-ctc.git
 	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
@@ -104,16 +104,6 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
-ifeq ($(PYTHON_VERSION),2.7)
-# Nothing to do
-pytorch_complex.done:
-else
-pytorch_complex.done: venv
-	# Require python>=3.6, pytorch>=1.0
-	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
-	touch pytorch_complex.done
-endif
-
 nkf.done:
 	rm -rf nkf
 	mkdir -p nkf
@@ -124,7 +114,7 @@ nkf.done:
 sentencepiece.done:
 	rm -rf sentencepiece
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
+	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
 mecab.done: espnet.done
@@ -158,6 +148,12 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
+mwerSegmenter.done:
+	wget https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	tar zxvf mwerSegmenter.tar.gz
+	rm mwerSegmenter.tar.gz
+	touch mwerSegmenter.done
+
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
@@ -165,14 +161,19 @@ else
 	. venv/bin/activate; python check_install.py --no-cupy
 endif
 
-pesq: PESQ/P862/Software/PESQ
-PESQ/P862/Software/PESQ: PESQ
-	cd PESQ/P862/Software/source; gcc *.c -lm -o PESQ
+
+pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
+PESQ/P862_annex_A_2005_CD/source/PESQ: PESQ
+	cd PESQ/P862_annex_A_2005_CD/source; gcc *.c -lm -o PESQ
 PESQ: PESQ.zip
+	mkdir -p PESQ_P.862.2
+	unzip PESQ.zip -d PESQ_P.862.2
+	unzip "PESQ_P.862.2/Software/P862_annex_A_2005_CD  wav final.zip" -d PESQ_P.862.2
 	rm -rf PESQ
-	unzip PESQ.zip -d PESQ
+	ln -s PESQ_P.862.2 PESQ
 PESQ.zip:
-	wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items' -O PESQ.zip
+	wget 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
+
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
@@ -187,6 +188,6 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
-	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf sentencepiece mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

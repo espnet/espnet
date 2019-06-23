@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 
 import configargparse
 import logging
@@ -19,8 +18,10 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
-def main(cmd_args):
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
     parser = configargparse.ArgumentParser(
+        description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -204,15 +205,15 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--grad-noise', type=strtobool, default=False,
+                        help='The flag to switch to use noise injection to gradients during training')
+    # speech translation related
+    parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
+                        help='The flag to switch to use context vector residual in the decoder network')
 
-    # transfer learning related
-    parser.add_argument('--asr-model', default=False, nargs='?',
-                        help='Pre-trained ASR model')
-    parser.add_argument('--mt-model', default=False, nargs='?',
-                        help='Pre-trained MT model')
-    parser.add_argument(
-        '--use-frontend', type=strtobool, default=False,
-        help='The flag to switch to use frontend system.')
+    # front end related
+    parser.add_argument('--use-frontend', type=strtobool, default=False,
+                        help='The flag to switch to use frontend system.')
 
     # WPE related
     parser.add_argument('--use-wpe', type=strtobool, default=False,
@@ -239,7 +240,6 @@ def main(cmd_args):
                         default=False,
                         help='Use DNN to estimate the power spectrogram. '
                              'This option is experimental.')
-
     # Beamformer related
     parser.add_argument('--use-beamformer', type=strtobool,
                         default=True, help='')
@@ -261,7 +261,6 @@ def main(cmd_args):
                              'By default, the channel is estimated by DNN.')
     parser.add_argument('--bdropout-rate', type=float, default=0.0,
                         help='')
-
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='The stats file for the feature normalization')
@@ -272,7 +271,6 @@ def main(cmd_args):
                         default=True, help='')
     parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
                         help='')
-
     # Feature transform: Fbank
     parser.add_argument('--fbank-fs', type=int, default=16000,
                         help='The sample frequency used for '
@@ -283,7 +281,11 @@ def main(cmd_args):
                         help='')
     parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
+    return parser
 
+
+def main(cmd_args):
+    parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 
     from espnet.utils.dynamic_import import dynamic_import

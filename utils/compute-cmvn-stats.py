@@ -12,7 +12,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Compute cepstral mean and '
                     'variance normalization statistics'
@@ -40,7 +40,11 @@ def main():
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier_or_wxfilename', type=str,
                         help='Write specifier. e.g. ark:some.ark')
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    args = get_parser().parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     if args.verbose > 0:

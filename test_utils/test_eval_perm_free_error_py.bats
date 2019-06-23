@@ -13,6 +13,8 @@ import six
 import sys
 
 
+np.random.seed(0)
+
 def pit_score(samples, num_spkrs=2):
     ret = []
     for idx, samp in enumerate(samples):
@@ -24,7 +26,7 @@ def pit_score(samples, num_spkrs=2):
         wers = [float(scores[0][0]+scores[3][0]) / (scores[0][1] + scores[3][1]),
                 float(scores[1][0]+scores[2][0]) / (scores[1][1] + scores[2][1])]
 
-        if wers[0] < wers[1]:
+        if wers[0] <= wers[1]:
             ret.append([samp_stats[0], samp_stats[3]])
         else:
             ret.append([samp_stats[1], samp_stats[2]])

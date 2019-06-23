@@ -16,13 +16,13 @@ while(<STDIN>) {
   $_ = " $_ ";
 
   # normalize punctuation
-  s/\// \/ /g;
-  s/，/,/g;
-  s/\, \,/\,/g;
-  s/\.\. \./\.\.\./g;
-  s/\.\.\.+/\.\.\./g;
-  s/- -/--/g;
-  s/--+/--/g;
+  s/\// \/ /g;  # insert space at both ends of /
+  s/，/,/g; # ， -> ,
+  s/\, \,/\,/g;  # , , -> ,
+  s/\.\. \./\.\.\./g;  # .. . -> ...
+  s/\.\.\.+/\.\.\./g;  # ..... -> ...
+  s/- -/--/g;  # - - -> --
+  s/--+/--/g;  # ----- -> --
   s/\&quot/\"/g;  # incomplete xml
 
   # remove noisy parts
@@ -34,7 +34,7 @@ while(<STDIN>) {
   s/\[/ /g;
   s/\]/ /g;
   s/\\/ /g;
-  s/\;/ /g;
+  # s/\;/ /g;
   s/\*/ /g;
   s/\^/ /g;
 

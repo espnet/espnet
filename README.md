@@ -4,6 +4,7 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 [![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
+[![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -30,6 +31,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [Error due to matplotlib](#error-due-to-matplotlib)
 * [Docker Container](#docker-container)
 * [Results](#results)
+  * [ASR results](#asr-results)
+  * [TTS results](#tts-results)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
 * [Citation](#citation)
@@ -43,6 +46,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
 - Tacotron2 based end-to-end TTS
+- Transformer based end-to-end TTS (new!)
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
@@ -55,11 +59,11 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.6.1+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1, 1.0.0
-- gcc 4.9+ for PyTorch1.0.0
+- PyTorch 0.4.1, 1.0.0, 1.0.1
+- gcc 4.9+ for PyTorch1.0.0+
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
@@ -117,7 +121,7 @@ If you do not want to use miniconda, you need to specify your python interpreter
 
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
+$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python3.6
 ```
 
 ### Step 2-B) installation including Kaldi installation
@@ -135,7 +139,7 @@ $ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 ```sh
 $ cd tools
-$ make -j 10 PYTHON=/usr/bin/python2.7
+$ make -j 10 PYTHON=/usr/bin/python3.6
 ```
 
 
@@ -356,24 +360,41 @@ go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/maste
 
 ## Results
 
+### ASR results
+
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-|           | CER (%) | WER (%)  |
-|-----------|:----:|:----:|
-| Aishell dev | 6.0 | N/A |
-| Aishell test | 6.7 | N/A |
-| CSJ eval1 | 5.7 | N/A  |
-| CSJ eval2 | 4.1 | N/A  |
-| CSJ eval3 | 4.5 | N/A  |
-| HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.0 |
-| Librispeech test_clean | N/A | 4.0 |
-| TEDLIUM2 dev  | N/A | 12.2 |
-| TEDLIUM2 test | N/A | 10.4 |
-| WSJ dev93 | 3.2 | 7.0 |
-| WSJ eval92| 2.1 | 4.7 |
+|           | CER (%) | WER (%)  | Pretrained model |
+|-----------|:----:|:----:|:----:|
+| Aishell dev            |  6.0 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
+| Aishell test           |  6.7 |  N/A | same as above |
+| CSJ eval1              |  5.7 |  N/A | N/A |
+| CSJ eval2              |  4.1 |  N/A | N/A |
+| CSJ eval3              |  4.5 |  N/A | N/A |
+| HKUST dev              | 23.5 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
+| Librispeech dev_clean  |  N/A |  3.7 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-transformer-accum-grad-8-single-gpu) |
+| Librispeech dev_other  |  N/A |  9.8 | same as above |
+| Librispeech test_clean |  N/A |  4.0 | same as above |
+| Librispeech test_other |  N/A | 10.0 | same as above |
+| TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
+| TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| WSJ dev93              |  3.2 |  7.0 | N/A |
+| WSJ eval92             |  2.1 |  4.7 | N/A |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
+
+### TTS results
+
+You can access the samples of TTS recips from following links:
+
+- [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
+- [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
+- [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
+- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+
+Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
 
 ## Chainer and Pytorch backends
 
