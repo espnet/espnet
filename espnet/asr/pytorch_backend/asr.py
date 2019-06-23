@@ -120,7 +120,7 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, accum_grad=1):
+                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -129,6 +129,8 @@ class CustomUpdater(training.StandardUpdater):
         self.ngpu = ngpu
         self.accum_grad = accum_grad
         self.forward_count = 0
+        self.grad_noise = grad_noise
+        self.iteration = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -139,11 +141,19 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
+        self.iteration += 1
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
         loss = self.model(*x).mean() / self.accum_grad
         loss.backward()  # Backprop
+        # gradient noise injection
+        if self.grad_noise:
+            from espnet.asr.asr_utils import add_gradient_noise
+            eta = 0.5  # {0.01,0.3,1.0}
+            duration = 1000
+            itr = (self.iteration // duration) + 1
+            add_gradient_noise(self.model, itr, eta)
         loss.detach()  # Truncate the graph
 
         # update parameters
@@ -364,7 +374,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.grad_noise, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 

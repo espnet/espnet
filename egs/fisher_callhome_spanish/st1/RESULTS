@@ -1,0 +1,13 @@
+# NOTE: apostrophe is included both in hyp and ref
+
+exp/train_sp.en_lc_pytorch_train
+fisher_dev.en
+BLEU = 40.42, 71.4/49.0/33.6/22.7 (BP=1.000, ratio=1.018, hyp_len=40695, ref_len=39981)
+fisher_dev2.en
+BLEU = 41.49, 71.9/49.9/34.8/23.8 (BP=1.000, ratio=1.027, hyp_len=40285, ref_len=39213)
+fisher_test.en
+BLEU = 41.51, 72.9/50.1/34.6/23.5 (BP=1.000, ratio=1.034, hyp_len=40358, ref_len=39049)
+callhome_devtest.en
+BLEU = 14.10, 41.3/19.0/9.8/5.2 (BP=0.996, ratio=0.996, hyp_len=37268, ref_len=37424)
+callhome_evltest.en
+BLEU = 14.20, 41.4/19.1/10.0/5.5 (BP=0.982, ratio=0.982, hyp_len=18139, ref_len=18463)

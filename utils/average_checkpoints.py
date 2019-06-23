@@ -49,11 +49,15 @@ def main():
         raise ValueError('Incorrect type of backend')
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def get_parser():
+    parser = argparse.ArgumentParser(description='average models from snapshot')
     parser.add_argument("--snapshots", required=True, type=str, nargs="+")
     parser.add_argument("--out", required=True, type=str)
     parser.add_argument("--num", default=10, type=int)
     parser.add_argument("--backend", default='chainer', type=str)
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == '__main__':
+    args = get_parser().parse_args()
     main()
