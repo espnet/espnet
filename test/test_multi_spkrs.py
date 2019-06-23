@@ -43,6 +43,7 @@ def make_arg(**kwargs):
         outdir=None,
         ctc_type="warpctc",
         num_spkrs=1,
+        context_residual=False,
         spa=False
     )
     defaults.update(kwargs)

@@ -46,6 +46,7 @@ def make_arg(**kwargs):
         ctc_type="warpctc",
         sym_space="<space>",
         sym_blank="<blank>",
+        context_residual=False,
         use_frontend=False
     )
     defaults.update(kwargs)

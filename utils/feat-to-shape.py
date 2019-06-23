@@ -11,8 +11,9 @@ from espnet.utils.cli_utils import is_scipy_wav_style
 PY2 = sys.version_info[0] == 2
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert feature to its shape',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
@@ -28,7 +29,11 @@ def main():
                         default=sys.stdout,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
+    return parser
 
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info

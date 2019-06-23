@@ -58,6 +58,8 @@ def make_arg(**kwargs):
         sym_space="<space>",
         sym_blank="<blank>",
         sortagrad=0,
+        grad_noise=False,
+        context_residual=False,
         use_frontend=False
     )
     defaults.update(kwargs)
@@ -217,6 +219,30 @@ def test_segment_streaming_e2e():
     r = np.prod(model.subsample)
     for i in range(0, 100, r):
         asr.accept_input(in_data[i:i + r])
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_gradient_noise_injection(module):
+    args = make_arg(grad_noise=True)
+    args_org = make_arg()
+    dummy_json = make_dummy_json(1, [1, 100], [1, 100], idim=20, odim=5)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        import espnet.nets.chainer_backend.e2e_asr as m
+    batchset = make_batchset(dummy_json, 1, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(20, 5, args)
+    model_org = m.E2E(20, 5, args_org)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss_org = model_org(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+        grad = [param.grad for param in model.parameters()][50]
+        attn_loss_org.backward()
+        grad_org = [param.grad for param in model_org.parameters()][50]
+        assert grad[0] != grad_org[0]
 
 
 @pytest.mark.parametrize(
@@ -586,3 +612,23 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch"]
+)
+def test_context_residual(module):
+    args = make_arg(context_residual=True)
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        raise NotImplementedError
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(50, 20)
+        model.recognize(in_data, args, args.char_list)
