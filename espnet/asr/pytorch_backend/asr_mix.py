@@ -75,10 +75,10 @@ class CustomConverter(object):
         """Create a mini-batch.
 
         Args:
-            item (List(Tuple(String, Dict[String, Dict]))): List of batch.
+            item (list(tuple(str, dict[str, dict[str, Any]]))): List of batch.
 
         Returns:
-            Tuple(List, List, List): tuple of the following
+            tuple(list, list, list): Tuple of the following.
                 * List of input token id sentences (numpy.ndarray, float)
                 * List of input feature sequences (numpy.ndarray, float)
                 * List of target token id sequences (numpy.ndarray, int)
@@ -90,11 +90,11 @@ class CustomConverter(object):
         """Transforms a batch and send it to a device.
 
         Args:
-            batch (List(Tuple(String, Dict[String, Dict]))): The batch to transform.
+            batch (list(tuple(str, dict[str, dict[str, Any]]))): The batch to transform.
             device (torch.device): The device to send to.
 
         Returns:
-            Tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
 
         """
         # batch should be located in list
@@ -123,7 +123,7 @@ def train(args):
     """Train with the given args.
 
     Args:
-        args (namespace): The program arguments
+        args (namespace): The program arguments.
 
     """
     set_deterministic_pytorch(args)
@@ -336,7 +336,7 @@ def recog(args):
     """Decode with the given args.
 
     Args:
-        args (namespace): The program arguments
+        args (namespace): The program arguments.
 
     """
     set_deterministic_pytorch(args)

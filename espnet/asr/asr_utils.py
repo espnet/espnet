@@ -34,9 +34,9 @@ class CompareValueTrigger(object):
     """Trigger invoked when key value getting bigger or lower than before.
 
     Args:
-        key (str) : Key of value
-        compare_fn (Function) : Function to compare the values
-        trigger (Tuple(int, str)) : Trigger that decide the comparison interval
+        key (str) : Key of value.
+        compare_fn ((float, float) -> bool) : Function to compare the values.
+        trigger (tuple(int, str)) : Trigger that decide the comparison interval.
 
     """
 
@@ -80,12 +80,13 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn (Function): function of attention visualization
-        data (List): list json utt key items
-        outdir (str): directory to save figures
-        converter (CustomConverter): function to convert data
-        device (int | torch.device): device
-        reverse (bool): If True, input and output length are reversed
+        att_vis_fn ((list[torch.Tensor], list[torch.Tensor], list[torch.Tensor) -> numpy.array):
+            Function of attention visualization.
+        data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
+        outdir (str): Directory to save figures.
+        converter (CustomConverter): CustomConverter object. Function to convert data.
+        device (int | torch.device): Device.
+        reverse (bool): If True, input and output length are reversed.
 
     """
 
@@ -277,8 +278,8 @@ def add_gradient_noise(model, epoch, eta):
     """Adds noise from a std normal distribution to the gradients.
 
     Args:
-        model (Torch model): model
-        iteration (int): number of iteration
+        model (Torch model): model.
+        iteration (int): number of iteration.
         eta (float): {0.01,0.3,1.0}
 
     """
@@ -335,7 +336,7 @@ def get_model_conf(model_path, conf_path=None):
         conf_path (str): optional model config path
 
     Returns:
-        Dictionary: config information loaded from json file.
+        list[int, int, dict[str, Any]]: config information loaded from json file.
 
     """
     if conf_path is None:
@@ -379,14 +380,12 @@ def snapshot_object(target, filename):
     """Returns a trainer extension to take snapshots of a given object.
 
     Args:
-        target: Object to serialize.
+        target (model): Object to serialize.
         filename (str): Name of the file into which the object is serialized.
             It can be a format string, where the trainer object is passed to
             the :meth: `str.format` method. For example,
             ``'snapshot_{.updater.iteration}'`` is converted to
             ``'snapshot_10000'`` at the 10,000th iteration.
-        savefun: Function to save the object. It takes two arguments: the
-            output file path and the object to serialize.
 
     Returns:
         An extension function.
@@ -403,8 +402,8 @@ def torch_load(path, model):
     """Load torch model states.
 
     Args:
-        path (str): model file or snapshot file to be loaded
-        model (torch.nn.Module): torch model
+        path (str): model file or snapshot file to be loaded.
+        model (torch.nn.Module): torch model.
 
     """
     if 'snapshot' in path:
@@ -423,8 +422,8 @@ def torch_resume(snapshot_path, trainer):
     """Resume from snapshot for pytorch.
 
     Args:
-        snapshot_path (str): snapshot file path
-        trainer (Instance): chainer trainer instance
+        snapshot_path (str): snapshot file path.
+        trainer (Instance): chainer trainer instance.
 
     """
     # load snapshot
@@ -460,13 +459,11 @@ def parse_hypothesis(hyp, char_list):
     """Parse hypothesis.
 
     Args:
-        hyp (List): recognition hypothesis
-        char_list (List): list of characters
+        hyp (list[dict[str, Any]]): recognition hypothesis.
+        char_list (list[str]): list of characters.
 
     Returns:
-        String: recognition text.
-        String: recognition token.
-        String: recognition tokenid
+        tuple(str, str, str, float)
 
     """
     # remove sos and get results
@@ -486,12 +483,12 @@ def add_results_to_json(js, nbest_hyps, char_list):
     """Add N-best results to json.
 
     Args:
-        js (Dict): groundtruth utterance dict.
-        nbest_hyps (List): list of hypothesis.
-        char_list (List): list of characters.
+        js (dict[str, Any]): Groundtruth utterance dict.
+        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers: nutts x nspkrs.
+        char_list (list[str]): List of characters.
 
     Returns:
-        Dictionary:  N-best results added utterance.
+        dict[str, Any]: N-best results added utterance dict.
 
     """
     # copy old json info

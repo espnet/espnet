@@ -66,7 +66,7 @@ class CustomEvaluator(extensions.Evaluator):
     Args:
         model (torch.nn.Module): The model to evaluate.
         iterator (chainer.dataset.Iterator) : The train iterator.
-        target (Link | Dict[String, Link]) :Link object or a dictionary of links to evaluate. If this is
+        target (link | dict[str, link]) :Link object or a dictionary of links to evaluate. If this is
             just a link object, the link is registered by the name ``'main'``.
         converter (CustomConverter): Converter function to build input arrays..
         device (torch.device): The device used.
@@ -80,7 +80,7 @@ class CustomEvaluator(extensions.Evaluator):
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
-        """Main evaluate routine for CustomEvaluator"""
+        """Main evaluate routine for CustomEvaluator."""
         iterator = self._iterators['main']
 
         if self.eval_hook:
@@ -194,11 +194,11 @@ class CustomConverter(object):
         """Transforms a batch and send it to a device.
 
         Args:
-            batch (List): The batch to transform.
+            batch (list): The batch to transform.
             device (torch.device): The device to send to.
 
         Returns:
-            Tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
 
         """
         # batch should be located in list
