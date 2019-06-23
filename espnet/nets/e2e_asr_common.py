@@ -108,7 +108,7 @@ class ER_Calculator(object):
         self.idx_space = self.char_list.index(self.space)
 
     def __call__(self, ys_hat, ys_pad, is_ctc=False):
-        cer, wer = 0.0, 0.0
+        cer, wer = None, None
         if is_ctc:
             return self.calculate_cer_ctc(ys_hat, ys_pad)
         elif not self.report_wer and not self.report_wer:
