@@ -95,6 +95,7 @@ class ER_Calculator(object):
     :param sym_blank:
     :return:
     """
+
     def __init__(self, char_list, sym_space, sym_blank,
                  report_cer=False, report_wer=False):
         super(ER_Calculator, self).__init__()
@@ -103,6 +104,8 @@ class ER_Calculator(object):
         self.blank = sym_blank
         self.report_cer = report_cer
         self.report_wer = report_wer
+        self.idx_blank = self.char_list.index(self.blank)
+        self.idx_space = self.char_list.index(self.space)
 
     def __call__(self, ys_hat, ys_pad, is_ctc=False):
         cer, wer = 0.0, 0.0
@@ -121,30 +124,22 @@ class ER_Calculator(object):
 
     def calculate_cer_ctc(self, ys_hat, ys_pad):
         cers, char_ref_lens = [], []
-        blank = self.char_list.index(self.blank)
-        space = self.char_list.index(self.space)
         for i, y in enumerate(ys_hat):
             y_hat = [x[0] for x in groupby(y)]
             y_true = ys_pad[i]
             seq_hat, seq_true = [], []
             for idx in y_hat:
                 idx = int(idx)
-                if idx != -1 and idx != blank and idx != space:
+                if idx != -1 and idx != self.idx_blank and idx != self.idx_space:
                     seq_hat.append(self.char_list[int(idx)])
 
             for idx in y_true:
                 idx = int(idx)
-                if idx != -1 and idx != blank and idx != space:
+                if idx != -1 and idx != self.idx_blank and idx != self.idx_space:
                     seq_true.append(self.char_list[int(idx)])
 
-            #seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1 and int(idx) != blank and int(idx) != space]
-            #seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1 and int(idx) != blank and int(idx) != space]
-            seq_hat_text = "".join(seq_hat) #.replace(self.space, ' ')
-            #seq_hat_text = seq_hat_text.replace(self.blank, '')
-            seq_true_text = "".join(seq_true) #.replace(self.space, ' ')
-
-            hyp_chars = seq_hat_text #.replace(' ', '')
-            ref_chars = seq_true_text #.replace(' ', '')
+            hyp_chars = "".join(seq_hat)
+            ref_chars = "".join(seq_true)
             if len(ref_chars) > 0:
                 cers.append(editdistance.eval(hyp_chars, ref_chars))
                 char_ref_lens.append(len(ref_chars))

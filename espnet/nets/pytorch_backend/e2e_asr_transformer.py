@@ -199,14 +199,14 @@ class E2E(ASRInterface, torch.nn.Module):
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
 
             ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
-            cer_ctc = self.error_calculator(ys_hat, ys_pad, is_ctc=True)
+            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None:
             cer, wer = 0.0, 0.0
         else:
-            ys_hat = pred_pad.argmax(dim=-1).cpu()
-            cer, wer = self.error_calculator(ys_hat, ys_pad.cpu())
+            ys_hat = pred_pad.argmax(dim=-1)
+            cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
