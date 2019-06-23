@@ -140,3 +140,47 @@ def test_sound_hdf5_file(tmpdir, fmt):
         t, r = f[k]
         assert r == 8000
         np.testing.assert_array_equal(t, v)
+
+
+@pytest.mark.parametrize('typ', ['ctc', 'wer', 'cer', 'all'])
+def test_error_calculator(tmpdir, typ):
+    from espnet.nets.e2e_asr_common import ER_Calculator
+    space = "<space>"
+    blank = "<blank>"
+    char_list = [blank, space, 'a', 'e', 'i', 'o', 'u']
+    ys_pad = [np.random.randint(0, 7, x) for x in range(120, 150, 5)]
+    ys_hat = [np.random.randint(0, 7, x) for x in range(120, 150, 5)]
+    if typ == 'ctc':
+        cer, wer = False, False
+    elif typ == 'wer':
+        cer, wer = False, True
+    elif typ == 'cer':
+        cer, wer = True, False
+    else:
+        cer, wer = True, True
+
+    ec = ER_Calculator(char_list, space, blank,
+                       cer, wer)
+
+    if typ == 'ctc':
+        cer_ctc_val = ec(ys_pad, ys_hat, is_ctc=True)
+        _cer, _wer = ec(ys_pad, ys_hat)
+        assert cer_ctc_val is not None
+        assert _cer is None
+        assert _wer is None
+    elif typ == 'wer':
+        _cer, _wer = ec(ys_pad, ys_hat)
+        assert _cer is None
+        assert _wer is not None
+    elif typ == 'cer':
+        _cer, _wer = ec(ys_pad, ys_hat)
+        print(_cer, cer)
+        print(_wer)
+        assert _cer is not None
+        assert _wer is None
+    else:
+        cer_ctc_val = ec(ys_pad, ys_hat, is_ctc=True)
+        _cer, _wer = ec(ys_pad, ys_hat)
+        assert cer_ctc_val is not None
+        assert _cer is not None
+        assert _wer is not None

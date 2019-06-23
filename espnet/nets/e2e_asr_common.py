@@ -111,7 +111,7 @@ class ER_Calculator(object):
         cer, wer = None, None
         if is_ctc:
             return self.calculate_cer_ctc(ys_hat, ys_pad)
-        elif not self.report_wer and not self.report_wer:
+        elif not self.report_cer and not self.report_wer:
             return cer, wer
 
         seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad)
