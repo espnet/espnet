@@ -203,7 +203,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None:
-            cer, wer = 0.0, 0.0
+            cer, wer = None, None
         else:
             ys_hat = pred_pad.argmax(dim=-1)
             cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
