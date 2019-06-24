@@ -402,6 +402,8 @@ class E2E(ASRInterface, chainer.Chain):
             else:
                 lpz = None
             # 2. decoder
+            if recog_args.lm_weight == 0.0:
+                rnnlm = None
             y = self.recognize_beam(xs, lpz, recog_args, char_list, rnnlm)
 
         return y
