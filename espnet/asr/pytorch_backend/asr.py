@@ -68,7 +68,10 @@ class CustomEvaluator(extensions.Evaluator):
         iterator (chainer.dataset.Iterator) : The train iterator.
         target (link | dict[str, link]) :Link object or a dictionary of links to evaluate. If this is
             just a link object, the link is registered by the name ``'main'``.
-        converter (CustomConverter): Converter function to build input arrays..
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
         device (torch.device): The device used.
     """
 
@@ -118,7 +121,10 @@ class CustomUpdater(training.StandardUpdater):
         grad_clip_threshold (int): The gradient clipping value to use.
         train_iter (chainer.dataset.Iterator): The training iterator.
         optimizer (torch.optim.optimizer): The training optimizer.
-        converter (CustomConverter): The batch converter.
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
 
