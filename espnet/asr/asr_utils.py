@@ -80,11 +80,10 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn ((list[torch.Tensor], list[torch.Tensor], list[torch.Tensor) -> numpy.array):
-            Function of attention visualization.
+        att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions): Function of attention visualization.
         data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
         outdir (str): Directory to save figures.
-        converter (CustomConverter): CustomConverter object. Function to convert data.
+        converter (espnet.asr.*_backend.asr.CustomConverter): Function to convert data.
         device (int | torch.device): Device.
         reverse (bool): If True, input and output length are reversed.
 
@@ -125,9 +124,9 @@ class PlotAttentionReport(extension.Extension):
         Returns:
             numpy.ndarray: attention weights.float. Its shape would be
                 differ from backend.
-                * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                             2) other case => attention weights (B, Lmax, Tmax).
-                * chainer -> (B, Lmax, Tmax)
+                * pytorch-> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                            2) other case => attention weights (B, Lmax, Tmax).
+                * chainer-> (B, Lmax, Tmax)
 
         """
         batch = self.converter([self.transform(self.data)], self.device)
@@ -423,7 +422,7 @@ def torch_resume(snapshot_path, trainer):
 
     Args:
         snapshot_path (str): snapshot file path.
-        trainer (Instance): chainer trainer instance.
+        trainer (chainer.training.Trainer): Chainer's trainer instance
 
     """
     # load snapshot
