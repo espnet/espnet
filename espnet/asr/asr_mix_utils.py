@@ -95,12 +95,11 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn ((list[torch.Tensor], list[torch.Tensor], list[torch.Tensor) -> numpy.array):
-            Function of attention visualization.
+        att_vis_fn (espnet.nets.*_backend.e2e_asr.calculate_all_attentions): Function of attention visualization.
         data (list[tuple(str, dict[str, dict[str, Any]])]): List json utt key items.
         outdir (str): Directory to save figures.
-        converter (CustomConverter): CustomConverter object. Function to convert data.
-        device (device): Device.
+        converter (espnet.asr.*_backend.asr.CustomConverter): CustomConverter object. Function to convert data.
+        device (torch.device): The destination device to send tensor.
         reverse (bool): If True, input and output length are reversed.
 
     """
@@ -141,9 +140,8 @@ class PlotAttentionReport(extension.Extension):
         Returns:
             arr_ws_sd (numpy.ndarray): attention weights. It's shape would be
                 differ from bachend.dtype=float
-            * pytorch -> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                         2) other case => attention weights (B, Lmax, Tmax).
-            * chainer -> attention weights (B, Lmax, Tmax).
+                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax). 2) other case => (B, Lmax, Tmax).
+                * chainer-> attention weights (B, Lmax, Tmax).
 
         """
         batch = self.converter([self.converter.transform(self.data)], self.device)
