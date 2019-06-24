@@ -8,12 +8,12 @@
 
 # general configuration
 backend=pytorch
-stage=-1
-stop_stage=100
+stage=5
+stop_stage=6
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
@@ -82,7 +82,7 @@ minlenratio=0.0  # minimum length of generated samples = input length * minlenra
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
-db_root=downloads
+db_root=/work/abelab/DB #downloads
 
 # exp tag
 tag="" # tag for managing experiments.
