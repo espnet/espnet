@@ -8,12 +8,12 @@
 
 # general configuration
 backend=pytorch
-stage=-1
+stage=4
 stop_stage=100
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
@@ -80,9 +80,11 @@ threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+# CUDA_VISIBLE_DEVICES
+export CUDA_VISIBLE_DEVICES=1
 
 # root directory of db
-db_root=downloads
+db_root=/abelab/DB4 # Modify | downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -108,7 +110,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
+    # local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
     utils/validate_data_dir.sh --no-feats data/train
 fi
 

@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1
+stage=3
 stop_stage=100
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
@@ -22,8 +22,8 @@ fs=22050    # sampling frequency
 fmax=""     # maximum frequency
 fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+n_fft=1024  # number of fft points 0.046 s = 46 ms
+n_shift=256 # number of shift points 0.011 s = 11 ms
 win_length="" # window length
 # encoder related
 embed_dim=512
@@ -48,7 +48,7 @@ aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
-use_residual=false  # whether to use residual connection in encoder convolution
+use_residual=true  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 reduction_factor=1
@@ -65,16 +65,18 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=200
-patience=20
+patience=50       # The number of patience of inceasing the loss ( 0 to run all epochs )
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+# # savin model related
+# save_epoch=1
 
 # root directory of db
-db_root=downloads
+db_root=/abelab/DB4 # Modify | downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -255,7 +257,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
            --epochs ${epochs} \
-           --patience ${patience}
+           --patience ${patience} 
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}

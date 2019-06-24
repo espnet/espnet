@@ -156,6 +156,9 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
+    # # saving model related
+    # parser.add_argument('--save-epochs', default=10, type=int,
+    #                     help='Number of epochs saving models reguraly')
     args = parser.parse_args(args)
 
     # logging info

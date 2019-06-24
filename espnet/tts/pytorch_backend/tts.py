@@ -328,6 +328,10 @@ def train(args):
     trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
+    # # Save models reguraly
+    # trainer.extend(extensions.snapshot_object(tacotron2, 'model.{.updater.epoch}_epoch', savefun=torch_save),
+    #                trigger=training.triggers.IntervalTrigger(args.save_epochs, 'epoch'))
+
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
