@@ -93,13 +93,16 @@ class CustomUpdater(training.StandardUpdater):
             parameters. It can also be a dictionary that maps strings to
             optimizers. If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
-        converter (CustomConverter): Converter function to build input arrays. Each batch
-            extracted by the main iterator and the ``device`` option are passed
-            to this function. :func:`chainer.dataset.concat_examples` is used
-            by default.
-        device (torch.device): Device to which the training data is sent. Negative value
-            indicates the host memory (CPU).
-        accum_grad (int): Number of times that accumulated the gradients.
+        converter (espnet.asr.chainer_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+        device (int or dict): The destination device info to send variables. In the
+            case of cpu or single gpu, `device=-1 or 0`, respectively.
+            In the case of multi-gpu, `device={"main":0, "sub_1": 1, ...}`.
+        accum_grad (int):The number of gradient accumulation. if set to 2, the network
+            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
+
     """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
@@ -151,13 +154,14 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             parameters. It can also be a dictionary that maps strings to
             optimizers. If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
-        converter (CustomConverter): Converter function to build input arrays. Each batch
-            extracted by the main iterator and the ``device`` option are passed
-            to this function. :func:`chainer.dataset.concat_examples` is used
-            by default.
+        converter (espnet.asr.chainer_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
         device (torch.device): Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
-        accum_grad (int): Number of times that accumulated the gradients.
+        accum_grad (int):The number of gradient accumulation. if set to 2, the network
+            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
 
     """
 

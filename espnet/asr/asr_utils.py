@@ -124,8 +124,7 @@ class PlotAttentionReport(extension.Extension):
         Returns:
             numpy.ndarray: attention weights.float. Its shape would be
                 differ from backend.
-                * pytorch-> 1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                            2) other case => attention weights (B, Lmax, Tmax).
+                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2) other case => (B, Lmax, Tmax).
                 * chainer-> (B, Lmax, Tmax)
 
         """
