@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
-    echo "Please change directory to e.g., egs/libritts/tts1"
+    echo "Please change directory to e.g., egs/ljspeech/tts1"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
-fs=24000      # sampling frequency
+fs=22050      # sampling frequency
 fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis

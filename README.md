@@ -30,7 +30,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
   * [Error due to matplotlib](#error-due-to-matplotlib)
 * [Docker Container](#docker-container)
-* [Results and demo](#results)
+* [Results and demo](#results-and-demo)
   * [ASR results](#asr-results)
   * [ASR demo](#asr-demo)
   * [TTS results](#tts-results)
@@ -397,9 +397,9 @@ rec -c 1 -r 16000 example.wav trim 0 5
 
 Availlable pretrained models are listed as follows.
 
-| Model | Note |
-|:------|:-----|
-| [tedlium2.tacotron2.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding with uni-directional encoder and CTC-based VAD |
+| Model | Notes |
+|:------|:------|
+| [tedlium2.tacotron2.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding based on CTC-based VAD with uni-directional encoder-decoder |
 
 ### TTS results
 
@@ -413,7 +413,7 @@ You can access the samples of TTS recips from following links:
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
-## TTS demo
+### TTS demo
 
 You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
@@ -425,8 +425,8 @@ echo "This is a demonstration of text to speech." > example.txt
 
 Availlable pretrained models are listed as follows.
 
-| Model | Note |
-|:------|:-----|
+| Model | Notes |
+|:------|:------|
 | [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | |
 | [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | |
 | [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | |
