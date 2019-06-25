@@ -47,6 +47,8 @@ def make_arg(**kwargs):
         sym_space="<space>",
         sym_blank="<blank>",
         context_residual=False,
+        report_cer=False,
+        report_wer=False,
         use_frontend=False
     )
     defaults.update(kwargs)
