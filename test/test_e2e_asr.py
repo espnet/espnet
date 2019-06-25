@@ -60,6 +60,8 @@ def make_arg(**kwargs):
         sortagrad=0,
         grad_noise=False,
         context_residual=False,
+        report_cer=False,
+        report_wer=False,
         use_frontend=False
     )
     defaults.update(kwargs)

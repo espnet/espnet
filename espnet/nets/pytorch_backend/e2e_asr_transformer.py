@@ -102,7 +102,6 @@ class E2E(ASRInterface, torch.nn.Module):
                                             args.transformer_length_normalized_loss)
         # self.verbose = args.verbose
         self.reset_parameters(args)
-        self.recog_args = None  # unused
         self.adim = args.adim
         self.mtlalpha = args.mtlalpha
         if args.mtlalpha > 0.0:
@@ -110,7 +109,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.ctc = None
 
-        if 'report_cer' in vars(args) or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
             from espnet.nets.e2e_asr_common import ER_Calculator
             self.error_calculator = ER_Calculator(args.char_list,
                                                   args.sym_space, args.sym_blank,
