@@ -229,4 +229,3 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
     @property
     def attention_plot_class(self):
         return self.asr_model.attention_plot_class
-
