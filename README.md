@@ -30,9 +30,11 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
   * [Error due to matplotlib](#error-due-to-matplotlib)
 * [Docker Container](#docker-container)
-* [Results](#results)
+* [Results and demo](#results)
   * [ASR results](#asr-results)
+  * [ASR demo](#asr-demo)
   * [TTS results](#tts-results)
+  * [TTS demo](#tts-demo)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
 * [Citation](#citation)
@@ -394,8 +396,9 @@ rec -c 1 -r 16000 example.wav trim 0 5
 ```
 
 Availlable pretrained models are listed as follows.
-| Name | Note |
-|:-----|:---- |
+
+| Model | Note |
+|:------|:-----|
 | [tedlium2.tacotron2.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding with uni-directional encoder and CTC-based VAD |
 
 ### TTS results
@@ -421,8 +424,9 @@ echo "This is a demonstration of text to speech." > example.txt
 ```
 
 Availlable pretrained models are listed as follows.
-| Name | Note |
-|:-----|:-----|
+
+| Model | Note |
+|:------|:-----|
 | [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | |
 | [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | |
 | [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | |
