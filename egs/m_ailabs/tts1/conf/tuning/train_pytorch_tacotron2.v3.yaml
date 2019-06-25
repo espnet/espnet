@@ -1,4 +1,6 @@
-# This is the basic tactron2 training settting
+# This configuration uses reduction factor = 1 and location-sensitive attention.
+# Furthermore, to accelerate the learning of diaogonal attention, we additionaly
+# use guided attention loss. This leads super fast and robust attention learning.
 
 # encoder related
 embed-dim: 512
@@ -28,7 +30,9 @@ use-concate: true    # whether to concatenate encoder embedding with decoder lst
 use-residual: false  # whether to use residual connection in encoder convolution
 use-masking: true    # whether to mask the padded part in loss calculation
 bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
-reduction-factor: 2
+use-guided-attn-loss: true
+guided-attn-loss-sigma: 0.4
+reduction-factor: 1
 
 # minibatch related
 batch-size: 32
