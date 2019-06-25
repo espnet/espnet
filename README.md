@@ -358,7 +358,7 @@ $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir instal
 go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
 
-## Results
+## Results and demo
 
 ### ASR results
 
@@ -383,6 +383,21 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
+### ASR demo
+
+You can recognize speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/recog_wav.sh` as follows:
+```sh
+cd egs/tedlium2/asr1
+rec -c 1 -r 16000 example.wav trim 0 5
+../../../utils/recog_wav.sh --models tedlium2.tacotron2.v1 example.wav
+```
+
+Availlable pretrained models are listed as follows.
+| Name | Note |
+|:-----|:---- |
+| [tedlium2.tacotron2.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding with uni-directional encoder and CTC-based VAD |
+
 ### TTS results
 
 You can access the samples of TTS recips from following links:
@@ -394,6 +409,26 @@ You can access the samples of TTS recips from following links:
 - [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
+## TTS demo
+
+You can synthesize speech in a TXT file using pretrained models.
+Go to a recipe directory and run `utils/synth_wav.sh` as follows:
+```sh
+cd egs/ljspeech/tts1
+echo "This is a demonstration of text to speech." > example.txt
+../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
+```
+
+Availlable pretrained models are listed as follows.
+| Name | Note |
+|:-----|:-----|
+| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | |
+| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | |
+| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | |
+| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | |
+| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | |
+| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | |
 
 
 ## Chainer and Pytorch backends
