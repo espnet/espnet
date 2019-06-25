@@ -223,4 +223,10 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
         xs = to_torch_tensor(xs)
         enhanced, hlens, mask = self.frontend(xs, ilens)
         hs, hlens = self.feature_transform(enhanced, hlens)
+
         return self.asr_model.calculate_all_attentions(hs, hlens, ys)
+
+    @property
+    def attention_plot_class(self):
+        return self.asr_model.attention_plot_class
+
