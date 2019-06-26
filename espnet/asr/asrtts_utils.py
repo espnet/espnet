@@ -11,9 +11,7 @@ import math
 from chainer import training
 
 # io related
-import kaldi_io_py
 import matplotlib
-import numpy as np
 import torch
 matplotlib.use('Agg')
 
