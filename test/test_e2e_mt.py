@@ -151,10 +151,10 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
     attn_loss.backward()  # trainable
 
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(1, 5, (100, 40))
+        in_data = np.random.randint(1, 5, (100, 40))
         model.recognize(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
-            batch_in_data = [np.random.randn(1, 5, (100, 40)), np.random.randn(1, 5, (50, 40))]
+            batch_in_data = [np.random.randint(1, 5, (100, 40)), np.random.randint(1, 5, (50, 40))]
             model.recognize_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
@@ -174,7 +174,7 @@ def test_sortagrad_trainable(module):
         attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(1, 5, (50, 20))
+        in_data = np.random.randint(1, 5, (50, 20))
         model.recognize(in_data, args, args.char_list)
 
 
@@ -205,7 +205,7 @@ def test_sortagrad_trainable_with_batch_bins(module):
         attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(1, 5, (100, 20))
+        in_data = np.random.randint(1, 5, (100, 20))
         model.recognize(in_data, args, args.char_list)
 
 
@@ -242,7 +242,7 @@ def test_sortagrad_trainable_with_batch_frames(module):
         attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(1, 5, (100, 20))
+        in_data = np.random.randint(1, 5, (100, 20))
         model.recognize(in_data, args, args.char_list)
 
 
@@ -313,9 +313,9 @@ def test_zero_length_target(etype):
     # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
     # out_data = ""
     # data = [
-    #     ("aaa", dict(feat=np.random.randn(1, 5, (200, 40)).astype(np.float32), tokenid="")),
-    #     ("bbb", dict(feat=np.random.randn(1, 5, (100, 40)).astype(np.float32), tokenid="")),
-    #     ("cc", dict(feat=np.random.randn(1, 5, (100, 40)).astype(np.float32), tokenid=""))
+    #     ("aaa", dict(feat=np.random.randint(1, 5, (200, 40)).astype(np.float32), tokenid="")),
+    #     ("bbb", dict(feat=np.random.randint(1, 5, (100, 40)).astype(np.float32), tokenid="")),
+    #     ("cc", dict(feat=np.random.randint(1, 5, (100, 40)).astype(np.float32), tokenid=""))
     # ]
     # ch_ctc, ch_att, ch_acc = ch_model(data)
     # th_ctc, th_att, th_acc = th_model(data)
@@ -432,5 +432,5 @@ def test_context_residual(module):
         attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(1, 5, (50, 20))
+        in_data = np.random.randint(1, 5, (50, 20))
         model.recognize(in_data, args, args.char_list)
