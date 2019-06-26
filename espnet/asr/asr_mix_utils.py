@@ -30,15 +30,15 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     """Make batch set from json dictionary.
 
     Args:
-        data (dict[str, list[Any]): Dictionary loaded from data.json.
+        data (Dict[str, List[Any]]): Dictionary loaded from data.json.
         batch_size (int): Batch size.
         max_length_in (int): Maximum length of input to decide adaptive batch size.
         max_length_out (int): Maximum length of output to decide adaptive batch size.
-        num_batches (int): # Number of batches to use (for debug).
+        num_batches (int): Number of batches to use (for debug).
         min_batch_size (int): Mininum batch size (for multi-gpu).
 
     Returns:
-        list[tuple[str, dict[str, list[dict[str, Any]]]]: List of batches.
+        List[Tuple(str, Dict[str, List[dict[str, Any166G]]])]: List of batches.
 
     """
     # sort it by input lengths (long to short)
@@ -164,6 +164,9 @@ class PlotAttentionReport(extension.Extension):
 
     def draw_attention_plot(self, att_w):
         """Visualize attention weights matrix.
+
+        Args:
+            att_w(Tensor): attention weight matrix
 
         Returns:
             matplotlib.pyplot: pyplot object with attention matrix image.
