@@ -54,8 +54,8 @@ def get_parser():
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
-    parser.add_argument('--train-json', type=str, default=None,
-                        help='Filename of train label data (json)')
+    parser.add_argument('--train-json', type=str, default=None, nargs='+',
+                        help='Filenames of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network architecture
@@ -113,8 +113,10 @@ def get_parser():
                         help='Number of decoder layers')
     parser.add_argument('--dunits', default=320, type=int,
                         help='Number of decoder hidden units')
-    parser.add_argument('--mtlalpha', default=0.5, type=float,
+    parser.add_argument('--mtlalpha', default=0.0, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+    parser.add_argument('--alpha', default=0.5, type=float,
+                        help='Multitask learning coefficient, alpha: alpha*sa_loss + (1-alpha)*ta_loss ')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
@@ -281,6 +283,63 @@ def get_parser():
                         help='')
     parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
+
+    # cycle-consistency related
+    parser.add_argument('--asr-model', default='', type=str,
+                        help='ASR initial model')
+    parser.add_argument('--asr-model-conf', default='', type=str,
+                        help='ASR initial model conf')
+    parser.add_argument('--tts-model', default='', type=str,
+                        help='TTS model for cycle-consistency loss')
+    parser.add_argument('--tts-model-conf', default='', type=str,
+                        help='TTS model conf for cycle-consistency loss')
+    parser.add_argument('--expected-loss', default='tts', type=str,
+                        choices=['tts', 'none', 'wer'],
+                        help='Type of expected loss (tts, wer, ...)')
+    parser.add_argument('--generator', default='tts', type=str,
+                        choices=['tts', 'tte'],
+                        help='Type of generator (tts, tte, ...)')
+    parser.add_argument('--rnnloss', default='ce', type=str,
+                        choices=['ce', 'kl', 'kld', 'mmd'],
+                        help='RNNLM loss function')
+    parser.add_argument('--n-samples-per-input', default=5, type=int,
+                        help='Number of samples per input generated from model')
+    parser.add_argument('--sample-maxlenratio', default=0.8, type=float,
+                        help='Maximum length ratio of each sample to input length')
+    parser.add_argument('--sample-minlenratio', default=0.2, type=float,
+                        help='Minimum length ratio of each sample to input length')
+    parser.add_argument('--sample-topk', default=0, type=int,
+                        help='Sample from top-K labels')
+    parser.add_argument('--sample-oracle', default=False, type=strtobool,
+                        help='Oracle sampling of utterance')
+    parser.add_argument('--use-speaker-embedding', default=False, type=strtobool,
+                        help='Intake speaker embedding')
+    parser.add_argument('--modify-output', default=False, type=strtobool,
+                        help='Replace output layer')
+    parser.add_argument('--sample-scaling', default=0.1, type=float,
+                        help='Scaling factor for sample log-likelihood')
+    parser.add_argument('--policy-gradient', action='store_true',
+                        help='Policy gradient mode')
+    parser.add_argument('--teacher-weight', default=1.0, type=float,
+                        help='Weight for teacher forcing loss')
+    parser.add_argument('--update-asr-only', action='store_true',
+                        help='Update ASR model only')
+    parser.add_argument('--plot-corr', action='store_true',
+                        help='Get tts loss and cer, wer for plot')
+    parser.add_argument('--freeze', default='none', type=str,
+                        choices=['attdec', 'dec', 'att', 'encattdec', 'encatt', 'enc', 'none'],
+                        help='parameters to be frozen in asr')
+    parser.add_argument('--freeze-asr', default=False, type=strtobool,
+                        help='Freeze ASR parameters')
+    parser.add_argument('--freeze-tts', default=False, type=strtobool,
+                        help='Freeze TTS parameters')
+    parser.add_argument('--zero-att', default=False, type=strtobool,
+                        help='Zero Att for TTS->ASR')
+    parser.add_argument('--softargmax', default=False, type=strtobool,
+                        help='Soft assignment of token embeddings to TTS input')
+    parser.add_argument('--lm-loss-weight', default=1.0, type=float,
+                        help='LM loss weight')
+
     return parser
 
 
