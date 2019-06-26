@@ -19,7 +19,7 @@ preprocess_conf=""
 out="" # If omitted, write in stdout
 
 text=""
-filter_speed_perturbation=false
+set=""
 
 . utils/parse_options.sh
 
@@ -71,16 +71,18 @@ vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 
-if ${filter_speed_perturbation}; then
-    cat ${text} | grep sp1.0 > ${tmpdir}/output/text.scp
-else
-    cat ${text} > ${tmpdir}/output/text.scp
-fi
+cp ${text} ${tmpdir}/output/text.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
 for intype in 'output'; do
     for x in "${tmpdir}/${intype}"/*.scp; do
+        # change utt_id from *.en.* to *.de.*
+        if [ $(echo ${set} | grep 'dev2010') ] || [ $(echo ${set} | grep 'tst201') ]; then
+            cp ${x} ${x}.tmp
+            sed -e 's/.en./.de./g' ${x}.tmp > ${x}
+        fi
+
         k=$(basename ${x} .scp)
         < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
     done

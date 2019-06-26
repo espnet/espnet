@@ -36,6 +36,9 @@ case=lc
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
+# evaluation related
+single_ref=false
+
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
@@ -237,13 +240,13 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -302,7 +305,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} --single_ref ${single_ref} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
