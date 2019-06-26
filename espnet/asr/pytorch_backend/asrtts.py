@@ -32,8 +32,6 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.asrtts_utils import freeze_parameters
-from espnet.asr.asrtts_utils import load_inputs_and_targets
-from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
 from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -200,13 +198,6 @@ class CustomASRTTSConverter(object):
     def __init__(self, use_speaker_embedding=False):
         self.use_speaker_embedding = use_speaker_embedding
 
-    def transform(self, item):
-        if self.use_speaker_embedding:
-            return load_inputs_spk_and_targets(item,
-                                               use_speaker_embedding=self.use_speaker_embedding)
-        else:
-            return load_inputs_and_targets(item)
-
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
@@ -243,13 +234,6 @@ class CustomConverter(object):
         self.subsamping_factor = subsamping_factor
         self.ignore_id = -1
         self.use_speaker_embedding = use_speaker_embedding
-
-    def transform(self, item):
-        if self.use_speaker_embedding:
-            return load_inputs_spk_and_targets(item,
-                                               use_speaker_embedding=self.use_speaker_embedding)
-        else:
-            return load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # batch should be located in list
