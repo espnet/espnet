@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
@@ -53,51 +53,29 @@ def get_parser():
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
-    parser.add_argument('--num-spkrs', type=int, default=1,
-                        choices=[1, 2],
-                        help='Number of speakers in the speech')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=1,
                         help='Beam size')
-    parser.add_argument('--penalty', type=float, default=0.0,
+    parser.add_argument('--penalty', type=float, default=0.1,
                         help='Incertion penalty')
-    parser.add_argument('--maxlenratio', type=float, default=0.0,
+    parser.add_argument('--maxlenratio', type=float, default=3.0,
                         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', type=float, default=0.0,
-                        help='CTC weight in joint decoding')
+                        help='dummy')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
     parser.add_argument('--rnnlm-conf', type=str, default=None,
                         help='RNNLM model config file to read')
-    parser.add_argument('--word-rnnlm', type=str, default=None,
-                        help='Word RNNLM model file to read')
-    parser.add_argument('--word-rnnlm-conf', type=str, default=None,
-                        help='Word RNNLM model config file to read')
-    parser.add_argument('--word-dict', type=str, default=None,
-                        help='Word list to read')
-    parser.add_argument('--lm-weight', type=float, default=0.1,
+    parser.add_argument('--lm-weight', type=float, default=0.0,
                         help='RNNLM weight')
-    # streaming related
-    parser.add_argument('--streaming-mode', type=str, default=None,
-                        choices=['window', 'segment'],
-                        help="""Use streaming recognizer for inference.
-                        `--batchsize` must be set to 0 to enable this mode""")
-    parser.add_argument('--streaming-window', type=int, default=10,
-                        help='Window size')
-    parser.add_argument('--streaming-min-blank-dur', type=int, default=10,
-                        help='Minimum blank duration threshold')
-    parser.add_argument('--streaming-onset-margin', type=int, default=1,
-                        help='Onset margin')
-    parser.add_argument('--streaming-offset-margin', type=int, default=1,
-                        help='Offset margin')
-    # speech translation related
+    # multilingual related
     parser.add_argument('--tgt-lang', default=False, type=str,
                         help='target language ID (e.g., <en>, <de>, <fr> etc.)')
     return parser
@@ -141,28 +119,16 @@ def main(args):
     np.random.seed(args.seed)
     logging.info('set random seed = %d' % args.seed)
 
-    # validate rnn options
-    if args.rnnlm is not None and args.word_rnnlm is not None:
-        logging.error("It seems that both --rnnlm and --word-rnnlm are specified. Please use either option.")
-        sys.exit(1)
-
-    # recog
+    # trans
     logging.info('backend = ' + args.backend)
-    if args.num_spkrs == 1:
-        if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import recog
-            recog(args)
-        elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import recog
-            recog(args)
-        else:
-            raise ValueError("Only chainer and pytorch are supported.")
-    elif args.num_spkrs == 2:
-        if args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr_mix import recog
-            recog(args)
-        else:
-            raise ValueError("Only pytorch is supported.")
+    if args.backend == "chainer":
+        raise NotImplementedError("chainer is not supported for MT now.")
+        # TODO(hirofumi): support chainer backend
+    elif args.backend == "pytorch":
+        from espnet.mt.pytorch_backend.mt import trans
+        trans(args)
+    else:
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':
