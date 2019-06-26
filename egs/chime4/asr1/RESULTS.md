@@ -8,6 +8,16 @@
 - pytorch version: `pytorch 1.0.1.post2`
 - Git hash: `540f0d2b8ed482e8242a25bd3535b65c9bc50b17`
   - Commit date: `Wed Jun 26 14:25:15 2019 +0900`
+- Model files (archived to train_pytorch_sp.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1jWfcDknm6EcMQlVtrpiTIg_5f7F36_7A
+  - training config file: `conf/tuning/train_pytorch_transformer.sp.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
+  - cmvn file: `data-fbank/tr05_multi_noisy_si284_sp/cmvn.ark`
+  - e2e file: `exp/tr05_multi_noisy_si284_sp_pytorch_train_pytorch_transformer.sp/results/model.last10.avg.best`
+  - e2e JSON file: `exp/tr05_multi_noisy_si284_sp_pytorch_train_pytorch_transformer.sp/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm_word65000/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm_word65000/model.json`
+  - etc file:`[lm vocab] data/local/wordlm_train/wordlist_65000.txt`
 
 ### CER
 
