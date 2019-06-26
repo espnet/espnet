@@ -198,6 +198,9 @@ def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 def adadelta_eps_decay(eps_decay):
     """Extension to perform adadelta eps decay.
 
+    Args:
+        eps_decay (float): decay rate of eps
+
     Returns:
         An extension function.
 
@@ -276,7 +279,7 @@ def add_gradient_noise(model, epoch, eta):
     """Adds noise from a std normal distribution to the gradients.
 
     Args:
-        model (Torch model): model.
+        model (torch.nn.model): model.
         iteration (int): number of iteration.
         eta (float): {0.01,0.3,1.0}
 
@@ -364,8 +367,8 @@ def torch_save(path, model):
     """Save torch model states.
 
     Args:
-        path (str): file path to be saved
-        model (torch.nn.Module): torch model
+        path (str): file path to be saved.
+        model (torch.nn.Module): torch model.
 
     """
     if hasattr(model, 'module'):
@@ -379,8 +382,8 @@ def snapshot_object(target, filename):
 
     Args:
         target (model): Object to serialize.
-        filename (str): Name of the file into which the object is serialized.
-            It can be a format string, where the trainer object is passed to
+        filename (str): Name of the file into which the object is serialized.It can
+            be a format string, where the trainer object is passed to
             the :meth: `str.format` method. For example,
             ``'snapshot_{.updater.iteration}'`` is converted to
             ``'snapshot_10000'`` at the 10,000th iteration.
@@ -408,6 +411,7 @@ def torch_load(path, model):
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
     else:
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)
+
     if hasattr(model, 'module'):
         model.module.load_state_dict(model_state_dict)
     else:
