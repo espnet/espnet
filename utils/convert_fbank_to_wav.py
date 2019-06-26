@@ -42,8 +42,9 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', iters=100):
     return y
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert FBANK to WAV using Griffin-Lim algorithm',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int, default=22050,
                         help='Sampling frequency')
@@ -71,6 +72,11 @@ def main():
     parser.add_argument('rspecifier', type=str, help='Input feature')
     parser.add_argument('outdir', type=str,
                         help='Output directory')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info

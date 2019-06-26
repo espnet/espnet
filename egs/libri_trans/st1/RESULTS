@@ -1,0 +1,5 @@
+# character unit
+dev
+BLEU = 16.67, 46.9/21.6/11.7/6.5 (BP=1.000, ratio=1.009, hyp_len=22668, ref_len=22462)
+test
+BLEU = 15.71, 45.9/20.8/10.9/5.9 (BP=1.000, ratio=1.010, hyp_len=44533, ref_len=44080)

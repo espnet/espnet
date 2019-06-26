@@ -15,8 +15,9 @@ from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='compute FBANK feature from WAV',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
@@ -58,6 +59,11 @@ def main():
              '<segment-id> <recording-id> <start-time> <end-time>'
              'e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5')
     parser.add_argument('wspecifier', type=str, help='Write specifier')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"

@@ -26,8 +26,9 @@ def exist_or_not(i, match_pos):
     return start_pos, end_pos
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert raw text to tokenized text',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--nchar', '-n', default=1, type=int,
                         help='number of characters to split, i.e., \
@@ -48,6 +49,11 @@ def main():
                         Else if trans_type is phn,
                         read from SI1279.PHN file -> "sil b r ih sil k s aa r er n aa l
                         sil t er n ih sil t ih v sil" """)
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     rs = []
