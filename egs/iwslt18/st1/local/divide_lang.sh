@@ -7,11 +7,12 @@
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <set>"
-    echo "e.g.: $0 tc data/dev"
+    echo "e.g.: $0 dev"
     exit 1
 fi
 
 set=$1
+
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
 # for En
 mkdir -p data/${set}.en

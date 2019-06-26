@@ -237,20 +237,25 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
         shutil.rmtree(tmpdir)
 
 
-def add_gradient_noise(model, epoch, eta):
-    """Adds noise from a std normal distribution to the gradients
+def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.55):
+    """Adds noise from a standard normal distribution to the gradients
 
-    :param model Torch model
-    :param iteration int
-    :param eta float {0.01,0.3,1.0}
+    The standard deviation (`sigma`) is controlled by the three hyper-parameters below.
+    `sigma` goes to zero (no noise) with more iterations.
+
+    Args:
+        iteration (int): Number of iterations.
+        duration (int) {100, 1000}: Number of durations to control the interval of the `sigma` change.
+        eta (float) {0.01, 0.3, 1.0}: the magnitude of `sigma`
+        scale_factor (float) {0.55}: the scale of `sigma`
     """
 
-    scale_factor = 0.55
-    sigma = eta / epoch**scale_factor
+    interval = (iteration // duration) + 1
+    sigma = eta / interval ** scale_factor
     for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()
-            noise = sigma * torch.randn(_shape).cuda()
+            noise = sigma * torch.randn(_shape).to(param.device)
             param.grad += noise
 
 
