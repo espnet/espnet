@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
@@ -224,6 +225,29 @@ class CustomConverter(object):
         return xs_pad, ilens, ys_pad
 
 
+def load_trained_model(model_path):
+    """Load the trained model
+
+    :param str model_path: Path to model.***.best
+    """
+    # read training config
+    idim, odim, train_args = get_model_conf(
+        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + model_path)
+    # To be compatible with v.0.3.0 models
+    if hasattr(train_args, "model_module"):
+        model_module = train_args.model_module
+    else:
+        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
+    model_class = dynamic_import(model_module)
+    model = model_class(idim, odim, train_args)
+    torch_load(model_path, model)
+
+    return model, train_args
+
+
 def train(args):
     """Train with the given args
 
@@ -255,11 +279,28 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
+    asr_model, mt_model = None, None
+    # Initialize encoder with pre-trained ASR encoder
+    if args.asr_model:
+        asr_model, _ = load_trained_model(args.asr_model)
+        assert isinstance(asr_model, ASRInterface)
+
+    # Initialize decoder with pre-trained MT decoder
+    if args.mt_model:
+        mt_model, _ = load_trained_model(args.mt_model)
+        assert isinstance(mt_model, MTInterface)
+
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args)
+    model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
+
+    # delete pre-trained models
+    if args.asr_model:
+        del asr_model
+    if args.mt_model:
+        del mt_model
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -478,20 +519,8 @@ def recog(args):
     :param Namespace args: The program arguments
     """
     set_deterministic_pytorch(args)
-    # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    # To be compatible with v.0.3.0 models
-    if hasattr(train_args, "model_module"):
-        model_module = train_args.model_module
-    else:
-        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
+    model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
-    torch_load(args.model, model)
     model.recog_args = args
 
     # read rnnlm

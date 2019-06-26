@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright 2017 Tomoki Hayashi (Nagoya University)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 
 import configargparse
 import logging
@@ -14,7 +15,6 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
@@ -40,8 +40,11 @@ def get_parser():
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', required=True,
-                        help='Dictionary')
+    parser.add_argument('--dict-tgt', required=True,
+                        help='Dictionary for target language')
+    parser.add_argument('--dict-src', default='', nargs='?',
+                        help='Dictionary for source language. \
+                        Dictionanies are shared between soruce and target languages in default setting.')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
     parser.add_argument('--debugdir', type=str,
@@ -60,30 +63,21 @@ def get_parser():
                         help='Filename of validation label data (json)')
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
-                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_mt:E2E)')
     # encoder
-    parser.add_argument('--num-spkrs', default=1, type=int,
-                        choices=[1, 2],
-                        help='Number of speakers in the speech.')
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
-                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                        help='Type of encoder network architecture')
-    parser.add_argument('--elayers-sd', default=4, type=int,
-                        help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp',
+                                 'gru', 'bgru', 'grup', 'bgrup'],
+                        help='Type of encoder network architecture (VGG is not supported for NMT)')
     parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
-    parser.add_argument('--eunits', '-u', default=300, type=int,
+                        help='Number of encoder layers')
+    parser.add_argument('--eunits', '-u', default=1024, type=int,
                         help='Number of encoder hidden units')
-    parser.add_argument('--eprojs', default=320, type=int,
+    parser.add_argument('--eprojs', default=1024, type=int,
                         help='Number of encoder projection units')
     parser.add_argument('--subsample', default="1", type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
-    # loss
-    parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['builtin', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -91,7 +85,7 @@ def get_parser():
                                  'multi_head_dot', 'multi_head_add', 'multi_head_loc',
                                  'multi_head_multi_res_loc'],
                         help='Type of attention architecture')
-    parser.add_argument('--adim', default=320, type=int,
+    parser.add_argument('--adim', default=1024, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--awin', default=5, type=int,
                         help='Window size for location2d attention')
@@ -103,18 +97,14 @@ def get_parser():
     parser.add_argument('--aconv-filts', default=100, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
-    parser.add_argument('--spa', action='store_true',
-                        help='Enable speaker parallel attention.')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
                         choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
-    parser.add_argument('--dunits', default=320, type=int,
+    parser.add_argument('--dunits', default=1024, type=int,
                         help='Number of decoder hidden units')
-    parser.add_argument('--mtlalpha', default=0.5, type=float,
-                        help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
@@ -122,10 +112,6 @@ def get_parser():
     parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
     # recognition options to compute CER/WER
-    parser.add_argument('--report-cer', default=False, action='store_true',
-                        help='Compute CER on development set')
-    parser.add_argument('--report-wer', default=False, action='store_true',
-                        help='Compute WER on development set')
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=4,
@@ -138,13 +124,11 @@ def get_parser():
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', default=0.3, type=float,
-                        help='CTC weight in joint decoding')
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
     parser.add_argument('--rnnlm-conf', type=str, default=None,
                         help='RNNLM model config file to read')
-    parser.add_argument('--lm-weight', default=0.1, type=float,
+    parser.add_argument('--lm-weight', default=0.0, type=float,
                         help='RNNLM weight.')
     parser.add_argument('--sym-space', default='<space>', type=str,
                         help='Space symbol')
@@ -170,9 +154,9 @@ def get_parser():
                         help='Maximum output frames in a minibatch (0 to disable)')
     parser.add_argument('--batch-frames-inout', default=0, type=int,
                         help='Maximum input+output frames in a minibatch (0 to disable)')
-    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=800, type=int, metavar='ML',
+    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=100, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
-    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=150, type=int, metavar='ML',
+    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=100, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
@@ -205,89 +189,14 @@ def get_parser():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    parser.add_argument('--grad-noise', type=strtobool, default=False,
-                        help='The flag to switch to use noise injection to gradients during training')
-    # speech translation related
-    parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
-                        help='The flag to switch to use context vector residual in the decoder network')
-    parser.add_argument('--asr-model', default=None, type=str, nargs='?',
-                        help='Pre-trained ASR model')
-    parser.add_argument('--mt-model', default=None, type=str, nargs='?',
-                        help='Pre-trained MT model')
+    # decoder related
+    parser.add_argument('--context-residual', default='', nargs='?',
+                        help='')
+    # multilingual NMT related
     parser.add_argument('--replace-sos', default=False, nargs='?',
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
-    # front end related
-    parser.add_argument('--use-frontend', type=strtobool, default=False,
-                        help='The flag to switch to use frontend system.')
-
-    # WPE related
-    parser.add_argument('--use-wpe', type=strtobool, default=False,
-                        help='Apply Weighted Prediction Error')
-    parser.add_argument('--wtype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
-                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                        help='Type of encoder network architecture '
-                             'of the mask estimator for WPE. '
-                             '')
-    parser.add_argument('--wlayers', type=int, default=2,
-                        help='')
-    parser.add_argument('--wunits', type=int, default=300,
-                        help='')
-    parser.add_argument('--wprojs', type=int, default=300,
-                        help='')
-    parser.add_argument('--wdropout-rate', type=float, default=0.0,
-                        help='')
-    parser.add_argument('--wpe-taps', type=int, default=5,
-                        help='')
-    parser.add_argument('--wpe-delay', type=int, default=3,
-                        help='')
-    parser.add_argument('--use-dnn-mask-for-wpe', type=strtobool,
-                        default=False,
-                        help='Use DNN to estimate the power spectrogram. '
-                             'This option is experimental.')
-    # Beamformer related
-    parser.add_argument('--use-beamformer', type=strtobool,
-                        default=True, help='')
-    parser.add_argument('--btype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
-                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                        help='Type of encoder network architecture '
-                             'of the mask estimator for Beamformer.')
-    parser.add_argument('--blayers', type=int, default=2,
-                        help='')
-    parser.add_argument('--bunits', type=int, default=300,
-                        help='')
-    parser.add_argument('--bprojs', type=int, default=300,
-                        help='')
-    parser.add_argument('--badim', type=int, default=320,
-                        help='')
-    parser.add_argument('--ref-channel', type=int, default=-1,
-                        help='The reference channel used for beamformer. '
-                             'By default, the channel is estimated by DNN.')
-    parser.add_argument('--bdropout-rate', type=float, default=0.0,
-                        help='')
-    # Feature transform: Normalization
-    parser.add_argument('--stats-file', type=str, default=None,
-                        help='The stats file for the feature normalization')
-    parser.add_argument('--apply-uttmvn', type=strtobool, default=True,
-                        help='Apply utterance level mean '
-                             'variance normalization.')
-    parser.add_argument('--uttmvn-norm-means', type=strtobool,
-                        default=True, help='')
-    parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
-                        help='')
-    # Feature transform: Fbank
-    parser.add_argument('--fbank-fs', type=int, default=16000,
-                        help='The sample frequency used for '
-                             'the mel-fbank creation.')
-    parser.add_argument('--n-mels', type=int, default=80,
-                        help='The number of mel-frequency bins.')
-    parser.add_argument('--fbank-fmin', type=float, default=0.,
-                        help='')
-    parser.add_argument('--fbank-fmax', type=float, default=None,
-                        help='')
     return parser
 
 
@@ -301,7 +210,7 @@ def main(cmd_args):
         model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
-        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_mt:E2E"
     if 'chainer_backend' in args.model_module:
         args.backend = 'chainer'
     if 'pytorch_backend' in args.model_module:
@@ -346,8 +255,8 @@ def main(cmd_args):
     np.random.seed(args.seed)
 
     # load dictionary for debug log
-    if args.dict is not None:
-        with open(args.dict, 'rb') as f:
+    if args.dict_tgt is not None:
+        with open(args.dict_tgt, 'rb') as f:
             dictionary = f.readlines()
         char_list = [entry.decode('utf-8').split(' ')[0]
                      for entry in dictionary]
@@ -359,21 +268,14 @@ def main(cmd_args):
 
     # train
     logging.info('backend = ' + args.backend)
-    if args.num_spkrs == 1:
-        if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import train
-            train(args)
-        elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
-            train(args)
-        else:
-            raise ValueError("Only chainer and pytorch are supported.")
-    elif args.num_spkrs > 1:
-        if args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr_mix import train
-            train(args)
-        else:
-            raise ValueError("Only pytorch is supported.")
+    if args.backend == "chainer":
+        raise NotImplementedError("chainer is not supported for MT now.")
+        # TODO(hirofumi): support chainer backend
+    elif args.backend == "pytorch":
+        from espnet.mt.pytorch_backend.mt import train
+        train(args)
+    else:
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':
