@@ -81,7 +81,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
-        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], max(xs) + 1)
+        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], 6)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
         if is_cuda:
             xs_pad = xs_pad.cuda()
