@@ -466,7 +466,7 @@ class Decoder(torch.nn.Module):
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
+            vy = to_device(self, torch.LongTensor(self._get_last_yseq(yseq)))
             ey = self.dropout_emb(self.embed(vy))
             att_c, att_w = self.att[att_idx](exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
             ey = torch.cat((ey, att_c), dim=1)
@@ -521,8 +521,8 @@ class Decoder(torch.nn.Module):
             accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
-            yseq = index_select_list(yseq, accum_padded_beam_ids)
-            yseq = append_ids(yseq, accum_odim_ids)
+            yseq = self._index_select_list(yseq, accum_padded_beam_ids)
+            yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
@@ -541,7 +541,7 @@ class Decoder(torch.nn.Module):
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
             if rnnlm:
-                rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
+                rnnlm_prev = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
                 ctc_vidx = to_device(self, torch.LongTensor(accum_padded_odim_ids))
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
@@ -751,7 +751,7 @@ class Decoder(torch.nn.Module):
 
         return sample_loss, y_list, y_gen, y_lens, y_all
 
-@staticmethod
+    @staticmethod
     def _get_last_yseq(exp_yseq):
         last = []
         for y_seq in exp_yseq:
@@ -786,6 +786,7 @@ class Decoder(torch.nn.Module):
             for i in vidx:
                 new_state.append(rnnlm_state[int(i)][:])
         return new_state
+
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
