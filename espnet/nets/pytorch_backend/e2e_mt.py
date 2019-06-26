@@ -81,7 +81,7 @@ class E2E(MTInterface, torch.nn.Module):
         self.embed_src = torch.nn.Embedding(idim + 1, args.eunits, padding_idx=idim)
         # NOTE: +1 means the padding index
         self.dropout_emb_src = torch.nn.Dropout(p=args.dropout_rate)
-        self.enc = encoder_for(args, args.dunits, self.subsample)
+        self.enc = encoder_for(args, args.eunits, self.subsample)
         # attention
         self.att = att_for(args)
         # decoder
@@ -183,9 +183,9 @@ class E2E(MTInterface, torch.nn.Module):
         tgt_lang_ids = None
         if self.replace_sos:
             # remove language ID in the beggining
+            tgt_lang_ids = ys_pad[:, 0].unsqueeze(1)
             xs_pad = xs_pad[:, 1:]
             ys_pad = ys_pad[:, 1:]
-            tgt_lang_ids = ys_pad[:, 0:1]
             ilens -= 1
         return xs_pad, ys_pad, tgt_lang_ids
 
@@ -205,8 +205,6 @@ class E2E(MTInterface, torch.nn.Module):
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         if self.replace_sos:
-            id2token = {i: x for i, x in enumerate(char_list)}
-            logging.info('src (multilingual): %s', ' '.join([id2token[int(y)] for y in x[0][1:]]))
             ilen = [len(x[0][1:])]
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
         else:
