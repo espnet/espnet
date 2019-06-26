@@ -199,7 +199,7 @@ The training progress (loss and accuracy for training and validation data) can b
 ```sh
 $ tail -f exp/${expdir}/train.log
 ```
-When we use `./run.sh --verbose 0`, it gives you the following information
+When we use `./run.sh --verbose 0` (`--verbose 0` is default in most recipes), it gives you the following information
 ```
 epoch       iteration   main/loss   main/loss_ctc  main/loss_att  validation/main/loss  validation/main/loss_ctc  validation/main/loss_att  main/acc    validation/main/acc  elapsed_time  eps
 :
@@ -215,7 +215,7 @@ this epoch [#####.............................................] 10.84%
      91300 iter, 7 epoch / 20 epochs
    0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
-Note that the an4 recipe uses `--verbose 1` as default since this recipe is used for a debugging purpose.
+Note that the an4 recipe uses `--verbose 1` as default since this recipe is often used for a debugging purpose.
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
 ```sh
@@ -394,7 +394,7 @@ You can access the samples of TTS recipes from following links:
 - [Multi English speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
 - [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
 
-Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural decoders.
+Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
 
 ## Chainer and Pytorch backends
