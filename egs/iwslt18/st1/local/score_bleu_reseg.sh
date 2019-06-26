@@ -60,16 +60,17 @@ else
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
 fi
 
-# remove language IDs
-if [ -n "${nlsyms}" ]; then
-    cp ${dir}/hyp.wrd.trn ${dir}/hyp.wrd.trn.org
-    filt.py -v ${nlsyms} ${dir}/hyp.wrd.trn.org > ${dir}/hyp.wrd.trn
-fi
-
 # detokenize
 detokenizer.perl -lu de -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
 detokenizer.perl -lu de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 # NOTE: uppercase the first character (-u)
+
+# remove language IDs
+if [ -n "${nlsyms}" ]; then
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.tmp
+    filt.py -v ${nlsyms} ${dir}/hyp.wrd.trn.detok.tmp > ${dir}/hyp.wrd.trn.detok
+fi
+# NOTE: this must be performed after detokenization so that punctuation marks are not removed
 
 if [ ${case} = tc ]; then
     ### case-sensitive
