@@ -80,8 +80,9 @@ sed -e 's?.*/??' -e 's?.wav??' $dir/wav.flist | \
 #Keep only training part of waves
 awk '{print $2}' $dir/segments | sort -u | join - $dir/wav1.scp | sort -o $dir/wav2.scp
 #Two distant recordings are missing, agree segments with wav.scp
+cp $dir/segments $dir/segments.tmp
 awk '{print $1}' $dir/wav2.scp | join -2 2 - $dir/segments | \
-    awk '{print $2" "$1" "$3" "$4" "$5}' > $dir/s; mv $dir/s $dir/segments
+    awk '{print $2" "$1" "$3" "$4" "$5}' > $dir/s; cp $dir/s $dir/segments
 #...and text with segments
 awk '{print $1}' $dir/segments | join - $dir/text > $dir/t; mv $dir/t $dir/text
 
