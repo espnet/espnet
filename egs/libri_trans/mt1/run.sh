@@ -154,16 +154,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # update json (add source references)
-    local/update_json.sh --text data/$(echo ${train_set} | cut -f -1 -d ".").en/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data.${src_case}_${tgt_case}.json data/$(echo ${train_set} | cut -f -1 -d ".").en ${dict_src}
-    local/update_json.sh --text data/$(echo ${train_set} | cut -f -1 -d ".").en/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data_gtranslate.${src_case}_${tgt_case}.json data/$(echo ${train_set} | cut -f -1 -d ".").en ${dict_src}
-    local/update_json.sh --text data/$(echo ${train_dev} | cut -f -1 -d ".").en/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_dt_dir}/data.${src_case}_${tgt_case}.json data/$(echo ${train_dev} | cut -f -1 -d ".").en ${dict_src}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict_src}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data_gtranslate.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict_src}
+    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_dt_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".en ${dict_src}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/update_json.sh --text data/$(echo ${rtask} | cut -f -1 -d ".").en/text.${src_case} --nlsyms ${nlsyms} \
-            ${feat_recog_dir}/data.${src_case}_${tgt_case}.json data/$(echo ${rtask} | cut -f -1 -d ".").en ${dict_src}
+        local/update_json.sh --text data/"$(echo ${rtask} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+            ${feat_recog_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${rtask} | cut -f -1 -d ".")".en ${dict_src}
     done
 
     # concatenate Fr and Fr (Google translation) jsons
