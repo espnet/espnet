@@ -15,10 +15,6 @@ from espnet.nets.e2e_asr_common import end_detect
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
-from espnet.nets.pytorch_backend.nets_utils import append_ids
-from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
-from espnet.nets.pytorch_backend.nets_utils import index_select_list
-from espnet.nets.pytorch_backend.nets_utils import index_select_lm_state
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -755,6 +751,41 @@ class Decoder(torch.nn.Module):
 
         return sample_loss, y_list, y_gen, y_lens, y_all
 
+@staticmethod
+    def _get_last_yseq(exp_yseq):
+        last = []
+        for y_seq in exp_yseq:
+            last.append(y_seq[-1])
+        return last
+
+    @staticmethod
+    def _append_ids(yseq, ids):
+        if isinstance(ids, list):
+            for i, j in enumerate(ids):
+                yseq[i].append(j)
+        else:
+            for i in range(len(yseq)):
+                yseq[i].append(ids)
+        return yseq
+
+    @staticmethod
+    def _index_select_list(yseq, lst):
+        new_yseq = []
+        for l in lst:
+            new_yseq.append(yseq[l][:])
+        return new_yseq
+
+    @staticmethod
+    def _index_select_lm_state(rnnlm_state, dim, vidx):
+        if isinstance(rnnlm_state, dict):
+            new_state = {}
+            for k, v in rnnlm_state.items():
+                new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+        elif isinstance(rnnlm_state, list):
+            new_state = []
+            for i in vidx:
+                new_state.append(rnnlm_state[int(i)][:])
+        return new_state
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
