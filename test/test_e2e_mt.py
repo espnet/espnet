@@ -32,9 +32,6 @@ def make_arg(**kwargs):
         dunits=300,
         atype="add",
         aheads=4,
-        awin=5,
-        aconv_chans=10,
-        aconv_filts=100,
         mtlalpha=0.5,
         lsm_type="",
         lsm_weight=0.0,
@@ -47,6 +44,7 @@ def make_arg(**kwargs):
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
+        ctc_weight=0.0,  # dummy
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
@@ -64,8 +62,8 @@ def make_arg(**kwargs):
 def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
-    xs = [np.random.randint(1, 5, ilen).astype(np.int32) for ilen in ilens]
-    ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
+    xs = [np.random.randint(0, 5, ilen).astype(np.int32) for ilen in ilens]
+    ys = [np.random.randint(0, 5, olen).astype(np.int32) for olen in olens]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
     if mode == "chainer":
@@ -96,11 +94,11 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 def convert_batch(batch, backend="pytorch", is_cuda=False, idim=5, odim=5):
     ilens = np.array([x[1]['output'][1]['shape'][0] for x in batch])
     olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
-    xs = [np.random.randint(1, idim, ilen).astype(np.int32) for ilen in ilens]
-    ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
+    xs = [np.random.randint(0, idim, ilen).astype(np.int32) for ilen in ilens]
+    ys = [np.random.randint(0, odim, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
-        xs = pad_list([torch.from_numpy(x).long() for x in xs], idim + 1)
+        xs = pad_list([torch.from_numpy(x).long() for x in xs], idim)
         ilens = torch.from_numpy(ilens).long()
         ys = pad_list([torch.from_numpy(y).long() for y in ys], -1)
 
@@ -147,15 +145,15 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
 
     m = importlib.import_module(module)
     model = m.E2E(6, 5, args)
-    attn_loss = model(*batch)[0]
+    attn_loss = model(*batch)
     attn_loss.backward()  # trainable
 
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randint(1, 5, (100, 40))
-        model.recognize(in_data, args, args.char_list)  # decodable
+        in_data = np.random.randint(0, 5, (1, 100))
+        model.translate(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
-            batch_in_data = [np.random.randint(1, 5, (100, 40)), np.random.randint(1, 5, (50, 40))]
-            model.recognize_batch(batch_in_data, args, args.char_list)  # batch decodable
+            batch_in_data = np.random.randint(0, 5, (2, 100))
+            model.translate_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
 @pytest.mark.parametrize(
@@ -171,11 +169,11 @@ def test_sortagrad_trainable(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True)
     model = m.E2E(6, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randint(1, 5, (50, 20))
-        model.recognize(in_data, args, args.char_list)
+        in_data = np.random.randint(0, 5, (1, 100))
+        model.translate(in_data, args, args.char_list)
 
 
 @pytest.mark.parametrize(
@@ -202,11 +200,11 @@ def test_sortagrad_trainable_with_batch_bins(module):
 
     model = m.E2E(6, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randint(1, 5, (100, 20))
-        model.recognize(in_data, args, args.char_list)
+        in_data = np.random.randint(0, 5, (1, 100))
+        model.translate(in_data, args, args.char_list)
 
 
 @pytest.mark.parametrize(
@@ -221,8 +219,8 @@ def test_sortagrad_trainable_with_batch_frames(module):
         import espnet.nets.pytorch_backend.e2e_mt as m
     else:
         import espnet.nets.chainer_backend.e2e_mt as m
-    batch_frames_in = 100
-    batch_frames_out = 100
+    batch_frames_in = 200
+    batch_frames_out = 200
     batchset = make_batchset(dummy_json,
                              batch_frames_in=batch_frames_in,
                              batch_frames_out=batch_frames_out,
@@ -239,11 +237,11 @@ def test_sortagrad_trainable_with_batch_frames(module):
 
     model = m.E2E(6, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randint(1, 5, (100, 20))
-        model.recognize(in_data, args, args.char_list)
+        in_data = np.random.randint(0, 5, (1, 100))
+        model.translate(in_data, args, args.char_list)
 
 
 def init_torch_weight_const(m, val):
@@ -270,7 +268,7 @@ def test_loss(etype):
 
     # _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
     th_model(*th_batch)
-    th_att = th_model.loss_att
+    th_att = th_model.loss
 
     # test masking
     # ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -286,7 +284,7 @@ def test_loss(etype):
 
     # _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
     th_model(*th_batch)
-    th_att = th_model.loss_att
+    th_att = th_model.loss
     # ch_att.backward()
     th_att.backward()
     # np.testing.assert_allclose(ch_model.dec.output.W.grad,
@@ -313,9 +311,9 @@ def test_zero_length_target(etype):
     # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
     # out_data = ""
     # data = [
-    #     ("aaa", dict(feat=np.random.randint(1, 5, (200, 40)).astype(np.float32), tokenid="")),
-    #     ("bbb", dict(feat=np.random.randint(1, 5, (100, 40)).astype(np.float32), tokenid="")),
-    #     ("cc", dict(feat=np.random.randint(1, 5, (100, 40)).astype(np.float32), tokenid=""))
+    #     ("aaa", dict(feat=np.random.randint(0, 5, (1, 200)).astype(np.float32), tokenid="")),
+    #     ("bbb", dict(feat=np.random.randint(0, 5, (1, 100)).astype(np.float32), tokenid="")),
+    #     ("cc", dict(feat=np.random.randint(0, 5, (1, 100)).astype(np.float32), tokenid=""))
     # ]
     # ch_ctc, ch_att, ch_acc = ch_model(data)
     # th_ctc, th_att, th_acc = th_model(data)
@@ -382,7 +380,7 @@ def test_gpu_trainable(module):
     else:
         batch = prepare_inputs("chainer", is_cuda=True)
         model.to_gpu()
-    loss = model(*batch)[0]
+    loss = model(*batch)
     loss.backward()  # trainable
 
 
@@ -398,7 +396,7 @@ def test_multi_gpu_trainable(module):
         model = torch.nn.DataParallel(model, device_ids)
         batch = prepare_inputs("pytorch", is_cuda=True)
         model.cuda()
-        loss = 1. / ngpu * model(*batch)[0]
+        loss = 1. / ngpu * model(*batch)
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         import copy
@@ -409,7 +407,7 @@ def test_multi_gpu_trainable(module):
                 batch = prepare_inputs("chainer", is_cuda=True)
                 _model = copy.deepcopy(model)  # Transcribed from training.updaters.ParallelUpdater
                 _model.to_gpu()
-                loss = 1. / ngpu * _model(*batch)[0]
+                loss = 1. / ngpu * _model(*batch)
                 losses.append(loss)
 
         for loss in losses:
@@ -429,8 +427,8 @@ def test_context_residual(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True)
     model = m.E2E(6, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randint(1, 5, (50, 20))
-        model.recognize(in_data, args, args.char_list)
+        in_data = np.random.randint(0, 5, (1, 100))
+        model.translate(in_data, args, args.char_list)
