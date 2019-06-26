@@ -7,7 +7,7 @@
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <set>"
-    echo "e.g.: $0 tc data/dev"
+    echo "e.g.: $0 fisher_dev"
     exit 1
 fi
 

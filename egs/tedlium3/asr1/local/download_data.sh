@@ -28,9 +28,12 @@ else
 fi
 
 
-num_sph=$(find TEDLIUM_release-3/ -name '*.sph' | wc -l)
-if [ "$num_sph" != 1514 ]; then
-  echo "$0: expected to find 1514 .sph files in the directory db/TEDLIUM_release2, found $num_sph"
+num_sph=$(find -L TEDLIUM_release-3/legacy -name '*.sph' | wc -l)
+# We mainly use TED-LIUM 3 "legacy" distribution, on which the dev and test datasets are the same as in TED-LIUM 2 (and TED-LIUM1).
+# It contains 2351 sph files for training and 19 sph files for dev/test (total 2370).
+# Because the "legacy" contains symbolic links to "data", we use `find -L`.
+if [ "$num_sph" != 2370 ]; then
+    echo "$0: expected to find 2370 .sph files in the directory db/TEDLIUM_release3/legacy, found $num_sph"
   exit 1
 fi
 
