@@ -80,16 +80,21 @@ class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:
-        att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions): Function of attention visualization.
+        att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):
+            Function of attention visualization.
         data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
         outdir (str): Directory to save figures.
         converter (espnet.asr.*_backend.asr.CustomConverter): Function to convert data.
         device (int | torch.device): Device.
         reverse (bool): If True, input and output length are reversed.
+        ikey (str): Key to access input (for ASR ikey="input", for MT ikey="output".)
+        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis="1".)
+        okey (str): Key to access output (for ASR okey="input", MT okay="output".)
 
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False,
+                 ikey="input", iaxis=0, okey="output", oaxis=0):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
@@ -97,6 +102,10 @@ class PlotAttentionReport(extension.Extension):
         self.transform = transform
         self.device = device
         self.reverse = reverse
+        self.ikey = ikey
+        self.iaxis = iaxis
+        self.okey = okey
+        self.oaxis = oaxis
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
@@ -138,11 +147,11 @@ class PlotAttentionReport(extension.Extension):
     def get_attention_weight(self, idx, att_w):
         """Transform attention matrix with regard to self.reverse."""
         if self.reverse:
-            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
         else:
-            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
         if len(att_w.shape) == 3:
             att_w = att_w[:, :dec_len, :enc_len]
         else:
@@ -275,21 +284,25 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
         shutil.rmtree(tmpdir)
 
 
-def add_gradient_noise(model, epoch, eta):
-    """Adds noise from a std normal distribution to the gradients.
+def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.55):
+    """Adds noise from a standard normal distribution to the gradients.
+
+    The standard deviation (`sigma`) is controlled by the three hyper-parameters below.
+    `sigma` goes to zero (no noise) with more iterations.
 
     Args:
         model (torch.nn.model): Model.
-        epoch (int): Number of epochs.
-        eta (float): {0.01,0.3,1.0}
-
+        iteration (int): Number of iterations.
+        duration (int) {100, 1000}: Number of durations to control the interval of the `sigma` change.
+        eta (float) {0.01, 0.3, 1.0}: the magnitude of `sigma`
+        scale_factor (float) {0.55}: the scale of `sigma`
     """
-    scale_factor = 0.55
-    sigma = eta / epoch**scale_factor
+    interval = (iteration // duration) + 1
+    sigma = eta / interval ** scale_factor
     for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()
-            noise = sigma * torch.randn(_shape).cuda()
+            noise = sigma * torch.randn(_shape).to(param.device)
             param.grad += noise
 
 
