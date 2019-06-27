@@ -7,7 +7,7 @@ import numpy as np
 def batchfy_by_seq(
         sorted_data, batch_size, max_length_in, max_length_out,
         min_batch_size=1, shortest_first=False,
-        ikey="input", okey="output"):
+        ikey="input", iaxis=0, okey="output", oaxis=0):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
@@ -17,8 +17,11 @@ def batchfy_by_seq(
     :param int min_batch_size: mininum batch size (for multi-gpu)
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
 
-    :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
-    :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
+    :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
+    :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
+    :param int oaxis: dimension to access input (for ASR, TTS, MT iaxis=0, reserved for future research.)
+
     :return: List[List[Tuple[str, dict]]] list of batches
     """
     if batch_size <= 0:
@@ -33,8 +36,8 @@ def batchfy_by_seq(
     start = 0
     while True:
         _, info = sorted_data[start]
-        ilen = int(info[ikey][0]['shape'][0])
-        olen = int(info[okey][0]['shape'][0])
+        ilen = int(info[ikey][iaxis]['shape'][0])
+        olen = int(info[okey][oaxis]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -254,8 +257,9 @@ BATCH_SORT_KEY_CHOICES = ["input", "output", "shuffle"]
 
 
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
-                  num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input", swap_io=False,
-                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
+                  num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input",
+                  swap_io=False, mt=False, count="auto",
+                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
     """Make batch set from json dictionary
 
     if utts have "category" value,
@@ -287,6 +291,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
         :return: List[List[Tuple[str, dict]]] list of batches
     :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
     :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
+    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
     """
 
     # check args
@@ -295,15 +300,25 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     if batch_sort_key not in BATCH_SORT_KEY_CHOICES:
         raise ValueError(f"arg 'batch_sort_key' ({batch_sort_key}) should be one of {BATCH_SORT_KEY_CHOICES}")
 
-    # for TTS
     # TODO(karita): remove this by creating converter from ASR to TTS json format
+    batch_sort_axis = 0
+    iaxis, oaxis = 0, 0
     if swap_io:
+        # for TTS
         ikey = "output"
         okey = "input"
         if batch_sort_key == "input":
             batch_sort_key = "output"
         elif batch_sort_key == "output":
             batch_sort_key = "input"
+    elif mt:
+        # for MT
+        ikey = "output"
+        okey = "output"
+        batch_sort_key = "output"
+        batch_sort_axis = 1
+        iaxis = 1
+        # NOTE: input is json['output'][1] and output is json['output'][0]
     else:
         ikey = "input"
         okey = "output"
@@ -335,7 +350,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
 
         # sort it by input lengths (long to short)
         sorted_data = sorted(d.items(), key=lambda data: int(
-            data[1][batch_sort_key][0]['shape'][0]), reverse=not shortest_first)
+            data[1][batch_sort_key][batch_sort_axis]['shape'][0]), reverse=not shortest_first)
         logging.info('# utts: ' + str(len(sorted_data)))
         if count == "seq":
             batches = batchfy_by_seq(
@@ -345,7 +360,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
                 max_length_out=max_length_out,
                 min_batch_size=min_batch_size,
                 shortest_first=shortest_first,
-                ikey=ikey, okey=okey)
+                ikey=ikey, iaxis=iaxis, okey=okey, oaxis=oaxis)
         if count == "bin":
             batches = batchfy_by_bin(
                 sorted_data,
