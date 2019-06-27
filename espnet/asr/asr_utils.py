@@ -199,7 +199,7 @@ def adadelta_eps_decay(eps_decay):
     """Extension to perform adadelta eps decay.
 
     Args:
-        eps_decay (float): decay rate of eps
+        eps_decay (float): Decay rate of eps.
 
     Returns:
         An extension function.
@@ -279,8 +279,8 @@ def add_gradient_noise(model, epoch, eta):
     """Adds noise from a std normal distribution to the gradients.
 
     Args:
-        model (torch.nn.model): model.
-        iteration (int): number of iteration.
+        model (torch.nn.model): Model.
+        epoch (int): Number of epochs.
         eta (float): {0.01,0.3,1.0}
 
     """
