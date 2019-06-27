@@ -94,7 +94,7 @@ class CustomConverter(object):
             device (torch.device): The device to send to.
 
         Returns:
-            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor): Transformed batch.
 
         """
         # batch should be located in list

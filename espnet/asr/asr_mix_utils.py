@@ -13,10 +13,9 @@ import matplotlib
 import numpy as np
 
 """
-reuse modules in asr_utils:
-    CompareValueTrigger, restore_snapshot, _restore_snapshot, adadelta_eps_decay,
-    _adadelta_eps_decay, torch_snapshot, _torch_snapshot_object, AttributeDict,
-    get_model_conf, chainer_load, torch_save, torch_load, torch_resume
+Utility functions for ASR mix recipes. Reuse following modules in asr_utils:
+    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,
+    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf
 """
 from espnet.asr.asr_utils import parse_hypothesis
 
@@ -166,7 +165,7 @@ class PlotAttentionReport(extension.Extension):
         """Visualize attention weights matrix.
 
         Args:
-            att_w(Tensor): attention weight matrix
+            att_w(Tensor): Attention weight matrix.
 
         Returns:
             matplotlib.pyplot: pyplot object with attention matrix image.
@@ -197,7 +196,7 @@ def add_results_to_json(js, nbest_hyps_sd, char_list):
 
     Args:
         js (dict[str, Any]): Groundtruth utterance dict.
-        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers: nutts x nspkrs.
+        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers (# Utts x # Spkrs).
         char_list (list[str]): List of characters.
 
     Returns:
