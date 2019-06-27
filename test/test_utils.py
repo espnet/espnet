@@ -160,7 +160,7 @@ def test_error_calculator(tmpdir, typ):
         cer, wer = True, True
 
     ec = ErrorCalculator(char_list, space, blank,
-                       cer, wer)
+                         cer, wer)
 
     if typ == 'ctc':
         cer_ctc_val = ec(ys_pad, ys_hat, is_ctc=True)
