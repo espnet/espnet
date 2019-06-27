@@ -88,7 +88,7 @@ class PlotAttentionReport(extension.Extension):
         device (int | torch.device): Device.
         reverse (bool): If True, input and output length are reversed.
         ikey (str): Key to access input (for ASR ikey="input", for MT ikey="output".)
-        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis="1".)
+        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis=1.)
         okey (str): Key to access output (for ASR okey="input", MT okay="output".)
 
     """
