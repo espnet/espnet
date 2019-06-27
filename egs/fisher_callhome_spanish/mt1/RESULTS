@@ -1,0 +1,14 @@
+# NOTE: apostrophe is included both in hyp and ref
+
+# case-insensitive & remove punctuation except for apostrophe to compare with previous works
+exp/train.en_lc.rm_lc_pytorch_train
+fisher_dev.en
+BLEU = 60.68, 86.3/69.2/54.3/41.8 (BP=1.000, ratio=1.015, hyp_len=40791, ref_len=40196)
+fisher_dev2.en
+BLEU = 62.05, 87.3/70.5/55.7/43.2 (BP=1.000, ratio=1.009, hyp_len=39726, ref_len=39360)
+fisher_test.en
+BLEU = 59.63, 86.5/68.6/53.0/40.2 (BP=1.000, ratio=1.019, hyp_len=39922, ref_len=39186)
+callhome_devtest.en
+BLEU = 29.46, 60.2/36.2/22.9/15.1 (BP=1.000, ratio=1.020, hyp_len=38168, ref_len=37424)
+callhome_evltest.en
+BLEU = 28.97, 58.4/35.1/22.7/15.2 (BP=1.000, ratio=1.036, hyp_len=19129, ref_len=18463)
