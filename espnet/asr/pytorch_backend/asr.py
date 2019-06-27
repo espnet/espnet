@@ -151,10 +151,7 @@ class CustomUpdater(training.StandardUpdater):
         # gradient noise injection
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
-            eta = 0.5  # {0.01,0.3,1.0}
-            duration = 1000
-            itr = (self.iteration // duration) + 1
-            add_gradient_noise(self.model, itr, eta)
+            add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
         loss.detach()  # Truncate the graph
 
         # update parameters
