@@ -110,8 +110,8 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = None
 
         if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
-            from espnet.nets.e2e_asr_common import ER_Calculator
-            self.error_calculator = ER_Calculator(args.char_list,
+            from espnet.nets.e2e_asr_common import ErrorCalculator
+            self.error_calculator = ErrorCalculator(args.char_list,
                                                   args.sym_space, args.sym_blank,
                                                   args.report_cer, args.report_wer)
         else:

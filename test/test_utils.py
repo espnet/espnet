@@ -144,7 +144,7 @@ def test_sound_hdf5_file(tmpdir, fmt):
 
 @pytest.mark.parametrize('typ', ['ctc', 'wer', 'cer', 'all'])
 def test_error_calculator(tmpdir, typ):
-    from espnet.nets.e2e_asr_common import ER_Calculator
+    from espnet.nets.e2e_asr_common import ErrorCalculator
     space = "<space>"
     blank = "<blank>"
     char_list = [blank, space, 'a', 'e', 'i', 'o', 'u']
@@ -159,7 +159,7 @@ def test_error_calculator(tmpdir, typ):
     else:
         cer, wer = True, True
 
-    ec = ER_Calculator(char_list, space, blank,
+    ec = ErrorCalculator(char_list, space, blank,
                        cer, wer)
 
     if typ == 'ctc':

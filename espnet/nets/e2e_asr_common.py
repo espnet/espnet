@@ -85,7 +85,7 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     return int(idim) * out_channel  # numer of channels
 
 
-class ER_Calculator(object):
+class ErrorCalculator(object):
     """Calculate CER and WER for E2E_ASR and CTC models during training
 
     :param y_hats: numpy array with predicted text
@@ -98,7 +98,7 @@ class ER_Calculator(object):
 
     def __init__(self, char_list, sym_space, sym_blank,
                  report_cer=False, report_wer=False):
-        super(ER_Calculator, self).__init__()
+        super(ErrorCalculator, self).__init__()
         self.char_list = char_list
         self.space = sym_space
         self.blank = sym_blank
