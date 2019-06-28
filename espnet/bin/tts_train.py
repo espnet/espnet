@@ -160,7 +160,6 @@ def main(cmd_args):
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 
-
     # set random seed
     logging.info('random seed = %d' % args.seed)
     random.seed(args.seed)
