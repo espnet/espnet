@@ -32,7 +32,7 @@ def get_parser():
                help='third config file path that overwrites the settings in `--config` and `--config2`.')
 
     parser.add_argument('--ngpu', default=None, type=int,
-                        help='Number of GPUs')
+                        help='Number of GPUs. If not given, use all visible devices')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
