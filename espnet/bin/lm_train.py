@@ -14,7 +14,6 @@ import logging
 
 import numpy as np
 import os
-import platform
 import random
 import subprocess
 import sys
