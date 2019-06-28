@@ -60,6 +60,9 @@ train_set=train_mix
 train_dev=dev_0330
 train_test=test_0166
 recog_set=dev_0330
+# Most papers are reporting the result on dev_0330. You could also use test_0166 as the recog_set.
+# Also, test_0166 could be divided into four subsets: clean, noisy, clean with channel distortion and noisy with channel distortion.
+# You could also follow Kaldi recipe to use clean data test_eval92.
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
