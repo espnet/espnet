@@ -44,7 +44,8 @@ class LoadInputsAndTargets(object):
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False,
-                 preprocess_args=None
+                 preprocess_args=None,
+                 tts_frontend=None,
                  ):
         self._loaders = {}
         if mode not in ['asr', 'tts', 'mt']:
@@ -79,6 +80,13 @@ class LoadInputsAndTargets(object):
         else:
             assert isinstance(preprocess_args, dict), type(preprocess_args)
             self.preprocess_args = dict(preprocess_args)
+
+        if tts_frontend is not None:
+            from espnet.tts import frontend
+            # TODO: pass frontend_conf or similar
+            self.tts_frontend = frontend.get_frontend(tts_frontend)
+        else:
+            self.tts_frontend = None
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -129,7 +137,11 @@ class LoadInputsAndTargets(object):
                     x_feats_dict.setdefault(info['output'][1]['name'], []).append(x)
 
                 for idx, inp in enumerate(info['output']):
-                    if 'tokenid' in inp:
+                    # On-the-fly tokenization.
+                    if self.mode == 'tts' and self.tts_frontend is not None:
+                        x = self.tts_frontend.text_to_sequence(inp["text"])
+                        x = np.asarray(x, dtype=np.int64)
+                    elif 'tokenid' in inp:
                         # ======= Legacy format for output =======
                         # {"output": [{"tokenid": "1 2 3 4"}])
                         x = np.fromiter(map(int, inp['tokenid'].split()),
@@ -151,7 +163,11 @@ class LoadInputsAndTargets(object):
                 x_feats_dict, y_feats_dict, uttid_list)
         elif self.mode == 'tts':
             _, info = batch[0]
-            eos = int(info['output'][0]['shape'][1]) - 1
+            # tts_frontend is responsible to add EOS if needed
+            if self.tts_frontend is not None:
+                eos = None
+            else:
+                eos = int(info['output'][0]['shape'][1]) - 1
             return_batch, uttid_list = self._create_batch_tts(
                 x_feats_dict, y_feats_dict, uttid_list, eos)
         elif self.mode == 'mt':
@@ -309,8 +325,8 @@ class LoadInputsAndTargets(object):
         xs = [xs[i] for i in nonzero_sorted_idx]
         uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
         # Added eos into input sequence
-        xs = [np.append(x, eos) for x in xs]
-
+        if eos is not None:
+            xs = [np.append(x, eos) for x in xs]
         if self.load_input:
             ys = list(x_feats_dict.values())[0]
             assert len(xs) == len(ys), (len(xs), len(ys))

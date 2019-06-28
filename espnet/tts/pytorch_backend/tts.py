@@ -219,7 +219,12 @@ def train(args):
     utts = list(valid_json.keys())
 
     # reverse input and output dimension
-    idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    if args.frontend is not None:
+        from espnet.tts import frontend as _frontend
+        frontend = getattr(_frontend, args.frontend)
+        idim = frontend.num_vocab()
+    else:
+        idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
@@ -315,7 +320,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': True}  # Switch the mode of preprocessing
+        preprocess_args={'train': True},  # Switch the mode of preprocessing,
+        tts_frontend=args.frontend,
     )
 
     load_cv = LoadInputsAndTargets(
@@ -323,7 +329,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        preprocess_args={'train': False},  # Switch the mode of preprocessing
+        tts_frontend=args.frontend,
     )
 
     # hack to make batchsize argument as 1
@@ -462,7 +469,8 @@ def decode(args):
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
         if args.preprocess_conf is None else args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        preprocess_args={'train': False},  # Switch the mode of preprocessing
+        tts_frontend=args.frontend,
     )
 
     with torch.no_grad(), \

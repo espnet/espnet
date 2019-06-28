@@ -29,6 +29,9 @@ def get_parser():
     parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
+    parser.add_argument('--frontend', default=None, type=str,
+                        choices=['en'],
+                        help='Text processsing frontend')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
     parser.add_argument('--seed', default=1, type=int,
