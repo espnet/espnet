@@ -121,9 +121,6 @@ class E2E(ASRInterface, chainer.Chain):
                            help='Number of decoder hidden units')
         return parser
 
-
-        return parser
-
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
         chainer.Chain.__init__(self)
         self.mtlalpha = args.mtlalpha
