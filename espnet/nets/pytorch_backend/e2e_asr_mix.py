@@ -22,6 +22,7 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
+from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_nonmix
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -114,6 +115,19 @@ class E2E(ASRInterface, torch.nn.Module):
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
     """
+    @staticmethod
+    def add_arguments(parser):
+        group = parser.add_argument_group("transformer model setting")
+        E2E_nonmix.add_arguments(parser)
+        # encoder
+        group.add_argument('--num-spkrs', default=1, type=int,
+                           choices=[1, 2],
+                           help='Number of speakers in the speech.')
+        group.add_argument('--spa', action='store_true',
+                           help='Enable speaker parallel attention.')
+        group.add_argument('--elayers-sd', default=4, type=int,
+                           help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
+        return parser
 
     def __init__(self, idim, odim, args):
         torch.nn.Module.__init__(self)
