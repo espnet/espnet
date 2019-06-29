@@ -149,10 +149,7 @@ class CustomUpdater(training.StandardUpdater):
         loss.backward()  # Backprop
         # gradient noise injection
         if self.grad_noise:
-            eta = 0.5  # {0.01,0.3,1.0}
-            duration = 1000
-            itr = (self.iteration // duration) + 1
-            add_gradient_noise(self.model, itr, eta)
+            add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
         loss.detach()  # Truncate the graph
 
         # update parameters
@@ -269,6 +266,29 @@ def train(args):
     model_class = dynamic_import(args.model_module)
     model = model_class(_idim, odim, args)
     assert isinstance(model, ASRInterface), type(model)
+
+    # FIXME(kamo): Too adhoc
+    # Initialize encoder with pre-trained ASR encoder
+    if args.asr_model:
+        param_dict = torch_load(args.asr_model)
+        for n, p in model.named_parameters():
+            # overwrite the encoder
+            if n in param_dict and p.size() == param_dict[n].size():
+                if 'enc.enc' in n:
+                    p.data = param_dict[n].data
+                    logging.warning('Overwrite %s' % n)
+
+    # FIXME(kamo): Too adhoc
+    # Initialize decoder with pre-trained MT decoder
+    if args.mt_model:
+        param_dict = torch_load(args.mt_model)
+        for n, p in model.named_parameters():
+            # overwrite the decoder
+            if n in param_dict and p.size() == param_dict[n].size():
+                if 'dec.' in n or 'att' in n:
+                    p.data = param_dict[n].data
+                    logging.warning('Overwrite %s' % n)
+
     subsampling_factor = model.subsample[0]
     reporter = model.reporter
 

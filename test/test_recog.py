@@ -47,7 +47,9 @@ def make_arg(**kwargs):
         sym_space="<space>",
         sym_blank="<blank>",
         context_residual=False,
-        use_frontend=False
+        use_frontend=False,
+        replace_sos=False,
+        tgt_lang=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

@@ -1,5 +1,5 @@
-# baseline: exp/train_sp.fr_lc_pytorch_train
+# character unit
 dev
-BLEU = 18.03, 48.0/23.1/12.9/7.4 (BP=1.000, ratio=1.015, hyp_len=23822, ref_len=23467)
+BLEU = 16.67, 46.9/21.6/11.7/6.5 (BP=1.000, ratio=1.009, hyp_len=22668, ref_len=22462)
 test
-BLEU = 17.19, 47.4/22.4/12.1/6.8 (BP=1.000, ratio=1.007, hyp_len=46482, ref_len=46141)
+BLEU = 15.71, 45.9/20.8/10.9/5.9 (BP=1.000, ratio=1.010, hyp_len=44533, ref_len=44080)

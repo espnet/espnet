@@ -211,6 +211,13 @@ def get_parser():
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
+    parser.add_argument('--asr-model', default=None, type=str, nargs='?',
+                        help='Pre-trained ASR model')
+    parser.add_argument('--mt-model', default=None, type=str, nargs='?',
+                        help='Pre-trained MT model')
+    parser.add_argument('--replace-sos', default=False, nargs='?',
+                        help='Replace <sos> in the decoder with a target language ID \
+                              (the first token in the target sequence)')
 
     parser.add_argument('--frontend-module', type=str, default=None,
                         help='model defined module')
