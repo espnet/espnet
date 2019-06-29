@@ -14,6 +14,7 @@ from espnet.asr import asr_utils
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
+from espnet.nets.chainer_backend.e2e_asr import E2E as E2E_rnn
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
 
@@ -98,6 +99,29 @@ class E2E(ASRInterface, chainer.Chain):
                            help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
+
+        E2E_rnn.loss_add_arguments(parser)
+        E2E_rnn.recognition_add_arguments(parser)
+        group.add_argument('--dropout-rate', default=0.0, type=float,
+                           help='Dropout rate for the encoder')
+        # Encoder
+        group.add_argument('--elayers', default=4, type=int,
+                           help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
+        group.add_argument('--eunits', '-u', default=300, type=int,
+                           help='Number of encoder hidden units')
+        # Attention
+        group.add_argument('--adim', default=320, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--aheads', default=4, type=int,
+                           help='Number of heads for multi head attention')
+        # Decoder
+        group.add_argument('--dlayers', default=1, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=320, type=int,
+                           help='Number of decoder hidden units')
+        return parser
+
+
         return parser
 
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
