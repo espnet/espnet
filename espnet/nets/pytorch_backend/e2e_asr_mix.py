@@ -126,7 +126,8 @@ class E2E(ASRInterface, torch.nn.Module):
         group.add_argument('--spa', action='store_true',
                            help='Enable speaker parallel attention.')
         group.add_argument('--elayers-sd', default=4, type=int,
-                           help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
+                           help='Number of encoder layers for speaker '
+                                'differentiate part. (multi-speaker asr mode only)')
         return parser
 
     def __init__(self, idim, odim, args):
