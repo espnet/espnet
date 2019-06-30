@@ -3,37 +3,37 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import division
-
 import collections
 import json
 import logging
 import math
 import os
-import six
 
-# chainer related
 import chainer
-
 from chainer import cuda
 from chainer import training
 from chainer import Variable
-
 from chainer.datasets import TransformDataset
-
+from chainer.optimizers import AdaDelta
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
+import matplotlib
+import numpy as np
+from tensorboardX import SummaryWriter
 
-# espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
+import espnet.lm.chainer_backend.extlm as extlm_chainer
+import espnet.lm.chainer_backend.lm as lm_chainer
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
+from espnet.optimizers.chainer_backend.adam import Noam as Noam_espnet
 from espnet.optimizers.chainer_backend.opt_interface import optimizer_import
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
@@ -42,19 +42,10 @@ from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-# rnnlm
-import espnet.lm.chainer_backend.extlm as extlm_chainer
-import espnet.lm.chainer_backend.lm as lm_chainer
-
-# numpy related
-import matplotlib
-import numpy as np
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -70,7 +61,7 @@ def sum_sqnorm(arr):
                 x = x.ravel()
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+    return sum([float(i) for i in sq_sum.values()])
 
 
 class CustomUpdater(training.StandardUpdater):
@@ -268,7 +259,7 @@ def train(args):
     elif ngpu > 1:
         gpu_id = 0
         devices = {'main': gpu_id}
-        for gid in six.moves.xrange(1, ngpu):
+        for gid in range(1, ngpu):
             devices['sub_%d' % gid] = gid
         logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
         logging.info('batch size is automatically increased (%d -> %d)' % (
@@ -336,7 +327,7 @@ def train(args):
             raise NotImplementedError("--batch-count 'bin' and 'frame' are not implemented in chainer multi gpu")
         # set up minibatches
         train_subsets = []
-        for gid in six.moves.xrange(ngpu):
+        for gid in range(ngpu):
             # make subset
             train_json_subset = {k: v for i, (k, v) in enumerate(train_json.items())
                                  if i % ngpu == gid}
@@ -348,7 +339,7 @@ def train(args):
         maxlen = max([len(train_subset) for train_subset in train_subsets])
         for train_subset in train_subsets:
             if maxlen != len(train_subset):
-                for i in six.moves.xrange(maxlen - len(train_subset)):
+                for i in range(maxlen - len(train_subset)):
                     train_subset += [train_subset[i]]
 
         # hack to make batchsize argument as 1
@@ -358,12 +349,12 @@ def train(args):
                 TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)
-                for gid in six.moves.xrange(ngpu)]
+                for gid in range(ngpu)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
                 TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, shuffle=not use_sortagrad)
-                for gid in six.moves.xrange(ngpu)]
+                for gid in range(ngpu)]
 
         # set up updater
         updater = CustomParallelUpdater(
@@ -376,10 +367,10 @@ def train(args):
     if use_sortagrad:
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
-    if args.opt == 'noam':
-        from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
-        trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
-                                   scale=args.transformer_lr), trigger=(1, 'iteration'))
+    if issubclass(opt_class, Noam_espnet):
+        trainer.extend(VaswaniRule('alpha', d=args.adim,
+                                   warmup_steps=args.noam_warmup,
+                                   scale=args.lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
@@ -445,7 +436,7 @@ def train(args):
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
-    if args.opt == 'adadelta':
+    if isinstance(optimizer, AdaDelta):
         if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
@@ -470,7 +461,7 @@ def train(args):
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
-    if args.opt == 'adadelta':
+    if isinstance(optimizer, AdaDelta):
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
             trigger=(REPORT_INTERVAL, 'iteration'))

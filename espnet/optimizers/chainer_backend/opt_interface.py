@@ -1,13 +1,13 @@
 from argparse import Namespace
 
-from chainer.optimizers import Optimizer
+from chainer.optimizer import Optimizer
 
 from espnet.utils.dynamic_import import dynamic_import
 
 
 import_alias = dict(
-    adadelta='espnet.optimizers.chainer_backend.adadelta:Adadelta',
-    adagrad='espnet.optimizers.chainer_backend.adagrad:Adagrad',
+    adadelta='espnet.optimizers.chainer_backend.adadelta:AdaDelta',
+    adagrad='espnet.optimizers.chainer_backend.adagrad:AdaGrad',
     adam='espnet.optimizers.chainer_backend.adam:Adam')
 
 

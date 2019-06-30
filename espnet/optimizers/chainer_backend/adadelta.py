@@ -1,8 +1,8 @@
 from argparse import Namespace
 
-from chainer.optimizer import AdaDelta as AdaDelta_chainer
+from chainer.optimizers import AdaDelta as AdaDelta_chainer
 
-from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
+from espnet.optimizers.chainer_backend.opt_interface import OptInterface
 
 
 class AdaDelta(OptInterface):

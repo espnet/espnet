@@ -1,9 +1,9 @@
 from argparse import Namespace
 from typing import Tuple
 
-from chainer.optimizer import Adam as Adam_chainer
+from chainer.optimizers import Adam as Adam_chainer
 
-from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
+from espnet.optimizers.chainer_backend.opt_interface import OptInterface
 
 
 def float_pair(string: str) -> Tuple[float, float]:
@@ -42,3 +42,15 @@ class Adam(OptInterface):
                             final_lr=args.adam_final_lr,
                             gamma=args.adam_gamma,
                             )
+
+
+# Use espnet.nets.chainer_backend.e2e_asr_transformer.VaswaniRule
+# >>> trainer.extend(VaswaniRule(...))
+class Noam(OptInterface):
+    @staticmethod
+    def add_arguments(parser):
+        Adam.add_arguments(parser)
+        group = parser.add_argument_group('NoamOptimizer config')
+        group.add_argument('--noam-warmup', default=25000, type=int,
+                           help='noam warmup steps')
+        return parser
