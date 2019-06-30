@@ -1,8 +1,8 @@
 from argparse import Namespace
 from typing import Iterator
 
-from torch.optim import Optimizer
 from torch.nn import Parameter
+from torch.optim import Optimizer
 
 from espnet.optimizers.pytorch_backend.adadelta import Adadelta
 from espnet.optimizers.pytorch_backend.adam import Adam

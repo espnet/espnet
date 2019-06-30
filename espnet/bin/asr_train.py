@@ -14,9 +14,9 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
 from espnet.optimizers.pytorch_backend.opt_interface \
     import optimizer_import as pytorch_optimizer_import
+from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
