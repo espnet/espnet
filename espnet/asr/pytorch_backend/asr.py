@@ -452,7 +452,7 @@ def train(args):
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
-    if 'adadelta' in args.opt_module:
+    if isinstance(optimizer, torch.optim.Adadelta):
         if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
@@ -478,7 +478,7 @@ def train(args):
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
                    'elapsed_time']
-    if 'adadelta' in args.opt_module:
+    if isinstance(optimizer, torch.optim.Adadelta):
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(REPORT_INTERVAL, 'iteration'))
