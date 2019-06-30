@@ -34,6 +34,7 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.asr_interface import ASRInterface
+from espnet.optimizers.chainer_backend.opt_interface import optimizer_import
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -277,14 +278,8 @@ def train(args):
         logging.info('cpu calculation')
 
     # Setup an optimizer
-    if args.opt == 'adadelta':
-        optimizer = chainer.optimizers.AdaDelta(eps=args.eps)
-    elif args.opt == 'adam':
-        optimizer = chainer.optimizers.Adam()
-    elif args.opt == 'noam':
-        optimizer = chainer.optimizers.Adam(alpha=0, beta1=0.9, beta2=0.98, eps=1e-9)
-    else:
-        raise NotImplementedError('args.opt={}'.format(args.opt))
+    opt_class = optimizer_import(args.opt_module)
+    optimizer = opt_class.get(args)
 
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))

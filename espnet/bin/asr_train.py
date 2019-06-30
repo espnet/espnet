@@ -14,6 +14,8 @@ import sys
 
 import numpy as np
 
+from espnet.optimizers.chainer_backend.opt_interface \
+    import optimizer_import as chainer_optimizer_import
 from espnet.optimizers.pytorch_backend.opt_interface \
     import optimizer_import as pytorch_optimizer_import
 from espnet.utils.cli_utils import strtobool
@@ -304,7 +306,7 @@ def main(cmd_args):
     if args.backend == 'pytorch':
         opt_class = pytorch_optimizer_import(opt_module)
     else:
-        raise NotImplementedError
+        opt_class = chainer_optimizer_import(opt_module)
     opt_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
