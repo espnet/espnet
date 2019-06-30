@@ -5,7 +5,7 @@ from chainer.optimizer import AdaGrad as AdaGrad_chainer
 from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
 
 
-class Adam(OptInterface):
+class AdaGrad(OptInterface):
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group('Optimizer config')
