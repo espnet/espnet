@@ -83,7 +83,7 @@ class NoamOptBase(OptInterface):
 
     @classmethod
     def get(cls, parameters: Iterator[Parameter], args: Namespace) -> NoamOptimizer:
-        optimizer = cls.optimizer_class.get_opt(parameters, args)
+        optimizer = cls.optimizer_class.get(parameters, args)
         # Note(kamo): The original lr of optimizer is ingored in Noam, so reuse args.lr
         return NoamOptimizer(optimizer,
                              model_size=args.adim,

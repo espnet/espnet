@@ -23,8 +23,8 @@ class Adam(OptInterface):
                            default=(0.9, 0.999))
         group.add_argument('--adam-eps', type=float, default=1e-3)
         group.add_argument('--adam-eta', type=float, default=1.)
-        group.add_argument('--adam-amsgrad', type=False, default=bool)
-        group.add_argument('--adam-adabound', type=False, default=bool)
+        group.add_argument('--adam-amsgrad', type=bool, default=False)
+        group.add_argument('--adam-adabound', type=bool, default=False)
         group.add_argument('--adam-final-lr', type=float, default=0.1)
         group.add_argument('--adam-gamma', type=float, default=0.001)
         return parser
