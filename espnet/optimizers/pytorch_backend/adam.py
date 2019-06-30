@@ -23,7 +23,8 @@ class Adam(OptInterface):
         group.add_argument('--weight-decay', type=float, default=0.)
         group.add_argument('--adam-betas', type=float_pair,
                            default=(0.9, 0.999))
-        group.add_argument('--adam-eps', type=str, default=1e-3)
+        group.add_argument('--adam-eps', type=float, default=1e-3)
+        group.add_argument('--adam-amsgrad', type=bool, default=False)
         return parser
 
     @staticmethod
