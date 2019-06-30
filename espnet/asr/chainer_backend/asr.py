@@ -10,15 +10,15 @@ import math
 import os
 
 import chainer
-from chainer import cuda
-from chainer import training
-from chainer import Variable
 from chainer.datasets import TransformDataset
+from chainer import cuda
 from chainer.optimizers import AdaDelta
+from chainer import training
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
+from chainer import Variable
 import matplotlib
 import numpy as np
 from tensorboardX import SummaryWriter
