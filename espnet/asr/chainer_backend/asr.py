@@ -10,8 +10,8 @@ import math
 import os
 
 import chainer
-from chainer.datasets import TransformDataset
 from chainer import cuda
+from chainer.datasets import TransformDataset
 from chainer.optimizers import AdaDelta
 from chainer import training
 from chainer.training import extensions
