@@ -183,7 +183,7 @@ def get_parser():
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
     # optimization related
-    parser.add_argument('--opt-module', default=None, type=str,
+    parser.add_argument('--opt-module', default='adadelta', type=str,
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
                         help='Number of gradient accumuration')
@@ -298,19 +298,12 @@ def main(cmd_args):
     if args.model_module is not None:
         model_class = dynamic_import(args.model_module)
         model_class.add_arguments(parser)
-    if args.opt_module is None:
-        opt_module = "espnet.optimizers." + args.backend + "_backend.adadelta:Adadelta"
-    else:
-        opt_module = args.opt_module
-
     if args.backend == 'pytorch':
         opt_class = pytorch_optimizer_import(opt_module)
     else:
         opt_class = chainer_optimizer_import(opt_module)
     opt_class.add_arguments(parser)
-
     args = parser.parse_args(cmd_args)
-    args.opt_module = opt_module
     if args.model_module is None:
         args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
     if 'chainer_backend' in args.model_module:
