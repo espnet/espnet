@@ -6,9 +6,9 @@ from espnet.utils.dynamic_import import dynamic_import
 
 
 import_alias = dict(
-    adadelta='espnet.optimizers.chainer_backend.adadelta:AdaDelta',
-    adagrad='espnet.optimizers.chainer_backend.adagrad:AdaGrad',
-    adam='espnet.optimizers.chainer_backend.adam:Adam')
+    adadelta='espnet.opts.chainer_backend.adadelta:AdaDelta',
+    adagrad='espnet.opts.chainer_backend.adagrad:AdaGrad',
+    adam='espnet.opts.chainer_backend.adam:Adam')
 
 
 class OptInterface:

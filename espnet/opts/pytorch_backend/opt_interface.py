@@ -8,10 +8,10 @@ from espnet.utils.dynamic_import import dynamic_import
 
 
 import_alias = dict(
-    adadelta='espnet.optimizers.pytorch_backend.adadelta:Adadelta',
-    adagrad='espnet.optimizers.pytorch_backend.adagrad:Adagrad',
-    adam='espnet.optimizers.pytorch_backend.adam:Adam',
-    noam='espnet.optimizers.pytorch_backend.noam:NoamAdam')
+    adadelta='espnet.opts.pytorch_backend.adadelta:Adadelta',
+    adagrad='espnet.opts.pytorch_backend.adagrad:Adagrad',
+    adam='espnet.opts.pytorch_backend.adam:Adam',
+    noam='espnet.opts.pytorch_backend.noam:NoamAdam')
 
 
 class OptInterface:

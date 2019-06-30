@@ -33,8 +33,8 @@ import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
-from espnet.optimizers.chainer_backend.adam import Noam as Noam_espnet
-from espnet.optimizers.chainer_backend.opt_interface import optimizer_import
+from espnet.opts.chainer_backend.adam import Noam as Noam_espnet
+from espnet.opts.chainer_backend.opt_interface import optimizer_import
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets

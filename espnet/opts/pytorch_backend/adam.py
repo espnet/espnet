@@ -5,7 +5,7 @@ from typing import Tuple
 from torch.nn import Parameter
 from torch.optim import Adam as Adam_torch
 
-from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
+from espnet.opts.pytorch_backend.opt_interface import OptInterface
 
 
 def float_pair(string: str) -> Tuple[float, float]:

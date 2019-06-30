@@ -3,7 +3,7 @@ from typing import Tuple
 
 from chainer.optimizers import Adam as Adam_chainer
 
-from espnet.optimizers.chainer_backend.opt_interface import OptInterface
+from espnet.opts.chainer_backend.opt_interface import OptInterface
 
 
 def float_pair(string: str) -> Tuple[float, float]:

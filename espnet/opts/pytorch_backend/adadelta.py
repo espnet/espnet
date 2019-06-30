@@ -4,7 +4,7 @@ from typing import Iterator
 from torch.nn import Parameter
 from torch.optim import Adadelta as Adadelta_pytorch
 
-from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
+from espnet.opts.pytorch_backend.opt_interface import OptInterface
 
 
 class Adadelta(OptInterface):

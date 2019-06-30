@@ -4,9 +4,9 @@ from typing import Iterator
 from torch.nn import Parameter
 from torch.optim import Optimizer
 
-from espnet.optimizers.pytorch_backend.adadelta import Adadelta
-from espnet.optimizers.pytorch_backend.adam import Adam
-from espnet.optimizers.pytorch_backend.opt_interface import OptInterface
+from espnet.opts.pytorch_backend.adadelta import Adadelta
+from espnet.opts.pytorch_backend.adam import Adam
+from espnet.opts.pytorch_backend.opt_interface import OptInterface
 
 
 # FIXME(kamo): Should inherit torch.optim.Optimizer to satisfy strict type check
