@@ -299,9 +299,9 @@ def main(cmd_args):
         model_class = dynamic_import(args.model_module)
         model_class.add_arguments(parser)
     if args.backend == 'pytorch':
-        opt_class = pytorch_optimizer_import(opt_module)
+        opt_class = pytorch_optimizer_import(args.opt_module)
     else:
-        opt_class = chainer_optimizer_import(opt_module)
+        opt_class = chainer_optimizer_import(args.opt_module)
     opt_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
