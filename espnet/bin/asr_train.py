@@ -15,6 +15,8 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
+from espnet.optimizers.pytorch_backend.opt_interface \
+    import optimizer_import as pytorch_optimizer_import
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
@@ -179,17 +181,12 @@ def get_parser():
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
     # optimization related
-    parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam', 'noam'],
+    parser.add_argument('--opt-module', default=None, type=str,
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
                         help='Number of gradient accumuration')
-    parser.add_argument('--eps', default=1e-8, type=float,
-                        help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
-    parser.add_argument('--weight-decay', default=0.0, type=float,
-                        help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
                         choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
@@ -299,7 +296,19 @@ def main(cmd_args):
     if args.model_module is not None:
         model_class = dynamic_import(args.model_module)
         model_class.add_arguments(parser)
+    if args.opt_module is None:
+        opt_module = "espnet.optimizers." + args.backend + "_backend.adadelta:Adadelta"
+    else:
+        opt_module = args.opt_module
+
+    if args.backend == 'pytorch':
+        opt_class = pytorch_optimizer_import(opt_module)
+    else:
+        raise NotImplementedError
+    opt_class.add_arguments(parser)
+
     args = parser.parse_args(cmd_args)
+    args.opt_module = opt_module
     if args.model_module is None:
         args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
     if 'chainer_backend' in args.model_module:

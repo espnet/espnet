@@ -36,6 +36,7 @@ from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
+from espnet.optimizers.pytorch_backend.opt_interface import optimizer_import
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
@@ -332,18 +333,8 @@ def train(args):
     model = model.to(device)
 
     # Setup an optimizer
-    if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps,
-            weight_decay=args.weight_decay)
-    elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(),
-                                     weight_decay=args.weight_decay)
-    elif args.opt == 'noam':
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
-        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
-    else:
-        raise NotImplementedError("unknown optimizer: " + args.opt)
+    opt_class = optimizer_import(args.opt_module)
+    optimizer = opt_class.get(model.parameters(), args)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -461,7 +452,7 @@ def train(args):
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
-    if args.opt == 'adadelta':
+    if 'adadelta' in args.opt_module:
         if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
@@ -487,7 +478,7 @@ def train(args):
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
                    'elapsed_time']
-    if args.opt == 'adadelta':
+    if 'adadelta' in args.opt_module:
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(REPORT_INTERVAL, 'iteration'))

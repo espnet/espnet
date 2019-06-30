@@ -51,10 +51,6 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='transformer input layer type')
         group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
                            help='dropout in transformer attention. use --dropout-rate if None is set')
-        group.add_argument('--transformer-lr', default=10.0, type=float,
-                           help='Initial value of learning rate')
-        group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                           help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
         return parser
