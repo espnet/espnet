@@ -1,5 +1,4 @@
 from argparse import Namespace
-from functools import partial
 from typing import Iterator
 
 from torch.nn import Parameter
@@ -12,8 +11,7 @@ import_alias = dict(
     adadelta='espnet.optimizers.pytorch_backend.adadelta:Adadelta',
     adagrad='espnet.optimizers.pytorch_backend.adagrad:Adagrad',
     adam='espnet.optimizers.pytorch_backend.adam:Adam',
-    noamadam='espnet.optimizers.pytorch_backend.noam:NoamAdam')
-optimizer_import = partial(dynamic_import, alias=import_alias)
+    noam='espnet.optimizers.pytorch_backend.noam:NoamAdam')
 
 
 class OptInterface:
@@ -24,3 +22,10 @@ class OptInterface:
     @staticmethod
     def get(parameters: Iterator[Parameter], args: Namespace) -> Optimizer:
         raise NotImplementedError('get method is not implemented')
+
+
+def optimizer_import(import_path) -> OptInterface:
+    opt = dynamic_import(import_path, alias=import_alias)
+    if not issubclass(opt, OptInterface):
+        raise ValueError(f'{import_path} is not subclass of OptInterface')
+    return opt
