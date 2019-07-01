@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=2        #
+stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
