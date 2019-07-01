@@ -124,6 +124,8 @@ class HDF5Reader:
             if self.filepath == '-':
                 # Required h5py>=2.9
                 filepath = io.BytesIO(sys.stdin.buffer.read())
+            else:
+                filepath = self.filepath
             with h5py.File(filepath, 'r') as f:
                 for key in f:
                     if self.return_shape:
@@ -133,14 +135,14 @@ class HDF5Reader:
 
 
 class SoundHDF5Reader:
-    def __init__(self, rspecifier, filetype='mat', return_shape=False):
+    def __init__(self, rspecifier, return_shape=False):
         if ':' not in rspecifier:
             raise ValueError('Give "rspecifier" such as "ark:some.ark: {}"'
                              .format(rspecifier))
         self.ark_or_scp, self.filepath = rspecifier.split(':', 1)
         if self.ark_or_scp not in ['ark', 'scp']:
             raise ValueError(f'Must be scp or ark: {self.ark_or_scp}')
-        self.filetype = filetype
+        self.return_shape = return_shape
 
     def __iter__(self):
         if self.ark_or_scp == 'scp':
@@ -191,7 +193,9 @@ class SoundHDF5Reader:
             if self.filepath == '-':
                 # Required h5py>=2.9
                 filepath = io.BytesIO(sys.stdin.buffer.read())
-            for key, (r, a) in SoundHDF5File(filepath, 'r').items():
+            else:
+                filepath = self.filepath
+            for key, (a, r) in SoundHDF5File(filepath, 'r').items():
                 if self.return_shape:
                     a = a.shape
                 yield key, (r, a)
@@ -199,9 +203,9 @@ class SoundHDF5Reader:
 
 class SoundReader:
     def __init__(self, rspecifier, return_shape=False):
-        if ':' not in self.rspecifier:
+        if ':' not in rspecifier:
             raise ValueError('Give "rspecifier" such as "scp:some.scp: {}"'
-                             .format(self.rspecifier))
+                             .format(rspecifier))
         self.ark_or_scp, self.filepath = rspecifier.split(':', 1)
         if self.ark_or_scp != 'scp':
             raise ValueError('Only supporting "scp" for sound file: {}'
@@ -213,8 +217,7 @@ class SoundReader:
             for line in f:
                 key, sound_file_path = line.rstrip().split(None, 1)
                 # Assume PCM16
-                array, rate = soundfile.read(sound_file_path,
-                                             dtype='int16')
+                array, rate = soundfile.read(sound_file_path, dtype='int16')
                 # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
                 # (soundfile style -> scipy style)
                 if self.return_shape:
