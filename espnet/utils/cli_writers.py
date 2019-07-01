@@ -6,8 +6,8 @@ import kaldiio
 import numpy
 import soundfile
 
-from espnet.utils.io_utils import SoundHDF5File
 from espnet.utils.cli_utils import assert_scipy_wav_style
+from espnet.utils.io_utils import SoundHDF5File
 
 
 def file_writer_helper(wspecifier: str, filetype: str = 'mat',
@@ -162,11 +162,13 @@ def parse_wspecifier(wspecifier: str) -> Dict[str, str]:
 
 
 class HDF5Writer(BaseWriter):
-    """
+    """HDF5Writer
+
     Examples:
         >>> with HDF5Writer('ark:out.h5', compress=True) as f:
         ...     f['key'] = array
     """
+
     def __init__(self, wspecifier, write_num_frames=None, compress=False):
         spec_dict = parse_wspecifier(wspecifier)
         self.filename = spec_dict['ark']
@@ -195,7 +197,8 @@ class HDF5Writer(BaseWriter):
 
 
 class SoundHDF5Writer(BaseWriter):
-    """
+    """SoundHDF5Writer
+
     Examples:
         >>> fs = 16000
         >>> with SoundHDF5Writer('ark:out.h5') as f:
@@ -231,7 +234,8 @@ class SoundHDF5Writer(BaseWriter):
 
 
 class SoundWriter(BaseWriter):
-    """
+    """SoundWriter
+
     Examples:
         >>> fs = 16000
         >>> with SoundWriter('ark,scp:outdir,out.scp') as f:
