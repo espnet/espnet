@@ -14,23 +14,27 @@ def file_reader_helper(rspecifier: str, filetype: str = 'mat',
                        segments: str = None):
     """Read uttid and array in kaldi style
 
-    :param str rspecifier: Give as "ark:feats.ark" or "scp:feats.scp"
-    :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
-    :param bool return_shape: Return the shape of the matrix,
-        instead of the matrix. This can reduce IO cost for HDF5.
-    :rtype: Generator[Tuple[str, np.ndarray], None, None]
+    This function might be a bit confusing as "ark" is used
+    for HDF5 to imitate "kaldi-rspecifier".
 
-    Read from kaldi-matrix ark file:
+    Args:
+        rspecifier: Give as "ark:feats.ark" or "scp:feats.scp"
+        filetype: "mat" is kaldi-martix, "hdf5": HDF5
+        return_shape: Return the shape of the matrix,
+            instead of the matrix. This can reduce IO cost for HDF5.
+    Returns:
+        Generator[Tuple[str, np.ndarray], None, None]:
 
-    >>> for u, array in FileReaderWrapper('ark:feats.ark', 'mat'):
-    ...     array
+    Examples:
+        Read from kaldi-matrix ark file:
 
-    Read from HDF5 file:
+        >>> for u, array in file_reader_helper('ark:feats.ark', 'mat'):
+        ...     array
 
-    >>> for u, array in FileReaderWrapper('ark:feats.h5', 'hdf5'):
-    ...     array
+        Read from HDF5 file:
 
-    This might be a bit confusing as "ark" is used for HDF5 to imitate kaldi.
+        >>> for u, array in file_reader_helper('ark:feats.h5', 'hdf5'):
+        ...     array
 
     """
     if filetype == 'mat':
