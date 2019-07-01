@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Dict
 
@@ -60,7 +59,7 @@ def file_writer_helper(wspecifier: str, filetype: str = 'mat',
                            compression_method=compression_method)
     elif filetype == 'hdf5':
         return HDF5Writer(wspecifier, write_num_frames=write_num_frames,
-                          compress=compress, pcm_format='wav')
+                          compress=compress)
     elif filetype == 'sound.hdf5':
         return SoundHDF5Writer(wspecifier, write_num_frames=write_num_frames,
                                pcm_format=pcm_format)
@@ -129,6 +128,7 @@ class KaldiWriter(BaseWriter):
                 wspecifier, compression_method=compression_method)
         else:
             self.writer = kaldiio.WriteHelper(wspecifier)
+        self.writer_scp = None
         if write_num_frames is not None:
             self.writer_nframe = get_num_frames_writer(write_num_frames)
         else:
@@ -169,14 +169,14 @@ class HDF5Writer(BaseWriter):
     """
     def __init__(self, wspecifier, write_num_frames=None, compress=False):
         spec_dict = parse_wspecifier(wspecifier)
-        self.file_name = spec_dict['ark']
+        self.filename = spec_dict['ark']
 
         if compress:
             self.kwargs = {'compression': 'gzip'}
         else:
             self.kwargs = {}
         self.writer = h5py.File(spec_dict['ark'], 'w')
-        if 'scp' in self.spec_dict:
+        if 'scp' in spec_dict:
             self.writer_scp = open(spec_dict['scp'], 'w', encoding='utf-8')
         else:
             self.writer_scp = None
@@ -197,16 +197,18 @@ class HDF5Writer(BaseWriter):
 class SoundHDF5Writer(BaseWriter):
     """
     Examples:
+        >>> fs = 16000
         >>> with SoundHDF5Writer('ark:out.h5') as f:
-        ...     f['key'] = 16000, array
+        ...     f['key'] = fs, array
     """
 
     def __init__(self, wspecifier, write_num_frames=None, pcm_format='wav'):
+        self.pcm_format = pcm_format
         spec_dict = parse_wspecifier(wspecifier)
-        self.file_name = spec_dict['ark']
+        self.filename = spec_dict['ark']
         self.writer = SoundHDF5File(spec_dict['ark'], 'w',
                                     format=self.pcm_format)
-        if 'scp' in self.spec_dict:
+        if 'scp' in spec_dict:
             self.writer_scp = open(spec_dict['scp'], 'w', encoding='utf-8')
         else:
             self.writer_scp = None
@@ -220,30 +222,32 @@ class SoundHDF5Writer(BaseWriter):
         # Change Tuple[int, ndarray] -> Tuple[ndarray, int]
         # (scipy style -> soundfile style)
         value = (value[1], value[0])
-        self.writer.create_dataset(key, data=value, **self.kwargs)
+        self.writer.create_dataset(key, data=value)
 
         if self.writer_scp is not None:
             self.writer_scp.write(f'{key} {self.filename}:{key}\n')
         if self.writer_nframe is not None:
-            self.writer_nframe.write(f'{key} {len(value[1])}\n')
+            self.writer_nframe.write(f'{key} {len(value[0])}\n')
 
 
 class SoundWriter(BaseWriter):
     """
     Examples:
+        >>> fs = 16000
         >>> with SoundWriter('ark,scp:outdir,out.scp') as f:
-        ...     f['key'] = 16000, array
+        ...     f['key'] = fs, array
     """
 
     def __init__(self, wspecifier, write_num_frames=None, pcm_format='wav'):
+        self.pcm_format = pcm_format
         spec_dict = parse_wspecifier(wspecifier)
         # e.g. ark,scp:dirname,wav.scp
         # -> The wave files are found in dirname/*.wav
-        self.dir_name = spec_dict['ark']
-        Path(self.dirname).makedirs(parents=True, exist_ok=True)
+        self.dirname = spec_dict['ark']
+        Path(self.dirname).mkdir(parents=True, exist_ok=True)
         self.writer = None
 
-        if 'scp' in self.spec_dict:
+        if 'scp' in spec_dict:
             self.writer_scp = open(spec_dict['scp'], 'w', encoding='utf-8')
         else:
             self.writer_scp = None
@@ -255,7 +259,7 @@ class SoundWriter(BaseWriter):
     def __setitem__(self, key, value):
         assert_scipy_wav_style(value)
         rate, signal = value
-        wavfile = os.path.join(self.filename, key + '.' + self.pcm_format)
+        wavfile = Path(self.dirname) / (key + '.' + self.pcm_format)
         soundfile.write(wavfile, signal.astype(numpy.int16), rate)
 
         if self.writer_scp is not None:
