@@ -10,7 +10,7 @@ from espnet.transform.cmvn import CMVN
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
-from espnet.utils.cli_wirters import file_writer_helper
+from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
