@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.cli_utils import assert_scipy_wav_style
+from espnet.utils.cli_writers import file_writer_helper
 
 
 @pytest.mark.parametrize(
