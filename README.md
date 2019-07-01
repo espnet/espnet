@@ -52,7 +52,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
-  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
+  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
   - Support speech translation recipes (Fisher callhome Spanish to English, IWSLT'18)
   - Support speech separation and recognition recipe (WSJ-2mix)
 - State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -251,8 +251,8 @@ Note that we would not include the installation of Tensorboard to simplify our i
     #### use CPU for decoding
     ngpu=0
     ```
-  - Set 1 or more values for `—batchsize` option in `asr_recog.py` to enable GPU decoding
-  - And execute the script (e.g., `run.sh —stage 5 —ngpu 1`)
+  - Set 1 or more values for `--batchsize` option in `asr_recog.py` to enable GPU decoding
+  - And execute the script (e.g., `run.sh --stage 5 --ngpu 1`)
   - You'll achieve significant speed improvement by using the GPU decoding
 - Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
@@ -391,11 +391,12 @@ You can recognize speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
 cd egs/tedlium2/asr1
-rec -c 1 -r 16000 example.wav trim 0 5
 ../../../utils/recog_wav.sh --models tedlium2.tacotron2.v1 example.wav
 ```
+where `example.wav` is a WAV file to be recognized.
+The sampling rate must be consistent with that of data used in training.
 
-Availlable pretrained models are listed as follows.
+Available pretrained models are listed as below.
 
 | Model | Notes |
 |:------|:------|
@@ -403,12 +404,12 @@ Availlable pretrained models are listed as follows.
 
 ### TTS results
 
-You can access the samples of TTS recips from following links:
+You can access the samples of TTS recipes from the following links:
 
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
 - [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
 - [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
-- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Multi English speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
 - [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
@@ -423,16 +424,16 @@ echo "This is a demonstration of text to speech." > example.txt
 ../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
 ```
 
-Availlable pretrained models are listed as follows.
+Available pretrained models are listed as follows.
 
 | Model | Notes |
 |:------|:------|
-| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | |
-| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | |
-| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | |
-| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | |
-| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | |
-| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | |
+| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Location sensitive attention |
+| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | Location sensitive attention |
+| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | Forward attention |
+| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Location sensitive attention + guided attention loss |
+| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep decoder network without reduction factor |
+| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow decoder network with reduction factor = 3 |
 
 
 ## Chainer and Pytorch backends
