@@ -4,11 +4,9 @@ import logging
 import sys
 
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileReaderWrapper
+from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
-
-PY2 = sys.version_info[0] == 2
 
 
 def get_parser():
@@ -51,10 +49,10 @@ def main():
         preprocessing = None
 
     # There are no necessary for matrix without preprocessing,
-    # so change to FileReaderWrapper to return shape.
+    # so change to file_reader_helper to return shape.
     # This make sense only with filetype="hdf5".
-    for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype,
-                                      return_shape=preprocessing is None):
+    for utt, mat in file_reader_helper(args.rspecifier, args.filetype,
+                                       return_shape=preprocessing is None):
         if preprocessing is not None:
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
