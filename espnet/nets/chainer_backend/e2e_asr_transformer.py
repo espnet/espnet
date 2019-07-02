@@ -136,8 +136,6 @@ class E2E(ASRInterface, chainer.Chain):
 
     def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         xp = self.xp
-        
-
         with chainer.no_backprop_mode():
             eos = xp.array([self.eos], 'i')
             sos = xp.array([self.sos], 'i')

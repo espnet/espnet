@@ -229,12 +229,12 @@ def test_segment_streaming_e2e():
 def test_gradient_noise_injection(module):
     args = make_arg(grad_noise=True)
     args_org = make_arg()
-    dummy_json = make_dummy_json(1, [1, 100], [1, 100], idim=20, odim=5)
+    dummy_json = make_dummy_json(2, [1, 100], [1, 100], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batchset = make_batchset(dummy_json, 1, 2 ** 10, 2 ** 10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(20, 5, args)
     model_org = m.E2E(20, 5, args_org)
     for batch in batchset:
