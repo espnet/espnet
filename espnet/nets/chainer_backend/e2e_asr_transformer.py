@@ -16,6 +16,7 @@ from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttentio
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
+from espnet.nets.chainer_backend.nets_utils_transformer import savefig
 
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
@@ -294,6 +295,7 @@ class E2E(ASRInterface, chainer.Chain):
         :return: N-best decoding results
         :rtype: list
         '''
+
         xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             ilens = [x_block.shape[0]]
@@ -335,6 +337,7 @@ class E2E(ASRInterface, chainer.Chain):
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
+
         with chainer.no_backprop_mode():
             results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
         ret = dict()
@@ -353,7 +356,22 @@ class E2E(ASRInterface, chainer.Chain):
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        attn_dict = self.att_vis_fn(*batch)
+        attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
-        plot_multi_head_attention(self.data, attn_dict, self.outdir, suffix)
+        plot_multi_head_attention(
+            self.data, attn_dict, self.outdir, suffix, savefig)
+
+    def get_attention_weights(self):
+        batch = self.converter([self.transform(self.data)], self.device)
+        return self.att_vis_fn(*batch)
+
+    def log_attentions(self, logger, step):
+        def log_fig(plot, filename):
+            import matplotlib.pyplot as plt
+            from os.path import basename
+            logger.add_figure(basename(filename), plot, step)
+            plt.clf()
+
+        attn_dict = self.get_attention_weights()
+        plot_multi_head_attention(
+            self.data, attn_dict, self.outdir, "", log_fig)
