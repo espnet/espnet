@@ -347,7 +347,7 @@ def get_model_conf(model_path, conf_path=None):
 
     Args:
         model_path (str): Model path.
-        conf_path (str): optional model config path
+        conf_path (str): Optional model config path.
 
     Returns:
         list[int, int, dict[str, Any]]: config information loaded from json file.
