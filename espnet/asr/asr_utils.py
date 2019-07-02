@@ -346,7 +346,7 @@ def get_model_conf(model_path, conf_path=None):
     """Get model config information by reading a model config file (model.json).
 
     Args:
-        model_path (str): model path
+        model_path (str): Model path.
         conf_path (str): optional model config path
 
     Returns:
