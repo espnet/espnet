@@ -39,8 +39,8 @@ case=lc
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-st_ted=/n/sd3/inaguma/corpus/iwslt18/data
-# st_ted=/export/b08/inaguma/IWSLT
+st_ted=/export/b08/inaguma/IWSLT
+# st_ted=/n/sd3/inaguma/corpus/iwslt18/data
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -265,7 +265,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_mttrans
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -288,7 +288,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.${case}.json \
-        --valid-json ${feat_dt_dir}/data.${case}.json
+        --valid-json ${feat_dt_dir}/data.${case}.json \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -318,7 +320,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${recog_model}
 
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+            score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict}
         else
             set=$(echo ${rtask} | cut -f -1 -d ".")
             local/score_bleu_reseg.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
