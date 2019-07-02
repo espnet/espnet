@@ -120,6 +120,7 @@ def test_transformer_synth(module):
         penalty=0.0,
         ctc_weight=0.0,
         maxlenratio=0,
+        lm_weight=0,
         minlenratio=0,
         nbest=1
     )
