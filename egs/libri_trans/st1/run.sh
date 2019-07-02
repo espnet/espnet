@@ -151,12 +151,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/libri_trans/st1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/libri_trans/st1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -224,10 +224,10 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
@@ -282,7 +282,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
 
     ) &
     pids+=($!) # store background pids

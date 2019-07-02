@@ -4,8 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <src-dir>"
-    echo "e.g.: $0 tc data/dev"
+    echo "Usage: $0 <set>"
+    echo "e.g.: $0 dev"
     exit 1
 fi
 

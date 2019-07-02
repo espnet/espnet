@@ -14,7 +14,7 @@ atype: add
 adim: 1024
 
 # hybrid CTC/attention
-mtlalpha: 0.0
+mtlalpha: 0.0  # this must be 0.0
 
 # minibatch related
 batch-size: 15

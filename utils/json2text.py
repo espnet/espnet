@@ -51,7 +51,8 @@ if __name__ == '__main__':
 
     for x in j['utts']:
         seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
-        h.write(" ".join(seq).replace('<eos>', '') + '\n')
+        h.write(x + " " + " ".join(seq).replace('<eos>', '') + '\n')
 
-        seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
-        r.write(" ".join(seq).replace('<eos>', '') + '\n')
+        if 'tokenid' in j['utts'][x]['output'][0].keys():
+            seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
+            r.write(x + " " + " ".join(seq).replace('<eos>', '') + '\n')
