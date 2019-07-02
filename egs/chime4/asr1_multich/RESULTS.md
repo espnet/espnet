@@ -12,16 +12,16 @@
 ## Baseline(egs/asr1) 2mic
 ### CER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |dt05_real | 1640|160390 | 94.8| 2.7| 2.5| 1.4|6.6|67.9  |
 |dt05_simu | 1640|160400 | 93.9| 3.3| 2.9| 1.5|7.6|68.6  |
 |et05_real | 1320|126796 | 89.1| 6.0| 4.9| 2.8|13.7 | 79.2  |
 |et05_simu | 1320|126812 | 88.9| 6.0| 5.2| 2.8|14.0 | 80.2  |
 ### WER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |dt05_real | 1640|27119  | 89.0| 8.9| 2.1| 1.7|12.6 | 67.9  |
 |dt05_simu | 1640|27120  | 87.7| 10.1|2.2| 1.8|14.1 | 68.6  |
 |et05_real | 1320|21409  | 78.8| 17.7|3.5| 3.2|24.4 | 79.2  |
@@ -30,16 +30,16 @@
 ## Baseline(egs/asr1) 5mic
 ### CER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |dt05_real | 1640|160390 | 96.0| 2.0| 2.0| 1.1|5.1|62.1  |
 |dt05_simu | 1640|160400 | 95.3| 2.3| 2.3| 1.1|5.8|64.3  |
 |et05_real | 1320|126796 | 91.4| 4.6| 3.9| 2.2|10.7|75.7  |
 |et05_simu | 1320|126812 | 90.9| 4.8| 4.3| 2.3|11.4|78.3  |
 
 ### WER
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |dt05_real | 1640|27119  | 91.2| 7.2| 1.7| 1.2|10.1|62.1  |
 |dt05_simu | 1640|27120  | 90.2| 8.0| 1.8| 1.3|11.1|64.3  |
 |et05_real | 1320|21409  | 82.8| 14.3|2.9| 2.5|19.8|75.7  |
@@ -49,8 +49,8 @@
 ## DNN MVDR 5mic
 ### CER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |decode_dt05_real_isolated_6ch_track_multich_decode_lm_word65000|1640|160390|96.5|1.7|1.8|0.8|4.4|55.6|
 |decode_dt05_simu_isolated_6ch_track_multich_decode_lm_word65000|1640|160400|96.6|1.7|1.7|0.7|4.1|53.7|
 |decode_et05_real_isolated_6ch_track_multich_decode_lm_word65000|1320|126796|92.8|3.5|3.6|1.7|8.9|68.9|
@@ -58,8 +58,8 @@
 
 ### WER
 
-|dataset|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 |decode_dt05_real_isolated_6ch_track_multich_decode_lm_word65000|1640|27119|92.2|6.4|1.5|0.9|8.8|55.6|
 |decode_dt05_simu_isolated_6ch_track_multich_decode_lm_word65000|1640|27120|92.6|6.2|1.3|0.8|8.3|53.7|
 |decode_et05_real_isolated_6ch_track_multich_decode_lm_word65000|1320|21409|85.6|11.6|2.8|1.9|16.3|68.9|

@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
@@ -61,13 +62,21 @@ REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    """Custom Evaluator for Pytorch
+    """Custom Evaluator for Pytorch.
 
-    :param torch.nn.Module model : The model to evaluate
-    :param chainer.dataset.Iterator : The train iterator
-    :param target :
-    :param CustomConverter converter : The batch converter
-    :param torch.device device : The device used
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        iterator (chainer.dataset.Iterator) : The train iterator.
+
+        target (link | dict[str, link]) :Link object or a dictionary of
+            links to evaluate. If this is just a link object, the link is
+            registered by the name ``'main'``.
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+
+        device (torch.device): The device used.
     """
 
     def __init__(self, model, iterator, target, converter, device):
@@ -78,6 +87,7 @@ class CustomEvaluator(extensions.Evaluator):
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
+        """Main evaluate routine for CustomEvaluator."""
         iterator = self._iterators['main']
 
         if self.eval_hook:
@@ -108,15 +118,22 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """Custom Updater for Pytorch
+    """Custom Updater for Pytorch.
 
-    :param torch.nn.Module model : The model to update
-    :param int grad_clip_threshold : The gradient clipping value to use
-    :param chainer.dataset.Iterator train_iter : The training iterator
-    :param torch.optim.optimizer optimizer: The training optimizer
-    :param CustomConverter converter: The batch converter
-    :param torch.device device : The device to use
-    :param int ngpu : The number of gpus to use
+    Args:
+        model (torch.nn.Module): The model to update.
+        grad_clip_threshold (int): The gradient clipping value to use.
+        train_iter (chainer.dataset.Iterator): The training iterator.
+        optimizer (torch.optim.optimizer): The training optimizer.
+
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+
+        device (torch.device): The device to use.
+        ngpu (int): The number of gpus to use.
+
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
@@ -134,6 +151,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Main update routine of the CustomUpdater."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -150,10 +168,7 @@ class CustomUpdater(training.StandardUpdater):
         # gradient noise injection
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
-            eta = 0.5  # {0.01,0.3,1.0}
-            duration = 1000
-            itr = (self.iteration // duration) + 1
-            add_gradient_noise(self.model, itr, eta)
+            add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
         loss.detach()  # Truncate the graph
 
         # update parameters
@@ -178,9 +193,11 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """Custom batch converter for Pytorch
+    """Custom batch converter for Pytorch.
 
-    :param int subsampling_factor : The subsampling factor
+    Args:
+        subsampling_factor (int): The subsampling factor.
+
     """
 
     def __init__(self, subsampling_factor=1):
@@ -188,12 +205,15 @@ class CustomConverter(object):
         self.ignore_id = -1
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device
+        """Transforms a batch and send it to a device.
 
-        :param list batch: The batch to transform
-        :param torch.device device: The device to send to
-        :return: a tuple xs_pad, ilens, ys_pad
-        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        Args:
+            batch (list): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -229,10 +249,37 @@ class CustomConverter(object):
         return xs_pad, ilens, ys_pad
 
 
-def train(args):
-    """Train with the given args
+def load_trained_model(model_path):
+    """Load the trained model.
 
-    :param Namespace args: The program arguments
+    Args:
+        model_path(str): Path to model.***.best
+
+    """
+    # read training config
+    idim, odim, train_args = get_model_conf(
+        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + model_path)
+    # To be compatible with v.0.3.0 models
+    if hasattr(train_args, "model_module"):
+        model_module = train_args.model_module
+    else:
+        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
+    model_class = dynamic_import(model_module)
+    model = model_class(idim, odim, train_args)
+    torch_load(model_path, model)
+
+    return model, train_args
+
+
+def train(args):
+    """Train with the given args.
+
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
 
@@ -260,11 +307,28 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
+    asr_model, mt_model = None, None
+    # Initialize encoder with pre-trained ASR encoder
+    if args.asr_model:
+        asr_model, _ = load_trained_model(args.asr_model)
+        assert isinstance(asr_model, ASRInterface)
+
+    # Initialize decoder with pre-trained MT decoder
+    if args.mt_model:
+        mt_model, _ = load_trained_model(args.mt_model)
+        assert isinstance(mt_model, MTInterface)
+
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args)
+    model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
+
+    # delete pre-trained models
+    if args.asr_model:
+        del asr_model
+    if args.mt_model:
+        del mt_model
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -478,25 +542,14 @@ def train(args):
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
     """
     set_deterministic_pytorch(args)
-    # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    # To be compatible with v.0.3.0 models
-    if hasattr(train_args, "model_module"):
-        model_module = train_args.model_module
-    else:
-        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
+    model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
-    torch_load(args.model, model)
     model.recog_args = args
 
     # read rnnlm
@@ -613,9 +666,10 @@ def recog(args):
 
 
 def enhance(args):
-    """Dumping enhanced speech and mask
+    """Dumping enhanced speech and mask.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
     """
     set_deterministic_pytorch(args)
     # read training config

@@ -9,6 +9,7 @@ from __future__ import division
 import argparse
 import logging
 import math
+import os
 
 import editdistance
 
@@ -54,9 +55,13 @@ class E2E(ASRInterface, torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
+    :param E2E (torch.nn.Module) asr_model: pre-trained ASR model for encoder initialization
+    :param E2E (torch.nn.Module) mt_model: pre-trained NMT model for decoder initialization
+
     """
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
+        super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -87,11 +92,14 @@ class E2E(ASRInterface, torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        if args.lsm_type and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
+
+        # speech translation related
+        self.replace_sos = args.replace_sos
 
         if args.use_frontend:
             # Relative importing because of using python3 syntax
@@ -118,13 +126,32 @@ class E2E(ASRInterface, torch.nn.Module):
         # weight initialization
         self.init_like_chainer()
 
+        # pre-training w/ ASR encoder and NMT decoder
+        if asr_model is not None:
+            param_dict = dict(asr_model.named_parameters())
+            for n, p in self.named_parameters():
+                # overwrite the encoder
+                if n in param_dict.keys() and p.size() == param_dict[n].size():
+                    if 'enc.enc' in n:
+                        p.data = param_dict[n].data
+                        logging.warning('Overwrite %s' % n)
+        if mt_model is not None:
+            param_dict = dict(mt_model.named_parameters())
+            for n, p in self.named_parameters():
+                # overwrite the decoder
+                if n in param_dict.keys() and p.size() == param_dict[n].size():
+                    if 'dec.' in n or 'att' in n:
+                        p.data = param_dict[n].data
+                        logging.warning('Overwrite %s' % n)
+
         # options for beam search
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
-                          'space': args.sym_space, 'blank': args.sym_blank}
+                          'space': args.sym_space, 'blank': args.sym_blank,
+                          'tgt_lang': False}
 
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
@@ -190,12 +217,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: ctc loass value
+        :return: loass value
         :rtype: torch.Tensor
-        :return: attention loss value
-        :rtype: torch.Tensor
-        :return: accuracy in attention decoder
-        :rtype: float
         """
         # 0. Frontend
         if self.frontend is not None:
@@ -205,6 +228,12 @@ class E2E(ASRInterface, torch.nn.Module):
             hs_pad, hlens = xs_pad, ilens
 
         # 1. Encoder
+        if self.replace_sos:
+            tgt_lang_ids = ys_pad[:, 0:1]
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+        else:
+            tgt_lang_ids = None
+
         hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # 2. CTC loss
@@ -217,7 +246,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.mtlalpha == 1:
             self.loss_att, acc = None, None
         else:
-            self.loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+            self.loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -255,9 +284,11 @@ class E2E(ASRInterface, torch.nn.Module):
                 lpz = None
 
             word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
-                                                       self.recog_args, self.char_list,
-                                                       self.rnnlm)
+            nbest_hyps = self.dec.recognize_beam_batch(
+                hs_pad, torch.tensor(hlens), lpz,
+                self.recog_args, self.char_list,
+                self.rnnlm,
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -373,7 +404,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             hs_pad, hlens = xs_pad, ilens
 
-        # 1. encoder
+        # 1. Encoder
         hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
@@ -382,7 +413,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             lpz = None
 
-        # 2. decoder
+        # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
 
@@ -431,10 +462,15 @@ class E2E(ASRInterface, torch.nn.Module):
                 hs_pad, hlens = xs_pad, ilens
 
             # 1. Encoder
+            if self.replace_sos:
+                tgt_lang_ids = ys_pad[:, 0:1]
+                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+            else:
+                tgt_lang_ids = None
             hpad, hlens, _ = self.enc(hs_pad, hlens)
 
             # 2. Decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
 
         return att_ws
 
