@@ -402,7 +402,7 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
-        from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
+        from espnet.nets.chainer_backend.transformer.optimizer_rule import VaswaniRule
         trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
                                    scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
