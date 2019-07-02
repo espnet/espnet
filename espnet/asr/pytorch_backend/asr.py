@@ -36,7 +36,7 @@ from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
-from espnet.opts.pytorch_backend.opt_interface import optimizer_import
+from espnet.opts.pytorch_backend.optimizer_factory_interface import optimizer_import
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
@@ -333,8 +333,8 @@ def train(args):
     model = model.to(device)
 
     # Setup an optimizer
-    opt_class = optimizer_import(args.opt_module)
-    optimizer = opt_class.get(model.parameters(), args)
+    opt_factory = optimizer_import(args.opt_module)
+    optimizer = opt_factory.create(model.parameters(), args)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)

@@ -14,9 +14,9 @@ import sys
 
 import numpy as np
 
-from espnet.opts.chainer_backend.opt_interface \
+from espnet.opts.chainer_backend.optimizer_factory_interface \
     import optimizer_import as chainer_optimizer_import
-from espnet.opts.pytorch_backend.opt_interface \
+from espnet.opts.pytorch_backend.optimizer_factory_interface \
     import optimizer_import as pytorch_optimizer_import
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
@@ -299,10 +299,10 @@ def main(cmd_args):
         model_class = dynamic_import(args.model_module)
         model_class.add_arguments(parser)
     if args.backend == 'pytorch':
-        opt_class = pytorch_optimizer_import(args.opt_module)
+        opt_factory = pytorch_optimizer_import(args.opt_module)
     else:
-        opt_class = chainer_optimizer_import(args.opt_module)
-    opt_class.add_arguments(parser)
+        opt_factory = chainer_optimizer_import(args.opt_module)
+    opt_factory.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
         args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"

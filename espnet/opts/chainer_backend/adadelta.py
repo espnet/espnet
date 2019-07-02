@@ -1,11 +1,11 @@
 from argparse import Namespace
 
-from chainer.optimizers import AdaDelta as AdaDelta_chainer
+from chainer.optimizers import AdaDelta
 
-from espnet.opts.chainer_backend.opt_interface import OptInterface
+from espnet.opts.chainer_backend.optimizer_factory_interface import OptimizerFactoryInterface
 
 
-class AdaDelta(OptInterface):
+class AdaDeltaFactory(OptimizerFactoryInterface):
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group('Optimizer config')
@@ -14,6 +14,6 @@ class AdaDelta(OptInterface):
         return parser
 
     @staticmethod
-    def get(args: Namespace) -> AdaDelta_chainer:
-        return AdaDelta_chainer(rho=args.adadelta_rho,
-                                eps=args.adadelta_eps)
+    def create(args: Namespace) -> AdaDelta:
+        return AdaDelta(rho=args.adadelta_rho,
+                        eps=args.adadelta_eps)

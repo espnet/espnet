@@ -3,9 +3,9 @@ from typing import Iterator
 from typing import Tuple
 
 from torch.nn import Parameter
-from torch.optim import Adam as Adam_torch
+from torch.optim import Adam
 
-from espnet.opts.pytorch_backend.opt_interface import OptInterface
+from espnet.opts.pytorch_backend.optimizer_factory_interface import OptimizerFactoryInterface
 
 
 def float_pair(string: str) -> Tuple[float, float]:
@@ -15,10 +15,10 @@ def float_pair(string: str) -> Tuple[float, float]:
     return tuple(float(p) for p in pair)
 
 
-class Adam(OptInterface):
+class AdamFactory(OptimizerFactoryInterface):
     @staticmethod
     def add_arguments(parser):
-        group = parser.add_argument_group('Optimizer config')
+        group = parser.add_argument_group('Adam config')
         group.add_argument('--lr', type=float, default=0.001)
         group.add_argument('--weight-decay', type=float, default=0.)
         group.add_argument('--adam-betas', type=float_pair,
@@ -28,10 +28,10 @@ class Adam(OptInterface):
         return parser
 
     @staticmethod
-    def get(parameters: Iterator[Parameter], args: Namespace) -> Adam_torch:
-        return Adam_torch(parameters,
-                          lr=args.lr,
-                          weight_decay=args.weight_decay,
-                          betas=args.adam_betas,
-                          eps=args.adam_eps,
-                          amsgrad=args.adam_amsgrad)
+    def create(parameters: Iterator[Parameter], args: Namespace) -> Adam:
+        return Adam(parameters,
+                    lr=args.lr,
+                    weight_decay=args.weight_decay,
+                    betas=args.adam_betas,
+                    eps=args.adam_eps,
+                    amsgrad=args.adam_amsgrad)

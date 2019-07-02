@@ -4,9 +4,9 @@ from typing import Iterator
 from torch.nn import Parameter
 from torch.optim import Optimizer
 
-from espnet.opts.pytorch_backend.adadelta import Adadelta
-from espnet.opts.pytorch_backend.adam import Adam
-from espnet.opts.pytorch_backend.opt_interface import OptInterface
+from espnet.opts.pytorch_backend.adadelta import AdadeltaFactory
+from espnet.opts.pytorch_backend.adam import AdamFactory
+from espnet.opts.pytorch_backend.optimizer_factory_interface import OptimizerFactoryInterface
 
 
 # FIXME(kamo): Should inherit torch.optim.Optimizer to satisfy strict type check
@@ -70,20 +70,19 @@ class NoamOptimizer(object):
                 setattr(self, key, value)
 
 
-class NoamOptBase(OptInterface):
-    optimizer_class: Optimizer
+class NoamOptimizerFactoryBase(OptimizerFactoryInterface):
+    factory_class: Optimizer
 
     @classmethod
     def add_arguments(cls, parser):
-        cls.optimizer_class.add_arguments(parser)
+        cls.factory_class.add_arguments(parser)
         group = parser.add_argument_group('NoamOptimizer config')
         group.add_argument('--noam-warmup', default=25000, type=int,
                            help='noam warmup steps')
-        return parser
 
     @classmethod
-    def get(cls, parameters: Iterator[Parameter], args: Namespace) -> NoamOptimizer:
-        optimizer = cls.optimizer_class.get(parameters, args)
+    def create(cls, parameters: Iterator[Parameter], args: Namespace) -> NoamOptimizer:
+        optimizer = cls.factory_class.create(parameters, args)
         # Note(kamo): The original lr of optimizer is ingored in Noam, so reuse args.lr
         return NoamOptimizer(optimizer,
                              model_size=args.adim,
@@ -91,9 +90,15 @@ class NoamOptBase(OptInterface):
                              factor=args.lr)
 
 
-class NoamAdam(NoamOptBase):
-    optimizer_class = Adam
+class NoamAdamFactory(NoamOptimizerFactoryBase):
+    factory_class = AdamFactory
+
+    @classmethod
+    def add_arguments(cls, parser):
+        super().add_arguments(parser)
+        # Overwrite these default values
+        parser.set_defaults(adam_beta=(0.9, 0.98), adam_eps=1e-9)
 
 
-class NoamAdadelta(NoamOptBase):
-    optimizer_class = Adadelta
+class NoamAdadeltaFactory(NoamOptimizerFactoryBase):
+    factory_class = AdadeltaFactory
