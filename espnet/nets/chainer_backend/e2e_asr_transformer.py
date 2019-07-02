@@ -10,7 +10,6 @@ import chainer
 from chainer import reporter
 
 import chainer.functions as F
-from chainer.training import extension
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend import ctc
@@ -21,70 +20,8 @@ from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSm
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 
-from itertools import groupby
-
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
-
-
-class VaswaniRule(extension.Extension):
-
-    """Trainer extension to shift an optimizer attribute magically by Vaswani.
-
-    Args:
-        attr (str): Name of the attribute to shift.
-        rate (float): Rate of the exponential shift. This value is multiplied
-            to the attribute at each call.
-        init (float): Initial value of the attribute. If it is ``None``, the
-            extension extracts the attribute at the first call and uses it as
-            the initial value.
-        target (float): Target value of the attribute. If the attribute reaches
-            this value, the shift stops.
-        optimizer (~chainer.Optimizer): Target optimizer to adjust the
-            attribute. If it is ``None``, the main optimizer of the updater is
-            used.
-
-    """
-
-    def __init__(self, attr, d, warmup_steps=4000,
-                 init=None, target=None, optimizer=None,
-                 scale=1.):
-        self._attr = attr
-        self._d_inv05 = d ** (-0.5) * scale
-        self._warmup_steps_inv15 = warmup_steps ** (-1.5)
-        self._init = init
-        self._target = target
-        self._optimizer = optimizer
-        self._t = 0
-        self._last_value = None
-
-    def initialize(self, trainer):
-        optimizer = self._get_optimizer(trainer)
-        # ensure that _init is set
-        if self._init is None:
-            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
-        if self._last_value is not None:  # resuming from a snapshot
-            self._update_value(optimizer, self._last_value)
-        else:
-            self._update_value(optimizer, self._init)
-
-    def __call__(self, trainer):
-        self._t += 1
-        optimizer = self._get_optimizer(trainer)
-        value = self._d_inv05 * \
-            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
-        self._update_value(optimizer, value)
-
-    def serialize(self, serializer):
-        self._t = serializer('_t', self._t)
-        self._last_value = serializer('_last_value', self._last_value)
-
-    def _get_optimizer(self, trainer):
-        return self._optimizer or trainer.updater.get_optimizer('main')
-
-    def _update_value(self, optimizer, value):
-        setattr(optimizer, self._attr, value)
-        self._last_value = value
 
 
 class E2E(ASRInterface, chainer.Chain):
@@ -199,7 +136,7 @@ class E2E(ASRInterface, chainer.Chain):
 
     def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         xp = self.xp
-        ilens = np.array([int(x) for x in ilens])
+        
 
         with chainer.no_backprop_mode():
             eos = xp.array([self.eos], 'i')
@@ -238,38 +175,13 @@ class E2E(ASRInterface, chainer.Chain):
         acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
 
         # Compute CTC Loss and CER CTC
+        cer_ctc = None
         if self.ctc is None:
             loss_ctc = None
-            cer_ctc = None
         else:
-            import editdistance
-
             xs = xs.reshape(batch, -1, self.dims)
             xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
             loss_ctc = self.ctc(xs, ys_pad)
-            cers, char_ref_lens = [], []
-
-            with chainer.no_backprop_mode():
-                y_hats = self.ctc.argmax(xs).data
-                ys_pad = [chainer.backends.cuda.to_cpu(y.data) for y in ys_pad]
-
-            for i, y in enumerate(y_hats):
-                y_hat = [x[0] for x in groupby(y)]
-                y_true = ys_pad[i]
-
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
-                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
-                seq_hat_text = seq_hat_text.replace(self.blank, '')
-                seq_true_text = "".join(seq_true).replace(self.space, ' ')
-
-                hyp_chars = seq_hat_text.replace(' ', '')
-                ref_chars = seq_true_text.replace(' ', '')
-                if len(ref_chars) > 0:
-                    cers.append(editdistance.eval(hyp_chars, ref_chars))
-                    char_ref_lens.append(len(ref_chars))
-
-            cer_ctc = float(sum(cers)) / sum(char_ref_lens) if cers else None
 
         # Compute cer/wer
         with chainer.no_backprop_mode():
@@ -277,15 +189,15 @@ class E2E(ASRInterface, chainer.Chain):
             y_hats = chainer.backends.cuda.to_cpu(F.argmax(y_hats, axis=2).data)
 
         if chainer.config.train or not (self.report_cer or self.report_wer):
-            cer, wer = 0.0, 0.0
+            cer, wer = None, None
         else:
             from espnet.nets.e2e_asr_common import calculate_cer_wer
 
             word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(
                 y_hats, ys_pad, self.char_list, self.space, self.blank)
 
-            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
-            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
+            wer = None if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = None if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         # Print Output
         if chainer.config.train and (self.verbose > 0 and self.char_list is not None):
@@ -336,49 +248,6 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss, loss_ctc, loss_att, acc
         else:
             return self.loss
-
-    def recognize_beam2(self, x_block, recog_args, char_list=None, rnnlm=None, use_jit=False):
-        '''E2E beam search
-
-        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
-        :param namespace recog_args: argment namespace contraining options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        '''
-
-        xp = self.xp
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
-            ilens = [x_block.shape[0]]
-            batch = len(ilens)
-            xs, x_mask, ilens = self.encoder(x_block[None, :, :], ilens)
-            logging.info('Encoder size: ' + str(xs.shape))
-            if recog_args.ctc_weight > 0.0:
-                raise NotImplementedError('use joint ctc/tranformer decoding. WIP')
-            if recog_args.beam_size == 1:
-                logging.info('Use greedy search implementation')
-                ys = xp.full((1, 1), self.sos)
-                score = xp.zeros(1)
-                maxlen = xs.shape[1] + 1
-                for step in range(maxlen):
-                    yy_mask = self.make_attention_mask(ys, ys)
-                    yy_mask *= self.make_history_mask(ys)
-                    xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
-                    out = self.decoder(ys, yy_mask, xs, xy_mask).reshape(batch, -1, self.odim)
-                    prob = F.log_softmax(out[:, -1], axis=-1)
-                    max_prob = prob.array.max(axis=1)
-                    next_id = F.argmax(prob, axis=1).array.astype(np.int64)
-                    score += max_prob
-                    if step == maxlen - 1:
-                        next_id[0] = self.eos
-                    ys = F.concat((ys, next_id[None, :]), axis=1).data
-                    if next_id[0] == self.eos:
-                        break
-                nbest_hyps = [{"score": score, "yseq": ys[0].tolist()}]
-            else:
-                raise NotImplementedError('use beam search implementation. WIP')
-        return nbest_hyps
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
         """E2E greedy/beam search
