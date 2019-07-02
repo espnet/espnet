@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
-    echo "Please change directory to e.g., egs/libritts/tts1"
+    echo "Please change directory to e.g., egs/ljspeech/tts1"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
-fs=24000      # sampling frequency
+fs=22050      # sampling frequency
 fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
@@ -41,7 +41,7 @@ decode_dir=decode
 griffin_lim_iters=1000
 
 # download related
-models=libritts.v1
+models=ljspeech.transformer.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -74,7 +74,7 @@ set -o pipefail
 
 function download_models () {
     case "${models}" in
-        "libritts.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
+        "libritts.tacotron2.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
         "ljspeech.tacotron2.v1") share_url="https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs" ;;
         "ljspeech.tacotron2.v2") share_url="https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h" ;;
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
