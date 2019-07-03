@@ -6,7 +6,13 @@ import chainer.functions as F
 import chainer.links as L
 
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
+
+
+def savefig(plot, filename):
+    plot.savefig(filename)
+    plt.clf()
 
 
 class PositionalEncoding(chainer.Chain):
@@ -60,28 +66,38 @@ class FeedForwardLayer(chainer.Chain):
 
 def _plot_and_save_attention(att_w, filename):
     # dynamically import matplotlib due to not found error
-    import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     import os
-
-    if not os.path.exists(os.path.dirname(filename)):
-        os.makedirs(os.path.dirname(filename))
+    d = os.path.dirname(filename)
+    if not os.path.exists(d):
+        os.makedirs(d)
     w, h = plt.figaspect(1.0 / len(att_w))
     fig = plt.Figure(figsize=(w * 2, h * 2))
     axes = fig.subplots(1, len(att_w))
     if len(att_w) == 1:
         axes = [axes]
     for ax, aw in zip(axes, att_w):
+        # plt.subplot(1, len(att_w), h)
         ax.imshow(aw, aspect="auto")
         ax.set_xlabel("Input")
         ax.set_ylabel("Output")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     fig.tight_layout()
-    fig.savefig(filename)
+    return fig
 
 
-def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
+def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
+    """Plot multi head attentions
+
+    :param dict data: utts info from json file
+    :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
+        values should be torch.Tensor (head, input_length, output_length)
+    :param str outdir: dir to save fig
+    :param str suffix: filename suffix including image type (e.g., png)
+    :param savefn: function to save
+    """
+
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (
@@ -97,4 +113,5 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
                     att_w = att_w[:, :dec_len, :enc_len]
             else:
                 logging.warning("unknown name for shaping attention")
-            _plot_and_save_attention(att_w, filename)
+            fig = _plot_and_save_attention(att_w, filename)
+            savefn(fig, filename)
