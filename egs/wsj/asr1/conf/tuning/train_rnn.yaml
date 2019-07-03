@@ -38,4 +38,4 @@ patience: 3
 sampling-probability: 0.0
 
 # SpecAug
-use-specaug: True
+use-specaug: False

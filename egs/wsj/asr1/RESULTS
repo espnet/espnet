@@ -22,6 +22,19 @@ exp/train_si284_a04_ch_vggblstmp_e6/decode_test_dev93_beam20_eacc.best_p0.1_len0
 exp/train_si284_a04_ch_vggblstmp_e6/decode_test_eval92_beam20_eacc.best_p0.1_len0.3-0.0_rnnlm0.1/result.txt:|   SPKR     |   # Snt       # Wrd   |   Corr        Sub         Del        Ins        Err       S.Err   |
 exp/train_si284_a04_ch_vggblstmp_e6/decode_test_eval92_beam20_eacc.best_p0.1_len0.3-0.0_rnnlm0.1/result.txt:|   Sum/Avg  |    333        33341   |   96.4        2.0         1.6        1.6        5.2        82.0   |
 
+# added specaug(FM + TM + TW)
+$ grep -e Avg -e SPKR -m 2 exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_*/result.txt
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_dev93_decode_rnn_lm_word65000/result.txt:|   SPKR     |  # Snt      # Wrd   |  Corr        Sub       Del        Ins       Err      S.Err   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_dev93_decode_rnn_lm_word65000/result.txt:|   Sum/Avg  |   503       48634   |  97.4        1.3       1.2        0.7       3.3       61.6   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_eval92_decode_rnn_lm_word65000/result.txt:|   SPKR     |  # Snt      # Wrd   |   Corr       Sub        Del        Ins       Err      S.Err   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_eval92_decode_rnn_lm_word65000/result.txt:|   Sum/Avg  |   333       33341   |   98.6       0.8        0.7        0.7       2.1       48.6   |
+
+$ grep -e Avg -e SPKR -m 2 exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_*/result.wrd.txt
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_dev93_decode_rnn_lm_word65000/result.wrd.txt:|   SPKR     |   # Snt     # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_dev93_decode_rnn_lm_word65000/result.wrd.txt:|   Sum/Avg  |    503       8234   |   93.8        5.6         0.6        1.1        7.3       54.7   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_eval92_decode_rnn_lm_word65000/result.wrd.txt:|   SPKR     |   # Snt     # Wrd    |   Corr        Sub        Del        Ins         Err      S.Err   |
+exp/train_si284_pytorch_train_rnn_no_preprocess_specaug/decode_test_eval92_decode_rnn_lm_word65000/result.wrd.txt:|   Sum/Avg  |    333       5643    |   96.4        3.3        0.3        1.0         4.6       38.1   |
+
 # combine rnnlm and joint attention/CTC decoding
 $ grep -e Avg -e SPKR -m 2 exp/train_si284_a04_ch_vggblstmp_e6/decode*p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0/result*txt
 # CER
