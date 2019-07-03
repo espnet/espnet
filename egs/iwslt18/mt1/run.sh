@@ -17,8 +17,6 @@ N=0             # number of minibatches to be used (mainly for debugging). "0" u
 verbose=0       # verbose option
 resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
-# feature configuration
-do_delta=false
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
@@ -26,12 +24,9 @@ decode_config=conf/decode.yaml
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# pre-training related
-asr_model=
-mt_model=
-
 # preprocessing related
-case=lc
+src_case=lc.rm
+tgt_case=lc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
@@ -56,8 +51,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodevtest_sp.de
-train_set_prefix=train_nodevtest_sp
+train_set=train_nodevtest.de
+train_set_prefix=train_nodevtest
 train_dev=train_dev.de
 recog_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
 
@@ -74,10 +69,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
 
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh ${st_ted} ${part}
-    done
-
     # data cleaning
     ### local/forced_align.sh ${st_ted} data/train
     cp -rf data/train data/train.tmp
@@ -88,20 +79,18 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.rm.${lang} >data/train/text.lc.rm.${lang}
     done
     rm -rf data/train.tmp
+
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/data_prep_eval.sh ${st_ted} ${part}
+    done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
 
     # make a dev set
     utils/subset_data_dir.sh --speakers data/train 2000 data/dev
@@ -127,46 +116,19 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.lc.rm.${lang} >data/test/text.lc.rm.${lang}
     done
 
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
-    for lang in en de; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-    done
-
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/divide_lang.sh ${x}
     done
 
-    for lang in en de; do
-        if [ -d data/train_dev.${lang} ];then
-            rm -rf data/train_dev.${lang}
-        fi
-        cp -rf data/dev.${lang} data/train_dev.${lang}
-    done
+    cp -rf data/dev.en data/train_dev.en
+    cp -rf data/dev.de data/train_dev.de
 
     for x in ${train_set_prefix} train_dev; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in en de; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+            remove_longshortdata.sh --no_feat true --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
         done
 
         # Match the number of utterances between source and target languages
@@ -181,91 +143,74 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
         rm -rf data/${x}.*.tmp
     done
-
-    # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-
-    # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/st1/dump/${train_set}/delta${do_delta}/storage \
-          ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/st1/dump/${train_dev}/delta${do_delta}/storage \
-          ${feat_dt_dir}/storage
-    fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
-            ${feat_recog_dir}
-    done
 fi
 
-dict=data/lang_1char/${train_set}_units_${case}.txt
-nlsyms=data/lang_1char/non_lang_syms_${case}.txt
-echo "dictionary: ${dict}"
+dict_src=data/lang_1char/${train_set}_units_${src_case}.txt
+dict_tgt=data/lang_1char/${train_set}_units_${tgt_case}.txt
+nlsyms=data/lang_1char/non_lang_syms_${tgt_case}.txt
+echo "dictionary (src): ${dict_src}"
+echo "dictionary (tgt): ${dict_tgt}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    cut -f 2- -d' ' data/${train_set_prefix}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    echo "make a target dictionary"
+    echo "<unk> 1" > ${dict_tgt} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cat data/${train_set_prefix}.*/text.${tgt_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_tgt}
+    wc -l ${dict_tgt}
+
+    echo "make a source dictionary"
+    echo "<unk> 1" > ${dict_src} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cat data/${train_set_prefix}.*/text.${src_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_src}
+    wc -l ${dict_src}
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --nlsyms ${nlsyms} \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data.${case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --nlsyms ${nlsyms} \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data.${case}.json
+    local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} \
+        data/${train_set} ${dict_tgt} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
+    local/data2json.sh --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
+        data/${train_dev} ${dict_tgt} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}; mkdir -p ${feat_recog_dir}
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --nlsyms ${nlsyms} \
-                data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
+            local/data2json.sh --text data/${rtask}/text.${tgt_case} --nlsyms ${nlsyms} \
+                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
         else
-            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
-                data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
+            local/data2json.sh --text data/${rtask}/text_noseg.${tgt_case} --nlsyms ${nlsyms} --skip_utt2spk true \
+                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
         fi
     done
 
     # update json (add source references)
-    for x in ${train_set} ${train_dev}; do
-        feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/$(echo ${x} | cut -f -1 -d ".").en
-        local/update_json.sh --text ${data_dir}/text.${case} --nlsyms ${nlsyms} \
-            ${feat_dir}/data.${case}.json ${data_dir} ${dict}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict_src}
+    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_dt_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".en ${dict_src}
+    for rtask in ${recog_set}; do
+        feat_dir=${dumpdir}/${rtask}
+        data_dir=data/"$(echo ${rtask} | cut -f -1 -d ".")".en
+        if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
+            local/update_json.sh --text ${data_dir}/text.${src_case} --nlsyms ${nlsyms} --set ${rtask} \
+                ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
+        else
+            local/update_json.sh --text ${data_dir}/text_noseg.${src_case} --nlsyms ${nlsyms} --set ${rtask} \
+                ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
+        fi
     done
 fi
 
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${case}_${backend}_$(basename ${train_config%.*})
-    if ${do_delta}; then
-        expname=${expname}_delta
-    fi
-    if [ -n "${asr_model}" ]; then
-        expname=${expname}_asrtrans
-    fi
-    if [ -n "${mt_model}" ]; then
-        expname=${expname}_mttrans
-    fi
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})
 else
-    expname=${train_set}_${case}_${backend}_${tag}
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -274,23 +219,22 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        mt_train.py \
         --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
-        --dict ${dict} \
+        --dict-src ${dict_src} \
+        --dict-tgt ${dict_tgt} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.${case}.json \
-        --valid-json ${feat_dt_dir}/data.${case}.json \
-        --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --train-json ${feat_tr_dir}/data.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -301,16 +245,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.${case}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            mt_recog.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
@@ -319,12 +263,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict}
-        else
-            set=$(echo ${rtask} | cut -f -1 -d ".")
-            local/score_bleu_reseg.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
-        fi
+        score_bleu.sh --case ${tgt_case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict_tgt} ${dict_src}
+
     ) &
     pids+=($!) # store background pids
     done
