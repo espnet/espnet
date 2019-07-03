@@ -78,8 +78,10 @@ def time_warp(spec, W=40):
 
     # Uniform distribution from (0,W) with chance to be up to W negative
     dist_to_warp = random.randrange(-W, W)
-    src_pts, dest_pts = (torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1], [y, point_to_warp]]], device=device),
-                         torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1], [y, point_to_warp + dist_to_warp]]], device=device))
+    src_pts, dest_pts = (torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1],
+                                        [y, point_to_warp]]], device=device),
+                         torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1],
+                                        [y, point_to_warp + dist_to_warp]]], device=device))
     warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
     return warped_spectro.squeeze(3).squeeze(0)
 
