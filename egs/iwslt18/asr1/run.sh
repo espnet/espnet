@@ -41,7 +41,7 @@ case=lc.rm
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 st_ted=/export/b08/inaguma/IWSLT
-# st_ted=/n/sd3/inaguma/corpus/iwslt18/data
+# st_ted=/n/rd11/corpora_8/iwslt18
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -75,10 +75,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
 
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh ${st_ted} ${part}
-    done
-
     # data cleaning
     ### local/forced_align.sh ${st_ted} data/train
     cp -rf data/train data/train.tmp
@@ -89,6 +85,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.rm.${lang} >data/train/text.lc.rm.${lang}
     done
     rm -rf data/train.tmp
+
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/data_prep_eval.sh ${st_ted} ${part}
+    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -284,7 +284,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
