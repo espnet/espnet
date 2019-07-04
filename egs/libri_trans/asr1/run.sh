@@ -39,8 +39,8 @@ case=lc.rm
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/n/sd3/inaguma/corpus/libri_french/data
-# libri_french
+datadir=/n/rd11/corpora_8/libri_trans/
+# libri_trans
 #  |_ train/
 #  |_ other/
 #  |_ dev/
