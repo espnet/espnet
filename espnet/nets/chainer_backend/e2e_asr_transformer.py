@@ -248,15 +248,17 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
-        """E2E greedy/beam search
+        '''E2E beam search
 
-        :param x:
-        :param recog_args:
-        :param char_list:
-        :param rnnlm:
-        :return:
-        """
+        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
+        :param namespace recog_args: argment namespace contraining options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        '''
 
+        xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
             ilens = [x_block.shape[0]]
@@ -468,3 +470,26 @@ class E2E(ASRInterface, chainer.Chain):
     @property
     def attention_plot_class(self):
         return PlotAttentionReport
+
+
+class PlotAttentionReport(asr_utils.PlotAttentionReport):
+    def __call__(self, trainer):
+        attn_dict = self.get_attention_weights()
+        suffix = "ep.{.updater.epoch}.png".format(trainer)
+        plot_multi_head_attention(
+            self.data, attn_dict, self.outdir, suffix, savefig)
+
+    def get_attention_weights(self):
+        batch = self.converter([self.transform(self.data)], self.device)
+        return self.att_vis_fn(*batch)
+
+    def log_attentions(self, logger, step):
+        def log_fig(plot, filename):
+            import matplotlib.pyplot as plt
+            from os.path import basename
+            logger.add_figure(basename(filename), plot, step)
+            plt.clf()
+
+        attn_dict = self.get_attention_weights()
+        plot_multi_head_attention(
+            self.data, attn_dict, self.outdir, "", log_fig)
