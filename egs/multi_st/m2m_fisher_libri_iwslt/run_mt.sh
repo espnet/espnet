@@ -85,7 +85,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in es en; do
-      for x in data/*${lang_code}*.${lang}; do
+      for x in data/*"${lang_code}"*."${lang}"; do
           cp -rf ${x} ${x}.tmp
           for c in tc lc lc.rm; do
               awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -115,7 +115,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en fr; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -151,7 +151,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en de; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -371,11 +371,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if [ $(echo ${rtask} | grep 'fisher') ]; then
+        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
             tgt_lang="\<2en\>"
-        elif [ $(echo ${rtask} | grep 'libri') ]; then
+        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
             tgt_lang="\<2fr\>"
-        elif [ $(echo ${rtask} | grep 'iwslt') ]; then
+        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
             tgt_lang="\<2de\>"
         fi
 
@@ -397,11 +397,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        if [ $(echo ${rtask} | grep 'fisher') ]; then
+        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
             local/score_bleu_fisher.sh --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict_tgt}
-        elif [ $(echo ${rtask} | grep 'libri') ]; then
+        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
             score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict_tgt}
-        elif [ $(echo ${rtask} | grep 'iwslt') ]; then
+        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
             score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict_tgt}
         fi
 

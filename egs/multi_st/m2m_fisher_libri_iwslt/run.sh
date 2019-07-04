@@ -66,9 +66,8 @@ train_dev=train_dev
 recog_set_fisher="et_fisher_callhome_fisher_dev.en et_fisher_callhome_fisher_dev2.en et_fisher_callhome_fisher_test.en\
  et_fisher_callhome_callhome_devtest.en et_fisher_callhome_callhome_evltest.en"
 recog_set_libri="et_librispeech_dev.fr et_librispeech_test.fr"
-recog_set_iwslt="et_iwslt18_dev.de et_iwslt18_test.de et_iwslt18_dev2010.de et_iwslt18_tst2010.de et_iwslt18_tst2013.de et_iwslt18_tst2014.de et_iwslt18_tst2015.de"
-recog_set_iwslt="et_iwslt18_dev.de et_iwslt18_test.de"
-recog_set_iwslt="et_iwslt18_dev2010.de et_iwslt18_tst2010.de et_iwslt18_tst2013.de et_iwslt18_tst2014.de et_iwslt18_tst2015.de"
+recog_set_iwslt="et_iwslt18_dev.de et_iwslt18_test.de\
+ et_iwslt18_dev2010.de et_iwslt18_tst2010.de et_iwslt18_tst2013.de et_iwslt18_tst2014.de et_iwslt18_tst2015.de"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Fisher-Callhome
@@ -89,7 +88,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in es en; do
-      for x in data/*${lang_code}*.${lang}; do
+      for x in data/*"${lang_code}"*."${lang}"; do
           cp -rf ${x} ${x}.tmp
           for c in tc lc lc.rm; do
               awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -119,7 +118,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en fr; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -155,7 +154,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en de; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -366,11 +365,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if [ $(echo ${rtask} | grep 'fisher') ]; then
+        if $(echo ${rtask} | grep 'fisher'); then
             tgt_lang="\<2en\>"
-        elif [ $(echo ${rtask} | grep 'libri') ]; then
+        elif $(echo ${rtask} | grep 'libri'); then
             tgt_lang="\<2fr\>"
-        elif [ $(echo ${rtask} | grep 'iwslt') ]; then
+        elif $(echo ${rtask} | grep 'iwslt'); then
             tgt_lang="\<2de\>"
         fi
 
@@ -392,11 +391,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        if [ $(echo ${rtask} | grep 'fisher') ]; then
+        if $(echo ${rtask} | grep 'fisher'); then
             local/score_bleu_fisher.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-        elif [ $(echo ${rtask} | grep 'libri') ]; then
+        elif $(echo ${rtask} | grep 'libri'); then
             score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
-        elif [ $(echo ${rtask} | grep 'iwslt') ]; then
+        elif $(echo ${rtask} | grep 'iwslt'); then
             if [ ${rtask} = "et_iwslt18_dev.de" ] || [ ${rtask} = "et_iwslt18_test.de" ]; then
                 score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict}
             else

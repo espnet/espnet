@@ -90,7 +90,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in es en; do
-      for x in data/*${lang_code}*.${lang}; do
+      for x in data/*"${lang_code}"*."${lang}"; do
           cp -rf ${x} ${x}.tmp
           for c in tc lc lc.rm; do
               awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -120,7 +120,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en fr; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -156,7 +156,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # append language ID
     for lang in en de; do
-        for x in data/*${lang_code}*.${lang}; do
+        for x in data/*"${lang_code}"*."${lang}"; do
             for c in tc lc lc.rm; do
                 cp -rf ${x} ${x}.tmp
                 awk -v lang="<2${lang}>" '{$2=lang""$2; print}' ${x}.tmp/text.${c} > ${x}/text.${c}
@@ -370,11 +370,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if [ $(echo ${rtask} | grep 'fisher') ]; then
+        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
             lmexpdir=${lmexpdir_fisher}
-        elif [ $(echo ${rtask} | grep 'libri') ]; then
+        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
             lmexpdir=${lmexpdir_libri}
-        elif [ $(echo ${rtask} | grep 'iwslt') ]; then
+        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
             lmexpdir=${lmexpdir_iwslt}
         fi
 
