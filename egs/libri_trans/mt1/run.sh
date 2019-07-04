@@ -17,8 +17,6 @@ N=0             # number of minibatches to be used (mainly for debugging). "0" u
 verbose=0       # verbose option
 resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
-# feature configuration
-do_delta=false
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
@@ -35,8 +33,8 @@ tgt_case=lc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/n/sd3/inaguma/corpus/libri_french/data
-# libri_french
+datadir=/n/rd11/corpora_8/libri_trans/
+# libri_trans
 #  |_ train/
 #  |_ other/
 #  |_ dev/
@@ -72,8 +70,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -148,7 +146,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/data2json.sh --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
         data/${train_dev} ${dict_tgt} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        feat_recog_dir=${dumpdir}/${rtask}; mkdir -p ${feat_recog_dir}
         local/data2json.sh --text data/${rtask}/text.${tgt_case} --nlsyms ${nlsyms} \
             data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
     done
@@ -161,7 +159,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
         ${feat_dt_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".en ${dict_src}
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}
         local/update_json.sh --text data/"$(echo ${rtask} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
             ${feat_recog_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${rtask} | cut -f -1 -d ".")".en ${dict_src}
     done
@@ -177,7 +175,7 @@ fi
 if [ -z ${tag} ]; then
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -212,7 +210,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}
 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
