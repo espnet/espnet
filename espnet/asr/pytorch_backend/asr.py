@@ -62,13 +62,21 @@ REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    """Custom Evaluator for Pytorch
+    """Custom Evaluator for Pytorch.
 
-    :param torch.nn.Module model : The model to evaluate
-    :param chainer.dataset.Iterator : The train iterator
-    :param target :
-    :param CustomConverter converter : The batch converter
-    :param torch.device device : The device used
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        iterator (chainer.dataset.Iterator) : The train iterator.
+
+        target (link | dict[str, link]) :Link object or a dictionary of
+            links to evaluate. If this is just a link object, the link is
+            registered by the name ``'main'``.
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+
+        device (torch.device): The device used.
     """
 
     def __init__(self, model, iterator, target, converter, device):
@@ -79,6 +87,7 @@ class CustomEvaluator(extensions.Evaluator):
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
+        """Main evaluate routine for CustomEvaluator."""
         iterator = self._iterators['main']
 
         if self.eval_hook:
@@ -109,15 +118,22 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """Custom Updater for Pytorch
+    """Custom Updater for Pytorch.
 
-    :param torch.nn.Module model : The model to update
-    :param int grad_clip_threshold : The gradient clipping value to use
-    :param chainer.dataset.Iterator train_iter : The training iterator
-    :param torch.optim.optimizer optimizer: The training optimizer
-    :param CustomConverter converter: The batch converter
-    :param torch.device device : The device to use
-    :param int ngpu : The number of gpus to use
+    Args:
+        model (torch.nn.Module): The model to update.
+        grad_clip_threshold (int): The gradient clipping value to use.
+        train_iter (chainer.dataset.Iterator): The training iterator.
+        optimizer (torch.optim.optimizer): The training optimizer.
+
+        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+
+        device (torch.device): The device to use.
+        ngpu (int): The number of gpus to use.
+
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
@@ -135,6 +151,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Main update routine of the CustomUpdater."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -171,9 +188,11 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """Custom batch converter for Pytorch
+    """Custom batch converter for Pytorch.
 
-    :param int subsampling_factor : The subsampling factor
+    Args:
+        subsampling_factor (int): The subsampling factor.
+
     """
 
     def __init__(self, subsampling_factor=1):
@@ -181,12 +200,15 @@ class CustomConverter(object):
         self.ignore_id = -1
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device
+        """Transforms a batch and send it to a device.
 
-        :param list batch: The batch to transform
-        :param torch.device device: The device to send to
-        :return: a tuple xs_pad, ilens, ys_pad
-        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        Args:
+            batch (list): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -223,9 +245,11 @@ class CustomConverter(object):
 
 
 def load_trained_model(model_path):
-    """Load the trained model
+    """Load the trained model.
 
-    :param str model_path: Path to model.***.best
+    Args:
+        model_path(str): Path to model.***.best
+
     """
     # read training config
     idim, odim, train_args = get_model_conf(
@@ -246,9 +270,11 @@ def load_trained_model(model_path):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
 
@@ -511,9 +537,10 @@ def train(args):
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
@@ -634,9 +661,10 @@ def recog(args):
 
 
 def enhance(args):
-    """Dumping enhanced speech and mask
+    """Dumping enhanced speech and mask.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
     """
     set_deterministic_pytorch(args)
     # read training config

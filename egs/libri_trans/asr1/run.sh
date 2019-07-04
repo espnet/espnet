@@ -20,9 +20,9 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-train_config=conf/tuning_asr/train_rnn_char.yaml
-lm_config=conf/tuning_asr/lm_char.yaml
-decode_config=conf/tuning_asr/decode_rnn_char.yaml
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
@@ -39,8 +39,8 @@ case=lc.rm
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/n/sd3/inaguma/corpus/libri_french/data
-# libri_french
+datadir=/n/rd11/corpora_8/libri_trans/
+# libri_trans
 #  |_ train/
 #  |_ other/
 #  |_ dev/
@@ -292,7 +292,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${recog_model} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         local/score_sclite.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
 
