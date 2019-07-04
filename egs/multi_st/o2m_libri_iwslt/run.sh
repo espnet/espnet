@@ -234,7 +234,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     for rtask in ${recog_set_libri} ${recog_set_iwslt}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        if [ $(echo ${rtask} | grep 'dev2010') ] || [ $(echo ${rtask} | grep 'tst') ]; then
+        if [ echo ${rtask} | grep 'dev2010' || [ echo ${rtask} | grep 'tst'; then
             local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
                 data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
         else
@@ -303,9 +303,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if $(echo ${rtask} | grep 'libri'); then
+        if echo ${rtask} | grep 'libri'; then
             tgt_lang="\<2fr\>"
-        elif $(echo ${rtask} | grep 'iwslt'); then
+        elif echo ${rtask} | grep 'iwslt'; then
             tgt_lang="\<2de\>"
         fi
 
@@ -320,13 +320,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${recog_model} \
             --tgt-lang ${tgt_lang}
 
-        if [ $(echo ${rtask} | grep 'libri') ]; then
+        if [ echo ${rtask} | grep 'libri'; then
             score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
-        elif $(echo ${rtask} | grep 'iwslt'); then
+        elif echo ${rtask} | grep 'iwslt'; then
             if [ ${rtask} = "et_iwslt18_dev.de" ] || [ ${rtask} = "et_iwslt18_test.de" ]; then
                 score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict}
             else
-                set=$(echo ${rtask} | cut -f 1 -d "." | cut -f 3 -d "_")
+                set=echo ${rtask} | cut -f 1 -d "." | cut -f 3 -d "_")
                 local/score_bleu_iwslt_reseg.sh --case ${case} --nlsyms ${nlsyms} \
                     ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
             fi

@@ -226,7 +226,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.${case}.json
     for rtask in ${recog_set_fisher} ${recog_set_libri} ${recog_set_iwslt}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        if [ $(echo ${rtask} | grep 'dev2010') ] || [ $(echo ${rtask} | grep 'tst') ]; then
+        if echo ${rtask} | grep 'dev2010' || echo ${rtask} | grep 'tst'; then
             local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
                 data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
         else
@@ -370,11 +370,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
+        if echo ${rtask} | grep -q 'fisher'; then
             lmexpdir=${lmexpdir_fisher}
-        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
+        elif echo ${rtask} | grep -q 'libri'; then
             lmexpdir=${lmexpdir_libri}
-        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
+        elif echo ${rtask} | grep -q 'iwslt'; then
             lmexpdir=${lmexpdir_iwslt}
         fi
 
@@ -388,7 +388,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        if [ $(echo ${rtask} | grep 'dev2010') ] || [ $(echo ${rtask} | grep 'tst') ]; then
+        if echo ${rtask} | grep 'dev2010' || echo ${rtask} | grep 'tst'; then
             set=$(echo ${rtask} | cut -f -1 -d "." | cut -f 3 -d "_")
             local/score_sclite_reseg_iwslt.sh --case ${case} --nlsyms ${nlsyms} --wer true --text data/${rtask}/text_noseg.${case} \
                 ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}

@@ -287,7 +287,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     for rtask in ${recog_set_fisher} ${recog_set_libri} ${recog_set_iwslt}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        if [ $(echo ${rtask} | grep 'dev2010') ] || [ $(echo ${rtask} | grep 'tst') ]; then
+        if echo ${rtask} | grep 'dev2010' || echo ${rtask} | grep 'tst'; then
             local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
                 data/${rtask} ${dict} > ${feat_recog_dir}/data.${case}.json
         else
@@ -365,11 +365,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if $(echo ${rtask} | grep 'fisher'); then
+        if echo ${rtask} | grep 'fisher'; then
             tgt_lang="\<2en\>"
-        elif $(echo ${rtask} | grep 'libri'); then
+        elif echo ${rtask} | grep 'libri'; then
             tgt_lang="\<2fr\>"
-        elif $(echo ${rtask} | grep 'iwslt'); then
+        elif echo ${rtask} | grep 'iwslt'; then
             tgt_lang="\<2de\>"
         fi
 
@@ -391,11 +391,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        if $(echo ${rtask} | grep 'fisher'); then
+        if echo ${rtask} | grep 'fisher'; then
             local/score_bleu_fisher.sh --case ${case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-        elif $(echo ${rtask} | grep 'libri'); then
+        elif echo ${rtask} | grep 'libri'; then
             score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
-        elif $(echo ${rtask} | grep 'iwslt'); then
+        elif echo ${rtask} | grep 'iwslt'; then
             if [ ${rtask} = "et_iwslt18_dev.de" ] || [ ${rtask} = "et_iwslt18_test.de" ]; then
                 score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict}
             else

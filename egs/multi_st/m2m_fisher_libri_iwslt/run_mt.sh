@@ -297,7 +297,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for rtask in ${recog_set_libri} ${recog_set_iwslt}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         src_data_dir=data/$(echo ${rtask} | cut -f -1 -d ".").en
-        if [ $(echo ${rtask} | grep 'dev2010') ] || [ $(echo ${rtask} | grep 'tst') ]; then
+        if echo ${rtask} | grep 'dev2010' || echo ${rtask} | grep 'tst'; then
             local/data2json.sh --text data/${rtask}/text_noseg.${tgt_case} --nlsyms ${nlsyms} --skip_utt2spk true \
                 data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
             # add source sentences
@@ -371,11 +371,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
+        if echo ${rtask} | grep -q 'fisher'; then
             tgt_lang="\<2en\>"
-        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
+        elif echo ${rtask} | grep -q 'libri'; then
             tgt_lang="\<2fr\>"
-        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
+        elif echo ${rtask} | grep -q 'iwslt'; then
             tgt_lang="\<2de\>"
         fi
 
@@ -397,11 +397,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        if [ $(echo ${rtask} | grep -q 'fisher') ]; then
+        if echo ${rtask} | grep -q 'fisher'; then
             local/score_bleu_fisher.sh --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict_tgt}
-        elif [ $(echo ${rtask} | grep -q 'libri') ]; then
+        elif echo ${rtask} | grep -q 'libri'; then
             score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict_tgt}
-        elif [ $(echo ${rtask} | grep -q 'iwslt') ]; then
+        elif echo ${rtask} | grep -q 'iwslt'; then
             score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict_tgt}
         fi
 
