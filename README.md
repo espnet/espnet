@@ -30,9 +30,11 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
   * [Error due to matplotlib](#error-due-to-matplotlib)
 * [Docker Container](#docker-container)
-* [Results](#results)
+* [Results and demo](#results-and-demo)
   * [ASR results](#asr-results)
+  * [ASR demo](#asr-demo)
   * [TTS results](#tts-results)
+  * [TTS demo](#tts-demo)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
 * [Citation](#citation)
@@ -51,7 +53,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
-  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
+  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
   - Support speech translation recipes (Fisher callhome Spanish to English, IWSLT'18)
   - Support speech separation and recognition recipe (WSJ-2mix)
 - State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -251,8 +253,8 @@ Note that we would not include the installation of Tensorboard to simplify our i
     #### use CPU for decoding
     ngpu=0
     ```
-  - Set 1 or more values for `—batchsize` option in `asr_recog.py` to enable GPU decoding
-  - And execute the script (e.g., `run.sh —stage 5 —ngpu 1`)
+  - Set 1 or more values for `--batchsize` option in `asr_recog.py` to enable GPU decoding
+  - And execute the script (e.g., `run.sh --stage 5 --ngpu 1`)
   - You'll achieve significant speed improvement by using the GPU decoding
 - Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
@@ -360,7 +362,7 @@ $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir instal
 go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
 
-## Results
+## Results and demo
 
 ### ASR results
 
@@ -385,6 +387,23 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
+### ASR demo
+
+You can recognize speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/recog_wav.sh` as follows:
+```sh
+cd egs/tedlium2/asr1
+../../../utils/recog_wav.sh --models tedlium2.tacotron2.v1 example.wav
+```
+where `example.wav` is a WAV file to be recognized.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models are listed as below.
+
+| Model | Notes |
+|:------|:------|
+| [tedlium2.tacotron2.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding based on CTC-based VAD with uni-directional encoder-decoder |
+
 ### TTS results
 
 You can access the samples of TTS recipes from following links:
@@ -397,6 +416,27 @@ You can access the samples of TTS recipes from following links:
 - [Single English speaker FastSpeech (New!)](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
+### TTS demo
+
+You can synthesize speech in a TXT file using pretrained models.
+Go to a recipe directory and run `utils/synth_wav.sh` as follows:
+```sh
+cd egs/ljspeech/tts1
+echo "This is a demonstration of text to speech." > example.txt
+../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
+```
+
+Available pretrained models are listed as follows.
+
+| Model | Notes |
+|:------|:------|
+| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Location sensitive attention |
+| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | Location sensitive attention |
+| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | Forward attention |
+| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Location sensitive attention + guided attention loss |
+| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep decoder network without reduction factor |
+| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow decoder network with reduction factor = 3 |
 
 
 ## Chainer and Pytorch backends
