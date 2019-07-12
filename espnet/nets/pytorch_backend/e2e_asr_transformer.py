@@ -109,7 +109,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.ctc = None
 
-        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
@@ -189,16 +189,16 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # TODO(karita) show predected text
         # TODO(karita) calculate these stats
+        cer_ctc = None
         if self.mtlalpha == 0.0:
             loss_ctc = None
-            cer_ctc = None
         else:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
-
-            ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            if self.error_calculator is not None:
+                ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+                cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None:
