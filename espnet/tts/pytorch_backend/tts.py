@@ -409,7 +409,7 @@ def train(args):
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter))
+        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
 
     if use_sortagrad:
         trainer.extend(ShufflingEnabler([train_iter]),
