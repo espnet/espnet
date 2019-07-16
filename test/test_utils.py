@@ -148,8 +148,8 @@ def test_error_calculator(tmpdir, typ):
     space = "<space>"
     blank = "<blank>"
     char_list = [blank, space, 'a', 'e', 'i', 'o', 'u']
-    ys_pad = [np.random.randint(0, 7, x) for x in range(120, 150, 5)]
-    ys_hat = [np.random.randint(0, 7, x) for x in range(120, 150, 5)]
+    ys_pad = [np.random.randint(0, len(char_list), x) for x in range(120, 150, 5)]
+    ys_hat = [np.random.randint(0, len(char_list), x) for x in range(120, 150, 5)]
     if typ == 'ctc':
         cer, wer = False, False
     elif typ == 'wer':
@@ -182,3 +182,22 @@ def test_error_calculator(tmpdir, typ):
         assert cer_ctc_val is not None
         assert _cer is not None
         assert _wer is not None
+
+
+def test_error_calculator_nospace(tmpdir):
+    from espnet.nets.e2e_asr_common import ErrorCalculator
+    space = "<space>"
+    blank = "<blank>"
+    char_list = [blank, 'a', 'e', 'i', 'o', 'u']
+    ys_pad = [np.random.randint(0, len(char_list), x) for x in range(120, 150, 5)]
+    ys_hat = [np.random.randint(0, len(char_list), x) for x in range(120, 150, 5)]
+    cer, wer = True, True
+
+    ec = ErrorCalculator(char_list, space, blank,
+                         cer, wer)
+
+    cer_ctc_val = ec(ys_pad, ys_hat, is_ctc=True)
+    _cer, _wer = ec(ys_pad, ys_hat)
+    assert cer_ctc_val is not None
+    assert _cer is not None
+    assert _wer is not None
