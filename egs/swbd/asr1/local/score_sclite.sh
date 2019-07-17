@@ -32,14 +32,17 @@ name=$(basename ${data}) # e.g. eval2000
 
 score_dir=${dir}/scoring
 ctm=${score_dir}/hyp.ctm
-stm=${score_dir}/ref.stm
+# The WER seems to be lower without converting stm
+#stm=${score_dir}/ref.stm
+stm=${data}/stm
 mkdir -p ${score_dir}
 if [ ${stage} -le 0 ]; then
     if [ -z ${dict} ]; then
         # Assuming trn files exist
         ref=${dir}/ref.wrd.trn
         hyp=${dir}/hyp.wrd.trn
-        trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
+        # The WER seems to be lower without converting stm
+        #trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
         trn2ctm.py ${hyp} ${ctm}
     else
         ref=${dir}/ref.trn
