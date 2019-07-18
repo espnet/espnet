@@ -115,7 +115,6 @@ class CustomUpdater(training.StandardUpdater):
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         """Main update routine for Custom Updater."""
-        self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 

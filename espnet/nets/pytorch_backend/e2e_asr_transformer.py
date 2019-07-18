@@ -6,8 +6,6 @@ from distutils.util import strtobool
 import logging
 import math
 
-from itertools import groupby
-
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
@@ -174,8 +172,6 @@ class E2E(ASRInterface, torch.nn.Module):
             loss_ctc = None
             cer_ctc = None
         else:
-            import editdistance
-
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
