@@ -200,7 +200,7 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ ! -z ${preprocess_config} ]; then
+    if [ -n "${preprocess_config}" ]; then
         expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
