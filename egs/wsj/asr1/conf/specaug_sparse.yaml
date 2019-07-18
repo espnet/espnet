@@ -1,0 +1,17 @@
+process:
+  # these three processes are a.k.a. SpecAugument
+  # W=40, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, replace_with_zero=False
+  - type: "time_warp"
+    max_time_warp: 40
+    inplace: true
+    mode: "sparse_image_warp"
+  - type: "freq_mask"
+    F: 27
+    n_mask: 2
+    inplace: true
+    replace_with_zero: false
+  - type: "time_mask"
+    T: 70
+    n_mask: 2
+    inplace: true
+    replace_with_zero: false
