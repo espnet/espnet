@@ -81,12 +81,11 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
-            self.report_cer = args.report_cer
-            self.report_wer = args.report_wer
-        else:
-            self.report_cer = False
-            self.report_wer = False
+        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+            from espnet.nets.e2e_asr_common import ErrorCalculator
+            self.error_calculator = ErrorCalculator(args.char_list,
+                                                    args.sym_space, args.sym_blank,
+                                                    args.report_cer, args.report_wer)
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:
@@ -136,6 +135,7 @@ class E2E(ASRInterface, chainer.Chain):
 
     def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         xp = self.xp
+        ilens = [int(x) for x in ilens]
         with chainer.no_backprop_mode():
             eos = xp.array([self.eos], 'i')
             sos = xp.array([self.sos], 'i')
@@ -174,33 +174,31 @@ class E2E(ASRInterface, chainer.Chain):
 
         # Compute CTC Loss and CER CTC
         cer_ctc = None
+        ys_pad_cpu = [chainer.backends.cuda.to_cpu(y.data) for y in ys_pad]
         if self.ctc is None:
             loss_ctc = None
         else:
             xs = xs.reshape(batch, -1, self.dims)
             xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
             loss_ctc = self.ctc(xs, ys_pad)
+            with chainer.no_backprop_mode():
+                ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
+            cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
 
         # Compute cer/wer
         with chainer.no_backprop_mode():
             y_hats = ys.reshape((batch, length, -1))
             y_hats = chainer.backends.cuda.to_cpu(F.argmax(y_hats, axis=2).data)
 
-        if chainer.config.train or not (self.report_cer or self.report_wer):
+        if chainer.config.train or self.error_calculator is None:
             cer, wer = None, None
         else:
-            from espnet.nets.e2e_asr_common import calculate_cer_wer
-
-            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(
-                y_hats, ys_pad, self.char_list, self.space, self.blank)
-
-            wer = None if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
-            cer = None if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
+            cer, wer = self.error_calculator(y_hats, ys_pad_cpu)
 
         # Print Output
         if chainer.config.train and (self.verbose > 0 and self.char_list is not None):
             for i, y_hat in enumerate(y_hats):
-                y_true = ys_pad[i]
+                y_true = chainer.backends.cuda.to_cpu(ys_pad[i].data)
                 if i == MAX_DECODER_OUTPUT:
                     break
                 eos_true = np.where(y_true == -1)[0]
@@ -258,7 +256,6 @@ class E2E(ASRInterface, chainer.Chain):
         :rtype: list
         '''
 
-        xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
             ilens = [x_block.shape[0]]
@@ -470,26 +467,3 @@ class E2E(ASRInterface, chainer.Chain):
     @property
     def attention_plot_class(self):
         return PlotAttentionReport
-
-
-class PlotAttentionReport(asr_utils.PlotAttentionReport):
-    def __call__(self, trainer):
-        attn_dict = self.get_attention_weights()
-        suffix = "ep.{.updater.epoch}.png".format(trainer)
-        plot_multi_head_attention(
-            self.data, attn_dict, self.outdir, suffix, savefig)
-
-    def get_attention_weights(self):
-        batch = self.converter([self.transform(self.data)], self.device)
-        return self.att_vis_fn(*batch)
-
-    def log_attentions(self, logger, step):
-        def log_fig(plot, filename):
-            import matplotlib.pyplot as plt
-            from os.path import basename
-            logger.add_figure(basename(filename), plot, step)
-            plt.clf()
-
-        attn_dict = self.get_attention_weights()
-        plot_multi_head_attention(
-            self.data, attn_dict, self.outdir, "", log_fig)
