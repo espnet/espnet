@@ -20,15 +20,15 @@
 - Git hash: `f9f40861423ba9a9c9f5a45bd4369dbdb9b3bbf9`
   - Commit date: `Thu Jul 18 15:40:51 2019 +0900`
 
-### WER
+## WER
 
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm|2703|54402|98.0|1.8|0.2|0.2|2.2|27.9|
-|decode_dev_other_model.val5.avg.best_decode_pytorch_transformer_large_lm|2864|50948|95.1|4.3|0.6|0.6|5.6|44.9|
-|decode_test_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm|2620|52576|97.7|2.0|0.3|0.3|2.6|29.9|
-|decode_test_other_model.val5.avg.best_decode_pytorch_transformer_large_lm|2939|52343|95.0|4.4|0.6|0.6|5.7|47.7|
+|decode_dev_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2703|54402|98.0|1.8|0.2|0.2|2.2|27.9|
+|decode_dev_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2864|50948|95.1|4.3|0.6|0.6|5.6|44.9|
+|decode_test_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2620|52576|97.7|2.0|0.3|0.3|2.6|29.9|
+|decode_test_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2939|52343|95.0|4.4|0.6|0.6|5.7|47.7|
 ```
 
 # pytorch Transformer (accum grad 8, single GPU)
