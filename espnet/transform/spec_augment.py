@@ -41,7 +41,7 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
         from espnet.utils import spec_augment
 
         # TODO(karita): make this differentiable again
-        return spec_augment.time_warp(torch.from_numpy(x), window).numpy()
+        return spec_augment.time_warp(torch.from_numpy(x).permute(0, 1), window).permute(0, 1).numpy()
     else:
         raise NotImplementedError("unknown resize mode: " + mode + ", choose one from (PIL, sparse_image_warp).")
 
