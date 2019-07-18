@@ -1,11 +1,33 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import argparse
+import json
 import os
+
+import numpy as np
 
 
 def main():
-    last = sorted(args.snapshots, key=os.path.getmtime)
-    last = last[-args.num:]
+    if args.log is not None:
+        with open(args.log) as f:
+            logs = json.load(f)
+        val_scores = []
+        for log in logs:
+            if "validation/main/acc" in log.keys():
+                val_scores += [[log["epoch"], log["validation/main/acc"]]]
+        if len(val_scores) == 0:
+            raise ValueError("`validation/main/acc` is not found in log.")
+        val_scores = np.array(val_scores)
+        sort_idx = np.argsort(val_scores[:, -1])
+        sorted_val_scores = val_scores[sort_idx][::-1]
+        print("best val scores = " + str(sorted_val_scores[:args.num, 1]))
+        print("selected epochs = " + str(sorted_val_scores[:args.num, 0].astype(np.int64)))
+        last = [os.path.dirname(args.snapshots[0]) + "/snapshot.ep.%d" % (
+            int(ep) for ep in sorted_val_scores[:args.num, 0])]
+    else:
+        last = sorted(args.snapshots, key=os.path.getmtime)
+        last = last[-args.num:]
     print("average over", last)
     avg = None
 
@@ -26,8 +48,8 @@ def main():
                 avg[k] /= args.num
 
         torch.save(avg, args.out)
+
     elif args.backend == 'chainer':
-        import numpy as np
         # sum
         for path in last:
             states = np.load(path)
@@ -55,6 +77,7 @@ def get_parser():
     parser.add_argument("--out", required=True, type=str)
     parser.add_argument("--num", default=10, type=int)
     parser.add_argument("--backend", default='chainer', type=str)
+    parser.add_argument("--log", default=None, type=str, nargs="?")
     return parser
 
 
