@@ -32,7 +32,7 @@ lmtag=            # tag for managing LMs
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
-use_valbest=false
+use_valbest=true
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
