@@ -105,7 +105,10 @@ class ErrorCalculator(object):
         self.report_cer = report_cer
         self.report_wer = report_wer
         self.idx_blank = self.char_list.index(self.blank)
-        self.idx_space = self.char_list.index(self.space)
+        if self.space in self.char_list:
+            self.idx_space = self.char_list.index(self.space)
+        else:
+            self.idx_space = None
 
     def __call__(self, ys_hat, ys_pad, is_ctc=False):
         cer, wer = None, None

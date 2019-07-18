@@ -26,6 +26,7 @@ else
     else
         conda install -q -y pytorch-cpu="${TH_VERSION}" -c pytorch
     fi
+    conda install -c conda-forge ffmpeg
 fi
 
 python --version

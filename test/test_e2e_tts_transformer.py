@@ -120,6 +120,7 @@ def prepare_inputs(idim, odim, ilens, olens,
         ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder", "decoder"]}),
         ({"use_guided_attn_loss": True, "num_heads_applied_guided_attn": -1}),
         ({"use_guided_attn_loss": True, "num_layers_applied_guided_attn": -1}),
+        ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder"], "elayers": 2, "dlayers": 3}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
