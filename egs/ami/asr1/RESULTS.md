@@ -12,9 +12,9 @@
 exp/ihm_train_pytorch_train/decode_ihm_dev_decode_lm_word20000/result.wrd.txt
 | SPKR                         | # Snt # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 | Sum/Avg                      |13059  94914 | 61.6   31.1    7.3    7.3   45.7   73.5 |
-exp/ihm_train_pytorch_train/decode_ihm_dev_decode_lm_word20000/result.wrd.txt
+exp/ihm_train_pytorch_train/decode_ihm_eval_decode_lm_word20000/result.wrd.txt
 | SPKR                         | # Snt # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg                      |13059  94914 | 61.6   31.1    7.3    7.3   45.7   73.5 |
+| Sum/Avg                      |12612  89635 | 57.6   36.4    6.0    8.3   50.7   71.1 |
 ```
 
 ## RNN with shallow wide encoder
