@@ -26,9 +26,9 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
@@ -151,7 +151,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -254,10 +255,10 @@ def train(args):
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+    if mtl_mode != 'ctc':
+        trainer.extend(snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
@@ -265,7 +266,7 @@ def train(args):
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -306,7 +307,7 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter))
+        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
@@ -410,6 +411,5 @@ def recog(args):
                     nbest_hyp = [hyp[i] for hyp in nbest_hyps]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
-    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))

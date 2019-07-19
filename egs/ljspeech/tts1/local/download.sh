@@ -6,7 +6,7 @@
 db=$1
 
 cwd=`pwd`
-if [ ! -e ${db}/LJSpeech-1.1 ];then
+if [ ! -e ${db}/LJSpeech-1.1 ]; then
     mkdir -p ${db}
     cd ${db}
     wget http://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2

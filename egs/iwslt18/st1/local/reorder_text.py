@@ -19,7 +19,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     file_order = []
-    with codecs.open(args.file_order, 'r') as f:
+    with codecs.open(args.file_order, 'r', encoding="utf-8") as f:
         for line in f:
             file_order.append(line.strip().replace('.en', ''))
 

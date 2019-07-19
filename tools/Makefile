@@ -1,12 +1,12 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-# PYTHON := /usr/bin/python2.7
+# PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
-CUPY_VERSION := 5.0.0
+CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
+# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
@@ -29,9 +29,9 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done
+extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -81,14 +81,9 @@ ifneq ($(strip $(CUPY_VERSION)),)
 	touch cupy.done
 endif
 
-chainer_patch.done: espnet.done
-	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
-
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
-	git clone https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/espnet/warp-ctc.git
 	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
@@ -119,7 +114,7 @@ nkf.done:
 sentencepiece.done:
 	rm -rf sentencepiece
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
+	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
 mecab.done: espnet.done
@@ -153,12 +148,32 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
+mwerSegmenter.done:
+	wget https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	tar zxvf mwerSegmenter.tar.gz
+	rm mwerSegmenter.tar.gz
+	touch mwerSegmenter.done
+
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
 else
 	. venv/bin/activate; python check_install.py --no-cupy
 endif
+
+
+pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
+PESQ/P862_annex_A_2005_CD/source/PESQ: PESQ
+	cd PESQ/P862_annex_A_2005_CD/source; gcc *.c -lm -o PESQ
+PESQ: PESQ.zip
+	mkdir -p PESQ_P.862.2
+	unzip PESQ.zip -d PESQ_P.862.2
+	unzip "PESQ_P.862.2/Software/P862_annex_A_2005_CD  wav final.zip" -d PESQ_P.862.2
+	rm -rf PESQ
+	ln -s PESQ_P.862.2 PESQ
+PESQ.zip:
+	wget 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
+
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
@@ -169,9 +184,10 @@ clean: clean_extra
 clean_python:
 	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
+	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
-	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf sentencepiece mecab swig moses mwerSegmenter
+	rm -rf PESQ PESQ.zip

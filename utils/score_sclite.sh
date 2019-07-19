@@ -12,11 +12,12 @@ bpemodel=""
 remove_blank=true
 filter=""
 num_spkrs=1
+help_message="Usage: $0 <data-dir> <dict>"
 
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
-    echo "Usage: $0 <data-dir> <dict>";
+    echo $help_message
     exit 1;
 fi
 
@@ -73,13 +74,13 @@ elif [ ${num_spkrs} -eq 2 ]; then
       if ${remove_blank}; then
           sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp${n}.trn
       fi
-      if [ ! -z ${nlsyms} ]; then
+      if [ -n "${nlsyms}" ]; then
           cp ${dir}/ref${n}.trn ${dir}/ref${n}.trn.org
           cp ${dir}/hyp${n}.trn ${dir}/hyp${n}.trn.org
           filt.py -v ${nlsyms} ${dir}/ref${n}.trn.org > ${dir}/ref${n}.trn
           filt.py -v ${nlsyms} ${dir}/hyp${n}.trn.org > ${dir}/hyp${n}.trn
       fi
-      if [ ! -z ${filter} ]; then
+      if [ -n "${filter}" ]; then
           sed -i.bak3 -f ${filter} ${dir}/hyp${n}.trn
           sed -i.bak3 -f ${filter} ${dir}/ref${n}.trn
       fi
@@ -92,13 +93,13 @@ elif [ ${num_spkrs} -eq 2 ]; then
   done
 
   echo "write CER (or TER) results in ${dir}/result_r*h*.txt"
-  compute-perm-free-error.sh --num_spkrs ${num_spkrs} ${dir}/result_r1h1.txt ${dir}/result_r1h2.txt \
+  eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.txt ${dir}/result_r1h2.txt \
       ${dir}/result_r2h1.txt ${dir}/result_r2h2.txt > ${dir}/min_perm_result.json
   sed -n '2,4p' ${dir}/min_perm_result.json
 
   if ${wer}; then
       for n in $(seq ${num_spkrs}); do
-          if [ ! -z $bpe ]; then
+          if [ -n "$bpe" ]; then
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref${n}.trn | sed -e "s/▁/ /g" > ${dir}/ref${n}.wrd.trn
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp${n}.trn | sed -e "s/▁/ /g" > ${dir}/hyp${n}.wrd.trn
           else
@@ -113,7 +114,7 @@ elif [ ${num_spkrs} -eq 2 ]; then
       done
 
       echo "write WER results in ${dir}/result_r*h*.wrd.txt"
-      compute-perm-free-error.sh --num_spkrs ${num_spkrs} --wrd true ${dir}/result_r1h1.wrd.txt ${dir}/result_r1h2.wrd.txt \
+      eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.wrd.txt ${dir}/result_r1h2.wrd.txt \
           ${dir}/result_r2h1.wrd.txt ${dir}/result_r2h2.wrd.txt > ${dir}/min_perm_result.wrd.json
       sed -n '2,4p' ${dir}/min_perm_result.wrd.json
   fi

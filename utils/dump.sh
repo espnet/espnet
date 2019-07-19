@@ -13,6 +13,7 @@ verbose=0
 compress=true
 write_utt2num_frames=true
 filetype='mat'  # mat or hdf5
+help_message="Usage: $0 <scp> <cmvnark> <logdir> <dumpdir>"
 
 . utils/parse_options.sh
 
@@ -22,7 +23,7 @@ logdir=$3
 dumpdir=$4
 
 if [ $# != 4 ]; then
-    echo "Usage: $0 <scp> <cmvnark> <logdir> <dumpdir>"
+    echo $help_message
     exit 1;
 fi
 
@@ -54,7 +55,7 @@ done
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
 
 # dump features
-if ${do_delta};then
+if ${do_delta}; then
     ${cmd} JOB=1:${nj} ${logdir}/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true ${cvmnark} scp:${logdir}/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \

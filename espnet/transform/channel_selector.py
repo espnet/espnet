@@ -1,20 +1,8 @@
 import numpy
 
-from espnet.transform.transformation import transform_config
-
 
 class ChannelSelector(object):
-    """Select 1ch from multi-channel signal
-
-    >>> from espnet.transform.transformation import using_transform_config
-    >>> x = numpy.array([[0, 1]])
-    >>> f = ChannelSelector(train_channel=0, eval_channel=1)
-    >>> with using_transform_config({'train': True}):
-    ...     assert f(x) == 0
-    >>> with using_transform_config({'train': False}):
-    ...     assert f(x) == 1
-
-    """
+    """Select 1ch from multi-channel signal """
 
     def __init__(self, train_channel='random', eval_channel=0, axis=1):
         self.train_channel = train_channel
@@ -29,7 +17,7 @@ class ChannelSelector(object):
                         eval_channel=self.eval_channel,
                         axis=self.axis))
 
-    def __call__(self, x):
+    def __call__(self, x, train=True):
         # Assuming x: [Time, Channel] by default
 
         if x.ndim <= self.axis:
@@ -39,7 +27,7 @@ class ChannelSelector(object):
                         for i in range(self.axis + 1))
             x = x[ind]
 
-        if transform_config['train']:
+        if train:
             channel = self.train_channel
         else:
             channel = self.eval_channel

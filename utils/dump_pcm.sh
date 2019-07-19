@@ -7,23 +7,29 @@ compress=false
 write_utt2num_frames=false # if true writes utt2num_frames
 verbose=2
 filetype=mat # mat or hdf5
+keep_length=true
+format=wav
 # End configuration section.
 
+help_message=$(cat <<EOF
+Usage: $0 [options] <data-dir> [<log-dir> [<pcm-dir>] ]
+e.g.: $0 data/train exp/dump_pcm/train pcm
+Note: <log-dir> defaults to <data-dir>/log, and <pcm-dir> defaults to <data-dir>/data
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --write-utt2num-frames <true|false>     # If true, write utt2num_frames file.
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+EOF
+)
 echo "$0 $*"  # Print the command line for logging
 
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <data-dir> [<log-dir> [<pcm-dir>] ]";
-   echo "e.g.: $0 data/train exp/dump_pcm/train pcm"
-   echo "Note: <log-dir> defaults to <data-dir>/log, and <pcm-dir> defaults to <data-dir>/data"
-   echo "Options: "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   echo "  --write-utt2num-frames <true|false>     # If true, write utt2num_frames file."
-   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
-   exit 1;
+    echo $help_message
+    exit 1;
 fi
 
 set -euo pipefail
@@ -69,18 +75,22 @@ done
 utils/validate_data_dir.sh --no-text --no-feats ${data}
 
 if ${write_utt2num_frames}; then
-  write_num_frames_opt="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
+    opts="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
 else
-  write_num_frames_opt=
+    opts=
 fi
 
-if [ "${filetype}" == hdf5 ];then
-    ext=h5
-elif [ "${filetype}" == sound.hdf5 ];then
-    # Specify flac
-    ext=flac.h5
+if [ "${filetype}" == hdf5 ]; then
+    ext=.h5
+elif [ "${filetype}" == sound.hdf5 ]; then
+    ext=.flac.h5
+    opts+="--format ${format} "
+
+elif [ "${filetype}" == sound ]; then
+    ext=
+    opts+="--format wav "
 else
-    ext=ark
+    ext=.ark
 fi
 
 if [ -f ${data}/segments ]; then
@@ -93,13 +103,13 @@ if [ -f ${data}/segments ]; then
   utils/split_scp.pl ${data}/segments ${split_segments}
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
-      --segment=${logdir}/segments.JOB ${write_num_frames_opt} scp:${scp} \
-      ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+      --keep-length ${keep_length} --segment=${logdir}/segments.JOB scp:${scp} \
+      ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 else
 
-  echo "$0: [info]: no segments file exists: assuming pcm.scp indexed by utterance."
+  echo "$0: [info]: no segments file exists: assuming wav.scp indexed by utterance."
   split_scps=""
   for n in $(seq ${nj}); do
     split_scps="${split_scps} ${logdir}/wav.${n}.scp"
@@ -108,9 +118,9 @@ else
   utils/split_scp.pl ${scp} ${split_scps}
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
-      ${write_num_frames_opt} scp:${logdir}/wav.JOB.scp \
-      ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+      --keep-length ${keep_length} scp:${logdir}/wav.JOB.scp \
+      ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 fi
 
