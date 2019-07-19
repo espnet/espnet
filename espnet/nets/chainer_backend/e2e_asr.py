@@ -10,6 +10,7 @@ import math
 import chainer
 from chainer import reporter
 import numpy as np
+
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend.attentions import att_for
 from espnet.nets.chainer_backend.ctc import ctc_for
