@@ -127,7 +127,7 @@ class E2E(ASRInterface, chainer.Chain):
         self.eos = odim - 1
         self.subsample = [0]
         self.verbose = 0 if 'verbose' not in args else args.verbose
-        # self.ignore_id = ignore_id
+        self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
             self.encoder = Encoder(args.transformer_input_layer, idim, args.elayers, args.adim,

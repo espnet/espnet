@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+import logging
+import numpy as np
+
 import chainer
 
 import chainer.functions as F
@@ -9,9 +12,6 @@ from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttentio
 from espnet.nets.chainer_backend.nets_utils_transformer import FeedForwardLayer
 from espnet.nets.chainer_backend.nets_utils_transformer import LayerNorm
 from espnet.nets.chainer_backend.nets_utils_transformer import PositionalEncoding
-
-import logging
-import numpy as np
 
 
 class Conv2dSubsampling(chainer.Chain):
