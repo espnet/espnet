@@ -23,7 +23,6 @@ MIN_VALUE = float(np.finfo(np.float32).min)
 
 
 class VaswaniRule(extension.Extension):
-
     """Trainer extension to shift an optimizer attribute magically by Vaswani.
 
     Args:
@@ -83,6 +82,17 @@ class VaswaniRule(extension.Extension):
 
 
 class E2E(ASRInterface, chainer.Chain):
+    """E2E module.
+
+    Args:
+        idim (int): Dimension of inputs.
+        odim (int): Dimension of outputs.
+        args (Namespace): Training config.
+        flag_return (bool): If True, then return value of `forward()`
+            would be tuple of (loss, loss_ctc, loss_att, acc)
+
+    """
+
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
@@ -117,7 +127,7 @@ class E2E(ASRInterface, chainer.Chain):
         self.eos = odim - 1
         self.subsample = [0]
         self.verbose = 0 if 'verbose' not in args else args.verbose
-        self.ignore_id = ignore_id
+        # self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
             self.encoder = Encoder(args.transformer_input_layer, idim, args.elayers, args.adim,
@@ -138,6 +148,12 @@ class E2E(ASRInterface, chainer.Chain):
         self.flag_return = flag_return
 
     def reset_parameters(self, args):
+        """Initialize the Weight according to the give initialize-type.
+
+        Args:
+            args (Namespace): Transformer config.
+
+        """
         type_init = args.transformer_init
         if type_init == 'lecun_uniform':
             logging.info('Using LeCunUniform as Parameter initializer')
@@ -227,6 +243,22 @@ class E2E(ASRInterface, chainer.Chain):
         return loss, accuracy
 
     def forward(self, xs, ilens, ys, calculate_attentions=False):
+        """E2E forward propagation.
+
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each input batch. (B,)
+            ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)
+            calculate_attentions (bool): If true, return value is the output of encoder.
+
+        Returns:
+            float: Training loss.
+            float (optional): Training loss for ctc.
+            float (optional): Training loss for attention.
+            float (optional): Accuracy.
+            chainr.Variable (Optional): Output of the encoder.
+
+        """
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
 
@@ -286,16 +318,19 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
-        '''E2E beam search
+        """E2E beam search.
 
-        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
-        :param namespace recog_args: argment namespace contraining options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        '''
+        Args:
+            x (ndarray): Input acouctic feature (B, T, D) or (T, D).
+            recog_args (Namespace): Argment namespace contraining options.
+            char_list (List[str]): List of characters.
+            rnnlm (torch.nn.Module): Language model module defined at
+                `espnet.lm.chainer_backend.lm`.
 
+        Returns:
+            List: N-best decoding results.
+
+        """
         xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             ilens = [x_block.shape[0]]
@@ -329,15 +364,17 @@ class E2E(ASRInterface, chainer.Chain):
         return nbest_hyps
 
     def calculate_all_attentions(self, xs, ilens, ys):
-        '''E2E attention calculation
+        """E2E attention calculation.
 
-        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
-        :param ndarray ilens: batch of lengths of input sequences (B)
-        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: float ndarray
-        '''
+        Args:
+            xs_pad (List[tuple()]): List of padded input sequences. [(T1, idim), (T2, idim), ...]
+            ilens (ndarray): Batch of lengths of input sequences. (B)
+            ys (List): List of character id sequence tensor. [(L1), (L2), (L3), ...]
 
+        Returns:
+            float ndarray: Attention weights. (B, Lmax, Tmax)
+
+        """
         with chainer.no_backprop_mode():
             results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
         ret = dict()
