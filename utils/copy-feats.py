@@ -10,8 +10,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='copy feature with preprocessing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -21,7 +22,7 @@ def main():
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--out-filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
+                        choices=['mat', 'hdf5', 'sound.hdf5', 'sound'],
                         help='Specify the file format for the wspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--write-num-frames', type=str,
@@ -36,6 +37,11 @@ def main():
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier', type=str,
                         help='Write specifier. e.g. ark:some.ark')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info
@@ -62,9 +68,16 @@ def main():
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
+
             if preprocessing is not None:
                 mat = preprocessing(mat, uttid_list=utt)
-            writer[utt] = mat
+
+            # shape = (Time, Channel)
+            if args.out_filetype in ['sound.hdf5', 'sound']:
+                # Write Tuple[int, numpy.ndarray] (scipy style)
+                writer[utt] = (rate, mat)
+            else:
+                writer[utt] = mat
 
 
 if __name__ == "__main__":

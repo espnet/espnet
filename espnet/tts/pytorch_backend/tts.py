@@ -19,17 +19,15 @@ from chainer import training
 from chainer.training import extensions
 
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
-from espnet.transform.transformation import using_transform_config
-from espnet.tts.tts_utils import make_batchset
+from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.training.batchfy import make_batchset
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
@@ -45,8 +43,6 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
-
-REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -87,7 +83,10 @@ class CustomEvaluator(extensions.Evaluator):
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
                     x = self.converter(batch, self.device)
-                    self.model(*x)
+                    if isinstance(x, tuple):
+                        self.model(*x)
+                    else:
+                        self.model(**x)
                 summary.add(observation)
         self.model.train()
 
@@ -105,13 +104,15 @@ class CustomUpdater(training.StandardUpdater):
     :param torch.device device : The device to use
     """
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
         self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
+        self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -125,9 +126,17 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*x)
-        optimizer.zero_grad()
+        if isinstance(x, tuple):
+            loss = self.model(*x).mean() / self.accum_grad
+        else:
+            loss = self.model(**x).mean() / self.accum_grad
         loss.backward()
+
+        # update parameters
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
+        self.forward_count = 0
 
         # compute the gradient norm to check if it is normal or not
         grad_norm = self.clip_grad_norm(self.model.parameters(), self.grad_clip)
@@ -136,34 +145,19 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+        optimizer.zero_grad()
+
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomConverter(object):
-    """Custom converter for Tacotron2 training
+    """Custom converter for E2E-TTS model training"""
 
-    :param bool return_targets:
-    :param bool use_speaker_embedding:
-    :param bool use_second_target:
-    """
-
-    def __init__(self,
-                 return_targets=True,
-                 use_speaker_embedding=False,
-                 use_second_target=False,
-                 preprocess_conf=None):
-        self.return_targets = return_targets
-        self.use_speaker_embedding = use_speaker_embedding
-        self.use_second_target = use_second_target
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='tts',
-            use_speaker_embedding=use_speaker_embedding,
-            use_second_target=use_second_target,
-            preprocess_conf=preprocess_conf)
-
-    def transform(self, item):
-        # load batch
-        xs, ys, spembs, spcs = self.load_inputs_and_targets(item)
-        return xs, ys, spembs, spcs
+    def __init__(self):
+        pass
 
     def __call__(self, batch, device):
         # batch should be located in list
@@ -186,18 +180,26 @@ class CustomConverter(object):
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1.0
 
+        # prepare dict
+        new_batch = {
+            "xs": xs,
+            "ilens": ilens,
+            "ys": ys,
+            "labels": labels,
+            "olens": olens,
+        }
+
         # load second target
         if spcs is not None:
             spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
+            new_batch["spcs"] = spcs
 
         # load speaker embedding
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float().to(device)
+            new_batch["spembs"] = spembs
 
-        if self.return_targets:
-            return xs, ilens, ys, labels, olens, spembs, spcs
-        else:
-            return xs, ilens, ys, spembs
+        return new_batch
 
 
 def train(args):
@@ -219,14 +221,18 @@ def train(args):
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    if args.use_cbhg:
-        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
+    logging.info('#input dims : ' + str(idim))
+    logging.info('#output dims: ' + str(odim))
+
+    # get extra input and output dimenstion
     if args.use_speaker_embedding:
         args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
     else:
         args.spk_embed_dim = None
-    logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    if args.use_second_target:
+        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
+    else:
+        args.spc_dim = None
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -234,43 +240,43 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # specify model architecture
-    tacotron2 = Tacotron2(idim, odim, args)
-    logging.info(tacotron2)
+    model_class = dynamic_import(args.model_module)
+    model = model_class(idim, odim, args)
+    assert isinstance(model, TTSInterface)
+    logging.info(model)
+    reporter = model.reporter
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=list(range(args.ngpu)))
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
         args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    tacotron2 = tacotron2.to(device)
-
-    # define loss
-    model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
-    reporter = model.reporter
+    model = model.to(device)
 
     # Setup an optimizer
-    optimizer = torch.optim.Adam(
-        model.parameters(), args.lr, eps=args.eps,
-        weight_decay=args.weight_decay)
+    if args.opt == 'adam':
+        optimizer = torch.optim.Adam(
+            model.parameters(), args.lr, eps=args.eps,
+            weight_decay=args.weight_decay)
+    elif args.opt == 'noam':
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
+    else:
+        raise NotImplementedError("unknown optimizer: " + args.opt)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, 'target', reporter)
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
-
-    # Setup a converter
-    converter = CustomConverter(return_targets=True,
-                                use_speaker_embedding=args.use_speaker_embedding,
-                                use_second_target=args.use_cbhg,
-                                preprocess_conf=args.preprocess_conf)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -283,34 +289,65 @@ def train(args):
         args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   shortest_first=use_sortagrad,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout,
+                                   swap_io=True)
     valid_batchset = make_batchset(valid_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout,
+                                   swap_io=True)
+
+    load_tr = LoadInputsAndTargets(
+        mode='tts',
+        use_speaker_embedding=args.use_speaker_embedding,
+        use_second_target=args.use_second_target,
+        preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+
+    load_cv = LoadInputsAndTargets(
+        mode='tts',
+        use_speaker_embedding=args.use_speaker_embedding,
+        use_second_target=args.use_second_target,
+        preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
+
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
+    if args.num_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train_batchset, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            TransformDataset(train_batchset, load_tr),
+            batch_size=1, n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20,
             shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid_batchset, converter.transform),
+            TransformDataset(valid_batchset, load_cv),
             batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+            n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train_batchset, converter.transform),
+            TransformDataset(train_batchset, load_tr),
             batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid_batchset, converter.transform),
+            TransformDataset(valid_batchset, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
+    converter = CustomConverter()
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device, args.accum_grad)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -321,62 +358,58 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
+    # set intervals
+    save_interval = (args.save_interval_epochs, 'epoch')
+    report_interval = (args.report_interval_iters, 'iteration')
+
     # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        if hasattr(tacotron2, "module"):
-            att_vis_fn = tacotron2.module.calculate_all_attentions
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
-            att_vis_fn = tacotron2.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
+            att_vis_fn = model.calculate_all_attentions
+            plot_class = model.attention_plot_class
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(return_targets=False,
-                                      use_speaker_embedding=args.use_speaker_embedding,
-                                      preprocess_conf=args.preprocess_conf),
+            converter=converter,
+            transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+        trainer.extend(att_reporter, trigger=save_interval)
     else:
         att_reporter = None
 
     # Make a plot for training and validation values
-    plot_keys = ['main/loss', 'validation/main/loss',
-                 'main/l1_loss', 'validation/main/l1_loss',
-                 'main/mse_loss', 'validation/main/mse_loss',
-                 'main/bce_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
-                                         'epoch', file_name='l1_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
-                                         'epoch', file_name='mse_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
-                                         'epoch', file_name='bce_loss.png'))
-    if args.use_cbhg:
-        plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
-                      'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
-        trainer.extend(extensions.PlotReport(['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss'],
-                                             'epoch', file_name='cbhg_l1_loss.png'))
-        trainer.extend(extensions.PlotReport(['main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss'],
-                                             'epoch', file_name='cbhg_mse_loss.png'))
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='loss.png'))
+    if hasattr(model, "module"):
+        base_plot_keys = model.module.base_plot_keys
+    else:
+        base_plot_keys = model.base_plot_keys
+    plot_keys = []
+    for key in base_plot_keys:
+        plot_key = ['main/' + key, 'validation/main/' + key]
+        trainer.extend(extensions.PlotReport(plot_key, 'epoch', file_name=key + '.png'))
+        plot_keys += plot_key
+    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = plot_keys[:]
-    report_keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.LogReport(trigger=report_interval))
+    report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
+    trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
+    trainer.extend(extensions.ProgressBar())
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter))
+        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=report_interval)
 
     if use_sortagrad:
         trainer.extend(ShufflingEnabler([train_iter]),
@@ -401,16 +434,19 @@ def decode(args):
         logging.info('args: ' + key + ': ' + str(vars(args)[key]))
 
     # define model
-    tacotron2 = Tacotron2(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, TTSInterface)
+    logging.info(model)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    torch_load(args.model, tacotron2)
-    tacotron2.eval()
+    torch_load(args.model, model)
+    model.eval()
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    tacotron2 = tacotron2.to(device)
+    model = model.to(device)
 
     # read json data
     with open(args.json, 'rb') as f:
@@ -425,13 +461,16 @@ def decode(args):
         mode='tts', load_input=False, sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
 
-    with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    with torch.no_grad(), \
+            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]
-            with using_transform_config({'train': False}):
-                data = load_inputs_and_targets(batch)
+            data = load_inputs_and_targets(batch)
             if train_args.use_speaker_embedding:
                 spemb = data[1][0]
                 spemb = torch.FloatTensor(spemb).to(device)
@@ -441,7 +480,7 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, _, _ = tacotron2.inference(x, args, spemb)
+            outs = model.inference(x, args, spemb)[0]
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (

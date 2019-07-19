@@ -20,19 +20,23 @@ normalize=16  # The bit-depth of the input wav files
 filetype=mat # mat or hdf5
 # End configuration section.
 
+help_message=$(cat <<EOF
+Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]
+e.g.: $0 data/train exp/make_fbank/train mfcc
+Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+EOF
+)
 echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]";
-   echo "e.g.: $0 data/train exp/make_fbank/train mfcc"
-   echo "Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data"
-   echo "Options: "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
-   exit 1;
+    echo $help_message
+    exit 1;
 fi
 
 set -euo pipefail
@@ -81,7 +85,7 @@ else
   write_num_frames_opt=
 fi
 
-if [ "${filetype}" == hdf5 ];then
+if [ "${filetype}" == hdf5 ]; then
     ext=h5
 else
     ext=ark

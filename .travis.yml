@@ -1,7 +1,7 @@
+dist: xenial
 language: python
-
 python:
-  - 2.7
+  - "3.7"
 
 cache:
   - pip
@@ -13,75 +13,49 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - cmake
-      - python-dev
       - python3-dev
       - g++-7
 
 env:
-  global:
-    - CC=gcc-7
-    - CXX=g++-7
-  matrix:
-    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=1.0.0
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=0.4.1
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.0
+  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.1.0 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.1.0 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  # torch nightly with chainer stable
+  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+  # chainer nightly with torch stable
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+
+matrix:
+  allow_failures:
+    # torch nightly with chainer stable
+    - env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+    # chainer nightly with torch stable
+    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+    - env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
 install:
-  - if [[ ${USE_CONDA} == false ]]; then
-        pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
-    else
-        cd tools;
-        make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
-        source venv/etc/profile.d/conda.sh;
-        conda config --set always_yes yes --set changeps1 no;
-        conda activate;
-        conda update -y conda;
-        conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
-        cd -;
-    fi
-  - pip install -U pip wheel
-  # install espnet
-  - pip install -e .
-  - pip install -e .[test]
-  - pip install -e .[doc]
-  # install matplotlib
-  - pip install matplotlib
-  # install warp-ctc (use @jnishi patched version)
-  - git clone https://github.com/jnishi/warp-ctc.git
-  - if [[ "${TH_VERSION}" != 0.4.1 ]]; then
-      cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; cd ..;
-    fi
-  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-  - pip install cffi
-  - cd pytorch_binding && python setup.py install && cd ../..
-  # install kaldiio
-  - pip install git+https://github.com/nttcslab-sp/kaldiio.git
-  # install chainer_ctc
-  - pip install cython
-  - git clone https://github.com/jheymann85/chainer_ctc.git
-  - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-  - pip install . && cd ..
-  - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
-  # install bats-core
-  - git clone https://github.com/bats-core/bats-core.git
-  - export PATH=$(pwd)/bats-core/bin:$PATH
+  - ./ci/install.sh
 
 
 script:
-  # TODO test coding style?
-  - flake8 espnet test utils
-  - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
-  - test ! -s check_autopep8
-  - pytest
-  - bats test_utils
-  - travis-sphinx build --source=doc --nowarn
-  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 -e SC2086 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 -e SC2086 *.sh'
+  - ./ci/test_shell.sh
+  - ./ci/test_python.sh
+  - |
+    if $USE_CONDA; then
+      source tools/venv/bin/activate
+      cd tools; git clone https://github.com/kaldi-asr/kaldi --depth 1; cd -
+      ./ci/doc.sh
+    fi
 
 sudo: false
 
-
 after_success:
-    - travis-sphinx deploy
-
+  - bash <(curl -s https://codecov.io/bash)
+  - |
+    if $USE_CONDA; then
+      travis-sphinx deploy -m "Update documentation [ci skip]"
+    fi

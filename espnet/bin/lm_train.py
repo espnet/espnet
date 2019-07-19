@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -9,7 +9,7 @@
 from __future__ import division
 from __future__ import print_function
 
-import argparse
+import configargparse
 import logging
 
 import numpy as np
@@ -20,9 +20,19 @@ import subprocess
 import sys
 
 
-def main(args):
-    parser = argparse.ArgumentParser()
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
+    parser = configargparse.ArgumentParser(
+        description='Train a new language model on one CPU or one GPU',
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -72,6 +82,11 @@ def main(args):
                         help='Number of hidden units')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
+    return parser
+
+
+def main(args):
+    parser = get_parser()
     args = parser.parse_args(args)
 
     # logging info
