@@ -6,7 +6,6 @@ import configargparse
 import numpy as np
 import torch
 
-from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.frontends.feature_transform import FeatureTransform
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
@@ -132,100 +131,25 @@ class FrontendASR(FrontendASRInterface, torch.nn.Module):
             uttmvn_norm_means=args.uttmvn_norm_means,
             uttmvn_norm_vars=args.uttmvn_norm_vars)
         self._featdim = args.fbank_n_mels
-        self.asr_model = None
 
     @property
     def featdim(self) -> int:
         return self._featdim
 
-    def register_asr(self, asr_model: torch.nn.Module):
-        assert isinstance(asr_model, ASRInterface), type(asr_model)
-        self.asr_model = asr_model
-
-    def forward(self, xs_pad, ilens, ys_pad):
-        if self.asr_model is None:
-            raise RuntimeError(
-                'Cannot use this method before calling register_asr')
-
-        # Assume the inputs in Stft domain
-        xs_pad = to_torch_tensor(xs_pad)
+    def forward(self, xs_pad, ilens):
         enhanced, hlens, mask = self.frontend(xs_pad, ilens)
         hs_pad, hlens = self.feature_transform(enhanced, hlens)
-        return self.asr_model(hs_pad, hlens, ys_pad)
-
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        if self.asr_model is None:
-            raise RuntimeError(
-                'Cannot use this method before calling register_asr')
-
-        prev = self.training
-        self.eval()
-        ilens = [x.shape[0]]
-
-        # subsample frame
-        x = x[::self.asr_model.subsample[0], :]
-        h = to_device(self, to_torch_tensor(x).float())
-        # make a utt list (1) to use the same interface for encoder
-        hs = h.contiguous().unsqueeze(0)
-
-        enhanced, hlens, mask = self.frontend(hs, ilens)
-        hs, hlens = self.feature_transform(enhanced, hlens)
-
-        if prev:
-            self.train()
-        return self.asr_model.recognize(hs[0], recog_args, char_list, rnnlm=None)
-
-    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
-        if self.asr_model is None:
-            raise RuntimeError(
-                'Cannot use this method before calling register_asr')
-
-        prev = self.training
-        self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-
-        # subsample frame
-        xs = [xx[::self.asr_model.subsample[0], :] for xx in xs]
-        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
-        xs_pad = pad_list(xs, 0.0)
-
-        enhanced, hlens, mask = self.frontend(xs_pad, ilens)
-        hs_pad, hlens = self.feature_transform(enhanced, hlens)
-        if prev:
-            self.train()
-        return self.asr_model.recognize_batch(hs_pad, recog_args, char_list, rnnlm=None)
+        return hs_pad, hlens
 
     def enhance(self, xs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        if self.asr_model is None:
-            raise RuntimeError(
-                'Cannot use this method before calling register_asr')
-
         prev = self.training
         self.eval()
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-
-        # subsample frame
-        xs = [xx[::self.asr_model.subsample[0], :] for xx in xs]
         xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
         enhanced, hlens, mask = self.frontend(xs_pad, ilens)
         if prev:
             self.train()
         if mask is not None:
-            mask = mask.cpu().numpy()
-        return enhanced.cpu().numpy(), hlens.cpu().numpy(), mask
-
-    def calculate_all_attentions(self, xs: list, ilens: np.ndarray, ys: list):
-        if self.asr_model is None:
-            raise RuntimeError(
-                'Cannot use this method before calling register_asr')
-
-        xs = to_torch_tensor(xs)
-        enhanced, hlens, mask = self.frontend(xs, ilens)
-        hs, hlens = self.feature_transform(enhanced, hlens)
-
-        return self.asr_model.calculate_all_attentions(hs, hlens, ys)
-
-    @property
-    def attention_plot_class(self):
-        return self.asr_model.attention_plot_class
+            mask = mask.detach().cpu().numpy()
+        return enhanced.detach().cpu().numpy(), hlens.detach().cpu().numpy(), mask

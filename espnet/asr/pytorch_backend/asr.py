@@ -278,16 +278,18 @@ def train(args):
         frontend_class = dynamic_import(args.frontend_module)
         assert issubclass(frontend_class, FrontendASRInterface), frontend_class
         # Wrap model by frontend_class.
-        frontend_asr = frontend_class(idim, args)
-        _idim = frontend_asr.featdim
+        frontend = frontend_class(idim, args)
+        _idim = frontend.featdim
     else:
-        frontend_asr = None
+        def frontend(*args):
+            return args
         _idim = idim
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
     model = model_class(_idim, odim, args)
     assert isinstance(model, ASRInterface), type(model)
+    model.register_frontend(frontend)
 
     # FIXME(kamo): Too adhoc
     # Initialize encoder with pre-trained ASR encoder
@@ -321,10 +323,6 @@ def train(args):
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch.load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
-    if frontend_asr is not None:
-        frontend_asr.register_asr(model)
-        # Replace model with frontend_asr
-        model = frontend_asr
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -543,24 +541,24 @@ def recog(args):
         model_module = train_args.model_module
     else:
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
+
     if train_args.frontend_module is not None:
         # The concrete class for Fronend is here: espnet.nets.pytorch_backend.frontend_asr
         frontend_class = dynamic_import(train_args.frontend_module)
         assert issubclass(frontend_class, FrontendASRInterface), frontend_class
         # Wrap model by frontend_class.
-        frontend_asr = frontend_class(idim, train_args)
-        _idim = frontend_asr.featdim
+        frontend = frontend_class(idim, train_args)
+        _idim = frontend.featdim
     else:
-        frontend_asr = None
+        def frontend(*args):
+            return args
         _idim = idim
 
     model_class = dynamic_import(model_module)
     model = model_class(_idim, odim, train_args)
     assert isinstance(model, ASRInterface), type(model)
     model.recog_args = args
-    if frontend_asr is not None:
-        frontend_asr.register_asr(model)
-        model = frontend_asr
+    model.register_frontend(frontend)
     torch_load(args.model, model)
 
     # read rnnlm
@@ -695,16 +693,13 @@ def enhance(args):
     frontend_class = dynamic_import(train_args.frontend_module)
     assert issubclass(frontend_class, FrontendASRInterface), frontend_class
     # Wrap model by frontend_class.
-    frontend_asr = frontend_class(idim, train_args)
-    _idim = frontend_asr.featdim
+    frontend = frontend_class(idim, train_args)
 
     model_class = dynamic_import(train_args.model_module)
-    model = model_class(_idim, odim, train_args)
+    model = model_class(frontend.featdim, odim, train_args)
     assert isinstance(model, ASRInterface), type(model)
     model.recog_args = args
-    if frontend_asr is not None:
-        frontend_asr.register_asr(model)
-        model = frontend_asr
+    model.register_frontend(frontend)
     torch_load(args.model, model)
 
     # gpu
@@ -802,7 +797,7 @@ def enhance(args):
 
         with torch.no_grad():
             # FIXME(kamo): Assuming using mask
-            enhanced, ilens, mask = model.enhance(feats)
+            enhanced, ilens, mask = frontend.enhance(feats)
 
         for idx, name in enumerate(names):
             # Assuming mask, feats : [Batch, Time, Channel. Freq]

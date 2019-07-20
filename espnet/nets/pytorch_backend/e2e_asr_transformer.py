@@ -123,6 +123,10 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.error_calculator = None
         self.rnnlm = None
+        self.frontend = lambda *args: args
+
+    def register_frontend(self, frontend):
+        self.frontend = frontend
 
     def reset_parameters(self, args):
         # initialize parameters
@@ -154,11 +158,14 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         '''
+        xs_pad = to_torch_tensor(xs_pad)
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
+        # 0. Frontend
+        hs_pad, ilens = self.frontend(xs_pad, ilens)
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
 
         # 1. forward encoder
-        hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
+        hs_pad, hs_mask = self.encoder(hs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
@@ -228,6 +235,8 @@ class E2E(ASRInterface, torch.nn.Module):
         '''
         self.eval()
         feat = to_torch_tensor(feat).unsqueeze(0)
+        # 0. Frontend
+        feat, _ = self.frontend(feat, [feat.shape[1]])
         # 1. forward encoder
         enc_output, _ = self.encoder(feat, None)
         if recog_args.ctc_weight > 0.0:
@@ -407,6 +416,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: float ndarray
         '''
         with torch.no_grad():
+            xs_pad = to_torch_tensor(xs_pad)
+            # 1. forward encoder
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():

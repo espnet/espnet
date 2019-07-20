@@ -128,6 +128,10 @@ class E2E(ASRInterface, torch.nn.Module):
         self.logzero = -10000000000.0
         self.loss = None
         self.acc = None
+        self.frontend = lambda *args: args
+
+    def register_frontend(self, frontend):
+        self.frontend = frontend
 
     def init_like_chainer(self):
         """Initialize weight like chainer
@@ -184,15 +188,17 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: loass value
         :rtype: torch.Tensor
         """
-        xs_pad = to_torch_tensor(xs_pad)
-        # 1. Encoder
         if self.replace_sos:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
         else:
             tgt_lang_ids = None
+        # 0. Frontend
+        xs_pad = to_torch_tensor(xs_pad)
+        hs_pad, hlens = self.frontend(xs_pad, ilens)
 
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
+        # 1. Encoder
+        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -311,8 +317,11 @@ class E2E(ASRInterface, torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
+        # 0. frontend
+        hs, hlens = self.frontend(hs, ilens)
+
         # 1. encoder
-        hs, _, _ = self.enc(hs, ilens)
+        hs, _, _ = self.enc(hs, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -348,8 +357,11 @@ class E2E(ASRInterface, torch.nn.Module):
         xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
 
+        # 0. frontend
+        hs_pad, hlens = self.frontend(xs_pad, ilens)
+
         # 1. encoder
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -377,14 +389,16 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-            xs_pad = to_torch_tensor(xs_pad)
-            # 1. Encoder
             if self.replace_sos:
                 tgt_lang_ids = ys_pad[:, 0:1]
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
             else:
                 tgt_lang_ids = None
-            hpad, hlens, _ = self.enc(xs_pad, ilens)
+            xs_pad = to_torch_tensor(xs_pad)
+            # 0. frontend
+            hs_pad, hlens = self.frontend(xs_pad, ilens)
+            # 1. Encoder
+            hpad, hlens, _ = self.enc(hs_pad, hlens)
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)

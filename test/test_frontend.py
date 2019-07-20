@@ -1,12 +1,10 @@
 import argparse
-from typing import Union
 
 import numpy as np
 import pytest
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.frontend_asr import FrontendASR
 from espnet.nets.pytorch_backend.frontends.dnn_beamformer import DNN_Beamformer
 from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
@@ -42,46 +40,8 @@ def prepare_inputs(nfft=512, mode='pytorch', ilens=[150, 100], olens=[4, 3], is_
         raise ValueError("Invalid mode")
 
 
-class MockAsr(ASRInterface, torch.nn.Module):
-    def __init__(self, xs_shape, ys_shape, ilens):
-        torch.nn.Module.__init__(self)
-        self.xs_shape, self.ys_shape, self.ilens = \
-            xs_shape, ys_shape, ilens
-        self.subsample = [1]
-
-    def forward(self, xs: torch.Tensor, ilens: torch.Tensor, ys: torch.Tensor):
-        assert list(xs.shape) == self.xs_shape
-        assert list(ys.shape) == self.ys_shape
-        assert list(ilens) == list(self.ilens)
-
-    def recognize(self,
-                  x: Union[torch.Tensor, np.ndarray],
-                  recog_args: argparse.Namespace,
-                  char_list: list = None,
-                  rnnlm: torch.nn.Module = None):
-        assert list(x.shape) == self.xs_shape
-
-    def recognize_batch(self,
-                        x: Union[torch.Tensor, np.ndarray],
-                        recog_args: argparse.Namespace,
-                        char_list: list = None,
-                        rnnlm: torch.nn.Module = None):
-        assert list(x.shape) == self.xs_shape
-
-    def calculate_all_attentions(self, xs: list, ilens: np.ndarray, ys: list):
-        assert list(xs.shape) == self.xs_shape
-        assert list(ys.shape) == self.ys_shape
-        assert list(ilens) == list(self.ilens)
-
-    @property
-    def attention_plot_class(self):
-        from espnet.asr.asr_utils import PlotAttentionReport
-        return PlotAttentionReport
-
-
 def test_FrontendASR_forward():
     parser = argparse.ArgumentParser()
-    # Test1: add_arguments and parse
     FrontendASR.add_arguments(parser)
     nmels = 80
     args, _ = parser.parse_known_args(['--use-wpe', 'true',
@@ -91,75 +51,23 @@ def test_FrontendASR_forward():
     nfft = 512
     xs, ilens, ys = prepare_inputs(nfft)
 
-    # Test2: Instantiate
-    model = FrontendASR(nfft // 2 + 1, args)
-    asr_model = MockAsr([2, 150, nmels], [2, 4], ilens)
-    model.register_asr(asr_model)
-
-    # Test3: Forward
-    model.forward(xs, ilens, ys)
+    frontend = FrontendASR(nfft // 2 + 1, args)
+    frontend(xs, ilens)
 
 
-def test_FrontendASR_recognize():
-    defaults = dict(
-        nbest=5,
-        beam_size=3,
-        penalty=0.5,
-        maxlenratio=1.0,
-        minlenratio=0.0,
-        ctc_weight=0.2,
-        streaming_min_blank_dur=10,
-        streaming_onset_margin=2,
-        streaming_offset_margin=2,
-        verbose=2,
-        char_list=[u"あ", u"い", u"う", u"え", u"お"],
-        ctc_type="warpctc",
-        sym_space="<space>",
-        sym_blank="<blank>")
+def test_FrontendASR_enhance():
     parser = argparse.ArgumentParser()
-    # Test1: add_arguments and parse
     FrontendASR.add_arguments(parser)
     nmels = 80
     args, _ = parser.parse_known_args(['--use-wpe', 'true',
                                        '--use-beamformer', 'true',
-                                       '--fbank-n-mels', str(nmels)])
-    for k, v in defaults.items():
-        setattr(args, k, v)
-    nfft = 512
-    # Test2: Instantiate
-    model = FrontendASR(nfft // 2 + 1, args)
-    asr_model = MockAsr([3, model.featdim], None, None)
-    model.register_asr(asr_model)
-    x = np.random.randn(3, nfft // 2 + 1) + 1j * np.random.randn(3, nfft // 2 + 1)
-    model.recognize(x, args, args.char_list)  # decodable
-
-    if hasattr(model, 'recognize_batch'):
-        model = FrontendASR(nfft // 2 + 1, args)
-        asr_model = MockAsr([2, 3, model.featdim], None, None)
-        model.register_asr(asr_model)
-        x = np.random.randn(2, 3, nfft // 2 + 1) + 1j * np.random.randn(2, 3, nfft // 2 + 1)
-        model.recognize_batch(x, args, args.char_list)  # decodable
-
-
-def test_FrontendASR_calculate_all_attentions():
-    parser = argparse.ArgumentParser()
-    # Test1: add_arguments and parse
-    FrontendASR.add_arguments(parser)
-    nmels = 80
-    args, _ = parser.parse_known_args(['--use-wpe', 'true',
-                                       '--use-beamformer', 'true',
-                                       '--fbank-n-mels', str(nmels)])
+                                       '--n-mels', str(nmels)])
 
     nfft = 512
     xs, ilens, ys = prepare_inputs(nfft)
 
-    # Test2: Instantiate
-    model = FrontendASR(nfft // 2 + 1, args)
-    asr_model = MockAsr([2, 150, model.featdim], [2, 4], ilens)
-    model.register_asr(asr_model)
-
-    # Test3: Forward
-    model.calculate_all_attentions(xs, ilens, ys)
+    frontend = FrontendASR(nfft // 2 + 1, args)
+    frontend.enhance(xs)
 
 
 def test_DNN_Beamformer_forward_backward():

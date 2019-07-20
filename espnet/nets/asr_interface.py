@@ -16,6 +16,9 @@ class ASRInterface(object):
                                     configargparse.ArgumentParser]):
         return parser
 
+    def register_frontend(frotnend: torch.nn.Module):
+        raise NotImplementedError("register_frontend method is not implemented")
+
     def forward(self, xs: Union[torch.Tensor, List[chainer.Variable]],
                 ilens: Union[torch.Tensor, List[int]],
                 ys: Union[torch.Tensor, List[chainer.Variable]]):
@@ -68,12 +71,12 @@ class ASRInterface(object):
         return PlotAttentionReport
 
 
-class FrontendASRInterface(ASRInterface):
+class FrontendASRInterface:
     """Frontend part of ASR Interface
 
-    >>> frontend_asr = FrontendASR(infeatdim, args)
+    >>> frontend = FrontendASR(infeatdim, args)
     >>> asr_model = E2E(frontend.featdim, args)
-    >>> frontend_asr.register_asr(asr_model)
+    >>> asr_model.register_asr(frontend)
 
     """
 
@@ -88,8 +91,8 @@ class FrontendASRInterface(ASRInterface):
         """
         raise NotImplementedError("featdim method is not implemented")
 
-    def register_asr(asr_model: torch.nn.Module):
-        raise NotImplementedError("register_model method is not implemented")
+    def forward(self, xs_pad, ilens):
+        raise NotImplementedError('forward method is not implemented')
 
     def enhance(self, xs: np.ndarray):
         """Forwarding only the frontend stage
