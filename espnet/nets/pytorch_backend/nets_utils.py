@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import NamedTuple
 from typing import Union
 
 import numpy as np
@@ -301,12 +300,7 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     return float(numerator) / float(denominator)
 
 
-class RealImagTensor(NamedTuple):
-    real: torch.Tensor
-    imag: torch.Tensor
-
-
-def to_torch_tensor(x: Union[torch.Tensor, ComplexTensor, RealImagTensor]):
+def to_torch_tensor(x: Union[torch.Tensor, ComplexTensor, dict]):
     """Change to torch.Tensor or ComplexTensor from numpy.ndarray.
 
     Args:
@@ -321,7 +315,7 @@ def to_torch_tensor(x: Union[torch.Tensor, ComplexTensor, RealImagTensor]):
         tensor([1., 1., 1.])
         >>> xs = torch.ones(3, 4, 5)
         >>> assert to_torch_tensor(xs) is xs
-        >>> xs = RealImagTensor(xs, xs)
+        >>> xs = {'real': xs, 'imag': xs}
         >>> to_torch_tensor(xs)
         ComplexTensor(
         Real:
@@ -338,9 +332,12 @@ def to_torch_tensor(x: Union[torch.Tensor, ComplexTensor, RealImagTensor]):
         else:
             return torch.from_numpy(x)
 
-    elif isinstance(x, RealImagTensor):
+    elif isinstance(x, dict):
+        if set(x) != {'real', 'imag'}:
+            raise ValueError(
+                'Requires a dict like {"real": ndarray, "imag": ndarray}')
         # Relative importing because of using python3 syntax
-        return ComplexTensor(x.real, x.imag)
+        return ComplexTensor(x['real'], x['imag'])
 
     # If torch.Tensor, as it is
     elif isinstance(x, torch.Tensor):

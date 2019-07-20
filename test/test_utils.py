@@ -6,7 +6,6 @@ import pytest
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import SoundHDF5File
@@ -156,7 +155,7 @@ def test_to_torch_tensor():
     assert isinstance(t, torch.Tensor)
     assert tuple(t.shape) == tuple(x.shape)
 
-    t = RealImagTensor(x, x)
+    t = {'real': x, 'imag': x}
     t = to_torch_tensor(t)
     assert isinstance(t, ComplexTensor)
     assert tuple(t.shape) == tuple(x.shape)

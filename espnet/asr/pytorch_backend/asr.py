@@ -36,7 +36,6 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.asr_interface import FrontendASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.nets_utils import RealImagTensor
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
@@ -227,10 +226,9 @@ class CustomConverter(object):
             xs_pad_imag = pad_list(
                 [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
             # Note(kamo):
-            # RealImagTensor, which is a namedtuple, will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle ComplexTensor.
-            xs_pad = RealImagTensor(xs_pad_real, xs_pad_imag)
+            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
