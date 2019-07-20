@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
-    echo "Please change directory to e.g., egs/tedlium/asr1"
+    echo "Please change directory to e.g., egs/tedlium2/asr1"
     exit 1
 fi
 
@@ -32,7 +32,7 @@ decode_config=
 decode_dir=decode
 
 # download related
-models=tedlium.demo
+models=tedlium2.tacotron2.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -65,7 +65,7 @@ set -o pipefail
 
 function download_models () {
     case "${models}" in
-        "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+        "tedlium2.tacotron2.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
