@@ -228,25 +228,25 @@ and connecting to the given address (default : localhost:6006). This will provid
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
 ### Use of GPU
-- Training: 
+- Training:
   If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
   ```bash
     # use single gpu
-    $ ./run.sh --ngpu 1 
-	    
+    $ ./run.sh --ngpu 1
+
     # use multi-gpu
     $ ./run.sh --ngpu 3
-			  
+
     # if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
     # (Note that if you use slurm, this specification is not needed)
     $ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
-					  
+
     # use cpu
     $ ./run.sh --ngpu 0
   ```
   - Default setup uses a single GPU (`--ngpu 1`).
-- ASR decoding: 
-  ESPnet also supports the GPU-based decoding for fast recognition. 
+- ASR decoding:
+  ESPnet also supports the GPU-based decoding for fast recognition.
   - Please manually remove the following lines in `run.sh`:
     ```bash
     #### use CPU for decoding
@@ -375,10 +375,10 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval2              |  4.1 |  N/A | N/A |
 | CSJ eval3              |  4.5 |  N/A | N/A |
 | HKUST dev              | 23.5 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
-| Librispeech dev_clean  |  N/A |  3.7 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-transformer-accum-grad-8-single-gpu) |
-| Librispeech dev_other  |  N/A |  9.8 | same as above |
-| Librispeech test_clean |  N/A |  4.0 | same as above |
-| Librispeech test_other |  N/A | 10.0 | same as above |
+| Librispeech dev_clean  |  N/A |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm) |
+| Librispeech dev_other  |  N/A |  5.6 | same as above |
+| Librispeech test_clean |  N/A |  2.6 | same as above |
+| Librispeech test_other |  N/A |  5.7 | same as above |
 | TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
 | TEDLIUM2 test          |  N/A | 10.4 | same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
