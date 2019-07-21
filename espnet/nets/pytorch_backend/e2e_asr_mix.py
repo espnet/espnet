@@ -409,7 +409,8 @@ class E2E(ASRInterface, torch.nn.Module):
             normalize_score = True
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, rnnlm, normalize_score=normalize_score, strm_idx=i)
+        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list,
+                                           rnnlm, normalize_score=normalize_score, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
