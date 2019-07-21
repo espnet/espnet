@@ -168,14 +168,14 @@ class RNNLM(nn.Module):
     :param str typ: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
         self.rnn = nn.ModuleList(
             [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
                                                                                             for _ in range(n_layers)])
         self.dropout = nn.ModuleList(
-            [nn.Dropout() for _ in range(n_layers + 1)])
+            [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -358,7 +358,7 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")
