@@ -40,6 +40,7 @@ def make_arg(**kwargs):
         maxlenratio=1.0,
         minlenratio=0.0,
         ctc_weight=0.2,
+        ctc_window_margin=0,
         verbose=2,
         char_list=["a", "i", "u", "e", "o"],
         outdir=None,
