@@ -71,6 +71,8 @@ def get_parser():
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
+    parser.add_argument('--ctc-window-margin', type=int, default=0,
+                        help='Use CTC window with margin parameter')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')

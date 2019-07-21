@@ -403,11 +403,13 @@ class E2E(ASRInterface, torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz_sd = [self.ctc.log_softmax(hpad_sd[i]) for i in range(self.num_spkrs)]
+            normalize_score = False
         else:
             lpz_sd = None
+            normalize_score = True
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, rnnlm, strm_idx=i)
+        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, rnnlm, normalize_score=normalize_score, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
