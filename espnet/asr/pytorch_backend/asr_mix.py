@@ -415,11 +415,12 @@ def recog(args):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
 
-        # sort data
+        # sort data if batchsize > 1
         keys = list(js.keys())
-        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-        keys = [keys[i] for i in sorted_index]
+        if args.batchsize > 1:
+            feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+            sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+            keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):
