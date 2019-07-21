@@ -29,7 +29,7 @@ class CTCPrefixScoreTH(object):
         :param scoring_ratio : ratio of #scored hypos to beam size
         :param margin: margin parameter for windowing (0 means no windowing)
         """
-        # In the comment lines, we assume T: input_length, B: batch size, W: beam width, O: output dim. 
+        # In the comment lines, we assume T: input_length, B: batch size, W: beam width, O: output dim.
         self.logzero = -10000000000.0
         self.blank = blank
         self.eos = eos
@@ -41,7 +41,7 @@ class CTCPrefixScoreTH(object):
         self.device = torch.device('cuda:%d' % x.get_device()) if x.is_cuda else torch.device('cpu')
         # Pad the rest of posteriors in the batch
         for i, l in enumerate(xlens):
-            if l < self.input_length: 
+            if l < self.input_length:
                 x[i, l:, :] = self.logzero
                 x[i, l:, blank] = 0
         # Expand input posteriors for fast computation
@@ -51,7 +51,7 @@ class CTCPrefixScoreTH(object):
         else:
             xn = x.transpose(0, 1).unsqueeze(2).repeat(1, 1, beam, 1).view(-1, self.n_bb, self.odim)
         xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
-        self.x = torch.stack([xn, xb]) # (2, T, B, O) or (2, T, BW, O)
+        self.x = torch.stack([xn, xb])  # (2, T, B, O) or (2, T, BW, O)
         # Setup CTC windowing
         self.margin = margin
         if margin > 0:
@@ -74,17 +74,17 @@ class CTCPrefixScoreTH(object):
         :return new_state, ctc_local_scores (BW, O)
         """
         output_length = len(y[0]) - 1  # ignore sos
-        last_ids = [yi[-1] for yi in y] # last output label ids
-        # prepare state info 
+        last_ids = [yi[-1] for yi in y]  # last output label ids
+        # prepare state info
         if state is None:
             if self.scoring_num > 0:
-                r_prev = torch.full((self.input_length, 2, self.batch, self.beam), 
-                        self.logzero, dtype=torch.float32, device=self.device)
+                r_prev = torch.full((self.input_length, 2, self.batch, self.beam),
+                                    self.logzero, dtype=torch.float32, device=self.device)
                 r_prev[:, 1] = torch.cumsum(self.x[0, :, :, self.blank], 0).unsqueeze(2)
                 r_prev = r_prev.view(-1, 2, self.n_bb)
             else:
-                r_prev = torch.full((self.input_length, 2, self.n_bb), 
-                        self.logzero, dtype=torch.float32, device=self.device)
+                r_prev = torch.full((self.input_length, 2, self.n_bb),
+                                    self.logzero, dtype=torch.float32, device=self.device)
                 r_prev[:, 1] = torch.cumsum(self.x[0, :, :, self.blank], 0)
             s_prev = 0.0
             f_min_prev = 0
@@ -99,7 +99,8 @@ class CTCPrefixScoreTH(object):
             snum = scoring_ids.size(1)
             scoring_idmap[self.bb_idx, scoring_ids] = torch.arange(snum, device=self.device)
             scoring_idx = (scoring_ids + self.pad_o).view(-1)
-            x_ = torch.index_select(self.x.view(2, -1, self.batch * self.odim), 2, scoring_idx).view(2, -1, self.n_bb, snum)
+            x_ = torch.index_select(self.x.view(2, -1, self.batch * self.odim),
+                                    2, scoring_idx).view(2, -1, self.n_bb, snum)
         else:
             scoring_ids = None
             scoring_idmap = None
@@ -108,8 +109,8 @@ class CTCPrefixScoreTH(object):
 
         # new CTC forward probs are prepared as a (T x 2 x BW x S) tensor
         # that corresponds to r_t^n(h) and r_t^b(h) in a batch.
-        r = torch.full((self.input_length, 2, self.n_bb, snum), 
-                        self.logzero, dtype=torch.float32, device=self.device)
+        r = torch.full((self.input_length, 2, self.n_bb, snum),
+                       self.logzero, dtype=torch.float32, device=self.device)
         if output_length == 0:
             r[0, 0] = x_[0, 0]
 
@@ -131,7 +132,7 @@ class CTCPrefixScoreTH(object):
             f_max = max(int(f_arg.max().cpu()), f_max_prev)
             start = min(f_max_prev, max(f_min - self.margin, output_length, 1))
             end = min(f_max + self.margin, self.input_length)
-        else: 
+        else:
             f_min = f_max = 0
             start = max(output_length, 1)
             end = self.input_length
