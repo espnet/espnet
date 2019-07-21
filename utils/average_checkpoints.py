@@ -24,7 +24,7 @@ def main():
         print("best val scores = " + str(sorted_val_scores[:args.num, 1]))
         print("selected epochs = " + str(sorted_val_scores[:args.num, 0].astype(np.int64)))
         last = [os.path.dirname(args.snapshots[0]) + "/snapshot.ep.%d" % (
-            int(ep) for ep in sorted_val_scores[:args.num, 0])]
+            int(epoch)) for epoch in sorted_val_scores[:args.num, 0]]
     else:
         last = sorted(args.snapshots, key=os.path.getmtime)
         last = last[-args.num:]
