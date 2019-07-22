@@ -451,7 +451,7 @@ class Decoder(torch.nn.Module):
         vscores = to_device(self, torch.zeros(batch, beam))
 
         a_prev = None
-        rnnlm_prev = None
+        rnnlm_state = None
         ctc_scorer = None
         ctc_state = None
 
@@ -502,7 +502,7 @@ class Decoder(torch.nn.Module):
 
             # rnnlm
             if rnnlm:
-                rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
+                rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_state, vy, n_bb)
                 local_scores = local_scores + recog_args.lm_weight * local_lm_scores
 
             # ctc
@@ -547,7 +547,7 @@ class Decoder(torch.nn.Module):
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
             if rnnlm:
-                rnnlm_prev = self._index_select_lm_state(rnnlm_state, 0, vidx)
+                rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if ctc_scorer:
                 ctc_state = ctc_scorer.index_select_state(ctc_state, accum_best_ids)
 
@@ -577,7 +577,7 @@ class Decoder(torch.nn.Module):
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
 
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         dummy_hyps = [{'yseq': [self.sos, self.eos], 'score': np.array([-float('inf')])}]
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
