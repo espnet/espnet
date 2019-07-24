@@ -39,7 +39,7 @@ class CTC(torch.nn.Module):
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
         """
-        :param torch.Tensor  th_pred: The logarithmized probabilities of the outputs ,shape(T,N,C)
+        :param torch.Tensor  th_pred: The probabilities of the outputs ,shape(T,N,C)
                                                                       T=input length  # lengths of the inputs wav feature (in asr case)
                                                                       N=batch size
                                                                       C=number of classes (including blank)
