@@ -38,6 +38,29 @@ class CTC(torch.nn.Module):
         self.reduce = reduce
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
+        """
+        :param torch.Tensor  th_pred: The logarithmized probabilities of the outputs ,shape(T,N,C)
+                                                                      T=input length  # lengths of the inputs wav feature (in asr case)
+                                                                      N=batch size
+                                                                      C=number of classes (including blank)
+         :param torch.Tensor  th_target: target of ctc ,shape(N,S)
+                                                                          N=batch size
+                                                                          S=max target length, if shape is (N,S).
+                                                                          Target sequences. Each element in the target sequence is a class index. 
+                                                                          Target index cannot be blank (default=0).
+                                                                          In the (N,S) form, targets are padded to the length of the longest sequence, and stacked.
+          : param torch.Tensor th_ilen: lengths of the inputs wav feature (in asr case),but shape(N,)
+                                                                      for example:
+                                                                      th_ilen = torch.full(size=(N,), fill_value=T, dtype=torch.long)
+                                                                      Lengths of the inputs (must each be ≤T).
+                                                                      Lengths are specified for each sequence to achieve masking under the assumption 
+                                                                      that sequences are padded to equal lengths.
+         :param torch.Tensor th_olen: lengths of the targets text (in asr case),but shape(N,)
+                                                                      for example:
+                                                                      S = 30      # Target sequence length of longest target in batch
+                                                                      S_min = 10  # Minimum target length, for demonstration purposes
+                                                                      th_olen = torch.randint(low=S_min, high=S, size=(N,), dtype=torch.long)
+        """
         if self.ctc_type == 'builtin':
             th_pred = th_pred.log_softmax(2)
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
