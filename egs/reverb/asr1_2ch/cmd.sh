@@ -79,9 +79,9 @@ elif [ "${cmd_backend}" = ssh ]; then
 # Users can modify/add their own command options according to their cluster environments.
 elif [ "${cmd_backend}" = jhu ]; then
 
-    export train_cmd="queue.pl --mem 2G -l 'hostname=b1[12345678]*|c*'"
+    export train_cmd="queue.pl --mem 2G"
     export cuda_cmd="queue.pl --mem 2G --gpu 1 --config conf/gpu.conf"
-    export decode_cmd="queue.pl --mem 4G -l 'hostname=b1[12345678]*|c*'"
+    export decode_cmd="queue.pl --mem 4G"
 
 else
     echo "$0: Error: Unknown cmd_backend=${cmd_backend}" 1>&2
