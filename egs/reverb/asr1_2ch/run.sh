@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Copyright 2018 Johns Hopkins University (Shinji Watanabe)
-# Copyright 2019 Johns Hopkins University (Xiaofei Wang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -58,8 +57,7 @@ set -o pipefail
 
 train_set=tr_simu_2ch_si284
 train_dev=dt_multi_2ch
-#recog_set="dt_simu_8ch dt_real_8ch et_simu_8ch et_real_8ch"
-recog_set="et_simu_8ch et_real_8ch"
+recog_set="dt_simu_8ch dt_real_8ch et_simu_8ch et_real_8ch"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
