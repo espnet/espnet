@@ -27,12 +27,16 @@ class Conv2dSubsampling(torch.nn.Module):
     def forward(self, x, x_mask):
         """Subsample x
 
-        :param torch.Tensor x: input tensor
+        :param torch.Tensor x: input tensor,shape(B,C,Tmax,D)
+                                                    B: batch size ,it is number of utterances in a batch.
+                                                    C: input channel, it is usually one.
+                                                    Tmax: the lenght of longest utterance in a batch.the longest utterance contains most frames.
+                                                    D: feature dimension per frame of per utterance  wave,default 83(80dim feature + 3 dim pitch)
         :param torch.Tensor x_mask: input mask
         :return: subsampled x and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]
         """
-        x = x.unsqueeze(1)  # (b, c, t, f)
+        x = x.unsqueeze(1)  # (b, c, t, f) qual (B,C,Tmax,D)
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
