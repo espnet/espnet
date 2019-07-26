@@ -421,7 +421,7 @@ You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 ```sh
 cd egs/ljspeech/tts1
-echo "This is a demonstration of text to speech." > example.txt
+echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
 ../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
 ```
 
