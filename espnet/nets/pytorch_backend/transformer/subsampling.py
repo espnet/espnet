@@ -36,7 +36,7 @@ class Conv2dSubsampling(torch.nn.Module):
         :return: subsampled x and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]
         """
-        x = x.unsqueeze(1)  # (b, c, t, f) qual (B,C,Tmax,D)
+        x = x.unsqueeze(1)  # (b, c, t, f) equal to (B,C,Tmax,D)
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
