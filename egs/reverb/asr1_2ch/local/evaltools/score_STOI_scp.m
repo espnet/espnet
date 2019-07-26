@@ -27,8 +27,6 @@ dists = {'far', 'near'};
 rooms = {'room1', 'room2', 'room3'};
 
 taskdir = '../taskfiles/1ch';
-
-%origroot = fullfile(download_from_ldc, 'REVERB_WSJCAM0_et/data');
 resdir   = '../scores/SimData';
 
 if exist('pesqdir', 'var') && compute_pesq~=0
@@ -77,19 +75,10 @@ for i1 = 1 : length(dists)
     ref = ref(1 : num_file_ref);
     fclose(reffid);
 
-
     refer_name = ['et_', dist, '_', room, '_ref.scp'];
     target_name = ['et_', dist, '_', room, '_enh.scp'];
     ref_scp = fopen(refer_name,'w');
     tar_scp = fopen(target_name,'w');
-
-    %% Evaluate the quality of original data
-%    name = ['et_', dist, '_', room, '_orig'];
-%    score_sim(name, resdir, tgtlist, reflist, origroot, origroot, srmrdir, pesqname);
-
-    %% Evaluate the quality of enhanced data
- 
-%    score_sim_scp(name, resdir, tgtlist, reflist, senhroot, srmrdir, pesqname);
 
     while ~feof(tgtfid)
       line = fgetl(tgtfid);
@@ -114,15 +103,12 @@ for i1 = 1 : length(dists)
           fprintf(ref_scp, '%s %s\n', tmpname{1}, newpath{1});
       end
 
-%  tgt{num_file} = strtrim(fgetl(tgtfid));
-%  ref{num_file} = strtrim(fgetl(reffid));
     end
 
     fclose(tar_scp);
     fclose(ref_scp);
 
     fclose(tgtfid);
-%    fclose(reffid);
 
   end
 end
