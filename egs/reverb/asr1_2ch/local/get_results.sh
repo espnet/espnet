@@ -37,11 +37,6 @@ if $print_nf; then
         		      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
     echo ""
 fi
-echo "RESULTS - 1ch - WPE"
-local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-    		      "${expdir}/decode_*_1ch_wpe_${decode_part_dir}/data.json" \
-    		      ${dict} ${expdir}/decode_summary_1ch_wpe_${decode_part_dir}
-echo ""
 if $print_2ch; then
     echo "RESULTS - 2ch - WPE+BeamformIt"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
@@ -51,5 +46,5 @@ if $print_2ch; then
 fi
 echo "RESULTS - 8ch - WPE+BeamformIt"
 local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-		      "${expdir}/decode_*_8ch_beamformit_${decode_part_dir}/data.json" \
-		      ${dict} ${expdir}/decode_summary_8ch_beamformit_${decode_part_dir}
+		      "${expdir}/decode_*_8ch_multich_${decode_part_dir}/data.json" \
+		      ${dict} ${expdir}/decode_summary_8ch_multich_${decode_part_dir}

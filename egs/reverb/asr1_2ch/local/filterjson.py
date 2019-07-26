@@ -12,7 +12,8 @@ from io import open
 import json
 import logging
 import re
-
+import sys
+import codecs
 
 PY2 = sys.version_info[0] == 2
 sys.stdin = codecs.getreader('utf-8')(
