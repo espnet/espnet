@@ -45,5 +45,19 @@ pushd local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools
 $cmd $expdir/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_SimData_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
 $cmd $expdir/compute_se_real.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_RealData_scp('$root_dir','$enhancement_real_scp');exit"
 popd
+
 rm -rf $expdir/scores
 mv local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/scores $expdir/
+
+pushd local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools
+$cmd $expdir/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_STOI_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
+popd
+
+echo "Calculating STOI and SDR"
+for room in room1 room2 room3; do
+    for dist in near far; do
+	ref_scp=local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/et_${dist}_${room}_ref.scp
+	est_scp=local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/et_${dist}_${room}_enh.scp
+        eval_source_separation.sh --cmd "${train_cmd}" --nj 10 --bss-eval-images false --evaltypes "STOI" $ref_scp $est_scp exp/compute_se_${nch}ch/STOI/et_${dist}_${room}
+    done
+done
