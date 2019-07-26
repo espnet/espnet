@@ -22,7 +22,9 @@ but the strategy for training and test is slightly different.
 
 ## The training and test strategy
 
-1. Using REVERB 2-ch data and WSJ0 data as training set.
+1. Training data: 2-channel simulation data from REVERB and clean data from WSJ (both WSJ0 and
+WSJ1); Validation data: REVERB 8-channel real and simulation development
+sets; 
 
     WSJ0 is single channel audio data and REVERB can be used with multi channels.
     So if single channel data comes in the mini-batch when training time,
@@ -38,9 +40,7 @@ but the strategy for training and test is slightly different.
     passing the multi-channel data to the backend part without the frontend,
     and the backend cannot handle multi-channel, so selecting 1-channel randomly.
 
-1. Test with 8-ch simulation and real data
-    
-    
+1. Evaluation data: REVERB 8-channel real and simulation evaluation sets.
 
 ## Reference
 - [1] *Neural network-based spectrum estimation for online WPE dereverberation; K. Kinoshita et al.. 2017;* http://www.kecl.ntt.co.jp/icl/signal/kinoshita/publications/Interspeech17/Neural%20Network-Based%20Spectrum%20Estimation%20for%20Online%20WPE%20Dereverberation.pdf
