@@ -15,7 +15,8 @@
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+stop_stage=100
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -25,43 +26,11 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
-# encoder related
-etype=blstmp     # encoder architecture type
-elayers=4
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=300
-# attention related
-atype=location
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# minibatch related
-batchsize=50
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-opt=adadelta
-epochs=20
+train_config=conf/train.yaml
+decode_config=conf/decode.yaml
 
 # decoding parameter
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-
-# scheduled sampling option
-samp_prob=0.0
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -108,7 +77,7 @@ set -e
 set -u
 set -o pipefail
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # TODO
     # add a check whether the following data preparation is completed or not
 
@@ -125,9 +94,9 @@ if [ ${stage} -le 0 ]; then
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3       data/et_${lang_code}_3
     # 1) change wide to narrow chars
     # 2) lower to upper chars
-    for x in data/*${lang_code}*; do
+    for x in data/*"${lang_code}"*; do
         utils/copy_data_dir.sh ${x} ${x}_org
-        cat ${x}_org/text | nkf -Z |\
+        < ${x}_org/text nkf -Z |\
             awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
         rm -fr ${x}_org
     done
@@ -146,8 +115,8 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-	langid=`echo $x | cut -f 1 -d"-"`
-	lang_code=`echo $x | cut -f 2 -d"-"`
+	langid=$(echo ${x} | cut -f 1 -d"-")
+	lang_code=$(echo ${x} | cut -f 2 -d"-")
 	if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
 	    echo "run $babeldir/asr1/local/run_all.sh first"
 	    exit 1
@@ -160,21 +129,21 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
     utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
-    if [ ! -z $subset_num_spk ]; then
+    if [ -n "${subset_num_spk}" ]; then
         # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
-        head -n $subset_num_spk <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
+        head -n ${subset_num_spk} <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
         utils/subset_data_dir.sh \
         --spk-list data/tr_babel10_org/spk_list_${subset_num_spk}spk \
         data/tr_babel10_org data/${train_set}_org
     fi
 
     # remove utt having more than 3000 frames or less than 10 frames or
-    # remove utt having more than 400 characters or no more than 0 characters
+    # remove utt having more than 400 characters or 0 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
 
@@ -192,13 +161,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set}_${train_set} ${feat_tr_dir}
-    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev}_${train_set} ${feat_dt_dir}
    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
             ${feat_recog_dir}
     done
@@ -207,7 +176,7 @@ dict=data/lang_1char/train_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
@@ -234,22 +203,25 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -257,33 +229,17 @@ if [ ${stage} -le 3 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --epochs ${epochs}
+        --valid-json ${feat_dt_dir}/data.json
 fi
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
 
         # split data
@@ -294,24 +250,19 @@ if [ ${stage} -le 4 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            &
-        wait
+            --model ${expdir}/results/${recog_model}
 
         score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

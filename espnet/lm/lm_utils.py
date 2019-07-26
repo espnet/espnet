@@ -22,12 +22,10 @@ from chainer.training import extension
 def read_tokens(filename, label_dict):
     """Read tokens as a sequence of sentences
 
-    Args:
-        filename (str): filename of input file
-        label_dict (dict): dictionary that maps token label string to its ID number
-
-    Return:
-        list of ID sequences
+    :param str filename : The name of the input file
+    :param dict label_dict : dictionary that maps token label string to its ID number
+    :return list of ID sequences
+    :rtype list
     """
 
     data = []
@@ -41,12 +39,10 @@ def read_tokens(filename, label_dict):
 def count_tokens(data, unk_id=None):
     """Count tokens and oovs in token ID sequences
 
-    Args:
-        data (list of numpy.ndarray): list of token ID sequences
-        unk_id (int): ID number of unknown token '<unk>'
-
-    Return:
-        number of token occurrences, number of OOV tokens
+    :param list[np.ndarray] data: list of token ID sequences
+    :param int unk_id: ID of unknown token '<unk>'
+    :return number of token occurrences, number of oov tokens
+    :rtype int, int
     """
 
     n_tokens = 0
@@ -59,6 +55,10 @@ def count_tokens(data, unk_id=None):
 
 
 def compute_perplexity(result):
+    """Computes and add the perplexity to the LogReport
+
+    :param dict result: The current observations
+    """
     # Routine to rewrite the result dictionary of LogReport to add perplexity values
     result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
     if 'validation/main/loss' in result:
@@ -74,7 +74,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
        randomly shuffled.
     """
 
-    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True):
+    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True, shuffle=True):
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
         # Number of completed sweeps over the dataset. In this case, it is
@@ -99,8 +99,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
                     be = min(be, bs + max(batch_size // (sent_length // max_length + 1), 1))
                 self.batch_indices.append(np.array(indices[bs:be]))
                 bs = be
-            # shuffle batches
-            random.shuffle(self.batch_indices)
+            if shuffle:
+                # shuffle batches
+                random.shuffle(self.batch_indices)
         else:
             self.batch_indices = [np.array([i]) for i in six.moves.range(length)]
 
@@ -137,6 +138,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 
         return batch
 
+    def start_shuffle(self):
+        random.shuffle(self.batch_indices)
+
     @property
     def epoch_detail(self):
         # Floating point version of epoch.
@@ -157,8 +161,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
                 'previous_epoch_detail', self._previous_epoch_detail)
         except KeyError:
             # guess previous_epoch_detail for older version
-            self._previous_epoch_detail = self.epoch + \
-                (self.current_position - 1) / len(self.batch_indices)
+            self._previous_epoch_detail = self.epoch + (self.current_position - 1) / len(self.batch_indices)
             if self.epoch_detail > 0:
                 self._previous_epoch_detail = max(
                     self._previous_epoch_detail, 0.)
@@ -169,11 +172,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 class MakeSymlinkToBestModel(extension.Extension):
     """Extension that makes a symbolic link to the best model
 
-    Args:
-        key (str): Key of value.
-        prefix (str): Prefix of model files and link target.
-        suffix (str): Suffix of link target.
-
+    :param str key: Key of value
+    :param str prefix: Prefix of model files and link target
+    :param str suffix: Suffix of link target
     """
 
     def __init__(self, key, prefix='model', suffix='best'):
@@ -211,3 +212,29 @@ class MakeSymlinkToBestModel(extension.Extension):
             self.key = serializer('_key', '')
             self.prefix = serializer('_prefix', 'model')
             self.suffix = serializer('_suffix', 'best')
+
+
+# TODO(Hori): currently it only works with character-word level LM.
+#             need to consider any types of subwords-to-word mapping.
+def make_lexical_tree(word_dict, subword_dict, word_unk):
+    """Make a lexical tree to compute word-level probabilities
+
+    """
+    # node [dict(subword_id -> node), word_id, word_set[start-1, end]]
+    root = [{}, -1, None]
+    for w, wid in word_dict.items():
+        if wid > 0 and wid != word_unk:  # skip <blank> and <unk>
+            if True in [c not in subword_dict for c in w]:  # skip unknown subword
+                continue
+            succ = root[0]  # get successors from root node
+            for i, c in enumerate(w):
+                cid = subword_dict[c]
+                if cid not in succ:  # if next node does not exist, make a new node
+                    succ[cid] = [{}, -1, (wid - 1, wid)]
+                else:
+                    prev = succ[cid][2]
+                    succ[cid][2] = (min(prev[0], wid - 1), max(prev[1], wid))
+                if i == len(w) - 1:  # if word end, set word id
+                    succ[cid][1] = wid
+                succ = succ[cid][0]  # move to the child successors
+    return root

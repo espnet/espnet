@@ -1,19 +1,26 @@
-pNorm-Ensemble DNN (best reported in standard Kaldi recipe in Kaldi github as of 20181116) - Fisher dev
-%WER 35.13 [ 14113 / 40170, 2680 ins, 3405 del, 8028 sub ] exp/tri6a_dnn/decode_dev/wer_11_0.0
+*** test and dev are subsets of Fisher_spanish (/export/corpora/LDC/{LDC2010S01,LDC2010T04}
 
+< Kaldi tri-tdnn-opGRU (Nagendra's best) >
 
-Kaldi tri-tdnn-opGRU (Nagendra) - Fisher test
-%WER 25.67 [ 10225 / 39831, 2068 ins, 2913 del, 5244 sub ] exp/chain/tdnn_opgru_1a_sp/decode_test_fsh_sw1_tg/wer_9_0.0
+                    test(WER)        dev(WER)
+w/o rescoring       22.62            26.25
+w/ rnnlm rescoring  21.22 (21.09)    25.04 (24.80)
+*** numbers inside () are done with RNNLM trained on Spanishgigaword+Fisher train(Data weight - 1:3000), Fisher dev2 as dev set.
 
-
-E2E - Fisher dev/test
+< E2E >
 # model config
-exp/train_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location320_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs24_mli800_mlo150
-# decoding config and result
-decode_dev_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result{.txt,.wrd.txt}
-%CER 21.0
-%WER 34.15 [ 13719 / 40170, 2493 ins, 4192 del, 7034 sub ]
-decode_test_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result{.txt,.wrd.txt}
-%CER 17.7
-%WER 30.02 [ 11958 / 39831, 2052 ins, 3449 del, 6457 sub ]
+exp/train_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location320_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs24_mli600_mlo150
+decode_{test,dev}_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result{.txt,.wrd.txt}
 
+                    test(WER)        dev(WER)
+w/ word-rnnlm       30.0             34.3
+*** lm_weight=1
+
+# vggblstmp -> vggblstm (for dropout), (+) dropout0.2, (+) speech perturbation
+
+                    test(WER)        dev(WER)
+w/o rnnlm           27.6             31.4
+w/ word-rnnlm       24.9             28.6
+(+) transfer        24.8             28.7
+*** transfer means transfer learning from a language-independent model trained on 10 babel languages to Spanish
+*** lm_weight=0.5

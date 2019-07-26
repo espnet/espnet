@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip('torch')
 import torch  # NOQA
 
-from espnet.nets.e2e_asr_th import pad_list  # NOQA
+from espnet.nets.pytorch_backend.nets_utils import pad_list  # NOQA
 
 
 def test_pad_list():

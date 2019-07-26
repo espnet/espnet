@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #coding:utf-8
 
+from __future__ import print_function
 import sys
 from mmseg import seg_txt
 for line in sys.stdin:

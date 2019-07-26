@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -9,8 +9,9 @@
 from __future__ import division
 from __future__ import print_function
 
-import argparse
+import configargparse
 import logging
+
 import numpy as np
 import os
 import platform
@@ -19,9 +20,19 @@ import subprocess
 import sys
 
 
-def main():
-    parser = argparse.ArgumentParser()
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
+    parser = configargparse.ArgumentParser(
+        description='Train a new language model on one CPU or one GPU',
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -39,6 +50,7 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-label', type=str, required=True,
                         help='Filename of train label data')
@@ -50,19 +62,34 @@ def main():
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
+    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
+                        help="Which type of RNN to use")
     parser.add_argument('--layer', '-l', type=int, default=2,
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of hidden units')
+    parser.add_argument('--dropout-rate', type=float, default=0.5,
+                        help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
-    args = parser.parse_args()
+    return parser
+
+
+def main(args):
+    parser = get_parser()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -89,7 +116,7 @@ def main():
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -114,14 +141,14 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.lm.lm_chainer import train
+        from espnet.lm.chainer_backend.lm import train
         train(args)
     elif args.backend == "pytorch":
-        from espnet.lm.lm_pytorch import train
+        from espnet.lm.pytorch_backend.lm import train
         train(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

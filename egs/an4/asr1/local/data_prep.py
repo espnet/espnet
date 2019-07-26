@@ -15,6 +15,7 @@
 # See the Apache 2 License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -26,7 +27,7 @@ an4_root = sys.argv[1]
 sph2pipe = sys.argv[2]
 
 sph_dir = {
-    'train': 'an4_clstk', 
+    'train': 'an4_clstk',
     'test': 'an4test_clstk'
 }
 

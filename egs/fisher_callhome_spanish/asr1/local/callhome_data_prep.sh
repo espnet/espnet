@@ -112,7 +112,9 @@ if [ $stage -le 1 ]; then
 fi
 
 if [ $stage -le 2 ]; then
-  sort $tmpdir/callhome.text.1 | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $dir/callhome_train_all/callhome.text
+  sort $tmpdir/callhome.text.1 | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
+  #Filter out uttreances that don't have any text transcription
+  awk 'NF>1 {print}' $tmpdir/text.2 > $dir/callhome_train_all/callhome.text
 
   #Create segments file and utt2spk file
   ! cat $dir/callhome_train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/callhome_train_all/callhome_utt2spk \
@@ -139,7 +141,7 @@ if [ $stage -le 4 ]; then
   # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
   cd $cdir
   #TODO: needs to be rewritten
-  $local/callhome_make_spk2gender.sh > $dir/callhome_train_all/callhome_spk2gender
+  $local/callhome_make_spk2gender.py > $dir/callhome_train_all/callhome_spk2gender
 fi
 
 # Rename files from the callhome directory

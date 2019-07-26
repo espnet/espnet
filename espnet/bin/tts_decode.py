@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -11,18 +11,34 @@ import subprocess
 import sys
 
 
-def main():
-    parser = argparse.ArgumentParser()
+# NOTE: you need this func to generate our sphinx doc
+def get_parser():
+    parser = configargparse.ArgumentParser(
+        description='Synthesize speech from text using a TTS model on one CPU',
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
+    parser.add_argument('--debugmode', default=1, type=int,
+                        help='Debugmode')
+    parser.add_argument('--seed', default=1, type=int,
+                        help='Random seed')
     parser.add_argument('--out', type=str, required=True,
                         help='Output filename')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--json', type=str, required=True,
                         help='Filename of train label data (json)')
@@ -37,7 +53,12 @@ def main():
                         help='Minimum length ratio in decoding')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='Threshold value in decoding')
-    args = parser.parse_args()
+    return parser
+
+
+def main(args):
+    parser = get_parser()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -65,7 +86,7 @@ def main():
 
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -75,14 +96,12 @@ def main():
 
     # extract
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        raise NotImplementedError
-    elif args.backend == "pytorch":
-        from espnet.tts.tts_pytorch import decode
+    if args.backend == "pytorch":
+        from espnet.tts.pytorch_backend.tts import decode
         decode(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise NotImplementedError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
