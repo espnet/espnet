@@ -83,7 +83,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    tasks="${recog_set} tr_simu_2ch"
+    # tasks="${recog_set} tr_simu_2ch"
     tasks_2ch="tr_simu_2ch dt_simu_2ch dt_real_2ch"
     for setname in ${recog_set}; do
         echo ${setname}
