@@ -283,8 +283,6 @@ def main():
                                    .format(key, listname))
             filepath = d[key]
             signal, rate = soundfile.read(filepath, dtype=np.int16)
-            signal = signal * (32767 / max(abs(signal)))
-            signal = signal.astype(int)
             if signal.ndim == 1:
                 # (Nframe) -> (Nframe, 1)
                 signal = signal[:, None]

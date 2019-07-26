@@ -6,6 +6,7 @@
 %% Written and distributed by the REVERB challenge organizers on 1 July, 2013
 %% Inquiries to the challenge organizers (REVERB-challenge@lab.ntt.co.jp)
 
+
 function score_RealData_scp(senhroot,scp_file)
 
 % Evaluation

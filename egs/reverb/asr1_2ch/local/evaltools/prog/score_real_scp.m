@@ -87,9 +87,9 @@ end
 srmr_mean = zeros(num_file, 1);
 
 for k = 1 : num_file
-%  tgtname = fullfile(tgtroot, tgt{k});
+  tgtname = fullfile(tgtroot, tgt{k});
   
-  tgtname = fullfile(tgt{k});
+%  tgtname = fullfile(tgt{k});
   for m = 1 : 2
     fprintf(fids(m), '[%04d of %04d]\n', k, num_file);
     fprintf(fids(m), 'TARGET   : %s\n' , tgtname{1});
