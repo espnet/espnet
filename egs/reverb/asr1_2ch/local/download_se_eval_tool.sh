@@ -31,3 +31,6 @@ mv score_RealData_new.m score_RealData.m
 patch score_SimData.m -i ../../../score_SimData.patch -o score_SimData_new.m
 mv score_SimData_new.m score_SimData.m
 popd
+
+cp -a local/evaltools local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct
+
