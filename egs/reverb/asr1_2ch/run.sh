@@ -34,6 +34,11 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # enhanced speech option
 fs=16000
 
+# Dereverberation Measures
+compute_se=true # flag for turing on computation of dereverberation measures
+enable_pesq=true # please make sure that you or your institution have the license to report PESQ before turning on this flag
+nch_se=8
+
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
 wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
@@ -338,4 +343,32 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             cat ${enhdir}/outdir/enhance.${i}.scp
         done > ${enhdir}/enhance.scp
     done
+    echo "Enhancement successfully finished"
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Score enhanced speech"
+    if ${compute_se}; then
+        if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
+            # download and install speech enhancement evaluation tools
+            local/download_se_eval_tool.sh
+        fi
+        pesqdir=${PWD}/local
+        for rtask in "et"; do
+            simu_scp=${expdir}/enhance_${rtask}_simu_${nch_se}ch_multich/enhance.scp
+            real_scp=${expdir}/enhance_${rtask}_real_${nch_se}ch_multich/enhance.scp
+            enhancement_simu_scp=${PWD}/$simu_scp
+            enhancement_real_scp=${PWD}/$real_scp
+            local/compute_se_scores.sh --nch ${nch_se} --enable_pesq ${enable_pesq} \
+                ${enhancement_simu_scp} \
+                ${enhancement_real_scp} \
+                ${reverb} \
+                ${PWD}/data/${rtask}_cln/wav.scp \
+                ${pesqdir} \
+                ${expdir}/enhanced_${rtask}_${nch_se}ch_metrics
+
+            cat ${expdir}/enhanced_${rtask}_metrics/scores/score_SimData
+            cat ${expdir}/enhanced_${rtask}_metrics/scores/score_RealData
+        done
+    fi
 fi

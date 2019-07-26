@@ -41,16 +41,19 @@ else
    compute_pesq=0
 fi
 
+logdir=${PWD}/${expdir}
+mkdir -p ${logdir}
+
 pushd local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools
-$cmd $expdir/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_SimData_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
-$cmd $expdir/compute_se_real.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_RealData_scp('$root_dir','$enhancement_real_scp');exit"
+$cmd ${logdir}/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_SimData_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
+$cmd ${logdir}/compute_se_real.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_RealData_scp('$root_dir','$enhancement_real_scp');exit"
 popd
 
 rm -rf $expdir/scores
 mv local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/scores $expdir/
 
 pushd local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools
-$cmd $expdir/compute_se_sim_stoi.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_STOI_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
+$cmd ${logdir}/compute_se_sim_stoi.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_STOI_scp('$reverb_data','$ref_scp','$root_dir','$enhancement_sim_scp','$pesqdir',$compute_pesq);exit"
 popd
 
 echo "Calculating STOI"
