@@ -6,28 +6,28 @@
 
 SimData_et_near_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	363	     5904	|	94.7	4.4	0.9	1.1	6.4	44.9	|
+|	Sum/Avg	|	363	    5904	|	94.7	4.4	0.9	1.1	6.4	44.9	|
 SimData_et_far_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	363	     5904	|	94.2	5.0	0.8	0.8	6.7	45.7	|
+|	Sum/Avg	|	363	    5904	|	94.2	5.0	0.8	0.8	6.7	45.7	|
 SimData_et_near_room2:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	363	     6223	|	94.7	4.4	0.9	0.7	6.0	47.7	|
+|	Sum/Avg	|	363	    6223	|	94.7	4.4	0.9	0.7	6.0	47.7	|
 SimData_et_far_room2:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	363	     6223	|	93.8	5.3	0.9	0.9	7.0	52.1	|
+|	Sum/Avg	|	363	    6223	|	93.8	5.3	0.9	0.9	7.0	52.1	|
 SimData_et_near_room3:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	362	     5863	|	94.4	4.8	0.8	0.8	6.4	47.2	|
+|	Sum/Avg	|	362	    5863	|	94.4	4.8	0.8	0.8	6.4	47.2	|
 SimData_et_far_room3:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	362	     5863	|	92.8	6.4	0.9	1.2	8.5	53.0	|
+|	Sum/Avg	|	362	    5863	|	92.8	6.4	0.9	1.2	8.5	53.0	|
 RealData_et_near_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	186	     3131	|	90.0	8.6	1.5	2.3	12.3 68.3	|
+|	Sum/Avg	|	186	    3131	|	90.0	8.6	1.5	2.3	12.3 68.3	|
 RealData_et_far_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
-|	Sum/Avg	|	186	     2962	|	89.1	9.7	1.3	1.9	12.8 66.1	|
+|	Sum/Avg	|	186	    2962	|	89.1	9.7	1.3	1.9	12.8 66.1	|
 
 # Speech enhancement metrics of Evaluation set
 # Score simulation data
