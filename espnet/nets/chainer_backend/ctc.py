@@ -16,7 +16,7 @@ class CTC(chainer.Chain):
     Args:
         odim (int)  : The output dimension.
         eprojs (int | None): Dimension of input vectors from encoder.
-        dropout_rate: Dropout rate.
+        dropout_rate (float): Dropout rate.
 
     """
 
