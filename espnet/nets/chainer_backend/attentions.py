@@ -187,7 +187,7 @@ class AttLoc(chainer.Chain):
 class NoAtt(chainer.Chain):
     """Compute non-attention layer.
 
-    This layer is to balancec the number of layers with other
+    This layer is a dummy attention layer to be compatible with other
     attention-based models.
 
     """
