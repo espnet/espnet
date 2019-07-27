@@ -256,7 +256,7 @@ class E2E(ASRInterface, chainer.Chain):
             float (optional): Training loss for ctc.
             float (optional): Training loss for attention.
             float (optional): Accuracy.
-            chainr.Variable (Optional): Output of the encoder.
+            chainer.Variable (Optional): Output of the encoder.
 
         """
         xp = self.xp
