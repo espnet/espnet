@@ -16,7 +16,7 @@ class MultiHeadAttention(chainer.Chain):
     Args:
         n_units (int)   : Number of input units.
         h (int)         : Number of attention heads.
-        dropout (float) : Dropout rate.
+        dropout (float): Dropout rate.
         initialW        : Initializer to initialize the weight.
         initial_bias    : Initializer to initialize the bias.
 
