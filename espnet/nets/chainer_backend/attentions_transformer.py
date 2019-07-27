@@ -51,7 +51,7 @@ class MultiHeadAttention(chainer.Chain):
         Args:
             e_var (chainer.Variable): Variable of input array.
             s_var (chainer.Variable): Variable of source array from encoder.
-            mask (chainer.Variable) : Attention mask.
+            mask (chainer.Variable): Attention mask.
             batch (int): Batch size.
 
         Returns:
