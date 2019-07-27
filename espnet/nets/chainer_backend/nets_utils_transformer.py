@@ -157,7 +157,7 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
         attn_dict (Dict[str, chainer.Variable]): Multi head attention dict. (head, input_length, output_length)
         outdir (str): Directory to save figure.
         suffix (str): Filename suffix including image type. (e.g., png)
-        savefn (function): Function to save
+        savefn (function): Function to save.
 
     """
     for name, att_ws in attn_dict.items():
