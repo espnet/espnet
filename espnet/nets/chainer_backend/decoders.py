@@ -30,7 +30,7 @@ class Decoder(chainer.Chain):
         sos (int): Number to indicate the start of sequences.
         eos (int): Number to indicate the end of sequences.
         att (Module): Attention module defined at `espnet.espnet.nets.chainer_backend.attentions`.
-        verbose (int):
+        verbose (int): Verbosity level.
         char_list (List[str]): List of all charactors.
         labeldist (numpy.array): Distributed array of counted transcript length.
         lsm_weight (float): Weight to use when calculating the training loss.
