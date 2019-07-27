@@ -14,7 +14,7 @@ class CTC(chainer.Chain):
     """Chainer implementation of ctc layer.
 
     Args:
-        odim (int)  : The output dimension.
+        odim (int): The output dimension.
         eprojs (int | None): Dimension of input vectors from encoder.
         dropout_rate (float): Dropout rate.
 
