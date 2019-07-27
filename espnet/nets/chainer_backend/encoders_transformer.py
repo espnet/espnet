@@ -145,7 +145,7 @@ class Encoder(chainer.Chain):
         Returns:
             chainer.Variable: Computed variable of encoder.
             numpy.array: Mask.
-            chainer.Variable: `ilens`.
+            chainer.Variable: Batch of lengths of each encoder outputs.
 
         """
         e, ilens = self.input_layer(e, ilens)
