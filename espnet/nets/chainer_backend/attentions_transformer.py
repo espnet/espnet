@@ -14,7 +14,7 @@ class MultiHeadAttention(chainer.Chain):
     """Multi Head Attention Layer.
 
     Args:
-        n_units (int)   : Number of input units.
+        n_units (int): Number of input units.
         h (int)         : Number of attention heads.
         dropout (float): Dropout rate.
         initialW: Initializer to initialize the weight.
