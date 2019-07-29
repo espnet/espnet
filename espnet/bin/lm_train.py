@@ -80,6 +80,8 @@ def get_parser():
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of hidden units')
+    parser.add_argument('--dropout-rate', type=float, default=0.5,
+                        help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
     return parser
