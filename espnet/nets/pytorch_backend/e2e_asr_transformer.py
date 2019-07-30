@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 from argparse import Namespace
 from distutils.util import strtobool
+
 import logging
 import math
 
@@ -120,16 +121,23 @@ class E2E(ASRInterface, torch.nn.Module):
         # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(self.odim, self.ignore_id, args.lsm_weight,
                                             args.transformer_length_normalized_loss)
-        # self.char_list = args.char_list
         # self.verbose = args.verbose
         self.reset_parameters(args)
-        self.recog_args = None  # unused
         self.adim = args.adim
         self.mtlalpha = args.mtlalpha
         if args.mtlalpha > 0.0:
             self.ctc = CTC(odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
         else:
             self.ctc = None
+
+        if args.report_cer or args.report_wer:
+            from espnet.nets.e2e_asr_common import ErrorCalculator
+            self.error_calculator = ErrorCalculator(args.char_list,
+                                                    args.sym_space, args.sym_blank,
+                                                    args.report_cer, args.report_wer)
+        else:
+            self.error_calculator = None
+        self.rnnlm = None
 
     def reset_parameters(self, args):
         # initialize parameters
@@ -181,13 +189,23 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # TODO(karita) show predected text
         # TODO(karita) calculate these stats
-        cer, cer_ctc, wer = 0.0, 0.0, 0.0
-        if self.ctc is None:
+        cer_ctc = None
+        if self.mtlalpha == 0.0:
             loss_ctc = None
         else:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
+            if self.error_calculator is not None:
+                ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+                cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+
+        # 5. compute cer/wer
+        if self.training or self.error_calculator is None:
+            cer, wer = None, None
+        else:
+            ys_hat = pred_pad.argmax(dim=-1)
+            cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # copyied from e2e_asr
         alpha = self.mtlalpha

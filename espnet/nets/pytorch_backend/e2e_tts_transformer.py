@@ -525,7 +525,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate for encoder
             if "encoder" in self.modules_applied_guided_attn:
                 att_ws = []
-                for idx, layer_idx in enumerate(reversed(range(len(self.decoder.decoders)))):
+                for idx, layer_idx in enumerate(reversed(range(len(self.encoder.encoders)))):
                     att_ws += [self.encoder.encoders[layer_idx].self_attn.attn[:, :self.num_heads_applied_guided_attn]]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
