@@ -20,7 +20,7 @@ class MultiHeadAttention(chainer.Chain):
         initialW: Initializer to initialize the weight.
         initial_bias: Initializer to initialize the bias.
 
-    :param int h: the number of head s
+    :param int h: the number of heads
     :param int n_units: the number of features
     :param float dropout_rate: dropout rate
     """
