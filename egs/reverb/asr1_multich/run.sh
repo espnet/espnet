@@ -22,6 +22,9 @@ train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
+# number of training channels
+nch_train=2
+
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
@@ -60,8 +63,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_simu_2ch_si284
-train_dev=dt_multi_2ch
+train_set=tr_simu_${nch_train}ch_si284
+train_dev=dt_multi_${nch_train}ch
 recog_set="dt_simu_8ch dt_real_8ch et_simu_8ch et_real_8ch"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -83,48 +86,66 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    # tasks="${recog_set} tr_simu_2ch"
-    tasks_2ch="tr_simu_2ch dt_simu_2ch dt_real_2ch"
-    for setname in ${recog_set}; do
-        echo ${setname}
-        mkdir -p data/${setname}_multich
-        <data/${setname}/utt2spk sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/utt2spk
-        <data/${setname}/text sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
-        <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
+    tasks="tr_simu_${nch_train}ch dt_simu_${nch_train}ch dt_real_${nch_train}ch"
+#    for setname in ${recog_set}; do
+#        echo ${setname}
+#        mkdir -p data/${setname}_multich
+#        <data/${setname}/utt2spk sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/utt2spk
+#        <data/${setname}/text sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
+#        <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
+#
+#        for ch in {A..H}; do
+#            <data/${setname}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+#        done
+#        mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
+#    done
+    if [ ${nch_train} -eq 2 ]; then
+        for setname in ${tasks}; do
+            echo ${setname}
+            mkdir -p data/${setname}_multich
+            <data/${setname}/utt2spk sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/utt2spk
+            <data/${setname}/text sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
+            <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
 
-        for ch in {A..H}; do
-            <data/${setname}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-H](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+            for ch in {A..B}; do
+                <data/${setname}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+            done
+            mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
         done
-        mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
-    done
+    elif [ ${nch_train} -ge 3 ] && [ ${nch_train} -le 8 ]; then
+        ch_id_asc=$((64+${nch_train}))
+        ch_id=$(printf "\x$(printf %x ${ch_id_asc})")
+        for setname in ${tasks}; do
+            echo ${setname}
+            mkdir -p data/${setname}_multich
+            datasrc=$(echo ${setname} | sed 's/'${nch_train}'ch/8ch/g')
+            <data/${datasrc}/utt2spk sed -r 's/^(.*?)_[A-'${ch_id}'](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/utt2spk
+            <data/${datasrc}/text sed -r 's/^(.*?)_[A-'${ch_id}'](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
+            <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
 
-    for setname in ${tasks_2ch}; do
-        echo ${setname}
-        mkdir -p data/${setname}_multich
-        <data/${setname}/utt2spk sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/utt2spk
-        <data/${setname}/text sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
-        <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
-
-        for ch in {A..B}; do
-            <data/${setname}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-B](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+            for ch in $(eval echo {A..${ch_id}}); do
+                <data/${datasrc}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-'${ch_id}'](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+            done
+            mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
         done
-        mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
-    done
+    else
+        echo "Number of channel must between 2 and 8!"
+        exit 1
+    fi
 
-    # Note that data/tr05_multi_noisy_multich has multi-channel wav data, while data/train_si284 has 1ch only
+    # Note that data/tr_* has multi-channel wav data, while data/train_si284 has 1ch only
     dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" data/train_si284
-    for setname in ${tasks_2ch} ${recog_set}; do
+    for setname in ${tasks} ${recog_set}; do
         dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" data/${setname}_multich
     done
     echo "combine real and simulation development data"
-    utils/combine_data.sh data/${train_dev}_multich data/dt_real_2ch_multich data/dt_simu_2ch_multich
+    utils/combine_data.sh data/${train_dev}_multich data/dt_real_${nch_train}ch_multich data/dt_simu_${nch_train}ch_multich
     echo "combine reverb simulation and wsj clean training data"
-    utils/combine_data.sh data/${train_set}_multich data/train_si284 data/tr_simu_2ch
+    utils/combine_data.sh data/${train_set}_multich data/train_si284 data/tr_simu_${nch_train}ch
 fi
 
 train_set="${train_set}_multich"
 train_dev="${train_dev}_multich"
-# Rename recog_set: e.g. dt05_real_isolated_6ch_track -> dt05_real_isolated_6ch_track_multich
 recog_set="$(for setname in ${recog_set}; do echo -n "${setname}_multich "; done)"
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -133,7 +154,7 @@ nlsyms=data/lang_1char/non_lang_syms.txt
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    utils/combine_data.sh data/${train_set} data/train_si284 data/tr_simu_2ch
+    utils/combine_data.sh data/${train_set} data/train_si284 data/tr_simu_${nch_train}ch
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
@@ -147,7 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    for setname in tr_simu_2ch_multich ${train_dev} ${recog_set}; do
+    for setname in tr_simu_${nch_train}ch_multich ${train_dev} ${recog_set}; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
         --category "multichannel" \
         --preprocess-conf ${preprocess_config} --filetype sound.hdf5 \
@@ -163,7 +184,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     --out data/${setname}/data.json data/${setname} ${dict}
 
     mkdir -p data/${train_set}
-    concatjson.py data/tr_simu_2ch_multich/data.json data/train_si284/data.json > data/${train_set}/data.json
+    concatjson.py data/tr_simu_${nch_train}ch_multich/data.json data/train_si284/data.json > data/${train_set}/data.json
 fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
