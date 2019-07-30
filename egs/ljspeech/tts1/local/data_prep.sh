@@ -29,5 +29,5 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-PYTHONPATH=local/text python local/clean_text.py ${db}/metadata.csv > ${text}
+cat ${db}/metadata.csv | cut -f 1,3 -d"|" | tr "|" " " > $text
 echo "finished making text."

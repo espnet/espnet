@@ -27,6 +27,9 @@ n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
 
+# Text processing frontend
+frontend=en
+
 # config files
 train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
@@ -55,6 +58,7 @@ set -o pipefail
 train_set="train_no_dev"
 dev_set="dev"
 eval_set="eval"
+datasets=($train_set $dev_set $eval_set)
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -114,20 +118,12 @@ dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
-
+    echo "stage 2: Json Data Preparation"
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
-         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+    for s in ${datasets[@]};
+    do
+      local/data2json.sh data/$s $dumpdir/$s en $dumpdir/$s/data.json
+    done
 fi
 
 
@@ -144,6 +140,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
+           --frontend ${frontend} \
            --backend ${backend} \
            --ngpu ${ngpu} \
            --minibatches ${N} \
@@ -178,6 +175,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
+                --frontend ${frontend} \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
