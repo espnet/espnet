@@ -16,7 +16,6 @@ from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttentio
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
-from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
 from espnet.nets.chainer_backend.nets_utils_transformer import savefig
 
 MAX_DECODER_OUTPUT = 5
@@ -111,8 +110,6 @@ class E2E(ASRInterface, chainer.Chain):
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
 
-        E2E_pytorch.loss_add_arguments(parser)
-        E2E_pytorch.recognition_add_arguments(parser)
         group.add_argument('--dropout-rate', default=0.0, type=float,
                            help='Dropout rate for the encoder')
         # Encoder

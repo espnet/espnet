@@ -61,6 +61,45 @@ def get_parser():
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # loss related
+    parser.add_argument('--ctc_type', default='warpctc', type=str,
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss.')
+    parser.add_argument('--mtlalpha', default=0.5, type=float,
+                        help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+    parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
+                        help='Apply label smoothing with a specified distribution type')
+    parser.add_argument('--lsm-weight', default=0.0, type=float,
+                        help='Label smoothing weight')
+    # recognition options to compute CER/WER
+    parser.add_argument('--report-cer', default=False, action='store_true',
+                        help='Compute CER on development set')
+    parser.add_argument('--report-wer', default=False, action='store_true',
+                        help='Compute WER on development set')
+    parser.add_argument('--nbest', type=int, default=1,
+                        help='Output N-best hypotheses')
+    parser.add_argument('--beam-size', type=int, default=4,
+                        help='Beam size')
+    parser.add_argument('--penalty', default=0.0, type=float,
+                        help='Incertion penalty')
+    parser.add_argument('--maxlenratio', default=0.0, type=float,
+                        help="""Input length ratio to obtain max output length.
+                        If maxlenratio=0.0 (default), it uses a end-detect function
+                        to automatically find maximum hypothesis lengths""")
+    parser.add_argument('--minlenratio', default=0.0, type=float,
+                        help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.3, type=float,
+                        help='CTC weight in joint decoding')
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--rnnlm-conf', type=str, default=None,
+                        help='RNNLM model config file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
+    parser.add_argument('--sym-space', default='<space>', type=str,
+                        help='Space symbol')
+    parser.add_argument('--sym-blank', default='<blank>', type=str,
+                        help='Blank symbol')
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
@@ -113,6 +152,15 @@ def get_parser():
                         help='Number of samples of attention to be saved')
     parser.add_argument('--grad-noise', type=strtobool, default=False,
                         help='The flag to switch to use noise injection to gradients during training')
+    # asr_mix related
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
+    parser.add_argument('--spa', action='store_true',
+                        help='Enable speaker parallel attention.')
+    parser.add_argument('--elayers-sd', default=4, type=int,
+                        help='Number of encoder layers for speaker '
+                             'differentiate part. (multi-speaker asr mode only)')
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
@@ -194,7 +242,6 @@ def get_parser():
                         help='')
     parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
-
     return parser
 
 
@@ -269,7 +316,8 @@ def main(cmd_args):
 
     # train
     logging.info('backend = ' + args.backend)
-    if not hasattr(args, 'num_spkrs'):
+
+    if args.num_spkrs == 1:
         if args.backend == "chainer":
             from espnet.asr.chainer_backend.asr import train
             train(args)
@@ -279,6 +327,7 @@ def main(cmd_args):
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     else:
+        # FIXME(kamo): Support --model-module
         if args.backend == "pytorch":
             from espnet.asr.pytorch_backend.asr_mix import train
             train(args)
