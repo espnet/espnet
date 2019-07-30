@@ -108,36 +108,47 @@ class CustomUpdater(training.StandardUpdater):
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
-        self.count = 0
+        self.forward_count = 0
         self.accum_grad = accum_grad
+        self.start = True
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         """Main update routine for Custom Updater."""
-        self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
         # Get batch and convert into variables
         batch = train_iter.next()
         x = self.converter(batch, self.device)
-        if self.count == 1:
+        if self.start:
             optimizer.target.cleargrads()
+            self.start = False
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(*x) / self.accum_grad
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
+
+        # update parameters
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
+        self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
         grad_norm = np.sqrt(sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
-            optimizer.target.cleargrads()  # Clear the parameter gradients
-        elif self.count % self.accum_grad == 0:
+        else:
             optimizer.update()
-            optimizer.target.cleargrads()  # Clear the parameter gradients
+        optimizer.target.cleargrads()  # Clear the parameter gradients
+
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
@@ -168,7 +179,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
-        self.count = 0
+        self.forward_count = 0
         self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
@@ -201,6 +212,11 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                 scatter_grads(self._master, gg)
                 del gg
 
+            # update parameters
+            self.forward_count += 1
+            if self.forward_count != self.accum_grad:
+                return
+            self.forward_count = 0
             # check gradient value
             grad_norm = np.sqrt(sum_sqnorm(
                 [p.grad for p in optimizer.target.params(False)]))
@@ -209,14 +225,19 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             # update
             if math.isnan(grad_norm):
                 logging.warning('grad norm is nan. Do not update model.')
-            elif self.count % self.accum_grad == 0:
+            else:
                 optimizer.update()
-                self._master.cleargrads()
+            self._master.cleargrads()
 
             if self.comm is not None:
                 gp = gather_params(self._master)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
+
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomConverter(object):
@@ -450,7 +471,7 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
-        from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
+        from espnet.nets.chainer_backend.transformer.optimizer_rule import VaswaniRule
         trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
                                    scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
