@@ -1,9 +1,13 @@
-# (1) Training: 2-channel simulation data from REVERB and clean data from WSJ (both WSJ0 and WSJ1)
-# (2) Validation: REVERB 8-channel real and simulation development sets;
-# (3) Evaluation: REVERB 8-channel real and simulation evaluation sets.
+# RESULTS
 
-# Word Error Rate of Evaluation set
+## Description
+###
+ (1) Training: 2-channel simulation data from REVERB and clean data from WSJ (both WSJ0 and WSJ1);\
+ (2) Validation: REVERB 8-channel real and simulation development sets;\
+ (3) Evaluation: REVERB 8-channel real and simulation evaluation sets.
 
+## Word Error Rate of Evaluation set
+```
 SimData_et_near_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
 |	Sum/Avg	|	363	5904	|	94.7	4.4	0.9	1.1	6.4	44.9	|
@@ -28,10 +32,12 @@ RealData_et_near_room1:
 RealData_et_far_room1:
 |	SPKR	|	# Snt	# Wrd	|	Corr	Sub	Del	Ins	Err	S.Err	|
 |	Sum/Avg	|	186	2962	|	89.1	9.7	1.3	1.9	12.8	66.1	|
+```
 
+## Speech enhancement metrics of Evaluation set
+### Score simulation data
 
-# Speech enhancement metrics of Evaluation set
-# Score simulation data
+```
 
 ======================================
            Cepstral distance in dB
@@ -58,14 +64,14 @@ RealData_et_far_room1:
 --------------------------------------
             	   enh	   enh
 --------------------------------------
-  et_far_room1	  8.42	     -	     -
-  et_far_room2	  7.34	     -	     -
-  et_far_room3	  6.53	     -	     -
- et_near_room1	  7.62	     -	     -
- et_near_room2	  6.76	     -	     -
- et_near_room3	  7.04	     -	     -
+  et_far_room1	  8.42	     -	     
+  et_far_room2	  7.34	     -	     
+  et_far_room3	  6.53	     -	     
+ et_near_room1	  7.62	     -	     
+ et_near_room2	  6.76	     -	     
+ et_near_room3	  7.04	     -	     
 --------------------------------------
-       average	  7.29	      -
+       average	  7.29	     -
 ======================================
 
 
@@ -112,17 +118,21 @@ Frequency-weighted segmental SNR in dB
 --------------------------------------
             	   enh	   enh
 --------------------------------------
-  et_far_room1	  2.52	     -	     -
-  et_far_room2	  2.65	     -	     -
-  et_far_room3	  2.41	     -	     -
- et_near_room1	  2.41	     -	     -
- et_near_room2	  2.82	     -	     -
- et_near_room3	  2.66	     -	     -
+  et_far_room1	  2.52	     -	     
+  et_far_room2	  2.65	     -	     
+  et_far_room3	  2.41	     -	     
+ et_near_room1	  2.41	     -	     
+ et_near_room2	  2.82	     -	     
+ et_near_room3	  2.66	     -	     
 --------------------------------------
        average	  2.58	      -
 ======================================
+```
 
-# Score real data
+### Score real data
+
+```
+
 ======================
             SRMR
 ----------------------
@@ -133,3 +143,4 @@ Frequency-weighted segmental SNR in dB
 ----------------------
        average	  7.35
 ======================
+```
