@@ -262,7 +262,7 @@ class E2E(ASRInterface, torch.nn.Module):
                         logging.warning('Overwrite %s' % n)
 
         # options for beam search
-        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
+        if args.report_cer or args.report_wer:
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,

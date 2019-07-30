@@ -62,6 +62,15 @@ REPORT_INTERVAL = 100
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
+    """Calculate the norm of the array.
+
+    Args:
+        arr (numpy.ndarray)
+
+    Returns:
+        Float: Sum of the norm calculated from the given array.
+
+    """
     sq_sum = collections.defaultdict(float)
     for x in arr:
         with cuda.get_device_from_array(x) as dev:
@@ -73,7 +82,28 @@ def sum_sqnorm(arr):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """Custom updater for chainer"""
+    """Custom updater for chainer.
+
+    Args:
+        train_iter (iterator | dict[str, iterator]): Dataset iterator for the
+            training dataset. It can also be a dictionary that maps strings to
+            iterators. If this is just an iterator, then the iterator is
+            registered by the name ``'main'``.
+        optimizer (optimizer | dict[str, optimizer]): Optimizer to update
+            parameters. It can also be a dictionary that maps strings to
+            optimizers. If this is just an optimizer, then the optimizer is
+            registered by the name ``'main'``.
+        converter (espnet.asr.chainer_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+        device (int or dict): The destination device info to send variables. In the
+            case of cpu or single gpu, `device=-1 or 0`, respectively.
+            In the case of multi-gpu, `device={"main":0, "sub_1": 1, ...}`.
+        accum_grad (int):The number of gradient accumulation. if set to 2, the network
+            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
+
+    """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(
@@ -83,8 +113,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
+        """Main update routine for Custom Updater."""
         self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
@@ -112,7 +141,29 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
-    """Custom parallel updater for chainer"""
+    """Custom Parallel Updater for chainer.
+
+    Defines the main update routine.
+
+    Args:
+        train_iter (iterator | dict[str, iterator]): Dataset iterator for the
+            training dataset. It can also be a dictionary that maps strings to
+            iterators. If this is just an iterator, then the iterator is
+            registered by the name ``'main'``.
+        optimizer (optimizer | dict[str, optimizer]): Optimizer to update
+            parameters. It can also be a dictionary that maps strings to
+            optimizers. If this is just an optimizer, then the optimizer is
+            registered by the name ``'main'``.
+        converter (espnet.asr.chainer_backend.asr.CustomConverter): Converter
+            function to build input arrays. Each batch extracted by the main
+            iterator and the ``device`` option are passed to this function.
+            :func:`chainer.dataset.concat_examples` is used by default.
+        device (torch.device): Device to which the training data is sent. Negative value
+            indicates the host memory (CPU).
+        accum_grad (int):The number of gradient accumulation. if set to 2, the network
+            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
+
+    """
 
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         super(CustomParallelUpdater, self).__init__(
@@ -122,6 +173,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Main Update routine of the custom parallel updater."""
         self.count += 1
         self.setup_workers()
 
@@ -168,15 +220,29 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
 
 class CustomConverter(object):
-    """Custom Converter
+    """Custom Converter.
 
-    :param int subsampling_factor : The subsampling factor
+    Args:
+        subsampling_factor (int): The subsampling factor.
+
     """
 
     def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
 
     def __call__(self, batch, device):
+        """Perform sabsampling.
+
+        Args:
+            batch (list): Batch that will be sabsampled.
+            device (device): GPU device.
+
+        Returns:
+            chainer.Variable: xp.array that sabsampled from batch.
+            xp.array: xp.array of the length of the mini-batches.
+            chainer.Variable: xp.array that sabsampled from batch.
+
+        """
         # set device
         xp = cuda.cupy if device != -1 else np
 
@@ -188,7 +254,7 @@ class CustomConverter(object):
         if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
-        # get batch of lengths of input sequences
+        # get batch made of lengths of input sequences
         ilens = [x.shape[0] for x in xs]
 
         # convert to Variable
@@ -200,9 +266,11 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
@@ -488,7 +556,7 @@ def train(args):
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter))
+        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
 
     # Run the training
     trainer.run()
@@ -496,9 +564,11 @@ def train(args):
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)

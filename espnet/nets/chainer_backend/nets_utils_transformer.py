@@ -6,10 +6,31 @@ import chainer.functions as F
 import chainer.links as L
 
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 
 
+def savefig(plot, filename):
+    """Save figure to given path.
+
+    Args:
+        filename (str): Output path for the image.
+
+    """
+    plot.savefig(filename)
+    plt.clf()
+
+
 class PositionalEncoding(chainer.Chain):
+    """Positional encoding implementation.
+
+    Args:
+        n_units (int): Dimension of the model.
+        dropout (float): Dropout rate.
+        length (int): Seqense length of inputs.
+
+    """
+
     def __init__(self, n_units, dropout=0.1, length=5000):
         # Implementation described in the paper
         super(PositionalEncoding, self).__init__()
@@ -24,20 +45,58 @@ class PositionalEncoding(chainer.Chain):
         self.scale = np.sqrt(n_units)
 
     def __call__(self, e):
+        """Compute positional encoding.
+
+        Args:
+            e (chainer.Variale): Input array.
+
+        Returns
+            chainer.Variable: Positional-encoded array.
+
+        """
         length = e.shape[1]
         e = e * self.scale + self.xp.array(self.pe[:length])
         return F.dropout(e, self.dropout)
 
 
 class LayerNorm(L.LayerNormalization):
+    """Layer normalization.
+
+    Args:
+        dims (int): Size of input units.
+        eps (float): Epsilon value for numerical stability of normalization.
+
+    """
+
     def __init__(self, dims, eps=1e-12):
         super(LayerNorm, self).__init__(size=dims, eps=eps)
 
     def __call__(self, e):
+        """Compute layer normalization.
+
+        Args:
+            e (chainer.Variable): Batch vectors. Shape of this value must be
+                `(batch_size, unit_size)`.
+
+        Returns:
+            chainer.Variable: Output of the layer normalization.
+
+        """
         return super(LayerNorm, self).__call__(e)
 
 
 class FeedForwardLayer(chainer.Chain):
+    """Feed Forward.
+
+    Args:
+        n_units (int): Dimension of the inputs/outputs of this layer.
+        d_units (int): Dimension of the hidden layer.
+        dropout (float): Dropout rate.
+        initialW (Initializer): Initializer to initialize the weight.
+        initial_bias (Initializer): Initializer to initialize the bias.
+
+    """
+
     def __init__(self, n_units, d_units=0, dropout=0.1, initialW=None, initial_bias=None):
         super(FeedForwardLayer, self).__init__()
         n_inner_units = d_units if d_units > 0 else n_units * 4
@@ -54,34 +113,53 @@ class FeedForwardLayer(chainer.Chain):
         self.dropout = dropout
 
     def __call__(self, e):
+        """Compute feed forward layer.
+
+        Args:
+            e (chainer.Variable): Input array.
+
+        Returns:
+            chainer.Variable: Output of the feed-forward network.
+
+        """
         e = F.dropout(self.act(self.w_1(e)), self.dropout)
         return self.w_2(e)
 
 
 def _plot_and_save_attention(att_w, filename):
     # dynamically import matplotlib due to not found error
-    import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     import os
-
-    if not os.path.exists(os.path.dirname(filename)):
-        os.makedirs(os.path.dirname(filename))
+    d = os.path.dirname(filename)
+    if not os.path.exists(d):
+        os.makedirs(d)
     w, h = plt.figaspect(1.0 / len(att_w))
     fig = plt.Figure(figsize=(w * 2, h * 2))
     axes = fig.subplots(1, len(att_w))
     if len(att_w) == 1:
         axes = [axes]
     for ax, aw in zip(axes, att_w):
+        # plt.subplot(1, len(att_w), h)
         ax.imshow(aw, aspect="auto")
         ax.set_xlabel("Input")
         ax.set_ylabel("Output")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     fig.tight_layout()
-    fig.savefig(filename)
+    return fig
 
 
-def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
+def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
+    """Plot multi head attentions.
+
+    Args:
+        data (dict): Utts info from json file.
+        attn_dict (Dict[str, chainer.Variable]): Multi head attention dict. (head, input_length, output_length)
+        outdir (str): Directory to save figure.
+        suffix (str): Filename suffix including image type. (e.g., png)
+        savefn (function): Function to save.
+
+    """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (
@@ -97,4 +175,5 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
                     att_w = att_w[:, :dec_len, :enc_len]
             else:
                 logging.warning("unknown name for shaping attention")
-            _plot_and_save_attention(att_w, filename)
+            fig = _plot_and_save_attention(att_w, filename)
+            savefn(fig, filename)

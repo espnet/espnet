@@ -11,6 +11,15 @@ from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 # dot product based attention
 class AttDot(chainer.Chain):
+    """Compute attention based on dot product.
+
+    Args:
+        eprojs (int | None): Dimension of input vectors from encoder.
+        dunits (int | None): Dimension of input vectors for decoder.
+        att_dim (int): Dimension of input vectors for attention.
+
+    """
+
     def __init__(self, eprojs, dunits, att_dim):
         super(AttDot, self).__init__()
         with self.init_scope():
@@ -25,21 +34,23 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        """reset states
-
-        :return:
-        """
+        """Reset states."""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        """AttDot forward
+        """Compute AttDot forward layer.
 
-        :param enc_hs:
-        :param dec_z:
-        :param scaling:
-        :return:
+        Args:
+            enc_hs (chainer.Variable | N-dimensional array): Input variable from encoder.
+            dec_z (chainer.Variable | N-dimensional array): Input variable of decoder.
+            scaling (float): Scaling weight to make attention sharp.
+
+        Returns:
+            chainer.Variable: Weighted sum over flames.
+            chainer.Variable: Attention weight.
+
         """
         batch = len(enc_hs)
         # pre-compute all h outside the decoder loop
@@ -73,6 +84,17 @@ class AttDot(chainer.Chain):
 
 # location based attention
 class AttLoc(chainer.Chain):
+    """Compute location-based attention.
+
+    Args:
+        eprojs (int | None): Dimension of input vectors from encoder.
+        dunits (int | None): Dimension of input vectors for decoder.
+        att_dim (int): Dimension of input vectors for attention.
+        aconv_chans (int): Number of channels of output arrays from convolutional layer.
+        aconv_filts (int): Size of filters of convolutional layer.
+
+    """
+
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
         super(AttLoc, self).__init__()
         with self.init_scope():
@@ -92,22 +114,24 @@ class AttLoc(chainer.Chain):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        """reset states
-
-        :return:
-        """
+        """Reset states."""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        """AttLoc forward
+        """Compute AttLoc forward layer.
 
-        :param enc_hs:
-        :param dec_z:
-        :param att_prev:
-        :param scaling:
-        :return:
+        Args:
+            enc_hs (chainer.Variable | N-dimensional array): Input variable from encoders.
+            dec_z (chainer.Variable | N-dimensional array): Input variable of decoder.
+            att_prev (chainer.Variable | None): Attention weight.
+            scaling (float): Scaling weight to make attention sharp.
+
+        Returns:
+            chainer.Variable: Weighted sum over flames.
+            chainer.Variable: Attention weight.
+
         """
         batch = len(enc_hs)
         # pre-compute all h outside the decoder loop
@@ -161,6 +185,13 @@ class AttLoc(chainer.Chain):
 
 
 class NoAtt(chainer.Chain):
+    """Compute non-attention layer.
+
+    This layer is a dummy attention layer to be compatible with other
+    attention-based models.
+
+    """
+
     def __init__(self):
         super(NoAtt, self).__init__()
         self.h_length = None
@@ -169,22 +200,24 @@ class NoAtt(chainer.Chain):
         self.c = None
 
     def reset(self):
-        """reset states
-
-        :return:
-        """
+        """Reset states."""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.c = None
 
     def __call__(self, enc_hs, dec_z, att_prev):
-        """NoAtt forward
+        """Compute NoAtt forward layer.
 
-        :param enc_hs:
-        :param dec_z: dummy
-        :param att_prev:
-        :return:
+        Args:
+            enc_hs (chainer.Variable | N-dimensional array): Input variable from encoders.
+            dec_z: Dummy.
+            att_prev (chainer.Variable | None): Attention weight.
+
+        Returns:
+            chainer.Variable: Sum over flames.
+            chainer.Variable: Attention weight.
+
         """
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -203,11 +236,14 @@ class NoAtt(chainer.Chain):
 
 
 def att_for(args):
-    """Returns an attention given the program arguments
+    """Returns an attention layer given the program arguments.
 
-    :param Namespace args: the arguments
-    :return: The corresponding attention module
-    :rtype chainer.Chain
+    Args:
+        args (Namespace): The arguments.
+
+    Returns:
+        chainer.Chain: The corresponding attention module.
+
     """
     if args.atype == 'dot':
         att = AttDot(args.eprojs, args.dunits, args.adim)
