@@ -13,6 +13,13 @@ set -euo pipefail
     ../doc/argparse2rst.py ./*.py > ../doc/_gen/utils_py.rst
 )
 
+(
+    cd ./doc
+    if [ ! -e notebook ]; then
+        git clone https://github.com/espnet/notebook
+    fi
+)
+
 ./doc/argparse2rst.py ./espnet/bin/*.py > ./doc/_gen/espnet_bin.rst
 
 

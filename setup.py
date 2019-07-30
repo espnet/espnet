@@ -63,7 +63,9 @@ requirements = {
         'sphinx-argparse>=0.2.5',
         'commonmark==0.8.1',
         'recommonmark>=0.4.0',
-        'travis-sphinx>=2.0.1']}
+        'travis-sphinx>=2.0.1',
+        'nbsphinx>=0.4.2'
+    ]}
 install_requires = requirements['install']
 setup_requires = requirements['setup']
 tests_require = requirements['test']
