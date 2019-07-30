@@ -37,7 +37,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         min_batch_size (int): Mininum batch size (for multi-gpu).
 
     Returns:
-        List[Tuple(str, Dict[str, List[dict[str, Any166G]]])]: List of batches.
+        List[Tuple(str, Dict[str, List[dict[str, Any]]])]: List of batches.
 
     """
     # sort it by input lengths (long to short)

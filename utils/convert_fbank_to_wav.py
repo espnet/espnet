@@ -11,7 +11,7 @@ import librosa
 import numpy as np
 from scipy.io.wavfile import write
 
-from espnet.utils.cli_utils import FileReaderWrapper
+from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -91,7 +91,7 @@ def main():
 
     # extract feature and then write as ark with scp format
     for idx, (utt_id, lmspc) in enumerate(
-            FileReaderWrapper(args.rspecifier, args.filetype), 1):
+            file_reader_helper(args.rspecifier, args.filetype), 1):
         if args.n_mels is not None:
             spc = logmelspc_to_linearspc(
                 lmspc,
