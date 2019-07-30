@@ -477,13 +477,13 @@ def decode(args):
             plt.ylabel("Probability")
             plt.ylim([0, 1])
         elif len(shape) == 2:
-            # for tacotron 2 attention weights, whose shape (out_length, in_length)
+            # for tacotron 2 attention weights, whose shape is (out_length, in_length)
             plt.figure(figsize=figsize, dpi=dpi)
             plt.imshow(array, aspect="auto")
             plt.xlabel("Input")
             plt.ylabel("Output")
         elif len(shape) == 4:
-            # for transformer attention weights, whose shape (#leyaers, #heads, out_length, in_length)
+            # for transformer attention weights, whose shape is (#leyers, #heads, out_length, in_length)
             plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
             for idx1, xs in enumerate(array):
                 for idx2, x in enumerate(xs, 1):
