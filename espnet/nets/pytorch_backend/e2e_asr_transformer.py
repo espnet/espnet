@@ -159,6 +159,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: float
         '''
         xs_pad = to_torch_tensor(xs_pad)
+
+        # 1. forward encoder
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
         # 0. Frontend
         hs_pad, ilens = self.frontend(xs_pad, ilens)
@@ -174,12 +176,12 @@ class E2E(ASRInterface, torch.nn.Module):
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
-        # 3. compute loss
+        # 3. compute attenttion loss
         loss_att = self.criterion(pred_pad, ys_out_pad)
         self.acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
                                ignore_label=self.ignore_id)
 
-        # TODO(karita) show predected text
+        # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
         cer_ctc = None
         if self.mtlalpha == 0.0:

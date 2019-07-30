@@ -113,11 +113,11 @@ fi
 
 synth_json=$(basename ${synth_model})
 model_json="$(dirname ${synth_model})/${synth_json%%.*}.json"
-use_speaker_embedding=$(grep use_speaker_embedding ${model_json} | sed -e "s/.*: *\([0-9]*\).*/\1/")
-if [ ${use_speaker_embedding} -eq 1 ]; then
-    use_input_wav=true
-else
+use_speaker_embedding=$(grep use_speaker_embedding ${model_json} | sed -e "s/.*: \(.*\),/\1/")
+if [ "${use_speaker_embedding}" = "false" ] || [ "${use_speaker_embedding}" = "0" ]; then
     use_input_wav=false
+else
+    use_input_wav=true
 fi
 if [ -z "${input_wav}" ] && ${use_input_wav}; then
     download_models

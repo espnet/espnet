@@ -41,7 +41,7 @@ from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -182,6 +182,13 @@ class CustomUpdater(training.StandardUpdater):
         else:
             optimizer.step()
         optimizer.zero_grad()
+
+    def update(self):
+        self.update_core()
+        # #iterations with accum_grad > 1
+        # Ref.: https://github.com/espnet/espnet/issues/777
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomConverter(object):
@@ -721,8 +728,8 @@ def enhance(args):
 
     # Creates writers for outputs from the network
     if args.enh_wspecifier is not None:
-        enh_writer = FileWriterWrapper(args.enh_wspecifier,
-                                       filetype=args.enh_filetype)
+        enh_writer = file_writer_helper(args.enh_wspecifier,
+                                        filetype=args.enh_filetype)
     else:
         enh_writer = None
 

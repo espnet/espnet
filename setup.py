@@ -23,9 +23,9 @@ requirements = {
         'scipy',
         'h5py',
         # Installation from anaconda is recommended for PyTorch
-        # 'torch==0.4.1',
+        # 'torch==1.0.1',
         'chainer==6.0.0',
-        # 'cupy==5.0.0',
+        # 'cupy==6.0.0',
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',
         'scikit-learn==0.20',
@@ -72,7 +72,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.4.1',
+      version='0.4.2',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
