@@ -122,27 +122,28 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     @staticmethod
     def _make_masks(ilens, olens):
-        """Make masks
+        """Make masks indicating non-padded part.
 
-        >>> ilens, olens = [5, 2], [8, 5]
-        >>> _make_mask(ilens, olens)
-        tensor([[[1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1],
-                 [1, 1, 1, 1, 1]],
+        Examples:
+            >>> ilens, olens = [5, 2], [8, 5]
+            >>> _make_mask(ilens, olens)
+            tensor([[[1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1],
+                     [1, 1, 1, 1, 1]],
+                    [[1, 1, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [1, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
 
-                [[1, 1, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [1, 1, 0, 0, 0],
-                 [0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
         """
         in_masks = make_non_pad_mask(ilens)  # (B, T_in)
         out_masks = make_non_pad_mask(olens)  # (B, T_out)
