@@ -13,10 +13,18 @@ import numpy as np
 
 
 class Decoder(chainer.Chain):
-    """Decoder layer
+    """Decoder layer.
 
-    :param int odim: output dim
-    :param argparse.Namespace args:  experiment setting
+    Args:
+        odim (int): The output dimension.
+        n_layers (int): Number of ecoder layers.
+        n_units (int): Number of attention units.
+        d_units (int): Dimension of input vector of decoder.
+        h (int): Number of attention heads.
+        dropout (float): Dropout rate.
+        initialW (Initializer): Initializer to initialize the weight.
+        initial_bias (Initializer): Initializer to initialize teh bias.
+
     """
 
     def __init__(self, odim, args, initialW=None, initial_bias=None):
@@ -41,14 +49,17 @@ class Decoder(chainer.Chain):
         self.n_layers = args.dlayers
 
     def forward(self, e, yy_mask, source, xy_mask):
-        """forward decoder
+        """Definition of the decoder layer.
 
-        :param xp.array e: input token ids, int64 (batch, maxlen_out)
-        :param xp.array yy_mask: input token mask, uint8  (batch, maxlen_out)
-        :param xp.array source: encoded memory, float32  (batch, maxlen_in, feat)
-        :param xp.array xy_mask: encoded memory mask, uint8  (batch, maxlen_in)
-        :return e: decoded token score before softmax (batch, maxlen_out, token)
-        :rtype: chainer.Variable
+        Args:
+            e (chainer.Variable): Input variable to the decoder from the encoder.
+            yy_mask (chainer.Variable): Attention mask considering ys as the source and target block.
+            source (List): Input sequences padded with `sos` and `pad_sequence` method.
+            xy_mask (chainer.Variable): Attention mask considering ys and xs as the source/target block.
+
+        Returns:
+            chainer.Chain: Decoder layer.
+
         """
         e = self.pe(self.embed(e))
         dims = e.shape

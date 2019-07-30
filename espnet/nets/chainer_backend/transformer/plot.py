@@ -6,119 +6,8 @@ import matplotlib.pyplot as plt
 
 
 def savefig(plot, filename):
-    """Save figure to given path.
-
-    Args:
-        filename (str): Output path for the image.
-
-    """
     plot.savefig(filename)
     plt.clf()
-
-
-class PositionalEncoding(chainer.Chain):
-    """Positional encoding implementation.
-
-    Args:
-        n_units (int): Dimension of the model.
-        dropout (float): Dropout rate.
-        length (int): Seqense length of inputs.
-
-    """
-
-    def __init__(self, n_units, dropout=0.1, length=5000):
-        # Implementation described in the paper
-        super(PositionalEncoding, self).__init__()
-        self.dropout = dropout
-        posi_block = np.arange(
-            0, length, dtype=np.float32)[:, None]
-        unit_block = np.exp(
-            np.arange(0, n_units, 2, dtype=np.float32) * -(np.log(10000.) / n_units))
-        self.pe = np.zeros((length, n_units), dtype=np.float32)
-        self.pe[:, ::2] = np.sin(posi_block * unit_block)
-        self.pe[:, 1::2] = np.cos(posi_block * unit_block)
-        self.scale = np.sqrt(n_units)
-
-    def __call__(self, e):
-        """Compute positional encoding.
-
-        Args:
-            e (chainer.Variale): Input array.
-
-        Returns
-            chainer.Variable: Positional-encoded array.
-
-        """
-        length = e.shape[1]
-        e = e * self.scale + self.xp.array(self.pe[:length])
-        return F.dropout(e, self.dropout)
-
-
-class LayerNorm(L.LayerNormalization):
-    """Layer normalization.
-
-    Args:
-        dims (int): Size of input units.
-        eps (float): Epsilon value for numerical stability of normalization.
-
-    """
-
-    def __init__(self, dims, eps=1e-12):
-        super(LayerNorm, self).__init__(size=dims, eps=eps)
-
-    def __call__(self, e):
-        """Compute layer normalization.
-
-        Args:
-            e (chainer.Variable): Batch vectors. Shape of this value must be
-                `(batch_size, unit_size)`.
-
-        Returns:
-            chainer.Variable: Output of the layer normalization.
-
-        """
-        return super(LayerNorm, self).__call__(e)
-
-
-class FeedForwardLayer(chainer.Chain):
-    """Feed Forward.
-
-    Args:
-        n_units (int): Dimension of the inputs/outputs of this layer.
-        d_units (int): Dimension of the hidden layer.
-        dropout (float): Dropout rate.
-        initialW (Initializer): Initializer to initialize the weight.
-        initial_bias (Initializer): Initializer to initialize the bias.
-
-    """
-
-    def __init__(self, n_units, d_units=0, dropout=0.1, initialW=None, initial_bias=None):
-        super(FeedForwardLayer, self).__init__()
-        n_inner_units = d_units if d_units > 0 else n_units * 4
-        with self.init_scope():
-            stvd = 1. / np.sqrt(n_units)
-            self.w_1 = L.Linear(n_units, n_inner_units,
-                                initialW=initialW(scale=stvd),
-                                initial_bias=initial_bias(scale=stvd))
-            stvd = 1. / np.sqrt(n_inner_units)
-            self.w_2 = L.Linear(n_inner_units, n_units,
-                                initialW=initialW(scale=stvd),
-                                initial_bias=initial_bias(scale=stvd))
-            self.act = F.relu
-        self.dropout = dropout
-
-    def __call__(self, e):
-        """Compute feed forward layer.
-
-        Args:
-            e (chainer.Variable): Input array.
-
-        Returns:
-            chainer.Variable: Output of the feed-forward network.
-
-        """
-        e = F.dropout(self.act(self.w_1(e)), self.dropout)
-        return self.w_2(e)
 
 
 def _plot_and_save_attention(att_w, filename):
@@ -145,16 +34,16 @@ def _plot_and_save_attention(att_w, filename):
 
 
 def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
-    """Plot multi head attentions.
+    """Plot multi head attentions
 
-    Args:
-        data (dict): Utts info from json file.
-        attn_dict (Dict[str, chainer.Variable]): Multi head attention dict. (head, input_length, output_length)
-        outdir (str): Directory to save figure.
-        suffix (str): Filename suffix including image type. (e.g., png)
-        savefn (function): Function to save.
-
+    :param dict data: utts info from json file
+    :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
+        values should be torch.Tensor (head, input_length, output_length)
+    :param str outdir: dir to save fig
+    :param str suffix: filename suffix including image type (e.g., png)
+    :param savefn: function to save
     """
+
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (
