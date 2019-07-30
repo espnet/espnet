@@ -1,1 +1,1 @@
-../asr1/local/ndx2flist.pl
+../../asr1/local/ndx2flist.pl

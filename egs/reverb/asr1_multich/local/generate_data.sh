@@ -1,1 +1,1 @@
-../asr1/local/generate_data.sh
+../../asr1/local/generate_data.sh
