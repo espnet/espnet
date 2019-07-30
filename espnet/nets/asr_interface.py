@@ -1,5 +1,5 @@
 class ASRInterface(object):
-    """ASR Interface for ESPnet model implementation"""
+    """ASR Interface for ESPnet model implementation."""
 
     @staticmethod
     def add_arguments(parser):
@@ -49,3 +49,13 @@ class ASRInterface(object):
     def attention_plot_class(self):
         from espnet.asr.asr_utils import PlotAttentionReport
         return PlotAttentionReport
+
+    @property
+    def input_keys(self):
+        """Return input key names."""
+        raise NotImplementedError()
+
+    @property
+    def output_keys(self):
+        """Return output key names."""
+        raise NotImplementedError()

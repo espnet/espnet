@@ -8,7 +8,7 @@ class Reporter(chainer.Chain):
 
 
 class TTSInterface(object):
-    """TTS Interface for ESPnet model implementation"""
+    """TTS Interface for ESPnet model implementation."""
 
     @staticmethod
     def add_arguments(parser):
@@ -60,3 +60,13 @@ class TTSInterface(object):
         :rtype list[str] plot_keys: base keys to plot during training
         """
         return ['loss']
+
+    @property
+    def input_keys(self):
+        """Return input key names."""
+        raise NotImplementedError()
+
+    @property
+    def output_keys(self):
+        """Return output key names."""
+        raise NotImplementedError()
