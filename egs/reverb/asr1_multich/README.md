@@ -22,19 +22,16 @@ but the strategy for training and test is slightly different.
 
 ## The training and test strategy
 
-1. Training data: 2-channel simulation data from REVERB and clean data from WSJ (both WSJ0 and
+1. Training data: N-channel (N - default 2 - can be chosen by specifying the --nch-train parameter during executing the run.sh) simulation data from REVERB and clean data from WSJ (both WSJ0 and
 WSJ1); Validation data: REVERB 8-channel real and simulation development
 sets; 
 
     WSJ0 is single channel audio data and REVERB can be used with multi channels.
     So if single channel data comes in the mini-batch when training time,
     then skipping the neural network for the frontend part,
-    and if multi channels comes from, passed it to the frontend.
-
-    Note that different channel data are created to separated mini-batchs.
-    To do this, these two data are given with different "category" tags.
+    and if multi channels comes from, passed it to the frontend (randomly passing WPE or BF).
     
-1. Skipping the frontend part in the probability of 1/2 when training.
+1. Skipping the frontend part in the probability of 1/4 when training.
 
     To train the backend part with reverberant and noisy data,
     passing the multi-channel data to the backend part without the frontend,
