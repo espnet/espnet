@@ -1,26 +1,33 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Text script file to its shape using TTS frontend.
 
-usage: text2shape.py [options] <scp>
+from __future__ import print_function
+from __future__ import unicode_literals
 
-options:
-    --frontend=<f>           Text tokenization frontend.
-    --num-vocab=<N>  　　　　　Num vocab [default: -1].
-    -h, --help               Show help message.
-"""
-from docopt import docopt
-import sys
-import numpy as np
+import argparse
 from os.path import join
 import os
 import sys
 
+
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description='Convert text script file to its shape using TTS frontend',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('scp', type=str, help='Input script file')
+    parser.add_argument('--num-vocab', default=-1, type=int,
+                        help='Number of vocabulary')
+    parser.add_argument('--frontend', type=str, choices=["en", "text"],
+                        help="Text tokenization frontend.")
+    return parser
+
+
 if __name__ == "__main__":
-    args = docopt(__doc__)
-    scp_file = args["<scp>"]
-    frontend = args["--frontend"]
-    num_vocab = args["--num-vocab"]
+    parser = get_parser()
+    args = parser.parse_args()
+    scp_file = args.scp
+    frontend = args.frontend
+    num_vocab = args.num_vocab
     if frontend is not None and frontend != "":
         from espnet.tts import frontend as fe
         # TODO: pass frontend_conf or similar
