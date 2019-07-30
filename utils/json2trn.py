@@ -68,11 +68,10 @@ def convert(jsonf, dic, refs, hyps, num_spkrs=1):
 
             # ref
             if num_spkrs == 1:
-                seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
+                seq = j['utts'][x]['output'][0]['token']
             else:
-                seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['tokenid'].split()]
-            ref_file.write(" ".join(seq).replace('<eos>', '')),
-            ref_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
+                seq = j['utts'][x]['output'][ns][0]['token']
+            ref_file.write(seq + " (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         hyp_file.close()
         ref_file.close()
