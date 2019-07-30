@@ -141,8 +141,8 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
-        self.forward_count = 0
         self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):

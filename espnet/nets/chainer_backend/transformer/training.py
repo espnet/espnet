@@ -74,7 +74,8 @@ class CustomUpdater(training.StandardUpdater):
             train_iter, optimizer, converter=converter, device=device)
         self.accum_grad = accum_grad
         self.forward_count = 0
-        logging.info('using custom converter for transformer')
+        self.start = True
+        logging.debug('using custom converter for transformer')
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -103,7 +104,7 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
-        elif self.count % self.accum_grad == 0:
+        else:
             optimizer.update()
         optimizer.target.cleargrads()  # Clear the parameter gradients
 
@@ -143,7 +144,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             train_iters, optimizer, converter=converter, devices=devices)
         self.accum_grad = accum_grad
         self.forward_count = 0
-        logging.info('using custom parallel updater for transformer')
+        logging.debug('using custom parallel updater for transformer')
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -183,7 +184,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             # update
             if math.isnan(grad_norm):
                 logging.warning('grad norm is nan. Do not update model.')
-            elif self.count % self.accum_grad == 0:
+            else:
                 optimizer.update()
             self._master.cleargrads()
 
