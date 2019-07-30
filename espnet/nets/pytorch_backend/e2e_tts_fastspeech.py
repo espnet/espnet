@@ -389,10 +389,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
 
         # inference
-        outs = self._forward(xs, ilens, is_inference=True)  # (1, L, odim)
+        outs = self._forward(xs, ilens, is_inference=True)[0]  # (L, odim)
 
         # keep batch axis to be compatible with the other models
-        return outs
+        return outs, None, None
 
     def _source_mask(self, ilens):
         """Make masks for self-attention.
