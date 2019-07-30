@@ -19,6 +19,25 @@ MAX_DECODER_OUTPUT = 5
 
 
 class Decoder(chainer.Chain):
+    """Decoder layer.
+
+    Args:
+        eprojs (int): Dimension of input variables from encoder.
+        odim (int): The output dimension.
+        dtype (str): Decoder type.
+        dlayers (int): Number of layers for decoder.
+        dunits (int): Dimension of input vector of decoder.
+        sos (int): Number to indicate the start of sequences.
+        eos (int): Number to indicate the end of sequences.
+        att (Module): Attention module defined at `espnet.espnet.nets.chainer_backend.attentions`.
+        verbose (int): Verbosity level.
+        char_list (List[str]): List of all charactors.
+        labeldist (numpy.array): Distributed array of counted transcript length.
+        lsm_weight (float): Weight to use when calculating the training loss.
+        sampling_probability (float): Threshold for scheduled sampling.
+
+    """
+
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
@@ -67,11 +86,16 @@ class Decoder(chainer.Chain):
         return z_list, c_list
 
     def __call__(self, hs, ys):
-        """Decoder forward
+        """Core function of Decoder layer.
 
-        :param Variable hs:
-        :param Variable ys:
-        :return:
+        Args:
+            hs (list of chainer.Variable | N-dimension array): Input variable from encoder.
+            ys (list of chainer.Variable | N-dimension array): Input variable of decoder.
+
+        Returns:
+            chainer.Variable: A variable holding a scalar array of the training loss.
+            chainer.Variable: A variable holding a scalar array of the accuracy.
+
         """
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -154,14 +178,18 @@ class Decoder(chainer.Chain):
         return self.loss, acc
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
-        """beam search implementation
+        """Beam search implementation.
 
-        :param h:
-        :param lpz:
-        :param recog_args:
-        :param char_list:
-        :param rnnlm:
-        :return:
+        Args:
+            h (chainer.Variable): One of the output from the encoder.
+            lpz (chainer.Variable | None): Result of net propagation.
+            recog_args (Namespace): The argument.
+            char_list (List[str]): List of all charactors.
+            rnnlm (Module): RNNLM module. Defined at `espnet.lm.chainer_backend.lm`
+
+        Returns:
+            List[Dict[str,Any]]: Result of recognition.
+
         """
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
@@ -325,9 +353,15 @@ class Decoder(chainer.Chain):
         return nbest_hyps
 
     def calculate_all_attentions(self, hs, ys):
-        """Calculate all of attentions
+        """Calculate all of attentions.
 
-        :return: list of attentions
+        Args:
+            hs (list of chainer.Variable | N-dimensional array): Input variable from encoder.
+            ys (list of chainer.Variable | N-dimensional array): Input variable of decoder.
+
+        Returns:
+            chainer.Variable: List of attention weights.
+
         """
         # prepare input and output word sequences with sos/eos IDs
         eos = self.xp.array([self.eos], 'i')
@@ -371,6 +405,20 @@ class Decoder(chainer.Chain):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
+    """Return the decoding layer corresponding to the args.
+
+    Args:
+        args (Namespace): The program arguments.
+        odim (int): The output dimension.
+        sos (int): Number to indicate the start of sequences.
+        eos (int) Number to indicate the end of sequences.
+        att (Module): Attention module defined at `espnet.nets.chainer_backend.attentions`.
+        labeldist (numpy.array): Distributed array of length od transcript.
+
+    Returns:
+        chainer.Chain: The decoder module.
+
+    """
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability)
