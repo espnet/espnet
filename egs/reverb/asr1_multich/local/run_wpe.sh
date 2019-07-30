@@ -1,1 +1,1 @@
-../asr1/local/run_wpe.sh
+../../asr1/local/run_wpe.sh

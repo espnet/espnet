@@ -1,1 +1,1 @@
-../asr1/local/run_wpe.py
+../../asr1/local/run_wpe.py
