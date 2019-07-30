@@ -117,6 +117,9 @@ def get_parser():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--keep-all-data-on-mem', default=False, type=strtobool,
+                        help='Whether to keep all data on memory')
+
     return parser
 
 
