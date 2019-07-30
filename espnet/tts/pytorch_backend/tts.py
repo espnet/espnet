@@ -45,7 +45,6 @@ from tensorboardX import SummaryWriter
 matplotlib.use('Agg')
 
 
-
 class CustomEvaluator(extensions.Evaluator):
     """Custom Evaluator for Tacotron2 training
 
