@@ -467,36 +467,41 @@ def decode(args):
     )
 
     # define function for plot prob and att_ws
-    def _plot_and_save(array, figname):
+    def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
         import matplotlib.pyplot as plt
         shape = array.shape
         if len(shape) == 1:
+            plt.figure(figsize=figsize, dpi=dpi)
             # for eos probability
             plt.plot(array)
             plt.xlabel("Frame")
             plt.ylabel("Probability")
             plt.ylim([0, 1])
         elif len(shape) == 2:
+            plt.figure(figsize=figsize, dpi=dpi)
             plt.imshow(array, aspect="auto")
             plt.xlabel("Input")
-            plt.xlabel("Output")
+            plt.ylabel("Output")
         elif len(shape) == 3:
+            plt.figure(figsize=(figsize[0], figsize[1] * shape[0]), dpi=dpi)
             for idx, x in enumerate(array, 1):
                 plt.subplot(1, shape[0], idx)
                 plt.imshow(x, aspect="auto")
                 plt.xlabel("Input")
-                plt.xlabel("Output")
+                plt.ylabel("Output")
         elif len(shape) == 4:
-            for idx1, xs in enumerate(array, 1):
+            plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
+            for idx1, xs in enumerate(array):
                 for idx2, x in enumerate(xs, 1):
-                    plt.subplot(shape[0], shape[1], (idx1 - 1) * shape[0] + idx2)
+                    plt.subplot(shape[0], shape[1], idx1 * shape[1] + idx2)
                     plt.imshow(x, aspect="auto")
                     plt.xlabel("Input")
-                    plt.xlabel("Output")
+                    plt.ylabel("Output")
         else:
             raise NotImplementedError("Support only from 1D to 4D array.")
         plt.tight_layout()
         plt.savefig(figname)
+        plt.clf()
 
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
@@ -513,7 +518,7 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, probs, att_ws = model.inference(x, args, spemb)[0]
+            outs, probs, att_ws = model.inference(x, args, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
@@ -522,6 +527,6 @@ def decode(args):
 
             # plot prob and att_ws
             if probs is not None:
-                _plot_and_save(probs, os.dirname(args.out) + "/%s_prob.png" % utt_id)
+                _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/%s_prob.png" % utt_id)
             if att_ws is not None:
-                _plot_and_save(att_ws, os.dirname(args.out) + "/%s_att_ws.png" % utt_id)
+                _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/%s_att_ws.png" % utt_id)
