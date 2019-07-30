@@ -316,6 +316,7 @@ def train(args):
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True}  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     load_cv = LoadInputsAndTargets(
@@ -324,6 +325,7 @@ def train(args):
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     # hack to make batchsize argument as 1
