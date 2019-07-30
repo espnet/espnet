@@ -177,10 +177,7 @@ class E2E(ASRInterface, chainer.Chain):
             ys = F.pad_sequence(ys, padding=self.eos)
             ys_out = F.pad_sequence(ys_out, padding=-1)
         ys = xp.array(ys.data)
-        #logging.info(ys.dtype)
         ys_out = chainer.Variable(xp.array(ys_out.data))
-        #logging.info(ys_out.dtype)
-        #exit(1)
         ys_pad_cpu = [y.astype(np.int32) for y in ys_pad]
 
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
@@ -206,7 +203,7 @@ class E2E(ASRInterface, chainer.Chain):
 
         # Compute CTC Loss and CER CTC
         cer_ctc = None
-        
+
         if self.ctc is None:
             loss_ctc = None
         else:

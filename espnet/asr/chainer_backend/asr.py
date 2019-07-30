@@ -5,26 +5,18 @@
 
 from __future__ import division
 
-import collections
 import json
 import logging
-import math
 import os
 import six
 
 # chainer related
 import chainer
 
-from chainer import cuda
 from chainer import training
-from chainer import Variable
 
 from chainer.datasets import TransformDataset
-
 from chainer.training import extensions
-from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
-from chainer.training.updaters.multiprocess_parallel_updater import gather_params
-from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
@@ -50,7 +42,6 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
 import matplotlib
-import numpy as np
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter

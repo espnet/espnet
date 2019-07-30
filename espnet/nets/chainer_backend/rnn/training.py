@@ -4,43 +4,20 @@
 from __future__ import division
 
 import collections
-import json
 import logging
 import math
-import os
 import six
 
 # chainer related
-import chainer
-
 from chainer import cuda
 from chainer import training
 from chainer import Variable
 
-from chainer.datasets import TransformDataset
-
-from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
-# espnet related
-from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import chainer_load
-from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.asr_interface import ASRInterface
-from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.dynamic_import import dynamic_import
-from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.utils.training.batchfy import make_batchset
-from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from cupy.cuda import nccl
 
 import numpy as np
 
@@ -170,12 +147,10 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         """Main Update routine of the custom parallel updater."""
-        self.count += 1
         self.setup_workers()
 
         self._send_message(('update', None))
         with cuda.Device(self._devices[0]):
-            from cupy.cuda import nccl
             # For reducing memory
 
             optimizer = self.get_optimizer('main')
