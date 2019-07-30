@@ -31,8 +31,8 @@ batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
 
 # training related
 transformer-init: pytorch
-transformer-warmup-steps: 4000
-transformer-lr: 1.0
+noam-warmup: 4000
+lr: 1.0
 initial-encoder-alpha: 1.0
 initial-decoder-alpha: 1.0
 transformer-enc-dropout-rate: 0.1
