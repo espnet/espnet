@@ -14,15 +14,17 @@ from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 # TODO(watanabe) explanation of BLSTMP
 class RNNP(chainer.Chain):
-    """RNN with projection layer module
+    """RNN with projection layer module.
 
-    :param int idim: dimension of inputs
-    :param int elayers: number of encoder layers
-    :param int cdim: number of rnn units (resulted in cdim * 2 if bidirectional)
-    :param int hdim: number of projection units
-    :param np.ndarray subsample: list of subsampling numbers
-    :param float dropout: dropout rate
-    :param str typ: The RNN type
+    Args:
+        idim (int): Dimension of inputs.
+        elayers (int): Number of encoder layers.
+        cdim (int): Number of rnn units. (resulted in cdim * 2 if bidirectional)
+        hdim (int): Number of projection units.
+        subsample (np.ndarray): List to use sabsample the input array.
+        dropout (float): Dropout rate.
+        typ (str): The RNN type.
+
     """
 
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout, typ="blstm"):
@@ -53,11 +55,16 @@ class RNNP(chainer.Chain):
         self.bidir = bidir
 
     def __call__(self, xs, ilens):
-        """RNNP forward
+        """RNNP forward.
 
-        :param xs:
-        :param ilens:
-        :return:
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each input batch. (B,)
+
+        Returns:
+            xs (chainer.Variable):subsampled vector of xs.
+            chainer.Variable: Subsampled vector of ilens.
+
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
@@ -84,6 +91,18 @@ class RNNP(chainer.Chain):
 
 
 class RNN(chainer.Chain):
+    """RNN Module.
+
+    Args:
+        idim (int): Dimension of the imput.
+        elayers (int): Number of encoder layers.
+        cdim (int): Number of rnn units.
+        hdim (int): Number of projection units.
+        dropout (float): Dropout rate.
+        typ (str): Rnn type.
+
+    """
+
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="lstm"):
         super(RNN, self).__init__()
         bidir = typ[0] == "b"
@@ -99,11 +118,16 @@ class RNN(chainer.Chain):
         self.bidir = bidir
 
     def __call__(self, xs, ilens):
-        """BRNN forward
+        """BRNN forward propagation.
 
-        :param xs:
-        :param ilens:
-        :return:
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each input batch. (B,)
+
+        Returns:
+            tuple(chainer.Variable): Tuple of `chainer.Variable` objects.
+            chainer.Variable: `ilens` .
+
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         # need to move ilens to cpu
@@ -128,6 +152,13 @@ class RNN(chainer.Chain):
 
 # TODO(watanabe) explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
+    """VGG motibated cnn layers.
+
+    Args:
+        in_channel (int): Number of channels.
+
+    """
+
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()
         with self.init_scope():
@@ -140,11 +171,16 @@ class VGG2L(chainer.Chain):
         self.in_channel = in_channel
 
     def __call__(self, xs, ilens):
-        """VGG2L forward
+        """VGG2L forward propagation.
 
-        :param xs:
-        :param ilens:
-        :return:
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each features. (B,)
+
+        Returns:
+            chainer.Variable: Subsampled vector of xs.
+            chainer.Variable: Subsampled vector of ilens.
+
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
@@ -179,18 +215,16 @@ class VGG2L(chainer.Chain):
 
 
 class Encoder(chainer.Chain):
-    """Encoder network class
+    """Encoder network class.
 
-    This is the example of docstring.
-
-    :param str etype: type of encoder network
-    :param int idim: number of dimensions of encoder network
-    :param int elayers: number of layers of encoder network
-    :param int eunits: number of lstm units of encoder network
-    :param int eprojs: number of projection units of encoder network
-    :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
-    :param float dropout: dropout rate
-    :return:
+    Args:
+        etype (str): Type of encoder network.
+        idim (int): Number of dimensions of encoder network.
+        elayers (int): Number of layers of encoder network.
+        eunits (int): Number of lstm units of encoder network.
+        eprojs (int): Number of projection units of encoder network.
+        subsample (np.array): Subsampling number. e.g. 1_2_2_2_1
+        dropout (float): Dropout rate.
 
     """
 
@@ -223,11 +257,16 @@ class Encoder(chainer.Chain):
                     logging.info(typ.upper() + ' without projection for encoder')
 
     def __call__(self, xs, ilens):
-        """Encoder forward
+        """Encoder forward.
 
-        :param xs:
-        :param ilens:
-        :return:
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.variable): Batch of length of each features. (B,)
+
+        Returns:
+            chainer.Variable: Output of the encoder.
+            chainer.Variable: (Subsampled) vector of ilens.
+
         """
         xs, ilens = self.enc(xs, ilens)
 
@@ -235,4 +274,14 @@ class Encoder(chainer.Chain):
 
 
 def encoder_for(args, idim, subsample):
+    """Return the Encoder module.
+
+    Args:
+        idim (int): Dimension of input array.
+        subsample (numpy.array): Subsample number. egs).1_2_2_2_1
+
+    Return
+        chainer.nn.Module: Encoder module.
+
+    """
     return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
