@@ -294,8 +294,8 @@ def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.5
         model (torch.nn.model): Model.
         iteration (int): Number of iterations.
         duration (int) {100, 1000}: Number of durations to control the interval of the `sigma` change.
-        eta (float) {0.01, 0.3, 1.0}: the magnitude of `sigma`
-        scale_factor (float) {0.55}: the scale of `sigma`
+        eta (float) {0.01, 0.3, 1.0}: The magnitude of `sigma`.
+        scale_factor (float) {0.55}: The scale of `sigma`.
     """
     interval = (iteration // duration) + 1
     sigma = eta / interval ** scale_factor
@@ -350,7 +350,7 @@ def get_model_conf(model_path, conf_path=None):
         conf_path (str): Optional model config path.
 
     Returns:
-        list[int, int, dict[str, Any]]: config information loaded from json file.
+        list[int, int, dict[str, Any]]: Config information loaded from json file.
 
     """
     if conf_path is None:
@@ -366,8 +366,8 @@ def chainer_load(path, model):
     """Load chainer model parameters.
 
     Args:
-        path (str): model file or snapshot file to be loaded
-        model (chainer.Chain): chainer model
+        path (str): Model path or snapshot file path to be loaded.
+        model (chainer.Chain): Chainer model.
 
     """
     if 'snapshot' in path:
@@ -380,8 +380,8 @@ def torch_save(path, model):
     """Save torch model states.
 
     Args:
-        path (str): file path to be saved.
-        model (torch.nn.Module): torch model.
+        path (str): Model path to be saved.
+        model (torch.nn.Module): Torch model.
 
     """
     if hasattr(model, 'module'):
@@ -416,8 +416,8 @@ def torch_load(path, model):
     """Load torch model states.
 
     Args:
-        path (str): model file or snapshot file to be loaded.
-        model (torch.nn.Module): torch model.
+        path (str): Model path or snapshot file path to be loaded.
+        model (torch.nn.Module): Torch model.
 
     """
     if 'snapshot' in path:
@@ -437,8 +437,8 @@ def torch_resume(snapshot_path, trainer):
     """Resume from snapshot for pytorch.
 
     Args:
-        snapshot_path (str): snapshot file path.
-        trainer (chainer.training.Trainer): Chainer's trainer instance
+        snapshot_path (str): Snapshot file path.
+        trainer (chainer.training.Trainer): Chainer's trainer instance.
 
     """
     # load snapshot
@@ -474,8 +474,8 @@ def parse_hypothesis(hyp, char_list):
     """Parse hypothesis.
 
     Args:
-        hyp (list[dict[str, Any]]): recognition hypothesis.
-        char_list (list[str]): list of characters.
+        hyp (list[dict[str, Any]]): Recognition hypothesis.
+        char_list (list[str]): List of characters.
 
     Returns:
         tuple(str, str, str, float)
@@ -563,7 +563,7 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
         labelleft (bool):
         labelright (bool):
         labeltop (bool):
-        cmap (str): colormap defined in matplotlib
+        cmap (str): Colormap defined in matplotlib.
 
     """
     spec = np.abs(spec)

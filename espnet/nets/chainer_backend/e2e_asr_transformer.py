@@ -22,9 +22,80 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
+MIN_VALUE = float(np.finfo(np.float32).min)
+
+
+class VaswaniRule(extension.Extension):
+    """Trainer extension to shift an optimizer attribute magically by Vaswani.
+
+    Args:
+        attr (str): Name of the attribute to shift.
+        rate (float): Rate of the exponential shift. This value is multiplied
+            to the attribute at each call.
+        init (float): Initial value of the attribute. If it is ``None``, the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+        target (float): Target value of the attribute. If the attribute reaches
+            this value, the shift stops.
+        optimizer (~chainer.Optimizer): Target optimizer to adjust the
+            attribute. If it is ``None``, the main optimizer of the updater is
+            used.
+
+    """
+
+    def __init__(self, attr, d, warmup_steps=4000,
+                 init=None, target=None, optimizer=None,
+                 scale=1.):
+        self._attr = attr
+        self._d_inv05 = d ** (-0.5) * scale
+        self._warmup_steps_inv15 = warmup_steps ** (-1.5)
+        self._init = init
+        self._target = target
+        self._optimizer = optimizer
+        self._t = 0
+        self._last_value = None
+
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+        # ensure that _init is set
+        if self._init is None:
+            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
+        if self._last_value is not None:  # resuming from a snapshot
+            self._update_value(optimizer, self._last_value)
+        else:
+            self._update_value(optimizer, self._init)
+
+    def __call__(self, trainer):
+        self._t += 1
+        optimizer = self._get_optimizer(trainer)
+        value = self._d_inv05 * \
+            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
+        self._update_value(optimizer, value)
+
+    def serialize(self, serializer):
+        self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
 
 
 class E2E(ASRInterface, chainer.Chain):
+    """E2E module.
+
+    Args:
+        idim (int): Dimension of inputs.
+        odim (int): Dimension of outputs.
+        args (Namespace): Training config.
+        flag_return (bool): If True, then return value of `forward()`
+            would be tuple of (loss, loss_ctc, loss_att, acc)
+
+    """
+
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
@@ -92,6 +163,12 @@ class E2E(ASRInterface, chainer.Chain):
             self.verbose = 0 if args.verbose is None else args.verbose
 
     def reset_parameters(self, args):
+        """Initialize the Weight according to the give initialize-type.
+
+        Args:
+            args (Namespace): Transformer config.
+
+        """
         type_init = args.transformer_init
         if type_init == 'lecun_uniform':
             logging.info('Using LeCunUniform as Parameter initializer')
@@ -133,7 +210,70 @@ class E2E(ASRInterface, chainer.Chain):
             history_mask, (batch, length, length))
         return history_mask
 
-    def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
+    def output_and_loss(self, concat_logit_block, t_block, batch, length):
+        # Output (all together at once for efficiency)
+        rebatch, _ = concat_logit_block.shape
+        # Make target
+        concat_t_block = t_block.reshape((rebatch)).data
+        ignore_mask = (concat_t_block >= 0)
+        n_token = ignore_mask.sum()
+        normalizer = n_token if self.normalize_length else batch
+        if not self.use_label_smoothing:
+            loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
+            loss = loss * n_token / normalizer
+        else:
+            p_lsm = self.lsm_weight
+            p_loss = 1. - p_lsm
+            log_prob = F.log_softmax(concat_logit_block)
+            broad_ignore_mask = self.xp.broadcast_to(
+                ignore_mask[:, None],
+                concat_logit_block.shape)
+            pre_loss = ignore_mask * \
+                log_prob[self.xp.arange(rebatch), concat_t_block]
+            loss = - F.sum(pre_loss) / normalizer
+            label_smoothing = broad_ignore_mask * \
+                - 1. / self.n_target_vocab * log_prob
+            label_smoothing = F.sum(label_smoothing) / normalizer
+            loss = p_loss * loss + p_lsm * label_smoothing
+        accuracy = F.accuracy(
+            concat_logit_block, concat_t_block, ignore_label=-1)
+
+        if self.verbose > 0 and self.char_list is not None:
+            with chainer.no_backprop_mode():
+                rc_block = F.transpose(concat_logit_block.reshape((batch, length, -1)), (0, 2, 1))
+                rc_block.to_cpu()
+                t_block.to_cpu()
+                for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), t_block.data):
+                    if i == MAX_DECODER_OUTPUT:
+                        break
+                    idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
+                    idx_true = y_true_[y_true_ != -1]
+                    eos_true = np.where(y_true_ == self.eos)[0][0]
+                    seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
+                    seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
+                    seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                    seq_true = "".join(seq_true).replace('<space>', ' ')
+                    logging.info("groundtruth[%d]: " % i + seq_true)
+                    logging.info("prediction [%d]: " % i + seq_hat)
+        return loss, accuracy
+
+    def forward(self, xs, ilens, ys, calculate_attentions=False):
+        """E2E forward propagation.
+
+        Args:
+            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each input batch. (B,)
+            ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)
+            calculate_attentions (bool): If true, return value is the output of encoder.
+
+        Returns:
+            float: Training loss.
+            float (optional): Training loss for ctc.
+            float (optional): Training loss for attention.
+            float (optional): Accuracy.
+            chainer.Variable (Optional): Output of the encoder.
+
+        """
         xp = self.xp
         ilens = [int(x) for x in ilens]
         with chainer.no_backprop_mode():
@@ -246,16 +386,20 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
-        '''E2E beam search
+        """E2E beam search.
 
-        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
-        :param namespace recog_args: argment namespace contraining options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        '''
+        Args:
+            x (ndarray): Input acouctic feature (B, T, D) or (T, D).
+            recog_args (Namespace): Argment namespace contraining options.
+            char_list (List[str]): List of characters.
+            rnnlm (torch.nn.Module): Language model module defined at
+                `espnet.lm.chainer_backend.lm`.
 
+        Returns:
+            List: N-best decoding results.
+
+        """
+        xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
             ilens = [x_block.shape[0]]
@@ -444,15 +588,17 @@ class E2E(ASRInterface, chainer.Chain):
         return nbest_hyps
 
     def calculate_all_attentions(self, xs, ilens, ys):
-        '''E2E attention calculation
+        """E2E attention calculation.
 
-        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
-        :param ndarray ilens: batch of lengths of input sequences (B)
-        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: float ndarray
-        '''
+        Args:
+            xs_pad (List[tuple()]): List of padded input sequences. [(T1, idim), (T2, idim), ...]
+            ilens (ndarray): Batch of lengths of input sequences. (B)
+            ys (List): List of character id sequence tensor. [(L1), (L2), (L3), ...]
 
+        Returns:
+            float ndarray: Attention weights. (B, Lmax, Tmax)
+
+        """
         with chainer.no_backprop_mode():
             results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
         ret = dict()

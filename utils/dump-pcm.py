@@ -7,8 +7,8 @@ import kaldiio
 import numpy
 
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
@@ -28,7 +28,8 @@ def get_parser():
     parser.add_argument('--compress', type=strtobool, default=False,
                         help='Save in compressed format')
     parser.add_argument('--compression-method', type=int, default=2,
-                        help='Specify the method(if mat) or gzip-level(if hdf5)')
+                        help='Specify the method(if mat) or '
+                             'gzip-level(if hdf5)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
@@ -67,13 +68,13 @@ def main():
     else:
         preprocessing = None
 
-    with FileWriterWrapper(args.wspecifier,
-                           filetype=args.filetype,
-                           write_num_frames=args.write_num_frames,
-                           compress=args.compress,
-                           compression_method=args.compression_method,
-                           pcm_format=args.format
-                           ) as writer:
+    with file_writer_helper(args.wspecifier,
+                            filetype=args.filetype,
+                            write_num_frames=args.write_num_frames,
+                            compress=args.compress,
+                            compression_method=args.compression_method,
+                            pcm_format=args.format
+                            ) as writer:
         for utt_id, (rate, array) in kaldiio.ReadHelper(args.rspecifier,
                                                         args.segments):
             if args.filetype == 'mat':
