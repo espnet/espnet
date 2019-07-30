@@ -154,7 +154,7 @@ n_de=$(cat ${dst}/text.tc.de | wc -l)
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
 mkdir -p data/train
 for f in spk2utt utt2spk wav.scp segments; do
-    cp ${dst}/$f data/train/$f
+    cp ${dst}/${f} data/train/${f}
 done
 # en
 cp ${dst}/text.tc.en data/train/text.tc.en

@@ -525,7 +525,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate for encoder
             if "encoder" in self.modules_applied_guided_attn:
                 att_ws = []
-                for idx, layer_idx in enumerate(reversed(range(len(self.decoder.decoders)))):
+                for idx, layer_idx in enumerate(reversed(range(len(self.encoder.encoders)))):
                     att_ws += [self.encoder.encoders[layer_idx].self_attn.attn[:, :self.num_heads_applied_guided_attn]]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
@@ -579,6 +579,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         Returns:
             Tensor: Output sequence of features (L, odim).
             Tensor: Output sequence of stop probabilities (L,).
+            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).
 
         """
         # get options
@@ -625,7 +626,14 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        return outs, probs
+        # get attention weights
+        att_ws = []
+        for name, m in self.named_modules():
+            if isinstance(m, MultiHeadedAttention) and "src" in name:
+                att_ws += [m.attn]
+        att_ws = torch.cat(att_ws, dim=0)
+
+        return outs, probs, att_ws
 
     def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.

@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+import logging
+import numpy as np
+
 import chainer
 
 import chainer.functions as F
@@ -9,9 +12,6 @@ from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttentio
 from espnet.nets.chainer_backend.nets_utils_transformer import FeedForwardLayer
 from espnet.nets.chainer_backend.nets_utils_transformer import LayerNorm
 from espnet.nets.chainer_backend.nets_utils_transformer import PositionalEncoding
-
-import logging
-import numpy as np
 
 
 class Conv2dSubsampling(chainer.Chain):
@@ -99,6 +99,19 @@ class EncoderLayer(chainer.Chain):
 
 
 class Encoder(chainer.Chain):
+    """Encoder.
+
+    Args:
+        input_type(str): Sampling type. `input_type` must be `conv2d` or 'linear' currently.
+        idim (int): Dimension of inputs.
+        n_layers (int): Number of encoder layers.
+        n_units (int): Number of input/output dimension of a FeedForward layer.
+        d_units (int): Number of units of hidden layer in a FeedForward layer.
+        h (int): Number of attention heads.
+        dropout (float): Dropout rate
+
+    """
+
     def __init__(self, input_type, idim, n_layers, n_units, d_units=0, h=8, dropout=0.1,
                  initialW=None, initial_bias=None):
         super(Encoder, self).__init__()
@@ -123,6 +136,18 @@ class Encoder(chainer.Chain):
         self.n_layers = n_layers
 
     def __call__(self, e, ilens):
+        """Computing Encoder layer.
+
+        Args:
+            e (chainer.Variable): Batch of padded charactor. (B, Tmax)
+            ilens (chainer.Variable): Batch of length of each input batch. (B,)
+
+        Returns:
+            chainer.Variable: Computed variable of encoder.
+            numpy.array: Mask.
+            chainer.Variable: Batch of lengths of each encoder outputs.
+
+        """
         e, ilens = self.input_layer(e, ilens)
         batch, length, dims = e.shape
         x_mask = np.ones([batch, length])

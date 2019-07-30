@@ -1,3 +1,36 @@
+# pytorch large Transformer with specaug (4 GPUs) + Large LM
+
+## Models
+- Model files (archived to `train_960_pytorch_train_pytorch_transformer_large_ngpu4_specaug.tar.gz` by `$ pack_model.sh`)
+- model link: https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6
+- training config file: `conf/tuning/train_pytorch_transformer_large_ngpu4.yaml`
+- decoding config file: `conf/tuning/decode_pytorch_transformer_large.yaml`
+- cmvn file: `data/train_960/cmvn.ark`
+- e2e file: `exp/train_960_pytorch_train_pytorch_transformer_large_ngpu4_specaug/results/model.val5.avg.best`
+- e2e JSON file: `exp/train_960_pytorch_train_pytorch_transformer_large_ngpu4_specaug/results/model.json`
+- lm file: `exp/irielm.ep11.last5.avg/rnnlm.model.best`
+- lm JSON file: `exp/irielm.ep11.last5.avg/model.json`
+
+## Environments
+- date: `Thu Jul 18 16:15:33 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.4.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `f9f40861423ba9a9c9f5a45bd4369dbdb9b3bbf9`
+  - Commit date: `Thu Jul 18 15:40:51 2019 +0900`
+
+## WER
+
+```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2703|54402|98.0|1.8|0.2|0.2|2.2|27.9|
+|decode_dev_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2864|50948|95.1|4.3|0.6|0.6|5.6|44.9|
+|decode_test_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2620|52576|97.7|2.0|0.3|0.3|2.6|29.9|
+|decode_test_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2939|52343|95.0|4.4|0.6|0.6|5.7|47.7|
+```
+
 # pytorch Transformer (accum grad 8, single GPU)
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Wed Jun 19 16:58:42 EDT 2019`
