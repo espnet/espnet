@@ -2,11 +2,9 @@
 # Author: Gaurav Kumar
 
 
-<< EOF
-Usage: e.g.
-% free-gpu.sh -n 2
-1,2
-EOF
+# Usage: e.g.
+# % free-gpu.sh -n 2
+# 1,2
 
 # Allow requests for multiple GPUs
 # (Optional) defaults to 1
@@ -20,16 +18,20 @@ while getopts ':n:' opt; do
       echo "Option -${OPTARG} requires an argument." >&2
       exit 1
       ;;
+    *)
+      echo "Option -${OPTARG} is not supported" >&2
+      exit 1
+      ;;
   esac
 done
 
 # Number of free GPUs on a machine
-export n_gpus=$(lspci | grep -i "nvidia" | grep -v "Audio" | wc -l)
+n_gpus=$(lspci | grep -i "nvidia" | grep -c -v "Audio")
 
 # Return -1 if there are no GPUs on the machine
 # or if the requested number of GPUs exceed
 # the number of GPUs installed.
-if [ ${n_gpus} -eq 0 -o ${req_gpus} -gt ${n_gpus} ]; then
+if [ ${n_gpus} -eq 0 ] || [ ${req_gpus} -gt ${n_gpus} ]; then
   echo "-1"
   exit 1
 fi
