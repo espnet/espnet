@@ -153,10 +153,17 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
     # Setup Training Extensions
-    model_train = dynamic_import('{}.training'.format(args.model_module))
+    if 'transformer' in args.model_module:
+        from espnet.nets.chainer_backend.transformer.training import CustomConverter
+        from espnet.nets.chainer_backend.transformer.training import CustomParallelUpdater
+        from espnet.nets.chainer_backend.transformer.training import CustomUpdater
+    else:
+        from espnet.nets.chainer_backend.rnn.training import CustomConverter
+        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+        from espnet.nets.chainer_backend.rnn.training import CustomUpdater
 
     # Setup a converter
-    converter = model_train.CustomConverter(subsampling_factor=model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -200,7 +207,7 @@ def train(args):
                 batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
-        updater = model_train.CustomUpdater(
+        updater = CustomUpdater(
             train_iters[0], optimizer, converter=converter, device=gpu_id, accum_grad=accum_grad)
     else:
         if args.batch_count not in ("auto", "seq") and args.batch_size == 0:
@@ -237,7 +244,7 @@ def train(args):
                 for gid in six.moves.xrange(ngpu)]
 
         # set up updater
-        updater = model_train.CustomParallelUpdater(
+        updater = CustomParallelUpdater(
             train_iters, optimizer, converter=converter, devices=devices)
 
     # Set up a trainer
@@ -248,8 +255,8 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
-        trainer.extend(model_train.VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
-                                               scale=args.transformer_lr), trigger=(1, 'iteration'))
+        trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
+                                   scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)

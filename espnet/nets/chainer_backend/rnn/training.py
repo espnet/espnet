@@ -42,6 +42,8 @@ from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+import numpy as np
+
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
