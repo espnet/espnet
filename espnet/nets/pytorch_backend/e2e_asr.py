@@ -64,8 +64,6 @@ class E2E(ASRInterface, torch.nn.Module):
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
-        E2E.loss_add_arguments(parser)
-        E2E.recognition_add_arguments(parser)
         return parser
 
     @staticmethod
@@ -127,54 +125,6 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Dropout rate for the decoder')
         group.add_argument('--sampling-probability', default=0.0, type=float,
                            help='Ratio of predicted labels fed back to decoder')
-        return parser
-
-    @staticmethod
-    def loss_add_arguments(parser):
-        group = parser.add_argument_group("E2E loss setting")
-        group.add_argument('--ctc_type', default='warpctc', type=str,
-                           choices=['builtin', 'warpctc'],
-                           help='Type of CTC implementation to calculate loss.')
-        group.add_argument('--mtlalpha', default=0.5, type=float,
-                           help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
-        group.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
-                           help='Apply label smoothing with a specified distribution type')
-        group.add_argument('--lsm-weight', default=0.0, type=float,
-                           help='Label smoothing weight')
-        return parser
-
-    @staticmethod
-    def recognition_add_arguments(parser):
-        group = parser.add_argument_group("E2E recognition setting")
-        # recognition options to compute CER/WER
-        group.add_argument('--report-cer', default=False, action='store_true',
-                           help='Compute CER on development set')
-        group.add_argument('--report-wer', default=False, action='store_true',
-                           help='Compute WER on development set')
-        group.add_argument('--nbest', type=int, default=1,
-                           help='Output N-best hypotheses')
-        group.add_argument('--beam-size', type=int, default=4,
-                           help='Beam size')
-        group.add_argument('--penalty', default=0.0, type=float,
-                           help='Incertion penalty')
-        group.add_argument('--maxlenratio', default=0.0, type=float,
-                           help="""Input length ratio to obtain max output length.
-                           If maxlenratio=0.0 (default), it uses a end-detect function
-                           to automatically find maximum hypothesis lengths""")
-        group.add_argument('--minlenratio', default=0.0, type=float,
-                           help='Input length ratio to obtain min output length')
-        group.add_argument('--ctc-weight', default=0.3, type=float,
-                           help='CTC weight in joint decoding')
-        group.add_argument('--rnnlm', type=str, default=None,
-                           help='RNNLM model file to read')
-        group.add_argument('--rnnlm-conf', type=str, default=None,
-                           help='RNNLM model config file to read')
-        group.add_argument('--lm-weight', default=0.1, type=float,
-                           help='RNNLM weight.')
-        group.add_argument('--sym-space', default='<space>', type=str,
-                           help='Space symbol')
-        group.add_argument('--sym-blank', default='<blank>', type=str,
-                           help='Blank symbol')
         return parser
 
     def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
