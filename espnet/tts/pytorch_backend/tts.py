@@ -219,12 +219,7 @@ def train(args):
     utts = list(valid_json.keys())
 
     # reverse input and output dimension
-    if args.frontend is not None:
-        from espnet.tts import frontend as _frontend
-        frontend = getattr(_frontend, args.frontend)
-        idim = frontend.num_vocab()
-    else:
-        idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
