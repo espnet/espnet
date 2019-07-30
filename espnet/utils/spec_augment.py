@@ -2,6 +2,7 @@
 
 """
 This implementation is modified from https://github.com/zcaceres/spec_augment
+Separate repo: https://github.com/bobchennan/sparse_image_warp_pytorch
 
 MIT License
 
@@ -31,7 +32,7 @@ import random
 import torch
 
 
-def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_with_zero=False):
+def specaug(spec, W=40, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, replace_with_zero=False):
     """SpecAugment
 
     Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
@@ -47,48 +48,54 @@ def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_w
     :param int num_time_masks: number of time masks
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
+    if replace_with_zero:
+        pad_value = 0
+    else:
+        pad_value = spec.mean()
     return time_mask(
-        freq_mask(time_warp(spec, W=W),
-                  F=F, num_masks=num_freq_masks, replace_with_zero=replace_with_zero),
-        T=T, num_masks=num_time_masks, replace_with_zero=replace_with_zero)
+        freq_mask(time_warp(spec.transpose(0, 1), W=W),
+                  F=F, num_masks=num_freq_masks, pad_value=pad_value),
+        T=T, num_masks=num_time_masks, p=p, pad_value=pad_value).transpose(0, 1)
 
 
-def time_warp(spec, W=5):
+def time_warp(spec, W=40):
     """Time warping
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int W: time warp parameter
     """
+    if W == 0:
+        return spec
     spec = spec.unsqueeze(0)
-    spec_len = spec.shape[1]
-    num_rows = spec.shape[2]
+    num_rows = spec.shape[1]
+    spec_len = spec.shape[2]
+    W = min(W, spec_len // 2 - 10)
     device = spec.device
 
-    y = num_rows // 2
-    horizontal_line_at_ctr = spec[0, :, y]
-    assert len(horizontal_line_at_ctr) == spec_len
+    y = num_rows / 2.0
 
-    point_to_warp = horizontal_line_at_ctr[random.randrange(W, spec_len - W)]
-    assert isinstance(point_to_warp, torch.Tensor)
+    point_to_warp = random.randrange(W, spec_len - W)
 
     # Uniform distribution from (0,W) with chance to be up to W negative
     dist_to_warp = random.randrange(-W, W)
-    src_pts, dest_pts = (torch.tensor([[[point_to_warp, y]]], device=device),
-                         torch.tensor([[[point_to_warp + dist_to_warp, y]]], device=device))
+    src_pts, dest_pts = (torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1],
+                                        [y, point_to_warp]]], device=device),
+                         torch.tensor([[[0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1],
+                                        [y, point_to_warp + dist_to_warp]]], device=device))
     warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
     return warped_spectro.squeeze(3).squeeze(0)
 
 
-def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
+def freq_mask(spec, F=30, num_masks=1, pad_value=0):
     """Frequency masking
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int F: maximum width of each mask
     :param int num_masks: number of masks
-    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
+    :param float pad_value: values for masking
     """
     cloned = spec.unsqueeze(0).clone()
-    num_mel_channels = cloned.shape[2]
+    num_mel_channels = cloned.shape[1]
 
     for i in range(0, num_masks):
         f = random.randrange(0, F)
@@ -99,23 +106,21 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
             return cloned.squeeze(0)
 
         mask_end = random.randrange(f_zero, f_zero + f)
-        if (replace_with_zero):
-            cloned[0][:, f_zero:mask_end] = 0
-        else:
-            cloned[0][:, f_zero:mask_end] = cloned.mean()
+        cloned[0][f_zero:mask_end] = pad_value
     return cloned.squeeze(0)
 
 
-def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
+def time_mask(spec, T=40, num_masks=1, p=0.2, pad_value=0):
     """Time masking
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int T: maximum width of each mask
     :param int num_masks: number of masks
-    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
+    :param float pad_value: values for masking
     """
     cloned = spec.unsqueeze(0).clone()
-    len_spectro = cloned.shape[1]
+    len_spectro = cloned.shape[2]
+    T = min(T, int(len_spectro * p / num_masks))
 
     for i in range(0, num_masks):
         t = random.randrange(0, T)
@@ -126,10 +131,7 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
             return cloned.squeeze(0)
 
         mask_end = random.randrange(t_zero, t_zero + t)
-        if (replace_with_zero):
-            cloned[0][t_zero:mask_end, :] = 0
-        else:
-            cloned[0][t_zero:mask_end, :] = cloned.mean()
+        cloned[0][:, t_zero:mask_end] = pad_value
     return cloned.squeeze(0)
 
 
@@ -199,10 +201,10 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
     c = train_points
     f = train_values.float()
 
-    matrix_a = phi(cross_squared_distance_matrix(c, c), order).unsqueeze(0)  # [b, n, n]
+    matrix_a = phi(cross_squared_distance_matrix(c, c), order)  # [b, n, n]
 
     # Append ones to the feature values for the bias term in the linear model.
-    ones = torch.ones(1, dtype=train_points.dtype, device=device).view([-1, 1, 1])
+    ones = torch.ones_like(c[:, :, :1], dtype=train_points.dtype, device=device)
     matrix_b = torch.cat((c, ones), 2).float()  # [b, n, d + 1]
 
     # [b, n + d + 1, n]
@@ -212,7 +214,7 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
 
     # In Tensorflow, zeros are used here. Pytorch solve fails with zeros for some reason we don't understand.
     # So instead we use very tiny randn values (variance of one, zero mean) on one side of our multiplication.
-    lhs_zeros = torch.randn((b, num_b_cols, num_b_cols), device=device) / 1e10
+    lhs_zeros = torch.zeros((b, num_b_cols, num_b_cols), device=device)
     right_block = torch.cat((matrix_b, lhs_zeros), 1)  # [b, n + d + 1, d + 1]
     lhs = torch.cat((left_block, right_block), 2)  # [b, n + d + 1, n + d + 1]
 
@@ -238,10 +240,10 @@ def cross_squared_distance_matrix(x, y):
         squared_dists: [batch_size, n, m] float `Tensor`, where
         squared_dists[b,i,j] = ||x[b,i,:] - y[b,j,:]||^2
     """
-    x_norm_squared = torch.sum(torch.mul(x, x))
-    y_norm_squared = torch.sum(torch.mul(y, y))
+    x_norm_squared = torch.sum(torch.mul(x, x), dim=-1).unsqueeze(2)
+    y_norm_squared = torch.sum(torch.mul(y, y), dim=-1).unsqueeze(1)
 
-    x_y_transpose = torch.matmul(x.squeeze(0), y.squeeze(0).transpose(0, 1))
+    x_y_transpose = torch.bmm(x, y.transpose(1, 2))
 
     # squared_dists[b,i,j] = ||x_bi - y_bj||^2 = x_bi'x_bi- 2x_bi'x_bj + x_bj'x_bj
     squared_dists = x_norm_squared - 2 * x_y_transpose + y_norm_squared
