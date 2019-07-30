@@ -4,19 +4,54 @@ from random import random
 
 
 class TTSFrontend(object):
-    """Interface for TTS frontend"""
+    """Interface for TTS frontend
+
+    Evert language-dependent TTS frontend should inherit the class and implement
+    interface methods.
+    """
 
     def num_vocab(self):
+        """Returns number of vocabulary.
+
+        Returns:
+            int: number of vocabulary.
+        """
         raise NotImplementedError()
 
     def text_to_sequence(self, text):
+        """Convert text to its numeric representation.
+
+        Args:
+            text (str): Input text (e.g. character sequence)
+
+        Returns:
+            list: Sequence of token ID.
+        """
         raise NotImplementedError()
 
     def sequence_to_text(self, sequence):
+        """Convert numeric representation back to text
+
+        Args:
+            sequence (list): Input sequence of token ID.
+
+        Returns:
+            str: Text
+        """
         raise NotImplementedError()
 
 
 def get_frontend(name, *args, **kwargs):
+    """Instantiate text processing frontend by short name (e.g. "en").
+
+    Args:
+        name (str): Name of frontend. "text" or "en".
+        args (list): Arguments for frontend.
+        kwargs (dict): Keyword arguments for frontend.
+
+    Returns:
+        TTSFrontend: Text processing frontend.
+    """
     frontend_map = {
         "text": TEXT,
         "en": EN,
@@ -25,6 +60,18 @@ def get_frontend(name, *args, **kwargs):
 
 
 class TEXT(TTSFrontend):
+    """Generic less-language dependent text processing frontend.
+
+    Args:
+        cleaner_names (list): List of cleaner names. Available cleaners are:
+            1. "english_cleaners" for English text
+            2. "transliteration_cleaners" for non-English text that can be
+                transliterated to ASCII using the Unidecode library
+                (https://pypi.python.org/pypi/Unidecode)
+            3. "basic_cleaners" if you do not want to transliterate (in this case,
+                you should also update the symbols in symbols.py to match your data).
+    """
+
     def __init__(self, cleaner_names=["english_cleaners"]):
         self.cleaner_names = cleaner_names
 
