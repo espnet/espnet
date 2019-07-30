@@ -376,7 +376,15 @@ print Q "  echo -n '# '; cat <<EOF\n";
 print Q "$cmd\n"; # this is a way of echoing the command into a comment in the log file,
 print Q "EOF\n"; # without having to escape things like "|" and quote characters.
 print Q ") >$logfile\n";
-print Q "gpuid=\$(/usr/local/free-gpu -n $cli_options{'gpu'})\n";
+print Q "if ! which free-gpu.sh &> /dev/null; then\n";
+print Q "   echo 'command not found: free-gpu.sh not found.'\n";
+print Q "   exit 1\n";
+print Q "fi\n";
+print Q "gpuid=\$(free-gpu.sh -n $cli_options{'gpu'})\n";
+print Q "if [[ \${gpuid} == -1 ]]; then\n";
+print Q "   echo 'Failed to find enough free GPUs: $cli_options{'gpu'}'\n";
+print Q "   exit 1\n";
+print Q "fi\n";
 print Q "echo \"free gpu: \${gpuid}\" >>$logfile\n";
 print Q "export CUDA_VISIBLE_DEVICES=\${gpuid}\n";
 print Q "time1=\`date +\"%s\"\`\n";
