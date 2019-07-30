@@ -500,6 +500,8 @@ def decode(args):
         else:
             raise NotImplementedError("Support only from 1D to 4D array.")
         plt.tight_layout()
+        if not os.path.exists(os.path.dirname(figname)):
+            os.makedirs(os.path.dirname(figname))
         plt.savefig(figname)
         plt.clf()
 
@@ -527,6 +529,6 @@ def decode(args):
 
             # plot prob and att_ws
             if probs is not None:
-                _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/%s_prob.png" % utt_id)
+                _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
             if att_ws is not None:
-                _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/%s_att_ws.png" % utt_id)
+                _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)
