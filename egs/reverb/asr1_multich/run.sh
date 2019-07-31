@@ -113,8 +113,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
         done
     elif [ ${nch_train} -ge 3 ] && [ ${nch_train} -le 8 ]; then
-        ch_id_asc=$((64+${nch_train}))
-        ch_id=$(printf "\x$(printf %x ${ch_id_asc})")
+        ch_id_asc=$((64+nch_train))
+        ch_id=$(awk 'BEGIN{printf "%c", '${ch_id_asc}'}')
         for setname in ${tasks}; do
             echo ${setname}
             mkdir -p data/${setname}_multich
@@ -123,7 +123,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             <data/${datasrc}/text sed -r 's/^(.*?)_[A-'${ch_id}'](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
             <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
 
-            for ch in $(eval echo {A..${ch_id}}); do
+            for ch in $(eval echo "{A..${ch_id}}"); do
                 <data/${datasrc}/wav.scp grep "_${ch}_" | sed -r 's/^(.*?)_[A-'${ch_id}'](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
             done
             mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
