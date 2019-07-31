@@ -28,7 +28,6 @@
 
 
 # Select the backend used by run.sh from "local", "sge", "slurm", or "ssh"
-# cmd_backend='jhu'
 cmd_backend='local'
 
 # Local machine, without any Job scheduling system
@@ -81,8 +80,8 @@ elif [ "${cmd_backend}" = ssh ]; then
 elif [ "${cmd_backend}" = jhu ]; then
 
     export train_cmd="queue.pl --mem 2G"
-    export cuda_cmd="queue.pl --mem 2G --gpu 1 --config conf/gpu.conf"
-    export decode_cmd="queue.pl -l "hostname=c*" --mem 4G"
+    export cuda_cmd="queue-freegpu.pl --mem 2G --gpu 1 --config conf/gpu.conf"
+    export decode_cmd="queue.pl --mem 4G"
 
 else
     echo "$0: Error: Unknown cmd_backend=${cmd_backend}" 1>&2
