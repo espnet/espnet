@@ -185,7 +185,11 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        model.inference(batch["xs"][0][:batch["ilens"][0]])
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], spemb=spemb)
         model.calculate_all_attentions(**batch)
 
     # remove tmpdir
