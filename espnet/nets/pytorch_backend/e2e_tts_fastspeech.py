@@ -406,6 +406,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
+        else:
+            spembs = None
 
         # inference
         outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)[0]  # (L, odim)
