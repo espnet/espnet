@@ -17,6 +17,8 @@ set -euo pipefail
     cd ./doc
     if [ ! -e notebook ]; then
         git clone https://github.com/espnet/notebook
+        cd notebook
+        git checkout de000a4fd000dcffa5c0ee14fc477f96b7af6fea
     fi
 )
 
