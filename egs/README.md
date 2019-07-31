@@ -1,4 +1,4 @@
-# Example information overview 
+# Overview of example information 
 
 | Corpus name                                                  | Task                                       | Language       | URL                                                          | Note                          |
 | ------------------------------------------------------------ | ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------------------------- |
@@ -6,7 +6,7 @@
 | The AMI Meeting Corpus                                       | ASR                                        | EN             | http://groups.inf.ed.ac.uk/ami/corpus/                       |                               |
 | CMU AN4 database                                             | ASR/TTS                                    | EN             | http://www.speech.cs.cmu.edu/databases/an4/                  |                               |
 | Aurora-4 database                                            | ASR                                        | EN             | http://aurora.hsnr.de/aurora-4.html                          |                               |
-| IARPA Babel corups                                           | ASR                                        | ~20 Languages  | https://www.iarpa.gov/index.php/research-programs/babel      |                               |
+| IARPA Babel corpus                                           | ASR                                        | ~20 Languages  | https://www.iarpa.gov/index.php/research-programs/babel      |                               |
 | The 4th CHiME Speech Separation and Recognition Challenge    | ASR/Multichannel ASR                       | EN             | http://spandh.dcs.shef.ac.uk/chime_challenge/chime2016/      |                               |
 | The 5th CHiME Speech Separation and Recognition Challenge    | ASR                                        | EN             | http://spandh.dcs.shef.ac.uk/chime_challenge/                |                               |
 | CMU Wilderness Multilingual Speech Dataset                   | Multilingual ASR                           | ~100 Languages | https://github.com/festvox/datasets-CMU_Wilderness           |                               |
@@ -19,7 +19,7 @@
 | ASJ Japanese Newspaper Article Sentences Read Speech Corpus (JNAS) | ASR                                        | JP             | http://research.nii.ac.jp/src/JNAS.html                      |                               |
 | Multilingual End-to-end ASR for Incomplete Data Benchmark    | Multilingual ASR                           | ~20 Languages  | https://www.clsp.jhu.edu/workshops/18-workshop/multilingual-end-end-asr-incomplete-data/ | babel+                        |
 | Japanese speech corpus of Saruwatari-lab., University of Tokyo | ASR/TTS                                    | JP             | https://sites.google.com/site/shinnosuketakamichi/publication/jsut |                               |
-| Lanugage-Independent ASR task (10 languages)                 | Multilingual ASR                           | ~10 Languages  | https://www.merl.com/publications/docs/TR2017-182.pdf        | csj+hkust+voxforge(7lang)+wsj |
+| Language-Independent ASR task (10 languages)                 | Multilingual ASR                           | ~10 Languages  | https://www.merl.com/publications/docs/TR2017-182.pdf        | csj+hkust+voxforge(7lang)+wsj |
 | Translation Augmented LibriSpeech Corpus                     | ASR/Machine Translation/Speech Translation |                | https://persyval-platform.univ-grenoble-alpes.fr/DS91/detaildataset |                               |
 | LibriSpeech ASR corpus                                       | ASR                                        | EN             | http://www.openslr.org/12                                    |                               |
 | LibriTTS: A Corpus Derived from LibriSpeech for Text-to-Speech | TTS                                        | EN             | http://www.openslr.org/60/                                   |                               |
