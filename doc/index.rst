@@ -15,6 +15,14 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
 
    ./tutorial.md
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Notebook:
+
+   ./notebook/asr_cli.ipynb
+   ./notebook/asr_library.ipynb
+   ./notebook/tts_cli.ipynb
+   ./notebook/pretrained.ipynb
 
 .. include:: ./_gen/modules.rst
 
