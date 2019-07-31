@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Class Declaration of Transformer's Training Extensions."""
 from chainer.training import extension
 
 
