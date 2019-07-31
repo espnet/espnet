@@ -29,6 +29,7 @@ class Decoder(chainer.Chain):
     """
 
     def __init__(self, odim, args, initialW=None, initial_bias=None):
+        """Initialize Decoder."""
         super(Decoder, self).__init__()
         initialW = chainer.initializers.Uniform if initialW is None else initialW
         initial_bias = chainer.initializers.Uniform if initial_bias is None else initial_bias
@@ -70,6 +71,7 @@ class Decoder(chainer.Chain):
         return self.output_layer(self.output_norm(e))
 
     def recognize(self, e, yy_mask, source):
+        """Process predicted label."""
         bs, lenght = e.shape
         e = self.forward(e, yy_mask, source, None)
         return F.log_softmax(e, axis=-1)
