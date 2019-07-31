@@ -1,3 +1,5 @@
+""" Adapted from https://github.com/keithito/tacotron """
+
 '''
 Cleaners are transformations that run over the input text at both training and eval time.
 
@@ -40,6 +42,17 @@ _abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in 
     ('ft', 'fort'),
 ]]
 
+_unnecessary_symbols_re = re.compile(r'[\(\)\[\]\"]+')
+
+_expand_symbols = [
+    (re.compile(r'{}'.format(x[0])), x[1]) for x in [
+        ("\;", ","),
+        ("\:", ","),
+        ("\-", " "),
+        ("\&", "and"),
+    ]
+]
+
 
 def expand_abbreviations(text):
     for regex, replacement in _abbreviations:
@@ -61,6 +74,19 @@ def collapse_whitespace(text):
 
 def convert_to_ascii(text):
     return unidecode(text)
+
+
+def remove_unnecessary_symbols(text):
+    # added
+    text = re.sub(_unnecessary_symbols_re, '', text)
+    return text
+
+
+def expand_symbols(text):
+    # Added
+    for regex, replacement in _expand_symbols:
+        text = re.sub(regex, replacement, text)
+    return text
 
 
 def add_punctuation(text):
@@ -89,9 +115,11 @@ def transliteration_cleaners(text):
 def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
-    text = add_punctuation(text)
+    text = remove_unnecessary_symbols(text)
     text = lowercase(text)
     text = expand_numbers(text)
     text = expand_abbreviations(text)
+    text = expand_symbols(text)
+    text = add_punctuation(text)
     text = collapse_whitespace(text)
     return text
