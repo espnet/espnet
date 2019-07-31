@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 
 
 def savefig(plot, filename):
+    """Save figure."""
     plot.savefig(filename)
     plt.clf()
 
 
 def _plot_and_save_attention(att_w, filename):
+    """Plot and save attention."""
     # dynamically import matplotlib due to not found error
     from matplotlib.ticker import MaxNLocator
     import os
@@ -35,7 +37,7 @@ def _plot_and_save_attention(att_w, filename):
 
 
 def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
-    """Plot multi head attentions
+    """Plot multi head attentions.
 
     :param dict data: utts info from json file
     :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
@@ -43,8 +45,8 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
     :param str outdir: dir to save fig
     :param str suffix: filename suffix including image type (e.g., png)
     :param savefn: function to save
-    """
 
+    """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (
@@ -65,17 +67,44 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
+    """Plot attention reporter.
+
+    Args:
+        att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):
+        Function of attention visualization.
+        data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
+        outdir (str): Directory to save figures.
+        converter (espnet.asr.*_backend.asr.CustomConverter): Function to convert data.
+        device (int | torch.device): Device.
+        reverse (bool): If True, input and output length are reversed.
+        ikey (str): Key to access input (for ASR ikey="input", for MT ikey="output".)
+        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis=1.)
+        okey (str): Key to access output (for ASR okey="input", MT okay="output".)
+
+    """
+
     def __call__(self, trainer):
+        """Plot and save image file of att_ws matrix."""
         attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
         plot_multi_head_attention(
             self.data, attn_dict, self.outdir, suffix, savefig)
 
     def get_attention_weights(self):
+        """Return attention weights.
+
+        Returns:
+            numpy.ndarray: attention weights.float. Its shape would be
+                differ from backend.
+                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2) other case => (B, Lmax, Tmax).
+                * chainer-> (B, Lmax, Tmax)
+
+        """
         batch = self.converter([self.transform(self.data)], self.device)
         return self.att_vis_fn(*batch)
 
     def log_attentions(self, logger, step):
+        """Add image files of att_ws matrix to the tensorboard."""
         def log_fig(plot, filename):
             from os.path import basename
             logger.add_figure(basename(filename), plot, step)
