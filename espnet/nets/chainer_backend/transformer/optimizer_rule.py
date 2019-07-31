@@ -4,27 +4,42 @@ from chainer.training import extension
 
 
 class VaswaniRule(extension.Extension):
-
     """Trainer extension to shift an optimizer attribute magically by Vaswani.
 
     Args:
         attr (str): Name of the attribute to shift.
         rate (float): Rate of the exponential shift. This value is multiplied
-            to the attribute at each call.
+        to the attribute at each call.
         init (float): Initial value of the attribute. If it is ``None``, the
-            extension extracts the attribute at the first call and uses it as
-            the initial value.
+        extension extracts the attribute at the first call and uses it as
+        the initial value.
         target (float): Target value of the attribute. If the attribute reaches
-            this value, the shift stops.
+        this value, the shift stops.
         optimizer (~chainer.Optimizer): Target optimizer to adjust the
-            attribute. If it is ``None``, the main optimizer of the updater is
-            used.
+        attribute. If it is ``None``, the main optimizer of the updater is
+        used.
 
     """
 
     def __init__(self, attr, d, warmup_steps=4000,
                  init=None, target=None, optimizer=None,
                  scale=1.):
+        """Initialize VaswaniRule.
+
+        Args:
+            attr (str): Name of the attribute to shift.
+            rate (float): Rate of the exponential shift. This value is multiplied
+            to the attribute at each call.
+            init (float): Initial value of the attribute. If it is ``None``, the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+            target (float): Target value of the attribute. If the attribute reaches
+            this value, the shift stops.
+            optimizer (~chainer.Optimizer): Target optimizer to adjust the
+            attribute. If it is ``None``, the main optimizer of the updater is
+            used.
+
+        """
         self._attr = attr
         self._d_inv05 = d ** (-0.5) * scale
         self._warmup_steps_inv15 = warmup_steps ** (-1.5)
@@ -35,6 +50,12 @@ class VaswaniRule(extension.Extension):
         self._last_value = None
 
     def initialize(self, trainer):
+        """Initialize VaswaniRule at step zero.
+
+        Args:
+            trainer (training.extension): Trainer class.
+
+        """
         optimizer = self._get_optimizer(trainer)
         # ensure that _init is set
         if self._init is None:
@@ -45,6 +66,12 @@ class VaswaniRule(extension.Extension):
             self._update_value(optimizer, self._init)
 
     def __call__(self, trainer):
+        """Compute Vaswani Rule.
+
+        Args:
+            trainer (training.extension): Trainer class.
+
+        """
         self._t += 1
         optimizer = self._get_optimizer(trainer)
         value = self._d_inv05 * \
@@ -52,12 +79,25 @@ class VaswaniRule(extension.Extension):
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):
+        """Serialize Vaswani Rule.
+
+        Args:
+            trainer (training.extension): Trainer class.
+
+        """
         self._t = serializer('_t', self._t)
         self._last_value = serializer('_last_value', self._last_value)
 
     def _get_optimizer(self, trainer):
+        """Get the optimizer from the trainer.
+
+        Args:
+            trainer (training.extension): Trainer class.
+
+        """
         return self._optimizer or trainer.updater.get_optimizer('main')
 
     def _update_value(self, optimizer, value):
+        """Update attr with last calculate value."""
         setattr(optimizer, self._attr, value)
         self._last_value = value
