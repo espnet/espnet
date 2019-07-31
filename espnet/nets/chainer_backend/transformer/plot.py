@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Class Declaration of Transformer's Attention Plot."""
 
 from espnet.asr import asr_utils
 import logging
