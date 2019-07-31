@@ -603,6 +603,12 @@ class Transformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
 
+        # concat speaker embedding
+        if self.spk_embed_dim is not None:
+            spembs = spemb.unsqueeze(0)
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
         minlen = int(hs.size(1) * minlenratio / self.reduction_factor)
