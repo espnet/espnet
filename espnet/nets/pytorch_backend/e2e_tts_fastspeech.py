@@ -166,6 +166,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.reduction_factor = args.reduction_factor
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.use_masking = args.use_masking
+        self.spk_embed_dim = args.spk_embed_dim
 
         # TODO(kan-bayashi): support reduction_factor > 1
         if self.reduction_factor != 1:
@@ -199,6 +200,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             positionwise_layer_type=args.positionwise_layer_type,
             positionwise_conv_kernel_size=args.positionwise_conv_kernel_size
         )
+
+        # define additional projection for speaker embedding
+        if self.spk_embed_dim is not None:
+            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
 
         # define duration predictor
         self.duration_predictor = DurationPredictor(
@@ -258,10 +263,15 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # TODO(kan-bayashi): support knowledge distillation loss
         self.criterion = torch.nn.L1Loss()
 
-    def _forward(self, xs, ilens, ys=None, olens=None, is_inference=False):
+    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
+
+        # concat speaker embedding
+        if self.spk_embed_dim is not None:
+            spembs = torch.nn.functional.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(ilens).to(xs.device)
@@ -270,7 +280,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
         else:
             with torch.no_grad():
-                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
+                ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
@@ -287,7 +297,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             return outs, ds, d_outs
 
-    def forward(self, xs, ilens, ys, olens, *args, **kwargs):
+    def forward(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -295,6 +305,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
 
         Returns:
             Tensor: Loss value.
@@ -305,7 +316,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         ys = ys[:, :max(olens)]
 
         # forward propagation
-        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, is_inference=False)
+        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
 
         # apply mask to remove padded part
         if self.use_masking:
@@ -336,15 +347,19 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
-        """Calculate attention weights
+    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
+        """Calculate all of the attention weights.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor ilens: list of lengths of each output batch (B)
-        :return: attention weights dict
-        :rtype: dict
+        Args:
+            xs (Tensor): Batch of padded character ids (B, Tmax).
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+
+        Returns:
+            dict: Dict of attention weights and outputs.
+
         """
         with torch.no_grad():
             # remove unnecessary padded part (for multi-gpus)
@@ -352,7 +367,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys = ys[:, :max(olens)]
 
             # forward propagation
-            outs = self._forward(xs, ilens, ys, olens, is_inference=False)[0]
+            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)[0]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
@@ -374,7 +389,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return att_ws_dict
 
-    def inference(self, x, *args, **kwargs):
+    def inference(self, x, spemb=None, *args, **kwargs):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -389,9 +404,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
         xs = x.unsqueeze(0)
+        if spemb is not None:
+            spembs = spemb.unsqueeze(0)
 
         # inference
-        outs = self._forward(xs, ilens, is_inference=True)[0]  # (L, odim)
+        outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)[0]  # (L, odim)
 
         return outs, None, None
 
