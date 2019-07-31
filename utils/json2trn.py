@@ -58,19 +58,24 @@ def convert(jsonf, dic, refs, hyps, num_spkrs=1):
         ref_file = codecs.open(refs[ns], 'w', encoding="utf-8")
 
         for x in j['utts']:
-            # hyps
+            # recognition hypothesis
             if num_spkrs == 1:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['rec_tokenid'].split()]
+            # In the recognition hypothesis, the <eos> symbol is usually attached in the last part of the sentence
+            # and it is removed below.
             hyp_file.write(" ".join(seq).replace('<eos>', '')),
             hyp_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
-            # ref
+            # reference
             if num_spkrs == 1:
                 seq = j['utts'][x]['output'][0]['token']
             else:
                 seq = j['utts'][x]['output'][ns][0]['token']
+            # Unlike the recognition hypothesis, the reference is directly generated from a token without dictionary
+            # to avoid to include <unk> symbols in the reference to make scoring normal.
+            # The detailed discussion can be found at https://github.com/espnet/espnet/issues/993
             ref_file.write(seq + " (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         hyp_file.close()
