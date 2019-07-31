@@ -11,8 +11,19 @@ from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import Po
 
 
 class EncoderLayer(chainer.Chain):
+    """Single encoder layer module.
+
+    Args:
+        n_units (int): Number of input/output dimension of a FeedForward layer.
+        d_units (int): Number of units of hidden layer in a FeedForward layer.
+        h (int): Number of attention heads.
+        dropout (float): Dropout rate
+
+    """
+
     def __init__(self, n_units, d_units=0, h=8, dropout=0.1,
                  initialW=None, initial_bias=None):
+        """Initialize EncoderLayer."""
         super(EncoderLayer, self).__init__()
         with self.init_scope():
             self.self_attn = MultiHeadAttention(n_units, h, dropout=dropout,
@@ -28,6 +39,15 @@ class EncoderLayer(chainer.Chain):
         self.n_units = n_units
 
     def __call__(self, e, xx_mask, batch):
+        """Compute Encoder layer.
+
+        Args:
+            e (chainer.Variable): Batch of padded features. (B, Lmax)
+
+        Returns:
+            chainer.Variable: Computed variable of encoder.
+
+        """
         n_e = self.norm1(e)
         n_e = self.self_attn(n_e, mask=xx_mask, batch=batch)
         e = e + F.dropout(n_e, self.dropout)

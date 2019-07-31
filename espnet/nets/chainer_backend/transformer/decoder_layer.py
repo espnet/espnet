@@ -49,7 +49,7 @@ class DecoderLayer(chainer.Chain):
             s (chainer.Variable): Batch of padded character. (B, Tmax)
 
         Returns:
-            chainer.Variable: Computed variable of encoder.
+            chainer.Variable: Computed variable of decoder.
 
         """
         n_e = self.norm1(e)
