@@ -7,6 +7,7 @@
 import logging
 
 import torch
+import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
@@ -270,8 +271,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # concat speaker embedding
         if self.spk_embed_dim is not None:
-            spembs = torch.nn.functional.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+            spembs_ = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs_], dim=-1))
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(ilens).to(xs.device)
