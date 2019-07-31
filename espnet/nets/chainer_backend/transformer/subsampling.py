@@ -13,8 +13,17 @@ import numpy as np
 
 
 class Conv2dSubsampling(chainer.Chain):
+    """Convolutional 2D subsampling (to 1/4 length).
+
+    :param int idim: input dim
+    :param int odim: output dim
+    :param flaot dropout_rate: dropout rate
+
+    """
+
     def __init__(self, channels, idim, dims, dropout=0.1,
                  initialW=None, initial_bias=None):
+        """Initialize Conv2dSubsampling."""
         super(Conv2dSubsampling, self).__init__()
         n = 1 * 3 * 3
         stvd = 1. / np.sqrt(n)
@@ -37,6 +46,12 @@ class Conv2dSubsampling(chainer.Chain):
             self.pe = PositionalEncoding(dims, dropout)
 
     def __call__(self, xs, ilens):
+        """Subsample x.
+
+        :param chainer.Variable x: input tensor
+        :return: subsampled x and mask
+
+        """
         xs = F.expand_dims(xs, axis=1).data
         xs = F.relu(self['conv.{}'.format(0)](xs))
         xs = F.relu(self['conv.{}'.format(2)](xs))
@@ -50,8 +65,17 @@ class Conv2dSubsampling(chainer.Chain):
 
 
 class LinearSampling(chainer.Chain):
+    """Linear 1D subsampling.
+
+    :param int idim: input dim
+    :param int odim: output dim
+    :param flaot dropout_rate: dropout rate
+
+    """
+
     def __init__(self, idim, dims, dropout=0.1,
                  initialW=None, initial_bias=None):
+        """Initialize LinearSampling."""
         super(LinearSampling, self).__init__()
         stvd = 1. / np.sqrt(dims)
         self.dropout = dropout
@@ -61,6 +85,12 @@ class LinearSampling(chainer.Chain):
             self.pe = PositionalEncoding(dims, dropout)
 
     def __call__(self, xs, ilens):
+        """Subsample x.
+
+        :param chainer.Variable x: input tensor
+        :return: subsampled x and mask
+
+        """
         logging.info(xs.shape)
         xs = self.linear(xs, n_batch_axes=2)
         logging.info(xs.shape)
