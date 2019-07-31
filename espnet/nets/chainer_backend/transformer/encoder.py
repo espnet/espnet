@@ -27,6 +27,15 @@ class Encoder(chainer.Chain):
     """
 
     def __init__(self, idim, args, initialW=None, initial_bias=None):
+        """Initialize Encoder.
+
+        Args:
+            idim (int): Input dimension.
+            args (Namespace): Training config.
+            initialW (int, optional):  Initializer to initialize the weight.
+            initial_bias (bool, optional): Initializer to initialize the bias.
+
+        """
         super(Encoder, self).__init__()
         initialW = chainer.initializers.Uniform if initialW is None else initialW
         initial_bias = chainer.initializers.Uniform if initial_bias is None else initial_bias
@@ -51,7 +60,7 @@ class Encoder(chainer.Chain):
         self.n_layers = args.elayers
 
     def __call__(self, e, ilens):
-        """Computing Encoder layer.
+        """Compute Encoder layer.
 
         Args:
             e (chainer.Variable): Batch of padded charactor. (B, Tmax)
@@ -61,8 +70,8 @@ class Encoder(chainer.Chain):
             chainer.Variable: Computed variable of encoder.
             numpy.array: Mask.
             chainer.Variable: Batch of lengths of each encoder outputs.
-        """
 
+        """
         e, ilens = self.input_layer(e, ilens)
         batch, length, dims = e.shape
         x_mask = np.ones([batch, length])
