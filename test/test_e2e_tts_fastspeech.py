@@ -48,6 +48,7 @@ def prepare_inputs(idim, odim, ilens, olens,
 def make_transformer_args(**kwargs):
     defaults = dict(
         embed_dim=0,
+        spk_embed_dim=None,
         eprenet_conv_layers=0,
         eprenet_conv_filts=0,
         eprenet_conv_chans=0,
