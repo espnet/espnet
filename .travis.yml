@@ -16,6 +16,7 @@ addons:
       - python3-dev
       - g++-7
       - pandoc
+      - ffmpeg
 
 env:
   - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
