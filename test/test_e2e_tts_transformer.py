@@ -178,9 +178,10 @@ def test_transformer_trainable_and_decodable(model_dict):
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
     ])
-def test_transformer_gpu_trainable(model_dict):
+def test_transformer_gpu_trainable_and_decodable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
+    inference_args = make_inference_args()
 
     idim = 5
     odim = 10
@@ -204,6 +205,16 @@ def test_transformer_gpu_trainable(model_dict):
     if model.use_scaled_pos_enc:
         assert model.encoder.embed[1].alpha.grad is not None
         assert model.decoder.embed[1].alpha.grad is not None
+
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb=spemb)
+        model.calculate_all_attentions(**batch)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")

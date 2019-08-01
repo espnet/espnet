@@ -159,7 +159,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --unk_id=0 \
             --user_defined_symbols="[laughter],[noise],[vocalized-noise]"
 
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' > ${dict}
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"

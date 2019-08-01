@@ -322,7 +322,13 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
+    # TODO(hirofumi0810) better to simplify the E2E model interface by only allowing idim, odim, and args
+    # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
+    # to attach these models
+    if asr_model is None and mt_model is None:
+        model = model_class(idim, odim, args)
+    else:
+        model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
