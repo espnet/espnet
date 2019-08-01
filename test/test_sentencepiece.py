@@ -18,8 +18,10 @@ def test_spm_compatibility():
 
     # test train
     spm.SentencePieceTrainer.Train(
-        f"--input={testfile} --vocab_size={nbpe} --model_type={bpemode} \
-          --model_prefix={bpemodel} --input_sentence_size=100000000")
+        f'--input={testfile} --vocab_size={nbpe} --model_type={bpemode} \
+          --model_prefix={bpemodel} --input_sentence_size=100000000 \
+          --character_coverage=1.0 --bos_id=-1 --eos_id=-1 \
+          --unk_id=0 --user_defined_symbols=[laughter],[noise],[vocalized-noise]')
     with open(f"{bpemodel}.vocab", "r") as fa, \
             open(root + "/tedlium2.vocab", "r") as fb:
         for a, b in zip(fa, fb):
