@@ -88,12 +88,6 @@ if [ -z $models ]; then
     fi
 fi
 
-# Check jq is installed
-if ! [ -x "$(command -v jq)" ]; then
-    echo 'Error: jq is not installed.' >&2
-    exit 1
-fi
-
 dir=${download_dir}/${models}
 mkdir -p ${dir}
 
@@ -216,7 +210,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${recog_opts}
 
     echo ""
-    recog_text=$(cat ${decode_dir}/result.json | jq ".utts.\"${base}\".output[].rec_text" | sed -e 's/"\(.*\)<eos>.*/\1/')
+    recog_text=$(grep rec_text ${decode_dir}/result.json | sed -e 's/.*: "\(.*\)".*/\1/' | sed -e 's/<eos>//')	
     echo "Recognized text: ${recog_text}"
     echo ""
     echo "Finished"
