@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import time
 
 import chainer
 import kaldiio
@@ -514,7 +515,10 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, probs, att_ws = model.inference(x, args, spemb)
+            start_time = time.time()
+            outs, probs, att_ws = model.inference(x, args, spemb=spemb)
+            logging.info("inference speed = %s msec / frame." % (
+                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
