@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegula
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-def prepare_inputs(idim, odim, ilens, olens,
+def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
                    device=torch.device('cpu')):
     ilens = torch.LongTensor(ilens).to(device)
     olens = torch.LongTensor(olens).to(device)
@@ -33,7 +33,6 @@ def prepare_inputs(idim, odim, ilens, olens,
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
-
     batch = {
         "xs": xs,
         "ilens": ilens,
@@ -41,6 +40,9 @@ def prepare_inputs(idim, odim, ilens, olens,
         "labels": labels,
         "olens": olens,
     }
+
+    if spk_embed_dim is not None:
+        batch["spembs"] = torch.FloatTensor(np.random.randn(len(ilens), spk_embed_dim)).to(device)
 
     return batch
 
@@ -98,6 +100,7 @@ def make_transformer_args(**kwargs):
 
 def make_feedforward_transformer_args(**kwargs):
     defaults = dict(
+        spk_embed_dim=None,
         adim=32,
         aheads=4,
         elayers=2,
@@ -138,6 +141,7 @@ def make_feedforward_transformer_args(**kwargs):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"spk_embed_dim": 128}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
@@ -157,7 +161,7 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     # setup batch
     ilens = [10, 5]
     olens = [20, 15]
-    batch = prepare_inputs(idim, odim, ilens, olens)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"])
 
     # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
@@ -181,7 +185,11 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        model.inference(batch["xs"][0][:batch["ilens"][0]])
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], spemb=spemb)
         model.calculate_all_attentions(**batch)
 
     # remove tmpdir
@@ -193,6 +201,7 @@ def test_fastspeech_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"spk_embed_dim": 128}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"encoder_normalize_before": False}),
@@ -212,7 +221,7 @@ def test_fastspeech_gpu_trainable(model_dict):
     ilens = [10, 5]
     olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
@@ -243,6 +252,7 @@ def test_fastspeech_gpu_trainable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"spk_embed_dim": 128}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"encoder_normalize_before": False}),
@@ -262,7 +272,7 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
     ilens = [10, 5]
     olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define teacher model and save it
     teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
