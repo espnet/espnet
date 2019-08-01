@@ -16,4 +16,3 @@ git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 [ ! -e ubuntu16-featbin.tar.gz ] && wget https://18-198329952-gh.circle-artifacts.com/0/home/circleci/repo/ubuntu16-featbin.tar.gz
 tar -xf ./ubuntu16-featbin.tar.gz
 cp featbin/* tools/kaldi/src/featbin/
-
