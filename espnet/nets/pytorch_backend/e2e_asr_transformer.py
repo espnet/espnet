@@ -64,7 +64,7 @@ class E2E(ASRInterface, torch.nn.Module):
     def attention_plot_class(self):
         return PlotAttentionReport
 
-    def __init__(self, idim, odim, args, ignore_id=-1):
+    def __init__(self, idim, odim, args, asr_model=None, mt_model=None, ignore_id=-1):
         torch.nn.Module.__init__(self)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
