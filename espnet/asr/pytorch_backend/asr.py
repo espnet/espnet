@@ -326,9 +326,9 @@ def train(args):
     # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
     # to attach these models
     if asr_model == None and mt_model == None:
-        model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
-    else:
         model = model_class(idim, odim, args)
+    else:
+        model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
