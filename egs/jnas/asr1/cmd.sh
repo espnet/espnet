@@ -6,7 +6,7 @@
 # Options:
 #   --time <time>: Limit the maximum time to execute.
 #   --mem <mem>: Limit the maximum memory usage.
-#   -窶杜ax-jobs-run <njob>: Limit the number parallel jobs. This is ignored for non-array jobs.
+#   -–max-jobs-run <njob>: Limit the number parallel jobs. This is ignored for non-array jobs.
 #   --num-threads <ngpu>: Specify the number of CPU core.
 #   --gpu <ngpu>: Specify the number of GPU devices.
 #   --config: Change the configuration file from default.
@@ -80,7 +80,7 @@ elif [ "${cmd_backend}" = ssh ]; then
 elif [ "${cmd_backend}" = jhu ]; then
 
     export train_cmd="queue.pl --mem 2G"
-    export cuda_cmd="queue.pl --mem 2G --gpu 1 --config conf/gpu.conf"
+    export cuda_cmd="queue-freegpu.pl --mem 2G --gpu 1 --config conf/gpu.conf"
     export decode_cmd="queue.pl --mem 4G"
 
 else
