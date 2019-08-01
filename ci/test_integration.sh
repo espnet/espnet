@@ -14,5 +14,5 @@ fi
 tar -xf ./ubuntu16-featbin.tar.gz
 cp featbin/* tools/kaldi/src/featbin/
 
-cd ./egs/mini_an4/asr1
+cd ./egs/mini_an4/asr1 || exit 1
 ./run.sh
