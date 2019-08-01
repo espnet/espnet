@@ -65,7 +65,7 @@ class Decoder(chainer.Chain):
         return history_mask
 
     def forward(self, ys_pad, source, x_mask):
-        """forward decoder
+        """Forward decoder
 
         :param xp.array e: input token ids, int64 (batch, maxlen_out)
         :param xp.array yy_mask: input token mask, uint8  (batch, maxlen_out)
