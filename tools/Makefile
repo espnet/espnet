@@ -113,9 +113,7 @@ nkf.done:
 	touch nkf.done
 
 sentencepiece.done:
-	rm -rf sentencepiece
-	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
+	pip install https://github.com/google/sentencepiece/releases/download/v0.1.82/sentencepiece-0.1.82-cp37-cp37m-manylinux1_x86_64.whl
 	touch sentencepiece.done
 
 mecab.done: espnet.done
