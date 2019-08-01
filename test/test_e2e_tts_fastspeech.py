@@ -202,7 +202,7 @@ def test_fastspeech_trainable_and_decodable(model_dict):
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
     ])
-def test_fastspeech_gpu_trainable(model_dict):
+def test_fastspeech_gpu_trainable_and_decodable(model_dict):
     # make args
     idim, odim = 10, 25
     teacher_model_args = make_transformer_args(**model_dict)
@@ -233,6 +233,12 @@ def test_fastspeech_gpu_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        model.inference(batch["xs"][0][:batch["ilens"][0]])
+        model.calculate_all_attentions(**batch)
 
     # remove tmpdir
     if os.path.exists(tmpdir):
