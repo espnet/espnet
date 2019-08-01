@@ -269,16 +269,16 @@ class CustomConverter(object):
         pass
 
     def __call__(self, batch, device):
-        """Perform sabsampling.
+        """Perform subsampling.
 
         Args:
             batch (list): Batch that will be sabsampled.
-            device (device): GPU device.
+            device (chainer.backend.Device): CPU or GPU device.
 
         Returns:
-            chainer.Variable: xp.array that sabsampled from batch.
+            chainer.Variable: xp.array that are padded and subsampled from batch.
             xp.array: xp.array of the length of the mini-batches.
-            chainer.Variable: xp.array that sabsampled from batch.
+            chainer.Variable: xp.array that are padded and subsampled from batch.
 
         """
         # For transformer, data is processed in CPU.
