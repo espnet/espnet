@@ -90,12 +90,14 @@ class TEXT(TTSFrontend):
 
 def _maybe_get_arpabet(word, p, arpabet):
     try:
-        phonemes = arpabet[word][0]
+        phonemes = arpabet[word.lower()][0]
         phonemes = " ".join(phonemes)
     except KeyError:
         return word
 
     return '{%s}' % phonemes if random() < p else word
+
+# TODO: handle last word correctly
 
 
 def _mix_pronunciation(text, p, arpabet):
