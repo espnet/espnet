@@ -103,9 +103,6 @@ csjdir=../../csj
 libridir=../../librispeech
 babeldir=../../babel
 
-. ./path.sh || exit 1;
-. ./cmd.sh || exit 1;
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
