@@ -28,19 +28,20 @@ class DurationCalculator(torch.nn.Module):
         self.teacher_model = teacher_model
         self.register_buffer("diag_head_idx", torch.tensor(-1))
 
-    def forward(self, xs, ilens, ys, olens):
+    def forward(self, xs, ilens, ys, olens, spembs=None):
         """Calculate forward propagation.
 
         xs (Tensor): Batch of the padded sequences of character ids (B, Tmax).
         ilens (Tensor): Batch of lengths of each input sequence (B,).
         ys (Tensor): Batch of the padded sequence of target features (B, Lmax, odim).
         olens (Tensor): Batch of lengths of each output sequence (B,).
+        spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
 
         Returns:
             Tensor: Batch of durations (B, Tmax).
 
         """
-        att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens)
+        att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens, spembs=spembs)
         # TODO(kan-bayashi): fix this issue
         # this does not work in multi-gpu case. registered buffer is not saved.
         if int(self.diag_head_idx) == -1:
@@ -58,7 +59,7 @@ class DurationCalculator(torch.nn.Module):
         diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H * L,)
         self.register_buffer("diag_head_idx", diagonal_scores.argmax())
 
-    def _calculate_encoder_decoder_attentions(self, xs, ilens, ys, olens):
+    def _calculate_encoder_decoder_attentions(self, xs, ilens, ys, olens, spembs=None):
         att_dict = self.teacher_model.calculate_all_attentions(
-            xs, ilens, ys, olens, skip_output=True, keep_tensor=True)
+            xs, ilens, ys, olens, spembs=spembs, skip_output=True, keep_tensor=True)
         return torch.cat([att_dict[k] for k in att_dict.keys() if "src_attn" in k], dim=1)  # (B, H*L, Lmax, Tmax)
