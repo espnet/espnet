@@ -33,9 +33,10 @@ jobs:
           command: |
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
             ./ci/install.sh
-            ./ci/test_integration.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/install_kaldi.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
@@ -63,9 +64,10 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
             ./ci/install.sh
-            ./ci/test_integration.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/install_kaldi.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
@@ -98,10 +100,11 @@ jobs:
             # source scl_source enable devtoolset-7
             PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
             ./ci/install.sh
-            # TODO(karita) centos7 featbin binary
-            # ./ci/test_integration.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            # TODO(karita) centos7 featbin binary
+            # ./ci/install_kaldi.sh
+            # ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
@@ -127,9 +130,10 @@ jobs:
             apt-get update -qq
             apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc
             ./ci/install.sh
-            ./ci/test_integration.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/install_kaldi.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
