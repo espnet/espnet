@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import logging
+import numpy as np
 
 import chainer
 
@@ -8,8 +9,7 @@ import chainer.functions as F
 
 
 class LabelSmoothingLoss(chainer.Chain):
-
-    def __init__(self, smoothing, n_target_vocab, normalize_length=False):
+    def __init__(self, smoothing, n_target_vocab, normalize_length=False, ignore_id=-1):
         super(LabelSmoothingLoss, self).__init__()
         self.use_label_smoothing = False
         if smoothing > 0.0:
@@ -19,9 +19,17 @@ class LabelSmoothingLoss(chainer.Chain):
             self.use_label_smoothing = True
             self.n_target_vocab = n_target_vocab
         self.normalize_length = normalize_length
+        self.ignore_id = ignore_id
 
-    def forward(self, concat_logit_block, t_block, batch, length):
+    def forward(self, ys_block, ys_pad, eos):
+        xp = self.xp
+        eos = np.array([eos], 'i')
+        ys_out = [np.concatenate([y, eos], axis=0) for y in ys_pad]
+        ys_out = F.pad_sequence(ys_out, padding=-1)
+        t_block = chainer.Variable(xp.array(ys_out.data))
         # Output (all together at once for efficiency)
+        batch, length, dims = ys_block.shape
+        concat_logit_block = ys_block.reshape(-1, dims)
         rebatch, _ = concat_logit_block.shape
         # Make target
         concat_t_block = t_block.reshape((rebatch)).data
@@ -44,4 +52,5 @@ class LabelSmoothingLoss(chainer.Chain):
             label_smoothing = F.sum(label_smoothing) / normalizer
             loss = self.confidence * loss + self.smoothing * label_smoothing
 
-        return loss
+        acc = F.accuracy(concat_logit_block, concat_t_block, ignore_label=self.ignore_id)
+        return loss, acc
