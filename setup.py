@@ -47,6 +47,7 @@ requirements = {
         'PyYAML',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
+        'sentencepiece>=0.1.82'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
