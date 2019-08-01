@@ -136,20 +136,6 @@ class E2E(ASRInterface, chainer.Chain):
             self.initialW = chainer.initializers.Uniform
         self.initialB = chainer.initializers.Uniform
 
-    def make_attention_mask(self, source_block, target_block):
-        mask = (target_block[:, None, :] >= 0) * \
-            (source_block[:, :, None] >= 0)
-        # (batch, source_length, target_length)
-        return mask
-
-    def make_history_mask(self, block):
-        batch, length = block.shape
-        arange = self.xp.arange(length)
-        history_mask = (arange[None, ] <= arange[:, None])[None, ]
-        history_mask = self.xp.broadcast_to(
-            history_mask, (batch, length, length))
-        return history_mask
-
     def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         """E2E forward propagation.
 
@@ -167,79 +153,33 @@ class E2E(ASRInterface, chainer.Chain):
             chainer.Variable (Optional): Output of the encoder.
 
         """
-        xp = self.xp
-        with chainer.no_backprop_mode():
-            xs = xp.array(xs)
-            eos = np.array([self.eos], 'i')
-            sos = np.array([self.sos], 'i')
-            ys_out = [F.concat([y, eos], axis=0) for y in ys_pad]
-            ys = [F.concat([sos, y], axis=0) for y in ys_pad]
-            ys = F.pad_sequence(ys, padding=self.eos)
-            ys_out = F.pad_sequence(ys_out, padding=-1)
-        ys = xp.array(ys.data)
-        ys_out = chainer.Variable(xp.array(ys_out.data))
-        ys_pad_cpu = [y.astype(np.int32) for y in ys_pad]
+        alpha = self.mtlalpha
 
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        # Encode Sources
-        # xs: utt x frame x dim
-        logging.debug('Init size: ' + str(xs.shape))
-        logging.debug('Out size: ' + str(ys.shape))
-        # Dims along enconder and decoder: batchsize * length x dims
+        # 1. Encoder
         xs, x_mask, ilens = self.encoder(xs, ilens)
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(xp.array([y.shape[0] for y in ys_out])))
-        xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
-        yy_mask = self.make_attention_mask(ys, ys)
-        yy_mask *= self.make_history_mask(ys)
-        batch, length = ys.shape
-        ys = self.decoder(ys, yy_mask, xs, xy_mask)
-        if calculate_attentions:
-            return xs
 
-        # Compute Attention Loss
-        loss_att = self.criterion(ys, ys_out, batch, length)
-        acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
-
-        # Compute CTC Loss and CER CTC
+        # 2. CTC loss
         cer_ctc = None
-
-        if self.ctc is None:
+        if alpha == 0.0:
             loss_ctc = None
         else:
-            xs = xs.reshape(batch, -1, self.dims)
-            xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
-            loss_ctc = self.ctc(xs, ys_pad_cpu)
-            with chainer.no_backprop_mode():
-                ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
-            cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
+            # xs_nopad = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+            _ys = [y.astype(np.int32) for y in ys_pad]
+            loss_ctc = self.ctc(xs, _ys, ilens)
 
-        # Compute cer/wer
-        with chainer.no_backprop_mode():
-            y_hats = ys.reshape((batch, length, -1))
-            y_hats = chainer.backends.cuda.to_cpu(F.argmax(y_hats, axis=2).data)
+        # 3. Decoder
+        ys = self.decoder(ys_pad, xs, x_mask)
+        if calculate_attentions:
+            return
 
-        if chainer.config.train or self.error_calculator is None:
-            cer, wer = None, None
+        # 4. Attention Loss
+        cer, wer = None, None
+        if alpha == 1:
+            loss_att = None
+            acc = None
         else:
-            cer, wer = self.error_calculator(y_hats, ys_pad_cpu)
-
-        # Print Output
-        if chainer.config.train and (self.verbose > 0 and self.char_list is not None):
-            for i, y_hat in enumerate(y_hats):
-                y_true = chainer.backends.cuda.to_cpu(ys_pad[i].data)
-                if i == MAX_DECODER_OUTPUT:
-                    break
-                eos_true = np.where(y_true == -1)[0]
-                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
-                seq_true = [self.char_list[int(idx)] for idx in y_true[y_true != -1]]
-                seq_hat = "".join(seq_hat).replace(self.space, ' ')
-                seq_true = "".join(seq_true).replace(self.space, ' ')
-                logging.info("groundtruth[%d]: " % i + seq_true)
-                logging.info("prediction [%d]: " % i + seq_hat)
-
-        alpha = self.mtlalpha
+            loss_att, acc = self.criterion(ys, ys_pad, self.eos)
+        
         if alpha == 0.0:
             self.loss = loss_att
             loss_att_data = loss_att.data
