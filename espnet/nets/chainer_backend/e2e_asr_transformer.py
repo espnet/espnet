@@ -92,11 +92,13 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
                                                     args.report_cer, args.report_wer)
+        else:
+            self.error_calculator = None
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:
@@ -210,9 +212,10 @@ class E2E(ASRInterface, chainer.Chain):
             xs = xs.reshape(batch, -1, self.dims)
             xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
             loss_ctc = self.ctc(xs, ys_pad_cpu)
-            with chainer.no_backprop_mode():
-                ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
-            cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
+            if self.error_calculator is not None:
+                with chainer.no_backprop_mode():
+                    ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
+                cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
 
         # Compute cer/wer
         with chainer.no_backprop_mode():
