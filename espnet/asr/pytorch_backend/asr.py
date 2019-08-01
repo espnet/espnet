@@ -322,7 +322,7 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    # TODO better to simplify the E2E model interface by only allowing idim, odim, and args
+    # TODO(hirofumi0810) better to simplify the E2E model interface by only allowing idim, odim, and args
     # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
     # to attach these models
     if asr_model == None and mt_model == None:
