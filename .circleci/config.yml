@@ -35,6 +35,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
 
@@ -62,6 +63,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
 
@@ -94,6 +96,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
 
@@ -119,5 +122,6 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+            ./ci/test_integration.sh
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
