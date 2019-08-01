@@ -163,9 +163,8 @@ class E2E(ASRInterface, chainer.Chain):
         if alpha == 0.0:
             loss_ctc = None
         else:
-            # xs_nopad = [xs[i, :ilens[i], :] for i in range(len(ilens))]
             _ys = [y.astype(np.int32) for y in ys_pad]
-            loss_ctc = self.ctc(xs, _ys, ilens)
+            loss_ctc = self.ctc.forward_from_transformer(xs, _ys, ilens)
 
         # 3. Decoder
         ys = self.decoder(ys_pad, xs, x_mask)
@@ -304,11 +303,7 @@ class E2E(ASRInterface, chainer.Chain):
             hyps_best_kept = []
             for hyp in hyps:
                 ys = F.expand_dims(xp.array(hyp['yseq']), axis=0).data
-                yy_mask = self.make_attention_mask(ys, ys)
-                yy_mask *= self.make_history_mask(ys)
-
-                xy_mask = self.make_attention_mask(ys, h_mask)
-                out = self.decoder(ys, yy_mask, h, xy_mask).reshape(batch, -1, self.odim)
+                out = self.decoder(ys, h, h_mask)
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(out[:, -1], axis=-1).data

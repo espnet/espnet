@@ -90,6 +90,8 @@ class WarpCTC(chainer.Chain):
 
     def __init__(self, odim, eprojs, dropout_rate):
         super(WarpCTC, self).__init__()
+        from chainer_ctc.warpctc import ctc as warp_ctc
+        self.ctc = warp_ctc
         self.dropout_rate = dropout_rate
         self.loss = None
 
@@ -125,6 +127,35 @@ class WarpCTC(chainer.Chain):
         self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
         logging.info('ctc loss:' + str(self.loss.data))
 
+        return self.loss
+
+    def forward_from_transformer(self, hs, ys):
+        """Core function of the Warp-CTC layer.
+
+        Args:
+            hs (iterable of chainer.Variable | N-dimention array): Input variable from encoder.
+            ys (iterable of chainer.Variable | N-dimension array): Input variable of decoder.
+
+        Returns:
+           chainer.Variable: A variable holding a scalar value of the CTC loss.
+
+        """
+        self.loss = None
+        ilens = [hs.shape[1]] * hs.shape[0]
+        olens = [x.shape[0] for x in ys]
+
+        # zero padding for hs
+        # output batch x frames x hdim > frames x batch x hdim
+        y_hat = self.ctc_lo(F.dropout(
+            F.pad_sequence(hs), ratio=self.dropout_rate)).transpose(1, 0, 2)
+
+        # get length info
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
+
+        # get ctc loss
+        self.loss = self.ctc(y_hat, ilens, ys)[0]
+        logging.info('ctc loss:' + str(self.loss.data))
         return self.loss
 
     def log_softmax(self, hs):
