@@ -178,7 +178,7 @@ class E2E(ASRInterface, chainer.Chain):
             acc = None
         else:
             loss_att, acc = self.criterion(ys, ys_pad, self.eos)
-        
+
         if alpha == 0.0:
             self.loss = loss_att
             loss_att_data = loss_att.data
@@ -260,7 +260,6 @@ class E2E(ASRInterface, chainer.Chain):
         # initialization
         xp = self.xp
         h_mask = xp.ones((1, h.shape[0]))
-        batch = 1
 
         # search parms
         beam = recog_args.beam_size

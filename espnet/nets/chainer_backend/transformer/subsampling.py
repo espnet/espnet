@@ -32,7 +32,7 @@ class Conv2dSubsampling(chainer.Chain):
                                 initial_bias=initial_bias(scale=stvd))
             self.pe = PositionalEncoding(dims, dropout)
 
-    def __call__(self, xs, ilens):
+    def forward(self, xs, ilens):
         xs = F.expand_dims(self.xp.array(xs), axis=1).data
         xs = F.relu(self.conv1(xs))
         xs = F.relu(self.conv2(xs))
@@ -56,7 +56,7 @@ class LinearSampling(chainer.Chain):
                                    initial_bias=initial_bias(scale=stvd))
             self.pe = PositionalEncoding(dims, dropout)
 
-    def __call__(self, xs, ilens):
+    def forward(self, xs, ilens):
         logging.info(xs.shape)
         xs = self.linear(xs, n_batch_axes=2)
         logging.info(xs.shape)
