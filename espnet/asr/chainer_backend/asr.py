@@ -5,26 +5,18 @@
 
 from __future__ import division
 
-import collections
 import json
 import logging
-import math
 import os
 import six
 
 # chainer related
 import chainer
 
-from chainer import cuda
 from chainer import training
-from chainer import Variable
 
 from chainer.datasets import TransformDataset
-
 from chainer.training import extensions
-from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
-from chainer.training.updaters.multiprocess_parallel_updater import gather_params
-from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
@@ -50,7 +42,6 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
 import matplotlib
-import numpy as np
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
@@ -60,149 +51,12 @@ matplotlib.use('Agg')
 REPORT_INTERVAL = 100
 
 
-# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-def sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device_from_array(x) as dev:
-            if x is not None:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
-class CustomUpdater(training.StandardUpdater):
-    """Custom updater for chainer"""
-
-    def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
-        super(CustomUpdater, self).__init__(
-            train_iter, optimizer, converter=converter, device=device)
-        self.count = 0
-        self.accum_grad = accum_grad
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        self.count += 1
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-
-        # Get batch and convert into variables
-        batch = train_iter.next()
-        x = self.converter(batch, self.device)
-        if self.count == 1:
-            optimizer.target.cleargrads()
-
-        # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x) / self.accum_grad
-        loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
-        # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(sum_sqnorm(
-            [p.grad for p in optimizer.target.params(False)]))
-        logging.info('grad norm={}'.format(grad_norm))
-        if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
-            optimizer.target.cleargrads()  # Clear the parameter gradients
-        elif self.count % self.accum_grad == 0:
-            optimizer.update()
-            optimizer.target.cleargrads()  # Clear the parameter gradients
-
-
-class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
-    """Custom parallel updater for chainer"""
-
-    def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
-        super(CustomParallelUpdater, self).__init__(
-            train_iters, optimizer, converter=converter, devices=devices)
-        self.count = 0
-        self.accum_grad = accum_grad
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        self.count += 1
-        self.setup_workers()
-
-        self._send_message(('update', None))
-        with cuda.Device(self._devices[0]):
-            from cupy.cuda import nccl
-            # For reducing memory
-
-            optimizer = self.get_optimizer('main')
-            batch = self.get_iterator('main').next()
-            x = self.converter(batch, self._devices[0])
-
-            loss = self._master(*x) / self.accum_grad
-            loss.backward()
-            loss.unchain_backward()
-
-            # NCCL: reduce grads
-            null_stream = cuda.Stream.null
-            if self.comm is not None:
-                gg = gather_grads(self._master)
-                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 nccl.NCCL_FLOAT,
-                                 nccl.NCCL_SUM,
-                                 0, null_stream.ptr)
-                scatter_grads(self._master, gg)
-                del gg
-
-            # check gradient value
-            grad_norm = np.sqrt(sum_sqnorm(
-                [p.grad for p in optimizer.target.params(False)]))
-            logging.info('grad norm={}'.format(grad_norm))
-
-            # update
-            if math.isnan(grad_norm):
-                logging.warning('grad norm is nan. Do not update model.')
-            elif self.count % self.accum_grad == 0:
-                optimizer.update()
-                self._master.cleargrads()
-
-            if self.comm is not None:
-                gp = gather_params(self._master)
-                self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
-                                0, null_stream.ptr)
-
-
-class CustomConverter(object):
-    """Custom Converter
-
-    :param int subsampling_factor : The subsampling factor
-    """
-
-    def __init__(self, subsampling_factor=1):
-        self.subsampling_factor = subsampling_factor
-
-    def __call__(self, batch, device):
-        # set device
-        xp = cuda.cupy if device != -1 else np
-
-        # batch should be located in list
-        assert len(batch) == 1
-        xs, ys = batch[0]
-
-        # perform subsampling
-        if self.subsampling_factor > 1:
-            xs = [x[::self.subsampling_factor, :] for x in xs]
-
-        # get batch of lengths of input sequences
-        ilens = [x.shape[0] for x in xs]
-
-        # convert to Variable
-        xs = [Variable(xp.array(x, dtype=xp.float32)) for x in xs]
-        ilens = xp.array(ilens, dtype=xp.int32)
-        ys = [Variable(xp.array(y, dtype=xp.int32)) for y in ys]
-
-        return xs, ilens, ys
-
-
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
@@ -288,6 +142,16 @@ def train(args):
 
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
+
+    # Setup Training Extensions
+    if 'transformer' in args.model_module:
+        from espnet.nets.chainer_backend.transformer.training import CustomConverter
+        from espnet.nets.chainer_backend.transformer.training import CustomParallelUpdater
+        from espnet.nets.chainer_backend.transformer.training import CustomUpdater
+    else:
+        from espnet.nets.chainer_backend.rnn.training import CustomConverter
+        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+        from espnet.nets.chainer_backend.rnn.training import CustomUpdater
 
     # Setup a converter
     converter = CustomConverter(subsampling_factor=model.subsample[0])
@@ -382,7 +246,7 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
-        from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
+        from espnet.nets.chainer_backend.transformer.training import VaswaniRule
         trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
                                    scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
@@ -496,9 +360,11 @@ def train(args):
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)

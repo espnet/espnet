@@ -15,10 +15,6 @@ from espnet.nets.e2e_asr_common import end_detect
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
-from espnet.nets.pytorch_backend.nets_utils import append_ids
-from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
-from espnet.nets.pytorch_backend.nets_utils import index_select_list
-from espnet.nets.pytorch_backend.nets_utils import index_select_lm_state
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -46,11 +42,13 @@ class Decoder(torch.nn.Module):
     :param float sampling_probability: scheduled sampling probability
     :param float dropout: dropout rate
     :param float context_residual: if True, use context vector for token generation
+    :param float replace_sos: use for multilingual (speech/text) translation
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0, context_residual=False):
+                 dropout=0.0, context_residual=False, replace_sos=False):
+
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -73,6 +71,7 @@ class Decoder(torch.nn.Module):
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
+
         if context_residual:
             self.output = torch.nn.Linear(dunits + eprojs, odim)
         else:
@@ -93,6 +92,9 @@ class Decoder(torch.nn.Module):
         self.sampling_probability = sampling_probability
         self.dropout = dropout
 
+        # for multilingual translation
+        self.replace_sos = replace_sos
+
         self.logzero = -10000000000.0
 
     def zero_state(self, hs_pad):
@@ -110,13 +112,14 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, tgt_lang_ids=None):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :param int strm_idx: stream index indicates the index of decoding stream.
+        :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -135,7 +138,10 @@ class Decoder(torch.nn.Module):
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
-        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        if self.replace_sos:
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
+        else:
+            ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
         # padding for ys with -1
@@ -194,6 +200,9 @@ class Decoder(torch.nn.Module):
         acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
 
+        # compute perplexity
+        ppl = np.exp(self.loss.item() * np.mean([len(x) for x in ys_in]) / np.sum([len(x) for x in ys_in]))
+
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             ys_hat = y_all.view(batch, olength, -1)
@@ -217,7 +226,7 @@ class Decoder(torch.nn.Module):
             loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc
+        return self.loss, acc, ppl
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None, strm_idx=0):
         """beam search implementation
@@ -248,7 +257,12 @@ class Decoder(torch.nn.Module):
         ctc_weight = recog_args.ctc_weight
 
         # preprate sos
-        y = self.sos
+        if self.replace_sos and recog_args.tgt_lang:
+            y = char_list.index(recog_args.tgt_lang)
+        else:
+            y = self.sos
+        logging.info('<sos> index: ' + str(y))
+        logging.info('<sos> mark: ' + char_list[y])
         vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
@@ -404,7 +418,7 @@ class Decoder(torch.nn.Module):
         return nbest_hyps
 
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
-                             normalize_score=True, strm_idx=0):
+                             normalize_score=True, strm_idx=0, tgt_lang_ids=None):
         logging.info('input lengths: ' + str(h.size(1)))
         att_idx = min(strm_idx, len(self.att) - 1)
         h = mask_by_length(h, hlens, 0.0)
@@ -444,7 +458,17 @@ class Decoder(torch.nn.Module):
 
         self.att[att_idx].reset()  # reset pre-computation of h
 
-        yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+        if self.replace_sos and recog_args.tgt_lang:
+            logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
+            logging.info('<sos> mark: ' + recog_args.tgt_lang)
+            yseq = [[char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)]
+        elif tgt_lang_ids is not None:
+            # NOTE: used for evaluation during training
+            yseq = [[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
+        else:
+            logging.info('<sos> index: ' + str(self.sos))
+            logging.info('<sos> mark: ' + char_list[self.sos])
+            yseq = [[self.sos] for _ in six.moves.range(n_bb)]
         accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
@@ -464,7 +488,7 @@ class Decoder(torch.nn.Module):
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
+            vy = to_device(self, torch.LongTensor(self._get_last_yseq(yseq)))
             ey = self.dropout_emb(self.embed(vy))
             att_c, att_w = self.att[att_idx](exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
             ey = torch.cat((ey, att_c), dim=1)
@@ -523,8 +547,8 @@ class Decoder(torch.nn.Module):
             accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
-            yseq = index_select_list(yseq, accum_padded_beam_ids)
-            yseq = append_ids(yseq, accum_odim_ids)
+            yseq = self._index_select_list(yseq, accum_padded_beam_ids)
+            yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
@@ -543,7 +567,7 @@ class Decoder(torch.nn.Module):
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
             if rnnlm:
-                rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
+                rnnlm_prev = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
                 ctc_vidx = to_device(self, torch.LongTensor(accum_padded_odim_ids))
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
@@ -593,17 +617,18 @@ class Decoder(torch.nn.Module):
 
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, tgt_lang_ids=None):
         """Calculate all of attentions
 
-        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
-        :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
-        :rtype: float ndarray
+            :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
+            :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
+            :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+            :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
+            :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
+            :return: attention weights with the following shape,
+                1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                2) other case => attention weights (B, Lmax, Tmax).
+            :rtype: float ndarray
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
@@ -616,7 +641,10 @@ class Decoder(torch.nn.Module):
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
-        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        if self.replace_sos:
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
+        else:
+            ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
         # padding for ys with -1
@@ -651,9 +679,45 @@ class Decoder(torch.nn.Module):
         att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
 
+    @staticmethod
+    def _get_last_yseq(exp_yseq):
+        last = []
+        for y_seq in exp_yseq:
+            last.append(y_seq[-1])
+        return last
+
+    @staticmethod
+    def _append_ids(yseq, ids):
+        if isinstance(ids, list):
+            for i, j in enumerate(ids):
+                yseq[i].append(j)
+        else:
+            for i in range(len(yseq)):
+                yseq[i].append(ids)
+        return yseq
+
+    @staticmethod
+    def _index_select_list(yseq, lst):
+        new_yseq = []
+        for l in lst:
+            new_yseq.append(yseq[l][:])
+        return new_yseq
+
+    @staticmethod
+    def _index_select_lm_state(rnnlm_state, dim, vidx):
+        if isinstance(rnnlm_state, dict):
+            new_state = {}
+            for k, v in rnnlm_state.items():
+                new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+        elif isinstance(rnnlm_state, list):
+            new_state = []
+            for i in vidx:
+                new_state.append(rnnlm_state[int(i)][:])
+        return new_state
+
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual)
+                   args.context_residual, args.replace_sos)

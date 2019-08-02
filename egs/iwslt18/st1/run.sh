@@ -3,8 +3,8 @@
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch # chainer or pytorch
@@ -40,15 +40,12 @@ case=lc
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 st_ted=/export/b08/inaguma/IWSLT
-# st_ted=/n/sd3/inaguma/corpus/iwslt18/data
+# st_ted=/n/rd11/corpora_8/iwslt18
 
 # exp tag
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -288,7 +285,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.${case}.json \
-        --valid-json ${feat_dt_dir}/data.${case}.json
+        --valid-json ${feat_dt_dir}/data.${case}.json \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
