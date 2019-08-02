@@ -92,11 +92,13 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
                                                     args.report_cer, args.report_wer)
+        else:
+            self.error_calculator = None
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:

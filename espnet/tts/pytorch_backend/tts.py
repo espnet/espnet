@@ -24,7 +24,7 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -316,7 +316,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': True}  # Switch the mode of preprocessing
+        preprocess_args={'train': True},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     load_cv = LoadInputsAndTargets(
@@ -324,7 +325,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        preprocess_args={'train': False},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     # hack to make batchsize argument as 1
