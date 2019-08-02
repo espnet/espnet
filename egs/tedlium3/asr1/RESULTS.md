@@ -19,6 +19,13 @@ exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/dec
 |     Sum/Avg                    |     1155           27500      |     92.8             3.6             3.6             0.8             8.0            67.4      |
 ```
 
+## NOTE: contribution on WER
+
+| system                     |   dev WER |   test WER |
+| :------                    | --------: | ---------: |
+| baseline (large model, sp) |      13.4 |       10.0 |
+| w/ specaug                 |      11.4 |        8.6 |
+| w/ specaug + large LM      |       9.7 |        8.0 |
 
 # VGGBLSTMP(elayers=4, eunits=1024) + joint ctc decoding + lm rescoring
 - Environments (obtained by `$ get_sys_info.sh`)
