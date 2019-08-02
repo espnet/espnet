@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import time
 
 import chainer
 import kaldiio
@@ -315,7 +316,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': True}  # Switch the mode of preprocessing
+        preprocess_args={'train': True},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     load_cv = LoadInputsAndTargets(
@@ -323,7 +325,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        preprocess_args={'train': False},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     # hack to make batchsize argument as 1
@@ -465,6 +468,40 @@ def decode(args):
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
 
+    # define function for plot prob and att_ws
+    def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
+        import matplotlib.pyplot as plt
+        shape = array.shape
+        if len(shape) == 1:
+            # for eos probability
+            plt.figure(figsize=figsize, dpi=dpi)
+            plt.plot(array)
+            plt.xlabel("Frame")
+            plt.ylabel("Probability")
+            plt.ylim([0, 1])
+        elif len(shape) == 2:
+            # for tacotron 2 attention weights, whose shape is (out_length, in_length)
+            plt.figure(figsize=figsize, dpi=dpi)
+            plt.imshow(array, aspect="auto")
+            plt.xlabel("Input")
+            plt.ylabel("Output")
+        elif len(shape) == 4:
+            # for transformer attention weights, whose shape is (#leyers, #heads, out_length, in_length)
+            plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
+            for idx1, xs in enumerate(array):
+                for idx2, x in enumerate(xs, 1):
+                    plt.subplot(shape[0], shape[1], idx1 * shape[1] + idx2)
+                    plt.imshow(x, aspect="auto")
+                    plt.xlabel("Input")
+                    plt.ylabel("Output")
+        else:
+            raise NotImplementedError("Support only from 1D to 4D array.")
+        plt.tight_layout()
+        if not os.path.exists(os.path.dirname(figname)):
+            os.makedirs(os.path.dirname(figname))
+        plt.savefig(figname)
+        plt.clf()
+
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
 
@@ -480,9 +517,18 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs = model.inference(x, args, spemb)[0]
+            start_time = time.time()
+            outs, probs, att_ws = model.inference(x, args, spemb=spemb)
+            logging.info("inference speed = %s msec / frame." % (
+                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
             f[utt_id] = outs.cpu().numpy()
+
+            # plot prob and att_ws
+            if probs is not None:
+                _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
+            if att_ws is not None:
+                _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)

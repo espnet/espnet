@@ -24,7 +24,7 @@ set -euo pipefail
 ./doc/argparse2rst.py ./espnet/bin/*.py > ./doc/_gen/espnet_bin.rst
 
 
-find ./utils/*.sh -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
+find ./utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
 
 # generate package doc
 ./doc/module2rst.py espnet ./doc --exclude espnet.bin

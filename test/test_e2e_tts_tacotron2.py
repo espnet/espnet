@@ -173,7 +173,7 @@ def test_tacotron2_trainable_and_decodable(model_dict):
         ({"reduction_factor": 3}),
         ({"use_guided_attn_loss": True}),
     ])
-def test_tacotron2_gpu_trainable(model_dict):
+def test_tacotron2_gpu_trainable_and_decodable(model_dict):
     bs = 2
     maxin_len = 10
     maxout_len = 10
@@ -181,6 +181,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     odim = 10
     device = torch.device('cuda')
     model_args = make_taco2_args(**model_dict)
+    inference_args = make_inference_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'],
                            device=device)
@@ -195,6 +196,13 @@ def test_tacotron2_gpu_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        spemb = None if model_args['spk_embed_dim'] is None else batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb)
+        model.calculate_all_attentions(**batch)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")

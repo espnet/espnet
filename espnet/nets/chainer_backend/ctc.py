@@ -11,6 +11,15 @@ from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 
 class CTC(chainer.Chain):
+    """Chainer implementation of ctc layer.
+
+    Args:
+        odim (int): The output dimension.
+        eprojs (int | None): Dimension of input vectors from encoder.
+        dropout_rate (float): Dropout rate.
+
+    """
+
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
@@ -20,11 +29,15 @@ class CTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        """CTC forward
+        """CTC forward.
 
-        :param hs:
-        :param ys:
-        :return:
+        Args:
+            hs (list of chainer.Variable | N-dimension array): Input variable from encoder.
+            ys (list of chainer.Variable | N-dimension array): Input variable of decoder.
+
+        Returns:
+            chainer.Variable: A variable holding a scalar value of the CTC loss.
+
         """
         self.loss = None
         ilens = [x.shape[0] for x in hs]
@@ -52,16 +65,29 @@ class CTC(chainer.Chain):
         return self.loss
 
     def log_softmax(self, hs):
-        """log_softmax of frame activations
+        """Log_softmax of frame activations.
 
-        :param hs:
-        :return:
+        Args:
+            hs (list of chainer.Variable | N-dimension array): Input variable from encoder.
+
+        Returns:
+            chainer.Variable: A n-dimension float array.
+
         """
         y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
 class WarpCTC(chainer.Chain):
+    """Chainer implementation of warp-ctc layer.
+
+    Args:
+        odim (int): The output dimension.
+        eproj (int | None): Dimension of input vector from encoder.
+        dropout_rate (float): Dropout rate.
+
+    """
+
     def __init__(self, odim, eprojs, dropout_rate):
         super(WarpCTC, self).__init__()
         self.dropout_rate = dropout_rate
@@ -71,11 +97,15 @@ class WarpCTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        """CTC forward
+        """Core function of the Warp-CTC layer.
 
-        :param hs:
-        :param ys:
-        :return:
+        Args:
+            hs (iterable of chainer.Variable | N-dimention array): Input variable from encoder.
+            ys (iterable of chainer.Variable | N-dimension array): Input variable of decoder.
+
+        Returns:
+           chainer.Variable: A variable holding a scalar value of the CTC loss.
+
         """
         self.loss = None
         ilens = [x.shape[0] for x in hs]
@@ -98,21 +128,38 @@ class WarpCTC(chainer.Chain):
         return self.loss
 
     def log_softmax(self, hs):
-        """log_softmax of frame activations
+        """Log_softmax of frame activations.
 
-        :param hs:
-        :return:
+        Args:
+            hs (list of chainer.Variable | N-dimension array): Input variable from encoder.
+
+        Returns:
+            chainer.Variable: A n-dimension float array.
+
         """
         y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
+    def argmax(self, hs_pad):
+        """argmax of frame activations
+
+        :param chainer variable hs_pad: 3d tensor (B, Tmax, eprojs)
+        :return: argmax applied 2d tensor (B, Tmax)
+        :rtype: chainer.Variable
+        """
+        return F.argmax(self.ctc_lo(F.pad_sequence(hs_pad), n_batch_axes=2), axis=-1)
+
 
 def ctc_for(args, odim):
-    """Return the CTC corresponding to the args
+    """Return the CTC layer corresponding to the args.
 
-    :param Namespace args: The program arguments
-    :param int odim: The output dimension
-    :return: The CTC module
+    Args:
+        args (Namespace): The program arguments.
+        odim (int): The output dimension.
+
+    Returns:
+        The CTC module.
+
     """
     ctc_type = args.ctc_type
     if ctc_type == 'builtin':
