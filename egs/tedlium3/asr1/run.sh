@@ -155,6 +155,41 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+if [ -z ${lmtag} ]; then
+    lmtag=$(basename ${lm_config%.*})
+fi
+lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpdir=exp/${lmexpname}
+mkdir -p ${lmexpdir}
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
+    [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
+    gunzip -c db/TEDLIUM_release-3/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
+	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+	> ${lmdatadir}/valid.txt
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+    fi
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+        lm_train.py \
+        --config ${lm_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --resume ${lm_resume} \
+        --dict ${dict}
+fi
+
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_nbpe${nbpe}_ngpu${ngpu}_$(basename ${train_config%.*})_$(basename ${preprocess_config%.*})
     if ${do_delta}; then
@@ -165,7 +200,6 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
