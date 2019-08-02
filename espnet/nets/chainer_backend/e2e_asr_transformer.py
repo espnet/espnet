@@ -167,6 +167,10 @@ class E2E(ASRInterface, chainer.Chain):
         else:
             _ys = [y.astype(np.int32) for y in ys_pad]
             loss_ctc = self.ctc.forward_from_transformer(xs, _ys, ilens)
+            if self.error_calculator is not None:
+                with chainer.no_backprop_mode():
+                    ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
+                cer_ctc = self.error_calculator(ys_hat, ys_pad, is_ctc=True)
 
         # 3. Decoder
         ys = self.decoder(ys_pad, xs, x_mask)
@@ -180,6 +184,8 @@ class E2E(ASRInterface, chainer.Chain):
             acc = None
         else:
             loss_att, acc = self.criterion(ys, ys_pad, self.eos)
+            if (not chainer.config.train) and (self.error_calculator is not None):
+                cer, wer = self.error_calculator(ys, ys_pad_cpu)
 
         if alpha == 0.0:
             self.loss = loss_att
