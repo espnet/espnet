@@ -6,9 +6,7 @@
 . ./path.sh
 
 # Config:
-print_clean=false
-print_nf=false
-print_2ch=false
+print_pipeline=false
 
 . utils/parse_options.sh || exit 1;
 
@@ -23,28 +21,14 @@ dict=$2
 expdir=$3
 decode_part_dir=$4
 
-if $print_clean; then
-    echo "RESULTS - Cln"
-    local/score_for_reverb_cln.sh --wer true --nlsyms ${nlsyms} \
-        		      "${expdir}/decode_*_cln_${decode_part_dir}/data.json" \
-        		      ${dict} ${expdir}/decode_summary_cln_${decode_part_dir}
-    echo ""
-fi
-if $print_nf; then
-    echo "RESULTS - 1ch - No Front End"
+if $print_pipeline; then
+    echo "RESULTS - 8ch - Pipeline - WPE + BeamformIt"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-        		      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
-        		      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
-    echo ""
+		      "${expdir}/decode_*_8ch_wpe_beamformit_${decode_part_dir}/data.json" \
+		      ${dict} ${expdir}/decode_summary_8ch_pipeline_${decode_part_dir}
 fi
-if $print_2ch; then
-    echo "RESULTS - 2ch - WPE+BeamformIt"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-        		      "${expdir}/decode_*_2ch_beamformit_${decode_part_dir}/data.json" \
-        		      ${dict} ${expdir}/decode_summary_2ch_beamformit_${decode_part_dir}
-    echo ""
-fi
-echo "RESULTS - 8ch - WPE+BeamformIt"
+
+echo "RESULTS - 8ch - WPE + MVDR"
 local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 		      "${expdir}/decode_*_8ch_multich_${decode_part_dir}/data.json" \
 		      ${dict} ${expdir}/decode_summary_8ch_multich_${decode_part_dir}
