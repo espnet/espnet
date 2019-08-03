@@ -151,6 +151,8 @@ def make_feedforward_transformer_args(**kwargs):
         ({"encoder_concat_after": True}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True}),
+        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
     ])
 def test_fastspeech_trainable_and_decodable(model_dict):
     # make args
@@ -210,6 +212,8 @@ def test_fastspeech_trainable_and_decodable(model_dict):
         ({"encoder_concat_after": True}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True}),
+        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
     ])
 def test_fastspeech_gpu_trainable_and_decodable(model_dict):
     # make args
@@ -271,6 +275,8 @@ def test_fastspeech_gpu_trainable_and_decodable(model_dict):
         ({"encoder_concat_after": True}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True}),
+        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
     ])
 def test_fastspeech_multi_gpu_trainable(model_dict):
     # make args
@@ -314,15 +320,15 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
 
 @pytest.mark.parametrize(
     "model_dict", [
-        ({}),
-        ({"use_scaled_pos_enc": False}),
-        ({"init_encoder_module": "embed"}),
-        ({"encoder_normalize_before": False}),
-        ({"decoder_normalize_before": False}),
-        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"encoder_concat_after": True}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True}),
+        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ({"transfer_encoder_from_teacher": True, "use_scaled_pos_enc": False}),
+        ({"transfer_encoder_from_teacher": True, "encoder_normalize_before": False}),
+        ({"transfer_encoder_from_teacher": True, "decoder_normalize_before": False}),
+        ({"transfer_encoder_from_teacher": True, "encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"transfer_encoder_from_teacher": True, "encoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True, "decoder_concat_after": True}),
+        ({"transfer_encoder_from_teacher": True, "encoder_concat_after": True, "decoder_concat_after": True}),
     ])
 def test_initialization(model_dict):
     # make args
@@ -340,7 +346,6 @@ def test_initialization(model_dict):
 
     # define model
     model_args["teacher_model"] = tmpdir + "/model.dummy.best"
-    model_args["transfer_encoder_from_teacher"] = True
     model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
 
     # check initialization
