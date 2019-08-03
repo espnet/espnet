@@ -133,54 +133,79 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
 
 
 @pytest.mark.parametrize(
-    "module, etype, atype, dtype", [
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', 'location', 'lstm'),  # Test Chainer Attentions
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', 'noatt', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', 'dot', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'grup', 'location', 'lstm'),  # Test Chainer Encoder
-        ('espnet.nets.chainer_backend.e2e_asr', 'lstmp', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'bgrup', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'bgru', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vgggru', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggbgrup', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vgglstm', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vgglstmp', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggbgru', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggbgrup', 'location', 'lstm'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', 'location', 'gru'),  # Test Chainer Decoder
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'noatt', 'lstm'),  # Test Pytorch Attentions
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'add', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'dot', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'coverage', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'coverage_location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'location2d', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'location_recurrent', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'multi_head_dot', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'multi_head_add', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'multi_head_loc', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'multi_head_multi_res_loc', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'grup', 'location', 'lstm'),  # Test Pytorch Encoders
-        ('espnet.nets.pytorch_backend.e2e_asr', 'lstmp', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'bgrup', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'bgru', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vgggru', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vgggrup', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vgglstm', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vgglstmp', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggbgru', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggbgrup', 'location', 'lstm'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'location', 'gru'),  # Test Pytorch Decoder
+    "module, model_dict", [
+        ('espnet.nets.chainer_backend.e2e_asr', {}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'elayers': 2, 'dlayers': 2}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggblstmp'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'noatt'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'dot'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'grup'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'lstmp'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'bgrup'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'blstmp'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'bgru'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'blstm'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vgggru'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggbgrup'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vgglstm'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vgglstmp'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggbgru'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggbgrup'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'etype': 'vggblstmp', 'dtype': 'gru'}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'mtlalpha': 0.0}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'mtlalpha': 1.0}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'sampling_probability': 0.5}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'ctc_type': "builtin"}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'ctc_weight': 0.0}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'ctc_weight': 1.0}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'report_cer': True}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'report_wer': True}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'report_cer': True, 'report_wer': True}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'report_cer': True, 'report_wer': True, 'mtlalpha': 0.0}),
+        ('espnet.nets.chainer_backend.e2e_asr', {'report_cer': True, 'report_wer': True, 'mtlalpha': 1.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'elayers': 2, 'dlayers': 2}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'grup'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'lstmp'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'bgrup'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'blstmp'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'bgru'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'blstm'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vgggru'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vgggrup'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vgglstm'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vgglstmp'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggbgru'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggbgrup'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'dtype': 'gru'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'noatt'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'add'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'dot'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'coverage'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'coverage_location'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'location2d'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'location_recurrent'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'multi_head_dot'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'multi_head_add'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'multi_head_loc'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'etype': 'vggblstmp', 'atype': 'multi_head_multi_res_loc'}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'mtlalpha': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'mtlalpha': 1.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'sampling_probability': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'ctc_type': "builtin"}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'ctc_weight': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'ctc_weight': 1.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'context_residual': True}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'grad_noise': True}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'report_cer': True}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'report_wer': True}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'report_cer': True, 'report_wer': True}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'report_cer': True, 'report_wer': True, 'mtlalpha': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_asr', {'report_cer': True, 'report_wer': True, 'mtlalpha': 1.0}),
     ]
 )
-def test_model_trainable_and_decodable(module, etype, atype, dtype):
-    args = make_arg(etype=etype, atype=atype, dtype=dtype)
+def test_model_trainable_and_decodable(module, model_dict):
+    args = make_arg(**model_dict)
     if "pytorch" in module:
         batch = prepare_inputs("pytorch")
     else:
@@ -188,8 +213,12 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
 
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
-    attn_loss = model(*batch)[0]
-    attn_loss.backward()  # trainable
+    loss = model(*batch)
+    if isinstance(loss, tuple):
+        # chainer return several values as tuple
+        loss[0].backward()  # trainable
+    else:
+        loss.backward()  # trainable
 
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
