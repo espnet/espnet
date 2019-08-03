@@ -79,7 +79,8 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         ys_hat = ys_hat.transpose(0, 1)
-        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
+        # NOTE: view(1)[0] is needed to keep consistency since warpctc return shape (1,) but builtin reutrn scalar.
+        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).view(1)[0]
         if self.reduce:
             logging.info('ctc loss:' + str(float(self.loss)))
 
