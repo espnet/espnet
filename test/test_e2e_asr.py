@@ -636,3 +636,17 @@ def test_context_residual(module):
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(50, 20)
         model.recognize(in_data, args, args.char_list)
+
+@pytest.mark.parametrize("mtlalpha", [0.0, 0.5, 1.0])
+def test_chainer_mtlalpha(mtlalpha):
+    args = make_arg(etype='vggblstmp', atype='location', dtype='lstm', mtlalpha=mtlalpha)
+    batch = prepare_inputs("chainer")
+
+    m = importlib.import_module('espnet.nets.chainer_backend.e2e_asr')
+    model = m.E2E(40, 5, args)
+    attn_loss = model(*batch)[0]
+    attn_loss.backward()  # trainable
+
+    with chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 40)
+        model.recognize(in_data, args, args.char_list)  # decodable
