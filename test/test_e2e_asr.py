@@ -242,12 +242,12 @@ def test_gradient_noise_injection(module):
     model = m.E2E(20, 5, args)
     model_org = m.E2E(20, 5, args_org)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss_org = model_org(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss.backward()
-        grad = [param.grad for param in model.parameters()][50]
-        attn_loss_org.backward()
-        grad_org = [param.grad for param in model_org.parameters()][50]
+        loss = model(*convert_batch(batch, module, idim=20, odim=5))
+        loss_org = model_org(*convert_batch(batch, module, idim=20, odim=5))
+        loss.backward()
+        grad = [param.grad for param in model.parameters()][10]
+        loss_org.backward()
+        grad_org = [param.grad for param in model_org.parameters()][10]
         assert grad[0] != grad_org[0]
 
 
@@ -264,8 +264,12 @@ def test_sortagrad_trainable(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss.backward()
+        loss = model(*convert_batch(batch, module, idim=20, odim=5))
+        if isinstance(loss, tuple):
+            # chainer return several values as tuple
+            loss[0].backward()  # trainable
+        else:
+            loss.backward()  # trainable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(50, 20)
         model.recognize(in_data, args, args.char_list)
@@ -295,8 +299,12 @@ def test_sortagrad_trainable_with_batch_bins(module):
 
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss.backward()
+        loss = model(*convert_batch(batch, module, idim=20, odim=5))
+        if isinstance(loss, tuple):
+            # chainer return several values as tuple
+            loss[0].backward()  # trainable
+        else:
+            loss.backward()  # trainable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
         model.recognize(in_data, args, args.char_list)
@@ -331,8 +339,12 @@ def test_sortagrad_trainable_with_batch_frames(module):
 
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss.backward()
+        loss = model(*convert_batch(batch, module, idim=20, odim=5))
+        if isinstance(loss, tuple):
+            # chainer return several values as tuple
+            loss[0].backward()  # trainable
+        else:
+            loss.backward()  # trainable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
         model.recognize(in_data, args, args.char_list)
@@ -586,8 +598,12 @@ def test_gpu_trainable(module):
     else:
         batch = prepare_inputs("chainer", is_cuda=True)
         model.to_gpu()
-    loss = model(*batch)[0]
-    loss.backward()  # trainable
+    loss = model(*batch)
+    if isinstance(loss, tuple):
+        # chainer return several values as tuple
+        loss[0].backward()  # trainable
+    else:
+        loss.backward()  # trainable
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
@@ -602,7 +618,7 @@ def test_multi_gpu_trainable(module):
         model = torch.nn.DataParallel(model, device_ids)
         batch = prepare_inputs("pytorch", is_cuda=True)
         model.cuda()
-        loss = 1. / ngpu * model(*batch)[0]
+        loss = 1. / ngpu * model(*batch)
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         import copy
@@ -618,23 +634,3 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
-
-
-@pytest.mark.parametrize(
-    "module", ["pytorch"]
-)
-def test_context_residual(module):
-    args = make_arg(context_residual=True)
-    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
-    if module == "pytorch":
-        import espnet.nets.pytorch_backend.e2e_asr as m
-    else:
-        raise NotImplementedError
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
-    model = m.E2E(20, 5, args)
-    for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
-        attn_loss.backward()
-    with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(50, 20)
-        model.recognize(in_data, args, args.char_list)
