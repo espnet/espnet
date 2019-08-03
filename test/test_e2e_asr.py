@@ -637,6 +637,7 @@ def test_context_residual(module):
         in_data = np.random.randn(50, 20)
         model.recognize(in_data, args, args.char_list)
 
+
 @pytest.mark.parametrize("mtlalpha", [0.0, 0.5, 1.0])
 def test_chainer_mtlalpha(mtlalpha):
     args = make_arg(etype='vggblstmp', atype='location', dtype='lstm', mtlalpha=mtlalpha)
