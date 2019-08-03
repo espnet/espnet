@@ -30,7 +30,7 @@ def make_transformer_args(**kwargs):
         eunits=32,
         dlayers=2,
         dunits=32,
-        postnet_layers=5,
+        postnet_layers=2,
         postnet_filts=5,
         postnet_chans=32,
         eprenet_dropout_rate=0.1,
