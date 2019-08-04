@@ -72,7 +72,7 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
+def prepare_inputs(mode, ilens=[20, 15], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
     xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
