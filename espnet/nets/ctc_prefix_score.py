@@ -21,13 +21,13 @@ class CTCPrefixScoreTH(object):
     def __init__(self, x, xlens, blank, eos, beam, scoring_ratio=1.5, margin=0):
         """Construct CTC prefix scorer
 
-        :param x     : input label posterior sequences (B, T, O)
-        :param xlens : input length (B,)
-        :param blank : blank label id
-        :param eos   : end-of-sequence id
-        :param beam  : beam size
-        :param scoring_ratio : ratio of #scored hypos to beam size
-        :param margin: margin parameter for windowing (0 means no windowing)
+        :param torch.Tensor x: input label posterior sequences (B, T, O)
+        :param torch.Tensor xlens: input lengths (B,)
+        :param int blank: blank label id
+        :param int eos: end-of-sequence id
+        :param int beam: beam size
+        :param float scoring_ratio: ratio of #scored hypos to beam size
+        :param int margin: margin parameter for windowing (0 means no windowing)
         """
         # In the comment lines, we assume T: input_length, B: batch size, W: beam width, O: output dim.
         self.logzero = -10000000000.0
@@ -40,6 +40,7 @@ class CTCPrefixScoreTH(object):
         self.n_bb = self.batch * beam
         self.device = torch.device('cuda:%d' % x.get_device()) if x.is_cuda else torch.device('cpu')
         # Pad the rest of posteriors in the batch
+        # TODO(takaaki-hori): need a better way without for-loops
         for i, l in enumerate(xlens):
             if l < self.input_length:
                 x[i, l:, :] = self.logzero
@@ -67,10 +68,10 @@ class CTCPrefixScoreTH(object):
     def __call__(self, y, state, prep_scores=None, att_w=None):
         """Compute CTC prefix scores for next labels
 
-        :param y     : prefix label sequence
-        :param state : previous CTC state
-        :param prep_scores : preparatory scores used to select scoring hypotheses (BW, O)
-        :param att_w : attention weights to decide CTC window
+        :param list y: prefix label sequences
+        :param tuple state: previous CTC state
+        :param torch.Tensor prep_scores: preparatory scores used to select scoring hypotheses (BW, O)
+        :param torch.Tensor att_w: attention weights to decide CTC window
         :return new_state, ctc_local_scores (BW, O)
         """
         output_length = len(y[0]) - 1  # ignore sos

@@ -72,7 +72,10 @@ def get_parser():
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
     parser.add_argument('--ctc-window-margin', type=int, default=0,
-                        help='Use CTC window with margin parameter')
+                        help="""Use CTC window with margin parameter to accelerate
+                        CTC/attention decoding especially on GPU. Smaller magin
+                        makes decoding faster, but may increase search errors.
+                        If margin=0 (default), this function is disabled""")
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
