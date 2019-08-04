@@ -38,7 +38,7 @@ from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -186,6 +186,13 @@ class CustomUpdater(training.StandardUpdater):
             optimizer.step()
         optimizer.zero_grad()
 
+    def update(self):
+        self.update_core()
+        # #iterations with accum_grad > 1
+        # Ref.: https://github.com/espnet/espnet/issues/777
+        if self.forward_count == 0:
+            self.iteration += 1
+
 
 class CustomConverter(object):
     """Custom batch converter for Pytorch.
@@ -315,7 +322,13 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
+    # TODO(hirofumi0810) better to simplify the E2E model interface by only allowing idim, odim, and args
+    # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
+    # to attach these models
+    if asr_model is None and mt_model is None:
+        model = model_class(idim, odim, args)
+    else:
+        model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
@@ -698,8 +711,8 @@ def enhance(args):
 
     # Creates writers for outputs from the network
     if args.enh_wspecifier is not None:
-        enh_writer = FileWriterWrapper(args.enh_wspecifier,
-                                       filetype=args.enh_filetype)
+        enh_writer = file_writer_helper(args.enh_wspecifier,
+                                        filetype=args.enh_filetype)
     else:
         enh_writer = None
 
