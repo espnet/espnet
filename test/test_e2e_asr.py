@@ -49,6 +49,8 @@ def make_arg(**kwargs):
         minlenratio=0.0,
         ctc_weight=0.2,
         ctc_window_margin=0,
+        lm_weight=0.0,
+        rnnlm=None,
         streaming_min_blank_dur=10,
         streaming_onset_margin=2,
         streaming_offset_margin=2,
