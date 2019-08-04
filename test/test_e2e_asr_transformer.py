@@ -74,10 +74,10 @@ def prepare(backend):
     model = T.E2E(idim, odim, args)
     batchsize = 5
     if backend == 'pytorch':
-        x = torch.randn(batchsize, 70, idim)
+        x = torch.randn(batchsize, 40, idim)
     else:
-        x = numpy.random.randn(batchsize, 70, idim).astype(numpy.float32)
-    ilens = [70, 50, 30, 30, 20]
+        x = numpy.random.randn(batchsize, 40, idim).astype(numpy.float32)
+    ilens = [40, 30, 20, 15, 10]
     n_token = odim - 1
     if backend == 'pytorch':
         y = (torch.rand(batchsize, 10) * n_token % n_token).long()
