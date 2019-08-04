@@ -25,13 +25,13 @@ def make_arg(**kwargs):
         elayers=1,
         subsample="1_2_2_1_1",
         etype="vggblstm",
-        eunits=64,
-        eprojs=32,
+        eunits=16,
+        eprojs=8,
         dtype="lstm",
         dlayers=1,
-        dunits=32,
+        dunits=16,
         atype="location",
-        aheads=4,
+        aheads=2,
         awin=5,
         aconv_chans=4,
         aconv_filts=10,
@@ -39,11 +39,11 @@ def make_arg(**kwargs):
         lsm_type="",
         lsm_weight=0.0,
         sampling_probability=0.0,
-        adim=32,
+        adim=16,
         dropout_rate=0.0,
         dropout_rate_decoder=0.0,
         nbest=5,
-        beam_size=3,
+        beam_size=2,
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
@@ -221,10 +221,10 @@ def test_model_trainable_and_decodable(module, model_dict):
         loss.backward()  # trainable
 
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(100, 40)
+        in_data = np.random.randn(10, 40)
         model.recognize(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
-            batch_in_data = [np.random.randn(100, 40), np.random.randn(50, 40)]
+            batch_in_data = [np.random.randn(10, 40), np.random.randn(5, 40)]
             model.recognize_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
@@ -285,7 +285,7 @@ def test_gradient_noise_injection(module):
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+    dummy_json = make_dummy_json(4, [10, 20], [10, 20], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
@@ -311,12 +311,12 @@ def test_sortagrad_trainable_with_batch_bins(module):
     args = make_arg(sortagrad=1)
     idim = 20
     odim = 5
-    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    dummy_json = make_dummy_json(4, [10, 20], [10, 20], idim=idim, odim=odim)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batch_elems = 20000
+    batch_elems = 2000
     batchset = make_batchset(dummy_json, batch_bins=batch_elems, shortest_first=True)
     for batch in batchset:
         n = 0
@@ -346,13 +346,13 @@ def test_sortagrad_trainable_with_batch_frames(module):
     args = make_arg(sortagrad=1)
     idim = 20
     odim = 5
-    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    dummy_json = make_dummy_json(4, [10, 20], [10, 20], idim=idim, odim=odim)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batch_frames_in = 500
-    batch_frames_out = 500
+    batch_frames_in = 50
+    batch_frames_out = 50
     batchset = make_batchset(dummy_json,
                              batch_frames_in=batch_frames_in,
                              batch_frames_out=batch_frames_out,
