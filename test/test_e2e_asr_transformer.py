@@ -49,13 +49,13 @@ def test_mask(module):
 def prepare(backend):
     args = Namespace(
         adim=16,
-        aheads=4,
+        aheads=2,
         dropout_rate=0.0,
         transformer_attn_dropout_rate=None,
-        elayers=3,
-        eunits=64,
-        dlayers=3,
-        dunits=64,
+        elayers=2,
+        eunits=16,
+        dlayers=2,
+        dunits=16,
         sym_space="<space>",
         sym_blank="<blank>",
         transformer_init="pytorch",
@@ -67,7 +67,7 @@ def prepare(backend):
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
     )
-    idim = 84
+    idim = 40
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
 
@@ -113,7 +113,7 @@ def test_transformer_mask(module):
 
 
 @pytest.mark.parametrize("module", ["pytorch", "chainer"])
-def test_transformer_synth(module):
+def test_transformer_trainable_and_decodable(module):
     model, x, ilens, y, data = prepare(module)
 
     # test beam search
@@ -121,48 +121,44 @@ def test_transformer_synth(module):
         beam_size=1,
         penalty=0.0,
         ctc_weight=0.0,
-        maxlenratio=0,
+        maxlenratio=1.0,
         lm_weight=0,
         minlenratio=0,
         nbest=1
     )
-    # test acc is almost 100%
     if module == "pytorch":
+        # test trainable
         optim = torch.optim.Adam(model.parameters(), 0.01)
-        max_acc = 0
-        for i in range(40):
-            loss = model(x, ilens, y)
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
-            max_acc = max(model.acc, max_acc)
-        assert max_acc > 0.8
+        loss = model(x, ilens, y)
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
         from espnet.nets.pytorch_backend.transformer import plot
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+
+        # test decodable
         with torch.no_grad():
             nbest = model.recognize(x[0, :ilens[0]].numpy(), recog_args)
             print(y[0])
             print(nbest[0]["yseq"][1:-1])
     else:
+        # test trainable
         optim = chainer.optimizers.Adam(0.01)
         optim.setup(model)
-        max_acc = 0
-        for i in range(40):
-            loss, loss_ctc, loss_att, acc = model(x, ilens, y)
-            model.cleargrads()
-            loss.backward()
-            optim.update()
-            print(loss_att, acc)
-            max_acc = max(acc.data, max_acc)
-        assert max_acc > 0.8
+        loss, loss_ctc, loss_att, acc = model(x, ilens, y)
+        model.cleargrads()
+        loss.backward()
+        optim.update()
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
         from espnet.nets.pytorch_backend.transformer import plot
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
+        # test decodable
         with chainer.no_backprop_mode():
             nbest = model.recognize(x[0, :ilens[0]], recog_args)
             print(y[0])
