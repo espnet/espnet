@@ -317,6 +317,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.spk_embed_dim = args.spk_embed_dim
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
         self.loss_type = args.loss_type
@@ -375,6 +376,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             normalize_before=args.encoder_normalize_before,
             concat_after=args.encoder_concat_after
         )
+
+        # define projection layer
+        if self.spk_embed_dim is not None:
+            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
 
         # define transformer decoder
         if args.dprenet_layers != 0:
@@ -443,7 +448,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
         return ys_in
 
-    def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -451,6 +456,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
 
         Returns:
             Tensor: Loss value.
@@ -468,6 +474,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
+
+        # concat speaker embedding
+        if self.spk_embed_dim is not None:
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -566,7 +577,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def inference(self, x, inference_args, *args, **kwargs):
+    def inference(self, x, inference_args, spemb=None, *args, **kwargs):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -575,10 +586,12 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - threshold (float): Threshold in inference.
                 - minlenratio (float): Minimum length ratio in inference.
                 - maxlenratio (float): Maximum length ratio in inference.
+            spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
             Tensor: Output sequence of features (L, odim).
             Tensor: Output sequence of stop probabilities (L,).
+            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).
 
         """
         # get options
@@ -589,6 +602,12 @@ class Transformer(TTSInterface, torch.nn.Module):
         # forward encoder
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
+
+        # concat speaker embedding
+        if self.spk_embed_dim is not None:
+            spembs = spemb.unsqueeze(0)
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
 
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
@@ -605,7 +624,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             idx += 1
 
             # calculate output and stop prob at idx-th step
-            y_masks = subsequent_mask(idx).unsqueeze(0)
+            y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
             z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
@@ -625,9 +644,17 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        return outs, probs
+        # get attention weights
+        att_ws = []
+        for name, m in self.named_modules():
+            if isinstance(m, MultiHeadedAttention) and "src" in name:
+                att_ws += [m.attn]
+        att_ws = torch.cat(att_ws, dim=0)
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
+        return outs, probs, att_ws
+
+    def calculate_all_attentions(self, xs, ilens, ys, olens,
+                                 spembs=None, skip_output=False, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -635,6 +662,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
             skip_output (bool, optional): Whether to skip calculate the final output.
             keep_tensor (bool, optional): Whether to keep original tensor.
 
@@ -646,6 +674,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             # forward encoder
             x_masks = self._source_mask(ilens)
             hs, _ = self.encoder(xs, x_masks)
+
+            if self.spk_embed_dim is not None:
+                spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+                hs = self.projection(torch.cat([hs, spembs], dim=-1))
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:

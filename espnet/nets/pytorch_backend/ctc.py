@@ -81,6 +81,9 @@ class CTC(torch.nn.Module):
         ys_hat = ys_hat.transpose(0, 1)
         self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
         if self.reduce:
+            # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
+            # but builtin return as tensor w/o shape (scalar).
+            self.loss = self.loss.sum()
             logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss

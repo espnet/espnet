@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
@@ -24,9 +30,6 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 set -euo pipefail
 

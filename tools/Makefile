@@ -9,6 +9,7 @@ CUDA_VERSION := 10.0
 TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
+WGET := wget --tries=3
 
 # Both Miniconda2/3 can install any Python versions
 CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -31,7 +32,7 @@ all: kaldi.done python check_install
 
 python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
+extra: nkf.done mecab.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -62,7 +63,7 @@ espnet.done: venv
 	touch espnet.done
 else
 miniconda.sh:
-	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
+	test -f miniconda.sh || $(WGET) $(CONDA_URL) -O miniconda.sh
 venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
 	. venv/bin/activate && conda update -y conda
@@ -77,7 +78,7 @@ endif
 
 cupy.done: espnet.done
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
 	touch cupy.done
 endif
 
@@ -107,15 +108,9 @@ chainer_ctc.done: espnet.done
 nkf.done:
 	rm -rf nkf
 	mkdir -p nkf
-	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
+	cd nkf; $(WGET) https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
-
-sentencepiece.done:
-	rm -rf sentencepiece
-	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
-	touch sentencepiece.done
 
 mecab.done: espnet.done
 	rm -rf mecab
@@ -130,7 +125,7 @@ mecab.done: espnet.done
 			rm -rf swig; \
 			mkdir -p swig; \
 			cd swig; \
-			wget https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/swig-3.0.12.tar.gz; \
+			$(WGET) https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/swig-3.0.12.tar.gz; \
 			tar zxvf swig-3.0.12.tar.gz; \
 			cd swig-3.0.12 && ./configure prefix=$(PWD)/swig && $(MAKE) && $(MAKE) install; \
 			touch $(PWD)/swig.done; \
@@ -149,7 +144,7 @@ moses.done:
 	touch moses.done
 
 mwerSegmenter.done:
-	wget https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	$(WGET) https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
 	tar zxvf mwerSegmenter.tar.gz
 	rm mwerSegmenter.tar.gz
 	touch mwerSegmenter.done
@@ -172,7 +167,7 @@ PESQ: PESQ.zip
 	rm -rf PESQ
 	ln -s PESQ_P.862.2 PESQ
 PESQ.zip:
-	wget 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
+	$(WGET) 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
 
 
 clean: clean_extra
@@ -188,6 +183,6 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done mwerSegmenter.done
-	rm -rf nkf sentencepiece mecab swig moses mwerSegmenter
+	rm -rf nkf.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip
