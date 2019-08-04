@@ -262,7 +262,7 @@ def test_segment_streaming_e2e():
 def test_gradient_noise_injection(module):
     args = make_arg(grad_noise=True)
     args_org = make_arg()
-    dummy_json = make_dummy_json(2, [1, 100], [1, 100], idim=20, odim=5)
+    dummy_json = make_dummy_json(2, [10, 20], [10, 20], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
