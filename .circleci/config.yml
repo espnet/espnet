@@ -152,10 +152,10 @@ jobs:
       #       # TODO(karita) centos7 featbin binary
       #       PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
       #       ./ci/install_kaldi.sh
-      - run:
-          name: test integration
-          command: |
-            ./ci/test_integration.sh
+      # - run:
+      #     name: test integration
+      #     command: |
+      #       ./ci/test_integration.sh
       - run:
           name: codecov
           command: |
