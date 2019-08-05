@@ -2,9 +2,9 @@
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2.0
+version: 2
 workflows:
-  version: 2.0
+  version: 2
   test:
     jobs:
       # TODO(karita): support tests without conda
