@@ -2,9 +2,9 @@
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2
+version: 2.1
 workflows:
-  version: 2
+  version: 2.1
   test:
     jobs:
       # TODO(karita): support tests without conda
@@ -31,6 +31,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            cat /proc/cpuinfo
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
       - run:
           name: install espnet
@@ -84,6 +85,7 @@ jobs:
       - run:
           name: install espnet
           command: |
+            cat /proc/cpuinfo
             ./ci/install.sh
       - run:
           name: test shell
@@ -125,6 +127,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            cat /proc/cpuinfo
             yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip
             yum-config-manager --enable rhel-server-rhscl-7-rpms
             yum install -y devtoolset-7-gcc-c++
@@ -181,6 +184,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            cat /proc/cpuinfo
             apt-get update -qq
             apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc
       - run:
