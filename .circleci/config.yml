@@ -29,32 +29,32 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             cat /proc/cpuinfo
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
       - run:
-          name: install espnet
+          name: Install espnet
           command: |
             ./ci/install.sh
       - run:
-          name: test shell
+          name: Test shell
           command: |
             ./ci/test_shell.sh
       - run:
-          name: test python
+          name: Test python
           command: |
             ./ci/test_python.sh
       - run:
-          name: install kaldi
+          name: Install kaldi
           command: |
             ./ci/install_kaldi.sh
       - run:
-          name: test integration
+          name: Test integration
           command: |
             ./ci/test_integration.sh
       - run:
-          name: codecov
+          name: CodeCov
           command: |
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
@@ -76,35 +76,35 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
+            cat /proc/cpuinfo
             sudo apt-get install -y software-properties-common
             sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update -qq
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
       - run:
-          name: install espnet
+          name: Install espnet
           command: |
-            cat /proc/cpuinfo
             ./ci/install.sh
       - run:
-          name: test shell
+          name: Test shell
           command: |
             ./ci/test_shell.sh
       - run:
-          name: test python
+          name: Test python
           command: |
             ./ci/test_python.sh
       - run:
-          name: install kaldi
+          name: Install kaldi
           command: |
             ./ci/install_kaldi.sh
       - run:
-          name: test integration
+          name: Test integration
           command: |
             ./ci/test_integration.sh
       - run:
-          name: codecov
+          name: CodeCov
           command: |
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             cat /proc/cpuinfo
             yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip
@@ -133,34 +133,34 @@ jobs:
             yum install -y devtoolset-7-gcc-c++
       - checkout
       - run:
-          name: install espnet
+          name: Install espnet
           command: |
             # NOTE(karita) this line exited 1
             # source scl_source enable devtoolset-7
             PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
             ./ci/install.sh
       - run:
-          name: test shell
+          name: Test shell
           command: |
             PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
             ./ci/test_shell.sh
       - run:
-          name: test python
+          name: Test python
           command: |
             PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
             ./ci/test_python.sh
       # - run:
-      #     name: install kaldi
+      #     name: Install kaldi
       #     command: |
       #       # TODO(karita) centos7 featbin binary
       #       PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
       #       ./ci/install_kaldi.sh
       # - run:
-      #     name: test integration
+      #     name: Test integration
       #     command: |
       #       ./ci/test_integration.sh
       - run:
-          name: codecov
+          name: CodeCov
           command: |
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
@@ -182,33 +182,33 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             cat /proc/cpuinfo
             apt-get update -qq
             apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc
       - run:
-          name: install espnet
+          name: Install espnet
           command: |
             ./ci/install.sh
       - run:
-          name: test shell
+          name: Test shell
           command: |
             ./ci/test_shell.sh
       - run:
-          name: test python
+          name: Test python
           command: |
             ./ci/test_python.sh
       - run:
-          name: install kaldi
+          name: Install kaldi
           command: |
             ./ci/install_kaldi.sh
       - run:
-          name: test integration
+          name: Test integration
           command: |
             ./ci/test_integration.sh
       - run:
-          name: codecov
+          name: CodeCov
           command: |
             source ./tools/venv/bin/activate
             bash <(curl -s https://codecov.io/bash)
