@@ -147,7 +147,7 @@ class WarpCTC(chainer.Chain):
         # zero padding for hs
         # output batch x frames x hdim > frames x batch x hdim
         y_hat = self.ctc_lo(F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate)).transpose(1, 0, 2)
+            hs, ratio=self.dropout_rate), n_batch_axes=2).transpose(1, 0, 2)
 
         # get length info
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
