@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1        # start from 0 if you need to start from data preparation
+stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -90,6 +90,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                                   data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
+    # Remove features with too long frames in training data
+    max_len=3000
+    mv data/valid_train/utt2num_frames data/valid_train/utt2num_frames.bak
+    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/valid_train/utt2num_frames.bak > data/valid_train/utt2num_frames
+    utils/filter_scp.pl data/valid_train/utt2num_frames data/valid_train/utt2spk > data/valid_train/utt2spk.new
+    mv data/valid_train/utt2spk.new data/valid_train/utt2spk
+    utils/fix_data_dir.sh data/valid_train
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -128,7 +135,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
-                     data/${rtask} ${dict} > data_${bpemode}${nbpe}.json
+                     data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 fi
 
