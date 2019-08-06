@@ -115,7 +115,12 @@ class E2E(ASRInterface, chainer.Chain):
 
         self.acc = acc
         alpha = self.mtlalpha
-        self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+        if alpha == 0:
+            self.loss = loss_att
+        elif alpha == 1:
+            self.loss = loss_ctc
+        else:
+            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
             reporter.report({'loss_ctc': loss_ctc}, self)
