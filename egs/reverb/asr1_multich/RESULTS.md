@@ -1,12 +1,20 @@
-# ASR and Speech Enhancement RESULTS
+# RESULTS
+## Environments
+- date: `Mon Aug  5 22:20:59 EDT 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.4.1`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `32d38b978f3627fb81602b13e9a81339757085a7`
+  - Commit date: `Fri Aug 2 01:53:56 2019 -0400`
 
-## End-to-end Enhancement 
-### Description
+## 1. End-to-end Speech Enhancement Results
+### 1.1 Description
  (1) Training: 2-channel simulation data from REVERB and clean data from WSJ (both WSJ0 and WSJ1);\
  (2) Validation: REVERB 8-channel real and simulation development sets;\
  (3) Evaluation: REVERB 8-channel real and simulation evaluation sets.
 
-### Word Error Rate of Evaluation set
+### 1.2 WER
 #### 8ch - E2E
 
 ```
@@ -36,7 +44,7 @@ RealData_et_far_room1:
 |	Sum/Avg	|	186	2962	|	89.1	9.7	1.3	1.9	12.8	66.1	|
 ```
 
-### Speech enhancement scores of Evaluation set
+### 1.3 Speech Enhancement Scores
 #### 8ch - E2E - Score simulation data
 
 ```
@@ -147,15 +155,15 @@ Frequency-weighted segmental SNR in dB
 ======================
 ```
 
-## Pipeline Enhancement (For comparison)
-### Description
+## 2. Pipeline Enhancement Results (For comparison)
+### 2.1 Description
 In the pipeline enhancement approach, we still use the training data (2ch-REVERB, WSJ0 and WSJ1) described above.
 Instead of using the end-to-end fashion to achieve the speech enhancement, conventional pipeline strategy has been
 performed. 
 WPE and BeamformIt have been employed to enhance the noisy signals. 
 The enhanced speeches were then fed into the encoder-decoder based backend.
 
-### Word Error Rate of Evaluation set
+### 2.2 WER
 #### 8ch - Noisy - No Frontend
 
 ```
@@ -216,7 +224,7 @@ RealData_et_far_room1:
 
 ```
 
-### Speech enhancement scores of Evaluation set (copied from ../asr1/RESULTS)
+### 2.3 Speech enhancement scores (copied from ../asr1/RESULTS)
 #### 8ch - Pipeline - WPE + BeamformIt - Score simulation data
 
 ```
