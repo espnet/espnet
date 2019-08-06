@@ -383,6 +383,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Librispeech test_other |  N/A |  5.7 | same as above |
 | TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
 | TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1//RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
+| TEDLIUM3 test          |  N/A | 8.0| same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 

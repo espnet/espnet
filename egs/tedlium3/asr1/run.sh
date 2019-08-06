@@ -3,8 +3,8 @@
 # Copyright 2019 Nagoya University (Masao Someki)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -19,10 +19,6 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
-
-train_config=conf/train.yaml
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
@@ -44,9 +40,6 @@ decode_config=conf/decode.yaml
 preprocess_config=conf/specaug.yaml
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -191,10 +184,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_nbpe${nbpe}_ngpu${ngpu}_$(basename ${train_config%.*})_$(basename ${preprocess_config%.*})
+    expname=${train_set}_${backend}_nbpe${nbpe}_ngpu${ngpu}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then 
+	expname=${expname}_$(basename ${preprocess_config%.*}) 
+    fi 
 else
     expname=${train_set}_${backend}_${tag}
 fi
