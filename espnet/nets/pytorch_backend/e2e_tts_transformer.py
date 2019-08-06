@@ -379,7 +379,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define projection layer
         if self.spk_embed_dim is not None:
-            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
+            self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
 
         # define transformer decoder
         if args.dprenet_layers != 0:
@@ -475,10 +475,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
 
-        # concat speaker embedding
+        # add speaker embedding
         if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -603,11 +603,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
 
-        # concat speaker embedding
+        # add speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
 
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
@@ -675,9 +675,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             x_masks = self._source_mask(ilens)
             hs, _ = self.encoder(xs, x_masks)
 
+            # add speaker embedding
             if self.spk_embed_dim is not None:
-                spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-                hs = self.projection(torch.cat([hs, spembs], dim=-1))
+                spembs = self.projection(F.normalize(spembs))
+                hs = hs + spembs.unsqueeze(1)
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:

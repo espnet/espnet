@@ -204,7 +204,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # define additional projection for speaker embedding
         if self.spk_embed_dim is not None:
-            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
+            self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
 
         # define duration predictor
         self.duration_predictor = DurationPredictor(
@@ -271,8 +271,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # concat speaker embedding
         if self.spk_embed_dim is not None:
-            spembs_ = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs_], dim=-1))
+            spembs_ = self.projection(F.normalize(spembs))
+            hs = hs + spembs_.unsqueeze(1)
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(ilens).to(xs.device)
