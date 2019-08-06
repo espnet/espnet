@@ -54,8 +54,6 @@ from espnet.utils.training.train_utils import set_early_stop
 
 matplotlib.use('Agg')
 
-REPORT_INTERVAL = 100
-
 
 class CustomConverter(object):
     """Custom batch converter for Pytorch.
@@ -305,28 +303,29 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(REPORT_INTERVAL, 'iteration'))
+            trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
     if args.report_cer:
         report_keys.append('validation/main/cer')
     if args.report_wer:
         report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer, att_reporter),
+                       trigger=(args.report_interval_iters, 'iteration'))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
