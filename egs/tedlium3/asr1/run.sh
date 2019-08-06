@@ -38,6 +38,7 @@ tag="" # tag for managing experiments.
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 preprocess_config=conf/specaug.yaml
+lm_config=conf/lm.yaml
 
 . utils/parse_options.sh || exit 1;
 
