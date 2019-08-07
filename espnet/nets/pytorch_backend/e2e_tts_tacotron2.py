@@ -380,7 +380,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
-        # get default arguments and fill missing arguments
+        # convert args into dict
         if args is None:
             args = {}
         elif isinstance(args, argparse.Namespace):
@@ -389,6 +389,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             args = dict(args.items())
         else:
             raise NotImplementedError()
+
+        # get default arguments and fill missing arguments
         default_args, _ = self.add_arguments(argparse.ArgumentParser()).parse_known_args()
         for key, value in vars(default_args).items():
             if key not in args:
