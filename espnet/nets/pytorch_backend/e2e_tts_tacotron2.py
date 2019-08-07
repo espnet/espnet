@@ -262,6 +262,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             - dropout_rate (float): Dropout rate.
             - zoneout_rate (float): Zoneout rate.
             - reduction_factor (int): Reduction factor.
+            - spk_embed_dim (int): Number of speaker embedding dimenstions.
+            - spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
             - use_cbhg (bool): Whether to use CBHG module.
             - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
             - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
