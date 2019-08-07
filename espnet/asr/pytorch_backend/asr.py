@@ -58,6 +58,7 @@ from espnet.utils.training.train_utils import set_early_stop
 import matplotlib
 matplotlib.use('Agg')
 
+
 class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Pytorch.
 
