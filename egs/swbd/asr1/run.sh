@@ -3,8 +3,8 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -39,9 +39,6 @@ bpemode=bpe
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -159,7 +156,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --unk_id=0 \
             --user_defined_symbols="[laughter],[noise],[vocalized-noise]"
 
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' > ${dict}
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"

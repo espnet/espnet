@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 [![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -380,8 +381,10 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Librispeech dev_other  |  N/A |  5.6 | same as above |
 | Librispeech test_clean |  N/A |  2.6 | same as above |
 | Librispeech test_other |  N/A |  5.7 | same as above |
-| TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
-| TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| TEDLIUM2 dev           |  N/A | 9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
+| TEDLIUM2 test          |  N/A | 8.1 | same as above |
+| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
+| TEDLIUM3 test          |  N/A | 8.0| same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 

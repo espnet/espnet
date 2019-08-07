@@ -3,8 +3,8 @@
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
