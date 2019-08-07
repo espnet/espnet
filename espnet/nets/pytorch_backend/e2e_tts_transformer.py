@@ -175,6 +175,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
             - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
             - reduction_factor (int): Reduction factor.
+            - spk_embed_dim (int): Number of speaker embedding dimenstions.
             - transformer_init (float): How to initialize transformer parameters.
             - transformer_lr (float): Initial value of learning rate.
             - transformer_warmup_steps (int): Optimizer warmup steps.

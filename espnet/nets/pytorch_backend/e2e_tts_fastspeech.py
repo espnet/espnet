@@ -54,6 +54,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             - duration_predictor_layers (int): Number of duration predictor layers.
             - duration_predictor_chans (int): Number of duration predictor channels.
             - duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            - spk_embed_dim (int): Number of speaker embedding dimenstions.
             - teacher_model (str): Teacher auto-regressive transformer model path.
             - reduction_factor (int): Reduction factor.
             - transformer_init (float): How to initialize transformer parameters.
