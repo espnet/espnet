@@ -8,8 +8,8 @@
 
 # general configuration
 backend=pytorch
-stage=-1
-stop_stage=100
+stage=1
+stop_stage=2
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -19,7 +19,7 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=22050      # sampling frequency
+fs=44100      # sampling frequency
 fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
@@ -39,7 +39,11 @@ n_average=1 # if > 0, the model averaged with n_average ckpts will be used inste
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
-db_root=downloads
+db_root=/export/a06/katsuki/DB #downloads
+
+# user id and pw for db download
+id="k_inoue@s.okayama-u.ac.jp"
+pw="n0hoShLMdLgQy"
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -58,14 +62,14 @@ eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    local/download.sh ${db_root} ${id} ${pw}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
+    local/data_prep.sh ${db_root}/blizzard_release_2017 data/train
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
@@ -95,7 +99,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/train 500 data/deveval
     utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
     utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    #n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    n=$(( $(wc -l < data/train/segments) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
     # compute statistics for global mean-variance normalization
