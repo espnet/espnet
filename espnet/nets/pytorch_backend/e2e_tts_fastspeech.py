@@ -4,6 +4,7 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 import logging
 
 import torch
@@ -114,8 +115,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Kernel size in duration predictor")
         group.add_argument("--teacher-model", default=None, type=str, nargs="?",
                            help="Teacher model file path")
-        parser.add_argument("--reduction-factor", default=1, type=int,
-                            help="Reduction factor")
+        group.add_argument("--reduction-factor", default=1, type=int,
+                           help="Reduction factor")
+        group.add_argument("--spk_embed_dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -153,13 +156,21 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
-
         return parser
 
     def __init__(self, idim, odim, args):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
+
+        # get default arguments and fill missing arguments
+        default_args = self.add_arguments(argparse.ArgumentParser()).parse_args()
+        args = vars(args)
+        for key, value in vars(default_args).items():
+            if key not in args:
+                logging.warning("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
+                args[key] = value
+        args = argparse.Namespace(**args)
 
         # store hyperparameters
         self.idim = idim
@@ -241,7 +252,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
         # initialize parameters
-        self._reset_parameters(args)
+        self._reset_parameters(init_type=args.transformer_init,
+                               init_enc_alpha=args.initial_encoder_alpha,
+                               init_dec_alpha=args.initial_decoder_alpha)
 
         # define teacher model
         if args.teacher_model is not None:
@@ -456,14 +469,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return model
 
-    def _reset_parameters(self, args):
+    def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
-        initialize(self, args.transformer_init)
+        initialize(self, init_type)
 
         # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+            self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
 
     def _transfer_from_teacher(self, transferred_encoder_module):
         if transferred_encoder_module == "all":
