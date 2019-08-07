@@ -40,8 +40,8 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     def __init__(self, sigma=0.4, alpha=1.0, reset_always=True):
         super(GuidedAttentionLoss, self).__init__()
-        self.sigma = torch.tensor(sigma)
-        self.alpha = torch.tensor(alpha)
+        self.sigma = sigma
+        self.alpha = alpha
         self.reset_always = reset_always
         self.guided_attn_masks = None
         self.masks = None
