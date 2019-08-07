@@ -1,5 +1,8 @@
 #!/bin/bash 
 
+# Copyright 2018 Okayama University (Katsuki Inoue)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 TMP=./local/tmp
 mkdir -p ${TMP}
 find $1 -name "*.lab" | xargs dirname | xargs dirname | sort | uniq > ${TMP}/dir_list.txt
