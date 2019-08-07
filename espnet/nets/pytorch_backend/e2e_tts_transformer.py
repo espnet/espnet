@@ -317,13 +317,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # get default arguments and fill missing arguments
-        if args is None:
-            args = argparse.Namespace()
-        default_args = self.add_arguments(argparse.ArgumentParser()).parse_args()
-        args = vars(args)
-        for key, value in vars(default_args).items():
+        default_args = vars(self.add_arguments(argparse.ArgumentParser()).parse_args())
+        args = {} if args is None else vars(args)
+        for key, value in default_args.items():
             if key not in args:
-                logging.warning("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
+                logging.info("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
                 args[key] = value
         args = argparse.Namespace(**args)
 
