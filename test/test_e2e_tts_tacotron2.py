@@ -20,24 +20,24 @@ def make_taco2_args(**kwargs):
     defaults = dict(
         use_speaker_embedding=False,
         spk_embed_dim=None,
-        embed_dim=512,
+        embed_dim=32,
         elayers=1,
-        eunits=512,
-        econv_layers=3,
+        eunits=32,
+        econv_layers=2,
         econv_filts=5,
-        econv_chans=512,
+        econv_chans=32,
         dlayers=2,
-        dunits=1024,
+        dunits=32,
         prenet_layers=2,
-        prenet_units=256,
-        postnet_layers=5,
+        prenet_units=32,
+        postnet_layers=2,
         postnet_filts=5,
-        postnet_chans=512,
+        postnet_chans=32,
         output_activation=None,
         atype="location",
-        adim=512,
-        aconv_chans=32,
-        aconv_filts=15,
+        adim=32,
+        aconv_chans=16,
+        aconv_filts=5,
         cumulate_att_w=True,
         use_batch_norm=True,
         use_concate=True,
@@ -49,13 +49,13 @@ def make_taco2_args(**kwargs):
         minlenratio=0.0,
         use_cbhg=False,
         spc_dim=None,
-        cbhg_conv_bank_layers=8,
-        cbhg_conv_bank_chans=128,
+        cbhg_conv_bank_layers=4,
+        cbhg_conv_bank_chans=32,
         cbhg_conv_proj_filts=3,
-        cbhg_conv_proj_chans=256,
+        cbhg_conv_proj_chans=32,
         cbhg_highway_layers=4,
-        cbhg_highway_units=128,
-        cbhg_gru_units=256,
+        cbhg_highway_units=32,
+        cbhg_gru_units=32,
         use_masking=True,
         bce_pos_weight=1.0,
         use_guided_attn_loss=False,
@@ -173,7 +173,7 @@ def test_tacotron2_trainable_and_decodable(model_dict):
         ({"reduction_factor": 3}),
         ({"use_guided_attn_loss": True}),
     ])
-def test_tacotron2_gpu_trainable(model_dict):
+def test_tacotron2_gpu_trainable_and_decodable(model_dict):
     bs = 2
     maxin_len = 10
     maxout_len = 10
@@ -181,6 +181,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     odim = 10
     device = torch.device('cuda')
     model_args = make_taco2_args(**model_dict)
+    inference_args = make_inference_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'],
                            device=device)
@@ -195,6 +196,13 @@ def test_tacotron2_gpu_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        spemb = None if model_args['spk_embed_dim'] is None else batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb)
+        model.calculate_all_attentions(**batch)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")

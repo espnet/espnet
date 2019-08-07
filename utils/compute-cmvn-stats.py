@@ -6,10 +6,10 @@ import kaldiio
 import numpy as np
 
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileReaderWrapper
-from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
+from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
@@ -103,7 +103,7 @@ def main():
     square_sum_feats = {}
 
     idx = 0
-    for idx, (utt, matrix) in enumerate(FileReaderWrapper(
+    for idx, (utt, matrix) in enumerate(file_reader_helper(
             args.rspecifier, args.in_filetype), 1):
         if is_scipy_wav_style(matrix):
             # If data is sound file, then got as Tuple[int, ndarray]
@@ -147,8 +147,8 @@ def main():
 
     # Per utterance or speaker CMVN
     if is_wspecifier:
-        with FileWriterWrapper(args.wspecifier_or_wxfilename,
-                               filetype=args.out_filetype) as writer:
+        with file_writer_helper(args.wspecifier_or_wxfilename,
+                                filetype=args.out_filetype) as writer:
             for spk, mat in cmvn_stats.items():
                 writer[spk] = mat
 

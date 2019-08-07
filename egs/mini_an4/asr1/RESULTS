@@ -1,0 +1,11 @@
+#!/bin/bash
+grep -e Avg -e SPKR -m 2 exp/train_*/decode*/result.txt
+
+<< EOF
+write a CER (or TER) result in exp/train_nodev_pytorch_train/decode_train_dev_decode_lm_word100/result.txt
+   | SPKR    | # Snt  # Wrd  | Corr     Sub    Del     Ins     Err   S.Err  |
+   | Sum/Avg |    2       5  | 40.0    20.0   40.0   320.0   380.0   100.0  |
+write a CER (or TER) result in exp/train_nodev_pytorch_train/decode_test_decode_lm_word100/result.txt
+   | SPKR   | # Snt  # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+   | Sum/Avg|    2      67 | 65.7   31.3     3.0   64.2   98.5   100.0 |
+EOF
