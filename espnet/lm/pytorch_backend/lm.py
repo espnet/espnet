@@ -41,6 +41,7 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
@@ -281,7 +282,7 @@ class BPTTUpdater(training.StandardUpdater):
         optimizer.step()  # Update the parameters
 
 
-class LMEvaluator(extensions.Evaluator):
+class LMEvaluator(BaseEvaluator):
     """A custom evaluator for a pytorch LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
