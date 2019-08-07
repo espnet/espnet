@@ -27,4 +27,4 @@ def get_attribute(obj, name, *default):
         logging.warning("attribute \"%s\" does not exist. use default value %s." % (name, str(default[0])))
         return default[0]
     else:
-        raise AttributeError("%s does not exist in the object." % name)
+        raise AttributeError("attribute \"%s\" does not exist." % name)
