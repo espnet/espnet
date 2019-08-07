@@ -10,6 +10,7 @@ import logging
 import torch
 import torch.nn.functional as F
 
+from espnet.asr.asr_utils import AttributeDict
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
@@ -118,7 +119,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Teacher model file path")
         group.add_argument("--reduction-factor", default=1, type=int,
                            help="Reduction factor")
-        group.add_argument("--spk_embed_dim", default=None, type=int,
+        group.add_argument("--spk-embed-dim", default=None, type=int,
                            help="Number of speaker embedding dimensions")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
@@ -165,9 +166,16 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # get default arguments and fill missing arguments
-        default_args = vars(self.add_arguments(argparse.ArgumentParser()).parse_args())
-        args = {} if args is None else vars(args)
-        for key, value in default_args.items():
+        if args is None:
+            args = {}
+        elif isinstance(args, argparse.Namespace):
+            args = vars(args)
+        elif isinstance(args, AttributeDict):
+            args = dict(args.items())
+        else:
+            raise NotImplementedError()
+        default_args, _ = self.add_arguments(argparse.ArgumentParser()).parse_known_args()
+        for key, value in vars(default_args).items():
             if key not in args:
                 logging.info("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
                 args[key] = value

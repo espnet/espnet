@@ -10,6 +10,7 @@ import logging
 import torch
 import torch.nn.functional as F
 
+from espnet.asr.asr_utils import AttributeDict
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -252,6 +253,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Whether to concatenate attention layer's input and output in decoder")
         group.add_argument("--reduction-factor", default=1, type=int,
                            help="Reduction factor")
+        group.add_argument("--spk-embed-dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -318,9 +321,16 @@ class Transformer(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # get default arguments and fill missing arguments
-        default_args = vars(self.add_arguments(argparse.ArgumentParser()).parse_args())
-        args = {} if args is None else vars(args)
-        for key, value in default_args.items():
+        if args is None:
+            args = {}
+        elif isinstance(args, argparse.Namespace):
+            args = vars(args)
+        elif isinstance(args, AttributeDict):
+            args = dict(args.items())
+        else:
+            raise NotImplementedError()
+        default_args, _ = self.add_arguments(argparse.ArgumentParser()).parse_known_args()
+        for key, value in vars(default_args).items():
             if key not in args:
                 logging.info("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
                 args[key] = value
