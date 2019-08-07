@@ -69,7 +69,6 @@ class EmbedIDFunction(function_node.FunctionNode):
 
 
 class EmbedIDGrad(function_node.FunctionNode):
-
     def __init__(self, w_shape, ignore_label=None):
         self.w_shape = w_shape
         self.ignore_label = ignore_label
@@ -146,25 +145,30 @@ class EmbedIDGrad(function_node.FunctionNode):
 
 
 def embed_id(x, W, ignore_label=None):
-    """Efficient linear function for one-hot input.
+    r"""Efficient linear function for one-hot input.
 
     This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
     vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
     float32 matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
     column is the ``x[i]``-th column of ``W``.
-
     This function is only differentiable on the input ``W``.
 
-    :param chainer.Variable | np.ndarray x : Batch vectors of IDs. Each element must be signed integer
-    :param chainer.Variable | np.ndarray W : Distributed representation of each ID (a.k.a. word embeddings)
-    :param int ignore_label : If ignore_label is an int value, i-th column of return value is filled with 0
-    :return Output variable
-    :rtype chainer.Variable
+    Args:
+        x (chainer.Variable | np.ndarray): Batch vectors of IDs. Each
+            element must be signed integer.
+        W (chainer.Variable | np.ndarray): Distributed representation
+            of each ID (a.k.a. word embeddings).
+        ignore_label (int): If ignore_label is an int value, i-th column
+            of return value is filled with 0.
 
-    .. seealso:: :class:`~chainer.links.EmbedID`
+    Returns:
+        chainer.Variable: Embedded variable.
 
-    .. admonition:: Example
+
+    .. rubric:: :class:`~chainer.links.EmbedID`
+
+    Examples:
 
         >>> x = np.array([2, 1]).astype('i')
         >>> x
@@ -193,16 +197,19 @@ class EmbedID(link.Link):
     This is a link that wraps the :func:`~chainer.functions.embed_id` function.
     This link holds the ID (word) embedding matrix ``W`` as a parameter.
 
-    :param int in_size: Number of different identifiers (a.k.a. vocabulary size)
-    :param int out_size: Initializer to initialize the weight. When it is np.ndarray, its ndim should be 2
-    :param int ignore_label: If `ignore_label` is an int value, i-th column of return value is filled with 0
+    Args:
+        in_size (int): Number of different identifiers (a.k.a. vocabulary size).
+        out_size (int): Output dimension.
+        initialW (Initializer): Initializer to initialize the weight.
+        ignore_label (int): If `ignore_label` is an int value, i-th column of
+            return value is filled with 0.
 
-    .. seealso:: :func:`~chainer.functions.embed_id`
+    .. rubric:: :func:`~chainer.functions.embed_id`
 
     Attributes:
         W (~chainer.Variable): Embedding parameter matrix.
 
-    .. admonition:: Example
+    Examples:
 
         >>> W = np.array([[0, 0, 0],
         ...               [1, 1, 1],
@@ -236,8 +243,11 @@ class EmbedID(link.Link):
     def __call__(self, x):
         """Extracts the word embedding of given IDs.
 
-        :param chainer.Variable x : Batch vectors of IDs
-        :return Batch of corresponding embeddings
-        :rtype chainer.Variable
+        Args:
+            x (chainer.Variable): Batch vectors of IDs.
+
+        Returns:
+            chainer.Variable: Batch of corresponding embeddings.
+
         """
         return embed_id(x, self.W, ignore_label=self.ignore_label)

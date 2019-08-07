@@ -49,7 +49,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
 - Tacotron2 based end-to-end TTS
-- Transformer based end-to-end TTS (new!)
+- Transformer based end-to-end TTS
+- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
@@ -380,8 +381,10 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Librispeech dev_other  |  N/A |  5.6 | same as above |
 | Librispeech test_clean |  N/A |  2.6 | same as above |
 | Librispeech test_other |  N/A |  5.7 | same as above |
-| TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
-| TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| TEDLIUM2 dev           |  N/A | 9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
+| TEDLIUM2 test          |  N/A | 8.1 | same as above |
+| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
+| TEDLIUM3 test          |  N/A | 8.0| same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 
@@ -411,8 +414,9 @@ You can access the samples of TTS recipes from following links:
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
 - [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
 - [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
-- [Multi English speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
-- [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Single English speaker Transformer](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+- [Single English speaker FastSpeech (New!)](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 

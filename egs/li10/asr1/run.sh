@@ -7,8 +7,8 @@
 # S. Watanabe et al, "Language independent end-to-end architecture for
 # joint language identification and speech recognition," Proc. ASRU'17, pp. 265--269 (2017)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -35,9 +35,6 @@ n_average=10
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
