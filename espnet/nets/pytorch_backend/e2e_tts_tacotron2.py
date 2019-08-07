@@ -449,7 +449,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         bce_pos_weight = get_attribute(args, "bce_pos_weight", DEFAULTS["bce_pos_weight"])
         use_cbhg = get_attribute(args, "use_cbhg", DEFAULTS["use_cbhg"])
         if use_cbhg:
-            spc_dim = get_attribute(args, DEFAULTS["spc_dim"])
+            spc_dim = get_attribute(args, "spc_dim", DEFAULTS["spc_dim"])
             cbhg_conv_bank_layers = get_attribute(args, "cbhg_conv_bank_layers", DEFAULTS["cbhg_conv_bank_layers"])
             cbhg_conv_bank_chans = get_attribute(args, "cbhg_conv_bank_chans", DEFAULTS["cbhg_conv_bank_chans"])
             cbhg_conv_proj_filts = get_attribute(args, "cbhg_conv_proj_filts", DEFAULTS["cbhg_conv_proj_filts"])
