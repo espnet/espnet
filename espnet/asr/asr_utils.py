@@ -329,7 +329,7 @@ def get_model_conf(model_path, conf_path=None):
     if isinstance(confs, dict):
         # for lm
         args = confs
-        return argparse.Namespace(**confs)
+        return argparse.Namespace(**args)
     else:
         # for asr, tts, mt
         idim, odim, args = confs
