@@ -4,7 +4,7 @@
 import logging
 
 
-def get_attribute(obj, name, default=None):
+def get_attribute(obj, name, *default):
     """Get a specified attribute from a given object.
 
     Args:
@@ -16,10 +16,12 @@ def get_attribute(obj, name, default=None):
         any: Attribute of object.
 
     """
+    # default should be empty or a single argument
+    assert len(default) < 2
     if hasattr(obj, name):
         return getattr(obj, name)
-    elif default is not None:
+    elif len(default) != 0:
         logging.info("%s does not exist in the object. use default value." % name)
-        return default
+        return default[0]
     else:
         raise AttributeError("%s does not exist in the object." % name)
