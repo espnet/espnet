@@ -15,6 +15,8 @@ from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
+from chainer.training.triggers import IntervalTrigger
+from chainer.training.util import get_trigger
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
@@ -44,13 +46,14 @@ from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.evaluator import BaseEvaluator
+from espnet.utils.training.evaluator import EvaluatorObservation
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
+from espnet.utils.training.updater import BaseStandardUpdater
 
 import matplotlib
 matplotlib.use('Agg')
@@ -88,22 +91,10 @@ class CustomEvaluator(BaseEvaluator):
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
         """Main evaluate routine for CustomEvaluator."""
-        iterator = self._iterators['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
         summary = reporter_module.DictSummary()
-
         self.model.eval()
         with torch.no_grad():
-            for batch in it:
+            for batch in self.hook_iterator():
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -117,7 +108,7 @@ class CustomEvaluator(BaseEvaluator):
         return summary.compute_mean()
 
 
-class CustomUpdater(training.StandardUpdater):
+class CustomUpdater(BaseStandardUpdater):
     """Custom Updater for Pytorch.
 
     Args:
@@ -186,14 +177,7 @@ class CustomUpdater(training.StandardUpdater):
             optimizer.step()
         optimizer.zero_grad()
 
-    def update(self):
-        self.update_core()
-        # #iterations with accum_grad > 1
-        # Ref.: https://github.com/espnet/espnet/issues/777
-        if self.forward_count == 0:
-            self.iteration += 1
-
-
+        
 class CustomConverter(object):
     """Custom batch converter for Pytorch.
 
@@ -446,7 +430,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.grad_noise, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer,
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -543,8 +528,11 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter),
-                       trigger=(args.report_interval_iters, 'iteration'))
+        tb_logger = TensorboardLogger(writer, att_reporter)
+        tb_trigger = (args.report_interval_iters, "iteration")
+        trainer.extend(tb_logger, trigger=tb_trigger)
+        # trainer.extend(
+        trainer.updater.set_tb_trigger(trainer, tb_trigger)
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
