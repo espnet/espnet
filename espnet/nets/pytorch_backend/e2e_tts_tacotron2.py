@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.get_attribute import get_attribute
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -150,8 +151,7 @@ class CBHGLoss(torch.nn.Module):
 
     def __init__(self, args):
         super(CBHGLoss, self).__init__()
-        self.reduction_factor = args.reduction_factor
-        self.use_masking = args.use_masking
+        self.use_masking = get_attribute(args, "use_masking", True)
 
     def forward(self, cbhg_outs, spcs, olens):
         """Calculate forward propagation.
@@ -185,14 +185,14 @@ class Tacotron2Loss(torch.nn.Module):
     Args:
         args (Namespace):
             - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+            - bce_pos_weight (float): Weight of positive sample of stop token.
 
     """
 
     def __init__(self, args):
         super(Tacotron2Loss, self).__init__()
-        self.use_masking = args.use_masking
-        self.bce_pos_weight = args.bce_pos_weight
+        self.use_masking = get_attribute(args, "use_masking", True)
+        self.bce_pos_weight = get_attribute(args, "bce_pos_weight", 20.0)
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -371,59 +371,90 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
+        # get hyperparameters
+        embed_dim = get_attribute(args, "embed_dim", 512)
+        elayers = get_attribute(args, "elayers", 1)
+        eunits = get_attribute(args, "eunits", 512)
+        econv_layers = get_attribute(args, "econv_layers", 3)
+        econv_filts = get_attribute(args, "econv_filts", 5)
+        econv_chans = get_attribute(args, "econv_chans", 512)
+        atype = get_attribute(args, "atype", "location")
+        adim = get_attribute(args, "adim", 128)
+        aconv_filts = get_attribute(args, "aconv_filts", 15)
+        aconv_chans = get_attribute(args, "aconv_chans", 32)
+        dlayers = get_attribute(args, "dlayers", 2)
+        dunits = get_attribute(args, "dunits", 1024)
+        prenet_layers = get_attribute(args, "prenet_layers", 2)
+        prenet_units = get_attribute(args, "prenet_units", 256)
+        postnet_layers = get_attribute(args, "postnet_layers", 5)
+        postnet_filts = get_attribute(args, "postnet_filts", 5)
+        postnet_chans = get_attribute(args, "postnet_chans", 512)
+        dropout_rate = get_attribute(args, "dropout_rate", 0.5)
+        zoneout_rate = get_attribute(args, "zoneout_rate", 0.1)
+        reduction_factor = get_attribute(args, "reduction_factor", 1)
+        spk_embed_dim = get_attribute(args, "spk_embed_dim", None)
+        output_activation = get_attribute(args, "output_activation", None)
+        cumulate_att_w = get_attribute(args, "cumulate_att_w", True)
+        use_batch_norm = get_attribute(args, "use_batch_norm", True)
+        use_concate = get_attribute(args, "use_concate", True)
+        use_residual = get_attribute(args, "use_residual", False)
+        use_cbhg = get_attribute(args, "use_cbhg", False)
+        use_guided_attn_loss = get_attribute(args, "use_guided_attn_loss", False)
+
         # store hyperparameters
         self.idim = idim
         self.odim = odim
-        self.spk_embed_dim = args.spk_embed_dim
-        self.cumulate_att_w = args.cumulate_att_w
-        self.reduction_factor = args.reduction_factor
-        self.use_cbhg = args.use_cbhg
-        self.use_guided_attn_loss = getattr(args, "use_guided_attn_loss", False)
+        self.spk_embed_dim = spk_embed_dim
+        self.cumulate_att_w = cumulate_att_w
+        self.reduction_factor = reduction_factor
+        self.use_cbhg = use_cbhg
+        self.use_guided_attn_loss = use_guided_attn_loss
 
         # define activation function for the final output
-        if args.output_activation is None:
+        if output_activation is None:
             self.output_activation_fn = None
-        elif hasattr(F, args.output_activation):
-            self.output_activation_fn = getattr(F, args.output_activation)
+        elif hasattr(F, output_activation):
+            self.output_activation_fn = getattr(F, output_activation)
         else:
-            raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
+            raise ValueError('there is no such an activation function. (%s)' % output_activation)
 
         # set padding idx
         padding_idx = 0
 
         # define network modules
         self.enc = Encoder(idim=idim,
-                           embed_dim=args.embed_dim,
-                           elayers=args.elayers,
-                           eunits=args.eunits,
-                           econv_layers=args.econv_layers,
-                           econv_chans=args.econv_chans,
-                           econv_filts=args.econv_filts,
-                           use_batch_norm=args.use_batch_norm,
-                           dropout_rate=args.dropout_rate,
+                           embed_dim=embed_dim,
+                           elayers=elayers,
+                           eunits=eunits,
+                           econv_layers=econv_layers,
+                           econv_chans=econv_chans,
+                           econv_filts=econv_filts,
+                           use_batch_norm=use_batch_norm,
+                           use_residual=use_residual,
+                           dropout_rate=dropout_rate,
                            padding_idx=padding_idx)
-        dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
-        if args.atype == "location":
+        dec_idim = eunits if spk_embed_dim is None else eunits + spk_embed_dim
+        if atype == "location":
             att = AttLoc(dec_idim,
-                         args.dunits,
-                         args.adim,
-                         args.aconv_chans,
-                         args.aconv_filts)
-        elif args.atype == "forward":
+                         dunits,
+                         adim,
+                         aconv_chans,
+                         aconv_filts)
+        elif atype == "forward":
             att = AttForward(dec_idim,
-                             args.dunits,
-                             args.adim,
-                             args.aconv_chans,
-                             args.aconv_filts)
+                             dunits,
+                             adim,
+                             aconv_chans,
+                             aconv_filts)
             if self.cumulate_att_w:
                 logging.warning("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
-        elif args.atype == "forward_ta":
+        elif atype == "forward_ta":
             att = AttForwardTA(dec_idim,
-                               args.dunits,
-                               args.adim,
-                               args.aconv_chans,
-                               args.aconv_filts,
+                               dunits,
+                               adim,
+                               aconv_chans,
+                               aconv_filts,
                                odim)
             if self.cumulate_att_w:
                 logging.warning("cumulation of attention weights is disabled in forward attention.")
@@ -433,33 +464,42 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.dec = Decoder(idim=dec_idim,
                            odim=odim,
                            att=att,
-                           dlayers=args.dlayers,
-                           dunits=args.dunits,
-                           prenet_layers=args.prenet_layers,
-                           prenet_units=args.prenet_units,
-                           postnet_layers=args.postnet_layers,
-                           postnet_chans=args.postnet_chans,
-                           postnet_filts=args.postnet_filts,
+                           dlayers=dlayers,
+                           dunits=dunits,
+                           prenet_layers=prenet_layers,
+                           prenet_units=prenet_units,
+                           postnet_layers=postnet_layers,
+                           postnet_chans=postnet_chans,
+                           postnet_filts=postnet_filts,
                            output_activation_fn=self.output_activation_fn,
                            cumulate_att_w=self.cumulate_att_w,
-                           use_batch_norm=args.use_batch_norm,
-                           use_concate=args.use_concate,
-                           dropout_rate=args.dropout_rate,
-                           zoneout_rate=args.zoneout_rate,
-                           reduction_factor=args.reduction_factor)
+                           use_batch_norm=use_batch_norm,
+                           use_concate=use_concate,
+                           dropout_rate=dropout_rate,
+                           zoneout_rate=zoneout_rate,
+                           reduction_factor=reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
         if self.use_guided_attn_loss:
-            self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
+            sigma = get_attribute(args, "guided_attn_loss_sigma", 0.4)
+            self.attn_loss = GuidedAttentionLoss(sigma=sigma)
         if self.use_cbhg:
+            spc_dim = get_attribute(args, "spc_dim")
+            cbhg_conv_bank_layers = get_attribute(args, "cbhg_conv_bank_layers", 8)
+            cbhg_conv_bank_chans = get_attribute(args, "cbhg_conv_bank_chans", 128)
+            cbhg_conv_proj_filts = get_attribute(args, "cbhg_conv_proj_filts", 3)
+            cbhg_conv_proj_chans = get_attribute(args, "cbhg_conv_proj_chans", 256)
+            cbhg_highway_layers = get_attribute(args, "cbhg_highway_layers", 4)
+            cbhg_highway_units = get_attribute(args, "cbhg_highway_units", 128)
+            cbhg_gru_units = get_attribute(args, "cbhg_gru_units", 256)
             self.cbhg = CBHG(idim=odim,
-                             odim=args.spc_dim,
-                             conv_bank_layers=args.cbhg_conv_bank_layers,
-                             conv_bank_chans=args.cbhg_conv_bank_chans,
-                             conv_proj_filts=args.cbhg_conv_proj_filts,
-                             conv_proj_chans=args.cbhg_conv_proj_chans,
-                             highway_layers=args.cbhg_highway_layers,
-                             highway_units=args.cbhg_highway_units,
-                             gru_units=args.cbhg_gru_units)
+                             odim=spc_dim,
+                             conv_bank_layers=cbhg_conv_bank_layers,
+                             conv_bank_chans=cbhg_conv_bank_chans,
+                             conv_proj_filts=cbhg_conv_proj_filts,
+                             conv_proj_chans=cbhg_conv_proj_chans,
+                             highway_layers=cbhg_highway_layers,
+                             highway_units=cbhg_highway_units,
+                             gru_units=cbhg_gru_units)
             self.cbhg_loss = CBHGLoss(args)
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
@@ -557,9 +597,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         """
         # get options
-        threshold = inference_args.threshold
-        minlenratio = inference_args.minlenratio
-        maxlenratio = inference_args.maxlenratio
+        threshold = get_attribute(inference_args, "threshold", 0.5)
+        minlenratio = get_attribute(inference_args, "minlenratio", 0.0)
+        maxlenratio = get_attribute(inference_args, "maxlenratio", 10.0)
 
         # inference
         h = self.enc.inference(x)
