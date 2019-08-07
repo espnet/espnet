@@ -5,8 +5,8 @@
 # This script computes the dereverberation scores given in REVERB challenge
 # Eg. local/compute_se_scores.sh --nch 8 /export/corpora5/REVERB_2014/REVERB ${PWD}/wav ${PWD}/local 
 
-. ./cmd.sh
-. ./path.sh
+. ./cmd.sh || exit 1;
+. ./path.sh || exit 1;
 set -e
 set -u
 set -o pipefail
