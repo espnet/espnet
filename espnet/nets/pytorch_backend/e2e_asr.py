@@ -99,9 +99,9 @@ class E2E(ASRInterface, torch.nn.Module):
             labeldist = None
 
         # speech translation related
-        self.replace_sos = args.replace_sos
+        self.replace_sos = getattr(args, "replace_sos", False)  # use getattr to keep compatibility
 
-        if args.use_frontend:
+        if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
             # Relative importing because of using python3 syntax
             from espnet.nets.pytorch_backend.frontends.feature_transform \
                 import feature_transform_for
