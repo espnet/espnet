@@ -32,6 +32,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
     Args:
         sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+        alpha (float, optional): Scaling coefficient (lambda).
         reset_always (bool, optional): Whether to always reset masks.
 
     """
@@ -57,7 +58,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         if self.reset_always:
             self._reset_masks()
 
-        return loss
+        return self.alpha * loss
 
 
 class TransformerLoss(torch.nn.Module):
@@ -194,6 +195,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             - num_heads_applied_guided_attn (int): Number of heads in each layer to be applied guided attention loss.
             - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
             - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
+            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+            - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
@@ -293,6 +296,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Whether to use guided attention loss")
         group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
                            help="Sigma in guided attention loss")
+        parser.add_argument("--guided-attn-loss-lamdba", default=1.0, type=float,
+                            help="Lambda in guided attention loss")
         group.add_argument("--num-heads-applied-guided-attn", default=2, type=int,
                            help="Number of heads in each layer to be applied guided attention loss"
                                 "if set -1, all of the heads will be applied.")
@@ -430,7 +435,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         # define loss function
         self.criterion = TransformerLoss(args)
         if self.use_guided_attn_loss:
-            self.attn_criterion = GuidedMultiHeadAttentionLoss(args.guided_attn_loss_sigma)
+            self.attn_criterion = GuidedMultiHeadAttentionLoss(
+                sigma=args.guided_attn_loss_sigma,
+                alpha=getattr(args, "guided_attn_loss_lambda", 1.0)  # use getattr to keep compatibility
+            )
 
         # initialize parameters
         self._reset_parameters(args)
