@@ -73,6 +73,9 @@ DEFAULTS = {
     "num_layers_applied_guided_attn": 2,
     "num_heads_applied_guided_attn": 2,
     "modules_applied_guided_attn": ["encoder-decoder"],
+    "threshold": 0.5,
+    "minlenratio": 0.0,
+    "maxlenratio": 10.0,
 }
 
 
@@ -785,9 +788,9 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         """
         # get options
-        threshold = get_attribute(inference_args, "threshold", 0.5)
-        minlenratio = get_attribute(inference_args, "minlenratio", 0.0)
-        maxlenratio = get_attribute(inference_args, "maxlenratio", 10.0)
+        threshold = get_attribute(inference_args, "threshold", DEFAULTS["threshold"])
+        minlenratio = get_attribute(inference_args, "minlenratio", DEFAULTS["minlenratio"])
+        maxlenratio = get_attribute(inference_args, "maxlenratio", DEFAULTS["maxlenratio"])
 
         # forward encoder
         xs = x.unsqueeze(0)

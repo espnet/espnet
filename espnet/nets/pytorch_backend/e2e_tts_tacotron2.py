@@ -63,6 +63,9 @@ DEFAULTS = {
     "cbhg_gru_units": 256,
     "use_guided_attn_loss": False,
     "guided_attn_loss_sigma": 0.4,
+    "threshold": 0.5,
+    "minlenratio": 0.0,
+    "maxlenratio": 10.0,
 }
 
 
@@ -646,9 +649,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         """
         # get options
-        threshold = get_attribute(inference_args, "threshold", 0.5)
-        minlenratio = get_attribute(inference_args, "minlenratio", 0.0)
-        maxlenratio = get_attribute(inference_args, "maxlenratio", 10.0)
+        threshold = get_attribute(inference_args, "threshold", DEFAULTS["threshold"])
+        minlenratio = get_attribute(inference_args, "minlenratio", DEFAULTS["minlenratio"])
+        maxlenratio = get_attribute(inference_args, "maxlenratio", DEFAULTS["maxlenratio"])
 
         # inference
         h = self.enc.inference(x)
