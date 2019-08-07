@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2018 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 db=$1

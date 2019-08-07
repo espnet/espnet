@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2018 Okayama University (Katsuki Inoue)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import os
 import sys
 
