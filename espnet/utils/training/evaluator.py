@@ -1,9 +1,9 @@
 import copy
 import warnings
 
+from chainer.dataset import convert
 from chainer import function
 from chainer import reporter as reporter_module
-from chainer.dataset import convert
 from chainer.training.extensions import Evaluator
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
@@ -55,6 +55,13 @@ class BaseEvaluator(Evaluator):
 
         return summary.compute_mean()
 
-    def __call__(self, trainer):
-        TensorboardLogger.reset_trigger(trainer)
-        return super().__call__(trainer)
+    def __call__(self, trainer=None):
+        ret = super().__call__(trainer)
+        try:
+            if trainer is not None:
+                # force report evaluation log in tensorboard
+                tb_logger = trainer.get_extension(TensorboardLogger.default_name)
+                tb_logger(trainer)
+        except ValueError:
+            pass
+        return ret

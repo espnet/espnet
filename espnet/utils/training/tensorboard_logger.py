@@ -1,17 +1,10 @@
 from chainer.training.extension import Extension
-from chainer.training.util import get_trigger
 
 
 class TensorboardLogger(Extension):
     """A tensorboard logger extension"""
 
-    default_name = "tensorboard_logger"
-
-    @classmethod
-    def reset_trigger(cls, trainer, trigger=(1, "iteration")):
-        if trainer is None:
-            return
-        trainer._extensions[cls.default_name].trigger = get_trigger(trigger)
+    default_name = "espnet_tensorboard_logger"
 
     def __init__(self, logger, att_reporter=None, entries=None, epoch=0):
         """Init the extension
