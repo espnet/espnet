@@ -235,50 +235,24 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # get hyperparameters
         spk_embed_dim = get_attribute(
             args, "spk_embed_dim", DEFAULTS["spk_embed_dim"])
-        positionwise_layer_type = get_attribute(
-            args, "positionwise_layer_type", DEFAULTS["positionwise_layer_type"])
-        positionwise_conv_kernel_size = get_attribute(
-            args, "positionwise_conv_kernel_size", DEFAULTS["positionwise_conv_kernel_size"])
-        elayers = get_attribute(
-            args, "elayers", DEFAULTS["elayers"])
-        eunits = get_attribute(
-            args, "eunits", DEFAULTS["eunits"])
-        transformer_enc_dropout_rate = get_attribute(
-            args, "transformer_enc_dropout_rate", DEFAULTS["transformer_enc_dropout_rate"])
-        transformer_enc_positional_dropout_rate = get_attribute(
-            args, "transformer_enc_positional_dropout_rate", DEFAULTS["transformer_enc_positional_dropout_rate"])
-        transformer_enc_attn_dropout_rate = get_attribute(
-            args, "transformer_enc_attn_dropout_rate", DEFAULTS["transformer_enc_attn_dropout_rate"])
-        dlayers = get_attribute(
-            args, "dlayers", DEFAULTS["dlayers"])
-        dunits = get_attribute(
-            args, "dunits", DEFAULTS["dunits"])
-        transformer_dec_dropout_rate = get_attribute(
-            args, "transformer_dec_dropout_rate", DEFAULTS["transformer_dec_dropout_rate"])
-        transformer_dec_positional_dropout_rate = get_attribute(
-            args, "transformer_dec_positional_dropout_rate", DEFAULTS["transformer_dec_positional_dropout_rate"])
-        transformer_dec_attn_dropout_rate = get_attribute(
-            args, "transformer_dec_attn_dropout_rate", DEFAULTS["transformer_dec_attn_dropout_rate"])
         adim = get_attribute(
             args, "adim", DEFAULTS["adim"])
         aheads = get_attribute(
             args, "aheads", DEFAULTS["aheads"])
-        duration_predictor_layers = get_attribute(
-            args, "duration_predictor_layers", DEFAULTS["duration_predictor_layers"])
-        duration_predictor_chans = get_attribute(
-            args, "duration_predictor_chans", DEFAULTS["duration_predictor_chans"])
-        duration_predictor_kernel_size = get_attribute(
-            args, "duration_predictor_kernel_size", DEFAULTS["duration_predictor_kernel_size"])
-        duration_predictor_dropout_rate = get_attribute(
-            args, "duration_predictor_dropout_rate", DEFAULTS["duration_predictor_dropout_rate"])
+        elayers = get_attribute(
+            args, "elayers", DEFAULTS["elayers"])
+        eunits = get_attribute(
+            args, "eunits", DEFAULTS["eunits"])
+        dlayers = get_attribute(
+            args, "dlayers", DEFAULTS["dlayers"])
+        dunits = get_attribute(
+            args, "dunits", DEFAULTS["dunits"])
+        positionwise_layer_type = get_attribute(
+            args, "positionwise_layer_type", DEFAULTS["positionwise_layer_type"])
+        positionwise_conv_kernel_size = get_attribute(
+            args, "positionwise_conv_kernel_size", DEFAULTS["positionwise_conv_kernel_size"])
         use_scaled_pos_enc = get_attribute(
             args, "use_scaled_pos_enc", DEFAULTS["use_scaled_pos_enc"])
-        transformer_init = get_attribute(
-            args, "transformer_init", DEFAULTS["transformer_init"])
-        initial_encoder_alpha = get_attribute(
-            args, "initial_encoder_alpha", DEFAULTS["initial_encoder_alpha"])
-        initial_decoder_alpha = get_attribute(
-            args, "initial_decoder_alpha", DEFAULTS["initial_decoder_alpha"])
         encoder_normalize_before = get_attribute(
             args, "encoder_normalize_before", DEFAULTS["encoder_normalize_before"])
         decoder_normalize_before = get_attribute(
@@ -287,6 +261,32 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             args, "encoder_concat_after", DEFAULTS["encoder_concat_after"])
         decoder_concat_after = get_attribute(
             args, "decoder_concat_after", DEFAULTS["decoder_concat_after"])
+        transformer_enc_dropout_rate = get_attribute(
+            args, "transformer_enc_dropout_rate", DEFAULTS["transformer_enc_dropout_rate"])
+        transformer_enc_positional_dropout_rate = get_attribute(
+            args, "transformer_enc_positional_dropout_rate", DEFAULTS["transformer_enc_positional_dropout_rate"])
+        transformer_enc_attn_dropout_rate = get_attribute(
+            args, "transformer_enc_attn_dropout_rate", DEFAULTS["transformer_enc_attn_dropout_rate"])
+        transformer_dec_dropout_rate = get_attribute(
+            args, "transformer_dec_dropout_rate", DEFAULTS["transformer_dec_dropout_rate"])
+        transformer_dec_positional_dropout_rate = get_attribute(
+            args, "transformer_dec_positional_dropout_rate", DEFAULTS["transformer_dec_positional_dropout_rate"])
+        transformer_dec_attn_dropout_rate = get_attribute(
+            args, "transformer_dec_attn_dropout_rate", DEFAULTS["transformer_dec_attn_dropout_rate"])
+        duration_predictor_layers = get_attribute(
+            args, "duration_predictor_layers", DEFAULTS["duration_predictor_layers"])
+        duration_predictor_chans = get_attribute(
+            args, "duration_predictor_chans", DEFAULTS["duration_predictor_chans"])
+        duration_predictor_kernel_size = get_attribute(
+            args, "duration_predictor_kernel_size", DEFAULTS["duration_predictor_kernel_size"])
+        duration_predictor_dropout_rate = get_attribute(
+            args, "duration_predictor_dropout_rate", DEFAULTS["duration_predictor_dropout_rate"])
+        transformer_init = get_attribute(
+            args, "transformer_init", DEFAULTS["transformer_init"])
+        initial_encoder_alpha = get_attribute(
+            args, "initial_encoder_alpha", DEFAULTS["initial_encoder_alpha"])
+        initial_decoder_alpha = get_attribute(
+            args, "initial_decoder_alpha", DEFAULTS["initial_decoder_alpha"])
         reduction_factor = get_attribute(
             args, "reduction_factor", DEFAULTS["reduction_factor"])
         use_masking = get_attribute(
