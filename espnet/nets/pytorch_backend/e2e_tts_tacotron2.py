@@ -13,7 +13,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.asr.asr_utils import AttributeDict
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
@@ -380,17 +379,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
-        # convert args into dict
-        if args is None:
-            args = {}
-        elif isinstance(args, argparse.Namespace):
-            args = vars(args)
-        elif isinstance(args, AttributeDict):
-            args = dict(args.items())
-        else:
-            raise NotImplementedError()
-
         # get default arguments and fill missing arguments
+        args = {} if args is None else vars(args)
         default_args, _ = self.add_arguments(argparse.ArgumentParser()).parse_known_args()
         for key, value in vars(default_args).items():
             if key not in args:
