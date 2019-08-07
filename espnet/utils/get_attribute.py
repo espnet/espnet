@@ -21,7 +21,7 @@ def get_attribute(obj, name, *default):
     if hasattr(obj, name):
         return getattr(obj, name)
     elif len(default) != 0:
-        logging.info("%s does not exist in the object. use default value." % name)
+        logging.info("attribute \"%s\" does not exist. use default value %s." % (name, str(default[0])))
         return default[0]
     else:
         raise AttributeError("%s does not exist in the object." % name)
