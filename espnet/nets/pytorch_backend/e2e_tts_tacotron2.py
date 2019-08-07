@@ -70,7 +70,7 @@ class GuidedAttentionLoss(torch.nn.Module):
         loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
             self._reset_masks()
-        return self.alphao * loss
+        return self.alpha * loss
 
     def _make_guided_attention_masks(self, ilens, olens):
         n_batches = len(ilens)
