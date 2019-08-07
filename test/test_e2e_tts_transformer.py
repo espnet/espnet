@@ -60,6 +60,7 @@ def make_transformer_args(**kwargs):
         num_heads_applied_guided_attn=2,
         num_layers_applied_guided_attn=2,
         guided_attn_loss_sigma=0.4,
+        guided_attn_loss_lambda=1.0,
         modules_applied_guided_attn=["encoder", "decoder", "encoder-decoder"]
     )
     defaults.update(kwargs)
