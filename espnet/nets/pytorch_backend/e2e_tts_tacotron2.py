@@ -456,7 +456,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             cbhg_gru_units = get_attribute(args, "cbhg_gru_units", DEFAULTS["cbhg_gru_units"])
         use_guided_attn_loss = get_attribute(args, "use_guided_attn_loss", DEFAULTS["use_guided_attn_loss"])
         if use_guided_attn_loss:
-            sigma = get_attribute(args, "guided_attn_loss_sigma", DEFAULTS["guided_attn_loss_sigma"])
+            guided_attn_loss_sigma = get_attribute(args, "guided_attn_loss_sigma", DEFAULTS["guided_attn_loss_sigma"])
 
         # store hyperparameters
         self.idim = idim
@@ -538,7 +538,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.taco2_loss = Tacotron2Loss(use_masking=use_masking,
                                         bce_pos_weight=bce_pos_weight)
         if self.use_guided_attn_loss:
-            self.attn_loss = GuidedAttentionLoss(sigma=sigma)
+            self.attn_loss = GuidedAttentionLoss(sigma=guided_attn_loss_sigma)
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
                              odim=spc_dim,
