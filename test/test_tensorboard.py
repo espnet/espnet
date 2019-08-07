@@ -16,16 +16,20 @@ class DummyWriter:
 
 
 def test_tensorboard_evaluator():
+    # setup model
     model = chainer.links.Classifier(chainer.links.Linear(3, 2))
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    data_size = 7
+    # setup data
+    data_size = 6
     xs = numpy.random.randn(data_size, 3).astype(numpy.float32)
     ys = (numpy.random.randn(data_size) > 1).astype(numpy.int32)
     data = chainer.datasets.TupleDataset(xs, ys)
     batch_size = 2
     epoch = 10
+
+    # test runnable without tensorboard logger
     trainer = chainer.training.Trainer(
         chainer.training.StandardUpdater(
             chainer.iterators.SerialIterator(data, batch_size), optimizer),
@@ -33,7 +37,6 @@ def test_tensorboard_evaluator():
     trainer.extend(BaseEvaluator(
         chainer.iterators.SerialIterator(data, batch_size, repeat=False),
         model))
-    # test runnable without tensorboard logger
     trainer.run()
 
     # test runnable with tensorboard logger
@@ -49,9 +52,7 @@ def test_tensorboard_evaluator():
     trainer.extend(TensorboardLogger(writer), trigger=(log_interval, "iteration"))
     trainer.run()
 
+    # test the number of log entries
     assert TensorboardLogger.default_name in trainer._extensions
-    # TODO(karita): what is the correct number of len(train_loss)?
-    # train_loss = writer.data["main/loss"]
-    # assert len(train_loss) == (epoch * (data_size // log_interval + 1))
-    val_loss = writer.data["validation/main/loss"]
-    assert len(val_loss) == epoch, val_loss
+    assert len(writer.data["main/loss"]) == trainer.updater.iteration // log_interval
+    assert len(writer.data["validation/main/loss"]) == epoch
