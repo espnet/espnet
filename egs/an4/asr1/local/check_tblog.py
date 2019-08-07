@@ -5,7 +5,7 @@ from glob import glob
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 for dirc in glob("tensorboard/*"):
-    event_acc = EventAccumulator("./tensorboard/train_nodev_pytorch_train_mtlalpha1.0")
+    event_acc = EventAccumulator(dirc)
     event_acc.Reload()
     # Show all tags in the log file
     # print(event_acc.Tags())

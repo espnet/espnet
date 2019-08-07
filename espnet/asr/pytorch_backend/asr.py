@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
+import copy
 import json
 import logging
 import math
@@ -87,10 +88,22 @@ class CustomEvaluator(BaseEvaluator):
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
         """Main evaluate routine for CustomEvaluator."""
+        iterator = self._iterators['main']
+
+        if self.eval_hook:
+            self.eval_hook(self)
+
+        if hasattr(iterator, 'reset'):
+            iterator.reset()
+            it = iterator
+        else:
+            it = copy.copy(iterator)
+
         summary = reporter_module.DictSummary()
+
         self.model.eval()
         with torch.no_grad():
-            for batch in self.hook_iterator():
+            for batch in it:
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
