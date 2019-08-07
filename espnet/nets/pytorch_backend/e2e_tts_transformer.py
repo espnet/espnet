@@ -200,6 +200,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - num_heads_applied_guided_attn (int): Number of heads in each layer to be applied guided attention loss.
             - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
             - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
+            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf

@@ -283,6 +283,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             - cbhg_gru_units (int): The number of units of GRU in CBHG.
             - use_masking (bool): Whether to mask padded part in loss calculation.
             - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+            - use-guided-attn-loss (bool): Whether to use guided attention loss.
+            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+            - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
