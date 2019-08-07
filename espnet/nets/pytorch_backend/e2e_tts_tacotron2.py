@@ -4,6 +4,7 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 import logging
 
 from distutils.util import strtobool
@@ -143,15 +144,13 @@ class CBHGLoss(torch.nn.Module):
     """Loss function module for CBHG.
 
     Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation
+        use_masking (bool): Whether to mask padded part in loss calculation.
 
     """
 
-    def __init__(self, args):
+    def __init__(self, use_masking=True):
         super(CBHGLoss, self).__init__()
-        self.reduction_factor = args.reduction_factor
-        self.use_masking = args.use_masking
+        self.use_masking = use_masking
 
     def forward(self, cbhg_outs, spcs, olens):
         """Calculate forward propagation.
@@ -183,16 +182,15 @@ class Tacotron2Loss(torch.nn.Module):
     """Loss function module for Tacotron2.
 
     Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+        use_masking (bool): Whether to mask padded part in loss calculation.
+        bce_pos_weight (float): Weight of positive sample of stop token.
 
     """
 
-    def __init__(self, args):
+    def __init__(self, use_masking=True, bce_pos_weight=20.0):
         super(Tacotron2Loss, self).__init__()
-        self.use_masking = args.use_masking
-        self.bce_pos_weight = args.bce_pos_weight
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -274,6 +272,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             - cbhg_gru_units (int): The number of units of GRU in CBHG.
             - use_masking (bool): Whether to mask padded part in loss calculation.
             - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+            - use-guided-attn-loss (bool): Whether to use guided attention loss.
+            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+            - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
@@ -283,93 +284,107 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         """Add model-specific arguments to the parser."""
+        group = parser.add_argument_group("tacotron 2 model setting")
         # encoder
-        parser.add_argument('--embed-dim', default=512, type=int,
-                            help='Number of dimension of embedding')
-        parser.add_argument('--elayers', default=1, type=int,
-                            help='Number of encoder layers')
-        parser.add_argument('--eunits', '-u', default=512, type=int,
-                            help='Number of encoder hidden units')
-        parser.add_argument('--econv-layers', default=3, type=int,
-                            help='Number of encoder convolution layers')
-        parser.add_argument('--econv-chans', default=512, type=int,
-                            help='Number of encoder convolution channels')
-        parser.add_argument('--econv-filts', default=5, type=int,
-                            help='Filter size of encoder convolution')
+        group.add_argument('--embed-dim', default=512, type=int,
+                           help='Number of dimension of embedding')
+        group.add_argument('--elayers', default=1, type=int,
+                           help='Number of encoder layers')
+        group.add_argument('--eunits', '-u', default=512, type=int,
+                           help='Number of encoder hidden units')
+        group.add_argument('--econv-layers', default=3, type=int,
+                           help='Number of encoder convolution layers')
+        group.add_argument('--econv-chans', default=512, type=int,
+                           help='Number of encoder convolution channels')
+        group.add_argument('--econv-filts', default=5, type=int,
+                           help='Filter size of encoder convolution')
         # attention
-        parser.add_argument('--atype', default="location", type=str,
-                            choices=["forward_ta", "forward", "location"],
-                            help='Type of attention mechanism')
-        parser.add_argument('--adim', default=512, type=int,
-                            help='Number of attention transformation dimensions')
-        parser.add_argument('--aconv-chans', default=32, type=int,
-                            help='Number of attention convolution channels')
-        parser.add_argument('--aconv-filts', default=15, type=int,
-                            help='Filter size of attention convolution')
-        parser.add_argument('--cumulate-att-w', default=True, type=strtobool,
-                            help="Whether or not to cumulate attention weights")
+        group.add_argument('--atype', default="location", type=str,
+                           choices=["forward_ta", "forward", "location"],
+                           help='Type of attention mechanism')
+        group.add_argument('--adim', default=512, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--aconv-chans', default=32, type=int,
+                           help='Number of attention convolution channels')
+        group.add_argument('--aconv-filts', default=15, type=int,
+                           help='Filter size of attention convolution')
+        group.add_argument('--cumulate-att-w', default=True, type=strtobool,
+                           help="Whether or not to cumulate attention weights")
         # decoder
-        parser.add_argument('--dlayers', default=2, type=int,
-                            help='Number of decoder layers')
-        parser.add_argument('--dunits', default=1024, type=int,
-                            help='Number of decoder hidden units')
-        parser.add_argument('--prenet-layers', default=2, type=int,
-                            help='Number of prenet layers')
-        parser.add_argument('--prenet-units', default=256, type=int,
-                            help='Number of prenet hidden units')
-        parser.add_argument('--postnet-layers', default=5, type=int,
-                            help='Number of postnet layers')
-        parser.add_argument('--postnet-chans', default=512, type=int,
-                            help='Number of postnet channels')
-        parser.add_argument('--postnet-filts', default=5, type=int,
-                            help='Filter size of postnet')
-        parser.add_argument('--output-activation', default=None, type=str, nargs='?',
-                            help='Output activation function')
+        group.add_argument('--dlayers', default=2, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=1024, type=int,
+                           help='Number of decoder hidden units')
+        group.add_argument('--prenet-layers', default=2, type=int,
+                           help='Number of prenet layers')
+        group.add_argument('--prenet-units', default=256, type=int,
+                           help='Number of prenet hidden units')
+        group.add_argument('--postnet-layers', default=5, type=int,
+                           help='Number of postnet layers')
+        group.add_argument('--postnet-chans', default=512, type=int,
+                           help='Number of postnet channels')
+        group.add_argument('--postnet-filts', default=5, type=int,
+                           help='Filter size of postnet')
+        group.add_argument('--output-activation', default=None, type=str, nargs='?',
+                           help='Output activation function')
         # cbhg
-        parser.add_argument('--use-cbhg', default=False, type=strtobool,
-                            help='Whether to use CBHG module')
-        parser.add_argument('--cbhg-conv-bank-layers', default=8, type=int,
-                            help='Number of convoluional bank layers in CBHG')
-        parser.add_argument('--cbhg-conv-bank-chans', default=128, type=int,
-                            help='Number of convoluional bank channles in CBHG')
-        parser.add_argument('--cbhg-conv-proj-filts', default=3, type=int,
-                            help='Filter size of convoluional projection layer in CBHG')
-        parser.add_argument('--cbhg-conv-proj-chans', default=256, type=int,
-                            help='Number of convoluional projection channels in CBHG')
-        parser.add_argument('--cbhg-highway-layers', default=4, type=int,
-                            help='Number of highway layers in CBHG')
-        parser.add_argument('--cbhg-highway-units', default=128, type=int,
-                            help='Number of highway units in CBHG')
-        parser.add_argument('--cbhg-gru-units', default=256, type=int,
-                            help='Number of GRU units in CBHG')
+        group.add_argument('--use-cbhg', default=False, type=strtobool,
+                           help='Whether to use CBHG module')
+        group.add_argument('--cbhg-conv-bank-layers', default=8, type=int,
+                           help='Number of convoluional bank layers in CBHG')
+        group.add_argument('--cbhg-conv-bank-chans', default=128, type=int,
+                           help='Number of convoluional bank channles in CBHG')
+        group.add_argument('--cbhg-conv-proj-filts', default=3, type=int,
+                           help='Filter size of convoluional projection layer in CBHG')
+        group.add_argument('--cbhg-conv-proj-chans', default=256, type=int,
+                           help='Number of convoluional projection channels in CBHG')
+        group.add_argument('--cbhg-highway-layers', default=4, type=int,
+                           help='Number of highway layers in CBHG')
+        group.add_argument('--cbhg-highway-units', default=128, type=int,
+                           help='Number of highway units in CBHG')
+        group.add_argument('--cbhg-gru-units', default=256, type=int,
+                           help='Number of GRU units in CBHG')
         # model (parameter) related
-        parser.add_argument('--use-batch-norm', default=True, type=strtobool,
-                            help='Whether to use batch normalization')
-        parser.add_argument('--use-concate', default=True, type=strtobool,
-                            help='Whether to concatenate encoder embedding with decoder outputs')
-        parser.add_argument('--use-residual', default=True, type=strtobool,
-                            help='Whether to use residual connection in conv layer')
-        parser.add_argument('--dropout-rate', default=0.5, type=float,
-                            help='Dropout rate')
-        parser.add_argument('--zoneout-rate', default=0.1, type=float,
-                            help='Zoneout rate')
-        parser.add_argument('--reduction-factor', default=1, type=int,
-                            help='Reduction factor')
+        group.add_argument('--use-batch-norm', default=True, type=strtobool,
+                           help='Whether to use batch normalization')
+        group.add_argument('--use-concate', default=True, type=strtobool,
+                           help='Whether to concatenate encoder embedding with decoder outputs')
+        group.add_argument('--use-residual', default=True, type=strtobool,
+                           help='Whether to use residual connection in conv layer')
+        group.add_argument('--dropout-rate', default=0.5, type=float,
+                           help='Dropout rate')
+        group.add_argument('--zoneout-rate', default=0.1, type=float,
+                           help='Zoneout rate')
+        group.add_argument('--reduction-factor', default=1, type=int,
+                           help='Reduction factor')
+        group.add_argument("--spk_embed_dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
+        group.add_argument("--spc_dim", default=None, type=int,
+                           help="Number of spectrogram dimensions")
         # loss related
-        parser.add_argument('--use-masking', default=False, type=strtobool,
-                            help='Whether to use masking in calculation of loss')
-        parser.add_argument('--bce-pos-weight', default=20.0, type=float,
-                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
-        parser.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
-                            help="Whether to use guided attention loss")
-        parser.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
-                            help="Sigma in guided attention loss")
-        return
+        group.add_argument('--use-masking', default=False, type=strtobool,
+                           help='Whether to use masking in calculation of loss')
+        group.add_argument('--bce-pos-weight', default=20.0, type=float,
+                           help='Positive sample weight in BCE calculation (only for use-masking=True)')
+        group.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+                           help="Whether to use guided attention loss")
+        group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+                           help="Sigma in guided attention loss")
+        return parser
 
     def __init__(self, idim, odim, args):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
+
+        # get default arguments and fill missing arguments
+        default_args = self.add_arguments(argparse.ArgumentParser()).parse_args()
+        args = vars(args)
+        for key, value in vars(default_args).items():
+            if key not in args:
+                logging.warning("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
+                args[key] = value
+        args = argparse.Namespace(**args)
 
         # store hyperparameters
         self.idim = idim
@@ -400,6 +415,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            econv_chans=args.econv_chans,
                            econv_filts=args.econv_filts,
                            use_batch_norm=args.use_batch_norm,
+                           use_residual=args.use_residual,
                            dropout_rate=args.dropout_rate,
                            padding_idx=padding_idx)
         dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
@@ -447,7 +463,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            dropout_rate=args.dropout_rate,
                            zoneout_rate=args.zoneout_rate,
                            reduction_factor=args.reduction_factor)
-        self.taco2_loss = Tacotron2Loss(args)
+        self.taco2_loss = Tacotron2Loss(use_masking=args.use_masking,
+                                        bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
         if self.use_cbhg:
@@ -460,7 +477,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                              highway_layers=args.cbhg_highway_layers,
                              highway_units=args.cbhg_highway_units,
                              gru_units=args.cbhg_gru_units)
-            self.cbhg_loss = CBHGLoss(args)
+            self.cbhg_loss = CBHGLoss(use_masking=args.use_masking)
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
         """Calculate forward propagation.
@@ -557,9 +574,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         """
         # get options
-        threshold = inference_args.threshold
-        minlenratio = inference_args.minlenratio
-        maxlenratio = inference_args.maxlenratio
+        threshold = get_attribute(inference_args, "threshold", DEFAULTS["threshold"])
+        minlenratio = get_attribute(inference_args, "minlenratio", DEFAULTS["minlenratio"])
+        maxlenratio = get_attribute(inference_args, "maxlenratio", DEFAULTS["maxlenratio"])
 
         # inference
         h = self.enc.inference(x)
