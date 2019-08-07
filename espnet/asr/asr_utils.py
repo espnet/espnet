@@ -325,8 +325,15 @@ def get_model_conf(model_path, conf_path=None):
         model_conf = conf_path
     with open(model_conf, "rb") as f:
         logging.info('reading a config file from ' + model_conf)
-        idim, odim, args = json.load(f)
-    return idim, odim, argparse.Namespace(**args)
+        confs = json.load(f)
+    if isinstance(confs, dict):
+        # for lm
+        args = confs
+        return argparse.Namespace(**confs)
+    else:
+        # for asr, tts, mt
+        idim, odim, args = confs
+        return idim, odim, argparse.Namespace(**args)
 
 
 def chainer_load(path, model):
