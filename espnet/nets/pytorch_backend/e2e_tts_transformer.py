@@ -764,7 +764,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
@@ -786,7 +785,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 0, 0],
                      [1, 1, 1, 1, 0],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 0, 0, 0, 0],
                      [1, 1, 0, 0, 0],
                      [1, 1, 1, 0, 0],
@@ -810,7 +808,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 1],
                      [1, 1, 1, 1],
                      [1, 1, 1, 1]],
-
                     [[1, 1, 0, 0],
                      [1, 1, 0, 0],
                      [1, 1, 0, 0],
