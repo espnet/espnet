@@ -574,9 +574,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         """
         # get options
-        threshold = get_attribute(inference_args, "threshold", DEFAULTS["threshold"])
-        minlenratio = get_attribute(inference_args, "minlenratio", DEFAULTS["minlenratio"])
-        maxlenratio = get_attribute(inference_args, "maxlenratio", DEFAULTS["maxlenratio"])
+        threshold = inference_args.threshold
+        minlenratio = inference_args.minlenratio
+        maxlenratio = inference_args.maxlenratio
 
         # inference
         h = self.enc.inference(x)
