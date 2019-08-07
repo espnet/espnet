@@ -49,7 +49,6 @@ def test_tensorboard_evaluator():
             chainer.iterators.SerialIterator(data, batch_size, repeat=False),
             model))
         writer = DummyWriter()
-        log_interval = 3
         trainer.extend(TensorboardLogger(writer), trigger=(log_interval, "iteration"))
         trainer.run()
 
