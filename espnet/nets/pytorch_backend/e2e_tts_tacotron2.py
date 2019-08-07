@@ -237,7 +237,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace):
+        args (Namespace, optional):
             - spk_embed_dim (int): Dimension of the speaker embedding.
             - embed_dim (int): Dimension of character embedding.
             - elayers (int): The number of encoder blstm layers.
@@ -372,12 +372,14 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Sigma in guided attention loss")
         return parser
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args=None):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
         # get default arguments and fill missing arguments
+        if args is None:
+            args = argparse.Namespace()
         default_args = self.add_arguments(argparse.ArgumentParser()).parse_args()
         args = vars(args)
         for key, value in vars(default_args).items():

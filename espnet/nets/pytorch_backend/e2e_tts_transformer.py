@@ -152,7 +152,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace):
+        args (Namespace, optional):
             - embed_dim (int): Dimension of character embedding.
             - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
             - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
@@ -311,12 +311,14 @@ class Transformer(TTSInterface, torch.nn.Module):
         """Return plot class for attention weight plot."""
         return TTSPlot
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args=None):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
         # get default arguments and fill missing arguments
+        if args is None:
+            args = argparse.Namespace()
         default_args = self.add_arguments(argparse.ArgumentParser()).parse_args()
         args = vars(args)
         for key, value in vars(default_args).items():
