@@ -28,6 +28,54 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.get_attribute import get_attribute
 
 
+DEFAULTS = {
+    "embed_dim": 512,
+    "spk_embed_dim": None,
+    "eprenet_conv_layers": 3,
+    "eprenet_conv_chans": 256,
+    "eprenet_conv_filts": 5,
+    "eprenet_dropout_rate": 0.5,
+    "elayers": 3,
+    "eunits": 1536,
+    "transformer_enc_dropout_rate": 0.1,
+    "transformer_enc_positional_dropout_rate": 0.1,
+    "transformer_enc_attn_dropout_rate": 0.1,
+    "dprenet_layers": 2,
+    "dprenet_units": 256,
+    "dprenet_dropout_rate": 0.5,
+    "dlayers": 3,
+    "dunits": 1536,
+    "transformer_dec_dropout_rate": 0.1,
+    "transformer_dec_positional_dropout_rate": 0.1,
+    "transformer_dec_attn_dropout_rate": 0.1,
+    "adim": 384,
+    "aheads": 4,
+    "transformer_enc_dec_attn_dropout_rate": 0.1,
+    "postnet_layers": 5,
+    "postnet_filts": 5,
+    "postnet_chans": 512,
+    "postnet_dropout_rate": 0.5,
+    "use_batch_norm": True,
+    "use_scaled_pos_enc": True,
+    "transformer_init": "pytorch",
+    "initial_encoder_alpha": 1.0,
+    "initial_decoder_alpha": 1.0,
+    "encoder_normalize_before": False,
+    "decoder_normalize_before": False,
+    "encoder_concat_after": False,
+    "decoder_concat_after": False,
+    "reduction_factor": 1,
+    "loss_type": "L1",
+    "use_masking": True,
+    "bce_pos_weight": 5.0,
+    "use_guided_attn_loss": False,
+    "guided_attn_loss_sigma": 0.4,
+    "num_layers_applied_guided_attn": 2,
+    "num_heads_applied_guided_attn": 2,
+    "modules_applied_guided_attn": ["encoder-decoder"],
+}
+
+
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
     """Guided attention loss function module for multi head attention.
 
@@ -65,18 +113,13 @@ class TransformerLoss(torch.nn.Module):
     """Loss function module for TTS-Transformer.
 
     Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+        use_masking (bool, optional): Whether to mask padded part in loss calculation.
+        bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
 
     """
 
-    def __init__(self, args):
+    def __init__(self, use_masking=True, bce_pos_weight=5.0):
         super(TransformerLoss, self).__init__()
-        # get hyperparameters
-        use_masking = get_attribute(args, "use_masking", True)
-        bce_pos_weight = get_attribute(args, "bce_pos_weight", 5.0)
-
         # store hyperparameters
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
@@ -212,102 +255,147 @@ class Transformer(TTSInterface, torch.nn.Module):
         """Add model-specific arguments to the parser."""
         group = parser.add_argument_group("transformer model setting")
         # network structure related
-        group.add_argument("--embed-dim", default=512, type=int,
+        group.add_argument("--embed-dim", type=int,
+                           default=DEFAULTS["embed_dim"],
                            help="Dimension of character embedding in encoder prenet")
-        group.add_argument("--eprenet-conv-layers", default=3, type=int,
+        group.add_argument("--eprenet-conv-layers", type=int,
+                           default=DEFAULTS["eprenet_conv_layers"],
                            help="Number of encoder prenet convolution layers")
-        group.add_argument("--eprenet-conv-chans", default=256, type=int,
+        group.add_argument("--eprenet-conv-chans", type=int,
+                           default=DEFAULTS["eprenet_conv_chans"],
                            help="Number of encoder prenet convolution channels")
-        group.add_argument("--eprenet-conv-filts", default=5, type=int,
+        group.add_argument("--eprenet-conv-filts", type=int,
+                           default=DEFAULTS["eprenet_conv_filts"],
                            help="Filter size of encoder prenet convolution")
-        group.add_argument("--dprenet-layers", default=2, type=int,
+        group.add_argument("--dprenet-layers", type=int,
+                           default=DEFAULTS["dprenet_layers"],
                            help="Number of decoder prenet layers")
-        group.add_argument("--dprenet-units", default=256, type=int,
+        group.add_argument("--dprenet-units", type=int,
+                           default=DEFAULTS["dprenet_units"],
                            help="Number of decoder prenet hidden units")
-        group.add_argument("--elayers", default=3, type=int,
+        group.add_argument("--elayers", type=int,
+                           default=DEFAULTS["elayers"],
                            help="Number of encoder layers")
-        group.add_argument("--eunits", default=1536, type=int,
+        group.add_argument("--eunits", type=int,
+                           default=DEFAULTS["eunits"],
                            help="Number of encoder hidden units")
-        group.add_argument("--adim", default=384, type=int,
+        group.add_argument("--adim", type=int,
+                           default=DEFAULTS["adim"],
                            help="Number of attention transformation dimensions")
-        group.add_argument("--aheads", default=4, type=int,
+        group.add_argument("--aheads", type=int,
+                           default=DEFAULTS["aheads"],
                            help="Number of heads for multi head attention")
-        group.add_argument("--dlayers", default=3, type=int,
+        group.add_argument("--dlayers", type=int,
+                           default=DEFAULTS["dlayers"],
                            help="Number of decoder layers")
-        group.add_argument("--dunits", default=1536, type=int,
+        group.add_argument("--dunits", type=int,
+                           default=DEFAULTS["dunits"],
                            help="Number of decoder hidden units")
-        group.add_argument("--postnet-layers", default=5, type=int,
+        group.add_argument("--postnet-layers", type=int,
+                           default=DEFAULTS["postnet_layers"],
                            help="Number of postnet layers")
-        group.add_argument("--postnet-chans", default=256, type=int,
+        group.add_argument("--postnet-chans", type=int,
+                           default=DEFAULTS["postnet_chans"],
                            help="Number of postnet channels")
-        group.add_argument("--postnet-filts", default=5, type=int,
+        group.add_argument("--postnet-filts", type=int,
+                           default=DEFAULTS["postnet_filts"],
                            help="Filter size of postnet")
-        group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
-                           help="Use trainable scaled positional encoding instead of the fixed scale one.")
-        group.add_argument("--use-batch-norm", default=True, type=strtobool,
+        group.add_argument("--use-scaled-pos-enc", type=strtobool,
+                           default=DEFAULTS["use_scaled_pos_enc"],
+                           help="Use trainable scaled positional encoding instead of the fixed scale one")
+        group.add_argument("--use-batch-norm", type=strtobool,
+                           default=DEFAULTS["use_batch_norm"],
                            help="Whether to use batch normalization")
-        group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
+        group.add_argument("--encoder-normalize-before", type=strtobool,
+                           default=DEFAULTS["encoder_normalize_before"],
                            help="Whether to apply layer norm before encoder block")
-        group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
+        group.add_argument("--decoder-normalize-before", type=strtobool,
+                           default=DEFAULTS["decoder_normalize_before"],
                            help="Whether to apply layer norm before decoder block")
-        group.add_argument("--encoder-concat-after", default=False, type=strtobool,
+        group.add_argument("--encoder-concat-after", type=strtobool,
+                           default=DEFAULTS["encoder_concat_after"],
                            help="Whether to concatenate attention layer's input and output in encoder")
-        group.add_argument("--decoder-concat-after", default=False, type=strtobool,
+        group.add_argument("--decoder-concat-after", type=strtobool,
+                           default=DEFAULTS["decoder_concat_after"],
                            help="Whether to concatenate attention layer's input and output in decoder")
-        parser.add_argument("--reduction-factor", default=1, type=int,
-                            help="Reduction factor")
+        group.add_argument("--reduction-factor", type=int,
+                           default=DEFAULTS["reduction_factor"],
+                           help="Reduction factor")
         # training related
-        group.add_argument("--transformer-init", type=str, default="pytorch",
+        group.add_argument("--transformer-init", type=str,
+                           default=DEFAULTS["transformer_init"],
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
                            help="How to initialize transformer parameters")
-        group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
+        group.add_argument("--initial-encoder-alpha", type=float,
+                           default=DEFAULTS["initial_encoder_alpha"],
                            help="Initial alpha value in encoder's ScaledPositionalEncoding")
-        group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
+        group.add_argument("--initial-decoder-alpha", type=float,
+                           default=DEFAULTS["initial_decoder_alpha"],
                            help="Initial alpha value in decoder's ScaledPositionalEncoding")
-        group.add_argument("--transformer-lr", default=1.0, type=float,
+        group.add_argument("--transformer-lr", type=float,
+                           default=DEFAULTS["transformer_lr"],
                            help="Initial value of learning rate")
-        group.add_argument("--transformer-warmup-steps", default=4000, type=int,
+        group.add_argument("--transformer-warmup-steps", type=int,
+                           default=DEFAULTS["transformer_warmup_steps"],
                            help="Optimizer warmup steps")
-        group.add_argument("--transformer-enc-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-enc-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_enc_dropout_rate"],
                            help="Dropout rate for transformer encoder except for attention")
-        group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-enc-positional-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_enc_positional_dropout_rate"],
                            help="Dropout rate for transformer encoder positional encoding")
-        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-enc-attn-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_enc_attn_dropout_rate"],
                            help="Dropout rate for transformer encoder self-attention")
-        group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-dec-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_dec_dropout_rate"],
                            help="Dropout rate for transformer decoder except for attention and pos encoding")
-        group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-dec-positional-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_dec_positional_dropout_rate"],
                            help="Dropout rate for transformer decoder positional encoding")
-        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-dec-attn-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_dec_attn_dropout_rate"],
                            help="Dropout rate for transformer decoder self-attention")
-        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
+        group.add_argument("--transformer-enc-dec-attn-dropout-rate", type=float,
+                           default=DEFAULTS["transformer_enc_dec_attn_dropout_rate"],
                            help="Dropout rate for transformer encoder-decoder attention")
-        group.add_argument("--eprenet-dropout-rate", default=0.5, type=float,
+        group.add_argument("--eprenet-dropout-rate", type=float,
+                           default=DEFAULTS["eprenet_dropout_rate"],
                            help="Dropout rate in encoder prenet")
-        group.add_argument("--dprenet-dropout-rate", default=0.5, type=float,
+        group.add_argument("--dprenet-dropout-rate", type=float,
+                           default=DEFAULTS["dprenet_dropout_rate"],
                            help="Dropout rate in decoder prenet")
-        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
+        group.add_argument("--postnet-dropout-rate", type=float,
+                           default=DEFAULTS["postnet_dropout_rate"],
                            help="Dropout rate in postnet")
         # loss related
-        group.add_argument("--use-masking", default=True, type=strtobool,
+        group.add_argument("--use-masking", type=strtobool,
+                           default=DEFAULTS["use_masking"],
                            help="Whether to use masking in calculation of loss")
-        group.add_argument("--loss-type", default="L1", choices=["L1", "L2", "L1+L2"],
+        group.add_argument("--loss-type", type=str,
+                           default=DEFAULTS["loss_type"],
+                           choices=["L1", "L2", "L1+L2"],
                            help="How to calc loss")
-        group.add_argument("--bce-pos-weight", default=5.0, type=float,
-                           help="Positive sample weight in BCE calculation (only for use-masking=True)")
-        group.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+        group.add_argument("--bce-pos-weight", type=float,
+                           default=DEFAULTS["bce_pos_weight"],
+                           help="Positive sample weight in BCE calculation")
+        group.add_argument("--use-guided-attn-loss", type=strtobool,
+                           default=DEFAULTS["use_guided_attn_loss"],
                            help="Whether to use guided attention loss")
-        group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+        group.add_argument("--guided-attn-loss-sigma", type=float,
+                           default=DEFAULTS["guided_attn_loss_sigma"],
                            help="Sigma in guided attention loss")
-        group.add_argument("--num-heads-applied-guided-attn", default=2, type=int,
+        group.add_argument("--num-heads-applied-guided-attn", type=int,
+                           default=DEFAULTS["num_heads_applied_guided_attn"],
                            help="Number of heads in each layer to be applied guided attention loss"
                                 "if set -1, all of the heads will be applied.")
-        group.add_argument("--num-layers-applied-guided-attn", default=2, type=int,
+        group.add_argument("--num-layers-applied-guided-attn", type=int,
+                           default=DEFAULTS["num_layers_applied_guided_attn"],
                            help="Number of layers to be applied guided attention loss"
                                 "if set -1, all of the layers will be applied.")
         group.add_argument("--modules-applied-guided-attn", type=str, nargs="+",
-                           default=["encoder-decoder"],
+                           default=DEFAULTS["modules_applied_guided_attn"],
                            help="Module name list to be applied guided attention loss")
         return parser
 
@@ -322,49 +410,96 @@ class Transformer(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # get hyperparameters
-        embed_dim = get_attribute(args, "embed_dim", 512)
-        spk_embed_dim = get_attribute(args, "spk_embed_dim", None)
-        eprenet_conv_layers = get_attribute(args, "eprenet_conv_layers", 3)
-        eprenet_conv_chans = get_attribute(args, "eprenet_conv_chans", 256)
-        eprenet_conv_filts = get_attribute(args, "eprenet_conv_filts", 5)
-        eprenet_dropout_rate = get_attribute(args, "eprenet_dropout_rate", 0.5)
-        elayers = get_attribute(args, "elayers", 3)
-        eunits = get_attribute(args, "eunits", 1536)
-        transformer_enc_dropout_rate = get_attribute(args, "transformer_enc_dropout_rate", 0.1)
-        transformer_enc_positional_dropout_rate = get_attribute(args, "transformer_enc_positional_dropout_rate", 0.1)
-        transformer_enc_attn_dropout_rate = get_attribute(args, "transformer_enc_attn_dropout_rate", 0.1)
-        dprenet_layers = get_attribute(args, "dprenet_layers", 2)
-        dprenet_units = get_attribute(args, "dprenet_units", 256)
-        dprenet_dropout_rate = get_attribute(args, "dprenet_dropout_rate", 0.5)
-        dlayers = get_attribute(args, "dlayers", 3)
-        dunits = get_attribute(args, "dunits", 1536)
-        transformer_dec_dropout_rate = get_attribute(args, "transformer_dec_dropout_rate", 0.1)
-        transformer_dec_positional_dropout_rate = get_attribute(args, "transformer_dec_positional_dropout_rate", 0.1)
-        transformer_dec_attn_dropout_rate = get_attribute(args, "transformer_dec_attn_dropout_rate", 0.1)
-        adim = get_attribute(args, "adim", 384)
-        aheads = get_attribute(args, "aheads", 4)
-        transformer_enc_dec_attn_dropout_rate = get_attribute(args, "transformer_enc_dec_attn_dropout_rate", 0.1)
-        postnet_layers = get_attribute(args, "postnet_layers", 5)
-        postnet_filts = get_attribute(args, "postnet_filts", 5)
-        postnet_chans = get_attribute(args, "postnet_chans", 512)
-        postnet_dropout_rate = get_attribute(args, "postnet_dropout_rate", 0.5)
-        use_batch_norm = get_attribute(args, "use_batch_norm", True)
-        use_scaled_pos_enc = get_attribute(args, "use_scaled_pos_enc", True)
-        transformer_init = get_attribute(args, "transformer_init", "pytorch")
-        initial_encoder_alpha = get_attribute(args, "initial_encoder_alpha", 1.0)
-        initial_decoder_alpha = get_attribute(args, "initial_decoder_alpha", 1.0)
-        encoder_normalize_before = get_attribute(args, "encoder_normalize_before", False)
-        decoder_normalize_before = get_attribute(args, "decoder_normalize_before", False)
-        encoder_concat_after = get_attribute(args, "encoder_concat_after", False)
-        decoder_concat_after = get_attribute(args, "decoder_concat_after", False)
-        reduction_factor = get_attribute(args, "reduction_factor", 1)
-        loss_type = get_attribute(args, "loss_type", "L1")
-        use_guided_attn_loss = get_attribute(args, "use_guided_attn_loss", False)
+        embed_dim = get_attribute(
+            args, "embed_dim", DEFAULTS["embed_dim"])
+        spk_embed_dim = get_attribute(
+            args, "spk_embed_dim", DEFAULTS["spk_embed_dim"])
+        eprenet_conv_layers = get_attribute(
+            args, "eprenet_conv_layers", DEFAULTS["eprenet_conv_layers"])
+        eprenet_conv_chans = get_attribute(
+            args, "eprenet_conv_chans", DEFAULTS["eprenet_conv_chans"])
+        eprenet_conv_filts = get_attribute(
+            args, "eprenet_conv_filts", DEFAULTS["eprenet_conv_filts"])
+        eprenet_dropout_rate = get_attribute(
+            args, "eprenet_dropout_rate", DEFAULTS["eprenet_dropout_rate"])
+        elayers = get_attribute(
+            args, "elayers", DEFAULTS["elayers"])
+        eunits = get_attribute(
+            args, "eunits", DEFAULTS["eunits"])
+        transformer_enc_dropout_rate = get_attribute(
+            args, "transformer_enc_dropout_rate", DEFAULTS["transformer_enc_dropout_rate"])
+        transformer_enc_positional_dropout_rate = get_attribute(
+            args, "transformer_enc_positional_dropout_rate", DEFAULTS["transformer_enc_positional_dropout_rate"])
+        transformer_enc_attn_dropout_rate = get_attribute(
+            args, "transformer_enc_attn_dropout_rate", DEFAULTS["transformer_enc_attn_dropout_rate"])
+        dprenet_layers = get_attribute(
+            args, "dprenet_layers", DEFAULTS["dprenet_layers"])
+        dprenet_units = get_attribute(
+            args, "dprenet_units", DEFAULTS["dprenet_units"])
+        dprenet_dropout_rate = get_attribute(
+            args, "dprenet_dropout_rate", DEFAULTS["dprenet_dropout_rate"])
+        dlayers = get_attribute(
+            args, "dlayers", DEFAULTS["dlayers"])
+        dunits = get_attribute(
+            args, "dunits", DEFAULTS["dunits"])
+        transformer_dec_dropout_rate = get_attribute(
+            args, "transformer_dec_dropout_rate", DEFAULTS["transformer_dec_dropout_rate"])
+        transformer_dec_positional_dropout_rate = get_attribute(
+            args, "transformer_dec_positional_dropout_rate", DEFAULTS["transformer_dec_positional_dropout_rate"])
+        transformer_dec_attn_dropout_rate = get_attribute(
+            args, "transformer_dec_attn_dropout_rate", DEFAULTS["transformer_dec_attn_dropout_rate"])
+        adim = get_attribute(
+            args, "adim", DEFAULTS["adim"])
+        aheads = get_attribute(
+            args, "aheads", DEFAULTS["aheads"])
+        transformer_enc_dec_attn_dropout_rate = get_attribute(
+            args, "transformer_enc_dec_attn_dropout_rate", DEFAULTS["transformer_enc_dec_attn_dropout_rate"])
+        postnet_layers = get_attribute(
+            args, "postnet_layers", DEFAULTS["postnet_layers"])
+        postnet_filts = get_attribute(
+            args, "postnet_filts", DEFAULTS["postnet_filts"])
+        postnet_chans = get_attribute(
+            args, "postnet_chans", DEFAULTS["postnet_chans"])
+        postnet_dropout_rate = get_attribute(
+            args, "postnet_dropout_rate", DEFAULTS["postnet_dropout_rate"])
+        use_batch_norm = get_attribute(
+            args, "use_batch_norm", DEFAULTS["use_batch_norm"])
+        use_scaled_pos_enc = get_attribute(
+            args, "use_scaled_pos_enc", DEFAULTS["use_scaled_pos_enc"])
+        transformer_init = get_attribute(
+            args, "transformer_init", DEFAULTS["transformer_init"])
+        initial_encoder_alpha = get_attribute(
+            args, "initial_encoder_alpha", DEFAULTS["initial_encoder_alpha"])
+        initial_decoder_alpha = get_attribute(
+            args, "initial_decoder_alpha", DEFAULTS["initial_decoder_alpha"])
+        encoder_normalize_before = get_attribute(
+            args, "encoder_normalize_before", DEFAULTS["encoder_normalize_before"])
+        decoder_normalize_before = get_attribute(
+            args, "decoder_normalize_before", DEFAULTS["decoder_normalize_before"])
+        encoder_concat_after = get_attribute(
+            args, "encoder_concat_after", DEFAULTS["encoder_concat_after"])
+        decoder_concat_after = get_attribute(
+            args, "decoder_concat_after", DEFAULTS["decoder_concat_after"])
+        reduction_factor = get_attribute(
+            args, "reduction_factor", DEFAULTS["reduction_factor"])
+        loss_type = get_attribute(
+            args, "loss_type", DEFAULTS["loss_type"])
+        use_masking = get_attribute(
+            args, "use_masking", DEFAULTS["use_masking"])
+        bce_pos_weight = get_attribute(
+            args, "bce_pos_weight", DEFAULTS["bce_pos_weight"])
+
+        use_guided_attn_loss = get_attribute(
+            args, "use_guided_attn_loss", DEFAULTS["use_guided_attn_loss"])
         if use_guided_attn_loss:
-            guided_attn_loss_sigma = get_attribute(args, "guided_attn_loss_sigma", 0.4)
-            num_layers_applied_guided_attn = get_attribute(args, "num_layers_applied_guided_attn", 2)
-            num_heads_applied_guided_attn = get_attribute(args, "num_heads_applied_guided_attn", 2)
-            modules_applied_guided_attn = get_attribute(args, "modules_applied_guided_attn", ["encoder-decoder"])
+            guided_attn_loss_sigma = get_attribute(
+                args, "guided_attn_loss_sigma", DEFAULTS["guided_attn_loss_sigma"])
+            num_layers_applied_guided_attn = get_attribute(
+                args, "num_layers_applied_guided_attn", DEFAULTS["num_layers_applied_guided_attn"])
+            num_heads_applied_guided_attn = get_attribute(
+                args, "num_heads_applied_guided_attn", DEFAULTS["num_heads_applied_guided_attn"])
+            modules_applied_guided_attn = get_attribute(
+                args, "modules_applied_guided_attn", DEFAULTS["modules_applied_guided_attn"])
 
         # store hyperparameters
         self.idim = idim
@@ -480,7 +615,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define loss function
-        self.criterion = TransformerLoss(args)
+        self.criterion = TransformerLoss(use_masking=use_masking,
+                                         bce_pos_weight=bce_pos_weight)
         if self.use_guided_attn_loss:
             self.attn_criterion = GuidedMultiHeadAttentionLoss(sigma=guided_attn_loss_sigma)
 
