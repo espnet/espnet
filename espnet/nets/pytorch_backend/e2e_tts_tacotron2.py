@@ -151,7 +151,11 @@ class CBHGLoss(torch.nn.Module):
 
     def __init__(self, args):
         super(CBHGLoss, self).__init__()
-        self.use_masking = get_attribute(args, "use_masking", True)
+        # get hyperparameters
+        use_masking = get_attribute(args, "use_masking", True)
+
+        # store hyperparameters
+        self.use_masking = use_masking
 
     def forward(self, cbhg_outs, spcs, olens):
         """Calculate forward propagation.
@@ -191,8 +195,13 @@ class Tacotron2Loss(torch.nn.Module):
 
     def __init__(self, args):
         super(Tacotron2Loss, self).__init__()
-        self.use_masking = get_attribute(args, "use_masking", True)
-        self.bce_pos_weight = get_attribute(args, "bce_pos_weight", 20.0)
+        # get hyperparameters
+        use_masking = get_attribute(args, "use_masking", True)
+        bce_pos_weight = get_attribute(args, "bce_pos_weight", 20.0)
+
+        # store hyperparameters
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -399,7 +408,18 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         use_concate = get_attribute(args, "use_concate", True)
         use_residual = get_attribute(args, "use_residual", False)
         use_cbhg = get_attribute(args, "use_cbhg", False)
+        if use_cbhg:
+            spc_dim = get_attribute(args, "spc_dim")
+            cbhg_conv_bank_layers = get_attribute(args, "cbhg_conv_bank_layers", 8)
+            cbhg_conv_bank_chans = get_attribute(args, "cbhg_conv_bank_chans", 128)
+            cbhg_conv_proj_filts = get_attribute(args, "cbhg_conv_proj_filts", 3)
+            cbhg_conv_proj_chans = get_attribute(args, "cbhg_conv_proj_chans", 256)
+            cbhg_highway_layers = get_attribute(args, "cbhg_highway_layers", 4)
+            cbhg_highway_units = get_attribute(args, "cbhg_highway_units", 128)
+            cbhg_gru_units = get_attribute(args, "cbhg_gru_units", 256)
         use_guided_attn_loss = get_attribute(args, "use_guided_attn_loss", False)
+        if use_guided_attn_loss:
+            sigma = get_attribute(args, "guided_attn_loss_sigma", 0.4)
 
         # store hyperparameters
         self.idim = idim
@@ -480,17 +500,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            reduction_factor=reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
         if self.use_guided_attn_loss:
-            sigma = get_attribute(args, "guided_attn_loss_sigma", 0.4)
             self.attn_loss = GuidedAttentionLoss(sigma=sigma)
         if self.use_cbhg:
-            spc_dim = get_attribute(args, "spc_dim")
-            cbhg_conv_bank_layers = get_attribute(args, "cbhg_conv_bank_layers", 8)
-            cbhg_conv_bank_chans = get_attribute(args, "cbhg_conv_bank_chans", 128)
-            cbhg_conv_proj_filts = get_attribute(args, "cbhg_conv_proj_filts", 3)
-            cbhg_conv_proj_chans = get_attribute(args, "cbhg_conv_proj_chans", 256)
-            cbhg_highway_layers = get_attribute(args, "cbhg_highway_layers", 4)
-            cbhg_highway_units = get_attribute(args, "cbhg_highway_units", 128)
-            cbhg_gru_units = get_attribute(args, "cbhg_gru_units", 256)
             self.cbhg = CBHG(idim=odim,
                              odim=spc_dim,
                              conv_bank_layers=cbhg_conv_bank_layers,
