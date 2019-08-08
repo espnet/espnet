@@ -374,7 +374,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Whether to use guided attention loss")
         group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
                            help="Sigma in guided attention loss")
-        group.add_argument("--guided-attn-loss-lamdba", default=1.0, type=float,
+        group.add_argument("--guided-attn-loss-lambda", default=1.0, type=float,
                            help="Lambda in guided attention loss")
         return parser
 
