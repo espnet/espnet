@@ -19,6 +19,20 @@ EPS = 1e-10
 
 
 def logmelspc_to_linearspc(lmspc, fs, n_mels, n_fft, fmin=None, fmax=None):
+    """Convert log Mel filterbank to linear spectrogram.
+
+    Args:
+        lmspc (ndarray): Log Mel filterbank (T, n_mels).
+        fs (int): Sampling frequency.
+        n_mels (int): Number of mel basis.
+        n_fft (int): Number of FFT points.
+        f_min (int, optional): Minimum frequency to analyze.
+        f_max (int, optional): Maximum frequency to analyze.
+
+    Returns:
+        ndarray: Linear spectrogram (T, n_fft // 2 + 1).
+
+    """
     assert lmspc.shape[1] == n_mels
     fmin = 0 if fmin is None else fmin
     fmax = fs / 2 if fmax is None else fmax
@@ -31,6 +45,20 @@ def logmelspc_to_linearspc(lmspc, fs, n_mels, n_fft, fmin=None, fmax=None):
 
 
 def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', iters=100):
+    """Convert linear spectrogram into waveform using Griffin-Lim.
+
+    Args:
+        spc (ndarray): Linear spectrogram (T, n_fft // 2 + 1).
+        n_fft (int): Number of FFT points.
+        n_shift (int): Shift size in points.
+        win_length (int): Window length in points.
+        window (str, optional): Window function type.
+        iters (int, optionl): Number of iterations of Griffin-Lim Algorithm.
+
+    Returns:
+        ndarray: Reconstructed waveform (N,).
+
+    """
     assert spc.shape[1] == n_fft // 2 + 1
     cspc = np.abs(spc).astype(np.complex).T
     angles = np.exp(2j * np.pi * np.random.rand(*cspc.shape))
