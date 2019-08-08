@@ -17,7 +17,7 @@ help_message="usage: $0 olddatadir newdatadir"
 . utils/parse_options.sh || exit 1;
 
 if [ $# != 2 ]; then
-    echo $help_message
+    echo "${help_message}"
     exit 1;
 fi
 
