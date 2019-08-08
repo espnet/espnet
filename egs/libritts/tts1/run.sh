@@ -33,7 +33,7 @@ decode_config=conf/decode.yaml
 # decoding related
 model=model.loss.best
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it. You'll want to change this
