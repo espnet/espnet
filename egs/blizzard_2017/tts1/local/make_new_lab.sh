@@ -10,7 +10,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     
     echo ${dir}
 
-# make lab_token
+    # make lab_token
     echo -n > ${TMP}/lab_token.txt
     echo -n > ${TMP}/lab_token_num.txt
     echo -n > ${TMP}/lab_list.txt
