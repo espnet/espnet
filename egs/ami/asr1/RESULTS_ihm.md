@@ -1,6 +1,6 @@
 ## RNN with old config
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link: https://drive.google.com/open?id=1vshBCZ1NRt1DSNbsOp0JUXG68G9BrMGk
     - training config file: `conf/train.yaml`    
     - decoding config file: `conf/decode.yaml`  
     - e2e file: `exp/ihm_train_pytorch_train/results/model.loss.best`    
@@ -38,7 +38,7 @@ exp/ihm_train_pytorch_train_rnn/decode_ihm_eval_decode_rnn_lm_word20000/result.w
 
 ## Transformer with large encoder (epoch 100)
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-   - model link: 
+   - model link: https://drive.google.com/open?id=1x6NcDX1jjb2jvxHJyl4oQAAjmwjMouUK
    - training config file: `conf/train_transformer.yaml`
    - decoding config file: `conf/decode_transformer.yaml`
    - e2e file: `exp/ihm_train_pytorch_train_transformer/results/model.acc.best`
@@ -56,7 +56,7 @@ exp/ihm_train_pytorch_train_transformer/decode_ihm_eval_decode_transformer_lm_wo
 ```
 ## Transformer with large encoder (epoch 200)
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-   - model link: 
+   - model link: https://drive.google.com/open?id=1NL3BulrRZHb_np9wljc7gnbKFvtMDr5z
    - training config file: `conf/train_transformer.yaml`
    - decoding config file: `conf/decode_transformer.yaml`
    - e2e file: `exp/ihm_train_pytorch_train_transformer/results/model.acc.best`
