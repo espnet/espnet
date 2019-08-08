@@ -169,7 +169,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
         > ${lmdatadir}/valid.txt
 
-     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
         --ngpu ${lmngpu} \
