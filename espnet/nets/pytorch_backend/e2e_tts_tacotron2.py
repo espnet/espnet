@@ -389,7 +389,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.reduction_factor = args.reduction_factor
         self.use_cbhg = args.use_cbhg
-        self.use_guided_attn_loss = getattr(args, "use_guided_attn_loss", False)
+        self.use_guided_attn_loss = args.use_guided_attn_loss
 
         # define activation function for the final output
         if args.output_activation is None:
