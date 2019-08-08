@@ -390,11 +390,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return att_ws_dict
 
-    def inference(self, x, spemb=None, *args, **kwargs):
+    def inference(self, x, inference_args, spemb=None, *args, **kwargs):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
             x (Tensor): Input sequence of characters (T,).
+            inference_args (Namespace): Dummy for compatibility.
+            spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
             Tensor: Output sequence of features (1, L, odim).
