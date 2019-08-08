@@ -43,7 +43,6 @@ local/make_new_lab.sh ${db}/enUK.rename
 echo -n > local/tmp/tmp.scp
 for ftype in "m4a" "mp3" "wma";do
     find ${db}/enUK.rename -name "*.${ftype}" | sort | while read -r in_file;do
-	#out_file=$(echo ${in_file} | sed -e "s/${ftype}/wav/g");
 	lab_file=$(echo ${in_file} | sed -e "s/audio/new_lab/g" -e "s/${ftype}/lab/g")
 	if [ -e ${lab_file} ]; then
 	    id=$(basename ${in_file} | sed -e "s/\.[^\.]*$//g")
