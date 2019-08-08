@@ -53,7 +53,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     # make st&ed
     cat ${TMP}/lab_token_num.txt | awk '{sum=sum+$1;print sum,$1;}' > ${TMP}/lab_row_num.txt
 
-# make lab-like txt sentence
+    # make lab-like txt sentence
     echo -n > ${TMP}/txt_sentence.txt
     cat ${TMP}/lab_row_num.txt | while read -r st_ed;do
         st=`echo ${st_ed} | awk '{print $1}'`
