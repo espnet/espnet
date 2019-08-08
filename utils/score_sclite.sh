@@ -17,7 +17,7 @@ help_message="Usage: $0 <data-dir> <dict>"
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
-    echo $help_message
+    echo "${help_message}"
     exit 1;
 fi
 
