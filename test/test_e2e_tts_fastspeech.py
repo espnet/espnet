@@ -191,7 +191,7 @@ def test_fastspeech_trainable_and_decodable(model_dict):
             spemb = None
         else:
             spemb = batch["spembs"][0]
-        model.inference(batch["xs"][0][:batch["ilens"][0]], spemb=spemb)
+        model.inference(batch["xs"][0][:batch["ilens"][0]], None, spemb=spemb)
         model.calculate_all_attentions(**batch)
 
     # remove tmpdir
@@ -254,7 +254,7 @@ def test_fastspeech_gpu_trainable_and_decodable(model_dict):
             spemb = None
         else:
             spemb = batch["spembs"][0]
-        model.inference(batch["xs"][0][:batch["ilens"][0]], spemb=spemb)
+        model.inference(batch["xs"][0][:batch["ilens"][0]], None, spemb=spemb)
         model.calculate_all_attentions(**batch)
 
     # remove tmpdir
