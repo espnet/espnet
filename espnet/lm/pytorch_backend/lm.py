@@ -269,10 +269,10 @@ class BPTTUpdater(training.StandardUpdater):
             loss += loss_batch * non_zeros
             count += int(non_zeros)
 
+        loss = loss.mean()
         reporter.report({'loss': float(loss.detach())}, optimizer.target)
         reporter.report({'count': count}, optimizer.target)
         # update
-        loss = loss / batch_size  # normalized by batch size
         self.model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         if self.gradclip is not None:
@@ -313,7 +313,7 @@ class LMEvaluator(BaseEvaluator):
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss / count)}, self.model.reporter)
+            reporter.report({'loss': float(loss.mean() / count)}, self.model.reporter)
         return observation
 
 
@@ -350,21 +350,20 @@ def train(args):
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
-    train_iter = ParallelSentenceIterator(train, args.batchsize,
+    batch_size = args.batchsize * max(args.ngpu, 1)
+    train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
-    val_iter = ParallelSentenceIterator(val, args.batchsize,
+    val_iter = ParallelSentenceIterator(val, batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
     model = ClassifierWithState(rnn)
-    if args.ngpu > 1:
-        logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
-        # Make the specified GPU current
+        model = torch.nn.DataParallel(model).cuda()
+        setattr(model, "reporter", model.module.reporter)
         gpu_id = 0
-        model.cuda(gpu_id)
     else:
         gpu_id = -1
 
@@ -424,7 +423,7 @@ def train(args):
         logging.info('#sentences in the test data = ' + str(len(test)))
         logging.info('#tokens in the test data = ' + str(n_test_tokens))
         logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
-        test_iter = ParallelSentenceIterator(test, args.batchsize,
+        test_iter = ParallelSentenceIterator(test, batch_size,
                                              max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
         evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
         result = evaluator()
