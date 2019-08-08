@@ -11,6 +11,7 @@ import numpy as np
 
 from espnet.utils.cli_utils import strtobool
 
+
 def get_parser():
     parser = configargparse.ArgumentParser(
         description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
@@ -75,6 +76,7 @@ def get_parser():
 
     return parser
 
+
 def main(args):
     parser = get_parser()
     args = parser.parse_args(args)
@@ -117,7 +119,7 @@ def main(args):
     if args.rnnlm is not None and args.word_rnnlm is not None:
         logging.error("It seems that both --rnnlm and --word-rnnlm are specified. Please use either option.")
         sys.exit(1)
-    
+
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
@@ -125,6 +127,7 @@ def main(args):
         recog(args)
     else:
         raise ValueError("Only pytorch is supported for RNN-Transducer.")
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
