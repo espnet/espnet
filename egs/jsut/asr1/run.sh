@@ -146,7 +146,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
-        --ngpu ${lmngpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
