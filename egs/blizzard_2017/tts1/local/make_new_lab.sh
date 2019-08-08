@@ -20,7 +20,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
         cat $f | awk -v f=$f '{if($3!="#"){print f,NR}}' >> ${TMP}/lab_list.txt
     done
 
-# make txt_token
+    # make txt_token
     echo -n > ${TMP}/txt_token.txt
     find ${dir}/txt/ -name "*.txt" | while read -r f; do
         cat $f | awk '{if($1!=""){print $0}}' | tr A-Z a-z \
