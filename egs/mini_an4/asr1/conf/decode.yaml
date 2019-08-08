@@ -1,0 +1,7 @@
+# decoding parameter
+beam-size: 2
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc-weight: 0.5
+lm-weight: 1.0
