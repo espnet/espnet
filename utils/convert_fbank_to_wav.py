@@ -69,7 +69,7 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
         spc = np.abs(spc.T)
         y = librosa.griffinlim(
             S=spc,
-            n_iters=n_iters,
+            n_iter=n_iters,
             hop_length=n_shift,
             win_length=win_length,
             window=window
