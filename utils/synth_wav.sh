@@ -38,7 +38,7 @@ input_wav=
 synth_model=
 decode_config=
 decode_dir=decode
-griffin_lim_iters=1000
+griffin_lim_iters=64
 
 # download related
 models=ljspeech.transformer.v1
