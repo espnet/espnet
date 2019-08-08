@@ -38,18 +38,32 @@ input_wav=
 synth_model=
 decode_config=
 decode_dir=decode
-griffin_lim_iters=1000
+griffin_lim_iters=64
 
 # download related
 models=ljspeech.transformer.v1
 
 help_message=$(cat <<EOF
 Usage:
-    $0 <text>
+    $ $0 <text>
 
 Example:
-    echo \"This is a demonstration of text to speech.\" > example.txt
+    # make text file and then generate it
+    echo "This is a demonstration of text to speech." > example.txt
     $0 example.txt
+
+    # you can specify the pretrained models
+    $0 --models ljspeech.tacotron2.v3 example.txt
+
+Available models:
+    - libritts.tacotron2.v1
+    - ljspeech.tacotron2.v1
+    - ljspeech.tacotron2.v2
+    - ljspeech.tacotron2.v3
+    - ljspeech.transformer.v1
+    - ljspeech.transformer.v2
+    - ljspeech.fastspeech.v1
+    - ljspeech.fastspeech.v2
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -64,7 +78,7 @@ txt=$1
 download_dir=${decode_dir}/download
 
 if [ $# -ne 1 ]; then
-    echo $help_message
+    echo "${help_message}"
     exit 1;
 fi
 
