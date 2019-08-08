@@ -8,6 +8,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
+import sys
 
 import sentencepiece as spm
 
@@ -16,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True,
                         help="sentencepiece model to use for decoding")
-    parser.add_argument("--input", required=True, help="input file to decode")
+    parser.add_argument("--input", default=None, help="input file to decode")
     parser.add_argument("--input_format", choices=["piece", "id"], default="piece")
     args = parser.parse_args()
 
@@ -36,9 +37,13 @@ def main():
         # remap reference-side <unk> (represented as <<unk>>) to 0
         return int(tok) if tok != "<<unk>>" else 0
 
-    with open(args.input, "r", encoding="utf-8") as h:
-        for line in h:
-            print(decode(list(map(tok2int, line.rstrip().split()))))
+    if args.input is None:
+        h = sys.stdin
+    else:
+        h = open(args.input, "r", encoding="utf-8")
+    for line in h:
+        print(decode(line.split()))
+        # print(decode(list(map(tok2int, line.rstrip().split()))))
 
 
 if __name__ == "__main__":
