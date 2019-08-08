@@ -24,10 +24,10 @@ class PositionalEncoding(torch.nn.Module):
         pe = pe.unsqueeze(0)
         self.max_len = max_len
         self.xscale = math.sqrt(d_model)
-        self.register_buffer('pe', pe)
+        self.pe = pe
 
     def forward(self, x):
-        x = x * self.xscale + self.pe[:, :x.size(1)]
+        x = x * self.xscale + self.pe[:, :x.size(1)].to(x.device)
         return self.dropout(x)
 
 
