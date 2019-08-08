@@ -36,7 +36,7 @@ decode_config=conf/decode.yaml
 # decoding related
 model=model.loss.best
 n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # root directory of db
 db_root=downloads
