@@ -24,7 +24,7 @@ def main(args):
         ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
         ('warpctc_pytorch', ("0.1.1")),
-        ('warprnnt_pytorch', ("0.1.1"))
+        ('warprnnt_pytorch', ("0.1"))
     ]
 
     if not args.no_cupy:
@@ -80,7 +80,7 @@ def main(args):
                     is_correct_version_list.append(True)
                 else:
                     logging.warning("--> %s version is not matched (%s is not in %s)." % (
-                        name, lib.__version__, str(version)))
+                        name, vers, str(version)))
                     is_correct_version_list.append(False)
             else:
                 logging.info("--> %s has no version info, but version is specified." % name)
