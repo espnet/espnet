@@ -362,8 +362,8 @@ def train(args):
                                          rho=0.95, eps=args.eps,
                                          weight_decay=args.weight_decay)
     elif args.opt == 'adam':
-            optimizer = torch.optim.Adam(params,
-                                         weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adam(params,
+                                     weight_decay=args.weight_decay)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
