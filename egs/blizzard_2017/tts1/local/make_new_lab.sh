@@ -36,7 +36,6 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
         | perl -0pe "s/wolf\n's/wolf's/m" \
         | perl -0pe "s/father\n's/father's/m" \
         | sed -e "s/://g" -e "s/(//g" -e "s/)//g" -e "s/\"//g" >> ${TMP}/txt_token.txt
-        #| sed -e "s/,//g" -e "s/.//g" -e "s/!//g" -e "s/?//g" >> ${TMP}/txt_token.txt
     done
 
     # pick up the irregular lab_token
