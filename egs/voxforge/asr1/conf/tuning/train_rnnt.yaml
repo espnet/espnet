@@ -1,0 +1,46 @@
+# minibatch related
+batch-size: 20
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+sortagrad: 0
+opt: adadelta
+epochs: 20
+patience: 3
+
+# network architecture
+## encoder related
+etype: vggblstmp
+elayers: 4
+eunits: 320
+eprojs: 320
+## decoder related
+dtype: lstm
+dlayers: 1
+dunits: 320
+dec-embed-dim: 320
+## joint network related
+joint-dim: 320
+
+# rnn-t related (0:rnnt, 1:rnnt-att)
+rnnt-mode: 0
+
+# finetuning related
+## Note : Current implementation only allow to do pre-initialization with models
+##        matching the configuration specified above. The architecture you specify
+##        should match the modules architecture you want to do finetuning with.
+##        For example, if you want to pre-initialize the decoder embedding layer
+##        from a specified model, "dec-embed-dim" param should be set accordingly.
+
+# following model correspond to conf/tuning/train_mtlalpha1.0.yaml
+#enc-init: "exp/tr_it_pytorch_train_mtlalpha1.0/results/model.loss.best"
+#enc-init-mods: "enc.enc."
+
+# following model is a CE-trained RNNLM similar to the one in:
+# egs/librispeech/asr1/conf/tuning/lm.yaml 
+#dec-init: "exp/train_rnnlm_pytorch/rnnlm.model.best"
+#dec-init-mods: "predictor.rnn.,predictor.embed."
+
+# freeze modules
+#freeze-modules: "predictor.rnn."

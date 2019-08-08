@@ -1,0 +1,4 @@
+# decoding parameters
+beam-size: 20
+search-type: beam
+score-norm: True

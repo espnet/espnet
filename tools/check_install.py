@@ -23,7 +23,8 @@ def main(args):
         ('torch', ("0.4.1", "1.0.0", "1.0.1.post2")),
         ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
-        ('warpctc_pytorch', ("0.1.1"))
+        ('warpctc_pytorch', ("0.1.1")),
+        ('warprnnt_pytorch', ("0.1.1"))
     ]
 
     if not args.no_cupy:
@@ -65,9 +66,15 @@ def main(args):
     is_correct_version_list = []
     for idx, (name, version) in enumerate(library_list):
         if version is not None:
-            lib = importlib.import_module(name)
-            if hasattr(lib, "__version__"):
-                is_correct = lib.__version__ in version
+            # Note: temp. fix for warprnnt_pytorch
+            # not found version with importlib
+            if name == "warprnnt_pytorch":
+                import pkg_resources
+                vers = pkg_resources.get_distribution(name).version
+            else:
+                vers = importlib.import_module(name).__version__
+            if vers != None:
+                is_correct = vers in version
                 if is_correct:
                     logging.info("--> %s version is matched." % name)
                     is_correct_version_list.append(True)
