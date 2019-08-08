@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
+
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -69,4 +71,7 @@ class LengthRegulator(torch.nn.Module):
                     [3]])
 
         """
+        if d.sum() == 0:
+            logging.warn("all of the predicted durations are 0. fill 0 with 1.")
+            d = d.fill_(1)
         return torch.cat([x_.repeat(int(d_), 1) for x_, d_ in zip(x, d) if d_ != 0], dim=0)
