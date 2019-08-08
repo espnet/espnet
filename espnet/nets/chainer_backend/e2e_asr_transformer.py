@@ -92,11 +92,13 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
                                                     args.report_cer, args.report_wer)
+        else:
+            self.error_calculator = None
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:
@@ -168,22 +170,18 @@ class E2E(ASRInterface, chainer.Chain):
 
         """
         xp = self.xp
-        ilens = [int(x) for x in ilens]
         with chainer.no_backprop_mode():
-            eos = xp.array([self.eos], 'i')
-            sos = xp.array([self.sos], 'i')
+            xs = xp.array(xs)
+            eos = np.array([self.eos], 'i')
+            sos = np.array([self.sos], 'i')
             ys_out = [F.concat([y, eos], axis=0) for y in ys_pad]
             ys = [F.concat([sos, y], axis=0) for y in ys_pad]
-            # Labels int32 is not supported
-            ys = F.pad_sequence(ys, padding=self.eos).data.astype(xp.int64)
-            xs = F.pad_sequence(xs, padding=-1)
-            if len(xs.shape) == 3:
-                xs = F.pad(xs, ((0, 0), (0, 1), (0, 0)),
-                           'constant', constant_values=-1)
-            else:
-                xs = F.pad(xs, ((0, 0), (0, 1)),
-                           'constant', constant_values=-1)
+            ys = F.pad_sequence(ys, padding=self.eos)
             ys_out = F.pad_sequence(ys_out, padding=-1)
+        ys = xp.array(ys.data)
+        ys_out = chainer.Variable(xp.array(ys_out.data))
+        ys_pad_cpu = [y.astype(np.int32) for y in ys_pad]
+
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         # Encode Sources
         # xs: utt x frame x dim
@@ -207,16 +205,17 @@ class E2E(ASRInterface, chainer.Chain):
 
         # Compute CTC Loss and CER CTC
         cer_ctc = None
-        ys_pad_cpu = [chainer.backends.cuda.to_cpu(y.data) for y in ys_pad]
+
         if self.ctc is None:
             loss_ctc = None
         else:
             xs = xs.reshape(batch, -1, self.dims)
             xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
-            loss_ctc = self.ctc(xs, ys_pad)
-            with chainer.no_backprop_mode():
-                ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
-            cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
+            loss_ctc = self.ctc(xs, ys_pad_cpu)
+            if self.error_calculator is not None:
+                with chainer.no_backprop_mode():
+                    ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
+                cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
 
         # Compute cer/wer
         with chainer.no_backprop_mode():

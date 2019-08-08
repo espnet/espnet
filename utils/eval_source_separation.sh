@@ -27,7 +27,7 @@ EOF
 . utils/parse_options.sh
 
 if [ $# != 3 ]; then
-    echo $help_message  1>&2
+    echo "${help_message}" 1>&2
     exit 1;
 fi
 
