@@ -11,7 +11,7 @@ def fill_missing_args(args, add_arguments):
     """Fill missing arguments in args.
 
     Args:
-        args (Namespace): Arguments.
+        args (Namespace or None): Namesapce containing hyperparameters.
         add_arguments (function): Function to add arguments.
 
     Returns:
@@ -26,7 +26,7 @@ def fill_missing_args(args, add_arguments):
 
     """
     # check argument type
-    assert isinstance(args, argparse.Namespace)
+    assert isinstance(args, argparse.Namespace) or args is None
     assert callable(add_arguments)
 
     # get default arguments
