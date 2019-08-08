@@ -39,7 +39,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
         #| sed -e "s/,//g" -e "s/.//g" -e "s/!//g" -e "s/?//g" >> ${TMP}/txt_token.txt
     done
 
-# pick up the irregular lab_token
+    # pick up the irregular lab_token
     cat ${TMP}/lab_token.txt | grep -n '_' | awk -F: '{print $1,$2}' > ${TMP}/convert_list.txt
 
 # make the irregular txt_token
