@@ -42,7 +42,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     # pick up the irregular lab_token
     cat ${TMP}/lab_token.txt | grep -n '_' | awk -F: '{print $1,$2}' > ${TMP}/convert_list.txt
 
-# make the irregular txt_token
+    # make the irregular txt_token
     cat ${TMP}/convert_list.txt | awk '{print $1}' | while read -r conv_n;do
         cat ${TMP}/txt_token.txt | awk -v cn=${conv_n} '{if(NR==cn){tmp=$1}else if(NR==cn+1){print tmp"_"$1}else{print $1}}' > ${TMP}/tmp.txt & wait
         cat ${TMP}/tmp.txt > ${TMP}/txt_token.txt & wait
