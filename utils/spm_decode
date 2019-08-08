@@ -43,7 +43,6 @@ def main():
         h = open(args.input, "r", encoding="utf-8")
     for line in h:
         print(decode(line.split()))
-        # print(decode(list(map(tok2int, line.rstrip().split()))))
 
 
 if __name__ == "__main__":
