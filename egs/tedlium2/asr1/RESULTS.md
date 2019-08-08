@@ -1,4 +1,35 @@
-# Transformer (default)
+# Transformer (large model + specaug + large LM)
+
+  - Model files (archived to large.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U
+    - training config file: `./conf/tuning/train_pytorch_transformer.v2_epochs100.yaml`
+    - decoding config file: `./conf/decode_lm-weight0.5_beam-size40.yaml`
+    - cmvn file: `./data/train_trim_sp/cmvn.ark`
+    - e2e file: `./exp/train_trim_sp_pytorch_nbpe500_ngpu2_train_pytorch_transformer.v2_epochs100_specaug/results/model.last10.avg.best.ep86_irielmep1_beam40`
+    - e2e JSON file: `./exp/train_trim_sp_pytorch_nbpe500_ngpu2_train_pytorch_transformer.v2_epochs100_specaug/results/model.json`
+    - lm file: `./exp/train_rnnlm_pytorch_lm_irie_batchsize128_unigram500/rnnlm.model.best`
+    - lm JSON file: `./exp/train_rnnlm_pytorch_lm_irie_batchsize128_unigram500/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_trim_sp_pytorch_nbpe500_ngpu2_train_pytorch_transformer.v2_epochs100_specaug/decode_dev_decode_lm-weight0.5_beam-size40.ep86_irielmep1_beam40/result.wrd.txt
+|     SPKR                           |     # Snt          # Wrd      |     Corr              Sub             Del             Ins             Err           S.Err      |
+|     Sum/Avg                        |      507           17783      |     91.9              4.9             3.2             1.2             9.3            73.6      |
+exp/train_trim_sp_pytorch_nbpe500_ngpu2_train_pytorch_transformer.v2_epochs100_specaug/decode_test_decode_lm-weight0.5_beam-size40.ep86_irielmep1_beam40/result.wrd.txt
+|      SPKR                       |     # Snt           # Wrd      |      Corr             Sub              Del              Ins             Err            S.Err      |
+|      Sum/Avg                    |     1155            27500      |      92.8             3.8              3.3              0.9             8.1             65.8      |
+```
+
+## NOTE: contribution on WER
+
+| system                     |   dev WER |   test WER |
+| :------                    | --------: | ---------: |
+| baseline (large model)     |      12.8 |       11.0 |
+| w/ speed perturb (sp)      |      12.2 |       10.4 |
+| w/ specaug                 |      11.2 |        9.6 |
+| w/ specaug + sp            |      10.1 |        8.9 |
+| w/ specaug + sp + large LM |       9.3 |        8.1 |
+
+# Transformer (large model (12 elayers, 6 decoders, 2048 units))
 
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Wed Jun  5 22:37:01 EDT 2019`
@@ -99,7 +130,7 @@ exp/train_trim_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_locati
 exp/train_trim_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.1_len0.1-0.8/result.txt:|       Sum/Avg                      |       1155              145066        |       91.4                 4.1                4.4                 3.5                12.0               93.2        |
 ```
 
-# BLSTMP (elayers=4) CER 
+# BLSTMP (elayers=4) CER
 ```
 grep -e Avg -e SPKR -m 2 exp/train_trim_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_*_beam20_eacc.best_p0.1_len0.1-0.8/result.txt
 exp/train_trim_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_dev_beam20_eacc.best_p0.1_len0.1-0.8/result.txt:|       SPKR                            |       # Snt             # Wrd       |       Corr                Sub                Del               Ins                Err              S.Err       |
@@ -116,4 +147,3 @@ exp/train_trim_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_
 exp/train_trim_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.1_len0.1-0.8/result.wrd.txt:|       SPKR                         |       # Snt              # Wrd        |       Corr                 Sub                Del                 Ins                 Err               S.Err        |
 exp/train_trim_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.1_len0.1-0.8/result.wrd.txt:|       Sum/Avg                      |       1155               27500        |       78.9                16.8                4.3                 3.3                24.4                93.1        |
 ```
-

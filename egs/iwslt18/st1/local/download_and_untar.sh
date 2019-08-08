@@ -39,8 +39,8 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-sets="train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018"
-if [ ! `echo ${set} | grep ${set}`  ]; then
+sets="train_dev2010_tst2010_tst2013_tst2014_tst2015_tst2018"
+if [ ! $(echo ${sets} | grep ${set}) ]; then
     echo "$0: no such set ${set}"
     exit 1;
 fi

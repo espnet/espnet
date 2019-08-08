@@ -3,8 +3,8 @@
 # Copyright 2019 Nagoya University (MAsao Someki)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -39,15 +39,11 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh
-. ./cmd.sh
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
-
 
 train_set=tr_no_dev
 train_dev=dev
@@ -147,17 +143,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
         > ${lmdatadir}/valid.txt
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-        lmngpu=1
-    else
-        lmngpu=${ngpu}
-    fi
-    ${cuda_cmd} --gpu ${lmngpu} ${lmexpdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
-        --ngpu ${lmngpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \

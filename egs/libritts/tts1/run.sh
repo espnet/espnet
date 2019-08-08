@@ -3,8 +3,8 @@
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -33,7 +33,7 @@ decode_config=conf/decode.yaml
 # decoding related
 model=model.loss.best
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it. You'll want to change this

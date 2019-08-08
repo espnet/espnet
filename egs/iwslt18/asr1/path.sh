@@ -8,7 +8,7 @@ export PATH=$PWD:$PATH
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-export PATH=$MAIN_ROOT/tools/mwerSegmenter/:$MAIN_ROOT/tools/moses/scripts/tokenizer/:$MAIN_ROOT/tools/moses/scripts/generic/:$MAIN_ROOT/tools/sentencepiece/build/src:$PATH
+export PATH=$MAIN_ROOT/tools/mwerSegmenter/:$MAIN_ROOT/tools/moses/scripts/tokenizer/:$MAIN_ROOT/tools/moses/scripts/generic/:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
     source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
@@ -24,12 +24,6 @@ if ! which tokenizer.perl > /dev/null; then
     echo "Error: it seems that moses is not installed." >&2
     echo "Error: please install moses as follows." >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make moses.done" >&2
-    return 1
-fi
-if ! which spm_decode > /dev/null; then
-    echo "Error: it seems that sentencepiece is not installed." >&2
-    echo "Error: please install sentencepiece as follows." >&2
-    echo "Error: cd ${MAIN_ROOT}/tools && make sentencepiece.done" >&2
     return 1
 fi
 if ! which segmentBasedOnMWER.sh > /dev/null; then
