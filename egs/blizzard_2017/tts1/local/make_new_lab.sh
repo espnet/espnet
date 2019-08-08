@@ -47,7 +47,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
         cat ${TMP}/tmp.txt > ${TMP}/txt_token.txt & wait
     done
 
-# for debug
+    # for debug
     #paste ${TMP}/lab_token.txt ${TMP}/txt_token.txt > ${TMP}/${dir}.txt
 
     # make st&ed
