@@ -111,6 +111,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	PROCESSED_AMI_DIR=${AMI_DIR}
     fi
     local/ami_${base_mic}_data_prep.sh ${PROCESSED_AMI_DIR} ${mic}
+    # data augmentation
+    utils/perturb_data_dir_speed.sh 0.9 data/${mic}/train_orig data/ihm_tmp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${mic}/train_orig data/ihm_tmp2    
+    utils/perturb_data_dir_speed.sh 1.1 data/${mic}/train_orig data/ihm_tmp3
+    rm -r data/${mic}/train_orig
+    utils/combine_data.sh --extra-files utt2uniq data/ihm/train_orig data/ihm_tmp1 data/ihm_tmp2 data/ihm_tmp3
+    
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} dev
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} eval
     for dset in train dev eval; do
