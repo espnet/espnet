@@ -19,6 +19,8 @@ coverage.xml*
 bats-core/
 shellcheck*
 check_shellcheck*
+test_spm.vocab
+test_spm.model
 
 # recipe related
 egs/*/*/data*

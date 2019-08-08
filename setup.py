@@ -29,7 +29,7 @@ requirements = {
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',
         'scikit-learn==0.20',
-        'librosa>=0.6.2',
+        'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
@@ -47,6 +47,7 @@ requirements = {
         'PyYAML',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
+        'sentencepiece>=0.1.82'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
@@ -74,7 +75,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.4.2',
+      version='0.5.0',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

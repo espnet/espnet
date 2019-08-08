@@ -39,11 +39,10 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-REPORT_INTERVAL = 100
 
 
 class ClassifierWithState(link.Chain):
@@ -245,7 +244,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
         optimizer.update()  # Update the parameters
 
 
-class LMEvaluator(extensions.Evaluator):
+class LMEvaluator(BaseEvaluator):
     """A custom evaluator for a chainer LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
@@ -352,11 +351,11 @@ def train(args):
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
-                                        trigger=(REPORT_INTERVAL, 'iteration')))
+                                        trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
-    ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    ), trigger=(args.report_interval_iters, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(extensions.snapshot_object(
         model, 'rnnlm.model.{.updater.epoch}'))
@@ -374,7 +373,7 @@ def train(args):
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer), trigger=(args.report_interval_iters, 'iteration'))
 
     trainer.run()
     check_early_stop(trainer, args.epoch)
