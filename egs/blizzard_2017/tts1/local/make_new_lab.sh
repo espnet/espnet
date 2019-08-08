@@ -61,6 +61,6 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
         head -n $st ${TMP}/txt_token.txt | tail -n $ed | awk -v eol=$ed '{printf("%s",$1);if(NR!=eol){printf(" ");}}END{printf("\n")}' >> ${TMP}/txt_sentence.txt
     done
 
-# make lab-like txt file
+    # make lab-like txt file
     python local/make_new_lab.py ${TMP}/lab_list.txt ${TMP}/txt_sentence.txt ${dir}/new_lab
 done
