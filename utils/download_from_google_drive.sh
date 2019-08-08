@@ -9,13 +9,13 @@ share_url=$1
 download_dir=${2:-"downloads"}
 file_ext=${3:-"zip"}
 
-if [ $1 == "--help" ] || [ $# -lt 1 ] || [ $# -gt 3 ]; then
+if [ "$1" = "--help" ] || [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "Usage: $0 <share-url> [<download_dir> <file_ext>]";
-   echo "e.g.: $0 https://drive.google.com/open?id=1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg downloads .zip"
+   echo "e.g.: $0 https://drive.google.com/open?id=1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg downloads zip"
    echo "Options:"
    echo "    <download_dir>: directory to save downloaded file. (Default=downloads)"
    echo "    <file_ext>: file extension of the file to be downloaded. (Default=zip)"
-   if [ $1 == "--help" ]; then
+   if [ "$1" = "--help" ]; then
        exit 0;
    fi
    exit 1;
