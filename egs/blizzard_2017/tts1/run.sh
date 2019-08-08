@@ -99,7 +99,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/train 500 data/deveval
     utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
     utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    #n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     n=$(( $(wc -l < data/train/segments) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
