@@ -11,7 +11,8 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
-from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES 
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
 
 def get_parser():
     parser = configargparse.ArgumentParser(
@@ -41,7 +42,7 @@ def get_parser():
     parser.add_argument('--debugdir', type=str,
                         help='Output directory for debugging')
     parser.add_argument('--resume', type=str, nargs='?',
-			help='Resume the training from snapshot')
+                        help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -208,7 +209,9 @@ def get_parser():
     parser.add_argument('--use-wpe', type=strtobool, default=False,
                         help='Apply Weighted Prediction Error')
     parser.add_argument('--wtype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm', 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm',
+                                 'vggblstm', 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup',
+                                 'vgggru', 'vggbgru'],
                         help='Type of encoder network architecture of the mask estimator for WPE.')
     parser.add_argument('--wlayers', type=int, default=2,
                         help='')
@@ -230,7 +233,9 @@ def get_parser():
     parser.add_argument('--use-beamformer', type=strtobool,
                         default=True, help='')
     parser.add_argument('--btype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm', 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm',
+                                 'vggblstm', 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup',
+                                 'vgggru', 'vggbgru'],
                         help='Type of encoder network architecture '
                         'of the mask estimator for Beamformer.')
     parser.add_argument('--blayers', type=int, default=2,
@@ -269,6 +274,7 @@ def get_parser():
 
     return parser
 
+
 def main(cmd_args):
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
@@ -292,7 +298,7 @@ def main(cmd_args):
             level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
 
-    #check CUDA_VISIBLE_DEVICES
+    # check CUDA_VISIBLE_DEVICES
     # If --ngpu is not given,
     #   1. if CUDA_VISIBLE_DEVICES is set, all visible devices
     #   2. if nvidia-smi exists, use all devices
@@ -343,6 +349,7 @@ def main(cmd_args):
         train(args)
     else:
         raise ValueError("Only pytorch is supported for RNN-Transducer.")
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 import torch
 
 from collections import OrderedDict
@@ -7,10 +7,13 @@ from collections import OrderedDict
 # Note : the following methods are just toy examples for finetuning RNN-T and RNN-T att.
 # It's quite inelegant as if but it handle most of the cases.
 
+
 def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
                             enc_mods, dec_mods):
     """Method to update model modules weights from up to two ESPNET pre-trained models.
+
     Specified models can be either trained with CTC, attention or joint CTC-attention,
+
     or a language model trained with CE to initialize the decoder part in vanilla RNN-T.
 
     Args:
@@ -39,7 +42,7 @@ def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
             logging.info('%s', mods_model)
 
         return new_mods
-    
+
     def validate_modules(model, prt, modules):
         modules_model = []
         modules_prt = []
@@ -53,7 +56,7 @@ def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
                 modules_model += [(key_m, value_m.shape)]
 
         len_match = (len(modules_model) == len(modules_prt))
-        module_match = (sorted([x for x in modules_model]) == \
+        module_match = (sorted([x for x in modules_model]) ==
                         sorted([x for x in modules_prt]))
 
         return len_match and module_match
@@ -63,7 +66,7 @@ def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
 
         for key, value in model.items():
             if any(key.startswith(m) for m in modules):
-                if not 'output' in key:
+                if 'output' not in key:
                     new_state_dict[key] = value
 
         return new_state_dict
@@ -80,14 +83,14 @@ def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
                 new_modules += [new_key]
             elif "predictor.rnn." in key \
                  and "predictor.rnn." in modules:
-                new_key = "dec.decoder." + key.split("predictor.rnn.",1)[1]
+                new_key = "dec.decoder." + key.split("predictor.rnn.", 1)[1]
                 new_state_dict[new_key] = value
                 new_modules += [new_key]
 
         return new_state_dict, new_modules
-    
+
     model_state_dict = model.state_dict()
-        
+
     if rnnt_mode == 0 and dec_pretrained is not None:
         lm_init = True
     else:
@@ -122,6 +125,7 @@ def load_pretrained_modules(model, rnnt_mode, enc_pretrained, dec_pretrained,
     del model_state_dict
 
     return model
+
 
 def freeze_modules(model, modules):
     """Method to freeze specified list of modules.

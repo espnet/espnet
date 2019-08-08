@@ -4,10 +4,10 @@ import copy
 import json
 import logging
 import math
+import numpy as np
 import os
 import sys
 import torch
-import numpy as np
 
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
@@ -27,11 +27,11 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 
-from espnet.asr.asr_rnnt_utils import load_pretrained_modules
 from espnet.asr.asr_rnnt_utils import freeze_modules
+from espnet.asr.asr_rnnt_utils import load_pretrained_modules
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch  
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -129,11 +129,11 @@ class CustomUpdater(training.StandardUpdater):
         converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
             function to build input arrays. Each batch extracted by the main
             iterator and the ``device`` option are passed to this function.
-            :func:`chainer.dataset.concat_examples` is used by default.                        
+            :func:`chainer.dataset.concat_examples` is used by default.
 
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
-    """  
+    """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1):
@@ -163,13 +163,13 @@ class CustomUpdater(training.StandardUpdater):
         # Compute the loss at this time step and accumulate it
         loss = self.model(*x).mean() / self.accum_grad
         loss.backward()  # Backprop
-        #gradient noise injection
+        # gradient noise injection
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
             add_gradient_noise(self.model, self.iteration,
                                duration=100, eta=1.0, scale_factor=0.55)
         loss.detach()  # Truncate the graph
-        
+
         # update parameters
         self.forward_count += 1
         if self.forward_count != self.accum_grad:
@@ -193,9 +193,10 @@ class CustomUpdater(training.StandardUpdater):
         if self.forward_count == 0:
             self.iteration += 1
 
+
 class CustomConverter(object):
     """Custom batch converter for Pytorch
-    
+
     Args:
         subsampling_factor (int): The subsampling factor
     """
@@ -214,7 +215,7 @@ class CustomConverter(object):
         Returns:
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
         """
-        
+
         # batch should be located in list
         assert len(batch) == 1
         xs, ys = batch[0]
@@ -240,7 +241,7 @@ class CustomConverter(object):
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
-            
+
         ilens = torch.from_numpy(ilens).to(device)
         # NOTE: this is for multi-task learning (e.g., speech translation)
         ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
@@ -248,9 +249,10 @@ class CustomConverter(object):
 
         return xs_pad, ilens, ys_pad
 
+
 def load_trained_model(model_path):
     """Load the trained model.
-    
+
     Args:
         model_path(str): Path to model.***.best
     """
@@ -269,23 +271,23 @@ def load_trained_model(model_path):
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
     torch_load(model_path, model)
-    
-    return model, train_args 
 
-    
+    return model, train_args
+
+
 def train(args):
     """Train with the given args
 
     Args:
         args (Namespace): The program arguments
     """
-    
+
     set_deterministic_pytorch(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
-        
+
     # get input and output dimension info
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
@@ -300,7 +302,7 @@ def train(args):
         logging.info('MODE: RNN-Transducer with attention')
     else:
         logging.info('MODE: RNN-Transducer')
-    
+
     # specify model architecture
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args)
@@ -316,7 +318,7 @@ def train(args):
             freeze_mode = freeze_modules(model, args.freeze_modules)
 
     subsampling_factor = model.subsample[0]
-    
+
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
@@ -354,17 +356,17 @@ def train(args):
         params = filter(lambda p: p.requires_grad, model.parameters())
     else:
         params = model.parameters()
-        
+
     if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-                params, rho=0.95, eps=args.eps,
-                weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adadelta(params,
+                                         rho=0.95, eps=args.eps,
+                                         weight_decay=args.weight_decay)
     elif args.opt == 'adam':
             optimizer = torch.optim.Adam(params,
                                          weight_decay=args.weight_decay)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
-            
+
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
@@ -406,7 +408,7 @@ def train(args):
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
-    
+
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
@@ -465,7 +467,7 @@ def train(args):
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss'],
                                          'epoch', file_name='loss.png'))
-    
+
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
@@ -488,8 +490,8 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
 
     report_keys = ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
-		   'elapsed_time']
-    
+                   'elapsed_time']
+
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
@@ -512,19 +514,20 @@ def train(args):
     trainer.run()
     check_early_stop(trainer, args.epochs)
 
+
 def recog(args):
     """Decode with the given args.
 
     Args:
         args (Namespace): The program arguments
     """
-    
+
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
 
     assert isinstance(model, ASRInterface)
     model.recog_args = args
-    
+
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -584,7 +587,7 @@ def recog(args):
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         raise NotImplementedError
-    
+
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
@@ -605,10 +608,11 @@ def recog(args):
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
-        
+
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4,
                            ensure_ascii=False, sort_keys=True).encode('utf_8'))
+
 
 def enchance(args):
     """Dumping enhanced speech and mask
@@ -616,7 +620,7 @@ def enchance(args):
     Args:
         args (Namespace): The program arguments
     """
-    
+
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
@@ -628,7 +632,7 @@ def enchance(args):
     assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
     model.recog_args = args
-    
+
     # gpu
     if args.ngpu == 1:
         gpu_id = list(range(args.ngpu))
@@ -645,14 +649,14 @@ def enchance(args):
     )
     if args.batchsize == 0:
         args.batchsize = 1
-        
+
     # Creates writers for outputs from the network
     if args.enh_wspecifier is not None:
-        enh_writer = FileWriterWrapper(args.enh_wspecifier,
-                                       filetype=args.enh_filetype)
+        enh_writer = file_writer_helper(args.enh_wspecifier,
+                                        filetype=args.enh_filetype)
     else:
         enh_writer = None
-                
+
     # Creates a Transformation instance
     preprocess_conf = (
         train_args.preprocess_conf if args.preprocess_conf is None
@@ -691,21 +695,21 @@ def enchance(args):
                         break
         if istft is None:
             # Set from command line arguments
-             istft = IStft(win_length=args.istft_win_length,
-                           n_shift=args.istft_n_shift,
-                           window=args.istft_window)
-             logging.info('Setting istft config from the command line args\n{}'
-                          .format(istft))
+            istft = IStft(win_length=args.istft_win_length,
+                          n_shift=args.istft_n_shift,
+                          window=args.istft_window)
+            logging.info('Setting istft config from the command line args\n{}'
+                         .format(istft))
 
     keys = list(js.keys())
     feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
     sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
     keys = [keys[i] for i in sorted_index]
-    
+
     def grouper(n, iterable, fillvalue=None):
         kargs = [iter(iterable)] * n
         return zip_longest(*kargs, fillvalue=fillvalue)
-    
+
     num_images = 0
     if not os.path.exists(args.image_dir):
         os.makedirs(args.image_dir)
@@ -720,7 +724,7 @@ def enchance(args):
             feats = transform(org_feats, train=False)
         else:
             feats = org_feats
-            
+
         with torch.no_grad():
             enhanced, mask, ilens = model.enhance(feats)
 
@@ -749,7 +753,7 @@ def enchance(args):
                 plot_spectrogram(plt, feat[:, ref_ch].T, fs=args.fs,
                                  mode='db', frame_shift=frame_shift,
                                  bottom=False, labelbottom=False)
-                
+
                 plt.subplot(4, 1, 3)
                 plt.title('Masked speech [ref={}ch]'.format(ref_ch))
                 plot_spectrogram(
@@ -777,17 +781,17 @@ def enchance(args):
                         # Truncate the frames added by stft padding
                         enh = enh[:len(org_feats[idx])]
                     elif len(org_feats) > len(enh):
-                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
-                                   + [(0, 0)] * (enh.ndim - 1)
+                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))]
+                        + [(0, 0)] * (enh.ndim - 1)
                         enh = np.pad(enh, padwidth, mode='constant')
-                        
+
                 if args.enh_filetype in ('sound', 'sound.hdf5'):
                     enh_writer[name] = (args.fs, enh)
                 else:
                     # Hint: To dump stft_signal, mask or etc,
                     # enh_filetype='hdf5' might be convenient.
                     enh_writer[name] = enh
-                    
+
             if num_images >= args.num_images and enh_writer is None:
                 logging.info('Breaking the process.')
                 break

@@ -14,18 +14,17 @@ import numpy as np
 import six
 import torch
 
-from itertools import groupby
-
 from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders_rnnt import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+
 
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
@@ -35,6 +34,7 @@ class Reporter(chainer.Chain):
         reporter.report({'wer': wer}, self)
         logging.info('loss:' + str(loss))
         reporter.report({'loss': loss}, self)
+
 
 class E2E(ASRInterface, torch.nn.Module):
     """E2E module
@@ -79,13 +79,13 @@ class E2E(ASRInterface, torch.nn.Module):
                 import feature_transform_for
             from espnet.nets.pytorch_backend.frontends.frontend \
                 import frontend_for
-            
+
             self.frontend = frontend_for(args, idim)
             self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
             idim = args.n_mels
         else:
             self.frontend = None
-        
+
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
 
@@ -154,7 +154,7 @@ class E2E(ASRInterface, torch.nn.Module):
             bias.data[start:end].fill_(1.)
 
         lecun_normal_init_parameters(self)
-        
+
         if self.rnnt_mode == 1:
             # embed weight ~ Normal(0, 1)
             self.dec.embed.weight.data.normal_(0, 1)
@@ -165,7 +165,6 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.dec.embed.weight.data.normal_(0, 1)
 
-            
     def forward(self, xs_pad, ilens, ys_pad):
         """E2E forward
 
@@ -184,7 +183,7 @@ class E2E(ASRInterface, torch.nn.Module):
             hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
             hs_pad, hlens = xs_pad, ilens
-        
+
         # 1. encoder
         hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
@@ -192,22 +191,22 @@ class E2E(ASRInterface, torch.nn.Module):
         loss = self.dec(hs_pad, hlens, ys_pad)
 
         # 3. compute cer/wer
-        ## Note: not recommended outside debugging right now,
-        ## the training time is hugely impacted.
+        # note: not recommended outside debugging right now,
+        # the training time is hugely impacted.
         if self.training or not (self.report_cer or self.report_wer):
             cer, wer = 0.0, 0.0
         else:
             word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
 
-            batchsize =  int(hs_pad.size(0))
+            batchsize = int(hs_pad.size(0))
             batch_nbest = []
 
             for b in six.moves.range(batchsize):
                 nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
                 batch_nbest.append(nbest_hyps)
-                
+
             y_hats = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]
-            
+
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
 
@@ -224,13 +223,13 @@ class E2E(ASRInterface, torch.nn.Module):
                 hyp_chars = seq_hat_text.replace(' ', '')
                 ref_chars = seq_true_text.replace(' ', '')
                 char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-                char_ref_lens.append(len(ref_chars)) 
+                char_ref_lens.append(len(ref_chars))
             wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
             cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
-                
+
         self.loss = loss
         loss_data = float(self.loss)
-        
+
         if not math.isnan(loss_data):
             self.reporter.report(loss_data, cer, wer)
         else:
@@ -250,7 +249,7 @@ class E2E(ASRInterface, torch.nn.Module):
         Returns:
            y (list): n-best decoding results
         """
-        
+
         prev = self.training
         self.eval()
         ilens = [x.shape[0]]
@@ -321,18 +320,18 @@ class E2E(ASRInterface, torch.nn.Module):
             y = self.dec.recognize_batch(hs_pad, hlens, recog_args)
         else:
             y = self.dec.recognize_beam_batch(hs_pad, hlens, recog_args, rnnlm)
-            
+
         if prev:
             self.train()
 
         return y
-        
+
     def enhance(self, xs):
         """Forwarding only the frontend stage
 
         Args:
             xs (ndarray): input acoustic feature (T, C, F)
-        
+
         Returns:
             enhanced (ndarray):
             mask (torch.Tensor):
@@ -355,7 +354,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.train()
 
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
-    
+
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
@@ -369,15 +368,15 @@ class E2E(ASRInterface, torch.nn.Module):
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                 2) other case => attention weights (B, Lmax, Tmax).
         """
-        
+
         with torch.no_grad():
-             # 0. Frontend
+            # 0. Frontend
             if self.frontend is not None:
                 hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
                 hs_pad, hlens = self.feature_transform(hs_pad, hlens)
             else:
                 hs_pad, hlens = xs_pad, ilens
-            
+
             # encoder
             hpad, hlens, _ = self.enc(hs_pad, hlens)
 

@@ -1,20 +1,13 @@
-from distutils.version import LooseVersion
-import logging
-import random
 import six
 
-import numpy as np
 import torch
 import torch.nn.functional as F
-import math
-
-from torch.nn.utils.rnn import pack_padded_sequence
-from torch.nn.utils.rnn import pad_packed_sequence
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+
 
 class DecoderRNNT(torch.nn.Module):
     """RNN-T Decoder module
@@ -35,7 +28,7 @@ class DecoderRNNT(torch.nn.Module):
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, joint_dim, embed_dim,
                  dropout=0.0, dropout_embed=0.0, rnnt_type='warp-transducer'):
         super(DecoderRNNT, self).__init__()
-        
+
         self.embed = torch.nn.Embedding(odim, embed_dim,
                                         padding_idx=sos)
         self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
@@ -51,18 +44,18 @@ class DecoderRNNT(torch.nn.Module):
         for _ in six.moves.range(1, dlayers):
             self.decoder += [dec_net(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
-        
+
         if rnnt_type == 'warp-transducer':
             from warprnnt_pytorch import RNNTLoss
 
             self.rnnt_loss = RNNTLoss(blank=sos)
         else:
             raise NotImplementedError
-    
+
         self.lin_enc = torch.nn.Linear(eprojs, joint_dim, bias=True)
         self.lin_dec = torch.nn.Linear(dunits, joint_dim, bias=False)
         self.lin_out = torch.nn.Linear(joint_dim, odim)
-        
+
         self.dlayers = dlayers
         self.dunits = dunits
         self.dtype = dtype
@@ -70,13 +63,13 @@ class DecoderRNNT(torch.nn.Module):
         self.odim = odim
 
         self.rnnt_type = rnnt_type
-        
+
         self.ignore_id = -1
         self.sos = sos
 
     def zero_state(self, h_pad):
         return h_pad.new_zeros(h_pad.size(0), self.dunits)
-        
+
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
@@ -90,11 +83,11 @@ class DecoderRNNT(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
 
-        return z_list, c_list      
-        
+        return z_list, c_list
+
     def joint(self, h_enc, h_dec):
-        """ Joint computation of z
-        
+        """Joint computation of z
+
         Args:
             h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, Henc)
             h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, Hdec)
@@ -103,7 +96,7 @@ class DecoderRNNT(torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
         """
 
-        z =  torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
+        z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z
@@ -119,7 +112,7 @@ class DecoderRNNT(torch.nn.Module):
         Returns:
            loss (float): rnnt loss value
         """
-        
+
         ys = [y[y != self.ignore_id] for y in ys_pad]
 
         hlens = list(map(int, hlens))
@@ -129,7 +122,7 @@ class DecoderRNNT(torch.nn.Module):
         ys_in_pad = pad_list(ys_in, self.sos)
 
         olength = ys_in_pad.size(1)
-        
+
         c_list = [self.zero_state(hs_pad)]
         z_list = [self.zero_state(hs_pad)]
         for _ in six.moves.range(1, self.dlayers):
@@ -148,15 +141,15 @@ class DecoderRNNT(torch.nn.Module):
 
         h_enc = hs_pad.unsqueeze(2)
         h_dec = h_dec.unsqueeze(1)
-            
+
         z = self.joint(h_enc, h_dec)
         y = pad_list(ys, self.sos).type(torch.int32)
-        
-        z_len = to_device(self, torch.IntTensor(hlens))            
-        y_len = to_device(self, torch.IntTensor([y.size(0) for y in ys]))
-        
+
+        z_len = to_device(self, torch.IntTensor(hlens))
+        y_len = to_device(self, torch.IntTensor([_y.size(0) for _y in ys]))
+
         loss = to_device(self, self.rnnt_loss(z, y, z_len, y_len))
-        
+
         return loss
 
     def recognize(self, h, recog_args):
@@ -164,24 +157,24 @@ class DecoderRNNT(torch.nn.Module):
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
-            recog_args (Namespace): argument Namespace containing options 
+            recog_args (Namespace): argument Namespace containing options
 
         Returns:
             hyp (list of dicts): 1-best decoding results
-        """ 
+        """
 
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
         for _ in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
-        
+
         hyp = {'score': 0.0, 'yseq': [self.sos]}
-        
+
         ey = torch.zeros((1, self.dunits))
         z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
         y = self.dropout_dec[-1](z_list[-1])
-        
+
         for hi in h:
             ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
             logp, pred = torch.max(ytu, dim=0)
@@ -190,14 +183,14 @@ class DecoderRNNT(torch.nn.Module):
                 hyp['yseq'].append(int(pred))
                 hyp['score'] += float(logp)
 
-                eys = torch.full((1,1), hyp['yseq'][-1], dtype=torch.long)
+                eys = torch.full((1, 1), hyp['yseq'][-1], dtype=torch.long)
                 ey = self.dropout_embed(self.embed(eys))
 
                 z_list, c_list = self.rnn_forward(ey[0], z_list, c_list, z_list, c_list)
                 y = self.dropout_dec[-1](z_list[-1])
-                    
+
         return [hyp]
-    
+
     def recognize_beam(self, h, recog_args, rnnlm=None):
         """Beam search implementation
 
@@ -226,7 +219,7 @@ class DecoderRNNT(torch.nn.Module):
                            'lm_state': None}]
         else:
             final_hyps = [{'score': 0.0, 'yseq': [self.sos], 'z_prev': z_list, 'c_prev': c_list}]
-            
+
         for hi in h:
             hyps = final_hyps
             final_hyps = []
@@ -235,21 +228,20 @@ class DecoderRNNT(torch.nn.Module):
                 new_hyp = max(hyps, key=lambda x: x['score'])
                 hyps.remove(new_hyp)
 
-                vy = to_device(self, torch.full((1,1), new_hyp['yseq'][-1], dtype=torch.long))
+                vy = to_device(self, torch.full((1, 1), new_hyp['yseq'][-1], dtype=torch.long))
                 ey = self.dropout_embed(self.embed(vy))[0]
 
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list,
                                                   new_hyp['z_prev'], new_hyp['c_prev'])
                 y = self.dropout_dec[-1](z_list[-1])[0]
-                
+
                 ytu = F.log_softmax(self.joint(hi, y), dim=0)
-                
+
                 if rnnlm:
                     rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], vy[0])
-                    #ytu += recog_args.lm_weight * rnnlm_scores[0]
-                    
+
                 logp, pred = torch.topk(ytu, k=k_range, dim=0)
-                
+
                 for k in six.moves.range(k_range):
                     beam_hyp = {'score': new_hyp['score'] + logp[k],
                                 'yseq': new_hyp['yseq'][:],
@@ -257,14 +249,14 @@ class DecoderRNNT(torch.nn.Module):
                                 'c_prev': new_hyp['c_prev'][:]}
                     if rnnlm:
                         beam_hyp['lm_state'] = new_hyp['lm_state']
-                    
+
                     if pred[k] == self.sos:
                         final_hyps.append(beam_hyp)
                     else:
                         beam_hyp['z_prev'] = z_list[:]
                         beam_hyp['c_prev'] = c_list[:]
                         beam_hyp['yseq'].append(pred[k])
-                        
+
                         if rnnlm:
                             beam_hyp['lm_state'] = rnnlm_state
                             beam_hyp['score'] += recog_args.lm_weight * rnnlm_scores[0][pred[k]]
@@ -282,7 +274,8 @@ class DecoderRNNT(torch.nn.Module):
                 final_hyps, key=lambda x: x['score'], reverse=True)[:nbest]
 
         return nbest_hyps
-    
+
+
 class DecoderRNNTAtt(torch.nn.Module):
     """RNNT-Att Decoder module
 
@@ -311,7 +304,7 @@ class DecoderRNNTAtt(torch.nn.Module):
             dec_net = torch.nn.LSTMCell
         else:
             dec_net = torch.nn.GRUCell
-        
+
         self.decoder = torch.nn.ModuleList([dec_net((dunits + eprojs), dunits)])
         self.dropout_dec = torch.nn.ModuleList([torch.nn.Dropout(p=dropout)])
 
@@ -339,7 +332,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.odim = odim
 
         self.rnnt_type = rnnt_type
-        
+
         self.ignore_id = -1
         self.sos = sos
 
@@ -358,11 +351,12 @@ class DecoderRNNTAtt(torch.nn.Module):
 
             for l in six.moves.range(1, self.dlayers):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
+
         return z_list, c_list
 
     def joint(self, h_enc, h_dec):
         """Joint computation of z
-        
+
         Args:
             h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, Henc)
             h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, Hdec)
@@ -370,12 +364,12 @@ class DecoderRNNTAtt(torch.nn.Module):
         Returns:
             z (torch.Tensor): output (B, T, U, odim)
         """
-        
-        z =  torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
+
+        z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z
-    
+
     def forward(self, hs_pad, hlens, ys_pad):
         """Decoder forward
 
@@ -383,7 +377,7 @@ class DecoderRNNTAtt(torch.nn.Module):
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
             hlens (torch.Tensor): batch of lengths of hidden state sequences (B)
             ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
-        
+
         Returns:
            loss (torch.Tensor): rnnt-att loss value
         """
@@ -395,7 +389,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         sos = ys[0].new([self.sos])
         ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_in_pad = pad_list(ys_in, self.sos)
-        
+
         olength = ys_in_pad.size(1)
 
         c_list = [self.zero_state(hs_pad)]
@@ -422,13 +416,13 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         h_enc = hs_pad.unsqueeze(2)
         h_dec = h_dec.unsqueeze(1)
-        
+
         z = self.joint(h_enc, h_dec)
         y = pad_list(ys, self.sos).type(torch.int32)
 
         z_len = to_device(self, torch.IntTensor(hlens))
-        y_len = to_device(self, torch.IntTensor([y.size(0) for y in ys]))
-        
+        y_len = to_device(self, torch.IntTensor([_y.size(0) for _y in ys]))
+
         loss = to_device(self, self.rnnt_loss(z, y, z_len, y_len))
 
         return loss
@@ -443,7 +437,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         Returns:
             hyp (list of dicts): 1-best decoding results
         """
-        
+
         self.att[0].reset()
 
         c_list = [self.zero_state(h.unsqueeze(0))]
@@ -452,12 +446,12 @@ class DecoderRNNTAtt(torch.nn.Module):
         for _ in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
-        
+
         hyp = {'score': 0.0, 'yseq': [self.sos]}
 
         eys = torch.zeros((1, self.dunits))
         att_c, att_w = self.att[0](h.unsqueeze(0), [h.size(0)],
-                                    self.dropout_dec[0](z_list[0]), None)
+                                   self.dropout_dec[0](z_list[0]), None)
         ey = torch.cat((eys, att_c), dim=1)
 
         z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
@@ -471,18 +465,18 @@ class DecoderRNNTAtt(torch.nn.Module):
                 hyp['yseq'].append(int(pred))
                 hyp['score'] += float(logp)
 
-                eys = torch.full((1,1), hyp['yseq'][-1], dtype=torch.long)
+                eys = torch.full((1, 1), hyp['yseq'][-1], dtype=torch.long)
                 ey = self.dropout_emb(self.embed(eys))
                 att_c, att_w = self.att[0](h.unsqueeze(0), [h.size(0)],
                                            self.dropout_dec[0](z_list[0]),
                                            att_w)
                 ey = torch.cat((ey[0], att_c), dim=1)
-                
+
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
                 y = self.dropout_dec[-1](z_list[-1])
 
         return [hyp]
-        
+
     def recognize_beam(self, h, recog_args, rnnlm=None):
         """Beam search recognition
 
@@ -499,9 +493,9 @@ class DecoderRNNTAtt(torch.nn.Module):
         normscore = recog_args.score_norm
         k_range = min(beam, self.odim)
         nbest = recog_args.nbest
-        
+
         self.att[0].reset()
-        
+
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
         for _ in six.moves.range(1, self.dlayers):
@@ -514,6 +508,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         else:
             final_hyps = [{'score': 0.0, 'yseq': [self.sos], 'z_prev': z_list, 'c_prev': c_list,
                            'a_prev': None}]
+
         for hi in h:
             hyps = final_hyps
             final_hyps = []
@@ -522,13 +517,13 @@ class DecoderRNNTAtt(torch.nn.Module):
                 new_hyp = max(hyps, key=lambda x: x['score'])
                 hyps.remove(new_hyp)
 
-                vy = to_device(self, torch.full((1,1), new_hyp['yseq'][-1], dtype=torch.long))
+                vy = to_device(self, torch.full((1, 1), new_hyp['yseq'][-1], dtype=torch.long))
                 ey = self.dropout_emb(self.embed(vy))
 
                 att_c, att_w = self.att[0](h.unsqueeze(0), [h.size(0)],
                                            self.dropout_dec[0](new_hyp['z_prev'][0]),
                                            new_hyp['a_prev'])
-                
+
                 ey = torch.cat((ey[0], att_c), dim=1)
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list,
                                                   new_hyp['z_prev'], new_hyp['c_prev'])
@@ -539,7 +534,7 @@ class DecoderRNNTAtt(torch.nn.Module):
                     rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], vy[0])
 
                 logp, pred = torch.topk(ytu, k=k_range, dim=0)
-                    
+
                 for k in six.moves.range(k_range):
                     beam_hyp = {'score': new_hyp['score'] + logp[k],
                                 'yseq': new_hyp['yseq'][:],
@@ -548,7 +543,7 @@ class DecoderRNNTAtt(torch.nn.Module):
                                 'a_prev': new_hyp['a_prev']}
                     if rnnlm:
                         beam_hyp['lm_state'] = new_hyp['lm_state']
-                    
+
                     if pred[k] == self.sos:
                         final_hyps.append(beam_hyp)
                     else:
@@ -572,9 +567,9 @@ class DecoderRNNTAtt(torch.nn.Module):
         else:
             nbest_hyps = sorted(
                 final_hyps, key=lambda x: x['score'], reverse=True)[:nbest]
-            
+
         return nbest_hyps
-        
+
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
         """Calculate all of attentions
 
@@ -582,7 +577,7 @@ class DecoderRNNTAtt(torch.nn.Module):
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
             hlen (torch.Tensor): batch of lengths of hidden state sequences (B)
             ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
-        
+
         Returns:
             att_ws (ndarray): attention weights with the following shape,
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
@@ -593,7 +588,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         hlen = list(map(int, hlen))
 
         sos = ys[0].new([self.sos])
-        
+
         ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_in_pad = pad_list(ys_in, self.sos)
 
@@ -621,6 +616,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         att_ws = att_to_numpy(att_ws, self.att[0])
 
         return att_ws
+
 
 def decoder_for(args, odim, sos, att=None):
     if args.rnnt_mode == 0:
