@@ -4,7 +4,6 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import argparse
 import logging
 
 import torch
@@ -27,6 +26,7 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.fill_missing_arguments import fill_missing_arguments
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
@@ -164,14 +164,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
-        # get default arguments and fill missing arguments
-        args = {} if args is None else vars(args)
-        default_args, _ = self.add_arguments(argparse.ArgumentParser()).parse_known_args()
-        for key, value in vars(default_args).items():
-            if key not in args:
-                logging.info("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
-                args[key] = value
-        args = argparse.Namespace(**args)
+        # fill missing arguments
+        args = fill_missing_arguments(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim
