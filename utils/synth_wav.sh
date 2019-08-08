@@ -80,8 +80,8 @@ function download_models () {
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
         "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
-        "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=1BAkmFcG5QdBgw4onr6BGJb3cDVDcdKRA" ;;
-        "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1wEOJjkajJCet7HzzGV5igPcwfh2n-yOK";;
+        "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
+        "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
