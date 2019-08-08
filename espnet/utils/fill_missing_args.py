@@ -1,4 +1,3 @@
-#!/usr/bin/env
 # -*- coding: utf-8 -*-
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -8,7 +7,7 @@ import argparse
 import logging
 
 
-def fill_missing_arguments(args, add_arguments):
+def fill_missing_args(args, add_arguments):
     """Fill missing arguments in args.
 
     Args:
@@ -22,7 +21,7 @@ def fill_missing_arguments(args, add_arguments):
         >>> from argparse import Namespace
         >>> from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
         >>> args = Namespace()
-        >>> fill_missing_arguments(args, Tacotron2.add_arguments_fn)
+        >>> fill_missing_args(args, Tacotron2.add_arguments_fn)
         Namespace(aconv_chans=32, aconv_filts=15, adim=512, atype='location', ...)
 
     """
