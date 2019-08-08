@@ -50,5 +50,5 @@ class ScaledPositionalEncoding(PositionalEncoding):
         self.alpha.data = torch.tensor(1.0)
 
     def forward(self, x):
-        x = x + self.alpha * self.pe[:, :x.size(1)]
+        x = x + self.alpha * self.pe[:, :x.size(1)].to(x.device)
         return self.dropout(x)
