@@ -41,11 +41,10 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-REPORT_INTERVAL = 100
 
 
 # dummy module to use chainer's trainer
@@ -168,14 +167,14 @@ class RNNLM(nn.Module):
     :param str typ: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
         self.rnn = nn.ModuleList(
             [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
                                                                                             for _ in range(n_layers)])
         self.dropout = nn.ModuleList(
-            [nn.Dropout() for _ in range(n_layers + 1)])
+            [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -270,10 +269,10 @@ class BPTTUpdater(training.StandardUpdater):
             loss += loss_batch * non_zeros
             count += int(non_zeros)
 
+        loss = loss.mean()
         reporter.report({'loss': float(loss.detach())}, optimizer.target)
         reporter.report({'count': count}, optimizer.target)
         # update
-        loss = loss / batch_size  # normalized by batch size
         self.model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         if self.gradclip is not None:
@@ -281,7 +280,7 @@ class BPTTUpdater(training.StandardUpdater):
         optimizer.step()  # Update the parameters
 
 
-class LMEvaluator(extensions.Evaluator):
+class LMEvaluator(BaseEvaluator):
     """A custom evaluator for a pytorch LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
@@ -292,7 +291,7 @@ class LMEvaluator(extensions.Evaluator):
 
     def __init__(self, val_iter, eval_model, reporter, device):
         super(LMEvaluator, self).__init__(
-            val_iter, reporter, device=device)
+            val_iter, reporter, device=-1)
         self.model = eval_model
         self.device = device
 
@@ -314,7 +313,7 @@ class LMEvaluator(extensions.Evaluator):
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss / count)}, self.model.reporter)
+            reporter.report({'loss': float(loss.mean() / count)}, self.model.reporter)
         return observation
 
 
@@ -351,21 +350,22 @@ def train(args):
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
-    train_iter = ParallelSentenceIterator(train, args.batchsize,
+    batch_size = args.batchsize * max(args.ngpu, 1)
+    if batch_size > args.batchsize:
+        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size})')
+    train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
-    val_iter = ParallelSentenceIterator(val, args.batchsize,
+    val_iter = ParallelSentenceIterator(val, batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
     model = ClassifierWithState(rnn)
-    if args.ngpu > 1:
-        logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
-        # Make the specified GPU current
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
+        setattr(model, "reporter", model.module.reporter)
         gpu_id = 0
-        model.cuda(gpu_id)
     else:
         gpu_id = -1
 
@@ -390,11 +390,11 @@ def train(args):
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
-                                        trigger=(REPORT_INTERVAL, 'iteration')))
+                                        trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
-    ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    ), trigger=(args.report_interval_iters, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     # Save best models
     trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(snapshot_object(model, 'rnnlm.model.{.updater.epoch}'))
@@ -411,7 +411,7 @@ def train(args):
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer), trigger=(args.report_interval_iters, 'iteration'))
 
     trainer.run()
     check_early_stop(trainer, args.epoch)
@@ -425,7 +425,7 @@ def train(args):
         logging.info('#sentences in the test data = ' + str(len(test)))
         logging.info('#tokens in the test data = ' + str(n_test_tokens))
         logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
-        test_iter = ParallelSentenceIterator(test, args.batchsize,
+        test_iter = ParallelSentenceIterator(test, batch_size,
                                              max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
         evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
         result = evaluator()

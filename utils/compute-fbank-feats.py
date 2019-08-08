@@ -11,8 +11,8 @@ import kaldiio
 import numpy
 
 from espnet.transform.spectrogram import logmelspectrogram
-from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
@@ -45,7 +45,8 @@ def get_parser():
     parser.add_argument('--compress', type=strtobool, default=False,
                         help='Save in compressed format')
     parser.add_argument('--compression-method', type=int, default=2,
-                        help='Specify the method(if mat) or gzip-level(if hdf5)')
+                        help='Specify the method(if mat) or '
+                             'gzip-level(if hdf5)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
@@ -75,12 +76,12 @@ def main():
 
     with kaldiio.ReadHelper(args.rspecifier,
                             segments=args.segments) as reader, \
-            FileWriterWrapper(args.wspecifier,
-                              filetype=args.filetype,
-                              write_num_frames=args.write_num_frames,
-                              compress=args.compress,
-                              compression_method=args.compression_method
-                              ) as writer:
+            file_writer_helper(args.wspecifier,
+                               filetype=args.filetype,
+                               write_num_frames=args.write_num_frames,
+                               compress=args.compress,
+                               compression_method=args.compression_method
+                               ) as writer:
         for utt_id, (rate, array) in reader:
             assert rate == args.fs
             array = array.astype(numpy.float32)

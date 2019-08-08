@@ -3,8 +3,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -29,14 +29,14 @@ win_length="" # window length
 
 # config files
 train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
-                                               # now we support tacotron2 and transformer for TTS.
+                                               # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
 n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # root directory of db
 db_root=downloads

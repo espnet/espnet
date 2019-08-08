@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 [![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -48,7 +49,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
 - Tacotron2 based end-to-end TTS
-- Transformer based end-to-end TTS (new!)
+- Transformer based end-to-end TTS
+- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
@@ -228,25 +230,25 @@ and connecting to the given address (default : localhost:6006). This will provid
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
 ### Use of GPU
-- Training: 
+- Training:
   If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
   ```bash
     # use single gpu
-    $ ./run.sh --ngpu 1 
-	    
+    $ ./run.sh --ngpu 1
+
     # use multi-gpu
     $ ./run.sh --ngpu 3
-			  
+
     # if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
     # (Note that if you use slurm, this specification is not needed)
     $ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
-					  
+
     # use cpu
     $ ./run.sh --ngpu 0
   ```
   - Default setup uses a single GPU (`--ngpu 1`).
-- ASR decoding: 
-  ESPnet also supports the GPU-based decoding for fast recognition. 
+- ASR decoding:
+  ESPnet also supports the GPU-based decoding for fast recognition.
   - Please manually remove the following lines in `run.sh`:
     ```bash
     #### use CPU for decoding
@@ -375,12 +377,14 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval2              |  4.1 |  N/A | N/A |
 | CSJ eval3              |  4.5 |  N/A | N/A |
 | HKUST dev              | 23.5 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
-| Librispeech dev_clean  |  N/A |  3.7 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-transformer-accum-grad-8-single-gpu) |
-| Librispeech dev_other  |  N/A |  9.8 | same as above |
-| Librispeech test_clean |  N/A |  4.0 | same as above |
-| Librispeech test_other |  N/A | 10.0 | same as above |
-| TEDLIUM2 dev           |  N/A | 12.2 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-default) |
-| TEDLIUM2 test          |  N/A | 10.4 | same as above |
+| Librispeech dev_clean  |  N/A |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm) |
+| Librispeech dev_other  |  N/A |  5.6 | same as above |
+| Librispeech test_clean |  N/A |  2.6 | same as above |
+| Librispeech test_other |  N/A |  5.7 | same as above |
+| TEDLIUM2 dev           |  N/A | 9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
+| TEDLIUM2 test          |  N/A | 8.1 | same as above |
+| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
+| TEDLIUM3 test          |  N/A | 8.0| same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 
@@ -410,8 +414,9 @@ You can access the samples of TTS recipes from following links:
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
 - [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
 - [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
-- [Multi English speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
-- [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Single English speaker Transformer](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+- [Single English speaker FastSpeech (New!)](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
@@ -421,7 +426,7 @@ You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 ```sh
 cd egs/ljspeech/tts1
-echo "This is a demonstration of text to speech." > example.txt
+echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
 ../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
 ```
 
@@ -435,6 +440,8 @@ Available pretrained models are listed as follows.
 | [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Location sensitive attention + guided attention loss |
 | [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep decoder network without reduction factor |
 | [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow decoder network with reduction factor = 3 |
+| [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
+| [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
 
 
 ## Chainer and Pytorch backends
