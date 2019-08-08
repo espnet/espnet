@@ -351,6 +351,8 @@ def train(args):
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
     batch_size = args.batchsize * max(args.ngpu, 1)
+    if batch_size > args.batchsize:
+        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size})')
     train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, batch_size,
@@ -361,7 +363,7 @@ def train(args):
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
     model = ClassifierWithState(rnn)
     if args.ngpu > 0:
-        model = torch.nn.DataParallel(model).cuda()
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
         setattr(model, "reporter", model.module.reporter)
         gpu_id = 0
     else:
