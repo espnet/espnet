@@ -8,8 +8,8 @@
 
 # general configuration
 backend=pytorch
-stage=1
-stop_stage=2
+stage=-1
+stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -42,8 +42,8 @@ griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 db_root=/export/a06/katsuki/DB #downloads
 
 # user id and pw for db download
-id="k_inoue@s.okayama-u.ac.jp"
-pw="n0hoShLMdLgQy"
+id=""
+pw=""
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -99,7 +99,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/train 500 data/deveval
     utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
     utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    #n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     n=$(( $(wc -l < data/train/segments) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
