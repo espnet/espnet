@@ -20,7 +20,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
-from espnet.utils.fill_missing_arguments import fill_missing_arguments
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -380,7 +380,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # fill missing arguments
-        args = fill_missing_arguments(args, self.add_arguments)
+        args = fill_missing_args(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim

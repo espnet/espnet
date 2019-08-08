@@ -26,7 +26,7 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
-from espnet.utils.fill_missing_arguments import fill_missing_arguments
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
@@ -165,7 +165,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         # fill missing arguments
-        args = fill_missing_arguments(args, self.add_arguments)
+        args = fill_missing_args(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim
