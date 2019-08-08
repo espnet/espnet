@@ -25,7 +25,7 @@ echo "$0 $*" 1>&2 # Print the command line for logging
 . parse_options.sh || exit 1;
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-    echo $help_message  1>&2
+    echo "${help_message}" 1>&2
     exit 1;
 fi
 
