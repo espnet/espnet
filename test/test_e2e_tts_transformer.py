@@ -17,21 +17,22 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 def make_transformer_args(**kwargs):
     defaults = dict(
-        embed_dim=512,
+        embed_dim=32,
+        spk_embed_dim=None,
         eprenet_conv_layers=2,
         eprenet_conv_filts=5,
-        eprenet_conv_chans=512,
+        eprenet_conv_chans=32,
         dprenet_layers=2,
-        dprenet_units=256,
+        dprenet_units=32,
         adim=32,
         aheads=4,
         elayers=2,
-        eunits=512,
+        eunits=32,
         dlayers=2,
-        dunits=512,
-        postnet_layers=5,
+        dunits=32,
+        postnet_layers=2,
         postnet_filts=5,
-        postnet_chans=512,
+        postnet_chans=32,
         eprenet_dropout_rate=0.1,
         dprenet_dropout_rate=0.5,
         postnet_dropout_rate=0.1,
@@ -75,7 +76,7 @@ def make_inference_args(**kwargs):
     return defaults
 
 
-def prepare_inputs(idim, odim, ilens, olens,
+def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
                    device=torch.device('cpu')):
     ilens = torch.LongTensor(ilens).to(device)
     olens = torch.LongTensor(olens).to(device)
@@ -86,7 +87,6 @@ def prepare_inputs(idim, odim, ilens, olens,
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
-
     batch = {
         "xs": xs,
         "ilens": ilens,
@@ -95,6 +95,9 @@ def prepare_inputs(idim, odim, ilens, olens,
         "olens": olens,
     }
 
+    if spk_embed_dim is not None:
+        batch["spembs"] = torch.FloatTensor(np.random.randn(len(ilens), spk_embed_dim)).to(device)
+
     return batch
 
 
@@ -102,13 +105,15 @@ def prepare_inputs(idim, odim, ilens, olens,
     "model_dict", [
         ({}),
         ({"use_masking": False}),
+        ({"spk_embed_dim": 128}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
-        ({"encoder_normalize_before": False}),
         ({"reduction_factor": 2}),
         ({"reduction_factor": 3}),
+        ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"encoder_concat_after": True}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
         ({"loss_type": "L1"}),
@@ -131,7 +136,7 @@ def test_transformer_trainable_and_decodable(model_dict):
     odim = 10
     ilens = [10, 5]
     olens = [20, 15]
-    batch = prepare_inputs(idim, odim, ilens, olens)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"])
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
@@ -151,7 +156,11 @@ def test_transformer_trainable_and_decodable(model_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args))
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb=spemb)
         model.calculate_all_attentions(**batch)
 
 
@@ -159,6 +168,7 @@ def test_transformer_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"spk_embed_dim": 128}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
@@ -168,16 +178,17 @@ def test_transformer_trainable_and_decodable(model_dict):
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
     ])
-def test_transformer_gpu_trainable(model_dict):
+def test_transformer_gpu_trainable_and_decodable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
+    inference_args = make_inference_args()
 
     idim = 5
     odim = 10
     ilens = [10, 5]
     olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
@@ -195,11 +206,22 @@ def test_transformer_gpu_trainable(model_dict):
         assert model.encoder.embed[1].alpha.grad is not None
         assert model.decoder.embed[1].alpha.grad is not None
 
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb=spemb)
+        model.calculate_all_attentions(**batch)
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"spk_embed_dim": 128}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
@@ -219,7 +241,7 @@ def test_transformer_multi_gpu_trainable(model_dict):
     ilens = [10, 5]
     olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define model
     ngpu = 2
@@ -325,6 +347,7 @@ def test_forward_and_inference_are_equal(model_dict):
     model = Transformer(idim, odim, Namespace(**model_args))
     model.eval()
 
+    # TODO(kan-bayashi): update following ugly part
     with torch.no_grad():
         # --------- forward calculation ---------
         x_masks = model._source_mask(ilens)

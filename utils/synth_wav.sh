@@ -38,18 +38,32 @@ input_wav=
 synth_model=
 decode_config=
 decode_dir=decode
-griffin_lim_iters=1000
+griffin_lim_iters=64
 
 # download related
-models=ljspeech.transformer.v1
+models=ljspeech.fastspeech.v1
 
 help_message=$(cat <<EOF
 Usage:
-    $0 <text>
+    $ $0 <text>
 
 Example:
-    echo \"This is a demonstration of text to speech.\" > example.txt
+    # make text file and then generate it
+    echo "This is a demonstration of text to speech." > example.txt
     $0 example.txt
+
+    # you can specify the pretrained models
+    $0 --models ljspeech.tacotron2.v3 example.txt
+
+Available models:
+    - libritts.tacotron2.v1
+    - ljspeech.tacotron2.v1
+    - ljspeech.tacotron2.v2
+    - ljspeech.tacotron2.v3
+    - ljspeech.transformer.v1
+    - ljspeech.transformer.v2
+    - ljspeech.fastspeech.v1
+    - ljspeech.fastspeech.v2
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -64,7 +78,7 @@ txt=$1
 download_dir=${decode_dir}/download
 
 if [ $# -ne 1 ]; then
-    echo $help_message
+    echo "${help_message}"
     exit 1;
 fi
 
@@ -80,6 +94,8 @@ function download_models () {
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
         "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
+        "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
+        "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -111,11 +127,11 @@ fi
 
 synth_json=$(basename ${synth_model})
 model_json="$(dirname ${synth_model})/${synth_json%%.*}.json"
-use_speaker_embedding=$(grep use_speaker_embedding ${model_json} | sed -e "s/.*: *\([0-9]*\).*/\1/")
-if [ ${use_speaker_embedding} -eq 1 ]; then
-    use_input_wav=true
-else
+use_speaker_embedding=$(grep use_speaker_embedding ${model_json} | sed -e "s/.*: \(.*\),/\1/")
+if [ "${use_speaker_embedding}" = "false" ] || [ "${use_speaker_embedding}" = "0" ]; then
     use_input_wav=false
+else
+    use_input_wav=true
 fi
 if [ -z "${input_wav}" ] && ${use_input_wav}; then
     download_models

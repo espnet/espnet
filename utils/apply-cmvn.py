@@ -7,10 +7,10 @@ import kaldiio
 import numpy
 
 from espnet.transform.cmvn import CMVN
-from espnet.utils.cli_utils import FileReaderWrapper
-from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import is_scipy_wav_style
+from espnet.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
@@ -52,7 +52,8 @@ def get_parser():
     parser.add_argument('--compress', type=strtobool, default=False,
                         help='Save in compressed format')
     parser.add_argument('--compression-method', type=int, default=2,
-                        help='Specify the method(if mat) or gzip-level(if hdf5)')
+                        help='Specify the method(if mat) or '
+                             'gzip-level(if hdf5)')
     parser.add_argument('stats_rspecifier_or_rxfilename',
                         help='Input stats. e.g. ark:stats.ark or stats.mat')
     parser.add_argument('rspecifier', type=str,
@@ -80,7 +81,7 @@ def main():
         else:
             stats_filetype = args.stats_filetype
 
-        stats_dict = dict(FileReaderWrapper(
+        stats_dict = dict(file_reader_helper(
             args.stats_rspecifier_or_rxfilename, stats_filetype))
     else:
         is_rspcifier = False
@@ -97,13 +98,13 @@ def main():
                 spk2utt=args.spk2utt,
                 reverse=args.reverse)
 
-    with FileWriterWrapper(
+    with file_writer_helper(
             args.wspecifier,
             filetype=args.out_filetype,
             write_num_frames=args.write_num_frames,
             compress=args.compress,
             compression_method=args.compression_method) as writer:
-        for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
+        for utt, mat in file_reader_helper(args.rspecifier, args.in_filetype):
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
