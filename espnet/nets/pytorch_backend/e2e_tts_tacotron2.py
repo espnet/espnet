@@ -468,7 +468,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
                 sigma=args.guided_attn_loss_sigma,
-                alpha=getattr(args, "guided_attn_loss_lambda", 1.0)  # use getattr to keep compatibility
+                alpha=args.guided_attn_loss_lambda,
             )
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
