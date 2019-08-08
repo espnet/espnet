@@ -1,3 +1,32 @@
+# Transformer (elayers=12, dlayers=6, units=2048, 8 GPUs, specaug) + large LM
+
+  - Model files (archived to tedlium3_largelm.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO
+    - training config file: `./conf/train_pytorch_transformer.v2.yaml`
+    - decoding config file: `./conf/decode_pytorch_transformer_beam-size40.yaml`
+    - cmvn file: `./data/train_trim_sp/cmvn.ark`
+    - e2e file: `exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/results/model.json`
+    - lm file: `./exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/rnnlm.model.best`
+    - lm JSON file: `./exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/decode_final_lmep8_beam40_dev_decode_pytorch_transformer_beam-size40/result.wrd.txt
+|     SPKR                          |     # Snt          # Wrd     |     Corr             Sub            Del             Ins            Err           S.Err     |
+|     Sum/Avg                       |      507           17783     |     91.7             4.7            3.5             1.5            9.7            74.6     |
+exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/decode_final_lmep8_beam40_test_decode_pytorch_transformer_beam-size40/result.wrd.txt
+|     SPKR                       |     # Snt          # Wrd      |     Corr             Sub             Del             Ins             Err           S.Err      |
+|     Sum/Avg                    |     1155           27500      |     92.8             3.6             3.6             0.8             8.0            67.4      |
+```
+
+## NOTE: contribution on WER
+
+| system                     |   dev WER |   test WER |
+| :------                    | --------: | ---------: |
+| baseline (large model, sp) |      13.4 |       10.0 |
+| w/ specaug                 |      11.4 |        8.6 |
+| w/ specaug + large LM      |       9.7 |        8.0 |
+
 # VGGBLSTMP(elayers=4, eunits=1024) + joint ctc decoding + lm rescoring
 - Environments (obtained by `$ get_sys_info.sh`)
   - date: `Tue Jun 11 11:22:28 JST 2019`
