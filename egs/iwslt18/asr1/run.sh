@@ -257,10 +257,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         > ${lmdatadir}/train_${case}.txt
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text.${case} | cut -f 2- -d " " \
         > ${lmdatadir}/valid_${case}.txt
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \

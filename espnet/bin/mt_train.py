@@ -56,6 +56,8 @@ def get_parser():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--report-interval-iters', default=100, type=int,
+                        help="Report interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
