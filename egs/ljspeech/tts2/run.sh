@@ -3,8 +3,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -34,6 +34,7 @@ decode_config=conf/decode.yaml
 # decoding related
 model=model.loss.best
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # root directory of db
 db_root=downloads
@@ -237,6 +238,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
+            --iters ${griffin_lim_iters} \
             ${outdir}_denorm/${name} \
             ${outdir}_denorm/${name}/log \
             ${outdir}_denorm/${name}/wav

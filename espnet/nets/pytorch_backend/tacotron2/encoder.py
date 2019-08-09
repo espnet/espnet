@@ -13,27 +13,33 @@ from torch.nn.utils.rnn import pad_packed_sequence
 
 
 def encoder_init(m):
+    """Initialize encoder parameters."""
     if isinstance(m, torch.nn.Conv1d):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
 
 
 class Encoder(torch.nn.Module):
-    """Character embedding encoder
+    """Encoder module of Spectrogram prediction network.
 
-    This is the encoder which converts the sequence of characters into
-    the sequence of hidden states. The network structure is based on
-    that of tacotron2 in the field of speech synthesis.
+    This is a module of encoder of Spectrogram prediction network in Tacotron2, which described in `Natural TTS
+    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_. This is the encoder which converts the
+    sequence of characters into the sequence of hidden states.
 
-    :param int idim: dimension of the inputs
-    :param int embed_dim: dimension of character embedding
-    :param int elayers: the number of encoder blstm layers
-    :param int eunits: the number of encoder blstm units
-    :param int econv_layers: the number of encoder conv layers
-    :param int econv_filts: the number of encoder conv filter size
-    :param int econv_chans: the number of encoder conv filter channels
-    :param bool use_batch_norm: whether to use batch normalization
-    :param bool use_residual: whether to use residual connection
-    :param float dropout_rate: dropout rate
+    Args:
+        idim (int) Dimension of the inputs.
+        embed_dim (int, optional) Dimension of character embedding.
+        elayers (int, optional) The number of encoder blstm layers.
+        eunits (int, optional) The number of encoder blstm units.
+        econv_layers (int, optional) The number of encoder conv layers.
+        econv_filts (int, optional) The number of encoder conv filter size.
+        econv_chans (int, optional) The number of encoder conv filter channels.
+        use_batch_norm (bool, optional) Whether to use batch normalization.
+        use_residual (bool, optional) Whether to use residual connection.
+        dropout_rate (float, optional) Dropout rate.
+
+    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
+       https://arxiv.org/abs/1712.05884
+
     """
 
     def __init__(self, idim,
@@ -86,14 +92,16 @@ class Encoder(torch.nn.Module):
         self.apply(encoder_init)
 
     def forward(self, xs, ilens=None):
-        """Character encoding forward computation
+        """Calculate forward propagation.
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each batch (B)
-        :return: batch of sequences of padded encoder states (B, Tmax, eunits)
-        :rtype: torch.Tensor
-        :return: batch of lengths of each encoder states (B)
-        :rtype: list
+        Args:
+            xs (Tensor): Batch of the padded sequence of character ids (B, Tmax). Padded value should be 0.
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+
+        Returns:
+            Tensor: Batch of the sequences of encoder states(B, Tmax, eunits).
+            LongTensor: Batch of lengths of each sequence (B,)
+
         """
         xs = self.embed(xs).transpose(1, 2)
         if self.convs is not None:
@@ -112,11 +120,14 @@ class Encoder(torch.nn.Module):
         return xs, hlens
 
     def inference(self, x):
-        """Character encoder inference
+        """Inference.
 
-        :param torch.Tensor x: the sequence of character ids (T)
-        :return: the sequence encoder states (T, eunits)
-        :rtype: torch.Tensor
+        Args:
+            x (Tensor): The sequeunce of character ids (T,).
+
+        Returns:
+            Tensor: The sequences of encoder states(T, eunits).
+
         """
         assert len(x.size()) == 1
         xs = x.unsqueeze(0)

@@ -15,47 +15,36 @@ addons:
       - cmake
       - python3-dev
       - g++-7
+      - pandoc
+      - ffmpeg
+      - bc
 
 env:
-  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.1.0 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.1.0 CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  # torch nightly with chainer stable
-  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-  # chainer nightly with torch stable
   - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.1.0 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  # torch nightly
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+
 
 matrix:
   allow_failures:
-    # torch nightly with chainer stable
-    - env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
-    # chainer nightly with torch stable
-    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
-    - env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+    # torch nightly
+    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+
 
 install:
-  - ./ci/install.sh
+  - travis_retry ./ci/install.sh
+  - travis_retry ./ci/install_kaldi.sh
 
 
 script:
   - ./ci/test_shell.sh
   - ./ci/test_python.sh
-  - |
-    if $USE_CONDA; then
-      source tools/venv/bin/activate
-      cd tools; git clone https://github.com/kaldi-asr/kaldi --depth 1; cd -
-      ./ci/doc.sh
-    fi
+  - ./ci/test_integration.sh
+  - ./ci/doc.sh
 
 sudo: false
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - |
-    if $USE_CONDA; then
-      travis-sphinx deploy -m "Update documentation [ci skip]"
-    fi
+  - travis-sphinx deploy -m "Update documentation [ci skip]"
