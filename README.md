@@ -372,6 +372,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|:----:|
 | Aishell dev            |  6.0 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
 | Aishell test           |  6.7 |  N/A | same as above |
+| Common Voice dev       |  1.7 |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
+| Common Voice test      |  1.8 |  2.3 | same as above |
 | CSJ eval1              |  5.7 |  N/A | N/A |
 | CSJ eval2              |  4.1 |  N/A | N/A |
 | CSJ eval3              |  4.5 |  N/A | N/A |
@@ -384,8 +386,6 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | TEDLIUM2 test          |  N/A | 10.4 | same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
-| Common Voice dev       |  1.7 |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
-| Common Voice test      |  1.8 |  2.3 | same as above |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
