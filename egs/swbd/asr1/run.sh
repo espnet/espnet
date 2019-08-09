@@ -237,9 +237,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
 	# this is required for local/score_sclite.sh to get hyp.wrd.trn
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
-	if [ "`echo ${decode_dir} | grep eval2000`" ]; then
+	if [[ "${decode_dir}" =~ "eval2000" ]]; then
             local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
-	elif [ "`echo ${decode_dir} | grep rt03`" ]; then
+	elif [[ "${decode_dir}" =~ "rt03" ]]; then
 	    local/score_sclite.sh data/rt03 ${expdir}/${decode_dir}
 	fi
     ) &
