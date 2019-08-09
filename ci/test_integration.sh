@@ -7,7 +7,7 @@
 )
 # test tts recipe
 (
-    cd ../tts1 || exit 1
+    cd ./egs/mini_an4/tts1 || exit 1
     ./run.sh
 )
 
