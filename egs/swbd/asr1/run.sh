@@ -25,6 +25,7 @@ decode_config=conf/decode.yaml
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # data
 swbd1_dir=/export/corpora3/LDC/LDC97S62
@@ -32,7 +33,7 @@ eval2000_dir="/export/corpora2/LDC/LDC2002S09/hub5e_00 /export/corpora2/LDC/LDC2
 rt03_dir=/export/corpora/LDC/LDC2007S10
 
 # bpemode (unigram or bpe)
-nbpe=500
+nbpe=2000
 bpemode=bpe
 
 # exp tag
@@ -206,7 +207,13 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+	recog_model=model.last${n_average}.avg.best
+	average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
@@ -228,10 +235,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
+	# this is required for local/score_sclite.sh to get hyp.wrd.trn
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
-        local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
-        local/score_sclite.sh data/rt03 ${expdir}/${decode_dir}
-
+	if [ "`echo ${decode_dir} | grep eval2000`" ]; then
+            local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
+	elif [ "`echo ${decode_dir} | grep rt03`" ]; then
+	    local/score_sclite.sh data/rt03 ${expdir}/${decode_dir}
+	fi
     ) &
     pids+=($!) # store background pids
     done
