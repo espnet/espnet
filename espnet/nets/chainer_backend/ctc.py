@@ -90,8 +90,6 @@ class WarpCTC(chainer.Chain):
 
     def __init__(self, odim, eprojs, dropout_rate):
         super(WarpCTC, self).__init__()
-        from chainer_ctc.warpctc import ctc as warp_ctc
-        self.ctc = warp_ctc
         self.dropout_rate = dropout_rate
         self.loss = None
 
