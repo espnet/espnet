@@ -33,7 +33,7 @@ class Conv2dSubsampling(chainer.Chain):
             self.pe = PositionalEncoding(dims, dropout)
 
     def forward(self, xs, ilens):
-        xs = F.expand_dims(self.xp.array(xs), axis=1).data
+        xs = self.xp.array(xs[:, None])
         xs = F.relu(self.conv1(xs))
         xs = F.relu(self.conv2(xs))
         batch, _, length, _ = xs.shape

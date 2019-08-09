@@ -5,8 +5,6 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-from chainer import cuda
-
 from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 
@@ -98,35 +96,33 @@ class WarpCTC(chainer.Chain):
         with self.init_scope():
             self.ctc_lo = L.Linear(eprojs, odim)
 
-    def __call__(self, hs, ys):
+    def forward(self, hs, ys):
         """Core function of the Warp-CTC layer.
 
         Args:
             hs (iterable of chainer.Variable | N-dimention array): Input variable from encoder.
-            ys (iterable of chainer.Variable | N-dimension array): Input variable of decoder.
+            ys (iterable of N-dimension array): Input variable of decoder.
 
         Returns:
            chainer.Variable: A variable holding a scalar value of the CTC loss.
 
         """
         self.loss = None
-        ilens = [x.shape[0] for x in hs]
+        ilens = [hs.shape[1]] * hs.shape[0]
         olens = [x.shape[0] for x in ys]
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate))
-        y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
+        # output batch x frames x hdim > frames x batch x hdim
+        y_hat = self.ctc_lo(F.dropout(
+            hs, ratio=self.dropout_rate), n_batch_axes=2).transpose(1, 0, 2)
 
         # get length info
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
         logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
-        from chainer_ctc.warpctc import ctc as warp_ctc
-        self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
+        self.loss = self.ctc(y_hat, ilens, ys)[0]
         logging.info('ctc loss:' + str(self.loss.data))
-
         return self.loss
 
     def log_softmax(self, hs):
@@ -150,27 +146,3 @@ class WarpCTC(chainer.Chain):
         :rtype: chainer.Variable
         """
         return F.argmax(self.ctc_lo(F.pad_sequence(hs_pad), n_batch_axes=2), axis=-1)
-
-
-def ctc_for(args, odim):
-    """Return the CTC layer corresponding to the args.
-
-    Args:
-        args (Namespace): The program arguments.
-        odim (int): The output dimension.
-
-    Returns:
-        The CTC module.
-
-    """
-    ctc_type = args.ctc_type
-    if ctc_type == 'builtin':
-        logging.info("Using chainer CTC implementation")
-        ctc = CTC(odim, args.eprojs, args.dropout_rate)
-    elif ctc_type == 'warpctc':
-        logging.info("Using warpctc CTC implementation")
-        ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
-    else:
-        raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
-                         .format(ctc_type))
-    return ctc
