@@ -29,7 +29,7 @@ requirements = {
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',
         'scikit-learn==0.20',
-        'librosa>=0.6.2',
+        'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',

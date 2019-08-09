@@ -26,6 +26,7 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
@@ -38,7 +39,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace):
+        args (Namespace, optional):
             - elayers (int): Number of encoder layers.
             - eunits (int): Number of encoder hidden units.
             - adim (int): Number of attention transformation dimensions.
@@ -53,6 +54,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             - duration_predictor_layers (int): Number of duration predictor layers.
             - duration_predictor_chans (int): Number of duration predictor channels.
             - duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            - spk_embed_dim (int): Number of speaker embedding dimenstions.
             - teacher_model (str): Teacher auto-regressive transformer model path.
             - reduction_factor (int): Reduction factor.
             - transformer_init (float): How to initialize transformer parameters.
@@ -114,8 +116,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Kernel size in duration predictor")
         group.add_argument("--teacher-model", default=None, type=str, nargs="?",
                            help="Teacher model file path")
-        parser.add_argument("--reduction-factor", default=1, type=int,
-                            help="Reduction factor")
+        group.add_argument("--reduction-factor", default=1, type=int,
+                           help="Reduction factor")
+        group.add_argument("--spk-embed-dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -153,13 +157,15 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
-
         return parser
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args=None):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments
+        args = fill_missing_args(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim
@@ -241,7 +247,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
         # initialize parameters
-        self._reset_parameters(args)
+        self._reset_parameters(init_type=args.transformer_init,
+                               init_enc_alpha=args.initial_encoder_alpha,
+                               init_dec_alpha=args.initial_decoder_alpha)
 
         # define teacher model
         if args.teacher_model is not None:
@@ -390,11 +398,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return att_ws_dict
 
-    def inference(self, x, spemb=None, *args, **kwargs):
+    def inference(self, x, inference_args, spemb=None, *args, **kwargs):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
             x (Tensor): Input sequence of characters (T,).
+            inference_args (Namespace): Dummy for compatibility.
+            spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
             Tensor: Output sequence of features (1, L, odim).
@@ -426,7 +436,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
@@ -456,14 +465,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return model
 
-    def _reset_parameters(self, args):
+    def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
-        initialize(self, args.transformer_init)
+        initialize(self, init_type)
 
         # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+            self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
 
     def _transfer_from_teacher(self, transferred_encoder_module):
         if transferred_encoder_module == "all":
