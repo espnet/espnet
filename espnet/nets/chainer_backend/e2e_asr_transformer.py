@@ -12,7 +12,8 @@ from chainer import reporter
 import chainer.functions as F
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.chainer_backend import ctc
+from espnet.nets.chainer_backend.transformer import ctc
+
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
@@ -166,16 +167,16 @@ class E2E(ASRInterface, chainer.Chain):
             loss_ctc = None
         else:
             _ys = [y.astype(np.int32) for y in ys_pad]
-            loss_ctc = self.ctc.forward_from_transformer(xs, _ys)
+            loss_ctc = self.ctc(xs, _ys)
             if self.error_calculator is not None:
                 with chainer.no_backprop_mode():
                     ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
                 cer_ctc = self.error_calculator(ys_hat, ys_pad, is_ctc=True)
 
         # 3. Decoder
-        ys = self.decoder(ys_pad, xs, x_mask)
         if calculate_attentions:
-            return
+            self.calculate_attentions(xs, x_mask, ys_pad)
+        ys = self.decoder(ys_pad, xs, x_mask)
 
         # 4. Attention Loss
         cer, wer = None, None
@@ -183,7 +184,8 @@ class E2E(ASRInterface, chainer.Chain):
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.criterion(ys, ys_pad, self.eos)
+            loss_att = self.criterion(ys, ys_pad, self.eos)
+            acc = self.criterion.acc
             if (not chainer.config.train) and (self.error_calculator is not None):
                 cer, wer = self.error_calculator(ys, ys_pad)
 
@@ -220,6 +222,9 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss, loss_ctc, loss_att, acc
         else:
             return self.loss
+
+    def calculate_attentions(self, xs, x_mask, ys_pad):
+        self.decoder(ys_pad, xs, x_mask)
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
         """E2E beam search.
@@ -430,7 +435,7 @@ class E2E(ASRInterface, chainer.Chain):
         """
 
         with chainer.no_backprop_mode():
-            results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
+            self(xs, ilens, ys, calculate_attentions=True)
         ret = dict()
         for name, m in self.namedlinks():
             if isinstance(m, MultiHeadAttention):
