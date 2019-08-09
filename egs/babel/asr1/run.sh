@@ -3,8 +3,8 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -162,10 +162,6 @@ if ${use_lm}; then
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
                 <(cut -d' ' -f2- data/${train_dev}/text | head -100) \
                 > ${lm_valid_set}
-
-  if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-  fi
 
   ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
           lm_train.py \

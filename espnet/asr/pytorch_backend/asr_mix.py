@@ -54,13 +54,13 @@ from espnet.utils.training.train_utils import set_early_stop
 
 matplotlib.use('Agg')
 
-REPORT_INTERVAL = 100
-
 
 class CustomConverter(object):
-    """Custom batch converter for Pytorch
+    """Custom batch converter for Pytorch.
 
-    :param int subsampling_factor : The subsampling factor
+    Args:
+        subsampling_factor (int): The subsampling factor.
+
     """
 
     def __init__(self, subsampling_factor=1, preprocess_conf=None):
@@ -70,15 +70,30 @@ class CustomConverter(object):
         self.ignore_id = -1
 
     def transform(self, item):
+        """Create a mini-batch.
+
+        Args:
+            item (list(tuple(str, dict[str, dict[str, Any]]))): List of batch.
+
+        Returns:
+            tuple(list, list, list): Tuple of the following.
+                * List of input token id sentences (numpy.ndarray, float)
+                * List of input feature sequences (numpy.ndarray, float)
+                * List of target token id sequences (numpy.ndarray, int)
+
+        """
         return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device
+        """Transforms a batch and send it to a device.
 
-        :param list batch: The batch to transform
-        :param torch.device device: The device to send to
-        :return: a tuple xs_pad, ilens, ys_pad
-        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        Args:
+            batch (list(tuple(str, dict[str, dict[str, Any]]))): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor): Transformed batch.
+
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -103,9 +118,11 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
 
@@ -161,9 +178,10 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -286,37 +304,40 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(REPORT_INTERVAL, 'iteration'))
+            trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
     if args.report_cer:
         report_keys.append('validation/main/cer')
     if args.report_wer:
         report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer, att_reporter),
+                       trigger=(args.report_interval_iters, 'iteration'))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     # read training config

@@ -1,6 +1,8 @@
-lm-weight : 0.5
-beam-size : 20
-penalty : 0.0
-maxlenratio : 0.0
-minlenratio : 0.0
-ctc-weight : 0.3
+batchsize: 0
+beam-size: 40
+ctc-weight: 0.3
+lm-weight: 0.5
+maxlenratio: 0.0
+minlenratio: 0.0
+penalty: 0.0
+verbose: 1
