@@ -190,9 +190,9 @@ class E2E(ASRInterface, chainer.Chain):
                 ys_pad_out = [np.concatenate([y, eos], axis=0) for y in ys_pad]
                 ys_pad_out = F.pad_sequence(ys_pad_out, padding=-1).data
                 ys_pad_out = self.xp.array(ys_pad_out)
-            
+
             loss_att = self.criterion(ys, ys_pad_out)
-            acc = F.accuracy(ys.reshape(-1, self.odim), ys_pad_out, ignore_label=-1)
+            acc = F.accuracy(ys.reshape(-1, self.odim), ys_pad_out.reshape(-1), ignore_label=-1)
             if (not chainer.config.train) and (self.error_calculator is not None):
                 cer, wer = self.error_calculator(ys, ys_pad)
 
