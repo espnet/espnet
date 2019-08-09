@@ -136,9 +136,10 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
