@@ -20,7 +20,8 @@ requirements = {
     'install': [
         # for some reason, matplotlib should be separately installed
         # 'matplotlib',
-        'scipy',
+        # NOTE(kan-bayashi): fix scipy version to avoid error in conda
+        'scipy==1.3.0',
         'h5py',
         # Installation from anaconda is recommended for PyTorch
         # 'torch==1.0.1',
