@@ -18,11 +18,11 @@ if LooseVersion(pip.__version__) < LooseVersion('19'):
 
 requirements = {
     'install': [
-        # Installation from anaconda is recommended for PyTorch
-        # 'torch==1.0.1',
+        # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         'chainer==6.0.0',
-        # 'cupy==6.0.0',
+        # 'cupy==6.0.0',  # Do not install cupy as default
         'setuptools>=38.5.1',
+        'scipy>=1.3.0',
         'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
@@ -30,21 +30,23 @@ requirements = {
         'editdistance==0.5.2',
         'h5py>=2.9.0',
         'tensorboardX>=1.8',
-        'pillow>=5.3.0',
+        'pillow>=6.1.0',
         'nara_wpe>=0.0.5',
         'museval>=0.2.1',
         'pystoi>=0.2.2',
         'kaldiio>=2.13.8',
         'matplotlib>=3.1.0',
-        # A backport of inspect.signature for python2
-        'funcsigs>=1.0.2',
+        'funcsigs>=1.0.2',  # A backport of inspect.signature for python2
         'configargparse>=0.14.0',
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
-    'setup': ['numpy', 'pytest-runner'],
+    'setup': [
+        'numpy',
+        'pytest-runner'
+    ],
     'test': [
         'pytest>=3.3.0',
         'pytest-pythonpath>=0.7.3',
@@ -52,7 +54,8 @@ requirements = {
         'hacking>=1.1.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3',
-        'jsondiff>=1.2.0'],
+        'jsondiff>=1.2.0'
+    ],
     'doc': [
         'Sphinx==2.1.2',
         'sphinx-rtd-theme>=0.2.4',
