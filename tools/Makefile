@@ -54,12 +54,6 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
-	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
-		. venv/bin/activate; pip install matplotlib==2.2.4; \
-	else \
-		. venv/bin/activate; pip install matplotlib; \
-	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
@@ -72,7 +66,6 @@ venv: miniconda.sh
 	. venv/bin/activate && conda info -a
 espnet.done: venv
 	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
 endif
