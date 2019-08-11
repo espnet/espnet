@@ -35,6 +35,7 @@ requirements = {
         'h5py>=2.9.0',
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
+        'sentencepiece>=0.1.82',
         'nara_wpe',
         'museval',
         'pystoi',
@@ -45,7 +46,6 @@ requirements = {
         'PyYAML',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
-        'sentencepiece==0.1.82'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
