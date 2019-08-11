@@ -288,7 +288,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_emeds(hs, spembs)
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(ilens).to(xs.device)
