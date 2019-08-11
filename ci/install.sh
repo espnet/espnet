@@ -36,31 +36,33 @@ fi
 
 python --version
 
-pip install -q -U pip wheel
-pip install -q chainer=="${CHAINER_VERSION}"
+opt="--trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org"
+
+pip install ${opt} -q -U pip wheel
+pip install ${opt} -q chainer=="${CHAINER_VERSION}"
 
 # install espnet
-pip install -q -e .
-pip install -q -e ".[test]"
-pip install -q -e ".[doc]"
+pip install ${opt} -q -e .
+pip install ${opt} -q -e ".[test]"
+pip install ${opt} -q -e ".[doc]"
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
-pip install -q -U flake8
+pip install ${opt} -q -U flake8
 
 # install matplotlib
-pip install -q matplotlib
+pip install ${opt} -q matplotlib
 
 # install warp-ctc (use @jnishi patched version)
 git clone https://github.com/jnishi/warp-ctc.git -b pytorch-1.0.0
 cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-pip install -q cffi
+pip install ${opt} -q cffi
 cd pytorch_binding && python setup.py install && cd ../..
 
 # install chainer_ctc
-pip install cython
+pip install ${opt} cython
 git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-pip install -q . && cd ..
+pip install ${opt} -q . && cd ..
 
 # log
 pip freeze
