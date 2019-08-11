@@ -40,9 +40,9 @@ pip install --progress-bar off -U pip wheel
 pip install --progress-bar off chainer=="${CHAINER_VERSION}"
 
 # install espnet
-pip install --no-build-isolation --progress-bar off -e .
-pip install --no-build-isolation --progress-bar off -e ".[test]"
-pip install --no-build-isolation --progress-bar off -e ".[doc]"
+pip install --progress-bar off -e .
+pip install --progress-bar off -e ".[test]"
+pip install --progress-bar off -e ".[doc]"
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
 pip install --progress-bar off -U flake8
