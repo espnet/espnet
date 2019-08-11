@@ -504,7 +504,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_emeds(hs, spembs)
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -632,7 +632,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)
-            hs = self._integrate_with_spk_emeds(hs, spembs)
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
@@ -702,7 +702,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # integrate speaker embedding
             if self.spk_embed_dim is not None:
-                hs = self._integrate_with_spk_emeds(hs, spembs)
+                hs = self._integrate_with_spk_embed(hs, spembs)
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
@@ -764,7 +764,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return att_ws_dict
 
-    def _integrate_with_spk_emeds(self, hs, spembs):
+    def _integrate_with_spk_embed(self, hs, spembs):
         """Integrate speaker embedding with hidden states.
 
         Args:
@@ -779,10 +779,12 @@ class Transformer(TTSInterface, torch.nn.Module):
             # apply projection and then add to hidden states
             spembs = self.projection(F.normalize(spembs))
             hs = hs + spembs.unsqueeze(1)
-        else:
+        elif self.spk_embed_integration_type == "concat":
             # concat hidden states with spk embeds and then apply projection
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = self.projection(torch.cat([hs, spembs], dim=-1))
+        else:
+            raise NotImplementedError("support only add or concat.")
 
         return hs
 
