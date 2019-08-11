@@ -28,41 +28,39 @@ else
     . tools/venv/bin/activate
 
     if [[ ${TH_VERSION} == nightly ]]; then
-        pip install -q torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+        pip install --progress-bar off torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
     else
-        pip install -q torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
+        pip install --progress-bar off torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
     fi
 fi
 
 python --version
 
-opt="--trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org"
-
-pip install ${opt} -q -U pip wheel
-pip install ${opt} -q chainer=="${CHAINER_VERSION}"
+pip install --progress-bar off -U pip wheel
+pip install --progress-bar off chainer=="${CHAINER_VERSION}"
 
 # install espnet
-pip install ${opt} -q -e .
-pip install ${opt} -q -e ".[test]"
-pip install ${opt} -q -e ".[doc]"
+pip install --no-build-isolation --progress-bar off -e .
+pip install --no-build-isolation --progress-bar off -e ".[test]"
+pip install --no-build-isolation --progress-bar off -e ".[doc]"
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
-pip install ${opt} -q -U flake8
+pip install --progress-bar off -U flake8
 
 # install matplotlib
-pip install ${opt} -q matplotlib
+pip install --progress-bar off matplotlib
 
 # install warp-ctc (use @jnishi patched version)
 git clone https://github.com/jnishi/warp-ctc.git -b pytorch-1.0.0
 cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-pip install ${opt} -q cffi
+pip install --progress-bar off cffi
 cd pytorch_binding && python setup.py install && cd ../..
 
 # install chainer_ctc
-pip install ${opt} cython
+pip install cython
 git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-pip install ${opt} -q . && cd ..
+pip install --progress-bar off . && cd ..
 
 # log
 pip freeze
