@@ -20,7 +20,7 @@ if ${USE_CONDA}; then
     else
         conda install -q -y pytorch-cpu="${TH_VERSION}" -c pytorch
     fi
-    conda install -c conda-forge ffmpeg
+    conda install -q -c conda-forge ffmpeg
 else
     # to suppress errors during doc generation of utils/ when USE_CONDA=false in travis
     mkdir -p tools/venv/bin
@@ -28,39 +28,39 @@ else
     . tools/venv/bin/activate
 
     if [[ ${TH_VERSION} == nightly ]]; then
-        pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+        pip install -q torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
     else
-        pip install --quiet torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
+        pip install -q torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
     fi
 fi
 
 python --version
 
-pip install -U pip wheel
-pip install chainer=="${CHAINER_VERSION}"
+pip install -q -U pip wheel
+pip install -q chainer=="${CHAINER_VERSION}"
 
 # install espnet
-pip install -e .
-pip install -e ".[test]"
-pip install -e ".[doc]"
+pip install -q -e .
+pip install -q -e ".[test]"
+pip install -q -e ".[doc]"
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
-pip install -U flake8
+pip install -q -U flake8
 
 # install matplotlib
-pip install matplotlib
+pip install -q matplotlib
 
 # install warp-ctc (use @jnishi patched version)
 git clone https://github.com/jnishi/warp-ctc.git -b pytorch-1.0.0
 cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-pip install cffi
+pip install -q cffi
 cd pytorch_binding && python setup.py install && cd ../..
 
 # install chainer_ctc
 pip install cython
 git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-pip install . && cd ..
+pip install -q . && cd ..
 
 # log
 pip freeze
