@@ -502,7 +502,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
 
-        # add speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_emeds(hs, spembs)
 
@@ -629,7 +629,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
 
-        # add speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)
             hs = self._integrate_with_spk_emeds(hs, spembs)
@@ -700,7 +700,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             x_masks = self._source_mask(ilens)
             hs, _ = self.encoder(xs, x_masks)
 
-            # add speaker embedding
+            # integrate speaker embedding
             if self.spk_embed_dim is not None:
                 hs = self._integrate_with_spk_emeds(hs, spembs)
 

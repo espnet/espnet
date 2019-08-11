@@ -286,7 +286,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
 
-        # concat speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_emeds(hs, spembs)
 
