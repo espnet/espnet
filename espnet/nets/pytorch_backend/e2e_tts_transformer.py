@@ -177,6 +177,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
             - reduction_factor (int): Reduction factor.
             - spk_embed_dim (int): Number of speaker embedding dimenstions.
+            - spk_embed_integration_type: How to integrate speaker embedding.
             - transformer_init (float): How to initialize transformer parameters.
             - transformer_lr (float): Initial value of learning rate.
             - transformer_warmup_steps (int): Optimizer warmup steps.
@@ -256,6 +257,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Reduction factor")
         group.add_argument("--spk-embed-dim", default=None, type=int,
                            help="Number of speaker embedding dimensions")
+        group.add_argument("--spk-embed-integration-type", type=str, default="add",
+                           choices=["add", "concat"],
+                           help="How to integrate speaker embedding")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -330,6 +334,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.idim = idim
         self.odim = odim
         self.spk_embed_dim = args.spk_embed_dim
+        if self.spk_embed_dim:
+            self.spk_embed_integration_type = args.spk_embed_integration_type
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
         self.loss_type = args.loss_type
@@ -391,7 +397,10 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define projection layer
         if self.spk_embed_dim is not None:
-            self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
+            if self.spk_embed_integration_type == "add":
+                self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
+            else:
+                self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
 
         # define transformer decoder
         if args.dprenet_layers != 0:
@@ -495,8 +504,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # add speaker embedding
         if self.spk_embed_dim is not None:
-            spembs = self.projection(F.normalize(spembs))
-            hs = hs + spembs.unsqueeze(1)
+            hs = self._integrate_with_spk_emeds(hs, spembs)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -624,8 +632,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         # add speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)
-            spembs = self.projection(F.normalize(spembs))
-            hs = hs + spembs.unsqueeze(1)
+            hs = self._integrate_with_spk_emeds(hs, spembs)
 
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
@@ -695,8 +702,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # add speaker embedding
             if self.spk_embed_dim is not None:
-                spembs = self.projection(F.normalize(spembs))
-                hs = hs + spembs.unsqueeze(1)
+                hs = self._integrate_with_spk_emeds(hs, spembs)
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
@@ -757,6 +763,28 @@ class Transformer(TTSInterface, torch.nn.Module):
                 att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs, olens.tolist())]
 
         return att_ws_dict
+
+    def _integrate_with_spk_emeds(self, hs, spembs):
+        """Integrate speaker embedding with hidden states.
+
+        Args:
+            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
+            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim)
+
+        """
+        if self.spk_embed_integration_type == "add":
+            # apply projection and then add to hidden states
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
+        else:
+            # concat hidden states with spk embeds and then apply projection
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+
+        return hs
 
     def _source_mask(self, ilens):
         """Make masks for self-attention.
