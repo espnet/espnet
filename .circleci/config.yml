@@ -21,7 +21,7 @@ jobs:
           ESPNET_PYTHON_VERSION: 3.7
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
-          USE_CONDA: false
+          USE_CONDA: true
           CC: gcc-7
           CXX: g++-7
     working_directory: ~/repo
