@@ -26,17 +26,14 @@ env:
   # torch nightly
   - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
-
 matrix:
   allow_failures:
     # torch nightly
-    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
-
+    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
 install:
   - travis_retry ./ci/install.sh
   - travis_retry ./ci/install_kaldi.sh
-
 
 script:
   - ./ci/test_shell.sh
