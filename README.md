@@ -443,7 +443,7 @@ Available pretrained models are listed as follows.
 | [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow decoder network with reduction factor = 3 |
 | [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
 | [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
-| [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Large Transformer with reduction factor = 2 |
+| [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Large Transformer with reduction factor = 2 |
 
 
 ## Chainer and Pytorch backends
