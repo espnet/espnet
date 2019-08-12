@@ -11,7 +11,7 @@
 
 ## Model files
 
-- model link: https://drive.google.com/open?id=1wEOJjkajJCet7HzzGV5igPcwfh2n-yOK
+- model link: https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B
 - training config file: `conf/tuning/train_fastspeech.v2.yaml`
 - decoding config file: `conf/decode.yaml`
 - cmvn file: `data/train_no_dev/cmvn.ark`
@@ -37,7 +37,7 @@ https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5
 
 ## Model files
 
-- model link: https://drive.google.com/open?id=1BAkmFcG5QdBgw4onr6BGJb3cDVDcdKRA
+- model link: https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i
 - training config file: `conf/tuning/train_fastspeech.v1.yaml`
 - decoding config file: `conf/decode.yaml`
 - cmvn file: `data/train_no_dev/cmvn.ark`

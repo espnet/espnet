@@ -18,7 +18,8 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
-          ESPNET_PYTHON_VERSION: 3.7
+          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+          ESPNET_PYTHON_VERSION: 3.7.3
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
@@ -64,7 +65,8 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:16.04
         environment:
-          ESPNET_PYTHON_VERSION: 3.7
+          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+          ESPNET_PYTHON_VERSION: 3.7.3
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
@@ -113,7 +115,8 @@ jobs:
     docker:
       - image: centos:7
         environment:
-          ESPNET_PYTHON_VERSION: 3.7
+          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+          ESPNET_PYTHON_VERSION: 3.7.3
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
@@ -168,7 +171,8 @@ jobs:
     docker:
       - image: debian:9
         environment:
-          ESPNET_PYTHON_VERSION: 3.7
+          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+          ESPNET_PYTHON_VERSION: 3.7.3
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
