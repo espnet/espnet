@@ -25,6 +25,7 @@ from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attentio
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
@@ -64,16 +65,16 @@ class TransformerLoss(torch.nn.Module):
     """Loss function module for TTS-Transformer.
 
     Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+        use_masking (bool, optional): Whether to mask padded part in loss calculation.
+        bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
 
     """
 
-    def __init__(self, args):
+    def __init__(self, use_masking=True, bce_pos_weight=5.0):
         super(TransformerLoss, self).__init__()
-        self.use_masking = args.use_masking
-        self.bce_pos_weight = args.bce_pos_weight
+        # store hyperparameters
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -151,7 +152,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     Args:
         idim (int): Dimension of the inputs.
         odim (int): Dimension of the outputs.
-        args (Namespace):
+        args (Namespace, optional):
             - embed_dim (int): Dimension of character embedding.
             - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
             - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
@@ -174,6 +175,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
             - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
             - reduction_factor (int): Reduction factor.
+            - spk_embed_dim (int): Number of speaker embedding dimenstions.
             - transformer_init (float): How to initialize transformer parameters.
             - transformer_lr (float): Initial value of learning rate.
             - transformer_warmup_steps (int): Optimizer warmup steps.
@@ -194,6 +196,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - num_heads_applied_guided_attn (int): Number of heads in each layer to be applied guided attention loss.
             - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
             - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
+            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
@@ -247,8 +250,10 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Whether to concatenate attention layer's input and output in encoder")
         group.add_argument("--decoder-concat-after", default=False, type=strtobool,
                            help="Whether to concatenate attention layer's input and output in decoder")
-        parser.add_argument("--reduction-factor", default=1, type=int,
-                            help="Reduction factor")
+        group.add_argument("--reduction-factor", default=1, type=int,
+                           help="Reduction factor")
+        group.add_argument("--spk-embed-dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -309,10 +314,13 @@ class Transformer(TTSInterface, torch.nn.Module):
         """Return plot class for attention weight plot."""
         return TTSPlot
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args=None):
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments
+        args = fill_missing_args(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim
@@ -428,21 +436,24 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define loss function
-        self.criterion = TransformerLoss(args)
+        self.criterion = TransformerLoss(use_masking=args.use_masking,
+                                         bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
-            self.attn_criterion = GuidedMultiHeadAttentionLoss(args.guided_attn_loss_sigma)
+            self.attn_criterion = GuidedMultiHeadAttentionLoss(sigma=args.guided_attn_loss_sigma)
 
         # initialize parameters
-        self._reset_parameters(args)
+        self._reset_parameters(init_type=args.transformer_init,
+                               init_enc_alpha=args.initial_encoder_alpha,
+                               init_dec_alpha=args.initial_decoder_alpha)
 
-    def _reset_parameters(self, args):
+    def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
-        initialize(self, args.transformer_init)
+        initialize(self, init_type)
 
         # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+            self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
 
     def _add_first_frame_and_remove_last_frame(self, ys):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
@@ -750,7 +761,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
                      [1, 1, 1, 0, 0],
@@ -772,7 +782,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 0, 0],
                      [1, 1, 1, 1, 0],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 0, 0, 0, 0],
                      [1, 1, 0, 0, 0],
                      [1, 1, 1, 0, 0],
@@ -796,7 +805,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 1],
                      [1, 1, 1, 1],
                      [1, 1, 1, 1]],
-
                     [[1, 1, 0, 0],
                      [1, 1, 0, 0],
                      [1, 1, 0, 0],
