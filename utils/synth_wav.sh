@@ -64,6 +64,7 @@ Available models:
     - ljspeech.transformer.v2
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
+    - libritts.transformer.v1
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -96,6 +97,7 @@ function download_models () {
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
         "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
         "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
+        "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
