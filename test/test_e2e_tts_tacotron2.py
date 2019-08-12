@@ -61,6 +61,7 @@ def make_taco2_args(**kwargs):
         bce_pos_weight=1.0,
         use_guided_attn_loss=False,
         guided_attn_loss_sigma=0.4,
+        guided_attn_loss_lambda=1.0,
     )
     defaults.update(kwargs)
     return defaults
