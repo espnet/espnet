@@ -163,10 +163,6 @@ if ${use_lm}; then
                 <(cut -d' ' -f2- data/${train_dev}/text | head -100) \
                 > ${lm_valid_set}
 
-  if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-  fi
-
   ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
           lm_train.py \
           --config ${lm_config} \
