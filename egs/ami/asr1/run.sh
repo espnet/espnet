@@ -108,6 +108,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	PROCESSED_AMI_DIR=${AMI_DIR}
     fi
     local/ami_${base_mic}_data_prep.sh ${PROCESSED_AMI_DIR} ${mic}
+    # data augmentation
+    utils/perturb_data_dir_speed.sh 0.9 data/${mic}/train_orig data/ihm_tmp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${mic}/train_orig data/ihm_tmp2    
+    utils/perturb_data_dir_speed.sh 1.1 data/${mic}/train_orig data/ihm_tmp3
+    rm -r data/${mic}/train_orig
+    utils/combine_data.sh --extra-files utt2uniq data/ihm/train_orig data/ihm_tmp1 data/ihm_tmp2 data/ihm_tmp3
+    
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} dev
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} eval
     for dset in train dev eval; do
@@ -215,10 +222,7 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         text2token.py -s 1 -n 1 data/${train_test}/text | cut -f 2- -d" " \
             > ${lmdatadir}/test.txt
     fi
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
+
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
