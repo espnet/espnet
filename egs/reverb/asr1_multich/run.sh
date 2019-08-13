@@ -73,6 +73,20 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
     local/prepare_real_data.sh --wavdir ${wavdir} ${reverb}
 
+    # Run WPE and Beamformit
+    local/run_wpe.sh
+    local/run_beamform.sh ${wavdir}/WPE/
+    if ${compute_se}; then
+      if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
+        # download and install speech enhancement evaluation tools
+        local/download_se_eval_tool.sh
+      fi
+      pesqdir=${PWD}/local
+      local/compute_se_scores.sh --nch ${nch_se} --enable_pesq ${enable_pesq} ${reverb} ${wavdir} ${pesqdir}
+      cat exp/compute_se_${nch_se}ch/scores/score_SimData
+      cat exp/compute_se_${nch_se}ch/scores/score_RealData
+    fi
+
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
     local/wsj_format_data.sh
@@ -363,17 +377,13 @@ fi
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Score enhanced speech"
     if ${compute_se}; then
-        if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
-            # download and install speech enhancement evaluation tools
-            local/download_se_eval_tool.sh
-        fi
         pesqdir=${PWD}/local
         for rtask in "et"; do
             simu_scp=${expdir}/enhance_${rtask}_simu_${nch_se}ch_multich/enhance.scp
             real_scp=${expdir}/enhance_${rtask}_real_${nch_se}ch_multich/enhance.scp
             enhancement_simu_scp=${PWD}/$simu_scp
             enhancement_real_scp=${PWD}/$real_scp
-            local/compute_se_scores.sh --nch ${nch_se} --enable_pesq ${enable_pesq} \
+            local/compute_se_scores_multich.sh --nch ${nch_se} --enable_pesq ${enable_pesq} \
                 ${enhancement_simu_scp} \
                 ${enhancement_real_scp} \
                 ${reverb} \
