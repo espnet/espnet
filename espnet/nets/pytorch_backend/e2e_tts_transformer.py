@@ -334,7 +334,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.idim = idim
         self.odim = odim
         self.spk_embed_dim = args.spk_embed_dim
-        if self.spk_embed_dim:
+        if self.spk_embed_dim is not None:
             self.spk_embed_integration_type = args.spk_embed_integration_type
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
