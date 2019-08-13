@@ -212,7 +212,7 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
 else
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
