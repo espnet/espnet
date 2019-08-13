@@ -33,6 +33,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
     Args:
         sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+        alpha (float, optional): Scaling coefficient (lambda).
         reset_always (bool, optional): Whether to always reset masks.
 
     """
@@ -58,7 +59,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         if self.reset_always:
             self._reset_masks()
 
-        return loss
+        return self.alpha * loss
 
 
 class TransformerLoss(torch.nn.Module):
@@ -176,6 +177,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
             - reduction_factor (int): Reduction factor.
             - spk_embed_dim (int): Number of speaker embedding dimenstions.
+            - spk_embed_integration_type: How to integrate speaker embedding.
             - transformer_init (float): How to initialize transformer parameters.
             - transformer_lr (float): Initial value of learning rate.
             - transformer_warmup_steps (int): Optimizer warmup steps.
@@ -197,6 +199,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
             - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
             - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+            - guided-attn-loss-lambda (float): Lambda in guided attention loss.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
@@ -254,6 +257,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Reduction factor")
         group.add_argument("--spk-embed-dim", default=None, type=int,
                            help="Number of speaker embedding dimensions")
+        group.add_argument("--spk-embed-integration-type", type=str, default="add",
+                           choices=["add", "concat"],
+                           help="How to integrate speaker embedding")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -298,6 +304,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Whether to use guided attention loss")
         group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
                            help="Sigma in guided attention loss")
+        group.add_argument("--guided-attn-loss-lambda", default=1.0, type=float,
+                           help="Lambda in guided attention loss")
         group.add_argument("--num-heads-applied-guided-attn", default=2, type=int,
                            help="Number of heads in each layer to be applied guided attention loss"
                                 "if set -1, all of the heads will be applied.")
@@ -326,6 +334,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.idim = idim
         self.odim = odim
         self.spk_embed_dim = args.spk_embed_dim
+        if self.spk_embed_dim is not None:
+            self.spk_embed_integration_type = args.spk_embed_integration_type
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
         self.loss_type = args.loss_type
@@ -387,7 +397,10 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define projection layer
         if self.spk_embed_dim is not None:
-            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
+            if self.spk_embed_integration_type == "add":
+                self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
+            else:
+                self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
 
         # define transformer decoder
         if args.dprenet_layers != 0:
@@ -439,7 +452,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.criterion = TransformerLoss(use_masking=args.use_masking,
                                          bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
-            self.attn_criterion = GuidedMultiHeadAttentionLoss(sigma=args.guided_attn_loss_sigma)
+            self.attn_criterion = GuidedMultiHeadAttentionLoss(
+                sigma=args.guided_attn_loss_sigma,
+                alpha=args.guided_attn_loss_lambda,
+            )
 
         # initialize parameters
         self._reset_parameters(init_type=args.transformer_init,
@@ -486,10 +502,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
 
-        # concat speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -614,11 +629,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
 
-        # concat speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # set limits of length
         maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
@@ -686,9 +700,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             x_masks = self._source_mask(ilens)
             hs, _ = self.encoder(xs, x_masks)
 
+            # integrate speaker embedding
             if self.spk_embed_dim is not None:
-                spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-                hs = self.projection(torch.cat([hs, spembs], dim=-1))
+                hs = self._integrate_with_spk_embed(hs, spembs)
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
@@ -749,6 +763,30 @@ class Transformer(TTSInterface, torch.nn.Module):
                 att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs, olens.tolist())]
 
         return att_ws_dict
+
+    def _integrate_with_spk_embed(self, hs, spembs):
+        """Integrate speaker embedding with hidden states.
+
+        Args:
+            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
+            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim)
+
+        """
+        if self.spk_embed_integration_type == "add":
+            # apply projection and then add to hidden states
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
+        elif self.spk_embed_integration_type == "concat":
+            # concat hidden states with spk embeds and then apply projection
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+        else:
+            raise NotImplementedError("support only add or concat.")
+
+        return hs
 
     def _source_mask(self, ilens):
         """Make masks for self-attention.
