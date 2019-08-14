@@ -8,7 +8,8 @@ if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
     exit 1
 fi
 
-. ./path.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -80,11 +81,7 @@ EOF
 )
 . utils/parse_options.sh || exit 1;
 
-# make shellcheck happy
-train_cmd=
-decode_cmd=
-
-. ./cmd.sh
+set -euo pipefail
 
 txt=$1
 download_dir=${decode_dir}/download
