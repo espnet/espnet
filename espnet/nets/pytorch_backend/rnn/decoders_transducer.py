@@ -208,7 +208,7 @@ class DecoderRNNT(torch.nn.Module):
         beam = recog_args.beam_size
         k_range = min(beam, self.odim)
         nbest = recog_args.nbest
-        normscore = recog_args.score_norm
+        normscore = recog_args.score_norm_transducer
 
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -497,7 +497,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         beam = recog_args.beam_size
         k_range = min(beam, self.odim)
         nbest = recog_args.nbest
-        normscore = recog_args.score_norm
+        normscore = recog_args.score_norm_transducer
 
         self.att[0].reset()
 
@@ -624,12 +624,12 @@ class DecoderRNNTAtt(torch.nn.Module):
 
 
 def decoder_for(args, odim, att=None, blank=0):
-    if args.rnnt_mode == 0:
+    if args.rnnt_mode == 'rnnt':
         return DecoderRNNT(args.eprojs, odim, args.dtype, args.dlayers, args.dunits,
                            blank, args.dec_embed_dim, args.joint_dim,
                            args.dropout_rate_decoder, args.dropout_rate_embed_decoder,
                            args.rnnt_type)
-    elif args.rnnt_mode == 1:
+    elif args.rnnt_mode == 'rnnt-att':
         return DecoderRNNTAtt(args.eprojs, odim, args.dtype, args.dlayers, args.dunits,
                               blank, att, args.dec_embed_dim, args.joint_dim,
                               args.dropout_rate_decoder, args.dropout_rate_embed_decoder,

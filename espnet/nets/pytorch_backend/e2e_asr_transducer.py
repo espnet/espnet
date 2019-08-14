@@ -45,17 +45,66 @@ class E2E(ASRInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transducer model setting")
-        group.add_argument('--rnnt_type', default='warp-transducer', type=str,
-                           choices=['warp-transducer'],
-                           help='Type of transducer implementation to calculate loss.')
-        parser.add_argument('--rnnt-mode', default=0, type=int, choices=[0, 1],
-                            help='RNN-Transducing mode (0:rnnt, 1:rnnt-att)')
-        parser.add_argument('--joint-dim', default=320, type=int,
-                            help='Number of dimensions in joint space')
+        # encoder
+        group.add_argument('--etype', default='blstmp', type=str,
+                           choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                    'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                           help='Type of encoder network architecture')
+        group.add_argument('--elayers', default=4, type=int,
+                           help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
+        group.add_argument('--eunits', '-u', default=300, type=int,
+                           help='Number of encoder hidden units')
+        group.add_argument('--eprojs', default=320, type=int,
+                           help='Number of encoder projection units')
+        group.add_argument('--subsample', default="1", type=str,
+                           help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
+                           'every y frame at 2nd layer etc.')
+        # attention
+        group.add_argument('--atype', default='dot', type=str,
+                           choices=['noatt', 'dot', 'add', 'location', 'coverage',
+                                    'coverage_location', 'location2d', 'location_recurrent',
+                                    'multi_head_dot', 'multi_head_add', 'multi_head_loc',
+                                    'multi_head_multi_res_loc'],
+                           help='Type of attention architecture')
+        group.add_argument('--adim', default=320, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--awin', default=5, type=int,
+                           help='Window size for location2d attention')
+        group.add_argument('--aheads', default=4, type=int,
+                           help='Number of heads for multi head attention')
+        group.add_argument('--aconv-chans', default=-1, type=int,
+                           help='Number of attention convolution channels \
+                           (negative value indicates no location-aware attention)')
+        group.add_argument('--aconv-filts', default=100, type=int,
+                           help='Number of attention convolution filters \
+                           (negative value indicates no location-aware attention)')
+        group.add_argument('--dropout-rate', default=0.0, type=float,
+                           help='Dropout rate for the encoder')
+        # decoder
+        group.add_argument('--dtype', default='lstm', type=str,
+                           choices=['lstm', 'gru'],
+                           help='Type of decoder network architecture')
+        group.add_argument('--dlayers', default=1, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=320, type=int,
+                           help='Number of decoder hidden units')
+        group.add_argument('--dropout-rate-decoder', default=0.0, type=float,
+                           help='Dropout rate for the decoder')
+        group.add_argument('--sampling-probability', default=0.0, type=float,
+                           help='Ratio of predicted labels fed back to decoder')
+        # prediction
         group.add_argument('--dec-embed-dim', default=320, type=int,
                            help='Number of decoder embeddings dimensions')
         parser.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
                             help='Dropout rate for the decoder embeddings')
+        # general
+        group.add_argument('--rnnt_type', default='warp-transducer', type=str,
+                           choices=['warp-transducer'],
+                           help='Type of transducer implementation to calculate loss.')
+        parser.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
+                            help='RNN-Transducing mode')
+        parser.add_argument('--joint-dim', default=320, type=int,
+                            help='Number of dimensions in joint space')
 
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
@@ -102,7 +151,7 @@ class E2E(ASRInterface, torch.nn.Module):
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
 
-        if args.rnnt_mode == 1:
+        if args.rnnt_mode == 'rnnt-att':
             # attention
             self.att = att_for(args)
             # decoder
@@ -168,7 +217,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         lecun_normal_init_parameters(self)
 
-        if self.rnnt_mode == 1:
+        if self.rnnt_mode == 'rnnt-att':
             # embed weight ~ Normal(0, 1)
             self.dec.embed.weight.data.normal_(0, 1)
             # forget-bias = 1.0
@@ -283,59 +332,11 @@ class E2E(ASRInterface, torch.nn.Module):
         # 1. Encoder
         h, _, _ = self.enc(hs, hlens)
 
-        # 2. Decoder (pred+joint or att-dec+joint)
-        if recog_args.search_type == 'greedy':
+        # 2. Decoder
+        if recog_args.beam_size == 1:
             y = self.dec.recognize(h[0], recog_args)
         else:
             y = self.dec.recognize_beam(h[0], recog_args, rnnlm)
-
-        if prev:
-            self.train()
-
-        return y
-
-    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
-        """E2E recognize with batch
-
-        Args:
-            xs (ndarray): list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
-            recog_args (namespace): argument Namespace containing options
-            char_list (list): list of characters
-            rnnlm (torch.nn.Module): language model module
-
-        Returns:
-           y (list): n-best decoding results
-        """
-
-        logging.error("Batch decoding for transducer is not supported yet.")
-        raise NotImplementedError
-
-        prev = self.training
-        self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-
-        # Subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
-        xs_pad = pad_list(xs, 0.0)
-
-        # 0. Frontend
-        if self.frontend is not None:
-            enhanced, hlens, mask = self.frontend(xs_pad, ilens)
-            hs_pad, hlens = self.feature_transform(enhanced, hlens)
-        else:
-            hs_pad, hlens = xs_pad, ilens
-
-        # 1. Encoder
-        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
-
-        # 2. Decoder
-        hlens = torch.tensor(list(map(int, hlens)))
-
-        if recog_args.search_type == 'greedy':
-            y = self.dec.recognize_batch(hs_pad, hlens, recog_args)
-        else:
-            y = self.dec.recognize_beam_batch(hs_pad, hlens, recog_args, rnnlm)
 
         if prev:
             self.train()
@@ -385,6 +386,9 @@ class E2E(ASRInterface, torch.nn.Module):
                 2) other case => attention weights (B, Lmax, Tmax).
         """
 
+        if self.rnnt_mode == 'rnnt':
+            return []
+        
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
@@ -397,10 +401,7 @@ class E2E(ASRInterface, torch.nn.Module):
             hpad, hlens, _ = self.enc(hs_pad, hlens)
 
             # decoder
-            if self.rnnt_mode == 1:
-                att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
-            else:
-                att_ws = []
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws
 
