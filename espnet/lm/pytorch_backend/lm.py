@@ -242,6 +242,7 @@ class ReduceFramewiseLoss(torch.nn.Module):
         If parallel GPUs compute this, it seems to be fine.
         See also https://github.com/espnet/espnet/issues/1075
     """
+
     def __init__(self, model):
         super().__init__()
         self.model = model
