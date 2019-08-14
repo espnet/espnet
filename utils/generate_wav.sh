@@ -10,11 +10,14 @@ n_fft=1024
 n_shift=256
 cmd=run.pl
 help_message=$(cat <<EOF
-Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]
+Usage: $0 [options] <model-path> <data-dir> [<log-dir> [<fbank-dir>] ]
 e.g.: $0 data/train exp/wavenet_vocoder/train wav
 Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data
 Options:
-  --nj <nj>                                        # number of parallel jobs
+  --nj <nj>             # number of parallel jobs
+  --fs <fs>             # sampling rate (default=22050)
+  --n_fft <n_fft>       # number of FFT points (default=1024)
+  --n_shift <n_shift>   # shift size in point (default=256)
   --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
 EOF
 )
@@ -24,19 +27,20 @@ echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
-if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+if [ $# -lt 2 ] || [ $# -gt 4 ]; then
     echo "${help_message}"
     exit 1;
 fi
 
-data=$1
-if [ $# -ge 2 ]; then
-  logdir=$2
+model=$1
+data=$2
+if [ $# -ge 3 ]; then
+  logdir=$3
 else
   logdir=${data}/log
 fi
-if [ $# -ge 3 ]; then
-  wavdir=$3
+if [ $# -ge 4 ]; then
+  wavdir=$4
 else
   wavdir=${data}/data
 fi
@@ -58,6 +62,7 @@ utils/split_scp.pl ${scp} ${split_scps} || exit 1;
 
 ${cmd} JOB=1:${nj} ${logdir}/generate_with_wavenet_${name}.JOB.log \
     generate_wav_from_fbank.py \
+        --model ${model} \
         --fs ${fs} \
         --n_fft ${n_fft} \
         --n_shift ${n_shift} \
