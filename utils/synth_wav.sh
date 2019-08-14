@@ -121,7 +121,7 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.ns.v1") share_url="https://drive.google.com/open?id=19aRo_RZbaNCm4u9v2-0I3Qk-kGuS-Y7q";;
+        "ljspeech.wavenet.ns.v1") share_url="https://drive.google.com/open?id=1c93rP2x-rwygRPlYiiB7M0hSP5_wTb6d";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 

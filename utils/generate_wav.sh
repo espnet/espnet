@@ -10,9 +10,12 @@ n_fft=1024
 n_shift=256
 cmd=run.pl
 help_message=$(cat <<EOF
-Usage: $0 [options] <model-path> <data-dir> [<log-dir> [<fbank-dir>] ]
-e.g.: $0 data/train exp/wavenet_vocoder/train wav
-Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data
+Usage:
+  $0 [options] <model-path> <data-dir> [<log-dir> [<fbank-dir>] ]
+Example:
+  $0 ljspeech.wavenet.ns.v1/checkpoint-1000000.pkl data/train exp/wavenet_vocoder/train wav
+Note:
+  <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data
 Options:
   --nj <nj>             # number of parallel jobs
   --fs <fs>             # sampling rate (default=22050)
