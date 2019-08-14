@@ -81,7 +81,6 @@ EOF
 )
 . utils/parse_options.sh || exit 1;
 
-set -euo pipefail
 
 txt=$1
 download_dir=${decode_dir}/download
@@ -212,6 +211,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
     utils/copy_data_dir.sh ${decode_dir}/data ${decode_dir}/data2
     echo "$base ${input_wav}" > ${decode_dir}/data2/wav.scp
     utils/data/resample_data_dir.sh 16000 ${decode_dir}/data2
+    # shellcheck disable=SC2154
     steps/make_mfcc.sh \
         --write-utt2num-frames true \
         --mfcc-config conf/mfcc.conf \
@@ -240,6 +240,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Decoding"
 
+    # shellcheck disable=SC2154
     ${decode_cmd} ${decode_dir}/log/decode.log \
         tts_decode.py \
         --config ${decode_config} \
