@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 Tomoki Hayashi (Nagoya University)
+# Copyright 2019 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""This code is based on https://github.com/kan-bayashi/PytorchWaveNetVocoder."""
 
 from __future__ import division
 
