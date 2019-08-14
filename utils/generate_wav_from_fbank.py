@@ -27,7 +27,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 class NoiseShaper(object):
-    """Noise shaper.
+    """Noise shaper module.
 
     This module apply a noise shaping filter based on `An investigation of noise shaping with perceptual weighting
     for WaveNet-based speech generation`_.
@@ -46,11 +46,15 @@ class NoiseShaper(object):
     """
 
     def __init__(self, mlsa_coef, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
+        # lazy import to avoid error in making docs
         try:
             from sprocket.speech import Synthesizer
         except ImportError:
-            logging.error("sprocket-vc is not installed. please install via `. ./path.sh && pip install sprocket-vc`.")
+            logging.error("sprocket-vc is not installed. please install via "
+                          "`. ./path.sh && pip install sprocket-vc`.")
             sys.exit(1)
+
+        # store hyperparameters
         self.mlsa_coef = mlsa_coef * mag
         self.mlsa_coef[0] = 0.0
         self.fs = fs
@@ -59,8 +63,12 @@ class NoiseShaper(object):
         if alpha is None:
             if self.fs == 16000:
                 self.alpha = 0.42
-            else:
+            elif self.fs == 22050 or self.fs == 24000:
                 self.alpha = 0.455
+            else:
+                ValueError("please specify alpha value.")
+
+        # define synthesizer to apply MLSA filter
         self.synthesizer = Synthesizer(
             fs=self.fs,
             shiftms=self.shiftms,
