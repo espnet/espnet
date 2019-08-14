@@ -19,7 +19,7 @@ from chainer.training import extension
 
 
 def load_dataset(path, label_dict, outdir=None):
-    """Load and save HDF5 dataset for LM
+    """Load and save HDF5 that contains a dataset and stats for LM
 
     Args:
         path (str): The path of an input text dataset file
@@ -27,7 +27,10 @@ def load_dataset(path, label_dict, outdir=None):
         outdir (str): The path of an output dir
 
     Returns:
-        list[np.ndarray]: np.int32 IDs of tokens converted by `read_tokens`
+        tuple[list[np.ndarray], int, int]: Tuple of
+            token IDs in np.int32 converted by `read_tokens`
+            the number of tokens by `count_tokens`,
+            and the number of OOVs by `count_tokens`
     """
     if outdir is not None:
         os.makedirs(outdir, exist_ok=True)
@@ -45,7 +48,8 @@ def load_dataset(path, label_dict, outdir=None):
         logging.info(f"saving binary dataset: {filename}")
         with h5py.File(filename, "w") as f:
             # http://docs.h5py.org/en/stable/special.html#arbitrary-vlen-data
-            f.create_dataset("data", data=ret, dtype=h5py.special_dtype(vlen=np.int32))
+            data = f.create_dataset("data", (len(ret),), dtype=h5py.special_dtype(vlen=np.int32))
+            data[:] = ret
             f["n_tokens"] = n_tokens
             f["n_oovs"] = n_oovs
     return ret, n_tokens, n_oovs

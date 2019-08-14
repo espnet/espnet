@@ -181,7 +181,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
         --dict ${dict} \
-        --dump-dataset ${lmdatadir}
+        --dump-hdf5-path ${lmdatadir}
 fi
 
 if [ -z ${tag} ]; then
