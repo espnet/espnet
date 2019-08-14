@@ -1,4 +1,31 @@
-# v.0.3.0: tacotron2.v1 1024 pt window / 256 pt shift + default taco2 + x-vector + GL 1000 iters
+# v.0.5.0: First multi-speaker Transformer 1024 pt window / 256 pt shift + x-vector with add integration + fast GL 64 iters
+
+## Environments
+
+- date: `Mon Aug 12 20:14:55 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `d359148ebecf16440526cf0b326dde58960e2d16`
+  - Commit date: `Sun Aug 11 23:08:55 2019 +0900`
+
+## Model files
+
+- model link: https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3
+- training config file: `conf/train_pytorch_transformer+spkemb.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/train_clean_460/cmvn.ark`
+- e2e file: `exp/train_clean_460_pytorch_train_pytorch_transformer+spkemb/results/model.last1.avg.best`
+- e2e JSON file: `exp/train_clean_460_pytorch_train_pytorch_transformer+spkemb/results/model.json`
+- dict file: `data/lang_1char/train_clean_460_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1_vrdqjM43DdN1Qz7HJkvMQ6lCMmWLeGp
+
+
+# v.0.3.0: multi-speaker Tacotron2.v1 1024 pt window / 256 pt shift + default taco2 + x-vector + GL 1000 iters
 
 ## Environments
 
@@ -20,4 +47,4 @@
 
 ## Samples
 
-https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0
+https://drive.google.com/open?id=18S_B8Ogogij34rIfJOeNF8D--uG7amz2
