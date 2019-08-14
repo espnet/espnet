@@ -55,7 +55,7 @@ class NoiseShaper(object):
         self.mlsa_coef = mlsa_coef * mag
         self.mlsa_coef[0] = 0.0
         self.fs = fs
-        self.shiftms = n_shift / fs * 1000,
+        self.shiftms = n_shift / fs * 1000
         self.n_fft = n_fft
         if alpha is None:
             if self.fs == 16000:
@@ -169,7 +169,6 @@ def main():
     model.eval()
     model.to(device)
 
-    # extract feature and then write as ark with scp format
     for idx, (utt_id, lmspc) in enumerate(
             file_reader_helper(args.rspecifier, args.filetype), 1):
         logging.info("(%d) %s" % (idx, utt_id))
