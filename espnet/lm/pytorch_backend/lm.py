@@ -246,6 +246,7 @@ class ReduceFramewiseLoss(torch.nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
+        self.reporter = model.reporter
 
     def forward(self, x, t):
         """Reduce framewise loss values
@@ -300,8 +301,9 @@ class BPTTUpdater(training.StandardUpdater):
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
         loss, count = self.model(x, t)
         loss = loss.sum()
-        reporter.report({'loss': float(loss.detach())}, optimizer.target)
-        reporter.report({'count': int(count.sum())}, optimizer.target)
+        count = count.sum()
+        reporter.report({'loss': float(loss.detach() / count)}, optimizer.target)
+        reporter.report({'count': int(count)}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
