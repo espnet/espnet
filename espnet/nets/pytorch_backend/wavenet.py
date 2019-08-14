@@ -271,6 +271,10 @@ class WaveNet(nn.Module):
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
 
+        # padding for shortage
+        if n_samples > h.shape[2]:
+            h = F.pad(h, (0, n_samples - h.shape[2]), "replicate")
+
         # padding if the length less than
         n_pad = self.receptive_field - x.size(1)
         if n_pad > 0:
