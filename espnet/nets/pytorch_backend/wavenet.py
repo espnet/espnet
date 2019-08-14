@@ -241,83 +241,17 @@ class WaveNet(nn.Module):
 
         return output
 
-    def generate(self, x, h, n_samples, intervals=None, mode="sampling"):
-        """Generate a waveform with a naive method.
-
-        Args:
-            x (LongTensor): Initial wavenform tensor with the shape  (1, T)
-            h (Tensor): Auxiliary feature tensor with the shape  (1, n_aux, n_samples + T)
-            n_samples (int): Number of samples to be generated.
-            intervals (int): Log interval.
-            mode (str): "sampling" or "argmax".
-
-        Return:
-            ndarray: Generated quantized wavenform (n_samples).
-
-        """
-        # upsampling
-        if self.upsampling_factor > 0:
-            h = self.upsampling(h)
-
-        # padding if the length less than receptive field size
-        n_pad = self.receptive_field - x.size(1)
-        if n_pad > 0:
-            x = F.pad(x, (n_pad, 0), "constant", self.n_quantize // 2)
-            h = F.pad(h, (n_pad, 0), "replicate")
-
-        # generate
-        samples = x[0].tolist()
-        start = time.time()
-        for i in range(n_samples):
-            current_idx = len(samples)
-            x = torch.tensor(samples[-self.receptive_field:]).long().view(1, -1)
-            h_ = h[:, :, current_idx - self.receptive_field: current_idx]
-
-            # calculate output
-            output = self._preprocess(x)
-            skip_connections = []
-            for l in range(len(self.dilations)):
-                output, skip = self._residual_forward(
-                    output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                    self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                    self.skip_1x1[l], self.res_1x1[l])
-                skip_connections.append(skip)
-            output = sum(skip_connections)
-            output = self._postprocess(output)[0]  # T x n_quantize
-
-            # get waveform
-            if mode == "sampling":
-                posterior = F.softmax(output[-1], dim=0)
-                dist = torch.distributions.Categorical(posterior)
-                sample = dist.sample()
-            elif mode == "argmax":
-                sample = output[-1].argmax()
-            else:
-                logging.error("mode should be sampling or argmax")
-                sys.exit(1)
-            samples.append(sample)
-
-            # show progress
-            if intervals is not None and (i + 1) % intervals == 0:
-                logging.info("%d/%d estimated time = %.3f sec (%.3f sec / sample)" % (
-                    i + 1, n_samples,
-                    (n_samples - i - 1) * ((time.time() - start) / intervals),
-                    (time.time() - start) / intervals))
-                start = time.time()
-
-        return np.array(samples[-n_samples:])
-
-    def fast_generate(self, x, h, n_samples, intervals=None, mode="sampling"):
+    def generate(self, x, h, n_samples=None, interval=None, mode="sampling"):
         """Generate a waveform with fast genration algorithm.
 
         This generation based on `Fast WaveNet Generation Algorithm`_.
 
         Args:
-            x (LongTensor): Initial wavenform tensor with the shape  (1, T)
-            h (Tensor): Auxiliary feature tensor with the shape  (1, n_aux, n_samples + T)
-            n_samples (int): Number of samples to be generated.
-            intervals (int): Log interval.
-            mode (str): "sampling" or "argmax".
+            x (LongTensor): Initial wavenform tensor with the shape  (T).
+            h (Tensor): Auxiliary feature tensor with the shape  (n_samples + T, n_aux).
+            n_samples (int, optional): Number of samples to be generated.
+            interval (int, optional): Log interval.
+            mode (str, optional): "sampling" or "argmax".
 
         Return:
             ndarray: Generated quantized wavenform (n_samples).
@@ -325,7 +259,20 @@ class WaveNet(nn.Module):
         .. _`Fast WaveNet Generation Algorithm`: https://arxiv.org/abs/1611.09482
 
         """
-        # upsampling
+        # reshape inputs
+        assert len(x.shape) == 1
+        assert len(h.shape) == 2 and h.shape[1] == self.n_aux
+        x = x.unsqueeze(0)
+        h = h.transpose(0, 1).unsqueeze(0)
+
+        # check number of samples to be generated
+        if n_samples is None:
+            if self.upsampling_factor > 0:
+                n_samples = h.shape[1] * self.upsampling_factor - 1
+            else:
+                n_samples = h.shape[1] - 1
+
+        # perform upsampling
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
 
@@ -387,130 +334,14 @@ class WaveNet(nn.Module):
             samples = torch.cat([samples, sample], dim=0)
 
             # show progress
-            if intervals is not None and (i + 1) % intervals == 0:
+            if interval is not None and (i + 1) % interval == 0:
                 logging.info("%d/%d estimated time = %.3f sec (%.3f sec / sample)" % (
                     i + 1, n_samples,
-                    (n_samples - i - 1) * ((time.time() - start) / intervals),
-                    (time.time() - start) / intervals))
+                    (n_samples - i - 1) * ((time.time() - start) / interval),
+                    (time.time() - start) / interval))
                 start = time.time()
 
         return samples[-n_samples:].cpu().numpy()
-
-    def batch_fast_generate(self, x, h, n_samples_list, intervals=None, mode="sampling"):
-        """Generate waveforms in batch mode.
-
-        Args:
-            x (tensor): Initial wavenform tensor with the shape  (B, T).
-            h (tensor): Auxiliary feature tensor with the shape  (B, n_aux, max(n_samples_list) + T).
-            n_samples_list (list): List of number of samples to be generated (B).
-            intervals (int): Log interval.
-            mode (str): "sampling" or "argmax".
-
-        Returns:
-            list: List of ndarray which is generated quantized wavenform.
-
-        """
-        # get min max length
-        max_n_samples = max(n_samples_list)
-        min_n_samples = min(n_samples_list)
-        min_idx = np.argmin(n_samples_list)
-
-        # upsampling
-        if self.upsampling_factor > 0:
-            h = self.upsampling(h)
-
-        # padding if the length less than
-        n_pad = self.receptive_field - x.size(1)
-        if n_pad > 0:
-            x = F.pad(x, (n_pad, 0), "constant", self.n_quantize // 2)
-            h = F.pad(h, (n_pad, 0), "replicate")
-
-        # prepare buffer
-        output = self._preprocess(x)
-        h_ = h[:, :, :x.size(1)]
-        output_buffer = []
-        buffer_size = []
-        for l, d in enumerate(self.dilations):
-            output, _ = self._residual_forward(
-                output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                self.skip_1x1[l], self.res_1x1[l])
-            if d == 2 ** (self.dilation_depth - 1):
-                buffer_size.append(self.kernel_size - 1)
-            else:
-                buffer_size.append(d * 2 * (self.kernel_size - 1))
-            output_buffer.append(output[:, :, -buffer_size[l] - 1: -1])
-
-        # generate
-        samples = x  # B x T
-        end_samples = []
-        start = time.time()
-        for i in range(max_n_samples):
-            output = samples[:, -self.kernel_size * 2 + 1:]
-            output = self._preprocess(output)  # B x C x T
-            h_ = h[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
-            output_buffer_next = []
-            skip_connections = []
-            for l, d in enumerate(self.dilations):
-                output, skip = self._generate_residual_forward(
-                    output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                    self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                    self.skip_1x1[l], self.res_1x1[l])
-                output = torch.cat([output_buffer[l], output], dim=2)
-                output_buffer_next.append(output[:, :, -buffer_size[l]:])
-                skip_connections.append(skip)
-
-            # update buffer
-            output_buffer = output_buffer_next
-
-            # get predicted sample
-            output = sum(skip_connections)
-            output = self._postprocess(output)[:, -1]  # B x n_quantize
-            if mode == "sampling":
-                posterior = F.softmax(output, dim=-1)
-                dist = torch.distributions.Categorical(posterior)
-                sample = dist.sample()  # B
-            elif mode == "argmax":
-                sample = output.argmax(-1)  # B
-            else:
-                logging.error("mode should be sampling or argmax")
-                sys.exit(1)
-            samples = torch.cat([samples, sample.view(-1, 1)], dim=1)
-
-            # show progress
-            if intervals is not None and (i + 1) % intervals == 0:
-                logging.info("%d/%d estimated time = %.3f sec (%.3f sec / sample)" % (
-                    i + 1, max_n_samples,
-                    (max_n_samples - i - 1) * ((time.time() - start) / intervals),
-                    (time.time() - start) / intervals))
-                start = time.time()
-
-            # check length
-            if (i + 1) == min_n_samples:
-                while True:
-                    # get finished sample
-                    end_samples += [samples[min_idx, -min_n_samples:].cpu().numpy()]
-                    # get index of unfinished samples
-                    idx_list = [idx for idx in range(len(n_samples_list)) if idx != min_idx]
-                    if len(idx_list) == 0:
-                        # break when all of samples are finished
-                        break
-                    else:
-                        # remove finished sample
-                        samples = samples[idx_list]
-                        h = h[idx_list]
-                        output_buffer = [out_[idx_list] for out_ in output_buffer]
-                        del n_samples_list[min_idx]
-                        # update min length
-                        prev_min_n_samples = min_n_samples
-                        min_n_samples = min(n_samples_list)
-                        min_idx = np.argmin(n_samples_list)
-
-                    # break when there is no same length samples
-                    if min_n_samples != prev_min_n_samples:
-                        break
-
-        return end_samples
 
     def _preprocess(self, x):
         x = self.onehot(x).transpose(1, 2)
