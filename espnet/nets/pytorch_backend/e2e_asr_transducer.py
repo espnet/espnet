@@ -388,7 +388,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         if self.rnnt_mode == 'rnnt':
             return []
-        
+
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
