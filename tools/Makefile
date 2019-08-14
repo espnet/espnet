@@ -2,7 +2,8 @@
 # PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
-PYTHON_VERSION := 3.7
+# NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+PYTHON_VERSION := 3.7.3
 CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
@@ -53,12 +54,6 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
-	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
-		. venv/bin/activate; pip install matplotlib==2.2.4; \
-	else \
-		. venv/bin/activate; pip install matplotlib; \
-	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
@@ -71,7 +66,6 @@ venv: miniconda.sh
 	. venv/bin/activate && conda info -a
 espnet.done: venv
 	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
 endif

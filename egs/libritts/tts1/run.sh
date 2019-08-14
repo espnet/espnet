@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpu in training
-nj=32        # numebr of parallel jobs
+nj=64        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
@@ -32,7 +32,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
