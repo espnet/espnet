@@ -35,7 +35,6 @@ class NoiseShaper(object):
     Args:
         avg_mcep (ndaaray): Averaged Mel-cepstrum for MLSA filter (D,).
         fs (int, optional): Sampling frequency.
-        n_fft (int, optional): Number of points in FFT.
         n_shift (int, optional): Shift length in points.
         mag (float, optional): Magnification of noise shaping.
         alpha (float, optional): All pass constant value.
@@ -45,7 +44,7 @@ class NoiseShaper(object):
 
     """
 
-    def __init__(self, avg_mcep, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
+    def __init__(self, avg_mcep, fs=22050, n_shift=256, mag=0.5, alpha=None):
         # decide alpha according to sampling rate
         if alpha is None:
             if fs == 16000:
@@ -55,7 +54,7 @@ class NoiseShaper(object):
             else:
                 ValueError("please specify alpha value.")
 
-        self.n_fft = n_fft
+        self.n_shift = n_shift
 
         # calculate coefficient for MLSA filter
         avg_mcep = avg_mcep * mag
@@ -147,7 +146,6 @@ def main():
     noise_shaper = NoiseShaper(
         avg_mcep=avg_mcep,
         fs=args.fs,
-        n_fft=args.n_fft,
         n_shift=args.n_shift,
     )
 
