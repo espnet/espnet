@@ -235,7 +235,7 @@ class ReduceFramewiseLoss(torch.nn.Module):
     """Reduce framewise loss values in language modeling
 
     Args:
-        model (ClassifierWithState): module for computing framewise loss
+        model (ClassifierWithState): The module for computing framewise loss
 
     Note:
         PyTorch seems to have memory leak when one GPU compute this after data parallel.
@@ -258,11 +258,13 @@ class ReduceFramewiseLoss(torch.nn.Module):
         """Reduce framewise loss values
 
         Args:
-            x (torch.Tensor): input ids. (batch, len)
-            t (torch.Tensor): target ids. (batch, len)
+            x (torch.Tensor): Input ids. (batch, len)
+            t (torch.Tensor): Target ids. (batch, len)
 
         Returns:
-            torch.Tensor: Reduced loss values and valid element counts
+            tuple[torch.Tensor, torch.Tensor]: Tuple of
+                the reduced loss value along time (scalar)
+                and the number of valid loss values (scalar)
         """
         loss = 0
         count = torch.tensor(0).long()
@@ -368,8 +370,8 @@ def train(args):
     unk = args.char_list_dict['<unk>']
     eos = args.char_list_dict['<eos>']
     # read tokens as a sequence of sentences
-    val, n_val_tokens, n_val_oovs = load_dataset(args.valid_label, args.char_list_dict, args.dump_dataset)
-    train, n_train_tokens, n_train_oovs = load_dataset(args.train_label, args.char_list_dict, args.dump_dataset)
+    val, n_val_tokens, n_val_oovs = load_dataset(args.valid_label, args.char_list_dict, args.dump_hdf5_path)
+    train, n_train_tokens, n_train_oovs = load_dataset(args.train_label, args.char_list_dict, args.dump_hdf5_path)
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#sentences in the training data = ' + str(len(train)))
     logging.info('#tokens in the training data = ' + str(n_train_tokens))
