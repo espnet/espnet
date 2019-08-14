@@ -13,7 +13,7 @@ fi
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=100
+stop_stage=3
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
@@ -42,6 +42,7 @@ griffin_lim_iters=64
 
 # download related
 models=ljspeech.fastspeech.v1
+vocoder_models=ljspeech.wavenet.ns.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -55,6 +56,12 @@ Example:
     # you can specify the pretrained models
     $0 --models ljspeech.tacotron2.v3 example.txt
 
+    # if you try wavenet vocoder, extend stage
+    $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
+
+    # also you can specify vocoder model
+    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.ns.v1 --stop_stage 4 example.txt
+
 Available models:
     - libritts.tacotron2.v1
     - ljspeech.tacotron2.v1
@@ -65,6 +72,9 @@ Available models:
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
     - libritts.transformer.v1
+
+Available vocoder models:
+    - ljspeech.wavenet.ns.v1
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -102,6 +112,20 @@ function download_models () {
     esac
 
     dir=${download_dir}/${models}
+    mkdir -p ${dir}
+    if [ ! -e ${dir}/.complete ]; then
+        download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
+	touch ${dir}/.complete
+    fi
+}
+
+function download_vocoder_models () {
+    case "${vocoder_models}" in
+        "ljspeech.wavenet.ns.v1") share_url="";;
+        *) echo "No such models: ${vocoder_models}"; exit 1 ;;
+    esac
+
+    dir=${download_dir}/${vocoder_models}
     mkdir -p ${dir}
     if [ ! -e ${dir}/.complete ]; then
         download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
@@ -230,7 +254,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Synthesis"
+    echo "stage 3: Synthesis with Griffin-Lim"
 
     outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
@@ -252,6 +276,32 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     echo ""
     echo "Synthesized wav: ${decode_dir}/wav/${base}.wav"
+    echo ""
+    echo "Finished"
+fi
+
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Synthesis with WaveNet"
+    model_corpus=$(echo ${models} | cut -d. -f 1)
+    vocoder_model_corpus=$(echo ${vocoder_model_corpus} | cut -d. -f 1)
+    if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
+        echo "${vocoder_models} does not support ${models} (Due to the sampling rare mismatch)."
+        exit 1
+    fi
+    download_vocoder_models
+    checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
+    generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
+        --model ${checkpoint} \
+        --fs ${fs} \
+        --n_fft ${n_fft} \
+        --n_shift ${n_shift} \
+        ${outdir}_denorm \
+        ${decode_dir}/log \
+        ${decode_dir}/wav_wnv
+
+    echo ""
+    echo "Synthesized wav: ${decode_dir}/wav_wnv/${base}.wav"
     echo ""
     echo "Finished"
 fi
