@@ -243,7 +243,7 @@ class WaveNet(nn.Module):
 
         return output
 
-    def generate(self, x, h, n_samples=None, interval=None, mode="sampling"):
+    def generate(self, x, h, n_samples, interval=None, mode="sampling"):
         """Generate a waveform with fast genration algorithm.
 
         This generation based on `Fast WaveNet Generation Algorithm`_.
@@ -251,7 +251,7 @@ class WaveNet(nn.Module):
         Args:
             x (LongTensor): Initial wavenform tensor with the shape  (T).
             h (Tensor): Auxiliary feature tensor with the shape  (n_samples + T, n_aux).
-            n_samples (int, optional): Number of samples to be generated.
+            n_samples (int): Number of samples to be generated.
             interval (int, optional): Log interval.
             mode (str, optional): "sampling" or "argmax".
 
@@ -266,13 +266,6 @@ class WaveNet(nn.Module):
         assert len(h.shape) == 2 and h.shape[1] == self.n_aux
         x = x.unsqueeze(0)
         h = h.transpose(0, 1).unsqueeze(0)
-
-        # check number of samples to be generated
-        if n_samples is None:
-            if self.upsampling_factor > 0:
-                n_samples = h.shape[1] * self.upsampling_factor - 1
-            else:
-                n_samples = h.shape[1] - 1
 
         # perform upsampling
         if self.upsampling_factor > 0:

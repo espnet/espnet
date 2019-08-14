@@ -181,10 +181,13 @@ def main():
         x = torch.tensor(x, dtype=torch.long, device=device)  # (1, )
         h = torch.tensor(h, dtype=torch.float, device=device)  # (T, n_aux)
 
+        # get length of waveform
+        n_samples = (h.shape[0] - 1) * args.n_shift + args.n_fft
+
         # generate
         start_time = time.time()
         with torch.no_grad():
-            y = model.generate(x, h, interval=100)
+            y = model.generate(x, h, n_samples, interval=100)
         logging.info("generation speed = %s (sec / sample)" % ((time.time() - start_time) / (len(y) - 1)))
         y = decode_mu_law(y, mu=config.n_quantize)
 
