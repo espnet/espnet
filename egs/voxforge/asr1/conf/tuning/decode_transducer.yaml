@@ -1,5 +1,4 @@
 # decoding parameters
 batch: 0
 beam-size: 20
-search-type: beam
-score-norm: True
+score-norm-transducer: True

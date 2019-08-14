@@ -74,10 +74,7 @@ def get_parser():
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
     # transducer related
-    parser.add_argument('--search-type', type=str, default='beam',
-                        choices=['greedy', 'beam'],
-                        help='Search algorithm to use for transducer.')
-    parser.add_argument('--score-norm', type=strtobool, nargs='?',
+    parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
                         default=True,
                         help='Normalize transducer scores by length')
     # rnnlm related
