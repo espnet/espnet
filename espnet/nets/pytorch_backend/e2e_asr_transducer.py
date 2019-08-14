@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 import argparse
 import logging
 import math
@@ -18,7 +15,7 @@ from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders_rnnt import decoder_for
+from espnet.nets.pytorch_backend.rnn.decoders_transducer import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -45,6 +42,21 @@ class E2E(ASRInterface, torch.nn.Module):
         args (namespace): argument Namespace containing options
     """
 
+    @staticmethod
+    def add_arguments(parser):
+        group = parser.add_argument_group("transducer model setting")
+        group.add_argument('--rnnt_type', default='warp-transducer', type=str,
+                           choices=['warp-transducer'],
+                           help='Type of transducer implementation to calculate loss.')
+        parser.add_argument('--rnnt-mode', default=0, type=int, choices=[0, 1],
+                            help='RNN-Transducing mode (0:rnnt, 1:rnnt-att)')
+        parser.add_argument('--joint-dim', default=320, type=int,
+                            help='Number of dimensions in joint space')
+        group.add_argument('--dec-embed-dim', default=320, type=int,
+                           help='Number of decoder embeddings dimensions')
+        parser.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
+                            help='Dropout rate for the decoder embeddings')
+
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
@@ -59,6 +71,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
+        self.eos = odim - 1
 
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
@@ -93,10 +106,10 @@ class E2E(ASRInterface, torch.nn.Module):
             # attention
             self.att = att_for(args)
             # decoder
-            self.dec = decoder_for(args, odim, self.sos, self.att)
+            self.dec = decoder_for(args, odim, self.att)
         else:
             # prediction
-            self.dec = decoder_for(args, odim, self.sos)
+            self.dec = decoder_for(args, odim)
         # weight initialization
         self.init_like_chainer()
 
@@ -294,6 +307,9 @@ class E2E(ASRInterface, torch.nn.Module):
            y (list): n-best decoding results
         """
 
+        logging.error("Batch decoding for transducer is not supported yet.")
+        raise NotImplementedError
+
         prev = self.training
         self.eval()
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
@@ -381,7 +397,10 @@ class E2E(ASRInterface, torch.nn.Module):
             hpad, hlens, _ = self.enc(hs_pad, hlens)
 
             # decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
+            if self.rnnt_mode == 1:
+                att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
+            else:
+                att_ws = []
 
         return att_ws
 
