@@ -181,7 +181,7 @@ def main():
         h = torch.tensor(h, dtype=torch.float, device=device)  # (T, n_aux)
 
         # get length of waveform
-        n_samples = h.shape[0] * config.upsampling_factor - 1
+        n_samples = (h.shape[0] - 1) * args.n_shift + args.n_fft
 
         # generate
         start_time = time.time()
