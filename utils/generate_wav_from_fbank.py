@@ -25,12 +25,6 @@ from espnet.nets.pytorch_backend.wavenet import WaveNet
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 
-try:
-    from sprocket.speech import Synthesizer
-except ImportError:
-    logging.error("sprocket-vc is not installed. please install via `. ./path.sh && pip install sprocket-vc`.")
-    sys.exit(1)
-
 
 class NoiseShaper(object):
     """Noise shaper.
@@ -52,6 +46,11 @@ class NoiseShaper(object):
     """
 
     def __init__(self, mlsa_coef, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
+        try:
+            from sprocket.speech import Synthesizer
+        except ImportError:
+            logging.error("sprocket-vc is not installed. please install via `. ./path.sh && pip install sprocket-vc`.")
+            sys.exit(1)
         self.mlsa_coef = mlsa_coef * mag
         self.mlsa_coef[0] = 0.0
         self.fs = fs
@@ -182,7 +181,7 @@ def main():
         h = torch.tensor(h, dtype=torch.float, device=device)  # (T, n_aux)
 
         # get length of waveform
-        n_samples = (h.shape[0] - 1) * args.n_shift + args.n_fft
+        n_samples = h.shape[0] * config.upsampling_factor - 1
 
         # generate
         start_time = time.time()
