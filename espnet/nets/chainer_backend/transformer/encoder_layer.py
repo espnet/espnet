@@ -26,7 +26,7 @@ class EncoderLayer(chainer.Chain):
         self.dropout = dropout
         self.n_units = n_units
 
-    def __call__(self, e, xx_mask, batch):
+    def forward(self, e, xx_mask, batch):
         n_e = self.norm1(e)
         n_e = self.self_attn(n_e, mask=xx_mask, batch=batch)
         e = e + F.dropout(n_e, self.dropout)

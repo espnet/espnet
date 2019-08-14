@@ -4,6 +4,7 @@
 \#*\#
 .\#*
 *DS_Store
+out.txt
 espnet.egg-info/
 doc/_build
 slurm-*.out

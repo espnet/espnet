@@ -29,6 +29,8 @@ class Decoder(chainer.Chain):
 
     def __init__(self, odim, args, initialW=None, initial_bias=None):
         super(Decoder, self).__init__()
+        self.sos = odim - 1
+        self.eos = odim - 1
         initialW = chainer.initializers.Uniform if initialW is None else initialW
         initial_bias = chainer.initializers.Uniform if initial_bias is None else initial_bias
         with self.init_scope():
@@ -48,27 +50,49 @@ class Decoder(chainer.Chain):
             self.add_link(name, layer)
         self.n_layers = args.dlayers
 
-    def forward(self, e, yy_mask, source, xy_mask):
-        """Definition of the decoder layer.
+    def make_attention_mask(self, source_block, target_block):
+        mask = (target_block[:, None, :] >= 0) * \
+            (source_block[:, :, None] >= 0)
+        # (batch, source_length, target_length)
+        return mask
 
-        Args:
-            e (chainer.Variable): Input variable to the decoder from the encoder.
-            yy_mask (chainer.Variable): Attention mask considering ys as the source and target block.
-            source (List): Input sequences padded with `sos` and `pad_sequence` method.
-            xy_mask (chainer.Variable): Attention mask considering ys and xs as the source/target block.
+    def make_history_mask(self, block):
+        batch, length = block.shape
+        arange = self.xp.arange(length)
+        history_mask = (arange[None, ] <= arange[:, None])[None, ]
+        history_mask = self.xp.broadcast_to(
+            history_mask, (batch, length, length))
+        return history_mask
 
-        Returns:
-            chainer.Chain: Decoder layer.
+    def forward(self, ys_pad, source, x_mask):
+        """Forward decoder
 
+        :param xp.array e: input token ids, int64 (batch, maxlen_out)
+        :param xp.array yy_mask: input token mask, uint8  (batch, maxlen_out)
+        :param xp.array source: encoded memory, float32  (batch, maxlen_in, feat)
+        :param xp.array xy_mask: encoded memory mask, uint8  (batch, maxlen_in)
+        :return e: decoded token score before softmax (batch, maxlen_out, token)
+        :rtype: chainer.Variable
         """
+        xp = self.xp
+        sos = np.array([self.sos], np.int32)
+        ys = [np.concatenate([sos, y], axis=0) for y in ys_pad]
+        e = F.pad_sequence(ys, padding=self.eos).data
+        e = xp.array(e)
+        # mask preparation
+        xy_mask = self.make_attention_mask(e, xp.array(x_mask))
+        yy_mask = self.make_attention_mask(e, e)
+        yy_mask *= self.make_history_mask(e)
+
         e = self.pe(self.embed(e))
-        dims = e.shape
-        e = e.reshape(-1, dims[2])
+        batch, length, dims = e.shape
+        e = e.reshape(-1, dims)
+        source = source.reshape(-1, dims)
         for i in range(self.n_layers):
-            e = self['decoders.' + str(i)](e, source, xy_mask, yy_mask, dims[0])
-        return self.output_layer(self.output_norm(e))
+            e = self['decoders.' + str(i)](e, source, xy_mask, yy_mask, batch)
+        return self.output_layer(self.output_norm(e)).reshape(batch, length, -1)
 
     def recognize(self, e, yy_mask, source):
-        bs, lenght = e.shape
+        bs, length = e.shape
         e = self.forward(e, yy_mask, source, None)
         return F.log_softmax(e, axis=-1)
