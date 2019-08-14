@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""This code is based on https://github.com/kan-bayashi/PytorchWaveNetVocoder."""
+
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
 import logging
 import os
+import sys
 import time
 
 import h5py
@@ -22,6 +25,63 @@ from espnet.nets.pytorch_backend.wavenet import WaveNet
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 
+try:
+    from sprocket.speech import Synthesizer
+except ImportError:
+    logging.error("sprocket-vc is not installed. please install via `. ./path.sh && pip install sprocket-vc`.")
+    sys.exit(1)
+
+
+class NoiseShaper(object):
+    """Noise shaper.
+
+    This module apply a noise shaping filter based on `An investigation of noise shaping with perceptual weighting
+    for WaveNet-based speech generation`_.
+
+    Args:
+        mlsa_coef (ndaaray): Coefficient vector of MLSA filter (D,). Basically, average of mel-cepstrum.
+        fs (int, optional): Sampling frequency.
+        n_fft (int, optional): Number of points in FFT.
+        n_shift (int, optional): Shift length in points.
+        mag (float, optional): Magnification of noise shaping.
+        alpha (float, optional): Alpha of mel cepstrum.
+
+    .. _`An investigation of noise shaping with perceptual weighting for WaveNet-based speech generation`:
+        https://ieeexplore.ieee.org/abstract/document/8461332
+
+    """
+
+    def __init__(self, mlsa_coef, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
+        self.mlsa_coef = mlsa_coef * mag
+        self.mlsa_coef[0] = 0.0
+        self.fs = fs
+        self.shiftms = n_shift / fs * 1000,
+        self.n_fft = n_fft
+        if alpha is None:
+            if self.fs == 16000:
+                self.alpha = 0.42
+            else:
+                self.alpha = 0.455
+        self.synthesizer = Synthesizer(
+            fs=self.fs,
+            shiftms=self.shiftms,
+            fftl=self.n_fft,
+        )
+
+    def __call__(self, y):
+        # check shape and type
+        assert len(y.shape) == 1
+        y = np.float64(y)
+
+        # get frame number and then replicate mlsa coef
+        num_frames = int(1000 * len(y) / self.fs / self.shiftms) + 1
+        mlsa_coef = np.float64(np.tile(self.mlsa_coef, [num_frames, 1]))
+
+        # apply mlsa filter
+        y = self.synthesizer.synthesis_diff(y, mlsa_coef, alpha=self.alpha)
+
+        return y
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -29,6 +89,10 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int, default=22050,
                         help='Sampling frequency')
+    parser.add_argument('--n_fft', type=int, default=1024,
+                        help='FFT length in point')
+    parser.add_argument('--n_shift', type=int, default=256,
+                        help='Shift length in point')
     parser.add_argument('--model', type=str, default=None,
                         help='WaveNet model')
     parser.add_argument('--filetype', type=str, default='mat',
@@ -65,7 +129,19 @@ def main():
         scaler.mean_ = f["/melspc/mean"][()]
         scaler.scale_ = f["/melspc/scale"][()]
 
-    # load model
+    # load MLSA coef
+    with h5py.File(model_dir + "/stats.h5") as f:
+        mlsa_coef = f["mcep/mean"][()]
+
+    # define noise shaper
+    noise_shaper = NoiseShaper(
+        mlsa_coef=mlsa_coef,
+        fs=args.fs,
+        n_fft=args.n_fft,
+        n_shift=args.n_shift,
+    )
+
+    # define model and laod parameters
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = WaveNet(
         n_quantize=config.n_quantize,
@@ -103,6 +179,9 @@ def main():
             y = model.generate(x, h, interval=100)
         logging.info("generation speed = %s (sec / sample)" % ((time.time() - start_time) / (len(y) - 1)))
         y = decode_mu_law(y, mu=config.n_quantize)
+
+        # applay noise shaping
+        y = noise_shaper(y)
 
         # save as .wav file
         write(args.outdir + "/%s.wav" % utt_id,
