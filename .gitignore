@@ -22,7 +22,6 @@ shellcheck*
 check_shellcheck*
 test_spm.vocab
 test_spm.model
-custom*
 
 # recipe related
 egs/*/*/data*
@@ -38,7 +37,6 @@ egs/*/*/tensorboard
 egs/*/*/wav*
 
 # tools related
-tools/ideep*
 tools/bats-core
 tools/chainer_ctc/
 tools/kaldi*

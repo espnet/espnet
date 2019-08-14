@@ -17,6 +17,7 @@ class Conv2dSubsampling(chainer.Chain):
         super(Conv2dSubsampling, self).__init__()
         self.dropout = dropout
         with self.init_scope():
+            # Standard deviation for Conv2D with 1 channel and kernel 3 x 3.
             n = 1 * 3 * 3
             stvd = 1. / np.sqrt(n)
             self.conv1 = L.Convolution2D(1, channels, 3, stride=2, pad=1,
