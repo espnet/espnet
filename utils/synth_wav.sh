@@ -253,10 +253,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --model ${synth_model}
 fi
 
+outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Synthesis with Griffin-Lim"
 
-    outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
         scp:${outdir}/feats.scp \
         ark,scp:${outdir}_denorm/feats.ark,${outdir}_denorm/feats.scp
@@ -280,7 +280,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "Finished"
 fi
 
-
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Synthesis with WaveNet"
     model_corpus=$(echo ${models} | cut -d. -f 1)
@@ -292,10 +291,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     download_vocoder_models
     checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
     generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
-        --model ${checkpoint} \
         --fs ${fs} \
         --n_fft ${n_fft} \
         --n_shift ${n_shift} \
+        ${checkpoint} \
         ${outdir}_denorm \
         ${decode_dir}/log \
         ${decode_dir}/wav_wnv
