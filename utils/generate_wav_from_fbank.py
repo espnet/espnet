@@ -94,7 +94,7 @@ class NoiseShaper(object):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='generate wav from FBANK to WAV using wavenet vocoder',
+        description='generate wav from FBANK using wavenet vocoder',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int, default=22050,
                         help='Sampling frequency')
@@ -108,7 +108,7 @@ def get_parser():
                         choices=['mat', 'hdf5'],
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
-    parser.add_argument('rspecifier', type=str, help='Input feature')
+    parser.add_argument('rspecifier', type=str, help='Input feature e.g. scp:feat.scp')
     parser.add_argument('outdir', type=str,
                         help='Output directory')
     return parser
