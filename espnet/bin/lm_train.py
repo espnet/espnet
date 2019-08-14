@@ -85,6 +85,8 @@ def get_parser():
                         help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
+    parser.add_argument('--dump-hdf5-path', type=str, default=None,
+                        help='Path to dump a preprocessed dataset as hdf5')
     return parser
 
 
