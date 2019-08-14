@@ -121,7 +121,7 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.ns.v1") share_url="";;
+        "ljspeech.wavenet.ns.v1") share_url="https://drive.google.com/open?id=19aRo_RZbaNCm4u9v2-0I3Qk-kGuS-Y7q";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -284,7 +284,7 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Synthesis with WaveNet"
     model_corpus=$(echo ${models} | cut -d. -f 1)
-    vocoder_model_corpus=$(echo ${vocoder_model_corpus} | cut -d. -f 1)
+    vocoder_model_corpus=$(echo ${vocoder_models} | cut -d. -f 1)
     if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
         echo "${vocoder_models} does not support ${models} (Due to the sampling rare mismatch)."
         exit 1
