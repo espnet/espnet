@@ -137,7 +137,7 @@ def main():
 
     # load model config
     model_dir = os.path.dirname(args.model)
-    config = torch.load(model_dir + "/model.conf")
+    train_args = torch.load(model_dir + "/model.conf")
 
     # load statistics
     scaler = StandardScaler()
@@ -160,14 +160,14 @@ def main():
     # define model and laod parameters
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = WaveNet(
-        n_quantize=config.n_quantize,
-        n_aux=config.n_aux,
-        n_resch=config.n_resch,
-        n_skipch=config.n_skipch,
-        dilation_depth=config.dilation_depth,
-        dilation_repeat=config.dilation_repeat,
-        kernel_size=config.kernel_size,
-        upsampling_factor=config.upsampling_factor
+        n_quantize=train_args.n_quantize,
+        n_aux=train_args.n_aux,
+        n_resch=train_args.n_resch,
+        n_skipch=train_args.n_skipch,
+        dilation_depth=train_args.dilation_depth,
+        dilation_repeat=train_args.dilation_repeat,
+        kernel_size=train_args.kernel_size,
+        upsampling_factor=train_args.upsampling_factor
     )
     model.load_state_dict(torch.load(
         args.model,
@@ -181,7 +181,7 @@ def main():
         logging.info("(%d) %s" % (idx, utt_id))
 
         # perform preprocesing
-        x = encode_mu_law(np.zeros((1)), mu=config.n_quantize)  # quatize initial seed waveform
+        x = encode_mu_law(np.zeros((1)), mu=train_args.n_quantize)  # quatize initial seed waveform
         h = scaler.transform(lmspc)  # normalize features
 
         # convert to tensor
@@ -196,7 +196,7 @@ def main():
         with torch.no_grad():
             y = model.generate(x, h, n_samples, interval=100)
         logging.info("generation speed = %s (sec / sample)" % ((time.time() - start_time) / (len(y) - 1)))
-        y = decode_mu_law(y, mu=config.n_quantize)
+        y = decode_mu_law(y, mu=train_args.n_quantize)
 
         # applay noise shaping
         y = noise_shaper(y)
