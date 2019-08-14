@@ -56,7 +56,7 @@ Example:
     # you can specify the pretrained models
     $0 --models ljspeech.tacotron2.v3 example.txt
 
-    # if you try wavenet vocoder, extend stage
+    # if you want to try wavenet vocoder, extend stage
     $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
 
     # also you can specify vocoder model
