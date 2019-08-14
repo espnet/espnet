@@ -42,7 +42,7 @@ griffin_lim_iters=64
 
 # download related
 models=ljspeech.fastspeech.v1
-vocoder_models=ljspeech.wavenet.ns.v1
+vocoder_models=ljspeech.wavenet.ns.v1.100k_iters
 
 help_message=$(cat <<EOF
 Usage:
@@ -74,7 +74,8 @@ Available models:
     - libritts.transformer.v1
 
 Available vocoder models:
-    - ljspeech.wavenet.ns.v1
+    - ljspeech.wavenet.ns.v1.100k_iters
+    - ljspeech.wavenet.ns.v1.1000k_iters
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -121,7 +122,8 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.ns.v1") share_url="https://drive.google.com/open?id=1c93rP2x-rwygRPlYiiB7M0hSP5_wTb6d";;
+        "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=19aRo_RZbaNCm4u9v2-0I3Qk-kGuS-Y7q";;
+        "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1c93rP2x-rwygRPlYiiB7M0hSP5_wTb6d";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
