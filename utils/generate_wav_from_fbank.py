@@ -69,6 +69,15 @@ class NoiseShaper(object):
         )
 
     def __call__(self, y):
+        """Apply noise shaping filter.
+
+        Args:
+            y (ndarray): Wavnform signal normalized from -1 to 1 (N,).
+
+        Returns:
+            y (ndarray): Noise shaped wavnform signal normalized from -1 to 1 (N,).
+
+        """
         # check shape and type
         assert len(y.shape) == 1
         y = np.float64(y)
