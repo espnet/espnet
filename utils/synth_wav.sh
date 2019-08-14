@@ -79,8 +79,8 @@ Available vocoder models:
     - ljspeech.wavenet.ns.v1.1000k_iters
 EOF
 )
-. utils/parse_options.sh || exit 1;
 
+. utils/parse_options.sh || exit 1;
 
 txt=$1
 download_dir=${decode_dir}/download
