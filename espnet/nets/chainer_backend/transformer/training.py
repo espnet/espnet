@@ -19,7 +19,11 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 from chainer.training import extension
-from cupy.cuda import nccl
+
+try:
+    from cupy.cuda import nccl
+except Exception:
+    pass
 
 import numpy as np
 
