@@ -9,11 +9,11 @@
 import argparse
 import logging
 import os
-import sys
 import time
 
 import h5py
 import numpy as np
+import pysptk
 import torch
 
 from scipy.io.wavfile import write
@@ -33,46 +33,43 @@ class NoiseShaper(object):
     for WaveNet-based speech generation`_.
 
     Args:
-        mlsa_coef (ndaaray): Coefficient vector of MLSA filter (D,). Basically, average of mel-cepstrum.
+        avg_mcep (ndaaray): Averaged Mel-cepstrum for MLSA filter (D,).
         fs (int, optional): Sampling frequency.
         n_fft (int, optional): Number of points in FFT.
         n_shift (int, optional): Shift length in points.
         mag (float, optional): Magnification of noise shaping.
-        alpha (float, optional): Alpha of mel cepstrum.
+        alpha (float, optional): All pass constant value.
 
     .. _`An investigation of noise shaping with perceptual weighting for WaveNet-based speech generation`:
         https://ieeexplore.ieee.org/abstract/document/8461332
 
     """
 
-    def __init__(self, mlsa_coef, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
-        # lazy import to avoid error in making docs
-        try:
-            from sprocket.speech import Synthesizer
-        except ImportError:
-            logging.error("sprocket-vc is not installed. please install via "
-                          "`. ./path.sh && pip install sprocket-vc`.")
-            sys.exit(1)
-
-        # store hyperparameters
-        self.mlsa_coef = mlsa_coef * mag
-        self.mlsa_coef[0] = 0.0
-        self.fs = fs
-        self.shiftms = n_shift / fs * 1000
-        self.n_fft = n_fft
+    def __init__(self, avg_mcep, fs=22050, n_fft=1024, n_shift=256, mag=0.5, alpha=None):
+        # decide alpha according to sampling rate
         if alpha is None:
-            if self.fs == 16000:
-                self.alpha = 0.42
-            elif self.fs == 22050 or self.fs == 24000:
-                self.alpha = 0.455
+            if fs == 16000:
+                alpha = 0.42
+            elif fs == 22050 or fs == 24000:
+                alpha = 0.455
             else:
                 ValueError("please specify alpha value.")
 
+        self.n_fft = n_fft
+
+        # calculate coefficient for MLSA filter
+        avg_mcep = avg_mcep * mag
+        avg_mcep[0] = 0.0
+        coef = pysptk.mc2b(avg_mcep.astype(np.float64), alpha)
+        assert np.isfinite(coef).all()
+        self.coef = coef
+
         # define synthesizer to apply MLSA filter
-        self.synthesizer = Synthesizer(
-            fs=self.fs,
-            shiftms=self.shiftms,
-            fftl=self.n_fft,
+        self.mlsa_filter = pysptk.synthesis.Synthesizer(
+            pysptk.synthesis.MLSADF(
+                order=avg_mcep.shape[0] - 1,
+                alpha=alpha),
+            hopsize=n_shift
         )
 
     def __call__(self, y):
@@ -90,13 +87,10 @@ class NoiseShaper(object):
         y = np.float64(y)
 
         # get frame number and then replicate mlsa coef
-        num_frames = int(1000 * len(y) / self.fs / self.shiftms) + 1
-        mlsa_coef = np.float64(np.tile(self.mlsa_coef, [num_frames, 1]))
+        num_frames = int(len(y) / self.n_shift) + 1
+        coef = np.tile(self.coef, [num_frames, 1])
 
-        # apply mlsa filter
-        y = self.synthesizer.synthesis_diff(y, mlsa_coef, alpha=self.alpha)
-
-        return y
+        return self.mlsa_filter.synthesis(y, coef)
 
 
 def get_parser():
@@ -147,11 +141,11 @@ def main():
 
     # load MLSA coef
     with h5py.File(model_dir + "/stats.h5") as f:
-        mlsa_coef = f["mcep/mean"][()]
+        avg_mcep = f["mcep/mean"][()]
 
     # define noise shaper
     noise_shaper = NoiseShaper(
-        mlsa_coef=mlsa_coef,
+        avg_mcep=avg_mcep,
         fs=args.fs,
         n_fft=args.n_fft,
         n_shift=args.n_shift,
