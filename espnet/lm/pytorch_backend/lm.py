@@ -427,7 +427,6 @@ def train(args):
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
     ), trigger=(args.report_interval_iters, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
-
     # Save best models
     trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(snapshot_object(model, 'rnnlm.model.{.updater.epoch}'))

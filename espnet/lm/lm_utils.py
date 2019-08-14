@@ -6,10 +6,8 @@
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
-from __future__ import division
-from __future__ import print_function
-
 import chainer
+import h5py
 import logging
 import numpy as np
 import os
@@ -31,8 +29,6 @@ def load_dataset(path, label_dict, outdir=None):
     Returns:
         list[np.ndarray]: np.int32 IDs of tokens converted by `read_tokens`
     """
-    import h5py
-
     if outdir is not None:
         os.makedirs(outdir, exist_ok=True)
         filename = outdir + "/" + os.path.basename(path) + ".h5"
