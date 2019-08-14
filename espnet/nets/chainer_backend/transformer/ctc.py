@@ -8,6 +8,7 @@ import numpy as np
 from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 
+# TODO(nelson): Merge chainer_backend/transformer/ctc.py in chainer_backend/ctc.py
 class CTC(chainer.Chain):
     """Chainer implementation of ctc layer.
 
@@ -88,6 +89,11 @@ class WarpCTC(chainer.Chain):
 
     def __init__(self, odim, eprojs, dropout_rate):
         super(WarpCTC, self).__init__()
+        # The main difference between the ctc for transformer and
+        # the rnn is because the target (ys) is already a list of
+        # arrays located in the cpu, while in rnn routine the target is
+        # a list of variables located in cpu/gpu. If the target of rnn becomes
+        # a list of cpu arrays then this file would be no longer required.
         from chainer_ctc.warpctc import ctc as warp_ctc
         self.ctc = warp_ctc
         self.dropout_rate = dropout_rate
