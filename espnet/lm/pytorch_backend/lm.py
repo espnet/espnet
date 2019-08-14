@@ -33,7 +33,7 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 
-from espnet.asr.asr_utils import snapshot_object_fn
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
@@ -248,6 +248,12 @@ class ReduceFramewiseLoss(torch.nn.Module):
         self.model = model
         self.reporter = model.reporter
 
+    def state_dict(self):
+        return self.model.state_dict()
+
+    def load_state_dict(self, d):
+        self.model.load_state_dict(d)
+
     def forward(self, x, t):
         """Reduce framewise loss values
 
@@ -423,13 +429,8 @@ def train(args):
     trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
 
     # Save best models
-    def target_fn():
-        if isinstance(model, torch.nn.DataParallel):
-            return model.module.model
-        else:
-            return model.model
     trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
-    trainer.extend(snapshot_object_fn(target_fn, 'rnnlm.model.{.updater.epoch}'))
+    trainer.extend(snapshot_object(model, 'rnnlm.model.{.updater.epoch}'))
     # T.Hori: MinValueTrigger should be used, but it fails when resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
@@ -451,7 +452,7 @@ def train(args):
     # compute perplexity for test set
     if args.test_label:
         logging.info('test the best model')
-        torch_load(args.outdir + '/rnnlm.model.best', target_fn())
+        torch_load(args.outdir + '/rnnlm.model.best', model)
         test = read_tokens(args.test_label, args.char_list_dict)
         n_test_tokens, n_test_oovs = count_tokens(test, unk)
         logging.info('#sentences in the test data = ' + str(len(test)))

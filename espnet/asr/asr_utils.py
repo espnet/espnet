@@ -386,28 +386,6 @@ def snapshot_object(target, filename):
     return snapshot_object
 
 
-def snapshot_object_fn(target_fn, filename):
-    """Returns a trainer extension to take snapshots of a given object.
-
-    Args:
-        target_fn (function): Function returns object to serialize.
-        filename (str): Name of the file into which the object is serialized.It can
-            be a format string, where the trainer object is passed to
-            the :meth: `str.format` method. For example,
-            ``'snapshot_{.updater.iteration}'`` is converted to
-            ``'snapshot_10000'`` at the 10,000th iteration.
-
-    Returns:
-        An extension function.
-
-    """
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
-    def snapshot_object(trainer):
-        torch_save(os.path.join(trainer.out, filename.format(trainer)), target_fn())
-
-    return snapshot_object
-
-
 def torch_load(path, model):
     """Load torch model states.
 
