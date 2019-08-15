@@ -1,4 +1,5 @@
 from argparse import Namespace
+import numpy
 import torch
 
 from espnet.nets.pytorch_backend.beam_search import beam_search
@@ -55,6 +56,8 @@ def test_beam_search_equal():
         print(nbest_bs)
     for expected, actual in zip(nbest, nbest_bs):
         assert expected["yseq"] == actual["yseq"]
+        numpy.testing.assert_allclose(expected["score"], actual["score"])
+
 
 if __name__ == "__main__":
     test_beam_search_equal()
