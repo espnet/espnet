@@ -7,7 +7,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import json
 import logging
 import os
 import time
@@ -53,13 +52,13 @@ class TimeInvariantMLSAFilter(object):
         )
 
     def __call__(self, y):
-        """Apply noise shaping filter.
+        """Apply time invariant MLSA filter.
 
         Args:
             y (ndarray): Wavnform signal normalized from -1 to 1 (N,).
 
         Returns:
-            y (ndarray): Noise shaped waveform signal normalized from -1 to 1 (N,).
+            y (ndarray): Filtered waveform signal normalized from -1 to 1 (N,).
 
         """
         # check shape and type
@@ -85,6 +84,10 @@ def get_parser():
                         help='Shift length in point')
     parser.add_argument('--model', type=str, default=None,
                         help='WaveNet model')
+    parser.add_argument('--alpha', type=float, default=0.455,
+                        help='All pass constant value')
+    parser.add_argument('--mag', type=float, default=0.5,
+                        help='Magnification of noise shaping')
     parser.add_argument('--filetype', type=str, default='mat',
                         choices=['mat', 'hdf5'],
                         help='Specify the file format for the rspecifier. '
@@ -111,33 +114,27 @@ def main():
 
     # load model config
     model_dir = os.path.dirname(args.model)
-    with open(os.path.json(model_dir, "model.json")) as f:
-        train_args = json.load(f)
-    train_args = argparse.Namespace(**train_args)
+    train_args = torch.load(os.path.join(model_dir, "model.conf"))
 
     # load statistics
     scaler = StandardScaler()
     with h5py.File(os.path.join(model_dir, "stats.h5")) as f:
         scaler.mean_ = f["/melspc/mean"][()]
         scaler.scale_ = f["/melspc/scale"][()]
+        avg_mcep = f["mcep/mean"][()]
 
-    if train_args.use_noise_shaping:
-        # load averaged mel-cepstrum
-        with h5py.File(os.path.join(model_dir, "stats.h5")) as f:
-            avg_mcep = f["mcep/mean"][()]
+    # calculate coefficient for MLSA filter
+    avg_mcep = avg_mcep * args.mag
+    avg_mcep[0] = 0.0
+    coef = pysptk.mc2b(avg_mcep.astype(np.float64), args.alpha)
+    assert np.isfinite(coef).all()
 
-        # calculate coefficient for MLSA filter
-        avg_mcep = avg_mcep * train_args.mag
-        avg_mcep[0] = 0.0
-        coef = pysptk.mc2b(avg_mcep.astype(np.float64), train_args.alpha)
-        assert np.isfinite(coef).all()
-
-        # define mlsa filter for noise shaping
-        mlsa_filter = TimeInvariantMLSAFilter(
-            coef=coef,
-            fs=args.fs,
-            n_shift=args.n_shift,
-        )
+    # define MLSA filter for noise shaping
+    mlsa_filter = TimeInvariantMLSAFilter(
+        coef=coef,
+        n_shift=args.n_shift,
+        alpha=args.alpha
+    )
 
     # define model and laod parameters
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -151,7 +148,8 @@ def main():
         kernel_size=train_args.kernel_size,
         upsampling_factor=train_args.upsampling_factor
     )
-    model.load_state_dict(torch.load(args.model, map_location="cpu"))
+    model.load_state_dict(
+        torch.load(args.model, map_location="cpu")["model"])
     model.eval()
     model.to(device)
 
@@ -178,8 +176,7 @@ def main():
         y = decode_mu_law(y, mu=train_args.n_quantize)
 
         # apply mlsa filter for noise shaping
-        if train_args.use_noise_shaping:
-            y = mlsa_filter(y)
+        y = mlsa_filter(y)
 
         # save as .wav file
         write(os.path.join(args.outdir, "%s.wav" % utt_id),
