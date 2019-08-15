@@ -58,7 +58,7 @@ scp=${data}/feats.scp
 
 split_scps=""
 for n in $(seq ${nj}); do
-    split_scps="$split_scps $logdir/feats.$n.scp"
+    split_scps="$split_scps $logdir/feats.${n}.scp"
 done
 
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
@@ -74,4 +74,4 @@ ${cmd} JOB=1:${nj} ${logdir}/generate_with_wavenet_${name}.JOB.log \
 
 rm ${logdir}/feats.*.scp 2>/dev/null
 
-echo "Succeeded creating wav for $name"
+echo "Succeeded creating wav for ${name}"

@@ -249,14 +249,14 @@ class WaveNet(nn.Module):
         This generation based on `Fast WaveNet Generation Algorithm`_.
 
         Args:
-            x (LongTensor): Initial wavenform tensor with the shape  (T).
+            x (LongTensor): Initial waveform tensor with the shape  (T,).
             h (Tensor): Auxiliary feature tensor with the shape  (n_samples + T, n_aux).
             n_samples (int): Number of samples to be generated.
             interval (int, optional): Log interval.
             mode (str, optional): "sampling" or "argmax".
 
         Return:
-            ndarray: Generated quantized wavenform (n_samples).
+            ndarray: Generated quantized waveform (n_samples).
 
         .. _`Fast WaveNet Generation Algorithm`: https://arxiv.org/abs/1611.09482
 
