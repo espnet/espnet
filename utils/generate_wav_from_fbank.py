@@ -78,7 +78,7 @@ class NoiseShaper(object):
             y (ndarray): Wavnform signal normalized from -1 to 1 (N,).
 
         Returns:
-            y (ndarray): Noise shaped wavnform signal normalized from -1 to 1 (N,).
+            y (ndarray): Noise shaped waveform signal normalized from -1 to 1 (N,).
 
         """
         # check shape and type
@@ -177,7 +177,7 @@ def main():
         h = scaler.transform(lmspc)  # normalize features
 
         # convert to tensor
-        x = torch.tensor(x, dtype=torch.long, device=device)  # (1, )
+        x = torch.tensor(x, dtype=torch.long, device=device)  # (1,)
         h = torch.tensor(h, dtype=torch.float, device=device)  # (T, n_aux)
 
         # get length of waveform

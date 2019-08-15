@@ -285,7 +285,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     model_corpus=$(echo ${models} | cut -d. -f 1)
     vocoder_model_corpus=$(echo ${vocoder_models} | cut -d. -f 1)
     if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
-        echo "${vocoder_models} does not support ${models} (Due to the sampling rare mismatch)."
+        echo "${vocoder_models} does not support ${models} (Due to the sampling rate mismatch)."
         exit 1
     fi
     download_vocoder_models

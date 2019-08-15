@@ -21,8 +21,8 @@ Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-di
 Options:
   --nj <nj>                  # number of parallel jobs
   --fs <fs>                  # sampling rate
-  --fmax <fmax>              # Maximum frequency
-  --fmin <fmin>              # Minimum frequency
+  --fmax <fmax>              # maximum frequency
+  --fmin <fmin>              # minimum frequency
   --n_fft <n_fft>            # number of FFT points (default=1024)
   --n_shift <n_shift>        # shift size in point (default=256)
   --win_length <win_length>  # window length in point (default=)
