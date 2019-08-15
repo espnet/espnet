@@ -55,7 +55,7 @@ class TimeInvariantMLSAFilter(object):
         """Apply time invariant MLSA filter.
 
         Args:
-            y (ndarray): Wavnform signal normalized from -1 to 1 (N,).
+            y (ndarray): Waveform signal normalized from -1 to 1 (N,).
 
         Returns:
             y (ndarray): Filtered waveform signal normalized from -1 to 1 (N,).
