@@ -5,8 +5,6 @@
 
 """This code is based on https://github.com/kan-bayashi/PytorchWaveNetVocoder."""
 
-from __future__ import division
-
 import logging
 import sys
 import time
@@ -299,7 +297,7 @@ class WaveNet(nn.Module):
 
         # generate
         samples = x[0]
-        start = time.time()
+        start_time = time.time()
         for i in range(n_samples):
             output = samples[-self.kernel_size * 2 + 1:].unsqueeze(0)
             output = self._preprocess(output)
@@ -334,11 +332,10 @@ class WaveNet(nn.Module):
 
             # show progress
             if interval is not None and (i + 1) % interval == 0:
+                elapsed_time_per_sample = (time.time() - start_time) / interval
                 logging.info("%d/%d estimated time = %.3f sec (%.3f sec / sample)" % (
-                    i + 1, n_samples,
-                    (n_samples - i - 1) * ((time.time() - start) / interval),
-                    (time.time() - start) / interval))
-                start = time.time()
+                    i + 1, n_samples, (n_samples - i - 1) * elapsed_time_per_sample, elapsed_time_per_sample))
+                start_time = time.time()
 
         return samples[-n_samples:].cpu().numpy()
 
