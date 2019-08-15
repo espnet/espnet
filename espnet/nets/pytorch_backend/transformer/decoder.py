@@ -1,5 +1,6 @@
 import torch
 
+from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -8,7 +9,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import Po
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
-class Decoder(torch.nn.Module):
+class Decoder(DecoderInterface, torch.nn.Module):
     """Transfomer decoder module
 
     :param int odim: output dim
@@ -41,7 +42,7 @@ class Decoder(torch.nn.Module):
                  pos_enc_class=PositionalEncoding,
                  normalize_before=True,
                  concat_after=False):
-        super(Decoder, self).__init__()
+        torch.nn.Module.__init__(self)
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),

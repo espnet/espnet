@@ -64,10 +64,14 @@ def recog_v2(args):
             feat = model.encode(load_inputs_and_targets(batch)[0][0])
             nbest_hyps = beam_search(
                 x=feat,
+                sos=model.sos,
+                eos=model.eos,
                 beam_size=args.beam_size,
                 weights=weights,
                 decoders=decoders,
-                token_list=train_args.char_list
+                token_list=train_args.char_list,
+                maxlenratio=args.maxlenratio,
+                minlenratio=args.minlenratio
             )
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
