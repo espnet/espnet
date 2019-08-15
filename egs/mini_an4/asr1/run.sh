@@ -5,6 +5,8 @@
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
+# For debug CI
+echo ${LD_LIBRARY_PATH}
 
 # general configuration
 backend=pytorch
