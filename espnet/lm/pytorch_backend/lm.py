@@ -25,6 +25,7 @@ from espnet.lm.lm_utils import load_dataset
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
+from espnet.nets.lm_interface import LMInterface
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -63,7 +64,7 @@ class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM
 
     :param chainer.dataset.Iterator train_iter : The train iterator
-    :param torch.nn.Module model : The model to update
+    :param LMInterface model : The model to update
     :param optimizer:
     :param int device : The device id
     :param int gradclip : The gradient clipping value to use
@@ -104,7 +105,7 @@ class LMEvaluator(BaseEvaluator):
     """A custom evaluator for a pytorch LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
-    :param torch.nn.Module eval_model : The model to evaluate
+    :param LMInterface eval_model : The model to evaluate
     :param chainer.Reporter reporter : The observations reporter
     :param int device : The device id to use
     """
@@ -132,11 +133,13 @@ class LMEvaluator(BaseEvaluator):
         return observation
 
 
-def train(args):
+def train(args, model_class):
     """Train with the given args
 
     :param Namespace args: The program arguments
+    :param type model_class: LMInterface class for training
     """
+    assert issubclass(model_class, LMInterface), "model should implement LMInterface"
     # display torch version
     logging.info('torch version = ' + torch.__version__)
 
@@ -172,8 +175,7 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    from espnet.nets.pytorch_backend.lm.legacy import LegacyRNNLM
-    model = LegacyRNNLM(args.n_vocab, args)
+    model = model_class(args.n_vocab, args)
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
         setattr(model, "reporter", model.module.reporter)

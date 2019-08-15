@@ -565,8 +565,9 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        # TODO(karita) remove .model
-        rnnlm = lm_pytorch.LegacyRNNLM(len(train_args.char_list), rnnlm_args).model
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
