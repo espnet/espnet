@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 
 
 def savefig(plot, filename):
-    """Save figure."""
+    """Save a figure."""
     plot.savefig(filename)
     plt.clf()
 
 
 def _plot_and_save_attention(att_w, filename):
-    """Plot and save attention."""
+    """Plot and save an attention."""
     # dynamically import matplotlib due to not found error
     from matplotlib.ticker import MaxNLocator
     import os
@@ -67,7 +67,7 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
-    """Plot attention reporter.
+    """Plot an attention reporter.
 
     Args:
         att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):
@@ -84,7 +84,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
     """
 
     def __call__(self, trainer):
-        """Plot and save image file of att_ws matrix."""
+        """Plot and save an image file of att_ws matrix."""
         attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
         plot_multi_head_attention(

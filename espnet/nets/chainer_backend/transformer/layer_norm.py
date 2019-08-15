@@ -5,7 +5,7 @@ import chainer.links as L
 
 
 class LayerNorm(L.LayerNormalization):
-    """Redirects to L.LayerNormalization."""
+    """Redirect to L.LayerNormalization."""
 
     def __init__(self, dims, eps=1e-12):
         """Initialize LayerNorm."""
