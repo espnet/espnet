@@ -23,7 +23,7 @@ def test_beam_search_equal():
         penalty=0.1,            # TODO(karita) non-zero
         ctc_weight=ctc,
         maxlenratio=1.0,
-        lm_weight=0.5,
+        lm_weight=0.0,          # TODO(karita) non-zero
         minlenratio=0,
         nbest=2
     )
@@ -37,7 +37,7 @@ def test_beam_search_equal():
     # test new beam search
     decoders = model.decoders
     decoders["lm"] = lm
-    decoders["length_bonus"] = LengthBonus()
+    decoders["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0, ctc=args.ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
     with torch.no_grad():
         enc = model.encode(feat)
@@ -53,7 +53,8 @@ def test_beam_search_equal():
             minlenratio=args.minlenratio,
         )
         print(nbest_bs)
-
+    for expected, actual in zip(nbest, nbest_bs):
+        assert expected["yseq"] == actual["yseq"]
 
 if __name__ == "__main__":
     test_beam_search_equal()
