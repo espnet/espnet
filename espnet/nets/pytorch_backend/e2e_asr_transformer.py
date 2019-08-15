@@ -39,10 +39,10 @@ def subsequent_mask(size, device="cpu", dtype=torch.uint8):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
+
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
@@ -58,6 +58,24 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
+
+        group.add_argument('--dropout-rate', default=0.0, type=float,
+                           help='Dropout rate for the encoder')
+        # Encoder
+        group.add_argument('--elayers', default=4, type=int,
+                           help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
+        group.add_argument('--eunits', '-u', default=300, type=int,
+                           help='Number of encoder hidden units')
+        # Attention
+        group.add_argument('--adim', default=320, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--aheads', default=4, type=int,
+                           help='Number of heads for multi head attention')
+        # Decoder
+        group.add_argument('--dlayers', default=1, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=320, type=int,
+                           help='Number of decoder hidden units')
         return parser
 
     @property

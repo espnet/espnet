@@ -75,6 +75,7 @@ def make_transformer_args(**kwargs):
         transformer_dec_positional_dropout_rate=0.1,
         transformer_dec_attn_dropout_rate=0.3,
         transformer_enc_dec_attn_dropout_rate=0.0,
+        spk_embed_integration_type="add",
         use_masking=True,
         bce_pos_weight=1.0,
         use_batch_norm=True,
@@ -120,6 +121,7 @@ def make_feedforward_transformer_args(**kwargs):
         transformer_dec_positional_dropout_rate=0.1,
         transformer_dec_attn_dropout_rate=0.3,
         transformer_enc_dec_attn_dropout_rate=0.0,
+        spk_embed_integration_type="add",
         use_masking=True,
         use_scaled_pos_enc=True,
         encoder_normalize_before=True,
@@ -141,7 +143,8 @@ def make_feedforward_transformer_args(**kwargs):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
@@ -203,7 +206,8 @@ def test_fastspeech_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"encoder_normalize_before": False}),
@@ -266,7 +270,8 @@ def test_fastspeech_gpu_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"encoder_normalize_before": False}),

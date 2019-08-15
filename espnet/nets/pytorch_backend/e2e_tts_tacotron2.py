@@ -31,6 +31,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     Args:
         sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+        alpha (float, optional): Scaling coefficient (lambda).
         reset_always (bool, optional): Whether to always reset masks.
 
     .. _`Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention`:
@@ -38,9 +39,10 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     """
 
-    def __init__(self, sigma=0.4, reset_always=True):
+    def __init__(self, sigma=0.4, alpha=1.0, reset_always=True):
         super(GuidedAttentionLoss, self).__init__()
-        self.sigma = torch.tensor(sigma)
+        self.sigma = sigma
+        self.alpha = alpha
         self.reset_always = reset_always
         self.guided_attn_masks = None
         self.masks = None
@@ -69,7 +71,7 @@ class GuidedAttentionLoss(torch.nn.Module):
         loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
             self._reset_masks()
-        return loss
+        return self.alpha * loss
 
     def _make_guided_attention_masks(self, ilens, olens):
         n_batches = len(ilens)
@@ -372,6 +374,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Whether to use guided attention loss")
         group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
                            help="Sigma in guided attention loss")
+        group.add_argument("--guided-attn-loss-lambda", default=1.0, type=float,
+                           help="Lambda in guided attention loss")
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -462,7 +466,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.taco2_loss = Tacotron2Loss(use_masking=args.use_masking,
                                         bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
-            self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
+            self.attn_loss = GuidedAttentionLoss(
+                sigma=args.guided_attn_loss_sigma,
+                alpha=args.guided_attn_loss_lambda,
+            )
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
                              odim=args.spc_dim,
@@ -526,7 +533,12 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         # caluculate attention loss
         if self.use_guided_attn_loss:
-            attn_loss = self.attn_loss(att_ws, ilens, olens)
+            # NOTE(kan-bayashi): length of output for auto-regressive input will be changed when r > 1
+            if self.reduction_factor > 1:
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                olens_in = olens
+            attn_loss = self.attn_loss(att_ws, ilens, olens_in)
             loss = loss + attn_loss
             report_keys += [
                 {'attn_loss': attn_loss.item()},
