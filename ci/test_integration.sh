@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # test asr recipe
 (
     cd ./egs/mini_an4/asr1 || exit 1
