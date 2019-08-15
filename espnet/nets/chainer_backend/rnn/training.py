@@ -73,6 +73,8 @@ class CustomUpdater(training.StandardUpdater):
         self.forward_count = 0
         self.accum_grad = accum_grad
         self.start = True
+        # To solve #1091, it is required to set the variable inside this class.
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
