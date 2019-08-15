@@ -31,11 +31,12 @@ class E2E(ASRInterface, chainer.Chain):
     """E2E module.
 
     Args:
-        idim (int): Dimension of inputs.
-        odim (int): Dimension of outputs.
+        idim (int): Input dimmensions.
+        odim (int): Output dimmensions.
         args (Namespace): Training config.
-        flag_return (bool): If True, then return value of `forward()`
-        would be tuple of (loss, loss_ctc, loss_att, acc)
+        ignore_id (int, optional): Id for ignoring a character.
+        flag_return (bool, optional): If true, return a list with (loss,
+        loss_ctc, loss_att, acc) in forward. Otherwise, return loss.
 
     """
 
@@ -82,17 +83,7 @@ class E2E(ASRInterface, chainer.Chain):
         return parser
 
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
-        """Initialize the transformer.
-
-        Args:
-            idim (int): Input dimmensions.
-            odim (int): Output dimmensions.
-            args (Namespace): Training config.
-            ignore_id (int, optional): Id for ignoring a character.
-            flag_return (bool, optional): If true, return a list with (loss,
-            loss_ctc, loss_att, acc) in forward. Otherwise, return loss.
-
-        """
+        """Initialize the transformer."""
         chainer.Chain.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -268,6 +259,7 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss
 
     def calculate_attentions(self, xs, x_mask, ys_pad):
+        """Calculate Attentions."""
         self.decoder(ys_pad, xs, x_mask)
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
