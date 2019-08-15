@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=2
+stage=3
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
@@ -28,7 +28,7 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/tuning/train_pytorch_tacotron2.v4.yaml # you can select from conf or conf/tuning.
+train_config=conf/tuning/train_pytorch_tacotron2.tuning.rev2.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
