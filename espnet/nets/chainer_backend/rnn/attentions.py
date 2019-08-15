@@ -253,7 +253,5 @@ def att_for(args):
     elif args.atype == 'noatt':
         att = NoAtt()
     else:
-        logging.error(
-            "Error: need to specify an appropriate attention architecture")
-        sys.exit()
+        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
     return att
