@@ -533,7 +533,12 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         # caluculate attention loss
         if self.use_guided_attn_loss:
-            attn_loss = self.attn_loss(att_ws, ilens, olens)
+            # NOTE(kan-bayashi): length of output for auto-regressive input will be changed when r > 1
+            if self.reduction_factor > 1:
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                olens_in = olens
+            attn_loss = self.attn_loss(att_ws, ilens, olens_in)
             loss = loss + attn_loss
             report_keys += [
                 {'attn_loss': attn_loss.item()},
