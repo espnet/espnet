@@ -27,6 +27,7 @@ from chainer.training import extensions
 
 from espnet.lm.lm_utils import compute_perplexity
 from espnet.lm.lm_utils import count_tokens
+from espnet.lm.lm_utils import load_dataset
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
@@ -230,6 +231,54 @@ def concat_examples(batch, device=None, padding=None):
     return x, t
 
 
+class ReduceFramewiseLoss(torch.nn.Module):
+    """Reduce framewise loss values in language modeling
+
+    Args:
+        model (ClassifierWithState): The module for computing framewise loss
+
+    Note:
+        PyTorch seems to have memory leak when one GPU compute this after data parallel.
+        If parallel GPUs compute this, it seems to be fine.
+        See also https://github.com/espnet/espnet/issues/1075
+    """
+
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.reporter = model.reporter
+
+    def state_dict(self):
+        return self.model.state_dict()
+
+    def load_state_dict(self, d):
+        self.model.load_state_dict(d)
+
+    def forward(self, x, t):
+        """Reduce framewise loss values
+
+        Args:
+            x (torch.Tensor): Input ids. (batch, len)
+            t (torch.Tensor): Target ids. (batch, len)
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: Tuple of
+                the reduced loss value along time (scalar)
+                and the number of valid loss values (scalar)
+        """
+        loss = 0
+        count = torch.tensor(0).long()
+        state = None
+        batch_size, sequence_length = x.shape
+        for i in six.moves.range(sequence_length):
+            # Compute the loss at this time step and accumulate it
+            state, loss_batch = self.model(state, x[:, i], t[:, i])
+            non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
+            loss += loss_batch * non_zeros
+            count += int(non_zeros)
+        return loss, count.to(loss.device)
+
+
 class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM
 
@@ -254,24 +303,15 @@ class BPTTUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
         # Progress the dataset iterator for sentences at each iteration.
         batch = train_iter.__next__()
-        x, t = concat_examples(batch, device=self.device, padding=(0, -100))
         # Concatenate the token IDs to matrices and send them to the device
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
-        loss = 0
-        count = 0
-        state = None
-        batch_size, sequence_length = x.shape
-        for i in six.moves.range(sequence_length):
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = self.model(state, x[:, i], t[:, i])
-            non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
-            loss += loss_batch * non_zeros
-            count += int(non_zeros)
-
-        loss = loss.mean()
-        reporter.report({'loss': float(loss.detach())}, optimizer.target)
-        reporter.report({'count': count}, optimizer.target)
+        x, t = concat_examples(batch, device=self.device, padding=(0, -100))
+        loss, count = self.model(x, t)
+        loss = loss.sum()
+        count = count.sum()
+        reporter.report({'loss': float(loss.detach() / count)}, optimizer.target)
+        reporter.report({'count': int(count)}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
@@ -303,17 +343,12 @@ class LMEvaluator(BaseEvaluator):
         with torch.no_grad():
             for batch in copy.copy(val_iter):
                 x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-                state = None
-                for i in six.moves.range(len(x[0])):
-                    state, loss_batch = self.model(state, x[:, i], t[:, i])
-                    non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
-                    loss += loss_batch * non_zeros
-                    count += int(non_zeros)
+                loss, count = self.model(x, t)
         self.model.train()
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss.mean() / count)}, self.model.reporter)
+            reporter.report({'loss': float(loss.sum() / count.sum())}, self.model.reporter)
         return observation
 
 
@@ -335,11 +370,8 @@ def train(args):
     unk = args.char_list_dict['<unk>']
     eos = args.char_list_dict['<eos>']
     # read tokens as a sequence of sentences
-    train = read_tokens(args.train_label, args.char_list_dict)
-    val = read_tokens(args.valid_label, args.char_list_dict)
-    # count tokens
-    n_train_tokens, n_train_oovs = count_tokens(train, unk)
-    n_val_tokens, n_val_oovs = count_tokens(val, unk)
+    val, n_val_tokens, n_val_oovs = load_dataset(args.valid_label, args.char_list_dict, args.dump_hdf5_path)
+    train, n_train_tokens, n_train_oovs = load_dataset(args.train_label, args.char_list_dict, args.dump_hdf5_path)
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#sentences in the training data = ' + str(len(train)))
     logging.info('#tokens in the training data = ' + str(n_train_tokens))
@@ -361,10 +393,12 @@ def train(args):
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
-    model = ClassifierWithState(rnn)
+    classifier = ClassifierWithState(rnn)
+    reporter = classifier.reporter
+    model = ReduceFramewiseLoss(classifier)
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
-        setattr(model, "reporter", model.module.reporter)
+        setattr(model, "reporter", reporter)
         gpu_id = 0
     else:
         gpu_id = -1
