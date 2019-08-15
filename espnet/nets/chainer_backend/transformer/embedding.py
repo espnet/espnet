@@ -30,8 +30,7 @@ class PositionalEncoding(chainer.Chain):
         self.pe[:, 1::2] = np.cos(posi_block * unit_block)
         self.scale = np.sqrt(n_units)
 
-    def __call__(self, e):
-        """Forward Positional Encoding."""
+    def forward(self, e):
         length = e.shape[1]
         e = e * self.scale + self.xp.array(self.pe[:length])
         return F.dropout(e, self.dropout)

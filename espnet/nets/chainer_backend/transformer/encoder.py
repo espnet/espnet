@@ -59,8 +59,8 @@ class Encoder(chainer.Chain):
             self.add_link(name, layer)
         self.n_layers = args.elayers
 
-    def __call__(self, e, ilens):
-        """Compute Encoder layer.
+    def forward(self, e, ilens):
+        """Computing Encoder layer.
 
         Args:
             e (chainer.Variable): Batch of padded charactor. (B, Tmax)
@@ -83,4 +83,4 @@ class Encoder(chainer.Chain):
         e = e.reshape(-1, dims)
         for i in range(self.n_layers):
             e = self['encoders.' + str(i)](e, xx_mask, batch)
-        return self.norm(e), x_mask, ilens
+        return self.norm(e).reshape(batch, length, -1), x_mask, ilens

@@ -2,7 +2,8 @@
 # PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
-PYTHON_VERSION := 3.7
+# NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+PYTHON_VERSION := 3.7.3
 CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
@@ -32,7 +33,7 @@ all: kaldi.done python check_install
 
 python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
+extra: nkf.done mecab.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -53,12 +54,6 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
-	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
-		. venv/bin/activate; pip install matplotlib==2.2.4; \
-	else \
-		. venv/bin/activate; pip install matplotlib; \
-	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
@@ -71,7 +66,6 @@ venv: miniconda.sh
 	. venv/bin/activate && conda info -a
 espnet.done: venv
 	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
 endif
@@ -111,12 +105,6 @@ nkf.done:
 	cd nkf; $(WGET) https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
-
-sentencepiece.done:
-	rm -rf sentencepiece
-	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
-	touch sentencepiece.done
 
 mecab.done: espnet.done
 	rm -rf mecab
@@ -189,6 +177,6 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done mwerSegmenter.done
-	rm -rf nkf sentencepiece mecab swig moses mwerSegmenter
+	rm -rf nkf.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

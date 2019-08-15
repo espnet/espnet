@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import time
 
 import chainer
 import kaldiio
@@ -23,11 +24,12 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import BaseEvaluator
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
@@ -45,7 +47,7 @@ from tensorboardX import SummaryWriter
 matplotlib.use('Agg')
 
 
-class CustomEvaluator(extensions.Evaluator):
+class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Tacotron2 training
 
     :param torch.nn.Model model : The model to evaluate
@@ -255,9 +257,10 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -315,7 +318,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': True}  # Switch the mode of preprocessing
+        preprocess_args={'train': True},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     load_cv = LoadInputsAndTargets(
@@ -323,7 +327,8 @@ def train(args):
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        preprocess_args={'train': False},  # Switch the mode of preprocessing
+        keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
     # hack to make batchsize argument as 1
@@ -514,7 +519,10 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, probs, att_ws = model.inference(x, args, spemb)
+            start_time = time.time()
+            outs, probs, att_ws = model.inference(x, args, spemb=spemb)
+            logging.info("inference speed = %s msec / frame." % (
+                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (

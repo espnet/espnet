@@ -3,8 +3,8 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -244,10 +244,6 @@ if [ ${stage} -le 3 ]; then
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
     fi
 
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --ngpu ${ngpu} \

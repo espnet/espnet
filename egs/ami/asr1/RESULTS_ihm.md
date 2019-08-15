@@ -1,6 +1,6 @@
 ## RNN with old config
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/open?id=1vshBCZ1NRt1DSNbsOp0JUXG68G9BrMGk
     - training config file: `conf/train.yaml`    
     - decoding config file: `conf/decode.yaml`  
     - e2e file: `exp/ihm_train_pytorch_train/results/model.loss.best`    
@@ -19,7 +19,7 @@ exp/ihm_train_pytorch_train/decode_ihm_eval_decode_lm_word20000/result.wrd.txt
 
 ## RNN with shallow wide encoder
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/open?id=1wdrxLvnrrRdeMGkyzqEkoSPbzjSDbUWs
     - training config file: `conf/train_rnn.yaml`
     - decoding config file: `conf/decode_rnn.yaml`
     - e2e file: `exp/ihm_train_pytorch_train_rnn/results/model.acc.best`
@@ -38,7 +38,7 @@ exp/ihm_train_pytorch_train_rnn/decode_ihm_eval_decode_rnn_lm_word20000/result.w
 
 ## Transformer with large encoder (epoch 100)
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-   - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+   - model link: https://drive.google.com/open?id=1x6NcDX1jjb2jvxHJyl4oQAAjmwjMouUK
    - training config file: `conf/train_transformer.yaml`
    - decoding config file: `conf/decode_transformer.yaml`
    - e2e file: `exp/ihm_train_pytorch_train_transformer/results/model.acc.best`
@@ -56,7 +56,7 @@ exp/ihm_train_pytorch_train_transformer/decode_ihm_eval_decode_transformer_lm_wo
 ```
 ## Transformer with large encoder (epoch 200)
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-   - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+   - model link: https://drive.google.com/open?id=1NL3BulrRZHb_np9wljc7gnbKFvtMDr5z
    - training config file: `conf/train_transformer.yaml`
    - decoding config file: `conf/decode_transformer.yaml`
    - e2e file: `exp/ihm_train_pytorch_train_transformer/results/model.acc.best`
@@ -71,3 +71,22 @@ exp/ihm_train_pytorch_train_transformer_200/decode_ihm_dev_decode_transformer_lm
 exp/ihm_train_pytorch_train_transformer_200/decode_ihm_eval_decode_transformer_lm_word20000/result.wrd.txt
 |  SPKR                          |  # Snt   # Wrd  |  Corr      Sub      Del      Ins      Err    S.Err  |
 |  Sum/Avg                       | 12612    89635  |  75.4     18.4      6.2      3.1     27.7     60.6  |
+```
+## Transformer with large encoder with speed perturbation based data augmentation.(epoch 100)
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)  
+    - model link: https://drive.google.com/open?id=1-lhpCIpnH-vNxtxfH2YkQXZE-RqIS1YV
+    - training config file: `conf/train_transformer.yaml`    
+    - decoding config file: `conf/decode_transformer.yaml`    
+    - e2e file: `exp/ihm_train_pytorch_train/results/model.acc.best`    
+    - e2e JSON file: `exp/ihm_train_pytorch_train/results/model.json`    
+    - lm file: `exp/train_rnnlm_pytorch_lm_word20000/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm_word20000/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/ihm_train_pytorch_augment/decode_ihm_dev_decode_transformer_lm_word20000/result.wrd.txt
+| SPKR                         | # Snt # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+| Sum/Avg                      |13059  94914  | 78.0   15.9    6.0    3.0    25.0   61.5 |
+exp/ihm_train_pytorch_augment/decode_ihm_eval_decode_transformer_lm_word20000/result.wrd.txt
+| SPKR                         | # Snt  # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+| Sum/Avg                      |12612   89635 | 76.8   16.9     6.3    2.4   25.6    59.3 |
+```
