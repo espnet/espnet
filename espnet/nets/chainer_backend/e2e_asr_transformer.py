@@ -1,4 +1,6 @@
 # encoding: utf-8
+"""Transformer-based model for End-to-end ASR."""
+
 from argparse import Namespace
 from distutils.util import strtobool
 import logging
@@ -29,16 +31,23 @@ class E2E(ASRInterface, chainer.Chain):
     """E2E module.
 
     Args:
-        idim (int): Dimension of inputs.
-        odim (int): Dimension of outputs.
+        idim (int): Input dimmensions.
+        odim (int): Output dimmensions.
         args (Namespace): Training config.
-        flag_return (bool): If True, then return value of `forward()`
-            would be tuple of (loss, loss_ctc, loss_att, acc)
+        ignore_id (int, optional): Id for ignoring a character.
+        flag_return (bool, optional): If true, return a list with (loss,
+        loss_ctc, loss_att, acc) in forward. Otherwise, return loss.
 
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Customize flags for transformer setup.
+
+        Args:
+            parser (Namespace): Training config.
+
+        """
         group = parser.add_argument_group("transformer model setting")
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            help='how to initialize transformer parameters')
@@ -74,6 +83,7 @@ class E2E(ASRInterface, chainer.Chain):
         return parser
 
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
+        """Initialize the transformer."""
         chainer.Chain.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -249,22 +259,23 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss
 
     def calculate_attentions(self, xs, x_mask, ys_pad):
+        """Calculate Attentions."""
         self.decoder(ys_pad, xs, x_mask)
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
-        """E2E beam search.
+        """E2E recognition function.
 
         Args:
             x (ndarray): Input acouctic feature (B, T, D) or (T, D).
             recog_args (Namespace): Argment namespace contraining options.
             char_list (List[str]): List of characters.
-            rnnlm (torch.nn.Module): Language model module defined at
-                `espnet.lm.chainer_backend.lm`.
+            rnnlm (chainer.Chain): Language model module defined at
+            `espnet.lm.chainer_backend.lm`.
 
         Returns:
             List: N-best decoding results.
-        """
 
+        """
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
             ilens = [x_block.shape[0]]
@@ -284,14 +295,19 @@ class E2E(ASRInterface, chainer.Chain):
         return y
 
     def recognize_beam(self, h, lpz, recog_args, char_list=None, rnnlm=None):
-        """beam search implementation
+        """E2E beam search.
 
-        :param h:
-        :param lpz:
-        :param recog_args:
-        :param char_list:
-        :param rnnlm:
-        :return:
+        Args:
+            h (ndarray): Encoder ouput features (B, T, D) or (T, D).
+            lpz (ndarray): Log probabilities from CTC.
+            recog_args (Namespace): Argment namespace contraining options.
+            char_list (List[str]): List of characters.
+            rnnlm (chainer.Chain): Language model module defined at
+            `espnet.lm.chainer_backend.lm`.
+
+        Returns:
+            List: N-best decoding results.
+
         """
         logging.info('input lengths: ' + str(h.shape[0]))
 
@@ -457,8 +473,8 @@ class E2E(ASRInterface, chainer.Chain):
 
         Returns:
             float ndarray: Attention weights. (B, Lmax, Tmax)
-        """
 
+        """
         with chainer.no_backprop_mode():
             self(xs, ilens, ys, calculate_attentions=True)
         ret = dict()
@@ -472,4 +488,12 @@ class E2E(ASRInterface, chainer.Chain):
 
     @property
     def attention_plot_class(self):
+        """Attention plot function.
+
+        Redirects to PlotAttentionReport
+
+        Returns:
+            PlotAttentionReport
+
+        """
         return PlotAttentionReport

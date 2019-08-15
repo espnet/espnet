@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Class Declaration of Transformer's Decoder Block."""
 
 import chainer
 
@@ -10,8 +11,19 @@ from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import Po
 
 
 class DecoderLayer(chainer.Chain):
+    """Single decoder layer module.
+
+    Args:
+        n_units (int): Number of input/output dimension of a FeedForward layer.
+        d_units (int): Number of units of hidden layer in a FeedForward layer.
+        h (int): Number of attention heads.
+        dropout (float): Dropout rate
+
+    """
+
     def __init__(self, n_units, d_units=0, h=8, dropout=0.1,
                  initialW=None, initial_bias=None):
+        """Initialize DecoderLayer."""
         super(DecoderLayer, self).__init__()
         with self.init_scope():
             self.self_attn = MultiHeadAttention(n_units, h, dropout=dropout,
@@ -30,6 +42,16 @@ class DecoderLayer(chainer.Chain):
         self.dropout = dropout
 
     def forward(self, e, s, xy_mask, yy_mask, batch):
+        """Compute Encoder layer.
+
+        Args:
+            e (chainer.Variable): Batch of padded features. (B, Lmax)
+            s (chainer.Variable): Batch of padded character. (B, Tmax)
+
+        Returns:
+            chainer.Variable: Computed variable of decoder.
+
+        """
         n_e = self.norm1(e)
         n_e = self.self_attn(n_e, mask=yy_mask, batch=batch)
         e = e + F.dropout(n_e, self.dropout)
