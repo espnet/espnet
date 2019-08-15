@@ -31,7 +31,7 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
+import espnet.nets.pytorch_backend.lm.legacy as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -565,9 +565,8 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+        # TODO(karita) remove .model
+        rnnlm = lm_pytorch.LegacyRNNLM(len(train_args.char_list), rnnlm_args).model
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:

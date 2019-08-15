@@ -1,0 +1,3 @@
+import torch
+
+class LMInterface:
