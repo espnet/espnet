@@ -28,6 +28,8 @@ def recog_v2(args):
         raise NotImplementedError("GPU decoding is not implemented")
     if args.streaming_mode is not None:
         raise NotImplementedError("streaming mode is not implemented")
+    if args.wordlm:
+        raise NotImplementedError("wordlm is not implemented")
 
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
