@@ -49,3 +49,23 @@ class ASRInterface(object):
     def attention_plot_class(self):
         from espnet.asr.asr_utils import PlotAttentionReport
         return PlotAttentionReport
+
+    def encode(self, feat):
+        '''encode feature in `beam_search` (optional)
+
+        Args:
+            x (numpy.ndarray): input feature (T, D)
+        Returns:
+            torch.Tensor for pytorch, chainer.Variable for chainer:
+                encoded feature (T, D)
+        '''
+        raise NotImplementedError("encode method is not implemented")
+
+    @property
+    def decoders(self):
+        '''get decoders used in `beam_search` (optional)
+
+        Returns:
+            dict: dict of `DecoderInterface` objects
+        '''
+        raise NotImplementedError("decoders method is not implemented")

@@ -226,6 +226,16 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
+    @property
+    def decoders(self):
+        return dict(decoder=self.decoder, ctc=self.ctc)
+
+    def encode(self, feat):
+        self.eval()
+        feat = torch.as_tensor(feat).unsqueeze(0)
+        enc_output, _ = self.encoder(feat, None)
+        return enc_output.squeeze(0)
+
     def recognize(self, feat, recog_args, char_list=None, rnnlm=None, use_jit=False):
         '''recognize feat
 

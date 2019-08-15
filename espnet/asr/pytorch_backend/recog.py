@@ -47,8 +47,10 @@ def recog_v2(args):
         torch_load(args.lm, lm)
         lm.eval()
 
-    decoders = [model.get_decoder(), model.get_ctc(), lm, LengthBonus()]
-    weights = [1.0, args.ctc_weight, args.lm_weight, args.penalty]
+    decoders = model.decoders
+    decoders["lm"] = lm
+    decoders["length_bonus"] = LengthBonus()
+    weights = dict(decoder=1.0, ctc=args.ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
 
     # read json data
     with open(args.recog_json, 'rb') as f:

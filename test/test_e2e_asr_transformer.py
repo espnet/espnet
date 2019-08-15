@@ -46,7 +46,7 @@ def test_mask(module):
     assert (m.unsqueeze(0) == subsequent_mask(3)).all()
 
 
-def prepare(backend):
+def prepare(backend, mtlalpha=0.0, return_args=False):
     args = Namespace(
         adim=16,
         aheads=2,
@@ -63,7 +63,8 @@ def prepare(backend):
         transformer_length_normalized_loss=True,
         report_cer=False,
         report_wer=False,
-        mtlalpha=0.0,
+        mtlalpha=mtlalpha,
+        ctc_type="warpctc",
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
     )
@@ -95,6 +96,8 @@ def prepare(backend):
             "output": [{"shape": [olens[i]]}]
         }))
     if backend == 'pytorch':
+        if return_args:
+            return model, x, torch.tensor(ilens), y, data, args
         return model, x, torch.tensor(ilens), y, data
     else:
         return model, x, ilens, y, data
