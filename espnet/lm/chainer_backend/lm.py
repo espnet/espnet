@@ -303,6 +303,10 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
+    # TODO(karita): support this
+    if args.model_module != "legacy":
+        raise NotImplementedError("chainer backend does not support --model-module")
+
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
