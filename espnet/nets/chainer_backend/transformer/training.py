@@ -75,6 +75,7 @@ class CustomUpdater(training.StandardUpdater):
         self.accum_grad = accum_grad
         self.forward_count = 0
         self.start = True
+        self.device = device
         logging.debug('using custom converter for transformer')
 
     # The core part of the update routine can be customized by overriding.
