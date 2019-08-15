@@ -7,11 +7,7 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-if [ ! -z "${LD_LIBRARY_PATH}" ]; then
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
-else
-    export LD_LIBRARY_PATH=$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
-fi
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
     source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
