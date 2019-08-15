@@ -462,6 +462,7 @@ You can change the pretrained vocoder model as follows:
 ```
 
 Available pretrained vocoder models are listed as follows:
+
 | Model | Notes |
 |:------|:------|
 | [ljspeech.wavenet.ns.v1.100k_iters](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | WaveNet vocoder with noise shaping @ 100k iters |
