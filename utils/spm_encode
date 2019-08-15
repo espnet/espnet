@@ -87,7 +87,7 @@ def main():
             enc_lines = list(map(encode_line, lines))
             if not any(enc_line is None for enc_line in enc_lines):
                 for enc_line, output_h in zip(enc_lines, outputs):
-                    print(" ".join(enc_line), file=output_h)
+                    print(" ".join(enc_line).encode("utf-8"), file=output_h)
             if i % 10000 == 0:
                 print("processed {} lines".format(i), file=sys.stderr)
 
