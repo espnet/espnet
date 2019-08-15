@@ -55,6 +55,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             - duration_predictor_chans (int): Number of duration predictor channels.
             - duration_predictor_kernel_size (int): Kernel size of duration predictor.
             - spk_embed_dim (int): Number of speaker embedding dimenstions.
+            - spk_embed_integration_type: How to integrate speaker embedding.
             - teacher_model (str): Teacher auto-regressive transformer model path.
             - reduction_factor (int): Reduction factor.
             - transformer_init (float): How to initialize transformer parameters.
@@ -120,6 +121,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Reduction factor")
         group.add_argument("--spk-embed-dim", default=None, type=int,
                            help="Number of speaker embedding dimensions")
+        group.add_argument("--spk-embed-integration-type", type=str, default="add",
+                           choices=["add", "concat"],
+                           help="How to integrate speaker embedding")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -174,6 +178,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.use_masking = args.use_masking
         self.spk_embed_dim = args.spk_embed_dim
+        if self.spk_embed_dim is not None:
+            self.spk_embed_integration_type = args.spk_embed_integration_type
 
         # TODO(kan-bayashi): support reduction_factor > 1
         if self.reduction_factor != 1:
@@ -210,7 +216,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # define additional projection for speaker embedding
         if self.spk_embed_dim is not None:
-            self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
+            if self.spk_embed_integration_type == "add":
+                self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
+            else:
+                self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
 
         # define duration predictor
         self.duration_predictor = DurationPredictor(
@@ -277,10 +286,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
 
-        # concat speaker embedding
+        # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            spembs_ = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = self.projection(torch.cat([hs, spembs_], dim=-1))
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(ilens).to(xs.device)
@@ -424,6 +432,30 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)[0]  # (L, odim)
 
         return outs, None, None
+
+    def _integrate_with_spk_embed(self, hs, spembs):
+        """Integrate speaker embedding with hidden states.
+
+        Args:
+            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
+            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim)
+
+        """
+        if self.spk_embed_integration_type == "add":
+            # apply projection and then add to hidden states
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
+        elif self.spk_embed_integration_type == "concat":
+            # concat hidden states with spk embeds and then apply projection
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = self.projection(torch.cat([hs, spembs], dim=-1))
+        else:
+            raise NotImplementedError("support only add or concat.")
+
+        return hs
 
     def _source_mask(self, ilens):
         """Make masks for self-attention.

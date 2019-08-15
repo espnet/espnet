@@ -61,6 +61,7 @@ def make_taco2_args(**kwargs):
         bce_pos_weight=1.0,
         use_guided_attn_loss=False,
         guided_attn_loss_sigma=0.4,
+        guided_attn_loss_lambda=1.0,
     )
     defaults.update(kwargs)
     return defaults
@@ -79,7 +80,7 @@ def make_inference_args(**kwargs):
 def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                    spk_embed_dim=None, spc_dim=None, device=torch.device('cpu')):
     ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
+    olens = np.sort(np.random.randint(3, maxout_len, bs))[::-1].tolist()
     ilens = torch.LongTensor(ilens).to(device)
     olens = torch.LongTensor(olens).to(device)
     xs = [np.random.randint(0, idim, l) for l in ilens]
@@ -125,10 +126,13 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"use_residual": True}),
         ({"dropout_rate": 0.0}),
         ({"zoneout_rate": 0.0}),
+        ({"reduction_factor": 2}),
         ({"reduction_factor": 3}),
         ({"use_speaker_embedding": True}),
         ({"use_cbhg": True}),
+        ({"reduction_factor": 3, "use_cbhg": True}),
         ({"use_guided_attn_loss": True}),
+        ({"reduction_factor": 3, "use_guided_attn_loss": True}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict):
     # make args
