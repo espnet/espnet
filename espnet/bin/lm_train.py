@@ -105,7 +105,7 @@ def main(cmd_args):
     # add model-specific arguments dynamically
     from espnet.utils.dynamic_import import dynamic_import
     model_class = dynamic_import(args.model_module, LM_DICT[args.backend])
-    assert issubclass(model_class, LMInterface)
+    assert issubclass(model_class, LMInterface), f"{args.model_module} needs to implement LMInterface"
     model_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
