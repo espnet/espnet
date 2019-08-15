@@ -8,7 +8,7 @@ class DecoderInterface:
         Args:
             y (torch.Tensor): new torch.int64 token to score (B)
             state (dict): decoder state for prefix tokens
-            x (torch.Tensor): speech feature that generates ys (T, D)
+            x (torch.Tensor): encoder feature that generates ys (T, D)
 
         Returns:
             tuple[torch.Tensor, list[dict]]: Tuple of
@@ -37,8 +37,8 @@ def beam_search(x, beam_size, decoders, weights, token_list=None):
     Args:
         x (torch.Tensor): encoded speech feature (T, D)
         beam_size (int): the number of hypotheses kept during search
-        decoders (list[DecoderInterface]): list of decoder modules
-        weights (list[DecoderInterface]): list of score weights for each decoders
+        decoders (dict[str, DecoderInterface]): list of decoder modules
+        weights (dict[str, float]): list of score weights for each decoders
         token_list (list[str]): list of tokens
 
     Returns:
