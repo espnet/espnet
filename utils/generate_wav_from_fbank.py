@@ -34,15 +34,15 @@ class TimeInvariantMLSAFilter(object):
 
     Args:
         coef (ndaaray): MLSA filter coefficient (D,).
-        n_shift (int, optional): Shift length in points.
-        alpha (float, optional): All pass constant value.
+        alpha (float): All pass constant value.
+        n_shift (int): Shift length in points.
 
     .. _`An investigation of noise shaping with perceptual weighting for WaveNet-based speech generation`:
         https://ieeexplore.ieee.org/abstract/document/8461332
 
     """
 
-    def __init__(self, coef, n_shift=256, alpha=0.455):
+    def __init__(self, coef, alpha, n_shift):
         self.n_shift = n_shift
         self.mlsa_filter = pysptk.synthesis.Synthesizer(
             pysptk.synthesis.MLSADF(
@@ -84,10 +84,6 @@ def get_parser():
                         help='Shift length in point')
     parser.add_argument('--model', type=str, default=None,
                         help='WaveNet model')
-    parser.add_argument('--alpha', type=float, default=0.455,
-                        help='All pass constant value')
-    parser.add_argument('--mag', type=float, default=0.5,
-                        help='Magnification of noise shaping')
     parser.add_argument('--filetype', type=str, default='mat',
                         choices=['mat', 'hdf5'],
                         help='Specify the file format for the rspecifier. '
@@ -121,19 +117,15 @@ def main():
     with h5py.File(os.path.join(model_dir, "stats.h5")) as f:
         scaler.mean_ = f["/melspc/mean"][()]
         scaler.scale_ = f["/melspc/scale"][()]
-        avg_mcep = f["mcep/mean"][()]
-
-    # calculate coefficient for MLSA filter
-    avg_mcep = avg_mcep * args.mag
-    avg_mcep[0] = 0.0
-    coef = pysptk.mc2b(avg_mcep.astype(np.float64), args.alpha)
-    assert np.isfinite(coef).all()
+        # TODO(kan-bayashi): include following info as default
+        coef = f["/mlsa/coef"][()]
+        alpha = f["/mlsa/alpha"][()]
 
     # define MLSA filter for noise shaping
     mlsa_filter = TimeInvariantMLSAFilter(
         coef=coef,
+        alpha=alpha,
         n_shift=args.n_shift,
-        alpha=args.alpha
     )
 
     # define model and laod parameters
