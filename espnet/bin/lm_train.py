@@ -18,7 +18,7 @@ import random
 import subprocess
 import sys
 
-from espnet.nets.lm_interface import LMInterface
+from espnet.nets.lm_interface import dynamic_import_lm
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -86,28 +86,12 @@ def get_parser():
     return parser
 
 
-# predefined LM dict
-# TODO(karita): add models from pytorch/examples
-LM_DICT = {
-    "pytorch": {
-        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
-    },
-    "chainer": {
-        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
-    }
-}
-
-
 def main(cmd_args):
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
-
-    # add model-specific arguments dynamically
-    from espnet.utils.dynamic_import import dynamic_import
-    model_class = dynamic_import(args.model_module, LM_DICT[args.backend])
-    assert issubclass(model_class, LMInterface), f"{args.model_module} needs to implement LMInterface"
+    # parse model-specific arguments dynamically
+    model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
-
     args = parser.parse_args(cmd_args)
     # logging info
     if args.verbose > 0:
@@ -164,7 +148,7 @@ def main(cmd_args):
         train(args)
     elif args.backend == "pytorch":
         from espnet.lm.pytorch_backend.lm import train
-        train(args)
+        train(args, model_class)
     else:
         raise ValueError("Only chainer and pytorch are supported.")
 
