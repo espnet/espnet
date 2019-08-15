@@ -9,7 +9,17 @@ import chainer.functions as F
 
 
 class LabelSmoothingLoss(chainer.Chain):
+    """Label Smoothing Loss.
+
+    Args:
+        smoothing (float): smoothing rate (0.0 means the conventional CE).
+        n_target_vocab (int): number of classes.
+        normalize_length (bool): normalize loss by sequence length if True.
+
+    """
+
     def __init__(self, smoothing, n_target_vocab, normalize_length=False, ignore_id=-1):
+        """Initialize Loss."""
         super(LabelSmoothingLoss, self).__init__()
         self.use_label_smoothing = False
         if smoothing > 0.0:
@@ -23,6 +33,16 @@ class LabelSmoothingLoss(chainer.Chain):
         self.acc = None
 
     def forward(self, ys_block, ys_pad):
+        """Forward Loss.
+
+        Args:
+            ys_block (chainer.Variable): Predicted labels.
+            ys_pad (chainer.Variable): Target (true) labels.
+
+        Returns:
+            float: Training loss.
+
+        """
         # Output (all together at once for efficiency)
         batch, length, dims = ys_block.shape
         concat_logit_block = ys_block.reshape(-1, dims)

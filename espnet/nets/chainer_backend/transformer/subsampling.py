@@ -44,6 +44,12 @@ class Conv2dSubsampling(chainer.Chain):
             self.pe = PositionalEncoding(dims, dropout)
 
     def forward(self, xs, ilens):
+        """Subsample x.
+
+        :param chainer.Variable x: input tensor
+        :return: subsampled x and mask
+
+        """
         xs = self.xp.array(xs[:, None])
         xs = F.relu(self.conv1(xs))
         xs = F.relu(self.conv2(xs))
@@ -77,6 +83,12 @@ class LinearSampling(chainer.Chain):
             self.pe = PositionalEncoding(dims, dropout)
 
     def forward(self, xs, ilens):
+        """Subsample x.
+
+        :param chainer.Variable x: input tensor
+        :return: subsampled x and mask
+
+        """
         logging.info(xs.shape)
         xs = self.linear(xs, n_batch_axes=2)
         logging.info(xs.shape)

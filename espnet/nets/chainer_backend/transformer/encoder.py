@@ -60,7 +60,7 @@ class Encoder(chainer.Chain):
         self.n_layers = args.elayers
 
     def forward(self, e, ilens):
-        """Computing Encoder layer.
+        """Compute Encoder layer.
 
         Args:
             e (chainer.Variable): Batch of padded charactor. (B, Tmax)

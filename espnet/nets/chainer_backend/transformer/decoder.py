@@ -53,12 +53,29 @@ class Decoder(chainer.Chain):
         self.n_layers = args.dlayers
 
     def make_attention_mask(self, source_block, target_block):
+        """Prepare the attention mask.
+
+        Args:
+            source_block (ndarray): Source block with dimensions: (B x S).
+            target_block (ndarray): Target block with dimensions: (B x T).
+        Returns:
+            ndarray: Mask with dimensions (B, S, T).
+
+        """
         mask = (target_block[:, None, :] >= 0) * \
             (source_block[:, :, None] >= 0)
         # (batch, source_length, target_length)
         return mask
 
     def make_history_mask(self, block):
+        """Prepare the history mask.
+
+        Args:
+            block (ndarray): Block with dimensions: (B x S).
+        Returns:
+            ndarray, np.ndarray: History mask with dimensions (B, S, S).
+
+        """
         batch, length = block.shape
         arange = self.xp.arange(length)
         history_mask = (arange[None, ] <= arange[:, None])[None, ]
@@ -67,7 +84,7 @@ class Decoder(chainer.Chain):
         return history_mask
 
     def forward(self, ys_pad, source, x_mask):
-        """Forward decoder
+        """Forward decoder.
 
         :param xp.array e: input token ids, int64 (batch, maxlen_out)
         :param xp.array yy_mask: input token mask, uint8  (batch, maxlen_out)
@@ -95,6 +112,6 @@ class Decoder(chainer.Chain):
         return self.output_layer(self.output_norm(e)).reshape(batch, length, -1)
 
     def recognize(self, e, yy_mask, source):
-        bs, length = e.shape
-        e = self.forward(e, yy_mask, source, None)
+        """Process recognition function."""
+        e = self.forward(e, source, yy_mask)
         return F.log_softmax(e, axis=-1)
