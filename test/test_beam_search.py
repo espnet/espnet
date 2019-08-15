@@ -9,7 +9,7 @@ from test.test_e2e_asr_transformer import prepare
 
 
 def test_beam_search_equal():
-    ctc = 0.5                   # TODO(karita) non-zero
+    ctc = 0.0                   # TODO(karita) non-zero
     model, x, ilens, y, data, train_args = prepare("pytorch", mtlalpha=ctc, return_args=True)
     model.eval()
     char_list = train_args.char_list
@@ -43,10 +43,14 @@ def test_beam_search_equal():
         enc = model.encode(feat)
         nbest_bs = beam_search(
             x=enc,
+            sos=model.sos,
+            eos=model.eos,
             beam_size=args.beam_size,
             weights=weights,
             decoders=decoders,
-            token_list=train_args.char_list
+            token_list=train_args.char_list,
+            maxlenratio=args.maxlenratio,
+            minlenratio=args.minlenratio,
         )
         print(nbest_bs)
 

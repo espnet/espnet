@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet.nets.lm_interface import LMInterface
+from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 
@@ -15,7 +16,7 @@ class Reporter(Chain):
         pass
 
 
-class LegacyRNNLM(LMInterface, nn.Module):
+class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
     """Legacy RNNLM wrapper to compute reduce framewise loss values
 
     Args:
