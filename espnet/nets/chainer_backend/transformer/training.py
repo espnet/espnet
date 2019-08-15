@@ -1,6 +1,6 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
+"""Class Declaration of Transformer's Training Subprocess."""
 from __future__ import division
 
 import collections
@@ -74,6 +74,7 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
+        """Initialize Custom Updater."""
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
         self.accum_grad = accum_grad
@@ -83,7 +84,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        """Main update routine for Custom Updater."""
+        """Process main update routine for Custom Updater."""
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
@@ -113,6 +114,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer.target.cleargrads()  # Clear the parameter gradients
 
     def update(self):
+        """Update step for Custom Updater."""
         self.update_core()
         if self.forward_count == 0:
             self.iteration += 1
@@ -144,6 +146,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     """
 
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
+        """Initialize custom parallel updater."""
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
         self.accum_grad = accum_grad
@@ -152,6 +155,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Process main update routine for Custom Parallel Updater."""
         self.setup_workers()
 
         self._send_message(('update', None))
@@ -198,6 +202,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                                 0, null_stream.ptr)
 
     def update(self):
+        """Update step for Custom Parallel Updater."""
         self.update_core()
         if self.forward_count == 0:
             self.iteration += 1
@@ -218,11 +223,13 @@ class VaswaniRule(extension.Extension):
         optimizer (~chainer.Optimizer): Target optimizer to adjust the
             attribute. If it is ``None``, the main optimizer of the updater is
             used.
+
     """
 
     def __init__(self, attr, d, warmup_steps=4000,
                  init=None, target=None, optimizer=None,
                  scale=1.):
+        """Initialize Vaswani rule extension."""
         self._attr = attr
         self._d_inv05 = d ** (-0.5) * scale
         self._warmup_steps_inv15 = warmup_steps ** (-1.5)
@@ -233,6 +240,7 @@ class VaswaniRule(extension.Extension):
         self._last_value = None
 
     def initialize(self, trainer):
+        """Initialize Optimizer values."""
         optimizer = self._get_optimizer(trainer)
         # ensure that _init is set
         if self._init is None:
@@ -243,6 +251,7 @@ class VaswaniRule(extension.Extension):
             self._update_value(optimizer, self._init)
 
     def __call__(self, trainer):
+        """Forward extension."""
         self._t += 1
         optimizer = self._get_optimizer(trainer)
         value = self._d_inv05 * \
@@ -250,13 +259,16 @@ class VaswaniRule(extension.Extension):
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):
+        """Serialize extension."""
         self._t = serializer('_t', self._t)
         self._last_value = serializer('_last_value', self._last_value)
 
     def _get_optimizer(self, trainer):
+        """Obtain optimizer from trainer."""
         return self._optimizer or trainer.updater.get_optimizer('main')
 
     def _update_value(self, optimizer, value):
+        """Update requested variable values."""
         setattr(optimizer, self._attr, value)
         self._last_value = value
 
@@ -270,6 +282,7 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1):
+        """Initialize subsampling."""
         pass
 
     def __call__(self, batch, device):

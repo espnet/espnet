@@ -1,3 +1,5 @@
+# encoding: utf-8
+"""Class Declaration of Transformer's CTC."""
 import logging
 
 import chainer
@@ -20,6 +22,7 @@ class CTC(chainer.Chain):
     """
 
     def __init__(self, odim, eprojs, dropout_rate):
+        """Initialize CTC."""
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -88,6 +91,7 @@ class WarpCTC(chainer.Chain):
     """
 
     def __init__(self, odim, eprojs, dropout_rate):
+        """Initialize WarpCTC."""
         super(WarpCTC, self).__init__()
         # The main difference between the ctc for transformer and
         # the rnn is because the target (ys) is already a list of
@@ -145,10 +149,10 @@ class WarpCTC(chainer.Chain):
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
     def argmax(self, hs_pad):
-        """argmax of frame activations
+        """Argmax of frame activations.
 
         :param chainer variable hs_pad: 3d tensor (B, Tmax, eprojs)
         :return: argmax applied 2d tensor (B, Tmax)
-        :rtype: chainer.Variable
+        :rtype: chainer.Variable.
         """
         return F.argmax(self.ctc_lo(F.pad_sequence(hs_pad), n_batch_axes=2), axis=-1)
