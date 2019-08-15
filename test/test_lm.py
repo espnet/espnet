@@ -1,12 +1,9 @@
 import chainer
+import numpy
 import torch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
-import espnet.lm.pytorch_backend.lm as lm_pytorch
-
-
-def transfer_gru(ch_gru, th_gru):
-    pass  # TODO(chainer_pytorch_expert)
+import espnet.nets.pytorch_backend.lm.legacy as lm_pytorch
 
 
 def transfer_lstm(ch_lstm, th_lstm):
@@ -28,8 +25,7 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
         for n in range(ch_rnnlm.n_layers):
             transfer_lstm(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
     else:
-        for n in range(ch_rnnlm.n_layers):
-            transfer_gru(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
+        assert False
     th_rnnlm.lo.weight.data = torch.from_numpy(ch_rnnlm.lo.W.data)
     th_rnnlm.lo.bias.data = torch.from_numpy(ch_rnnlm.lo.b.data)
 
@@ -43,17 +39,6 @@ def test_lm():
         rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ=typ))
         rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ=typ))
         transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
-        import numpy
-        # TODO(karita) implement weight transfer
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.embed.W.data, rnnlm_th.predictor.embed.weight.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.b.data, rnnlm_th.predictor.l1.bias_ih.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.W.data, rnnlm_th.predictor.l1.weight_ih.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.lateral.W.data, rnnlm_th.predictor.l1.weight_hh.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.b.data, rnnlm_th.predictor.l2.bias_ih.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.W.data, rnnlm_th.predictor.l2.weight_ih.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.lateral.W.data, rnnlm_th.predictor.l2.weight_hh.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.b.data, rnnlm_th.predictor.lo.bias.data.numpy())
-        # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
         # test prediction equality
         x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
@@ -67,7 +52,4 @@ def test_lm():
                     print(state_th[k][n].data.numpy())
                     print(state_ch[k][n].data)
                     numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
-            print("y")
-            print(y_th.data.numpy())
-            print(y_ch.data)
             numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)

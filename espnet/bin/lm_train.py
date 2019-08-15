@@ -18,6 +18,8 @@ import random
 import subprocess
 import sys
 
+from espnet.nets.lm_interface import LMInterface
+
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
@@ -103,6 +105,7 @@ def main(cmd_args):
     # add model-specific arguments dynamically
     from espnet.utils.dynamic_import import dynamic_import
     model_class = dynamic_import(args.model_module, LM_DICT[args.backend])
+    assert issubclass(model_class, LMInterface)
     model_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
