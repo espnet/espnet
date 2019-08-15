@@ -14,7 +14,8 @@ from chainer import reporter
 import chainer.functions as F
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.chainer_backend import ctc
+from espnet.nets.chainer_backend.transformer import ctc
+
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
@@ -60,6 +61,24 @@ class E2E(ASRInterface, chainer.Chain):
                            help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
+
+        group.add_argument('--dropout-rate', default=0.0, type=float,
+                           help='Dropout rate for the encoder')
+        # Encoder
+        group.add_argument('--elayers', default=4, type=int,
+                           help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
+        group.add_argument('--eunits', '-u', default=300, type=int,
+                           help='Number of encoder hidden units')
+        # Attention
+        group.add_argument('--adim', default=320, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--aheads', default=4, type=int,
+                           help='Number of heads for multi head attention')
+        # Decoder
+        group.add_argument('--dlayers', default=1, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=320, type=int,
+                           help='Number of decoder hidden units')
         return parser
 
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
@@ -111,11 +130,13 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        if args.report_cer or args.report_wer or args.mtlalpha > 0.0:
+        if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
                                                     args.report_cer, args.report_wer)
+        else:
+            self.error_calculator = None
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:
@@ -155,39 +176,6 @@ class E2E(ASRInterface, chainer.Chain):
             self.initialW = chainer.initializers.Uniform
         self.initialB = chainer.initializers.Uniform
 
-    def make_attention_mask(self, source_block, target_block):
-        """Prepare the attention mask.
-
-        Args:
-            source_block (ndarray): Source block with dimensions: (B x S).
-            target_block (ndarray): Target block with dimensions: (B x T).
-
-        Returns:
-            ndarray: Mask with dimensions (B, S, T).
-
-        """
-        mask = (target_block[:, None, :] >= 0) * \
-            (source_block[:, :, None] >= 0)
-        # (batch, source_length, target_length)
-        return mask
-
-    def make_history_mask(self, block):
-        """Prepare the history mask.
-
-        Args:
-            block (ndarray): Block with dimensions: (B x S).
-
-        Returns:
-            ndarray, np.ndarray: History mask with dimensions (B, S, S).
-
-        """
-        batch, length = block.shape
-        arange = self.xp.arange(length)
-        history_mask = (arange[None, ] <= arange[:, None])[None, ]
-        history_mask = self.xp.broadcast_to(
-            history_mask, (batch, length, length))
-        return history_mask
-
     def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         """E2E forward propagation.
 
@@ -205,79 +193,46 @@ class E2E(ASRInterface, chainer.Chain):
             chainer.Variable (Optional): Output of the encoder.
 
         """
-        xp = self.xp
-        with chainer.no_backprop_mode():
-            xs = xp.array(xs)
-            eos = np.array([self.eos], 'i')
-            sos = np.array([self.sos], 'i')
-            ys_out = [F.concat([y, eos], axis=0) for y in ys_pad]
-            ys = [F.concat([sos, y], axis=0) for y in ys_pad]
-            ys = F.pad_sequence(ys, padding=self.eos)
-            ys_out = F.pad_sequence(ys_out, padding=-1)
-        ys = xp.array(ys.data)
-        ys_out = chainer.Variable(xp.array(ys_out.data))
-        ys_pad_cpu = [y.astype(np.int32) for y in ys_pad]
+        alpha = self.mtlalpha
 
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        # Encode Sources
-        # xs: utt x frame x dim
-        logging.debug('Init size: ' + str(xs.shape))
-        logging.debug('Out size: ' + str(ys.shape))
-        # Dims along enconder and decoder: batchsize * length x dims
+        # 1. Encoder
         xs, x_mask, ilens = self.encoder(xs, ilens)
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(xp.array([y.shape[0] for y in ys_out])))
-        xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
-        yy_mask = self.make_attention_mask(ys, ys)
-        yy_mask *= self.make_history_mask(ys)
-        batch, length = ys.shape
-        ys = self.decoder(ys, yy_mask, xs, xy_mask)
-        if calculate_attentions:
-            return xs
 
-        # Compute Attention Loss
-        loss_att = self.criterion(ys, ys_out, batch, length)
-        acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
-
-        # Compute CTC Loss and CER CTC
+        # 2. CTC loss
         cer_ctc = None
-
-        if self.ctc is None:
+        if alpha == 0.0:
             loss_ctc = None
         else:
-            xs = xs.reshape(batch, -1, self.dims)
-            xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
-            loss_ctc = self.ctc(xs, ys_pad_cpu)
-            with chainer.no_backprop_mode():
-                ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
-            cer_ctc = self.error_calculator(ys_hat, ys_pad_cpu, is_ctc=True)
+            _ys = [y.astype(np.int32) for y in ys_pad]
+            loss_ctc = self.ctc(xs, _ys)
+            if self.error_calculator is not None:
+                with chainer.no_backprop_mode():
+                    ys_hat = chainer.backends.cuda.to_cpu(self.ctc.argmax(xs).data)
+                cer_ctc = self.error_calculator(ys_hat, ys_pad, is_ctc=True)
 
-        # Compute cer/wer
-        with chainer.no_backprop_mode():
-            y_hats = ys.reshape((batch, length, -1))
-            y_hats = chainer.backends.cuda.to_cpu(F.argmax(y_hats, axis=2).data)
+        # 3. Decoder
+        if calculate_attentions:
+            self.calculate_attentions(xs, x_mask, ys_pad)
+        ys = self.decoder(ys_pad, xs, x_mask)
 
-        if chainer.config.train or self.error_calculator is None:
-            cer, wer = None, None
+        # 4. Attention Loss
+        cer, wer = None, None
+        if alpha == 1:
+            loss_att = None
+            acc = None
         else:
-            cer, wer = self.error_calculator(y_hats, ys_pad_cpu)
+            # Make target
+            eos = np.array([self.eos], 'i')
+            with chainer.no_backprop_mode():
+                ys_pad_out = [np.concatenate([y, eos], axis=0) for y in ys_pad]
+                ys_pad_out = F.pad_sequence(ys_pad_out, padding=-1).data
+                ys_pad_out = self.xp.array(ys_pad_out)
 
-        # Print Output
-        if chainer.config.train and (self.verbose > 0 and self.char_list is not None):
-            for i, y_hat in enumerate(y_hats):
-                y_true = chainer.backends.cuda.to_cpu(ys_pad[i].data)
-                if i == MAX_DECODER_OUTPUT:
-                    break
-                eos_true = np.where(y_true == -1)[0]
-                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
-                seq_true = [self.char_list[int(idx)] for idx in y_true[y_true != -1]]
-                seq_hat = "".join(seq_hat).replace(self.space, ' ')
-                seq_true = "".join(seq_true).replace(self.space, ' ')
-                logging.info("groundtruth[%d]: " % i + seq_true)
-                logging.info("prediction [%d]: " % i + seq_hat)
+            loss_att = self.criterion(ys, ys_pad_out)
+            acc = F.accuracy(ys.reshape(-1, self.odim), ys_pad_out.reshape(-1), ignore_label=-1)
+            if (not chainer.config.train) and (self.error_calculator is not None):
+                cer, wer = self.error_calculator(ys, ys_pad)
 
-        alpha = self.mtlalpha
         if alpha == 0.0:
             self.loss = loss_att
             loss_att_data = loss_att.data
@@ -311,6 +266,9 @@ class E2E(ASRInterface, chainer.Chain):
             return self.loss, loss_ctc, loss_att, acc
         else:
             return self.loss
+
+    def calculate_attentions(self, xs, x_mask, ys_pad):
+        self.decoder(ys_pad, xs, x_mask)
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
         """E2E recognition function.
@@ -364,7 +322,6 @@ class E2E(ASRInterface, chainer.Chain):
         # initialization
         xp = self.xp
         h_mask = xp.ones((1, h.shape[0]))
-        batch = 1
 
         # search parms
         beam = recog_args.beam_size
@@ -407,11 +364,7 @@ class E2E(ASRInterface, chainer.Chain):
             hyps_best_kept = []
             for hyp in hyps:
                 ys = F.expand_dims(xp.array(hyp['yseq']), axis=0).data
-                yy_mask = self.make_attention_mask(ys, ys)
-                yy_mask *= self.make_history_mask(ys)
-
-                xy_mask = self.make_attention_mask(ys, h_mask)
-                out = self.decoder(ys, yy_mask, h, xy_mask).reshape(batch, -1, self.odim)
+                out = self.decoder(ys, h, h_mask)
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(out[:, -1], axis=-1).data
@@ -531,7 +484,7 @@ class E2E(ASRInterface, chainer.Chain):
 
         """
         with chainer.no_backprop_mode():
-            results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
+            self(xs, ilens, ys, calculate_attentions=True)
         ret = dict()
         for name, m in self.namedlinks():
             if isinstance(m, MultiHeadAttention):

@@ -51,7 +51,7 @@ class MultiHeadAttention(chainer.Chain):
         self.dropout = dropout
         self.attn = None
 
-    def __call__(self, e_var, s_var=None, mask=None, batch=1):
+    def forward(self, e_var, s_var=None, mask=None, batch=1):
         """Core function of the Multi-head attention layer.
 
         Args:

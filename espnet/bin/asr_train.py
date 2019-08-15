@@ -52,6 +52,8 @@ def get_parser():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--report-interval-iters', default=100, type=int,
+                        help="Report interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -60,66 +62,16 @@ def get_parser():
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
-    # encoder
-    parser.add_argument('--num-spkrs', default=1, type=int,
-                        choices=[1, 2],
-                        help='Number of speakers in the speech.')
-    parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
-                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                        help='Type of encoder network architecture')
-    parser.add_argument('--elayers-sd', default=4, type=int,
-                        help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
-    parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
-    parser.add_argument('--eunits', '-u', default=300, type=int,
-                        help='Number of encoder hidden units')
-    parser.add_argument('--eprojs', default=320, type=int,
-                        help='Number of encoder projection units')
-    parser.add_argument('--subsample', default="1", type=str,
-                        help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
-                             'every y frame at 2nd layer etc.')
-    # loss
+    # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
-    # attention
-    parser.add_argument('--atype', default='dot', type=str,
-                        choices=['noatt', 'dot', 'add', 'location', 'coverage',
-                                 'coverage_location', 'location2d', 'location_recurrent',
-                                 'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                 'multi_head_multi_res_loc'],
-                        help='Type of attention architecture')
-    parser.add_argument('--adim', default=320, type=int,
-                        help='Number of attention transformation dimensions')
-    parser.add_argument('--awin', default=5, type=int,
-                        help='Window size for location2d attention')
-    parser.add_argument('--aheads', default=4, type=int,
-                        help='Number of heads for multi head attention')
-    parser.add_argument('--aconv-chans', default=-1, type=int,
-                        help='Number of attention convolution channels \
-                        (negative value indicates no location-aware attention)')
-    parser.add_argument('--aconv-filts', default=100, type=int,
-                        help='Number of attention convolution filters \
-                        (negative value indicates no location-aware attention)')
-    parser.add_argument('--spa', action='store_true',
-                        help='Enable speaker parallel attention.')
-    # decoder
-    parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm', 'gru'],
-                        help='Type of decoder network architecture')
-    parser.add_argument('--dlayers', default=1, type=int,
-                        help='Number of decoder layers')
-    parser.add_argument('--dunits', default=320, type=int,
-                        help='Number of decoder hidden units')
     parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
-    parser.add_argument('--sampling-probability', default=0.0, type=float,
-                        help='Ratio of predicted labels fed back to decoder')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')
@@ -149,11 +101,6 @@ def get_parser():
                         help='Space symbol')
     parser.add_argument('--sym-blank', default='<blank>', type=str,
                         help='Blank symbol')
-    # model (parameter) related
-    parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate for the encoder')
-    parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
-                        help='Dropout rate for the decoder')
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
@@ -206,6 +153,15 @@ def get_parser():
                         help='Number of samples of attention to be saved')
     parser.add_argument('--grad-noise', type=strtobool, default=False,
                         help='The flag to switch to use noise injection to gradients during training')
+    # asr_mix related
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
+    parser.add_argument('--spa', action='store_true',
+                        help='Enable speaker parallel attention.')
+    parser.add_argument('--elayers-sd', default=4, type=int,
+                        help='Number of encoder layers for speaker '
+                             'differentiate part. (multi-speaker asr mode only)')
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
@@ -295,12 +251,15 @@ def main(cmd_args):
     args, _ = parser.parse_known_args(cmd_args)
 
     from espnet.utils.dynamic_import import dynamic_import
-    if args.model_module is not None:
-        model_class = dynamic_import(args.model_module)
-        model_class.add_arguments(parser)
-    args = parser.parse_args(cmd_args)
     if args.model_module is None:
-        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    else:
+        model_module = args.model_module
+    model_class = dynamic_import(model_module)
+    model_class.add_arguments(parser)
+
+    args = parser.parse_args(cmd_args)
+    args.model_module = model_module
     if 'chainer_backend' in args.model_module:
         args.backend = 'chainer'
     if 'pytorch_backend' in args.model_module:
@@ -359,6 +318,7 @@ def main(cmd_args):
 
     # train
     logging.info('backend = ' + args.backend)
+
     if args.num_spkrs == 1:
         if args.backend == "chainer":
             from espnet.asr.chainer_backend.asr import train
@@ -368,7 +328,8 @@ def main(cmd_args):
             train(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
-    elif args.num_spkrs > 1:
+    else:
+        # FIXME(kamo): Support --model-module
         if args.backend == "pytorch":
             from espnet.asr.pytorch_backend.asr_mix import train
             train(args)

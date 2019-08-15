@@ -9,24 +9,7 @@ import chainer.functions as F
 
 
 class LabelSmoothingLoss(chainer.Chain):
-    """Label Smoothing Loss.
-
-    Args:
-        smoothing (float): smoothing rate (0.0 means the conventional CE).
-        n_target_vocab (int): number of classes.
-        normalize_length (bool): normalize loss by sequence length if True.
-
-    """
-
-    def __init__(self, smoothing, n_target_vocab, normalize_length=False):
-        """Initialize Loss.
-
-        Args:
-            smoothing (float): smoothing rate (0.0 means the conventional CE).
-            n_target_vocab (int): number of classes.
-            normalize_length (bool): normalize loss by sequence length if True.
-
-        """
+    def __init__(self, smoothing, n_target_vocab, normalize_length=False, ignore_id=-1):
         super(LabelSmoothingLoss, self).__init__()
         self.use_label_smoothing = False
         if smoothing > 0.0:
@@ -36,26 +19,20 @@ class LabelSmoothingLoss(chainer.Chain):
             self.use_label_smoothing = True
             self.n_target_vocab = n_target_vocab
         self.normalize_length = normalize_length
+        self.ignore_id = ignore_id
+        self.acc = None
 
-    def forward(self, concat_logit_block, t_block, batch, length):
-        """E2E forward propagation.
-
-        Args:
-            concat_logit_block (chainer.Variable): Predicted labels.
-            t_block (chainer.Variable): Target (true) labels.
-            batch (int): mini-batch size.
-
-        Returns:
-            float: Training loss.
-
-        """
+    def forward(self, ys_block, ys_pad):
         # Output (all together at once for efficiency)
-        rebatch, _ = concat_logit_block.shape
-        # Make target
-        concat_t_block = t_block.reshape((rebatch)).data
+        batch, length, dims = ys_block.shape
+        concat_logit_block = ys_block.reshape(-1, dims)
+
+        # Target reshape
+        concat_t_block = ys_pad.reshape((batch * length))
         ignore_mask = (concat_t_block >= 0)
         n_token = ignore_mask.sum()
         normalizer = n_token if self.normalize_length else batch
+
         if not self.use_label_smoothing:
             loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
             loss = loss * n_token / normalizer
@@ -65,11 +42,10 @@ class LabelSmoothingLoss(chainer.Chain):
                 ignore_mask[:, None],
                 concat_logit_block.shape)
             pre_loss = ignore_mask * \
-                log_prob[self.xp.arange(rebatch), concat_t_block]
+                log_prob[self.xp.arange(batch * length), concat_t_block]
             loss = - F.sum(pre_loss) / normalizer
             label_smoothing = broad_ignore_mask * \
                 - 1. / self.n_target_vocab * log_prob
             label_smoothing = F.sum(label_smoothing) / normalizer
             loss = self.confidence * loss + self.smoothing * label_smoothing
-
         return loss

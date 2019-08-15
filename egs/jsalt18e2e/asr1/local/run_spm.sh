@@ -9,8 +9,8 @@
 # Haitian Tamil Kurmanji Tok-Pisin Georgian) as a non-target language.
 # The recipe first build language-independent ASR by using non-target languages
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -102,9 +102,6 @@ train_set=tr_babel10${subset_num_spk:+_${subset_num_spk}spk}
 csjdir=../../csj
 libridir=../../librispeech
 babeldir=../../babel
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',

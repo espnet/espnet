@@ -23,7 +23,7 @@ logdir=$3
 dumpdir=$4
 
 if [ $# != 4 ]; then
-    echo $help_message
+    echo "${help_message}"
     exit 1;
 fi
 

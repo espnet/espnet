@@ -65,8 +65,7 @@ class Decoder(torch.nn.Module):
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in six.moves.range(1, self.dlayers):
             self.decoder += [
-                torch.nn.LSTMCell(dunits, dunits) if self.dtype == "lstm" else torch.nn.GRUCell(dunits + eprojs,
-                                                                                                dunits)]
+                torch.nn.LSTMCell(dunits, dunits) if self.dtype == "lstm" else torch.nn.GRUCell(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
@@ -175,7 +174,7 @@ class Decoder(torch.nn.Module):
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach().cpu(), axis=1)
-                z_out = self.dropout_emb(self.embed(z_out.cuda()))
+                z_out = self.dropout_emb(self.embed(to_device(self, z_out)))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
@@ -720,4 +719,5 @@ def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual, args.replace_sos)
+                   getattr(args, "context_residual", False),  # use getattr to keep compatibility
+                   getattr(args, "replace_sos", False))  # use getattr to keep compatibility
