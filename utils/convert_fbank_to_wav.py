@@ -136,7 +136,6 @@ def main():
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    # extract feature and then write as ark with scp format
     for idx, (utt_id, lmspc) in enumerate(
             file_reader_helper(args.rspecifier, args.filetype), 1):
         if args.n_mels is not None:
