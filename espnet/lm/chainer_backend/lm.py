@@ -34,6 +34,7 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
+from espnet.nets.lm_interface import LMInterface
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
@@ -43,6 +44,26 @@ from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
+
+
+# TODO(karita): reimplement RNNLM with new interface
+class LegacyRNNLM(LMInterface, link.Chain):
+    """Legacy RNNLM wrapper to compute reduce framewise loss values
+
+    Args:
+        n_vocab (int): The size of the vocabulary
+        args (argparse.Namespace): configurations. see `add_arguments`
+    """
+
+    @staticmethod
+    def add_arguments(parser):
+        parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
+                            help="Which type of RNN to use")
+        parser.add_argument('--layer', '-l', type=int, default=2,
+                            help='Number of hidden layers')
+        parser.add_argument('--unit', '-u', type=int, default=650,
+                            help='Number of hidden units')
+        return parser
 
 
 class ClassifierWithState(link.Chain):

@@ -79,28 +79,19 @@ def get_parser():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
-    # LSTMLM network configuration
     parser.add_argument('--model-module', type=str, default='legacy',
                         help='model defined module (default: espnet.nets.xxx_backend.lm.legacy:LegacyRNNLM)')
-    # TODO(karita) remove these options after chainer support
-    # parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
-    #                     help="Which type of RNN to use")
-    # parser.add_argument('--layer', '-l', type=int, default=2,
-    #                     help='Number of hidden layers')
-    # parser.add_argument('--unit', '-u', type=int, default=650,
-    #                     help='Number of hidden units')
-    # parser.add_argument('--dropout-rate', type=float, default=0.5,
-    #                     help='dropout probability')
     return parser
 
 
 # predefined LM dict
+# TODO(karita): add models from pytorch/examples
 LM_DICT = {
     "pytorch": {
         "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
     },
     "chainer": {
-        "legacy": None
+        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
     }
 }
 
