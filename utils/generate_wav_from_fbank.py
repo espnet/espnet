@@ -7,6 +7,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import json
 import logging
 import os
 import time
@@ -26,17 +27,15 @@ from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
 
 
-class NoiseShaper(object):
-    """Noise shaper module.
+class TimeInvariantMLSAFilter(object):
+    """Time invariant MLSA filter.
 
-    This module apply a noise shaping filter based on `An investigation of noise shaping with perceptual weighting
-    for WaveNet-based speech generation`_.
+    This module is used to perform noise shaping described in `An investigation of noise shaping with perceptual
+    weighting for WaveNet-based speech generation`_.
 
     Args:
-        avg_mcep (ndaaray): Averaged Mel-cepstrum for MLSA filter (D,).
-        fs (int, optional): Sampling frequency.
+        coef (ndaaray): MLSA filter coefficient (D,).
         n_shift (int, optional): Shift length in points.
-        mag (float, optional): Magnification of noise shaping.
         alpha (float, optional): All pass constant value.
 
     .. _`An investigation of noise shaping with perceptual weighting for WaveNet-based speech generation`:
@@ -44,29 +43,11 @@ class NoiseShaper(object):
 
     """
 
-    def __init__(self, avg_mcep, fs=22050, n_shift=256, mag=0.5, alpha=None):
-        # decide alpha according to sampling rate
-        if alpha is None:
-            if fs == 16000:
-                alpha = 0.42
-            elif fs == 22050 or fs == 24000:
-                alpha = 0.455
-            else:
-                ValueError("please specify alpha value.")
-
+    def __init__(self, coef, n_shift=256, alpha=0.455):
         self.n_shift = n_shift
-
-        # calculate coefficient for MLSA filter
-        avg_mcep = avg_mcep * mag
-        avg_mcep[0] = 0.0
-        coef = pysptk.mc2b(avg_mcep.astype(np.float64), alpha)
-        assert np.isfinite(coef).all()
-        self.coef = coef
-
-        # define synthesizer to apply MLSA filter
         self.mlsa_filter = pysptk.synthesis.Synthesizer(
             pysptk.synthesis.MLSADF(
-                order=avg_mcep.shape[0] - 1,
+                order=coef.shape[0] - 1,
                 alpha=alpha),
             hopsize=n_shift
         )
@@ -130,24 +111,33 @@ def main():
 
     # load model config
     model_dir = os.path.dirname(args.model)
-    train_args = torch.load(model_dir + "/model.conf")
+    with open(os.path.json(model_dir, "model.json")) as f:
+        train_args = json.load(f)
+    train_args = argparse.Namespace(**train_args)
 
     # load statistics
     scaler = StandardScaler()
-    with h5py.File(model_dir + "/stats.h5") as f:
+    with h5py.File(os.path.join(model_dir, "stats.h5")) as f:
         scaler.mean_ = f["/melspc/mean"][()]
         scaler.scale_ = f["/melspc/scale"][()]
 
-    # load MLSA coef
-    with h5py.File(model_dir + "/stats.h5") as f:
-        avg_mcep = f["mcep/mean"][()]
+    if train_args.use_noise_shaping:
+        # load averaged mel-cepstrum
+        with h5py.File(os.path.join(model_dir, "stats.h5")) as f:
+            avg_mcep = f["mcep/mean"][()]
 
-    # define noise shaper
-    noise_shaper = NoiseShaper(
-        avg_mcep=avg_mcep,
-        fs=args.fs,
-        n_shift=args.n_shift,
-    )
+        # calculate coefficient for MLSA filter
+        avg_mcep = avg_mcep * train_args.mag
+        avg_mcep[0] = 0.0
+        coef = pysptk.mc2b(avg_mcep.astype(np.float64), train_args.alpha)
+        assert np.isfinite(coef).all()
+
+        # define mlsa filter for noise shaping
+        mlsa_filter = TimeInvariantMLSAFilter(
+            coef=coef,
+            fs=args.fs,
+            n_shift=args.n_shift,
+        )
 
     # define model and laod parameters
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -161,10 +151,7 @@ def main():
         kernel_size=train_args.kernel_size,
         upsampling_factor=train_args.upsampling_factor
     )
-    model.load_state_dict(torch.load(
-        args.model,
-        map_location=lambda storage,
-        loc: storage)["model"])
+    model.load_state_dict(torch.load(args.model, map_location="cpu"))
     model.eval()
     model.to(device)
 
@@ -190,11 +177,12 @@ def main():
         logging.info("generation speed = %s (sec / sample)" % ((time.time() - start_time) / (len(y) - 1)))
         y = decode_mu_law(y, mu=train_args.n_quantize)
 
-        # applay noise shaping
-        y = noise_shaper(y)
+        # apply mlsa filter for noise shaping
+        if train_args.use_noise_shaping:
+            y = mlsa_filter(y)
 
         # save as .wav file
-        write(args.outdir + "/%s.wav" % utt_id,
+        write(os.path.join(args.outdir, "%s.wav" % utt_id),
               args.fs,
               (y * np.iinfo(np.int16).max).astype(np.int16))
 
