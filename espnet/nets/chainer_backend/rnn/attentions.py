@@ -2,9 +2,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-import logging
 import numpy as np
-import sys
 
 from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
