@@ -118,8 +118,8 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=19aRo_RZbaNCm4u9v2-0I3Qk-kGuS-Y7q";;
-        "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1c93rP2x-rwygRPlYiiB7M0hSP5_wTb6d";;
+        "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
+        "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
