@@ -130,10 +130,13 @@ def get_weighted_decoders(
 class Hypothesis(NamedTuple):
     """Hypothesis data type"""
 
-    yseq: List[int] = []
+    yseq: torch.Tensor
     score: float = 0
     scores: Dict[str, float] = dict()
     states: Dict[str, Dict] = dict()
+
+    def asdict(self):
+        return self._replace(yseq=self.yseq.tolist())._asdict()
 
 
 def append_tensor(xs, x):
@@ -265,7 +268,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                     s = d.final_score(hyp.states[k])
                     hyp.scores[k] += s
                     hyp = hyp._replace(score=hyp.score + w * s)
-                ended_hyps.append(hyp)
+                ended_hyps.append(hyp.asdict())
             else:
                 remained_hyps.append(hyp)
         # end detection
@@ -279,7 +282,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
             logging.info('no hypothesis. Finish decoding.')
             break
 
-    nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)[:beam_size]
+    nbest_hyps = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[:beam_size]
     # check number of hypotheis
     if len(nbest_hyps) == 0:
         logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
@@ -290,6 +293,6 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                            minlenratio=max(0.0, minlenratio - 0.1))
 
     best = nbest_hyps[0]
-    logging.info(f'total log probability: {best.score}')
-    logging.info(f'normalized log probability: {best.score / len(best.yseq)}')
-    return [h._replace(yseq=h.yseq.tolist())._asdict() for h in nbest_hyps]
+    logging.info(f'total log probability: {best["score"]}')
+    logging.info(f'normalized log probability: {best["score"] / len(best["yseq"])}')
+    return nbest_hyps
