@@ -125,7 +125,7 @@ def test_beam_search_equal(model_class, args, ctc):
         beam_size=3,
         penalty=0.1,            # TODO(karita) non-zero
         ctc_weight=ctc,
-        maxlenratio=1.0,
+        maxlenratio=0,
         lm_weight=0.5,          # TODO(karita) non-zero
         minlenratio=0,
         nbest=2

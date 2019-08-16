@@ -21,19 +21,20 @@ def recog_v2(args):
     Args:
         args (namespace): The program arguments.
     """
-    logging.warning("experimental API for custom LMs is selected by --lm option")
-    if args.batchsize > 0:
+    logging.warning("experimental API for custom LMs is selected by --api v2")
+    if args.batchsize > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if args.ngpu > 0:
         raise NotImplementedError("GPU decoding is not implemented")
     if args.streaming_mode is not None:
         raise NotImplementedError("streaming mode is not implemented")
-    if args.wordlm:
-        raise NotImplementedError("wordlm is not implemented")
+    if args.word_rnnlm:
+        raise NotImplementedError("word LM is not implemented")
 
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
+    model.eval()
 
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
@@ -42,16 +43,16 @@ def recog_v2(args):
         preprocess_args={'train': False})
 
     lm = None
-    if args.lm:
-        lm_args = get_model_conf(args.lm, args.lm_conf)
+    if args.rnnlm:
+        lm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         lm_class = dynamic_import_lm(lm_args.model_module, lm_args.backend)
         lm = lm_class(len(train_args.char_list), lm_args)
-        torch_load(args.lm, lm)
+        torch_load(args.rnnlm, lm)
         lm.eval()
 
     decoders = model.decoders
     decoders["lm"] = lm
-    decoders["length_bonus"] = LengthBonus()
+    decoders["length_bonus"] = LengthBonus(len(train_args.char_list))
     weights = dict(
         decoder=1.0 - args.ctc_weight,
         ctc=args.ctc_weight,
@@ -67,9 +68,9 @@ def recog_v2(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
-            feat = model.encode(load_inputs_and_targets(batch)[0][0])
+            enc = model.encode(load_inputs_and_targets(batch)[0][0])
             nbest_hyps = beam_search(
-                x=feat,
+                x=enc,
                 sos=model.sos,
                 eos=model.eos,
                 beam_size=args.beam_size,
@@ -77,8 +78,8 @@ def recog_v2(args):
                 decoders=decoders,
                 token_list=train_args.char_list,
                 maxlenratio=args.maxlenratio,
-                minlenratio=args.minlenratio
-            )
+                minlenratio=args.minlenratio)
+            nbest_hyps = nbest_hyps[:min(len(nbest_hyps), args.nbest)]
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     with open(args.result_label, 'wb') as f:

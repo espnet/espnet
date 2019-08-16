@@ -43,6 +43,7 @@ def get_parser():
                         help='Batch size for beam search (0: means no batch processing)')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
+    parser.add_argument('--api', choices=["default", "v2"])
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -84,11 +85,6 @@ def get_parser():
                         help='Word list to read')
     parser.add_argument('--lm-weight', type=float, default=0.1,
                         help='RNNLM weight')
-    # generalized lm related
-    parser.add_argument('--lm', type=str, default=None,
-                        help='LM model file to read')
-    parser.add_argument('--lm-conf', type=str, default=None,
-                        help='LM model config file to read')
     # streaming related
     parser.add_argument('--streaming-mode', type=str, default=None,
                         choices=['window', 'segment'],
@@ -159,7 +155,7 @@ def main(args):
             recog(args)
         elif args.backend == "pytorch":
             # Experimental API that supports custom LMs
-            if args.lm:
+            if args.api == "v2":
                 from espnet.asr.pytorch_backend.recog import recog_v2
                 recog_v2(args)
                 return
