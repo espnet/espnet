@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [ -z "${LD_LIBRARY_PATH}" ]; then
+if [ -z ${LD_LIBRARY_PATH+x} ]; then
     LD_LIBRARY_PATH=$(pwd)/chainer_ctc/ext/warp-ctc/build
 else
     LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(pwd)/chainer_ctc/ext/warp-ctc/build
