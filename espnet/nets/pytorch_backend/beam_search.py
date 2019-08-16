@@ -121,6 +121,11 @@ class Hypothesis(NamedTuple):
     states: Dict[str, Dict] = dict()
 
 
+def append_tensor(xs, x):
+    x = torch.tensor([x], dtype=xs.dtype, device=xs.device)
+    return torch.cat((xs, x))
+
+
 def beam_search(x, sos, eos, beam_size, decoders, weights,
                 token_list=None, maxlenratio=0.0, minlenratio=0.0,
                 pre_beam_ratio=1.5, pre_beam_score="decoder"):
@@ -154,7 +159,8 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     for k, (d, w) in all_dec_weights.items():
         init_states[k] = d.init_state()
         init_scores[k] = 0.0
-    init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states, yseq=[sos])
+    init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states,
+                          yseq=torch.tensor([sos], device=x.device))
 
     # set length bounds
     if maxlenratio == 0:
@@ -206,7 +212,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=float(wscores[j]),
-                    yseq=hyp.yseq + [j],
+                    yseq=append_tensor(hyp.yseq, j),
                     scores=new_scores,
                     states=states))
             best = sorted(best, key=lambda x: x.score, reverse=True)[:beam_size]
@@ -219,8 +225,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
-            for h in running_hyps:
-                h.yseq.append(eos)
+            running_hyps = [h._replace(yseq=append_tensor(h.yseq, eos)) for h in running_hyps]
 
         # add ended hypothes to a final list, and removed them from current hypothes
         # (this will be a probmlem, number of hyps < beam)
@@ -259,4 +264,4 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     best = nbest_hyps[0]
     logging.info(f'total log probability: {best.score}')
     logging.info(f'normalized log probability: {best.score / len(best.yseq)}')
-    return [h._asdict() for h in nbest_hyps]
+    return [h._replace(yseq=h.yseq.tolist())._asdict() for h in nbest_hyps]

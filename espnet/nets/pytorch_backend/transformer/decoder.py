@@ -130,6 +130,5 @@ class Decoder(DecoderInterface, torch.nn.Module):
     def score(self, ys, state, x):
         # TODO(karita) cache previous attentions in state
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        ys = torch.tensor(ys, device=x.device).unsqueeze(0)
-        logp = self.recognize(ys, ys_mask, x.unsqueeze(0)).squeeze(0)
-        return logp, None
+        logp = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0))
+        return logp.squeeze(0), None

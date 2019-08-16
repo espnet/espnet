@@ -22,15 +22,6 @@ class LMInterface:
         """
         raise NotImplementedError("forward method is not implemented")
 
-    def init_state(self):
-        pass
-
-    def select_state(self, ids):
-        pass
-
-    def score(self, x, state):
-        return 0
-
 
 predefined_lms = {
     "pytorch": {
