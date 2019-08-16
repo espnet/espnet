@@ -58,9 +58,10 @@ cd pytorch_binding && python setup.py install && cd ../..
 
 # install chainer_ctc
 pip install cython
-git clone https://github.com/jheymann85/chainer_ctc.git
+mkdir -p tools
+cd tools && git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-pip install . && cd ..
+pip install . && cd ../..
 
 # log
 pip freeze
