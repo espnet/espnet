@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.pytorch_backend.beam_search import PartialDecoderInterface
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
@@ -108,7 +109,6 @@ class CTC(torch.nn.Module):
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)
 
 
-
 class CTCPrefixDecoder(PartialDecoderInterface):
     """Decoder interface wrapper for CTCPrefixScore"""
     def __init__(self, ctc, eos):
@@ -118,10 +118,8 @@ class CTCPrefixDecoder(PartialDecoderInterface):
 
     # TODO(karita) subtract prev score
     def init_state(self, x):
-        import numpy
-        from espnet.nets.ctc_prefix_score import CTCPrefixScore
         logp = self.ctc.log_softmax(x.unsqueeze(0)).detach().squeeze(0).numpy()
-        self.impl = CTCPrefixScore(logp, 0, self.eos, numpy)
+        self.impl = CTCPrefixScore(logp, 0, self.eos, np)
         return (0.0, self.impl.initial_state())
 
     def select_state(self, state, i):
