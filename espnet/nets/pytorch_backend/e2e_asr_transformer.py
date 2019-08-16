@@ -10,6 +10,7 @@ import torch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.ctc import CTC
+from espnet.nets.pytorch_backend.ctc import CTCPrefixDecoder
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -213,7 +214,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @property
     def decoders(self):
-        return dict(decoder=self.decoder, ctc=self.ctc)
+        return dict(decoder=self.decoder, ctc=CTCPrefixDecoder(self.ctc, self.eos))
 
     def encode(self, feat):
         self.eval()

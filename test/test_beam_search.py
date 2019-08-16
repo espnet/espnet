@@ -10,7 +10,7 @@ from test.test_e2e_asr_transformer import prepare
 
 
 def test_beam_search_equal():
-    ctc = 0.0                   # TODO(karita) non-zero
+    ctc = 0.5                   # TODO(karita) non-zero
     model, x, ilens, y, data, train_args = prepare("pytorch", mtlalpha=ctc, return_args=True)
     model.eval()
     char_list = train_args.char_list

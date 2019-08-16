@@ -76,11 +76,7 @@ class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
             count += int(non_zeros)
         return loss, count.to(loss.device)
 
-    def init_state(self):
-        return None
-
     def score(self, y, state, x):
-        print(y)
         new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))
         return scores.squeeze(0), new_state
 

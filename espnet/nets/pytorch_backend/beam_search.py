@@ -12,8 +12,11 @@ from espnet.nets.e2e_asr_common import end_detect
 class DecoderInterface:
     """Decoder interface for beam search"""
 
-    def init_state(self):
+    def init_state(self, x):
         """Initial state for decoding
+
+        Args:
+            x (torch.Tensor): torch.float32 feature tensor (T, D)
 
         Returns: initial state
         """
@@ -52,6 +55,18 @@ class PartialDecoderInterface(DecoderInterface):
     This performs scoring when non-partial decoders finished scoring,
     and this recieves pre-pruned next tokens to score by `partial_score`
     """
+
+    def select_state(self, state, ids):
+        """Select state with relative ids in the final beam
+
+        Args:
+            state: decoder state for prefix tokens
+            ids (torch.Tensor): relative ids in the final beam
+
+        Returns:
+            state: pruned decoder state
+        """
+        raise NotImplementedError
 
     def score(self, y, next_tokens, state, x):
         """Score new token
@@ -157,7 +172,8 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     init_states = dict()
     init_scores = dict()
     for k, (d, w) in all_dec_weights.items():
-        init_states[k] = d.init_state()
+        print(k)
+        init_states[k] = d.init_state(x)
         init_scores[k] = 0.0
     init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states,
                           yseq=torch.tensor([sos], device=x.device))
@@ -191,30 +207,42 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
             n_vocab = wscores.size(0)
             do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
             if do_pre_beam:
+                print("do pre beam")
                 # pre-beam search to limit next tokens
                 pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
+                id2pos = {int(p): e for e, p in enumerate(pre_ids)}
                 pre_scores = wscores[pre_ids]
                 wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
                 wscores[pre_ids] = pre_scores
             else:
                 pre_ids = torch.arange(n_vocab, device=x.device)
+                id2pos = pre_ids
 
             for k, (d, w) in part_dec_weights.items():
                 sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
                 # create sparse array by dict
-                scores[k] = {i: s for i, s in zip(pre_ids, sc)}
+                scores[k] = {int(i): s for i, s in zip(pre_ids, sc)}
                 wscores[pre_ids] += w * sc
 
             # prune hyps
-            for j in wscores.topk(beam_size)[1]:
+            top_ids = wscores.topk(beam_size)[1]
+            for j in top_ids:
                 j = int(j)
                 new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in all_dec_weights}
+                # TODO(karita) do this inside .score
+                new_states = dict()
+                for k in full_dec_weights:
+                    new_states[k] = states[k]
+                for k in part_dec_weights:
+                    print(j, id2pos)
+                    new_states[k] = states[k][id2pos[j]]
+
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=float(wscores[j]),
                     yseq=append_tensor(hyp.yseq, j),
                     scores=new_scores,
-                    states=states))
+                    states=new_states))
             best = sorted(best, key=lambda x: x.score, reverse=True)[:beam_size]
 
         running_hyps = best
