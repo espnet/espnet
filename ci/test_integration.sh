@@ -2,12 +2,13 @@
 
 set -euo pipefail
 
-if [ ! -z "${LD_LIBRARY_PATH}" ]; then
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(pwd)/chainer_ctc/ext/warp-ctc/build
+if [ -z "${LD_LIBRARY_PATH}" ]; then
+    LD_LIBRARY_PATH=$(pwd)/chainer_ctc/ext/warp-ctc/build
 else
-    export LD_LIBRARY_PATH=$(pwd)/chainer_ctc/ext/warp-ctc/build
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(pwd)/chainer_ctc/ext/warp-ctc/build
 fi
 
+export LD_LIBRARY_PATH
 
 # test asr recipe
 (
