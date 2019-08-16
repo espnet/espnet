@@ -4,6 +4,8 @@ from typing import List
 from typing import NamedTuple
 from typing import Tuple
 
+import torch
+
 from espnet.nets.e2e_asr_common import end_detect
 
 
@@ -21,13 +23,13 @@ class DecoderInterface:
         """Score new token
 
         Args:
-            y (torch.Tensor): new torch.int64 token to score (B)
+            y (torch.Tensor): torch.int64 prefix token (U)
             state: decoder state for prefix tokens
             x (torch.Tensor): encoder feature that generates ys (T, D)
 
         Returns:
             tuple[torch.Tensor, list[dict]]: Tuple of
-                torch.float32 scores for y (B)
+                torch.float32 scores for next token (n_vocab)
                 and next state for ys
         """
         raise NotImplementedError
@@ -44,6 +46,30 @@ class DecoderInterface:
         return 0.0
 
 
+class PartialDecoderInterface(DecoderInterface):
+    """Partial decoder interface for beam search
+
+    This performs scoring when non-partial decoders finished scoring,
+    and this recieves pre-pruned next tokens to score by `partial_score`
+    """
+
+    def score(self, y, next_tokens, state, x):
+        """Score new token
+
+        Args:
+            y (torch.Tensor): torch.int64 prefix token (U)
+            next_tokens (torch.Tensor): torch.int64 next token to score (N)
+            state: decoder state for prefix tokens
+            x (torch.Tensor): encoder feature that generates ys (T, D)
+
+        Returns:
+            tuple[torch.Tensor, list[dict]]: Tuple of
+                torch.float32 scores for y (N)
+                and next state for ys
+        """
+        raise NotImplementedError
+
+
 class LengthBonus(DecoderInterface):
     """Length bonus in beam search"""
 
@@ -51,23 +77,39 @@ class LengthBonus(DecoderInterface):
         self.n = n_vocab
 
     def score(self, y, state, x):
+        """Score new token
+
+        Args:
+            y (torch.Tensor): torch.int64 prefix token to score (B)
+            state: decoder state for prefix tokens
+            x (torch.Tensor): encoder feature that generates ys (T, D)
+
+        Returns:
+            tuple[torch.Tensor, list[dict]]: Tuple of
+                torch.float32 scores for y (B)
+                and next state for ys
+        """
         import torch
         return torch.tensor([1.0]).expand(self.n), None
 
 
-def valid_weighted_decoders(
+def get_weighted_decoders(
         decoders: Dict[str, DecoderInterface],
         weights: Dict[str, float]
 ) -> Dict[str, Tuple[DecoderInterface, float]]:
-    dec_weights = dict()
+    full_dec_weights = dict()
+    part_dec_weights = dict()
     """filter invalid weights and decoders"""
     for k, v in decoders.items():
         w = weights.get(k, 1.0)
         if w == 0 or v is None:
             continue
         assert isinstance(v, DecoderInterface), f"{k} ({type(v)}) does not implement DecoderInterface"
-        dec_weights[k] = (v, w)
-    return dec_weights
+        if isinstance(v, PartialDecoderInterface):
+            part_dec_weights[k] = (v, w)
+        else:
+            full_dec_weights[k] = (v, w)
+    return full_dec_weights, part_dec_weights
 
 
 class Hypothesis(NamedTuple):
@@ -80,7 +122,8 @@ class Hypothesis(NamedTuple):
 
 
 def beam_search(x, sos, eos, beam_size, decoders, weights,
-                token_list=None, maxlenratio=0.0, minlenratio=0.0):
+                token_list=None, maxlenratio=0.0, minlenratio=0.0,
+                pre_beam_ratio=1.5, pre_beam_score="decoder"):
     """Beam search with scorers
 
     Args:
@@ -99,11 +142,16 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     Returns:
         list: N-best decoding results
     """
+    # get weighted decoders
+    full_dec_weights, part_dec_weights = get_weighted_decoders(decoders, weights)
+    all_dec_weights = dict(**full_dec_weights, **part_dec_weights)
+    if pre_beam_score not in full_dec_weights or pre_beam_ratio == 0.0:
+        logging.warning(f"pre-beam scorer: {pre_beam_score} is not found")
+
     # init decoder states
-    dec_weights = valid_weighted_decoders(decoders, weights)
     init_states = dict()
     init_scores = dict()
-    for k, (d, w) in dec_weights.items():
+    for k, (d, w) in all_dec_weights.items():
         init_states[k] = d.init_state()
         init_scores[k] = 0.0
     init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states, yseq=[sos])
@@ -127,14 +175,34 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
             scores = dict()
             states = dict()
             wscores = hyp.score
-            # scoring
-            for k, (d, w) in dec_weights.items():
+            # scoring full tokens
+            for k, (d, w) in full_dec_weights.items():
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
                 wscores += w * scores[k]
+
+            # scoring partial tokens
+            pre_beam = int(pre_beam_ratio * beam_size)
+            n_vocab = wscores.size(0)
+            do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
+            if do_pre_beam:
+                # pre-beam search to limit next tokens
+                pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
+                pre_scores = wscores[pre_ids]
+                wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
+                wscores[pre_ids] = pre_scores
+            else:
+                pre_ids = torch.arange(n_vocab, device=x.device)
+
+            for k, (d, w) in part_dec_weights.items():
+                sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
+                # create sparse array by dict
+                scores[k] = {i: s for i, s in zip(pre_ids, sc)}
+                wscores[pre_ids] += w * sc
+
             # prune hyps
             for j in wscores.topk(beam_size)[1]:
                 j = int(j)
-                new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in dec_weights}
+                new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in all_dec_weights}
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=float(wscores[j]),
@@ -160,7 +228,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
         for hyp in running_hyps:
             if hyp.yseq[-1] == eos:
                 # e.g., Word LM needs to add final <eos> score
-                for k, (d, w) in dec_weights.items():
+                for k, (d, w) in all_dec_weights.items():
                     s = d.final_score(hyp.states[k])
                     hyp.scores[k] += s
                     hyp = hyp._replace(score=hyp.score + w * s)

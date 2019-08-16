@@ -52,7 +52,11 @@ def recog_v2(args):
     decoders = model.decoders
     decoders["lm"] = lm
     decoders["length_bonus"] = LengthBonus()
-    weights = dict(decoder=1.0, ctc=args.ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
+    weights = dict(
+        decoder=1.0 - args.ctc_weight,
+        ctc=args.ctc_weight,
+        lm=args.lm_weight,
+        length_bonus=args.penalty)
 
     # read json data
     with open(args.recog_json, 'rb') as f:
