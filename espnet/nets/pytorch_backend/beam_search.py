@@ -203,22 +203,25 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
 
             # pre-beam search
             pre_beam = int(pre_beam_ratio * beam_size)
-            local_best_scores, local_best_ids = torch.topk(scores[pre_beam_score], pre_beam)
+            n_vocab = len(wscores)
+            if pre_beam < n_vocab and pre_beam_score in scores:
+                pre_best_ids = torch.topk(scores[pre_beam_score], pre_beam)[1]
+            else:
+                pre_best_ids = torch.arange(n_vocab, device=x.device)
 
             # scoring partial tokens
             for k, (d, w) in part_dec_weights.items():
-                scores[k], states[k] = d.score(hyp.yseq, local_best_ids, hyp.states[k], x)
-                wscores[local_best_ids] += w * scores[k]
+                scores[k], states[k] = d.score(hyp.yseq, pre_best_ids, hyp.states[k], x)
+                wscores[pre_best_ids] += w * scores[k]
 
             # mask pruned in the pre-beam search
-            tmp = wscores[local_best_ids]
+            tmp = wscores[pre_best_ids]
             wscores[:] = -float("inf")
-            wscores[local_best_ids] = tmp
+            wscores[pre_best_ids] = tmp
 
             # prune hyps
             top_ids = wscores.topk(beam_size)[1]
-            # if do_pre_beam:
-            local_ids = wscores[local_best_ids].topk(beam_size)[1]
+            local_ids = wscores[pre_best_ids].topk(beam_size)[1]
             for j, local_j in zip(top_ids, local_ids):
                 j = int(j)
 

@@ -104,9 +104,15 @@ def prepare(E2E, args, mtlalpha=0.0):
     return model, x, torch.tensor(ilens), y, data, args
 
 
-@pytest.mark.parametrize("model_class, args", [(Transformer, transformer_args), (RNN, rnn_args)])
-def test_beam_search_equal(model_class, args):
-    ctc = 0.5                   # TODO(karita) non-zero
+@pytest.mark.parametrize(
+    "model_class, args, ctc",
+    [(Transformer, transformer_args, 0.0),
+     (Transformer, transformer_args, 0.5),
+     (Transformer, transformer_args, 1.0),
+     (RNN, rnn_args, 0.0),
+     (RNN, rnn_args, 0.5),
+     (RNN, rnn_args, 1.0)])
+def test_beam_search_equal(model_class, args, ctc):
     model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc)
     model.eval()
     char_list = train_args.char_list
@@ -157,5 +163,7 @@ def test_beam_search_equal(model_class, args):
 
 
 if __name__ == "__main__":
-    # test_beam_search_equal(RNN, rnn_args)
-    test_beam_search_equal(Transformer, transformer_args)
+    test_beam_search_equal(RNN, rnn_args, 0)
+    test_beam_search_equal(RNN, rnn_args, 0.5)
+    test_beam_search_equal(RNN, rnn_args, 1.0)
+    test_beam_search_equal(Transformer, transformer_args, 0.0)
