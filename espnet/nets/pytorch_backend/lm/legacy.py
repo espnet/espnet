@@ -69,12 +69,23 @@ class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
         state = None
         batch_size, sequence_length = x.shape
         for i in range(sequence_length):
-            # Compute the loss at this time step and accumulate it
+            # Compute the loss at this time step and accumulate idt
             state, loss_batch = self.model(state, x[:, i], t[:, i])
             non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
             loss += loss_batch * non_zeros
             count += int(non_zeros)
         return loss, count.to(loss.device)
+
+    def init_state(self):
+        return None
+
+    def score(self, y, state, x):
+        print(y)
+        new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))
+        return scores.squeeze(0), new_state
+
+    def final(self, state):
+        return self.model.final(state)
 
 
 class ClassifierWithState(nn.Module):

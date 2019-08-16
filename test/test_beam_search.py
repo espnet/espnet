@@ -24,7 +24,7 @@ def test_beam_search_equal():
         penalty=0.1,            # TODO(karita) non-zero
         ctc_weight=ctc,
         maxlenratio=1.0,
-        lm_weight=0.0,          # TODO(karita) non-zero
+        lm_weight=0.5,          # TODO(karita) non-zero
         minlenratio=0,
         nbest=2
     )
@@ -56,7 +56,7 @@ def test_beam_search_equal():
         print(nbest_bs)
     for expected, actual in zip(nbest, nbest_bs):
         assert expected["yseq"] == actual["yseq"]
-        numpy.testing.assert_allclose(expected["score"], actual["score"])
+        numpy.testing.assert_allclose(expected["score"], actual["score"], rtol=1e-7)
 
 
 if __name__ == "__main__":
