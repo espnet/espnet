@@ -201,32 +201,16 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
                 wscores += w * scores[k]
 
-            # scoring partial tokens
+            # pre-beam search
             pre_beam = int(pre_beam_ratio * beam_size)
-            # n_vocab = wscores.size(0)
-            # do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
-            # if do_pre_beam:
-            #     # pre-beam search to limit next tokens
-            #     pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
-            #     pre_scores = wscores[pre_ids]
-            #     wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
-            #     wscores[pre_ids] = pre_scores
-            # else:
-            #     pre_ids = torch.arange(n_vocab, device=x.device)
+            local_best_scores, local_best_ids = torch.topk(scores[pre_beam_score], pre_beam)
 
-            # for k, (d, w) in part_dec_weights.items():
-            #     sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
-            #     # create sparse array by dict
-            #     scores[k] = {int(i): s for i, s in zip(pre_ids, sc)}
-            #     wscores[pre_ids] += w * sc
+            # scoring partial tokens
+            for k, (d, w) in part_dec_weights.items():
+                scores[k], states[k] = d.score(hyp.yseq, local_best_ids, hyp.states[k], x)
+                wscores[local_best_ids] += w * scores[k]
 
-            local_best_scores, local_best_ids = torch.topk(
-                scores["decoder"], pre_beam)
-
-            scores["ctc"], states["ctc"] = decoders["ctc"].score(
-                hyp.yseq, local_best_ids, hyp.states["ctc"], x)
-
-            wscores[local_best_ids] += weights["ctc"] * torch.as_tensor(scores["ctc"])
+            # mask pruned in the pre-beam search
             tmp = wscores[local_best_ids]
             wscores[:] = -float("inf")
             wscores[local_best_ids] = tmp
@@ -237,15 +221,18 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
             local_ids = wscores[local_best_ids].topk(beam_size)[1]
             for j, local_j in zip(top_ids, local_ids):
                 j = int(j)
-                new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in full_dec_weights}
-                new_scores["ctc"] = scores["ctc"][local_j]
-                # TODO(karita) do this inside .score
+
+                new_scores = dict()
+                for k in full_dec_weights:
+                    new_scores[k] = float(hyp.scores[k] + scores[k][j])
+                for k in part_dec_weights:
+                    new_scores[k] = scores[k][local_j]
+
                 new_states = dict()
                 for k in full_dec_weights:
                     new_states[k] = states[k]
-                new_states["ctc"] = decoders["ctc"].select_state(states["ctc"], local_j)
-                # for k, (d, w) in part_dec_weights.items():
-                #     new_states[k] = d.select_state(states[k], local_j)
+                for k in part_dec_weights:
+                    new_states[k] = decoders[k].select_state(states[k], local_j)
 
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
