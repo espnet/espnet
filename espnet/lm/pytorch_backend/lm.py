@@ -14,6 +14,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from chainer import Chain
 from chainer.dataset import convert
 from chainer import reporter
 from chainer import training
@@ -40,6 +41,12 @@ from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
+
+
+# dummy module to use chainer's trainer
+class Reporter(Chain):
+    def report(self, loss):
+        pass
 
 
 def concat_examples(batch, device=None, padding=None):
@@ -176,9 +183,10 @@ def train(args, model_class):
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     model = model_class(args.n_vocab, args)
+    reporter = Reporter()
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
-        setattr(model, "reporter", model.module.reporter)
+        setattr(model, "reporter", reporter)
         gpu_id = 0
     else:
         gpu_id = -1
@@ -196,7 +204,6 @@ def train(args, model_class):
         optimizer = torch.optim.Adam(model.parameters())
 
     # FIXME: TOO DIRTY HACK
-    reporter = model.reporter
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 

@@ -1,6 +1,5 @@
 """Legacy LM Modules"""
 
-from chainer import Chain
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,12 +7,6 @@ import torch.nn.functional as F
 from espnet.nets.lm_interface import LMInterface
 from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 from espnet.nets.pytorch_backend.e2e_asr import to_device
-
-
-# dummy module to use chainer's trainer
-class Reporter(Chain):
-    def report(self, loss):
-        pass
 
 
 class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
@@ -44,7 +37,6 @@ class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
     def __init__(self, n_vocab, args):
         nn.Module.__init__(self)
         self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
-        self.reporter = self.model.reporter
 
     def state_dict(self):
         return self.model.state_dict()
@@ -104,7 +96,6 @@ class ClassifierWithState(nn.Module):
         self.loss = None
         self.label_key = label_key
         self.predictor = predictor
-        self.reporter = Reporter()
 
     def forward(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.az
