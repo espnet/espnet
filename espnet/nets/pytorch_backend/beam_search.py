@@ -174,6 +174,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     for k, (d, w) in all_dec_weights.items():
         init_states[k] = d.init_state(x)
         init_scores[k] = 0.0
+    init_states["ctc"] = decoders["ctc"].impl.initial_state()
     init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states,
                           yseq=torch.tensor([sos], device=x.device))
 
@@ -203,38 +204,48 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
 
             # scoring partial tokens
             pre_beam = int(pre_beam_ratio * beam_size)
-            n_vocab = wscores.size(0)
-            do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
-            if do_pre_beam:
-                # pre-beam search to limit next tokens
-                pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
-                pre_scores = wscores[pre_ids]
-                wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
-                wscores[pre_ids] = pre_scores
-            else:
-                pre_ids = torch.arange(n_vocab, device=x.device)
+            # n_vocab = wscores.size(0)
+            # do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
+            # if do_pre_beam:
+            #     # pre-beam search to limit next tokens
+            #     pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
+            #     pre_scores = wscores[pre_ids]
+            #     wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
+            #     wscores[pre_ids] = pre_scores
+            # else:
+            #     pre_ids = torch.arange(n_vocab, device=x.device)
 
-            for k, (d, w) in part_dec_weights.items():
-                sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
-                # create sparse array by dict
-                scores[k] = {int(i): s for i, s in zip(pre_ids, sc)}
-                wscores[pre_ids] += w * sc
+            # for k, (d, w) in part_dec_weights.items():
+            #     sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
+            #     # create sparse array by dict
+            #     scores[k] = {int(i): s for i, s in zip(pre_ids, sc)}
+            #     wscores[pre_ids] += w * sc
+
+            local_best_scores, local_best_ids = torch.topk(
+                scores["decoder"], pre_beam)
+            scores["ctc"], states["ctc"] = decoders["ctc"].impl(
+                hyp.yseq.tolist(), local_best_ids, hyp.states["ctc"])
+
+            wscores[local_best_ids] += weights["ctc"] * (torch.from_numpy(scores["ctc"]) - hyp.scores["ctc"])
+            tmp = wscores[local_best_ids]
+            wscores[:] = -float("inf")
+            wscores[local_best_ids] = tmp
 
             # prune hyps
             top_ids = wscores.topk(beam_size)[1]
-            if do_pre_beam:
-                local_ids = wscores[pre_ids].topk(beam_size)[1]
-            else:
-                local_ids = top_ids
+            # if do_pre_beam:
+            local_ids = wscores[local_best_ids].topk(beam_size)[1]
             for j, local_j in zip(top_ids, local_ids):
                 j = int(j)
-                new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in all_dec_weights}
+                new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in full_dec_weights}
+                new_scores["ctc"] = scores["ctc"][local_j]
                 # TODO(karita) do this inside .score
                 new_states = dict()
                 for k in full_dec_weights:
                     new_states[k] = states[k]
-                for k, (d, w) in part_dec_weights.items():
-                    new_states[k] = d.select_state(states[k], local_j)
+                new_states["ctc"] = states["ctc"][local_j]
+                # for k, (d, w) in part_dec_weights.items():
+                #     new_states[k] = d.select_state(states[k], local_j)
 
                 # will be (2 x beam at most)
                 best.append(Hypothesis(

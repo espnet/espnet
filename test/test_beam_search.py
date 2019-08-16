@@ -106,8 +106,8 @@ def prepare(E2E, args, mtlalpha=0.0):
 
 @pytest.mark.parametrize("model_class, args", [(Transformer, transformer_args), (RNN, rnn_args)])
 def test_beam_search_equal(model_class, args):
-    ctc = 0.0                   # TODO(karita) non-zero
-    model, x, ilens, y, data, train_args = prepare(model_class, args)
+    ctc = 0.5                   # TODO(karita) non-zero
+    model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc)
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
@@ -157,5 +157,5 @@ def test_beam_search_equal(model_class, args):
 
 
 if __name__ == "__main__":
-    test_beam_search_equal(RNN, rnn_args)
+    # test_beam_search_equal(RNN, rnn_args)
     test_beam_search_equal(Transformer, transformer_args)
