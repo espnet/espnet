@@ -25,7 +25,8 @@ class LMInterface:
 
 predefined_lms = {
     "pytorch": {
-        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
+        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM",
+        "fast-rnn": "espnet.nets.pytorch_backend.lm.rnn:FastRNNLM",
     },
     "chainer": {
         "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
