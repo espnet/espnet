@@ -186,10 +186,10 @@ def train(args, model_class):
     reporter = Reporter()
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
-        setattr(model, "reporter", reporter)
         gpu_id = 0
     else:
         gpu_id = -1
+    setattr(model, "reporter", reporter)
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
