@@ -122,11 +122,18 @@ class CTCPrefixDecoder(PartialDecoderInterface):
         from espnet.nets.ctc_prefix_score import CTCPrefixScore
         logp = self.ctc.log_softmax(x.unsqueeze(0)).detach().squeeze(0).numpy()
         self.impl = CTCPrefixScore(logp, 0, self.eos, numpy)
-        return self.impl.initial_state()
+        return (0.0, self.impl.initial_state())
+
+    def select_state(self, state, i):
+        sc, st = state
+        return (sc[i], st[i])
 
     def score(self, y, ids, state, x):
-        score, new_state = self.impl(y.tolist(), ids.tolist(), state)
-        return torch.as_tensor(score), new_state
+        prev_score, st = state
+        score, new_st = self.impl(y.tolist(), ids.tolist(), st)
+        score -= prev_score
+        tscore = torch.as_tensor(score)
+        return tscore, (score, new_st)
 
 
 def ctc_for(args, odim, reduce=True):

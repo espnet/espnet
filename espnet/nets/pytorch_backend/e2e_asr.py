@@ -24,6 +24,7 @@ from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.pytorch_backend.ctc import CTCPrefixDecoder
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -400,17 +401,11 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+    @property
+    def decoders(self):
+        return dict(decoder=self.dec, ctc=CTCPrefixDecoder(self.ctc, self.eos))
 
-        :param ndarray x: input acoustic feature (T, D)
-        :param Namespace recog_args: argument Namespace containing options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        """
-        prev = self.training
+    def encode(self, x):
         self.eval()
         ilens = [x.shape[0]]
 
@@ -429,7 +424,19 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 1. encoder
         hs, _, _ = self.enc(hs, hlens)
+        return hs.squeeze(0)
 
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        """E2E beam search
+
+        :param ndarray x: input acoustic feature (T, D)
+        :param Namespace recog_args: argument Namespace containing options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        """
+        hs = self.encode(x).unsqueeze(0)
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs)[0]
@@ -439,10 +446,6 @@ class E2E(ASRInterface, torch.nn.Module):
         # 2. Decoder
         # decode the first utterance
         y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
-
-        if prev:
-            self.train()
-
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
