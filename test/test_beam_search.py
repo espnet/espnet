@@ -1,12 +1,13 @@
 from argparse import Namespace
 import numpy
+import pytest
 import torch
 
 from espnet.nets.pytorch_backend.beam_search import beam_search
 from espnet.nets.pytorch_backend.beam_search import LengthBonus
-from espnet.nets.pytorch_backend.lm.legacy import LegacyRNNLM
 from espnet.nets.pytorch_backend.e2e_asr import E2E as RNN
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as Transformer
+from espnet.nets.pytorch_backend.lm.legacy import LegacyRNNLM
 
 
 rnn_args = Namespace(
@@ -103,10 +104,10 @@ def prepare(E2E, args, mtlalpha=0.0):
     return model, x, torch.tensor(ilens), y, data, args
 
 
-def test_beam_search_equal():
+@pytest.mark.parametrize("model_class, args", [(Transformer, transformer_args), (RNN, rnn_args)])
+def test_beam_search_equal(model_class, args):
     ctc = 0.0                   # TODO(karita) non-zero
-    model, x, ilens, y, data, train_args = prepare(Transformer, transformer_args, mtlalpha=ctc)
-    # model, x, ilens, y, data, train_args = prepare(RNN, rnn_args, mtlalpha=ctc)
+    model, x, ilens, y, data, train_args = prepare(model_class, args)
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
@@ -156,4 +157,5 @@ def test_beam_search_equal():
 
 
 if __name__ == "__main__":
-    test_beam_search_equal()
+    test_beam_search_equal(RNN, rnn_args)
+    test_beam_search_equal(Transformer, transformer_args)
