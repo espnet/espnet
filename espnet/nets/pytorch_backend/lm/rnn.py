@@ -30,12 +30,13 @@ class FastRNNLM(LMInterface, DecoderInterface, torch.nn.Module):
         return parser
 
     def __init__(self, n_vocab, args):
-        torch.nn.Module.__init__()
+        torch.nn.Module.__init__(self)
         self.setup(
             rnn_type=args.type.upper(),
             ntoken=n_vocab,
             ninp=args.unit,
             nhid=args.unit,
+            nlayers=args.layer,
             dropout=args.dropout_rate)
 
     def setup(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, tie_weights=False):
@@ -47,7 +48,7 @@ class FastRNNLM(LMInterface, DecoderInterface, torch.nn.Module):
             try:
                 nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]
             except KeyError:
-                raise ValueError( """An invalid option for `--model` was supplied,
+                raise ValueError("""An invalid option for `--model` was supplied,
                                  options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
             self.rnn = nn.RNN(ninp, nhid, nlayers, nonlinearity=nonlinearity, dropout=dropout)
         self.decoder = nn.Linear(nhid, ntoken)
@@ -81,8 +82,9 @@ class FastRNNLM(LMInterface, DecoderInterface, torch.nn.Module):
 
     def forward(self, x, t):
         mask = (x != 0)
-        y = self.before_loss(x, None)[0] * mask.float()
-        loss = torch.nn.functional.cross_entropy(y, t)
+        y = self.before_loss(x, None)[0]
+        y = y * mask.float().unsqueeze(-1)
+        loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1))
         count = mask.sum().int()
         return loss, count
 
