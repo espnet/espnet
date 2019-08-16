@@ -39,7 +39,7 @@ def test_beam_search_equal():
     decoders = model.decoders
     decoders["lm"] = lm
     decoders["length_bonus"] = LengthBonus(len(char_list))
-    weights = dict(decoder=1.0, ctc=args.ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
+    weights = dict(decoder=1.0 - ctc, ctc=ctc, lm=args.lm_weight, length_bonus=args.penalty)
     with torch.no_grad():
         enc = model.encode(feat)
         nbest_bs = beam_search(
