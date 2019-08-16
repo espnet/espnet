@@ -309,11 +309,12 @@ class E2E(ASRInterface, chainer.Chain):
             List: N-best decoding results.
 
         """
-        logging.info('input lengths: ' + str(h.shape[0]))
+        logging.info('input lengths: ' + str(h.shape[1]))
 
         # initialization
+        n_len = h.shape[1]
         xp = self.xp
-        h_mask = xp.ones((1, h.shape[0]))
+        h_mask = xp.ones((1, n_len))
 
         # search parms
         beam = recog_args.beam_size
@@ -323,10 +324,10 @@ class E2E(ASRInterface, chainer.Chain):
         # prepare sos
         y = self.sos
         if recog_args.maxlenratio == 0:
-            maxlen = h.shape[0]
+            maxlen = n_len
         else:
-            maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
-        minlen = int(recog_args.minlenratio * h.shape[0])
+            maxlen = max(1, int(recog_args.maxlenratio * n_len))
+        minlen = int(recog_args.minlenratio * n_len)
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
 
