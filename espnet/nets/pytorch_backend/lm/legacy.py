@@ -80,7 +80,7 @@ class LegacyRNNLM(LMInterface, DecoderInterface, nn.Module):
         new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))
         return scores.squeeze(0), new_state
 
-    def final(self, state):
+    def final_score(self, state):
         return self.model.final(state)
 
 

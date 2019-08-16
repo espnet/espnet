@@ -111,6 +111,7 @@ class CTC(torch.nn.Module):
 
 class CTCPrefixDecoder(PartialDecoderInterface):
     """Decoder interface wrapper for CTCPrefixScore"""
+
     def __init__(self, ctc, eos):
         self.ctc = ctc
         self.eos = eos
@@ -129,7 +130,6 @@ class CTCPrefixDecoder(PartialDecoderInterface):
     def score(self, y, ids, state, x):
         prev_score, state = state
         presub_score, new_st = self.impl(y.tolist(), ids, state)
-        # score -= float(prev_score)
         tscore = torch.as_tensor(presub_score - prev_score)
         return tscore, (presub_score, new_st)
 
