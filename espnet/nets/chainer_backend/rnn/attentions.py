@@ -2,9 +2,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-import logging
 import numpy as np
-import sys
 
 from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
@@ -253,7 +251,5 @@ def att_for(args):
     elif args.atype == 'noatt':
         att = NoAtt()
     else:
-        logging.error(
-            "Error: need to specify an appropriate attention architecture")
-        sys.exit()
+        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
     return att
