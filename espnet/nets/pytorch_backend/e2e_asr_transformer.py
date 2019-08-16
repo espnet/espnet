@@ -234,9 +234,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         TODO(karita): do not recompute previous attention for faster decoding
         '''
-        self.eval()
-        feat = torch.as_tensor(feat).unsqueeze(0)
-        enc_output, _ = self.encoder(feat, None)
+        enc_output = self.encode(feat).unsqueeze(0)
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)

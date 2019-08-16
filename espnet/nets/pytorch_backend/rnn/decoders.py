@@ -13,6 +13,7 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 
+from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
@@ -24,7 +25,7 @@ MAX_DECODER_OUTPUT = 5
 CTC_SCORING_RATIO = 1.5
 
 
-class Decoder(torch.nn.Module):
+class Decoder(torch.nn.Module, DecoderInterface):
     """Decoder module
 
     :param int eprojs: # encoder projection units
@@ -49,7 +50,7 @@ class Decoder(torch.nn.Module):
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
                  dropout=0.0, context_residual=False, replace_sos=False):
 
-        super(Decoder, self).__init__()
+        torch.nn.Module.__init__(self)
         self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
@@ -713,6 +714,34 @@ class Decoder(torch.nn.Module):
             for i in vidx:
                 new_state.append(rnnlm_state[int(i)][:])
         return new_state
+
+    # decoder interface methods
+    def init_state(self, x):
+        self.c_list = [self.zero_state(x.unsqueeze(0))]
+        self.z_list = [self.zero_state(x.unsqueeze(0))]
+        for _ in six.moves.range(1, self.dlayers):
+            self.c_list.append(self.zero_state(x.unsqueeze(0)))
+            self.z_list.append(self.zero_state(x.unsqueeze(0)))
+        # TODO(karita): what is this?
+        self.att_idx = min(0, len(self.att) - 1)
+        self.att[self.att_idx].reset()  # reset pre-computation of h
+        return dict(c_prev=self.c_list[:], z_prev=self.z_list[:], a_prev=None)
+
+    def score(self, yseq, state, x):
+        vy = yseq[-1].unsqueeze(0)
+        ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
+        att_c, att_w = self.att[self.att_idx](
+            x.unsqueeze(0), [x.size(0)],
+            self.dropout_dec[0](state['z_prev'][0]), state['a_prev'])
+        ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
+        self.z_list, self.c_list = self.rnn_forward(ey, self.z_list, self.c_list, state['z_prev'], state['c_prev'])
+        # get nbest local scores and their ids
+        if self.context_residual:
+            logits = self.output(torch.cat((self.dropout_dec[-1](self.z_list[-1]), att_c), dim=-1))
+        else:
+            logits = self.output(self.dropout_dec[-1](self.z_list[-1]))
+        logp = F.log_softmax(logits, dim=1).squeeze(0)
+        return logp, dict(c_prev=self.c_list[:], z_prev=self.z_list[:], a_prev=att_w)
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):

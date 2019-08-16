@@ -172,7 +172,6 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     init_states = dict()
     init_scores = dict()
     for k, (d, w) in all_dec_weights.items():
-        print(k)
         init_states[k] = d.init_state(x)
         init_scores[k] = 0.0
     init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states,
@@ -207,16 +206,13 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
             n_vocab = wscores.size(0)
             do_pre_beam = pre_beam_score in scores and pre_beam < n_vocab and len(part_dec_weights) > 0
             if do_pre_beam:
-                print("do pre beam")
                 # pre-beam search to limit next tokens
                 pre_ids = scores[pre_beam_score].topk(pre_beam)[1]
-                id2pos = {int(p): e for e, p in enumerate(pre_ids)}
                 pre_scores = wscores[pre_ids]
                 wscores[:] = -float("inf")  # fill -inf at pruned index to mask the final topk
                 wscores[pre_ids] = pre_scores
             else:
                 pre_ids = torch.arange(n_vocab, device=x.device)
-                id2pos = pre_ids
 
             for k, (d, w) in part_dec_weights.items():
                 sc, states[k] = d.score(hyp.yseq, pre_ids, hyp.states[k], x)
@@ -226,16 +222,19 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
 
             # prune hyps
             top_ids = wscores.topk(beam_size)[1]
-            for j in top_ids:
+            if do_pre_beam:
+                local_ids = wscores[pre_ids].topk(beam_size)[1]
+            else:
+                local_ids = top_ids
+            for j, local_j in zip(top_ids, local_ids):
                 j = int(j)
                 new_scores = {k: float(hyp.scores[k] + scores[k][j]) for k in all_dec_weights}
                 # TODO(karita) do this inside .score
                 new_states = dict()
                 for k in full_dec_weights:
                     new_states[k] = states[k]
-                for k in part_dec_weights:
-                    print(j, id2pos)
-                    new_states[k] = states[k][id2pos[j]]
+                for k, (d, w) in part_dec_weights.items():
+                    new_states[k] = d.select_state(states[k], local_j)
 
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
