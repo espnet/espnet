@@ -24,8 +24,6 @@ def recog_v2(args):
     logging.warning("experimental API for custom LMs is selected by --api v2")
     if args.batchsize > 1:
         raise NotImplementedError("batch decoding is not implemented")
-    if args.ngpu > 0:
-        raise NotImplementedError("GPU decoding is not implemented")
     if args.streaming_mode is not None:
         raise NotImplementedError("streaming mode is not implemented")
     if args.word_rnnlm:
@@ -58,6 +56,15 @@ def recog_v2(args):
         ctc=args.ctc_weight,
         lm=args.lm_weight,
         length_bonus=args.penalty)
+    if args.ngpu > 0:
+        if args.ngpu > 1:
+            raise NotImplementedError("only single GPU decoding is supported")
+        for d in decoders:
+            if isinstance(d, torch.nn.Module):
+                d.cuda()
+        device = "cuda"
+    else:
+        device = "cpu"
 
     # read json data
     with open(args.recog_json, 'rb') as f:
@@ -68,7 +75,8 @@ def recog_v2(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
-            enc = model.encode(load_inputs_and_targets(batch)[0][0])
+            feat = load_inputs_and_targets(batch)[0][0]
+            enc = model.encode(torch.as_tensor(feat).to(device))
             nbest_hyps = beam_search(
                 x=enc,
                 sos=model.sos,
