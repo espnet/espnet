@@ -120,18 +120,18 @@ class CTCPrefixDecoder(PartialDecoderInterface):
     def init_state(self, x):
         logp = self.ctc.log_softmax(x.unsqueeze(0)).detach().squeeze(0).numpy()
         self.impl = CTCPrefixScore(logp, 0, self.eos, np)
-        return (0.0, self.impl.initial_state())
+        return (0, self.impl.initial_state())
 
     def select_state(self, state, i):
         sc, st = state
         return (sc[i], st[i])
 
     def score(self, y, ids, state, x):
-        prev_score, st = state
-        score, new_st = self.impl(y.tolist(), ids.tolist(), st)
-        score -= prev_score
-        tscore = torch.as_tensor(score)
-        return tscore, (score, new_st)
+        prev_score, state = state
+        presub_score, new_st = self.impl(y.tolist(), ids, state)
+        # score -= float(prev_score)
+        tscore = torch.as_tensor(presub_score - prev_score)
+        return tscore, (presub_score, new_st)
 
 
 def ctc_for(args, odim, reduce=True):

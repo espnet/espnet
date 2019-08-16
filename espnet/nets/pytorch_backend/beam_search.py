@@ -174,7 +174,6 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     for k, (d, w) in all_dec_weights.items():
         init_states[k] = d.init_state(x)
         init_scores[k] = 0.0
-    init_states["ctc"] = decoders["ctc"].impl.initial_state()
     init_hyp = Hypothesis(score=0.0, scores=init_scores, states=init_states,
                           yseq=torch.tensor([sos], device=x.device))
 
@@ -223,10 +222,11 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
 
             local_best_scores, local_best_ids = torch.topk(
                 scores["decoder"], pre_beam)
-            scores["ctc"], states["ctc"] = decoders["ctc"].impl(
-                hyp.yseq.tolist(), local_best_ids, hyp.states["ctc"])
 
-            wscores[local_best_ids] += weights["ctc"] * (torch.from_numpy(scores["ctc"]) - hyp.scores["ctc"])
+            scores["ctc"], states["ctc"] = decoders["ctc"].score(
+                hyp.yseq, local_best_ids, hyp.states["ctc"], x)
+
+            wscores[local_best_ids] += weights["ctc"] * torch.as_tensor(scores["ctc"])
             tmp = wscores[local_best_ids]
             wscores[:] = -float("inf")
             wscores[local_best_ids] = tmp
@@ -243,7 +243,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                 new_states = dict()
                 for k in full_dec_weights:
                     new_states[k] = states[k]
-                new_states["ctc"] = states["ctc"][local_j]
+                new_states["ctc"] = decoders["ctc"].select_state(states["ctc"], local_j)
                 # for k, (d, w) in part_dec_weights.items():
                 #     new_states[k] = d.select_state(states[k], local_j)
 
