@@ -20,9 +20,9 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-train_config=../asr1/conf/train.yaml
-lm_config=../asr1/conf/lm.yaml
-decode_config=../asr1/conf/decode.yaml
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
