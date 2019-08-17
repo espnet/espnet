@@ -60,6 +60,7 @@ def recog_v2(args):
         length_bonus=args.penalty)
     beam_search = BeamSearch(
         beam_size=args.beam_size,
+        vocab_size=len(train_args.char_list),
         weights=weights,
         scorers=scorers,
         sos=model.sos,
