@@ -104,7 +104,7 @@ def test_lm_trainable_and_decodable(lm_name, lm_args):
             eos=model.eos,
             beam_size=beam_size,
             weights=weights,
-            decoders=scorers,
+            scorers=scorers,
             token_list=train_args.char_list
         )
     assert len(result) == beam_size

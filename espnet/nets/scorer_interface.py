@@ -1,7 +1,13 @@
+from typing import Any
+from typing import Tuple
+
+import torch
+
+
 class ScorerInterface:
     """Decoder interface for beam search"""
 
-    def init_state(self, x):
+    def init_state(self, x: torch.Tensor) -> Any:
         """Initial state for decoding
 
         Args:
@@ -11,7 +17,7 @@ class ScorerInterface:
         """
         return None
 
-    def score(self, y, state, x):
+    def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
         """Score new token
 
         Args:
@@ -20,13 +26,13 @@ class ScorerInterface:
             x (torch.Tensor): Encoder feature that generates ys (T, D)
 
         Returns:
-            tuple[torch.Tensor, list[dict]]: Tuple of
+            tuple[torch.Tensor, Any]: Tuple of
                 torch.float32 scores for next token (n_vocab)
                 and next state for ys
         """
         raise NotImplementedError
 
-    def final_score(self, state):
+    def final_score(self, state: Any) -> float:
         """Score eos (optional)
 
         Args:
@@ -46,7 +52,7 @@ class PartialScorerInterface(ScorerInterface):
     all the tokens.
     """
 
-    def select_state(self, state, i):
+    def select_state(self, state: Any, i: int) -> Any:
         """Select state with relative ids in the main beam search
 
         Args:
@@ -58,7 +64,8 @@ class PartialScorerInterface(ScorerInterface):
         """
         raise NotImplementedError
 
-    def score_partial(self, y, next_tokens, state, x):
+    def score_partial(self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor) \
+            -> Tuple[torch.Tensor, Any]:
         """Score new token
 
         Args:
@@ -68,8 +75,7 @@ class PartialScorerInterface(ScorerInterface):
             x (torch.Tensor): Encoder feature that generates ys (T, D)
 
         Returns:
-            tuple[torch.Tensor, list[dict]]: Tuple of
-                torch.float32 scores for y (N)
+            tuple[torch.Tensor, Any]: Tuple of torch.float32 scores for y (N)
                 and next state for ys
         """
         raise NotImplementedError

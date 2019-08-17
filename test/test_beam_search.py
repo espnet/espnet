@@ -151,7 +151,7 @@ def test_beam_search_equal(model_class, args, ctc):
             eos=model.eos,
             beam_size=args.beam_size,
             weights=weights,
-            decoders=scorers,
+            scorers=scorers,
             token_list=train_args.char_list,
             maxlenratio=args.maxlenratio,
             minlenratio=args.minlenratio,
