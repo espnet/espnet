@@ -10,4 +10,4 @@ class LengthBonus(ScorerInterface):
         self.n = n_vocab
 
     def score(self, y, state, x):
-        return torch.tensor([1.0], device=y.device).expand(self.n), None
+        return torch.tensor([1.0], device=x.device, dtype=x.dtype).expand(self.n), None
