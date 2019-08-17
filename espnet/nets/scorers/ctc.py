@@ -26,5 +26,5 @@ class CTCPrefixScorer(PartialScorerInterface):
     def score_partial(self, y, ids, state, x):
         prev_score, state = state
         presub_score, new_st = self.impl(y.cpu(), ids.cpu(), state)
-        tscore = torch.as_tensor(presub_score - prev_score, device=y.device)
+        tscore = torch.as_tensor(presub_score - prev_score, device=x.device, dtype=x.dtype)
         return tscore, (presub_score, new_st)

@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 
-MIN_VALUE = float(numpy.finfo(numpy.float32).min)
+MIN_VALUE = float(numpy.finfo(numpy.float16).min)
 
 
 class MultiHeadedAttention(nn.Module):

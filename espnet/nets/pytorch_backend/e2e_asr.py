@@ -410,7 +410,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # subsample frame
         x = x[::self.subsample[0], :]
-        h = to_device(self, to_torch_tensor(x).float())
+        p = next(self.parameters())
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
