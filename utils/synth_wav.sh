@@ -8,12 +8,13 @@ if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
     exit 1
 fi
 
-. ./path.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=100
+stop_stage=3
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
@@ -42,6 +43,7 @@ griffin_lim_iters=64
 
 # download related
 models=ljspeech.fastspeech.v1
+vocoder_models=ljspeech.wavenet.ns.v1.100k_iters
 
 help_message=$(cat <<EOF
 Usage:
@@ -55,6 +57,12 @@ Example:
     # you can specify the pretrained models
     $0 --models ljspeech.tacotron2.v3 example.txt
 
+    # if you want to try wavenet vocoder, extend stage
+    $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
+
+    # also you can specify vocoder model
+    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.ns.v1 --stop_stage 4 example.txt
+
 Available models:
     - libritts.tacotron2.v1
     - ljspeech.tacotron2.v1
@@ -65,15 +73,14 @@ Available models:
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
     - libritts.transformer.v1
+
+Available vocoder models:
+    - ljspeech.wavenet.ns.v1.100k_iters
+    - ljspeech.wavenet.ns.v1.1000k_iters
 EOF
 )
+
 . utils/parse_options.sh || exit 1;
-
-# make shellcheck happy
-train_cmd=
-decode_cmd=
-
-. ./cmd.sh
 
 txt=$1
 download_dir=${decode_dir}/download
@@ -102,6 +109,21 @@ function download_models () {
     esac
 
     dir=${download_dir}/${models}
+    mkdir -p ${dir}
+    if [ ! -e ${dir}/.complete ]; then
+        download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
+	touch ${dir}/.complete
+    fi
+}
+
+function download_vocoder_models () {
+    case "${vocoder_models}" in
+        "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
+        "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd";;
+        *) echo "No such models: ${vocoder_models}"; exit 1 ;;
+    esac
+
+    dir=${download_dir}/${vocoder_models}
     mkdir -p ${dir}
     if [ ! -e ${dir}/.complete ]; then
         download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
@@ -189,6 +211,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
     utils/copy_data_dir.sh ${decode_dir}/data ${decode_dir}/data2
     echo "$base ${input_wav}" > ${decode_dir}/data2/wav.scp
     utils/data/resample_data_dir.sh 16000 ${decode_dir}/data2
+    # shellcheck disable=SC2154
     steps/make_mfcc.sh \
         --write-utt2num-frames true \
         --mfcc-config conf/mfcc.conf \
@@ -217,6 +240,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Decoding"
 
+    # shellcheck disable=SC2154
     ${decode_cmd} ${decode_dir}/log/decode.log \
         tts_decode.py \
         --config ${decode_config} \
@@ -229,10 +253,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --model ${synth_model}
 fi
 
+outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Synthesis"
+    echo "stage 3: Synthesis with Griffin-Lim"
 
-    outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
         scp:${outdir}/feats.scp \
         ark,scp:${outdir}_denorm/feats.ark,${outdir}_denorm/feats.scp
@@ -252,6 +276,31 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     echo ""
     echo "Synthesized wav: ${decode_dir}/wav/${base}.wav"
+    echo ""
+    echo "Finished"
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Synthesis with WaveNet"
+    model_corpus=$(echo ${models} | cut -d. -f 1)
+    vocoder_model_corpus=$(echo ${vocoder_models} | cut -d. -f 1)
+    if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
+        echo "${vocoder_models} does not support ${models} (Due to the sampling rate mismatch)."
+        exit 1
+    fi
+    download_vocoder_models
+    checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
+    generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
+        --fs ${fs} \
+        --n_fft ${n_fft} \
+        --n_shift ${n_shift} \
+        ${checkpoint} \
+        ${outdir}_denorm \
+        ${decode_dir}/log \
+        ${decode_dir}/wav_wnv
+
+    echo ""
+    echo "Synthesized wav: ${decode_dir}/wav_wnv/${base}.wav"
     echo ""
     echo "Finished"
 fi

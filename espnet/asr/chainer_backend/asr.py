@@ -77,10 +77,6 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
-    # check attention type
-    if args.atype not in ['noatt', 'dot', 'location']:
-        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
-
     # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
         mtl_mode = 'ctc'
