@@ -4,10 +4,9 @@ import numpy
 import pytest
 import torch
 
-from espnet.nets.beam_search import beam_search
+from espnet.nets.asr_interface import dynamic_import_asr
+from espnet.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.pytorch_backend.e2e_asr import E2E as RNN
-from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as Transformer
 from espnet.nets.scorers.length_bonus import LengthBonus
 
 rnn_args = Namespace(
@@ -83,7 +82,7 @@ def prepare(E2E, args, mtlalpha=0.0):
     args.char_list = ['a', 'e', 'i', 'o', 'u']
     idim = 40
     odim = 5
-    model = E2E(idim, odim, args)
+    model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
     batchsize = 5
     x = torch.randn(batchsize, 40, idim)
     ilens = [40, 30, 20, 15, 10]
@@ -104,20 +103,48 @@ def prepare(E2E, args, mtlalpha=0.0):
     return model, x, torch.tensor(ilens), y, data, args
 
 
-beam_search_cases = [
-    (*x, device)for device in ("cpu", "cuda") for x in [
-        (Transformer, transformer_args, 0.0),
-        (Transformer, transformer_args, 0.5),
-        (Transformer, transformer_args, 1.0),
-        (RNN, rnn_args, 0.0),
-        (RNN, rnn_args, 0.5),
-        (RNN, rnn_args, 1.0)
+@pytest.mark.parametrize(
+    "model_class, args, ctc, device, dtype",
+    [
+        ("transformer", transformer_args, 0.0, "cpu", torch.float16),
+        ("transformer", transformer_args, 0.5, "cpu", torch.float16),
+        ("transformer", transformer_args, 1.0, "cpu", torch.float16),
+        ("transformer", transformer_args, 0.0, "cpu", torch.float32),
+        ("transformer", transformer_args, 0.5, "cpu", torch.float32),
+        ("transformer", transformer_args, 1.0, "cpu", torch.float32),
+        ("transformer", transformer_args, 0.0, "cpu", torch.float64),
+        ("transformer", transformer_args, 0.5, "cpu", torch.float64),
+        ("transformer", transformer_args, 1.0, "cpu", torch.float64),
+        ("transformer", transformer_args, 0.0, "cuda", torch.float16),
+        ("transformer", transformer_args, 0.5, "cuda", torch.float16),
+        ("transformer", transformer_args, 1.0, "cuda", torch.float16),
+        ("transformer", transformer_args, 0.0, "cuda", torch.float32),
+        ("transformer", transformer_args, 0.5, "cuda", torch.float32),
+        ("transformer", transformer_args, 1.0, "cuda", torch.float32),
+        ("transformer", transformer_args, 0.0, "cuda", torch.float64),
+        ("transformer", transformer_args, 0.5, "cuda", torch.float64),
+        ("transformer", transformer_args, 1.0, "cuda", torch.float64),
+        ("rnn", rnn_args, 0.0, "cpu", torch.float16),
+        ("rnn", rnn_args, 0.5, "cpu", torch.float16),
+        ("rnn", rnn_args, 1.0, "cpu", torch.float16),
+        ("rnn", rnn_args, 0.0, "cpu", torch.float32),
+        ("rnn", rnn_args, 0.5, "cpu", torch.float32),
+        ("rnn", rnn_args, 1.0, "cpu", torch.float32),
+        ("rnn", rnn_args, 0.0, "cpu", torch.float64),
+        ("rnn", rnn_args, 0.5, "cpu", torch.float64),
+        ("rnn", rnn_args, 1.0, "cpu", torch.float64),
+        ("rnn", rnn_args, 0.0, "cuda", torch.float16),
+        ("rnn", rnn_args, 0.5, "cuda", torch.float16),
+        ("rnn", rnn_args, 1.0, "cuda", torch.float16),
+        ("rnn", rnn_args, 0.0, "cuda", torch.float32),
+        ("rnn", rnn_args, 0.5, "cuda", torch.float32),
+        ("rnn", rnn_args, 1.0, "cuda", torch.float32),
+        ("rnn", rnn_args, 0.0, "cuda", torch.float64),
+        ("rnn", rnn_args, 0.5, "cuda", torch.float64),
+        ("rnn", rnn_args, 1.0, "cuda", torch.float64),
     ]
-]
-
-
-@pytest.mark.parametrize("model_class, args, ctc, device", beam_search_cases)
-def test_beam_search_equal(model_class, args, ctc, device):
+)
+def test_beam_search_equal(model_class, args, ctc, device, dtype):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
 
@@ -142,9 +169,6 @@ def test_beam_search_equal(model_class, args, ctc, device):
     with torch.no_grad():
         feat = x[0, :ilens[0]].numpy()
         nbest = model.recognize(feat, args, char_list, lm.model)
-        # print(y[0])
-        print(nbest)
-        print("===================")
 
     # test new beam search
     scorers = model.scorers()
@@ -152,23 +176,21 @@ def test_beam_search_equal(model_class, args, ctc, device):
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0 - ctc, ctc=ctc, lm=args.lm_weight, length_bonus=args.penalty)
     model.to(device)
-    for s in scorers.values():
-        if isinstance(s, torch.nn.Module):
-            s.to(device)
+    beam = BeamSearch(
+        beam_size=args.beam_size,
+        weights=weights,
+        scorers=scorers,
+        token_list=train_args.char_list,
+        sos=model.sos,
+        eos=model.eos,
+    )
+    beam.to(device)
+    beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device))
-        nbest_bs = beam_search(
-            x=enc,
-            sos=model.sos,
-            eos=model.eos,
-            beam_size=args.beam_size,
-            weights=weights,
-            scorers=scorers,
-            token_list=train_args.char_list,
-            maxlenratio=args.maxlenratio,
-            minlenratio=args.minlenratio,
-        )
+        nbest_bs = beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
         print(nbest_bs)
     for i, (expected, actual) in enumerate(zip(nbest, nbest_bs)):
+        actual = actual.asdict()
         assert expected["yseq"] == actual["yseq"]
         numpy.testing.assert_allclose(expected["score"], actual["score"], rtol=1e-6)
