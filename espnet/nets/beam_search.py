@@ -111,7 +111,6 @@ class BeamSearch(torch.nn.Module):
         scores = dict()
         states = dict()
         for k, (d, w) in self.part_scorers.items():
-            print(k)
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
@@ -127,7 +126,6 @@ class BeamSearch(torch.nn.Module):
         # sum weighted scores
         weighted_scores = 0
         for k, (d, w) in self.full_scorers.items():
-            print(k)
             weighted_scores += w * scores[k]
         for k, (d, w) in self.part_scorers.items():
             weighted_scores[ids] += w * part_scores[k]
