@@ -6,4 +6,4 @@ batchsize: 300    # 1024 for character LMs
 epoch: 20        # number of epochs
 patience: 3
 maxlen: 40        # 150 for character LMs
-model-module: fast-rnn
+model-module: seq_rnn

@@ -81,8 +81,8 @@ def get_parser():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
-    parser.add_argument('--model-module', type=str, default='legacy',
-                        help='model defined module (default: espnet.nets.xxx_backend.lm.legacy:LegacyRNNLM)')
+    parser.add_argument('--model-module', type=str, default='default',
+                        help='model defined module (default: espnet.nets.xxx_backend.lm.default:DefaultRNNLM)')
     return parser
 
 

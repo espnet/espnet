@@ -8,18 +8,20 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.beam_search import beam_search
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.pytorch_backend.beam_search import beam_search
-from espnet.nets.pytorch_backend.beam_search import LengthBonus
+from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 
 def recog_v2(args):
-    """Decode with the given args.
+    """New asr_recog.py backend to decode with custom models that implements ScorerInterface.
+
+    Notes: the previous backend espnet.asr.pytorch_backend.asr.recog only supports E2E and RNNLM
 
     Args:
-        args (namespace): The program arguments.
+        args (namespace): The program arguments. See espnet.bin.asr_recog.get_parser for details
     """
     logging.warning("experimental API for custom LMs is selected by --api v2")
     if args.batchsize > 1:
@@ -48,9 +50,9 @@ def recog_v2(args):
         torch_load(args.rnnlm, lm)
         lm.eval()
 
-    decoders = model.decoders
-    decoders["lm"] = lm
-    decoders["length_bonus"] = LengthBonus(len(train_args.char_list))
+    scorers = model.scorers()
+    scorers["lm"] = lm
+    scorers["length_bonus"] = LengthBonus(len(train_args.char_list))
     weights = dict(
         decoder=1.0 - args.ctc_weight,
         ctc=args.ctc_weight,
@@ -59,9 +61,11 @@ def recog_v2(args):
     if args.ngpu > 0:
         if args.ngpu > 1:
             raise NotImplementedError("only single GPU decoding is supported")
-        for d in decoders:
-            if isinstance(d, torch.nn.Module):
-                d.cuda()
+        logging.info("enable GPU decoding")
+        model.cuda()
+        for k, s in scorers.items():
+            if isinstance(s, torch.nn.Module):
+                s.cuda()
         device = "cuda"
     else:
         device = "cpu"
@@ -83,7 +87,7 @@ def recog_v2(args):
                 eos=model.eos,
                 beam_size=args.beam_size,
                 weights=weights,
-                decoders=decoders,
+                decoders=scorers,
                 token_list=train_args.char_list,
                 maxlenratio=args.maxlenratio,
                 minlenratio=args.minlenratio)

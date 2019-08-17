@@ -47,8 +47,8 @@ from espnet.utils.training.train_utils import set_early_stop
 
 
 # TODO(karita): reimplement RNNLM with new interface
-class LegacyRNNLM(LMInterface, link.Chain):
-    """Legacy RNNLM wrapper to compute reduce framewise loss values
+class DefaultRNNLM(LMInterface, link.Chain):
+    """Default RNNLM wrapper to compute reduce framewise loss values
 
     Args:
         n_vocab (int): The size of the vocabulary
@@ -304,7 +304,7 @@ def train(args):
     :param Namespace args: The program arguments
     """
     # TODO(karita): support this
-    if args.model_module != "legacy":
+    if args.model_module != "default":
         raise NotImplementedError("chainer backend does not support --model-module")
 
     # display chainer version

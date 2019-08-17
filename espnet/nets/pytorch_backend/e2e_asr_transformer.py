@@ -10,7 +10,6 @@ import torch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.ctc import CTCPrefixDecoder
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -22,6 +21,7 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 
 class E2E(ASRInterface, torch.nn.Module):
@@ -212,9 +212,8 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    @property
-    def decoders(self):
-        return dict(decoder=self.decoder, ctc=CTCPrefixDecoder(self.ctc, self.eos))
+    def scorers(self):
+        return dict(decoder=self.decoder, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
     def encode(self, feat):
         self.eval()

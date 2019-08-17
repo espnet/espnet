@@ -1,14 +1,14 @@
 from argparse import Namespace
+
 import numpy
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.beam_search import beam_search
-from espnet.nets.pytorch_backend.beam_search import LengthBonus
+from espnet.nets.beam_search import beam_search
+from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.pytorch_backend.e2e_asr import E2E as RNN
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as Transformer
-from espnet.nets.pytorch_backend.lm.legacy import LegacyRNNLM
-
+from espnet.nets.scorers.length_bonus import LengthBonus
 
 rnn_args = Namespace(
     elayers=1,
@@ -117,16 +117,16 @@ def test_beam_search_equal(model_class, args, ctc):
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-    lm = LegacyRNNLM(len(char_list), lm_args)
+    lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
     # test previous beam search
     args = Namespace(
         beam_size=3,
-        penalty=0.1,            # TODO(karita) non-zero
+        penalty=0.1,
         ctc_weight=ctc,
         maxlenratio=0,
-        lm_weight=0.5,          # TODO(karita) non-zero
+        lm_weight=0.5,
         minlenratio=0,
         nbest=2
     )
@@ -139,9 +139,9 @@ def test_beam_search_equal(model_class, args, ctc):
         print("===================")
 
     # test new beam search
-    decoders = model.decoders
-    decoders["lm"] = lm
-    decoders["length_bonus"] = LengthBonus(len(char_list))
+    scorers = model.scorers()
+    scorers["lm"] = lm
+    scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0 - ctc, ctc=ctc, lm=args.lm_weight, length_bonus=args.penalty)
     with torch.no_grad():
         enc = model.encode(feat)
@@ -151,7 +151,7 @@ def test_beam_search_equal(model_class, args, ctc):
             eos=model.eos,
             beam_size=args.beam_size,
             weights=weights,
-            decoders=decoders,
+            decoders=scorers,
             token_list=train_args.char_list,
             maxlenratio=args.maxlenratio,
             minlenratio=args.minlenratio,
@@ -160,10 +160,3 @@ def test_beam_search_equal(model_class, args, ctc):
     for i, (expected, actual) in enumerate(zip(nbest, nbest_bs)):
         assert expected["yseq"] == actual["yseq"]
         numpy.testing.assert_allclose(expected["score"], actual["score"], rtol=1e-6)
-
-
-if __name__ == "__main__":
-    test_beam_search_equal(RNN, rnn_args, 0)
-    test_beam_search_equal(RNN, rnn_args, 0.5)
-    test_beam_search_equal(RNN, rnn_args, 1.0)
-    test_beam_search_equal(Transformer, transformer_args, 0.0)
