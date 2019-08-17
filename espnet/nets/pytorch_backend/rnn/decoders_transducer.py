@@ -242,9 +242,9 @@ class DecoderRNNT(torch.nn.Module):
                 if rnnlm:
                     rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], vy[0])
 
-                logp, pred = torch.topk(ytu, k=k_range, dim=0)
+                logp, pred = torch.topk(ytu, k=self.odim, dim=0)
 
-                for k in six.moves.range(k_range):
+                for k in six.moves.range(self.odim):
                     beam_hyp = {'score': new_hyp['score'] + logp[k],
                                 'yseq': new_hyp['yseq'][:],
                                 'z_prev': new_hyp['z_prev'][:],
@@ -265,6 +265,7 @@ class DecoderRNNT(torch.nn.Module):
 
                         hyps.append(beam_hyp)
 
+                hyps = sorted(hyps, key=lambda x: x['score'], reverse=True)[:k_range]
                 if len(kept_hyps) >= k_range:
                     break
 
@@ -538,9 +539,9 @@ class DecoderRNNTAtt(torch.nn.Module):
                 if rnnlm:
                     rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], vy[0])
 
-                logp, pred = torch.topk(ytu, k=k_range, dim=0)
+                logp, pred = torch.topk(ytu, k=self.odim, dim=0)
 
-                for k in six.moves.range(k_range):
+                for k in six.moves.range(self.odim):
                     beam_hyp = {'score': new_hyp['score'] + logp[k],
                                 'yseq': new_hyp['yseq'][:],
                                 'z_prev': new_hyp['z_prev'][:],
@@ -563,6 +564,7 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                         hyps.append(beam_hyp)
 
+                hyps = sorted(hyps, key=lambda x: x['score'], reverse=True)[:k_range]
                 if len(kept_hyps) >= k_range:
                     break
 
