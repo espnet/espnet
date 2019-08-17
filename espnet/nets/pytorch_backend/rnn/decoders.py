@@ -13,19 +13,19 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 
-from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.scorer_interface import ScorerInterface
 
 MAX_DECODER_OUTPUT = 5
 CTC_SCORING_RATIO = 1.5
 
 
-class Decoder(torch.nn.Module, DecoderInterface):
+class Decoder(torch.nn.Module, ScorerInterface):
     """Decoder module
 
     :param int eprojs: # encoder projection units

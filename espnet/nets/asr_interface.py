@@ -61,11 +61,10 @@ class ASRInterface(object):
         '''
         raise NotImplementedError("encode method is not implemented")
 
-    @property
-    def decoders(self):
-        '''get decoders used in `beam_search` (optional)
+    def scorers(self):
+        '''get scorers for `beam_search` (optional)
 
         Returns:
-            dict: dict of `DecoderInterface` objects
+            dict[str, ScorerInterface]: dict of `ScorerInterface` objects
         '''
         raise NotImplementedError("decoders method is not implemented")

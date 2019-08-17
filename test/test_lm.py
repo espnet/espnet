@@ -1,9 +1,19 @@
+from argparse import Namespace
+
 import chainer
 import numpy
+import pytest
 import torch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
-import espnet.nets.pytorch_backend.lm.legacy as lm_pytorch
+from espnet.nets.beam_search import beam_search
+from espnet.nets.lm_interface import dynamic_import_lm
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.nets.scorers.length_bonus import LengthBonus
+
+from test.test_beam_search import prepare
+from test.test_beam_search import RNN
+from test.test_beam_search import rnn_args
 
 
 def transfer_lstm(ch_lstm, th_lstm):
@@ -53,3 +63,48 @@ def test_lm():
                     print(state_ch[k][n].data)
                     numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
             numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
+
+
+@pytest.mark.parametrize(
+    "lm_name, lm_args", [
+        ("default", Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.5)),
+        ("default", Namespace(type="gru", layer=1, unit=2, dropout_rate=0.5)),
+        ("seq_rnn", Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.5)),
+        ("seq_rnn", Namespace(type="gru", layer=1, unit=2, dropout_rate=0.5)),
+    ])
+def test_lm_trainable_and_decodable(lm_name, lm_args):
+    model, x, ilens, y, data, train_args = prepare(RNN, rnn_args)
+    model.eval()
+    char_list = train_args.char_list
+    n_vocab = len(char_list)
+    lm = dynamic_import_lm(lm_name, backend="pytorch")(n_vocab, lm_args)
+    lm.eval()
+
+    # test trainable
+    a = torch.randint(1, n_vocab, (3, 2))
+    b = torch.randint(1, n_vocab, (3, 2))
+    loss, count = lm(a, b)
+    loss = loss / count
+    loss.backward()
+    for p in lm.parameters():
+        assert p.grad is not None
+
+    # test decodable
+    scorers = model.scorers()
+    scorers["lm"] = lm
+    scorers["length_bonus"] = LengthBonus(len(char_list))
+    weights = dict(decoder=1.0, lm=1.0, length_bonus=1.0)
+    with torch.no_grad():
+        feat = x[0, :ilens[0]].numpy()
+        enc = model.encode(feat)
+        beam_size = 3
+        result = beam_search(
+            x=enc,
+            sos=model.sos,
+            eos=model.eos,
+            beam_size=beam_size,
+            weights=weights,
+            decoders=scorers,
+            token_list=train_args.char_list
+        )
+    assert len(result) == beam_size

@@ -6,120 +6,31 @@ from typing import Tuple
 import torch
 
 from espnet.nets.e2e_asr_common import end_detect
+from espnet.nets.scorer_interface import PartialScorerInterface
+from espnet.nets.scorer_interface import ScorerInterface
 
 
-class DecoderInterface:
-    """Decoder interface for beam search"""
-
-    def init_state(self, x):
-        """Initial state for decoding
-
-        Args:
-            x (torch.Tensor): torch.float32 feature tensor (T, D)
-
-        Returns: initial state
-        """
-        return None
-
-    def score(self, y, state, x):
-        """Score new token
-
-        Args:
-            y (torch.Tensor): torch.int64 prefix token (U)
-            state: decoder state for prefix tokens
-            x (torch.Tensor): encoder feature that generates ys (T, D)
-
-        Returns:
-            tuple[torch.Tensor, list[dict]]: Tuple of
-                torch.float32 scores for next token (n_vocab)
-                and next state for ys
-        """
-        raise NotImplementedError
-
-    def final_score(self, state):
-        """Score eos (optional)
-
-        Args:
-            state: decoder state for prefix tokens
-
-        Returns:
-            float: final score
-        """
-        return 0.0
-
-
-class PartialDecoderInterface(DecoderInterface):
-    """Partial decoder interface for beam search
-
-    This performs scoring when non-partial decoders finished scoring,
-    and this recieves pre-pruned next tokens to score by `partial_score`
-    """
-
-    def select_state(self, state, ids):
-        """Select state with relative ids in the final beam
-
-        Args:
-            state: decoder state for prefix tokens
-            ids (torch.Tensor): relative ids in the final beam
-
-        Returns:
-            state: pruned decoder state
-        """
-        raise NotImplementedError
-
-    def score(self, y, next_tokens, state, x):
-        """Score new token
-
-        Args:
-            y (torch.Tensor): torch.int64 prefix token (U)
-            next_tokens (torch.Tensor): torch.int64 next token to score (N)
-            state: decoder state for prefix tokens
-            x (torch.Tensor): encoder feature that generates ys (T, D)
-
-        Returns:
-            tuple[torch.Tensor, list[dict]]: Tuple of
-                torch.float32 scores for y (N)
-                and next state for ys
-        """
-        raise NotImplementedError
-
-
-class LengthBonus(DecoderInterface):
-    """Length bonus in beam search"""
-
-    def __init__(self, n_vocab):
-        self.n = n_vocab
-
-    def score(self, y, state, x):
-        """Score new token
-
-        Args:
-            y (torch.Tensor): torch.int64 prefix token to score (B)
-            state: decoder state for prefix tokens
-            x (torch.Tensor): encoder feature that generates ys (T, D)
-
-        Returns:
-            tuple[torch.Tensor, list[dict]]: Tuple of
-                torch.float32 scores for y (B)
-                and next state for ys
-        """
-        import torch
-        return torch.tensor([1.0]).expand(self.n), None
-
-
-def get_weighted_decoders(
-        decoders: Dict[str, DecoderInterface],
+def pair_weighted_decoders(
+        decoders: Dict[str, ScorerInterface],
         weights: Dict[str, float]
-) -> Dict[str, Tuple[DecoderInterface, float]]:
+) -> Dict[str, Tuple[ScorerInterface, float]]:
     full_dec_weights = dict()
     part_dec_weights = dict()
-    """filter invalid weights and decoders"""
+    """Filter invalid weights (== 0) and decoders (is None) and make pairs of them
+
+    Args:
+        decoders (dict[str, ScorerInterface]): Dictionary of decoders
+        weights (dict[str, float]): Dictionary of weights
+
+    Returns:
+        dict[str, tuple[ScorerInterface, float]]: Dictionary of decoder-weight pairs
+    """
     for k, v in decoders.items():
-        w = weights.get(k, 1.0)
+        w = weights.get(k, 0)
         if w == 0 or v is None:
             continue
-        assert isinstance(v, DecoderInterface), f"{k} ({type(v)}) does not implement DecoderInterface"
-        if isinstance(v, PartialDecoderInterface):
+        assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
+        if isinstance(v, PartialScorerInterface):
             part_dec_weights[k] = (v, w)
         else:
             full_dec_weights[k] = (v, w)
@@ -153,19 +64,21 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
         sos (int): Start of sequence id
         eos (int): End of sequence id
         beam_size (int): The number of hypotheses kept during search
-        decoders (dict[str, DecoderInterface]): list of decoder modules
+        decoders (dict[str, ScorerInterface]): list of decoder modules
         weights (dict[str, float]): List of score weights for each decoders
         token_list (list[str]): List of tokens for debug log
         maxlenratio (float): Input length ratio to obtain max output length.
             If maxlenratio=0.0 (default), it uses a end-detect function
             to automatically find maximum hypothesis lengths
         minlenratio (float): Input length ratio to obtain min output length.
+        pre_beam_score (str): key of decoder score to perform pre-beam search
+        pre_beam_ratio (float): beam size in the pre-beam search will be `int(pre_beam_ratio * beam_size)`
 
     Returns:
         list: N-best decoding results
     """
     # get weighted decoders
-    full_dec_weights, part_dec_weights = get_weighted_decoders(decoders, weights)
+    full_dec_weights, part_dec_weights = pair_weighted_decoders(decoders, weights)
     all_dec_weights = dict(**full_dec_weights, **part_dec_weights)
     if pre_beam_score not in full_dec_weights or pre_beam_ratio == 0.0:
         logging.warning(f"pre-beam scorer: {pre_beam_score} is not found")
@@ -188,16 +101,18 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
     logging.info('max output length: ' + str(maxlen))
     logging.info('min output length: ' + str(minlen))
 
-    # main iteration
+    # main loop of prefix search
     running_hyps = [init_hyp]
     ended_hyps = []
     for i in range(maxlen):
         logging.debug('position ' + str(i))
         best = []
+        # inner loop of BFS
         for hyp in running_hyps:
             scores = dict()
             states = dict()
             wscores = hyp.score
+
             # scoring full tokens
             for k, (d, w) in full_dec_weights.items():
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
@@ -210,48 +125,45 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                 pre_best_ids = torch.topk(scores[pre_beam_score], pre_beam)[1]
             else:
                 pre_best_ids = torch.arange(n_vocab, device=x.device)
-
             # scoring partial tokens
             for k, (d, w) in part_dec_weights.items():
-                scores[k], states[k] = d.score(hyp.yseq, pre_best_ids, hyp.states[k], x)
+                scores[k], states[k] = d.score_partial(hyp.yseq, pre_best_ids, hyp.states[k], x)
                 wscores[pre_best_ids] += w * scores[k]
-
             # mask pruned in the pre-beam search
             tmp = wscores[pre_best_ids]
             wscores[:] = -float("inf")
             wscores[pre_best_ids] = tmp
 
-            # prune hyps
+            # main beam search
             top_ids = wscores.topk(beam_size)[1]
             local_ids = wscores[pre_best_ids].topk(beam_size)[1]
             for j, local_j in zip(top_ids, local_ids):
-                j = int(j)
-
+                # set scores for each decoders
                 new_scores = dict()
                 for k in full_dec_weights:
                     new_scores[k] = float(hyp.scores[k] + scores[k][j])
                 for k in part_dec_weights:
-                    new_scores[k] = scores[k][local_j]
-
+                    new_scores[k] = float(scores[k][local_j])
+                # set states for each decoders
                 new_states = dict()
                 for k in full_dec_weights:
                     new_states[k] = states[k]
                 for k in part_dec_weights:
                     new_states[k] = decoders[k].select_state(states[k], local_j)
-
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=float(wscores[j]),
                     yseq=append_tensor(hyp.yseq, j),
                     scores=new_scores,
                     states=new_states))
+            # sort and prune 2 x beam -> beam
             best = sorted(best, key=lambda x: x.score, reverse=True)[:beam_size]
 
+        # post process of one iteration
         running_hyps = best
         logging.debug(f'the number of running hypothes: {len(running_hyps)}')
         if token_list is not None:
-            logging.debug("best hypo: " + "".join(
-                [token_list[x] for x in running_hyps[0].yseq[1:]]))
+            logging.debug("best hypo: " + "".join([token_list[x] for x in running_hyps[0].yseq[1:]]))
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
@@ -290,7 +202,7 @@ def beam_search(x, sos, eos, beam_size, decoders, weights,
                            token_list=token_list,
                            maxlenratio=maxlenratio,
                            minlenratio=max(0.0, minlenratio - 0.1))
-
+    # report the best result
     best = nbest_hyps[0]
     logging.info(f'total log probability: {best["score"]}')
     logging.info(f'normalized log probability: {best["score"] / len(best["yseq"])}')

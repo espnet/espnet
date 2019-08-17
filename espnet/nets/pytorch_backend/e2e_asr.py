@@ -25,13 +25,13 @@ from chainer import reporter
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.ctc import CTCPrefixDecoder
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -401,9 +401,8 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    @property
-    def decoders(self):
-        return dict(decoder=self.dec, ctc=CTCPrefixDecoder(self.ctc, self.eos))
+    def scorers(self):
+        return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
     def encode(self, x):
         self.eval()

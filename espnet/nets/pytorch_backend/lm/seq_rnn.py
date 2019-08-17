@@ -3,11 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet.nets.lm_interface import LMInterface
-from espnet.nets.pytorch_backend.beam_search import DecoderInterface
 
 
-class FastRNNLM(LMInterface, DecoderInterface, torch.nn.Module):
-    """Legacy RNNLM wrapper to compute reduce framewise loss values
+class SequentialRNNLM(LMInterface, torch.nn.Module):
+    """Sequential RNNLM
 
     Args:
         n_vocab (int): The size of the vocabulary
@@ -76,7 +75,7 @@ class FastRNNLM(LMInterface, DecoderInterface, torch.nn.Module):
         # self.encoder.weight.data.uniform_(-initrange, initrange)
         # self.decoder.bias.data.zero_()
         # self.decoder.weight.data.uniform_(-initrange, initrange)
-        # NOTE: our legacy.py:RNNLM init
+        # NOTE: our default.py:RNNLM init
         for param in self.parameters():
             param.data.uniform_(-0.1, 0.1)
 

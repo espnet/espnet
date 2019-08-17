@@ -1,7 +1,8 @@
+from espnet.nets.scorer_interface import ScorerInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 
-class LMInterface:
+class LMInterface(ScorerInterface):
     """LM Interface for ESPnet model implementation"""
 
     @staticmethod
@@ -25,11 +26,11 @@ class LMInterface:
 
 predefined_lms = {
     "pytorch": {
-        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM",
-        "fast-rnn": "espnet.nets.pytorch_backend.lm.rnn:FastRNNLM",
+        "default": "espnet.nets.pytorch_backend.lm.default:DefaultRNNLM",
+        "seq_rnn": "espnet.nets.pytorch_backend.lm.seq_rnn:SequentialRNNLM",
     },
     "chainer": {
-        "legacy": "espnet.nets.pytorch_backend.lm.legacy:LegacyRNNLM"
+        "default": "espnet.lm.chainer_backend.lm:DefaultRNNLM"
     }
 }
 
