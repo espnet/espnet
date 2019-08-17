@@ -19,11 +19,11 @@ class LMInterface(ScorerInterface):
         Returns:
             tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple of
                 loss to backward (scalar),
-                negative log-likelihood of t: $-\log p(t)$ (scalar) and
+                negative log-likelihood of t: -log p(t) (scalar) and
                 the number of elements in x (scalar)
 
         Notes:
-            The last two return values are used in perplexity: $p(t)^{-n} = exp(-\log p(t) / n)$
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
         """
         raise NotImplementedError("forward method is not implemented")
 
