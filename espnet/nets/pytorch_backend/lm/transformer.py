@@ -1,4 +1,5 @@
-from typing import Any, Tuple
+from typing import Any
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -40,7 +41,7 @@ class TransformerLM(nn.Module, LMInterface):
         m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
         return ys_mask.unsqueeze(-2) & m
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor):
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         xm = (x != 0)
         h, _ = self.encoder(x, self.target_mask(x))
         y = self.decoder(h)
