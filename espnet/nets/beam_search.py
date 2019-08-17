@@ -48,12 +48,11 @@ class Hypothesis(NamedTuple):
     states: Dict[str, Dict] = dict()
 
     def asdict(self) -> dict:
-        return self._replace(yseq=self.yseq.tolist(), score=float(self.score))._asdict()
-
-
-def append_tensor(xs: torch.Tensor, x: int) -> torch.Tensor:
-    x = torch.tensor([x], dtype=xs.dtype, device=xs.device)
-    return torch.cat((xs, x))
+        return self._replace(
+            yseq=self.yseq.tolist(),
+            score=float(self.score),
+            scores={k: float(v) for k, v in self.scores.items()}
+        )._asdict()
 
 
 class BeamSearch(torch.nn.Module):
@@ -95,6 +94,11 @@ class BeamSearch(torch.nn.Module):
             score=0.0, scores=init_scores, states=init_states,
             yseq=torch.tensor([self.sos], device=x.device))
 
+    @staticmethod
+    def append_token(xs: torch.Tensor, x: int) -> torch.Tensor:
+        x = torch.tensor([x], dtype=xs.dtype, device=xs.device)
+        return torch.cat((xs, x))
+
     def score(self, hyp: Hypothesis, x: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         scores = dict()
         states = dict()
@@ -107,6 +111,7 @@ class BeamSearch(torch.nn.Module):
         scores = dict()
         states = dict()
         for k, (d, w) in self.part_scorers.items():
+            print(k)
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
@@ -122,6 +127,7 @@ class BeamSearch(torch.nn.Module):
         # sum weighted scores
         weighted_scores = 0
         for k, (d, w) in self.full_scorers.items():
+            print(k)
             weighted_scores += w * scores[k]
         for k, (d, w) in self.part_scorers.items():
             weighted_scores[ids] += w * part_scores[k]
@@ -198,7 +204,7 @@ class BeamSearch(torch.nn.Module):
                     # will be (2 x beam at most)
                     best.append(Hypothesis(
                         score=(weighted_scores[j]),
-                        yseq=append_tensor(hyp.yseq, j),
+                        yseq=self.append_token(hyp.yseq, j),
                         scores=self.merge_scores(hyp, scores, j, part_scores, part_j),
                         states=self.merge_states(states, part_states, part_j)))
                 # sort and prune 2 x beam -> beam
@@ -230,7 +236,7 @@ class BeamSearch(torch.nn.Module):
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
-            running_hyps = [h._replace(yseq=append_tensor(h.yseq, self.eos)) for h in running_hyps]
+            running_hyps = [h._replace(yseq=self.append_token(h.yseq, self.eos)) for h in running_hyps]
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
         # (this will be a probmlem, number of hyps < beam)
