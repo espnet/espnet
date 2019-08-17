@@ -8,7 +8,7 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.beam_search import beam_search
+from espnet.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
@@ -58,40 +58,38 @@ def recog_v2(args):
         ctc=args.ctc_weight,
         lm=args.lm_weight,
         length_bonus=args.penalty)
-    if args.ngpu > 0:
-        if args.ngpu > 1:
-            raise NotImplementedError("only single GPU decoding is supported")
-        logging.info("enable GPU decoding")
-        model.cuda()
-        for k, s in scorers.items():
-            if isinstance(s, torch.nn.Module):
-                s.cuda()
+    beam_search = BeamSearch(
+        beam_size=args.beam_size,
+        weights=weights,
+        scorers=scorers,
+        sos=model.sos,
+        eos=model.eos,
+        token_list=train_args.char_list,
+    )
+
+    if args.ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
+    if args.ngpu == 1:
         device = "cuda"
     else:
         device = "cpu"
+    dtype = getattr(torch, args.dtype)
+    logging.info(f"Decoding device={device}, dtype={dtype}")
+    model.to(device=device, dtype=dtype).eval()
+    beam_search.to(device=device, dtype=dtype).eval()
 
     # read json data
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
     new_js = {}
-
     with torch.no_grad():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
             feat = load_inputs_and_targets(batch)[0][0]
-            enc = model.encode(torch.as_tensor(feat).to(device))
-            nbest_hyps = beam_search(
-                x=enc,
-                sos=model.sos,
-                eos=model.eos,
-                beam_size=args.beam_size,
-                weights=weights,
-                scorers=scorers,
-                token_list=train_args.char_list,
-                maxlenratio=args.maxlenratio,
-                minlenratio=args.minlenratio)
-            nbest_hyps = nbest_hyps[:min(len(nbest_hyps), args.nbest)]
+            enc = model.encode(torch.as_tensor(feat).to(device=device, dtype=dtype))
+            nbest_hyps = beam_search(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
+            nbest_hyps = [h.asdict() for h in nbest_hyps[:min(len(nbest_hyps), args.nbest)]]
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     with open(args.result_label, 'wb') as f:

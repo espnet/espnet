@@ -30,6 +30,8 @@ def get_parser():
 
     parser.add_argument('--ngpu', type=int, default=0,
                         help='Number of GPUs')
+    parser.add_argument('--dtype', choices=("float16", "float32", "float64"), default="float32",
+                        help='Float precision (only available in --api v2)')
     parser.add_argument('--backend', type=str, default='chainer',
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -163,6 +165,8 @@ def main(args):
                 recog_v2(args)
                 return
             from espnet.asr.pytorch_backend.asr import recog
+            if args.dtype != "float32":
+                raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
             recog(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")

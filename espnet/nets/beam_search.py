@@ -1,3 +1,4 @@
+from itertools import chain
 import logging
 from typing import Any
 from typing import Dict
@@ -10,33 +11,6 @@ import torch
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.scorer_interface import PartialScorerInterface
 from espnet.nets.scorer_interface import ScorerInterface
-
-
-def pair_weighted_scorers(scorers: Dict[str, ScorerInterface], weights: Dict[str, float]) \
-        -> Tuple[Dict[str, Tuple[ScorerInterface, float]],
-                 Dict[str, Tuple[PartialScorerInterface, float]]]:
-    """Filter invalid weights (== 0) and scorers (is None) and make pairs of them
-
-    Args:
-        scorers (dict): Dictionary of scorers
-        weights (dict): Dictionary of weights
-
-    Returns:
-        tuple: Pair of non-partial scorer-weight pair dictionary and
-            partial scorer-weight pair dictionary
-    """
-    full_scr_weights = dict()
-    part_scr_weights = dict()
-    for k, v in scorers.items():
-        w = weights.get(k, 0)
-        if w == 0 or v is None:
-            continue
-        assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
-        if isinstance(v, PartialScorerInterface):
-            part_scr_weights[k] = (v, w)
-        else:
-            full_scr_weights[k] = (v, w)
-    return full_scr_weights, part_scr_weights
 
 
 class Hypothesis(NamedTuple):
@@ -59,8 +33,10 @@ class BeamSearch(torch.nn.Module):
     """Beam search implementation class
 
     Args:
-        scorers (dict[str, ScorerInterface]): list of decoder modules
-        weights (dict[str, float]): List of score weights for each decoders
+        scorers (dict[str, ScorerInterface]): Dict of decoder modules e.g., Decoder, CTCPrefixScorer, LM
+            The scorer will be ignored if it is `None`
+        weights (dict[str, float]): Dict of weights for each scorers
+            The scorer will be ignored if its weight is 0
         beam_size (int): The number of hypotheses kept during search
         sos (int): Start of sequence id
         eos (int): End of sequence id
@@ -74,7 +50,22 @@ class BeamSearch(torch.nn.Module):
                  pre_beam_ratio: float = 1.5, pre_beam_score: str = "decoder"):
         super().__init__()
         # set scorers
-        self.full_scorers, self.part_scorers = pair_weighted_scorers(scorers, weights)
+        self.weights = weights
+        self.full_scorers = dict()
+        self.part_scorers = dict()
+        self.nn_dict = torch.nn.ModuleDict()
+        for k, v in scorers.items():
+            w = weights.get(k, 0)
+            if w == 0 or v is None:
+                continue
+            assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
+            if isinstance(v, PartialScorerInterface):
+                self.part_scorers[k] = v
+            else:
+                self.full_scorers[k] = v
+            if isinstance(v, torch.nn.Module):
+                self.nn_dict[k] = v
+
         # set configurations
         self.sos = sos
         self.eos = eos
@@ -86,10 +77,9 @@ class BeamSearch(torch.nn.Module):
     def init_hyp(self, x: torch.Tensor) -> Hypothesis:
         init_states = dict()
         init_scores = dict()
-        for scorers in (self.full_scorers, self.part_scorers):
-            for k, (d, w) in scorers.items():
-                init_states[k] = d.init_state(x)
-                init_scores[k] = 0.0
+        for k, d in chain(self.full_scorers.items(), self.part_scorers.items()):
+            init_states[k] = d.init_state(x)
+            init_scores[k] = 0.0
         return Hypothesis(
             score=0.0, scores=init_scores, states=init_states,
             yseq=torch.tensor([self.sos], device=x.device))
@@ -102,7 +92,7 @@ class BeamSearch(torch.nn.Module):
     def score(self, hyp: Hypothesis, x: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         scores = dict()
         states = dict()
-        for k, (d, w) in self.full_scorers.items():
+        for k, d in self.full_scorers.items():
             scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
         return scores, states
 
@@ -110,7 +100,7 @@ class BeamSearch(torch.nn.Module):
             -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         scores = dict()
         states = dict()
-        for k, (d, w) in self.part_scorers.items():
+        for k, d in self.part_scorers.items():
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
@@ -125,10 +115,10 @@ class BeamSearch(torch.nn.Module):
                             part_scores: Dict[str, torch.Tensor], ids: torch.Tensor) -> torch.Tensor:
         # sum weighted scores
         weighted_scores = 0
-        for k, (d, w) in self.full_scorers.items():
-            weighted_scores += w * scores[k]
-        for k, (d, w) in self.part_scorers.items():
-            weighted_scores[ids] += w * part_scores[k]
+        for k in self.full_scorers:
+            weighted_scores += self.weights[k] * scores[k]
+        for k in self.part_scorers:
+            weighted_scores[ids] += self.weights[k] * part_scores[k]
         weighted_scores += last_score
         return weighted_scores
 
@@ -161,7 +151,7 @@ class BeamSearch(torch.nn.Module):
         new_states = dict()
         for k, v in states.items():
             new_states[k] = v
-        for k, (d, w) in self.part_scorers.items():
+        for k, d in self.part_scorers.items():
             new_states[k] = d.select_state(part_states[k], local_j)
         return new_states
 
@@ -242,11 +232,10 @@ class BeamSearch(torch.nn.Module):
         for hyp in running_hyps:
             if hyp.yseq[-1] == self.eos:
                 # e.g., Word LM needs to add final <eos> score
-                for scorers in (self.full_scorers, self.part_scorers):
-                    for k, (d, w) in scorers.items():
-                        s = d.final_score(hyp.states[k])
-                        hyp.scores[k] += s
-                        hyp = hyp._replace(score=hyp.score + w * s)
+                for k, d in chain(self.full_scorers.items(), self.part_scorers.items()):
+                    s = d.final_score(hyp.states[k])
+                    hyp.scores[k] += s
+                    hyp = hyp._replace(score=hyp.score + self.weights[k] * s)
                 ended_hyps.append(hyp)
             else:
                 remained_hyps.append(hyp)
@@ -270,8 +259,10 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int,
         sos (int): Start of sequence id
         eos (int): End of sequence id
         beam_size (int): The number of hypotheses kept during search
-        scorers (dict[str, ScorerInterface]): list of decoder modules
-        weights (dict[str, float]): List of score weights for each decoders
+        scorers (dict[str, ScorerInterface]): Dict of decoder modules e.g., Decoder, CTCPrefixScorer, LM
+            The scorer will be ignored if it is `None`
+        weights (dict[str, float]): Dict of weights for each scorers
+            The scorer will be ignored if its weight is 0
         token_list (list[str]): List of tokens for debug log
         maxlenratio (float): Input length ratio to obtain max output length.
             If maxlenratio=0.0 (default), it uses a end-detect function
