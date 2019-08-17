@@ -87,7 +87,7 @@ def recog_v2(args):
                 eos=model.eos,
                 beam_size=args.beam_size,
                 weights=weights,
-                decoders=scorers,
+                scorers=scorers,
                 token_list=train_args.char_list,
                 maxlenratio=args.maxlenratio,
                 minlenratio=args.minlenratio)

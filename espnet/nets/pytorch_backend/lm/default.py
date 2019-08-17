@@ -1,5 +1,3 @@
-"""Legacy LM Modules"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +7,7 @@ from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 
 class DefaultRNNLM(LMInterface, nn.Module):
-    """Legacy RNNLM wrapper to compute reduce framewise loss values
+    """Default RNNLM for `LMInterface` Implementation
 
     Args:
         n_vocab (int): The size of the vocabulary
