@@ -101,6 +101,7 @@ def test_lm_trainable_and_decodable(lm_name, lm_args):
             sos=model.sos,
             eos=model.eos,
             beam_size=beam_size,
+            vocab_size=len(train_args.char_list),
             weights=weights,
             scorers=scorers,
             token_list=train_args.char_list

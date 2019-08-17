@@ -104,53 +104,22 @@ def prepare(E2E, args, mtlalpha=0.0):
 
 
 @pytest.mark.parametrize(
-    "model_class, args, ctc, device, dtype",
-    [
-        # NOTE(karita) CPU float16 conv2d is no implemented in pytorch 1.0
-        # ("transformer", transformer_args, 0.0, "cpu", "float16"),
-        # ("transformer", transformer_args, 0.5, "cpu", "float16"),
-        # ("transformer", transformer_args, 1.0, "cpu", "float16"),
-        ("transformer", transformer_args, 0.0, "cpu", "float32"),
-        ("transformer", transformer_args, 0.5, "cpu", "float32"),
-        ("transformer", transformer_args, 1.0, "cpu", "float32"),
-        ("transformer", transformer_args, 0.0, "cpu", "float64"),
-        ("transformer", transformer_args, 0.5, "cpu", "float64"),
-        ("transformer", transformer_args, 1.0, "cpu", "float64"),
-        ("transformer", transformer_args, 0.0, "cuda", "float16"),
-        ("transformer", transformer_args, 0.5, "cuda", "float16"),
-        ("transformer", transformer_args, 1.0, "cuda", "float16"),
-        ("transformer", transformer_args, 0.0, "cuda", "float32"),
-        ("transformer", transformer_args, 0.5, "cuda", "float32"),
-        ("transformer", transformer_args, 1.0, "cuda", "float32"),
-        ("transformer", transformer_args, 0.0, "cuda", "float64"),
-        ("transformer", transformer_args, 0.5, "cuda", "float64"),
-        ("transformer", transformer_args, 1.0, "cuda", "float64"),
-        # ("rnn", rnn_args, 0.0, "cpu", "float16"),
-        # ("rnn", rnn_args, 0.5, "cpu", "float16"),
-        # ("rnn", rnn_args, 1.0, "cpu", "float16"),
-        ("rnn", rnn_args, 0.0, "cpu", "float32"),
-        ("rnn", rnn_args, 0.5, "cpu", "float32"),
-        ("rnn", rnn_args, 1.0, "cpu", "float32"),
-        ("rnn", rnn_args, 0.0, "cpu", "float64"),
-        ("rnn", rnn_args, 0.5, "cpu", "float64"),
-        ("rnn", rnn_args, 1.0, "cpu", "float64"),
-        ("rnn", rnn_args, 0.0, "cuda", "float16"),
-        ("rnn", rnn_args, 0.5, "cuda", "float16"),
-        ("rnn", rnn_args, 1.0, "cuda", "float16"),
-        ("rnn", rnn_args, 0.0, "cuda", "float32"),
-        ("rnn", rnn_args, 0.5, "cuda", "float32"),
-        ("rnn", rnn_args, 1.0, "cuda", "float32"),
-        ("rnn", rnn_args, 0.0, "cuda", "float64"),
-        ("rnn", rnn_args, 0.5, "cuda", "float64"),
-        ("rnn", rnn_args, 1.0, "cuda", "float64"),
-    ]
+    "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
+    # NOTE(karita) CPU float16 conv2d is no implemented in pytorch 1.0
+    [(nn, args, ctc, lm, bonus, device, dtype)
+     for device in ("cpu", "cuda")
+     for nn, args in (("transformer", transformer_args), ("rnn", rnn_args))
+     for ctc in (0.0, 0.5, 1.0)
+     for lm in (0.0, 0.5)
+     for bonus in (0.0, 0.1)
+     for dtype in ("float32", "float64")]
 )
-def test_beam_search_equal(model_class, args, ctc, device, dtype):
+def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):
     dtype = getattr(torch, dtype)
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
 
-    model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc)
+    model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc_weight)
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
@@ -160,10 +129,10 @@ def test_beam_search_equal(model_class, args, ctc, device, dtype):
     # test previous beam search
     args = Namespace(
         beam_size=3,
-        penalty=0.1,
-        ctc_weight=ctc,
+        penalty=bonus,
+        ctc_weight=ctc_weight,
         maxlenratio=0,
-        lm_weight=0.5,
+        lm_weight=lm_weight,
         minlenratio=0,
         nbest=2
     )
@@ -174,13 +143,15 @@ def test_beam_search_equal(model_class, args, ctc, device, dtype):
 
     # test new beam search
     scorers = model.scorers()
-    scorers["lm"] = lm
+    if lm_weight != 0:
+        scorers["lm"] = lm
     scorers["length_bonus"] = LengthBonus(len(char_list))
-    weights = dict(decoder=1.0 - ctc, ctc=ctc, lm=args.lm_weight, length_bonus=args.penalty)
+    weights = dict(decoder=1.0 - ctc_weight, ctc=ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
     model.to(device, dtype=dtype)
     model.eval()
     beam = BeamSearch(
         beam_size=args.beam_size,
+        vocab_size=len(char_list),
         weights=weights,
         scorers=scorers,
         token_list=train_args.char_list,
