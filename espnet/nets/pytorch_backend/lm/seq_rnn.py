@@ -80,12 +80,13 @@ class SequentialRNNLM(LMInterface, torch.nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def forward(self, x, t):
-        mask = (x != 0)
         y = self.before_loss(x, None)[0]
-        y = y * mask.float().unsqueeze(-1)
-        loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1))
-        count = mask.sum().int()
-        return loss, count
+        mask = (x != 0).to(y.dtype)
+        loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
+        logp = loss * mask.view(-1)
+        logp = logp.sum()
+        count = mask.sum()
+        return logp / count, logp, count
 
     def before_loss(self, input, hidden):
         emb = self.drop(self.encoder(input))
