@@ -12,7 +12,6 @@ import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.scorers.length_bonus import LengthBonus
 
 from test.test_beam_search import prepare
-from test.test_beam_search import RNN
 from test.test_beam_search import rnn_args
 
 
@@ -73,7 +72,7 @@ def test_lm():
         ("seq_rnn", Namespace(type="gru", layer=1, unit=2, dropout_rate=0.5)),
     ])
 def test_lm_trainable_and_decodable(lm_name, lm_args):
-    model, x, ilens, y, data, train_args = prepare(RNN, rnn_args)
+    model, x, ilens, y, data, train_args = prepare("rnn", rnn_args)
     model.eval()
     char_list = train_args.char_list
     n_vocab = len(char_list)
