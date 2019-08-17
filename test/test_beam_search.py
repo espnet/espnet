@@ -104,15 +104,23 @@ def prepare(E2E, args, mtlalpha=0.0):
     return model, x, torch.tensor(ilens), y, data, args
 
 
-@pytest.mark.parametrize(
-    "model_class, args, ctc",
-    [(Transformer, transformer_args, 0.0),
-     (Transformer, transformer_args, 0.5),
-     (Transformer, transformer_args, 1.0),
-     (RNN, rnn_args, 0.0),
-     (RNN, rnn_args, 0.5),
-     (RNN, rnn_args, 1.0)])
-def test_beam_search_equal(model_class, args, ctc):
+beam_search_cases = [
+    (*x, device)for device in ("cpu", "cuda") for x in [
+        (Transformer, transformer_args, 0.0),
+        (Transformer, transformer_args, 0.5),
+        (Transformer, transformer_args, 1.0),
+        (RNN, rnn_args, 0.0),
+        (RNN, rnn_args, 0.5),
+        (RNN, rnn_args, 1.0)
+    ]
+]
+
+
+@pytest.mark.parametrize("model_class, args, ctc, device", beam_search_cases)
+def test_beam_search_equal(model_class, args, ctc, device):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("no cuda device is available")
+
     model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc)
     model.eval()
     char_list = train_args.char_list
@@ -143,8 +151,12 @@ def test_beam_search_equal(model_class, args, ctc):
     scorers["lm"] = lm
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0 - ctc, ctc=ctc, lm=args.lm_weight, length_bonus=args.penalty)
+    model.to(device)
+    for s in scorers.values():
+        if isinstance(s, torch.nn.Module):
+            s.to(device)
     with torch.no_grad():
-        enc = model.encode(feat)
+        enc = model.encode(torch.as_tensor(feat).to(device))
         nbest_bs = beam_search(
             x=enc,
             sos=model.sos,

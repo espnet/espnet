@@ -22,4 +22,4 @@ class LengthBonus(ScorerInterface):
                 torch.float32 scores for y (B)
                 and next state for ys
         """
-        return torch.tensor([1.0]).expand(self.n), None
+        return torch.tensor([1.0], device=y.device).expand(self.n), None
