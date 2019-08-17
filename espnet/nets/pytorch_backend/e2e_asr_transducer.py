@@ -90,8 +90,6 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Number of decoder hidden units')
         group.add_argument('--dropout-rate-decoder', default=0.0, type=float,
                            help='Dropout rate for the decoder')
-        group.add_argument('--sampling-probability', default=0.0, type=float,
-                           help='Ratio of predicted labels fed back to decoder')
         # prediction
         group.add_argument('--dec-embed-dim', default=320, type=int,
                            help='Number of decoder embeddings dimensions')
