@@ -95,14 +95,12 @@ class BPTTUpdater(training.StandardUpdater):
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-        loss, count = self.model(x, t)
-        loss = loss.sum()
-        count = count.sum()
-        reporter.report({'loss': float(loss.detach() / count)}, optimizer.target)
-        reporter.report({'count': int(count)}, optimizer.target)
+        loss, logp, count = self.model(x, t)
+        reporter.report({'loss': float(logp.sum())}, optimizer.target)
+        reporter.report({'count': int(count.sum())}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
-        loss.backward()  # Backprop
+        loss.mean().backward()  # Backprop
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
@@ -125,18 +123,20 @@ class LMEvaluator(BaseEvaluator):
 
     def evaluate(self):
         val_iter = self.get_iterator('main')
-        loss = 0
+        logp = 0
         count = 0
         self.model.eval()
         with torch.no_grad():
             for batch in copy.copy(val_iter):
                 x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-                loss, count = self.model(x, t)
+                _, l, c = self.model(x, t)
+                logp += float(l.sum())
+                count += int(c.sum())
         self.model.train()
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss.sum() / count.sum())}, self.model.reporter)
+            reporter.report({'loss': logp / count}, self.model.reporter)
         return observation
 
 

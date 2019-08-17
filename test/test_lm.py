@@ -82,8 +82,7 @@ def test_lm_trainable_and_decodable(lm_name, lm_args):
     # test trainable
     a = torch.randint(1, n_vocab, (3, 2))
     b = torch.randint(1, n_vocab, (3, 2))
-    loss, count = lm(a, b)
-    loss = loss / count
+    loss, logp, count = lm(a, b)
     loss.backward()
     for p in lm.parameters():
         assert p.grad is not None

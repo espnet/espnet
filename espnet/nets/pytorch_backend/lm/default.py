@@ -42,28 +42,21 @@ class DefaultRNNLM(LMInterface, nn.Module):
         self.model.load_state_dict(d)
 
     def forward(self, x, t):
-        """Compute LM loss value from buffer sequences
-
-        Args:
-            x (torch.Tensor): Input ids. (batch, len)
-            t (torch.Tensor): Target ids. (batch, len)
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor]: Tuple of
-                the reduced loss value along time (scalar)
-                and the number of valid loss values (scalar)
-        """
         loss = 0
+        logp = 0
         count = torch.tensor(0).long()
         state = None
         batch_size, sequence_length = x.shape
         for i in range(sequence_length):
             # Compute the loss at this time step and accumulate idt
             state, loss_batch = self.model(state, x[:, i], t[:, i])
-            non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
-            loss += loss_batch * non_zeros
+            non_zeros = torch.sum(x[:, i] != 0, dtype=loss_batch.dtype)
+            loss += loss_batch.mean() * non_zeros
+            logp_i = torch.sum(loss_batch * non_zeros)
+            logp += logp_i
+            loss += loss_batch.mean() * non_zeros
             count += int(non_zeros)
-        return loss, count.to(loss.device)
+        return loss, logp, count.to(loss.device)
 
     def score(self, y, state, x):
         new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))
@@ -82,7 +75,7 @@ class ClassifierWithState(nn.Module):
     """
 
     def __init__(self, predictor,
-                 lossfun=F.cross_entropy,
+                 lossfun=nn.CrossEntropyLoss(reduction="none"),
                  label_key=-1):
         if not (isinstance(label_key, (int, str))):
             raise TypeError('label_key must be int or str, but is %s' %

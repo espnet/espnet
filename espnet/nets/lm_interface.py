@@ -10,16 +10,20 @@ class LMInterface(ScorerInterface):
         return parser
 
     def forward(self, x, t):
-        """Compute LM training loss value for sequences
+        """Compute LM loss value from buffer sequences
 
         Args:
-            x (torch.Tensor): Input ids of torch.int64. (batch, len)
-            t (torch.Tensor): Target ids of torch.int64. (batch, len)
+            x (torch.Tensor): Input ids. (batch, len)
+            t (torch.Tensor): Target ids. (batch, len)
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: Tuple of
-                the reduced loss value along time (scalar)
-                and the number of valid loss values (scalar)
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: $-\log p(t)$ (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: $p(t)^{-n} = exp(-\log p(t) / n)$
         """
         raise NotImplementedError("forward method is not implemented")
 
@@ -28,6 +32,7 @@ predefined_lms = {
     "pytorch": {
         "default": "espnet.nets.pytorch_backend.lm.default:DefaultRNNLM",
         "seq_rnn": "espnet.nets.pytorch_backend.lm.seq_rnn:SequentialRNNLM",
+        "transformer": "espnet.nets.pytorch_backend.lm.transformer:TransformerLM",
     },
     "chainer": {
         "default": "espnet.lm.chainer_backend.lm:DefaultRNNLM"
