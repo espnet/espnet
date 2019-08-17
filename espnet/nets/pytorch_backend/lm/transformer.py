@@ -11,6 +11,12 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class TransformerLM(nn.Module, LMInterface):
+    """Transformer language model
+
+    Args:
+        n_vocab (int): The size of the vocabulary
+        args (argparse.Namespace): configurations. see `add_arguments`
+    """
 
     @staticmethod
     def add_arguments(parser):

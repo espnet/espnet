@@ -48,15 +48,13 @@ class DefaultRNNLM(LMInterface, nn.Module):
         state = None
         batch_size, sequence_length = x.shape
         for i in range(sequence_length):
-            # Compute the loss at this time step and accumulate idt
+            # Compute the loss at this time step and accumulate it
             state, loss_batch = self.model(state, x[:, i], t[:, i])
             non_zeros = torch.sum(x[:, i] != 0, dtype=loss_batch.dtype)
             loss += loss_batch.mean() * non_zeros
-            logp_i = torch.sum(loss_batch * non_zeros)
-            logp += logp_i
-            loss += loss_batch.mean() * non_zeros
+            logp += torch.sum(loss_batch * non_zeros)
             count += int(non_zeros)
-        return loss, logp, count.to(loss.device)
+        return loss / batch_size, loss, count.to(loss.device)
 
     def score(self, y, state, x):
         new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))

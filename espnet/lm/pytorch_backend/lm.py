@@ -96,6 +96,7 @@ class BPTTUpdater(training.StandardUpdater):
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
         loss, logp, count = self.model(x, t)
+        reporter.report({'train_loss': float(loss.mean())}, optimizer.target)
         reporter.report({'loss': float(logp.sum())}, optimizer.target)
         reporter.report({'count': int(count.sum())}, optimizer.target)
         # update
@@ -213,7 +214,7 @@ def train(args, model_class):
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
+        ['epoch', 'iteration', 'main/train_loss', 'perplexity', 'val_perplexity', 'elapsed_time']
     ), trigger=(args.report_interval_iters, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     # Save best models
