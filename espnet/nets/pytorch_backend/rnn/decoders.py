@@ -715,33 +715,34 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 new_state.append(rnnlm_state[int(i)][:])
         return new_state
 
-    # decoder interface methods
+    # scorer interface methods
     def init_state(self, x):
-        self.c_list = [self.zero_state(x.unsqueeze(0))]
-        self.z_list = [self.zero_state(x.unsqueeze(0))]
+        c_list = [self.zero_state(x.unsqueeze(0))]
+        z_list = [self.zero_state(x.unsqueeze(0))]
         for _ in six.moves.range(1, self.dlayers):
-            self.c_list.append(self.zero_state(x.unsqueeze(0)))
-            self.z_list.append(self.zero_state(x.unsqueeze(0)))
-        # TODO(karita): what is this?
-        self.att_idx = min(0, len(self.att) - 1)
-        self.att[self.att_idx].reset()  # reset pre-computation of h
-        return dict(c_prev=self.c_list[:], z_prev=self.z_list[:], a_prev=None)
+            c_list.append(self.zero_state(x.unsqueeze(0)))
+            z_list.append(self.zero_state(x.unsqueeze(0)))
+        # TODO(karita): support strm_index for `asr_mix`
+        strm_index = 0
+        att_idx = min(strm_index, len(self.att) - 1)
+        self.att[att_idx].reset()  # reset pre-computation of h
+        return dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=None, workspace=(att_idx, z_list, c_list))
 
     def score(self, yseq, state, x):
+        att_idx, z_list, c_list = state["workspace"]
         vy = yseq[-1].unsqueeze(0)
         ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
-        att_c, att_w = self.att[self.att_idx](
+        att_c, att_w = self.att[att_idx](
             x.unsqueeze(0), [x.size(0)],
             self.dropout_dec[0](state['z_prev'][0]), state['a_prev'])
         ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
-        self.z_list, self.c_list = self.rnn_forward(ey, self.z_list, self.c_list, state['z_prev'], state['c_prev'])
-        # get nbest local scores and their ids
+        z_list, c_list = self.rnn_forward(ey, z_list, c_list, state['z_prev'], state['c_prev'])
         if self.context_residual:
-            logits = self.output(torch.cat((self.dropout_dec[-1](self.z_list[-1]), att_c), dim=-1))
+            logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
         else:
-            logits = self.output(self.dropout_dec[-1](self.z_list[-1]))
+            logits = self.output(self.dropout_dec[-1](z_list[-1]))
         logp = F.log_softmax(logits, dim=1).squeeze(0)
-        return logp, dict(c_prev=self.c_list[:], z_prev=self.z_list[:], a_prev=att_w)
+        return logp, dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=att_w, workspace=(att_idx, z_list, c_list))
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
