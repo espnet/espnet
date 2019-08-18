@@ -70,13 +70,14 @@ set -o pipefail
 
 train_set=train.en
 train_dev=val.en
-recog_set="dev5.en"
+recog_set="dev5.en test_set_iwslt2019.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     local/data_prep.sh ${how2}
+    local/data_prep_test.sh
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
