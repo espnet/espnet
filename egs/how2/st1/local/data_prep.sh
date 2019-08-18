@@ -19,9 +19,6 @@ for set in train val dev5; do
 
     [ ! -d ${src} ] && echo "$0: no such directory ${src}" && exit 1;
 
-    mkdir -p ${dst} || exit 1;
-
-    wav_scp=${dst}/wav.scp; [[ -f "${wav_scp}" ]] && rm ${wav_scp}
     trans_en=${dst}/text.id.en; [[ -f "${trans_en}" ]] && rm ${trans_en}
     trans_pt=${dst}/text.id.pt; [[ -f "${trans_pt}" ]] && rm ${trans_pt}
     utt2spk=${dst}/utt2spk; [[ -f "${utt2spk}" ]] && rm ${utt2spk}
@@ -93,6 +90,7 @@ for set in train val dev5; do
     for f in spk2utt utt2spk feats.scp; do
         cp ${dst}/${f} data/${set}/${f}
     done
+    # NOTE: do not copy segments to pass utils/validate_data_dir.sh
     # en
     cp ${dst}/text.tc.en data/${set}/text.tc.en
     cp ${dst}/text.lc.en data/${set}/text.lc.en
