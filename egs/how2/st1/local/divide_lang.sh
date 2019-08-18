@@ -16,7 +16,7 @@ set=$1
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
 # for En
 mkdir -p data/${set}.en
-for f in spk2utt utt2spk segments feats.scp; do
+for f in spk2utt utt2spk feats.scp; do
     if [ -f data/${set}/${f} ]; then
         sort data/${set}/${f} > data/${set}.en/${f}
     fi
@@ -29,15 +29,17 @@ utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}
 utils/validate_data_dir.sh --no-wav data/${set}.en || exit 1;
 
 # for Pt
-mkdir -p data/${set}.pt
-for f in spk2utt utt2spk segments feats.scp; do
-    if [ -f data/${set}/${f} ]; then
-        sort data/${set}/${f} > data/${set}.pt/${f}
-    fi
-done
-sort data/${set}/text.tc.pt > data/${set}.pt/text  # dummy
-sort data/${set}/text.tc.pt > data/${set}.pt/text.tc
-sort data/${set}/text.lc.pt > data/${set}.pt/text.lc
-sort data/${set}/text.lc.rm.pt > data/${set}.pt/text.lc.rm
-utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}.pt
-utils/validate_data_dir.sh --no-wav data/${set}.pt || exit 1;
+if [ ! ${set} = test_set_iwslt2019 ]; then
+    mkdir -p data/${set}.pt
+    for f in spk2utt utt2spk feats.scp; do
+        if [ -f data/${set}/${f} ]; then
+            sort data/${set}/${f} > data/${set}.pt/${f}
+        fi
+    done
+    sort data/${set}/text.tc.pt > data/${set}.pt/text  # dummy
+    sort data/${set}/text.tc.pt > data/${set}.pt/text.tc
+    sort data/${set}/text.lc.pt > data/${set}.pt/text.lc
+    sort data/${set}/text.lc.rm.pt > data/${set}.pt/text.lc.rm
+    utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}.pt
+    utils/validate_data_dir.sh --no-wav data/${set}.pt || exit 1;
+fi
