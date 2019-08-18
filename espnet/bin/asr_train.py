@@ -172,7 +172,17 @@ def get_parser():
     parser.add_argument('--replace-sos', default=False, nargs='?',
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
-
+    # finetuning related
+    parser.add_argument('--enc-init', default=None, type=str,
+                        help='Pre-trained ASR model to initialize encoder.')
+    parser.add_argument('--enc-init-mods', default='enc.enc.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of encoder modules to initialize, separated by a comma.')
+    parser.add_argument('--dec-init', default=None, type=str,
+                        help='Pre-trained ASR, MT or LM model to initialize decoder.')
+    parser.add_argument('--dec-init-mods', default='att., dec.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of decoder modules to initialize, separated by a comma.')
     # front end related
     parser.add_argument('--use-frontend', type=strtobool, default=False,
                         help='The flag to switch to use frontend system.')
