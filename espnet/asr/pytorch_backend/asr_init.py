@@ -96,7 +96,7 @@ def get_trained_lm_state_dict(model_state_dict, modules):
 
 
 def filter_modules(model_state_dict, modules):
-    """Filter non-matched modules in module_state_dict 
+    """Filter non-matched modules in module_state_dict
 
     Args:
         model_state_dict (odict): trained model state_dict
