@@ -63,5 +63,10 @@ cd tools && git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
 pip install . && cd ../..
 
+# install warp-transducer
+git clone https://github.com/HawkAaron/warp-transducer.git
+cd warp-transducer && mkdir build && cd build && cmake .. && make && cd ..
+cd pytorch_binding && python setup.py install && cd ../..
+
 # log
 pip freeze
