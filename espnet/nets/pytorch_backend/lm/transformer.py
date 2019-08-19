@@ -1,3 +1,5 @@
+"""Transformer language model."""
+
 from typing import Any
 from typing import Tuple
 
@@ -11,15 +13,11 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class TransformerLM(nn.Module, LMInterface):
-    """Transformer language model
-
-    Args:
-        n_vocab (int): The size of the vocabulary
-        args (argparse.Namespace): configurations. see `add_arguments`
-    """
+    """Transformer language model."""
 
     @staticmethod
     def add_arguments(parser):
+        """Add arguments to command line argument parser."""
         parser.add_argument('--layer', type=int, default=4,
                             help='Number of hidden layers')
         parser.add_argument('--unit', type=int, default=1024,
@@ -33,6 +31,13 @@ class TransformerLM(nn.Module, LMInterface):
         return parser
 
     def __init__(self, n_vocab, args):
+        """Initialize class.
+
+        Args:
+            n_vocab (int): The size of the vocabulary
+            args (argparse.Namespace): configurations. see py:method:`add_arguments`
+
+        """
         nn.Module.__init__(self)
         self.model_type = 'Transformer'
         self.src_mask = None
@@ -42,14 +47,30 @@ class TransformerLM(nn.Module, LMInterface):
             input_layer="embed")
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
-    def target_mask(self, ys_in_pad):
+    def _target_mask(self, ys_in_pad):
         ys_mask = ys_in_pad != 0
         m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
         return ys_mask.unsqueeze(-2) & m
 
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute LM loss value from buffer sequences.
+
+        Args:
+            x (torch.Tensor): Input ids. (batch, len)
+            t (torch.Tensor): Target ids. (batch, len)
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: -log p(t) (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+
+        """
         xm = (x != 0)
-        h, _ = self.encoder(x, self.target_mask(x))
+        h, _ = self.encoder(x, self._target_mask(x))
         y = self.decoder(h)
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         mask = xm.to(dtype=loss.dtype)
@@ -59,8 +80,21 @@ class TransformerLM(nn.Module, LMInterface):
         return logp / count, logp, count
 
     def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
+        """Score new token.
+
+        Args:
+            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            state: Scorer state for prefix tokens
+            x (torch.Tensor): encoder feature that generates ys.
+
+        Returns:
+            tuple[torch.Tensor, Any]: Tuple of
+                torch.float32 scores for next token (n_vocab)
+                and next state for ys
+
+        """
         y = y.unsqueeze(0)
-        h, _ = self.encoder(y, self.target_mask(y))
+        h, _ = self.encoder(y, self._target_mask(y))
         h = self.decoder(h)[:, -1]
         logp = h.log_softmax(dim=-1).squeeze(0)
         return logp, None

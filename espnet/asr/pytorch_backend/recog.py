@@ -1,3 +1,5 @@
+"""V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
+
 import json
 import logging
 
@@ -16,12 +18,14 @@ from espnet.utils.io_utils import LoadInputsAndTargets
 
 
 def recog_v2(args):
-    """New asr_recog.py backend to decode with custom models that implements ScorerInterface.
+    """Decode with custom models that implements ScorerInterface.
 
-    Notes: the previous backend espnet.asr.pytorch_backend.asr.recog only supports E2E and RNNLM
+    Notes:
+        The previous backend espnet.asr.pytorch_backend.asr.recog only supports E2E and RNNLM
 
     Args:
-        args (namespace): The program arguments. See espnet.bin.asr_recog.get_parser for details
+        args (namespace): The program arguments. See py:func:`espnet.bin.asr_recog.get_parser` for details
+
     """
     logging.warning("experimental API for custom LMs is selected by --api v2")
     if args.batchsize > 1:

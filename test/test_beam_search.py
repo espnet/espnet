@@ -143,6 +143,9 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     )
 
     feat = x[0, :ilens[0]].numpy()
+    # legacy beam search
+    with torch.no_grad():
+        nbest = model.recognize(feat, args, char_list, lm.model)
 
     # new beam search
     scorers = model.scorers()
@@ -169,10 +172,6 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     if dtype != torch.float32:
         # skip because results are different. just checking it is decodable
         return
-
-    # legacy beam search
-    with torch.no_grad():
-        nbest = model.recognize(feat, args, char_list, lm.model)
 
     for i, (expected, actual) in enumerate(zip(nbest, nbest_bs)):
         actual = actual.asdict()

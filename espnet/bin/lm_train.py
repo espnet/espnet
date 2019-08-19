@@ -6,6 +6,8 @@
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
+"""Language model training script."""
+
 from __future__ import division
 from __future__ import print_function
 
@@ -23,6 +25,7 @@ from espnet.nets.lm_interface import dynamic_import_lm
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser."""
     parser = configargparse.ArgumentParser(
         description='Train a new language model on one CPU or one GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -87,6 +90,7 @@ def get_parser():
 
 
 def main(cmd_args):
+    """Train LM."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     # parse model-specific arguments dynamically
