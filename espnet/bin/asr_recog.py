@@ -13,6 +13,8 @@ import sys
 
 import numpy as np
 
+from espnet.utils.cli_utils import strtobool
+
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
@@ -77,6 +79,10 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
+    # transducer related
+    parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
+                        default=True,
+                        help='Normalize transducer scores by length')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')

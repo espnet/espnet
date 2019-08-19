@@ -31,7 +31,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done
 
 extra: nkf.done mecab.done moses.done mwerSegmenter.done pesq
 
@@ -90,6 +90,17 @@ warp-ctc.done: espnet.done
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
+
+warp-transducer.done: espnet.done
+	rm -rf warp-transducer
+	git clone https://github.com/HawkAaron/warp-transducer.git
+	# Note: Requires gcc>=5.0 to build extensions with pytorch>=1.0
+	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
+        . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('5.0'), 'Requires gcc>=5.0'"; \
+	fi
+	. venv/bin/activate; cd warp-transducer && mkdir build && cd build && cmake .. && make; true
+	. venv/bin/activate; cd warp-transducer/pytorch_binding && python setup.py install
+	touch warp-transducer.done
 
 chainer_ctc.done: espnet.done
 	rm -rf chainer_ctc
@@ -165,13 +176,13 @@ PESQ.zip:
 
 
 clean: clean_extra
-	rm -rf kaldi venv warp-ctc chainer_ctc
+	rm -rf kaldi venv warp-ctc warp-transducer chainer_ctc
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc chainer_ctc
+	rm -rf venv warp-ctc warp-transducer chainer_ctc
 	rm -f miniconda.sh
 	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
