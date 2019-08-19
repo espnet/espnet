@@ -8,8 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet.nets.lm_interface import LMInterface
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
