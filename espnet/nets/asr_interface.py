@@ -54,21 +54,23 @@ class ASRInterface(object):
         return PlotAttentionReport
 
     def encode(self, feat):
-        '''encode feature in `beam_search` (optional)
+        '''Encode feature in `beam_search` (optional).
 
         Args:
             x (numpy.ndarray): input feature (T, D)
         Returns:
             torch.Tensor for pytorch, chainer.Variable for chainer:
                 encoded feature (T, D)
+
         '''
         raise NotImplementedError("encode method is not implemented")
 
     def scorers(self):
-        '''get scorers for `beam_search` (optional)
+        '''Get scorers for `beam_search` (optional).
 
         Returns:
             dict[str, ScorerInterface]: dict of `ScorerInterface` objects
+
         '''
         raise NotImplementedError("decoders method is not implemented")
 
@@ -86,7 +88,7 @@ predefined_asr = {
 
 
 def dynamic_import_asr(module, backend):
-    """Dynamic import ASR models
+    """Import ASR models dynamically.
 
     Args:
         module (str): module_name:class_name or alias in `predefined_asr`
@@ -94,6 +96,7 @@ def dynamic_import_asr(module, backend):
 
     Returns:
         type: ASR class
+
     """
     model_class = dynamic_import(module, predefined_asr.get(backend, dict()))
     assert issubclass(model_class, ASRInterface), f"{module} does not implement ASRInterface"

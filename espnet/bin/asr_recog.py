@@ -163,7 +163,6 @@ def main(args):
             if args.api == "v2":
                 from espnet.asr.pytorch_backend.recog import recog_v2
                 recog_v2(args)
-                return
             else:
                 from espnet.asr.pytorch_backend.asr import recog
                 if args.dtype != "float32":
