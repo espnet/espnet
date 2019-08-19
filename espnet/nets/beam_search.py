@@ -42,14 +42,14 @@ class BeamSearch(torch.nn.Module):
         sos (int): Start of sequence id
         eos (int): End of sequence id
         token_list (list[str]): List of tokens for debug log
-        pre_beam_score (str): key of scores to perform pre-beam search
+        pre_beam_score_key (str): key of scores to perform pre-beam search
         pre_beam_ratio (float): beam size in the pre-beam search will be `int(pre_beam_ratio * beam_size)`
     """
 
     def __init__(self, scorers: Dict[str, ScorerInterface], weights: Dict[str, float],
                  beam_size: int, vocab_size: int,
                  sos: int, eos: int, token_list: List[str] = None,
-                 pre_beam_ratio: float = 1.5, pre_beam_score: str = "decoder"):
+                 pre_beam_ratio: float = 1.5, pre_beam_score_key: str = "decoder"):
         super().__init__()
         # set scorers
         self.weights = weights
@@ -75,7 +75,7 @@ class BeamSearch(torch.nn.Module):
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
         self.n_vocab = vocab_size
-        self.pre_beam_score = pre_beam_score
+        self.pre_beam_score_key = pre_beam_score_key
 
     def init_hyp(self, x: torch.Tensor) -> Hypothesis:
         init_states = dict()
@@ -108,8 +108,8 @@ class BeamSearch(torch.nn.Module):
         return scores, states
 
     def pre_beam(self, scores: Dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
-        if self.pre_beam_size < self.n_vocab and self.pre_beam_score in scores:
-            return torch.topk(scores[self.pre_beam_score], self.pre_beam_size)[1]
+        if self.pre_beam_size < self.n_vocab and self.pre_beam_score_key in scores:
+            return torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size)[1]
         else:
             return torch.arange(self.n_vocab, device=device)
 
@@ -254,7 +254,7 @@ class BeamSearch(torch.nn.Module):
 def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size: int,
                 scorers: Dict[str, ScorerInterface], weights: Dict[str, float],
                 token_list: List[str] = None, maxlenratio: float = 0.0, minlenratio: float = 0.0,
-                pre_beam_ratio: float = 1.5, pre_beam_score: str = "decoder") -> list:
+                pre_beam_ratio: float = 1.5, pre_beam_score_key: str = "decoder") -> list:
     """Beam search with scorers
 
     Args:
@@ -272,7 +272,7 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size:
             If maxlenratio=0.0 (default), it uses a end-detect function
             to automatically find maximum hypothesis lengths
         minlenratio (float): Input length ratio to obtain min output length.
-        pre_beam_score (str): key of scores to perform pre-beam search
+        pre_beam_score_key (str): key of scores to perform pre-beam search
         pre_beam_ratio (float): beam size in the pre-beam search will be `int(pre_beam_ratio * beam_size)`
 
     Returns:
@@ -283,7 +283,7 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size:
         beam_size=beam_size,
         vocab_size=vocab_size,
         pre_beam_ratio=pre_beam_ratio,
-        pre_beam_score=pre_beam_score,
+        pre_beam_score_key=pre_beam_score_key,
         sos=sos,
         eos=eos,
         token_list=token_list,
