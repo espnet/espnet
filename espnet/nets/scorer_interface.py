@@ -5,10 +5,24 @@ import torch
 
 
 class ScorerInterface:
-    """Decoder interface for beam search"""
+    """Scorer interface for beam search
+
+    The scorer performs scoring of the all tokens in vocabulary.
+
+    Examples:
+        * Search heuristics
+            * :class:`espnet.nets.scorers.length_bonus.LengthBonus`
+        * Decoder networks of the sequence-to-sequence models
+            * :class:`espnet.nets.pytorch_backend.nets.transformer.decoder.Decoder`
+            * :class:`espnet.nets.pytorch_backend.nets.rnn.decoders.Decoder`
+        * Neural language models
+            * :class:`espnet.nets.pytorch_backend.lm.transformer.TransformerLM`
+            * :class:`espnet.nets.pytorch_backend.lm.default.DefaultRNNLM`
+            * :class:`espnet.nets.pytorch_backend.lm.seq_rnn.SequentialRNNLM`
+    """
 
     def init_state(self, x: torch.Tensor) -> Any:
-        """Initial state for decoding
+        """Initial state for decoding. (optional)
 
         Args:
             x (torch.Tensor): torch.float32 feature tensor (T, D)
@@ -18,12 +32,12 @@ class ScorerInterface:
         return None
 
     def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
-        """Score new token
+        """Score new token (required)
 
         Args:
-            y (torch.Tensor): torch.int64 prefix token (U)
-            state: Decoder state for prefix tokens
-            x (torch.Tensor): Encoder feature that generates ys (T, D)
+            y (torch.Tensor): torch.int64 prefix tokens. Its shape is (U)
+            state: Scorer state for prefix tokens
+            x (torch.Tensor): Encoder feature that generates ys. Its shape is (T, D)
 
         Returns:
             tuple[torch.Tensor, Any]: Tuple of
@@ -33,10 +47,10 @@ class ScorerInterface:
         raise NotImplementedError
 
     def final_score(self, state: Any) -> float:
-        """Score eos (optional)
+        """Score eos. This method is called in the end of hypothesis. (optional)
 
         Args:
-            state: decoder state for prefix tokens
+            state: Scorer state for prefix tokens
 
         Returns:
             float: final score
@@ -50,10 +64,14 @@ class PartialScorerInterface(ScorerInterface):
     The partial scorer performs scoring when non-partial scorer finished scoring,
     and recieves pre-pruned next tokens to score because it is too heavy to score
     all the tokens.
+
+    Examples:
+         * Prefix search for connectionist-temporal-classification models
+             * :class:`espnet.nets.scorers.ctc.CTCPrefixScorer`
     """
 
     def select_state(self, state: Any, i: int) -> Any:
-        """Select state with relative ids in the main beam search
+        """Select state with relative ids in the main beam search (required)
 
         Args:
             state: Decoder state for prefix tokens
@@ -66,7 +84,7 @@ class PartialScorerInterface(ScorerInterface):
 
     def score_partial(self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor) \
             -> Tuple[torch.Tensor, Any]:
-        """Score new token
+        """Score new token (required)
 
         Args:
             y (torch.Tensor): torch.int64 prefix token (U)

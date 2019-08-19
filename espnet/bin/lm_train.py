@@ -148,7 +148,7 @@ def main(cmd_args):
         train(args)
     elif args.backend == "pytorch":
         from espnet.lm.pytorch_backend.lm import train
-        train(args, model_class)
+        train(args)
     else:
         raise ValueError("Only chainer and pytorch are supported.")
 

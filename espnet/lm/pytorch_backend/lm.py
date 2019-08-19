@@ -26,6 +26,7 @@ from espnet.lm.lm_utils import load_dataset
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
+from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
 
 from espnet.asr.asr_utils import snapshot_object
@@ -141,12 +142,13 @@ class LMEvaluator(BaseEvaluator):
         return observation
 
 
-def train(args, model_class):
+def train(args):
     """Train with the given args
 
     :param Namespace args: The program arguments
     :param type model_class: LMInterface class for training
     """
+    model_class = dynamic_import_lm(args.model_module, args.backend)
     assert issubclass(model_class, LMInterface), "model should implement LMInterface"
     # display torch version
     logging.info('torch version = ' + torch.__version__)

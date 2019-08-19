@@ -42,13 +42,14 @@ def recog_v2(args):
         if args.preprocess_conf is None else args.preprocess_conf,
         preprocess_args={'train': False})
 
-    lm = None
     if args.rnnlm:
         lm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         lm_class = dynamic_import_lm(lm_args.model_module, lm_args.backend)
         lm = lm_class(len(train_args.char_list), lm_args)
         torch_load(args.rnnlm, lm)
         lm.eval()
+    else:
+        lm = None
 
     scorers = model.scorers()
     scorers["lm"] = lm

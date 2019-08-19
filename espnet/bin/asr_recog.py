@@ -164,10 +164,11 @@ def main(args):
                 from espnet.asr.pytorch_backend.recog import recog_v2
                 recog_v2(args)
                 return
-            from espnet.asr.pytorch_backend.asr import recog
-            if args.dtype != "float32":
-                raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
-            recog(args)
+            else:
+                from espnet.asr.pytorch_backend.asr import recog
+                if args.dtype != "float32":
+                    raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
+                recog(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     elif args.num_spkrs == 2:
