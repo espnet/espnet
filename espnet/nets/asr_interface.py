@@ -1,3 +1,6 @@
+from espnet.utils.dynamic_import import dynamic_import
+
+
 class ASRInterface(object):
     """ASR Interface for ESPnet model implementation"""
 
@@ -49,3 +52,52 @@ class ASRInterface(object):
     def attention_plot_class(self):
         from espnet.asr.asr_utils import PlotAttentionReport
         return PlotAttentionReport
+
+    def encode(self, feat):
+        '''Encode feature in `beam_search` (optional).
+
+        Args:
+            x (numpy.ndarray): input feature (T, D)
+        Returns:
+            torch.Tensor for pytorch, chainer.Variable for chainer:
+                encoded feature (T, D)
+
+        '''
+        raise NotImplementedError("encode method is not implemented")
+
+    def scorers(self):
+        '''Get scorers for `beam_search` (optional).
+
+        Returns:
+            dict[str, ScorerInterface]: dict of `ScorerInterface` objects
+
+        '''
+        raise NotImplementedError("decoders method is not implemented")
+
+
+predefined_asr = {
+    "pytorch": {
+        "rnn": "espnet.nets.pytorch_backend.e2e_asr:E2E",
+        "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
+    },
+    "chainer": {
+        "rnn": "espnet.nets.chainer_backend.e2e_asr:E2E",
+        "transformer": "espnet.nets.chainer_backend.e2e_asr_transformer:E2E",
+    }
+}
+
+
+def dynamic_import_asr(module, backend):
+    """Import ASR models dynamically.
+
+    Args:
+        module (str): module_name:class_name or alias in `predefined_asr`
+        backend (str): NN backend. e.g., pytorch, chainer
+
+    Returns:
+        type: ASR class
+
+    """
+    model_class = dynamic_import(module, predefined_asr.get(backend, dict()))
+    assert issubclass(model_class, ASRInterface), f"{module} does not implement ASRInterface"
+    return model_class
