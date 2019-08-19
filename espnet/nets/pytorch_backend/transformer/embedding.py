@@ -26,8 +26,8 @@ class PositionalEncoding(torch.nn.Module):
         """Reset the positional encodings."""
         if self.pe is not None:
             if self.pe.size(1) >= x.size(1):
-                if self.pe.dtype != x.dtype and self.pe.device != x.device:
-                    self.pe = self.pe.to(dype=x.dtype, device=x.device)
+                if self.pe.dtype != x.dtype or self.pe.device != x.device:
+                    self.pe = self.pe.to(dtype=x.dtype, device=x.device)
                 return
         pe = torch.zeros(x.size(1), self.d_model)
         position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
