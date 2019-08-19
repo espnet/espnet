@@ -43,7 +43,7 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
     return len_match and module_match
 
 
-def get_trained_asr_mt_state_dict(model_state_dict, modules):
+def get_partial_asr_mt_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
 
     Args:
@@ -63,7 +63,7 @@ def get_trained_asr_mt_state_dict(model_state_dict, modules):
     return new_state_dict
 
 
-def get_trained_lm_state_dict(model_state_dict, modules):
+def get_partial_lm_state_dict(model_state_dict, modules):
     """Create compatible ASR state_dict from model_state_dict (LM).
 
     The keys for specified modules are modified to match ASR decoder modules keys.
@@ -126,7 +126,30 @@ def filter_modules(model_state_dict, modules):
 
 
 def load_trained_model(model_path):
-    """Load the trained model.
+    """Load the trained model for recognition.
+
+    Args:
+        model_path(str): Path to model.***.best
+    """
+
+    idim, odim, train_args = get_model_conf(
+        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
+
+    logging.info('reading model parameters from ' + model_path)
+
+    if hasattr(train_args, "model_module"):
+        model_module = train_args.model_module
+    else:
+        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
+    model_class = dynamic_import(model_module)
+    model = model_class(idim, odim, train_args)
+    torch_load(model_path, model)
+
+    return model, train_args
+
+
+def get_trained_model_state_dict(model_path):
+    """Extract the trained model state dict for pre-initialization.
 
     Args:
         model_path (str): Path to model.***.best
@@ -185,25 +208,26 @@ def load_trained_modules(idim, odim, args):
     logging.info('model(s) found for pre-initialization')
     for model_path, modules in [(enc_model_path, enc_modules),
                                 (dec_model_path, dec_modules)]:
-        if model_path and os.path.isfile(model_path):
-            model_state_dict, mode = load_trained_model(model_path)
+        if model_path:
+            if os.path.isfile(model_path):
+                model_state_dict, mode = get_trained_model_state_dict(model_path)
 
-            modules = filter_modules(model_state_dict, modules)
-            if mode == 'lm':
-                partial_state_dict, modules = get_trained_lm_state_dict(model_state_dict, modules)
-            else:
-                partial_state_dict = get_trained_asr_mt_state_dict(model_state_dict, modules)
-
-            if partial_state_dict:
-                if transfer_verification(main_state_dict, partial_state_dict,
-                                         modules):
-                    logging.info('loading %s from model: %s', modules, model_path)
-                    main_state_dict.update(partial_state_dict)
+                modules = filter_modules(model_state_dict, modules)
+                if mode == 'lm':
+                    partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
                 else:
-                    logging.info('modules %s in model %s don\'t match your training config.',
-                                 modules, model_path)
-        else:
-            logging.info('model was not found : %s', model_path)
+                    partial_state_dict = get_partial_asr_mt_state_dict(model_state_dict, modules)
+
+                    if partial_state_dict:
+                        if transfer_verification(main_state_dict, partial_state_dict,
+                                                 modules):
+                            logging.info('loading %s from model: %s', modules, model_path)
+                            main_state_dict.update(partial_state_dict)
+                        else:
+                            logging.info('modules %s in model %s don\'t match your training config',
+                                         modules, model_path)
+            else:
+                logging.info('model was not found : %s', model_path)
 
     main_model.load_state_dict(main_state_dict)
 
