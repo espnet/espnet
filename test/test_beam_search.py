@@ -105,25 +105,26 @@ def prepare(E2E, args, mtlalpha=0.0):
 
 @pytest.mark.parametrize(
     "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
-    # NOTE(karita) CPU float16 conv2d is no implemented in pytorch 1.0
     [(nn, args, ctc, lm, bonus, device, dtype)
      for device in ("cpu", "cuda")
      for nn, args in (("transformer", transformer_args), ("rnn", rnn_args))
      for ctc in (0.0, 0.5, 1.0)
      for lm in (0.0, 0.5)
      for bonus in (0.0, 0.1)
-     for dtype in ("float32", "float64")]
+     for dtype in ("float16", "float32", "float64")]
 )
 def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("no cuda device is available")
+    if device == "cpu" and dtype == "float16":
+        pytest.skip("cpu float16 implementation is not available in pytorch yet")
+
     # seed setting
     torch.manual_seed(123)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  # https://github.com/pytorch/pytorch/issues/6351
 
     dtype = getattr(torch, dtype)
-    if device == "cuda" and not torch.cuda.is_available():
-        pytest.skip("no cuda device is available")
-
     model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc_weight)
     model.eval()
     char_list = train_args.char_list

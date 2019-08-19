@@ -65,35 +65,49 @@ def test_lm():
 
 
 @pytest.mark.parametrize(
-    "lm_name, lm_args", [
-        ("default", Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.5)),
-        ("default", Namespace(type="gru", layer=1, unit=2, dropout_rate=0.5)),
-        ("seq_rnn", Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.5)),
-        ("seq_rnn", Namespace(type="gru", layer=1, unit=2, dropout_rate=0.5)),
+    "lm_name, lm_args, device, dtype", [
+        (nn, args, device, dtype)
+        for nn, args in (
+            ("default", Namespace(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
+            ("default", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
+            ("seq_rnn", Namespace(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
+            ("seq_rnn", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
+            ("transformer", Namespace(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5))
+        )
+        for device in ("cpu", "cuda")
+        for dtype in ("float16", "float32", "float64")
     ])
-def test_lm_trainable_and_decodable(lm_name, lm_args):
+def test_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("no cuda device is available")
+    if device == "cpu" and dtype == "float16":
+        pytest.skip("cpu float16 implementation is not available in pytorch yet")
+
+    dtype = getattr(torch, dtype)
     model, x, ilens, y, data, train_args = prepare("rnn", rnn_args)
-    model.eval()
     char_list = train_args.char_list
     n_vocab = len(char_list)
     lm = dynamic_import_lm(lm_name, backend="pytorch")(n_vocab, lm_args)
-    lm.eval()
+    lm.to(device=device, dtype=dtype)
 
     # test trainable
-    a = torch.randint(1, n_vocab, (3, 2))
-    b = torch.randint(1, n_vocab, (3, 2))
+    a = torch.randint(1, n_vocab, (3, 2), device=device)
+    b = torch.randint(1, n_vocab, (3, 2), device=device)
     loss, logp, count = lm(a, b)
     loss.backward()
     for p in lm.parameters():
         assert p.grad is not None
 
     # test decodable
+    model.to(device=device, dtype=dtype).eval()
+    lm.eval()
+
     scorers = model.scorers()
     scorers["lm"] = lm
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0, lm=1.0, length_bonus=1.0)
     with torch.no_grad():
-        feat = x[0, :ilens[0]].numpy()
+        feat = x[0, :ilens[0]].to(device=device, dtype=dtype)
         enc = model.encode(feat)
         beam_size = 3
         result = beam_search(
