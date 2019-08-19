@@ -1,3 +1,5 @@
+"""Default Recurrent Neural Network Languge Model in `lm_train.py`."""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,20 +9,18 @@ from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 
 class DefaultRNNLM(LMInterface, nn.Module):
-    """Default RNNLM for `LMInterface` Implementation
-
-    Args:
-        n_vocab (int): The size of the vocabulary
-        args (argparse.Namespace): configurations. see `add_arguments`
+    """Default RNNLM for `LMInterface` Implementation.
 
     Note:
         PyTorch seems to have memory leak when one GPU compute this after data parallel.
         If parallel GPUs compute this, it seems to be fine.
         See also https://github.com/espnet/espnet/issues/1075
+
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Add arguments to command line argument parser."""
         parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
                             help="Which type of RNN to use")
         parser.add_argument('--layer', '-l', type=int, default=2,
@@ -32,16 +32,41 @@ class DefaultRNNLM(LMInterface, nn.Module):
         return parser
 
     def __init__(self, n_vocab, args):
+        """Initialize class.
+
+        Args:
+            n_vocab (int): The size of the vocabulary
+            args (argparse.Namespace): configurations. see py:method:`add_arguments`
+
+        """
         nn.Module.__init__(self)
         self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
 
     def state_dict(self):
+        """Dump state dict."""
         return self.model.state_dict()
 
     def load_state_dict(self, d):
+        """Load state dict."""
         self.model.load_state_dict(d)
 
     def forward(self, x, t):
+        """Compute LM loss value from buffer sequences.
+
+        Args:
+            x (torch.Tensor): Input ids. (batch, len)
+            t (torch.Tensor): Target ids. (batch, len)
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: -log p(t) (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+
+        """
         loss = 0
         logp = 0
         count = torch.tensor(0).long()
@@ -57,24 +82,48 @@ class DefaultRNNLM(LMInterface, nn.Module):
         return loss / batch_size, loss, count.to(loss.device)
 
     def score(self, y, state, x):
+        """Score new token.
+
+        Args:
+            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            state: Scorer state for prefix tokens
+            x (torch.Tensor): 2D encoder feature that generates ys.
+
+        Returns:
+            tuple[torch.Tensor, Any]: Tuple of
+                torch.float32 scores for next token (n_vocab)
+                and next state for ys
+
+        """
         new_state, scores = self.model.predict(state, y[-1].unsqueeze(0))
         return scores.squeeze(0), new_state
 
     def final_score(self, state):
+        """Score eos.
+
+        Args:
+            state: Scorer state for prefix tokens
+
+        Returns:
+            float: final score
+
+        """
         return self.model.final(state)
 
 
 class ClassifierWithState(nn.Module):
-    """A wrapper for pytorch RNNLM
-
-    :param torch.nn.Module predictor : The RNNLM
-    :param function lossfun : The loss function to use
-    :param int/str label_key :
-    """
+    """A wrapper for pytorch RNNLM."""
 
     def __init__(self, predictor,
                  lossfun=nn.CrossEntropyLoss(reduction="none"),
                  label_key=-1):
+        """Initialize class.
+
+        :param torch.nn.Module predictor : The RNNLM
+        :param function lossfun : The loss function to use
+        :param int/str label_key :
+
+        """
         if not (isinstance(label_key, (int, str))):
             raise TypeError('label_key must be int or str, but is %s' %
                             type(label_key))
@@ -86,8 +135,9 @@ class ClassifierWithState(nn.Module):
         self.predictor = predictor
 
     def forward(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.az
+        """Compute the loss value for an input and label pair.
 
+        Notes:
             It also computes accuracy and stores it to the attribute.
             When ``label_key`` is ``int``, the corresponding element in ``args``
             is treated as ground truth labels. And when it is ``str``, the
@@ -102,8 +152,8 @@ class ClassifierWithState(nn.Module):
         :param dict[torch.Tensor] kwargs : Input minibatch
         :return loss value
         :rtype torch.Tensor
-        """
 
+        """
         if isinstance(self.label_key, int):
             if not (-len(args) <= self.label_key < len(args)):
                 msg = 'Label key %d is out of bounds' % self.label_key
@@ -127,7 +177,7 @@ class ClassifierWithState(nn.Module):
         return state, self.loss
 
     def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
+        """Predict log probabilities for given state and input x using the predictor.
 
         :param torch.Tensor state : The current state
         :param torch.Tensor x : The input
@@ -141,6 +191,7 @@ class ClassifierWithState(nn.Module):
             return state, F.log_softmax(z, dim=1)
 
     def buff_predict(self, state, x, n):
+        """Predict new tokens from buffered inputs."""
         if self.predictor.__class__.__name__ == 'RNNLM':
             return self.predict(state, x)
 
@@ -155,7 +206,7 @@ class ClassifierWithState(nn.Module):
         return new_state, torch.cat(new_log_y)
 
     def final(self, state):
-        """Predict final log probabilities for given state using the predictor
+        """Predict final log probabilities for given state using the predictor.
 
         :param state: The state
         :return The final log probabilities
@@ -169,15 +220,16 @@ class ClassifierWithState(nn.Module):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
-    """A pytorch RNNLM
-
-    :param int n_vocab: The size of the vocabulary
-    :param int n_layers: The number of layers to create
-    :param int n_units: The number of units per layer
-    :param str typ: The RNN type
-    """
+    """A pytorch RNNLM."""
 
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
+        """Initialize class.
+
+        :param int n_vocab: The size of the vocabulary
+        :param int n_layers: The number of layers to create
+        :param int n_units: The number of units per layer
+        :param str typ: The RNN type
+        """
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
         self.rnn = nn.ModuleList(
@@ -195,10 +247,12 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
+        """Initialize state."""
         p = next(self.parameters())
         return torch.zeros(batchsize, self.n_units).to(device=p.device, dtype=p.dtype)
 
     def forward(self, state, x):
+        """Forward neural networks."""
         if state is None:
             h = [to_device(self, self.zero_state(x.size(0))) for n in range(self.n_layers)]
             state = {'h': h}
