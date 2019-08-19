@@ -66,7 +66,7 @@ def get_trained_asr_mt_state_dict(model_state_dict, modules):
 def get_trained_lm_state_dict(model_state_dict, modules):
     """Create compatible ASR state_dict from model_state_dict (LM).
 
-    Modify specified modules to match ASR decoder modules.
+    The keys for specified modules are modified to match ASR decoder modules keys.
 
     Args:
         model_state_dict (odict): trained model state_dict
@@ -117,9 +117,10 @@ def filter_modules(model_state_dict, modules):
             incorrect_mods += [mod]
 
     if incorrect_mods:
-        logging.info("Some specified module(s) in pre-trained model don\'t "
-                     "match (or partially match) available modules."
-                     " Ignoring the following modules: %s", incorrect_mods)
+        logging.info("module(s) %s don\'t match or (partially match) "
+                     "available modules in model.", incorrect_mods)
+        logging.info('for information, the existing modules in model are:')
+        logging.info('%s', mods_model)
 
     return new_mods
 
@@ -137,6 +138,8 @@ def load_trained_model(model_path):
 
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
     if 'rnnlm' in model_path:
+        logging.info('reading model parameters from %s', model_path)
+
         return torch.load(model_path), 'lm'
 
     idim, odim, args = get_model_conf(model_path, conf_path)
@@ -166,7 +169,6 @@ def load_trained_modules(idim, odim, args):
 
     Return:
         model (torch.nn.Module): The model with pretrained modules.
-        args (Namespace): The new model arguments.
     """
 
     enc_model_path = args.enc_init
@@ -180,9 +182,10 @@ def load_trained_modules(idim, odim, args):
 
     main_state_dict = main_model.state_dict()
 
+    logging.info('model(s) found for pre-initialization')
     for model_path, modules in [(enc_model_path, enc_modules),
                                 (dec_model_path, dec_modules)]:
-        if model_path:
+        if model_path and os.path.isfile(model_path):
             model_state_dict, mode = load_trained_model(model_path)
 
             modules = filter_modules(model_state_dict, modules)
@@ -194,8 +197,13 @@ def load_trained_modules(idim, odim, args):
             if partial_state_dict:
                 if transfer_verification(main_state_dict, partial_state_dict,
                                          modules):
-                    logging.info('Loading %s from model: %s', modules, model_path)
+                    logging.info('loading %s from model: %s', modules, model_path)
                     main_state_dict.update(partial_state_dict)
+                else:
+                    logging.info('modules %s in model %s don\'t match your training config.',
+                                 modules, model_path)
+        else:
+            logging.info('model was not found : %s', model_path)
 
     main_model.load_state_dict(main_state_dict)
 
