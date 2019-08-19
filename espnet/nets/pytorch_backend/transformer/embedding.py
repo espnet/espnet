@@ -63,7 +63,7 @@ class ScaledPositionalEncoding(PositionalEncoding):
     def __init__(self, d_model, dropout_rate, max_len=5000):
         """Initialize class.
 
-        :param int self.d_model: embedding dim
+        :param int d_model: embedding dim
         :param float dropout_rate: dropout rate
         :param int max_len: maximum input length
 
