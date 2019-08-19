@@ -66,7 +66,7 @@ def get_parser():
                         help='Filename of test label data')
     parser.add_argument('--dump-hdf5-path', type=str, default=None,
                         help='Path to dump a preprocessed dataset as hdf5')
-    # LSTMLM training configuration
+    # training configuration
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')

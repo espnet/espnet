@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
+
+"""LM training in pytorch."""
 
 import copy
 import json
@@ -20,7 +20,6 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import compute_perplexity
 from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import load_dataset
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
@@ -44,14 +43,27 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 
-# dummy module to use chainer's trainer
+def compute_perplexity(result):
+    """Compute and add the perplexity to the LogReport.
+
+    :param dict result: The current observations
+    """
+    # Routine to rewrite the result dictionary of LogReport to add perplexity values
+    result['perplexity'] = np.exp(result['main/nll'] / result['main/count'])
+    if 'validation/main/nll' in result:
+        result['val_perplexity'] = np.exp(result['validation/main/nll'] / result['validation/main/count'])
+
+
 class Reporter(Chain):
+    """Dummy module to use chainer's trainer."""
+
     def report(self, loss):
+        """Report nothing."""
         pass
 
 
 def concat_examples(batch, device=None, padding=None):
-    """Custom concat_examples for pytorch
+    """Concat examples in minibatch.
 
     :param np.ndarray batch: The batch to concatenate
     :param int device: The device to send to
@@ -69,16 +81,18 @@ def concat_examples(batch, device=None, padding=None):
 
 
 class BPTTUpdater(training.StandardUpdater):
-    """An updater for a pytorch LM
-
-    :param chainer.dataset.Iterator train_iter : The train iterator
-    :param LMInterface model : The model to update
-    :param optimizer:
-    :param int device : The device id
-    :param int gradclip : The gradient clipping value to use
-    """
+    """An updater for a pytorch LM."""
 
     def __init__(self, train_iter, model, optimizer, device, gradclip=None):
+        """Initialize class.
+
+        :param chainer.dataset.Iterator train_iter : The train iterator
+        :param LMInterface model : The model to update
+        :param optimizer:
+        :param int device : The device id
+        :param int gradclip : The gradient clipping value to use
+
+        """
         super(BPTTUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.device = device
@@ -86,6 +100,7 @@ class BPTTUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Update the model."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -96,9 +111,9 @@ class BPTTUpdater(training.StandardUpdater):
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-        loss, logp, count = self.model(x, t)
-        reporter.report({'train_loss': float(loss.mean())}, optimizer.target)
-        reporter.report({'loss': float(logp.sum())}, optimizer.target)
+        loss, nll, count = self.model(x, t)
+        reporter.report({'loss': float(loss.mean())}, optimizer.target)
+        reporter.report({'nll': float(nll.sum())}, optimizer.target)
         reporter.report({'count': int(count.sum())}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
@@ -109,41 +124,48 @@ class BPTTUpdater(training.StandardUpdater):
 
 
 class LMEvaluator(BaseEvaluator):
-    """A custom evaluator for a pytorch LM
-
-    :param chainer.dataset.Iterator val_iter : The validation iterator
-    :param LMInterface eval_model : The model to evaluate
-    :param chainer.Reporter reporter : The observations reporter
-    :param int device : The device id to use
-    """
+    """A custom evaluator for a pytorch LM."""
 
     def __init__(self, val_iter, eval_model, reporter, device):
+        """Initialize class.
+
+        :param chainer.dataset.Iterator val_iter : The validation iterator
+        :param LMInterface eval_model : The model to evaluate
+        :param chainer.Reporter reporter : The observations reporter
+        :param int device : The device id to use
+
+        """
         super(LMEvaluator, self).__init__(
             val_iter, reporter, device=-1)
         self.model = eval_model
         self.device = device
 
     def evaluate(self):
+        """Evaluate the model."""
         val_iter = self.get_iterator('main')
-        logp = 0
+        loss = 0
+        nll = 0
         count = 0
         self.model.eval()
         with torch.no_grad():
             for batch in copy.copy(val_iter):
                 x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-                _, l, c = self.model(x, t)
-                logp += float(l.sum())
+                l, n, c = self.model(x, t)
+                loss += float(l.sum())
+                nll += float(n.sum())
                 count += int(c.sum())
         self.model.train()
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': logp / count}, self.model.reporter)
+            reporter.report({'loss': loss}, self.model.reporter)
+            reporter.report({'nll': nll}, self.model.reporter)
+            reporter.report({'count': count}, self.model.reporter)
         return observation
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
     :param Namespace args: The program arguments
     :param type model_class: LMInterface class for training
@@ -216,7 +238,7 @@ def train(args):
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'main/train_loss', 'perplexity', 'val_perplexity', 'elapsed_time']
+        ['epoch', 'iteration', 'main/loss', 'perplexity', 'val_perplexity', 'elapsed_time']
     ), trigger=(args.report_interval_iters, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     # Save best models
@@ -253,4 +275,5 @@ def train(args):
                                              max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
         evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
         result = evaluator()
-        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
+        compute_perplexity(result)
+        logging.info(f"test perplexity: {result['perplexity']}")
