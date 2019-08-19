@@ -20,9 +20,9 @@ class PositionalEncoding(torch.nn.Module):
         self.xscale = math.sqrt(self.d_model)
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         self.pe = None
-        self.reset_(torch.tensor(0.0).expand(1, max_len))
+        self.extend_pe(torch.tensor(0.0).expand(1, max_len))
 
-    def reset_(self, x):
+    def extend_pe(self, x):
         """Reset the positional encodings."""
         if self.pe is not None:
             if self.pe.size(1) >= x.size(1):
@@ -48,7 +48,7 @@ class PositionalEncoding(torch.nn.Module):
             torch.Tensor: Encoded tensor. Its shape is (batch, time, ...)
 
         """
-        self.reset_(x)
+        self.extend_pe(x)
         x = x * self.xscale + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
@@ -85,6 +85,6 @@ class ScaledPositionalEncoding(PositionalEncoding):
             torch.Tensor: Encoded tensor. Its shape is (batch, time, ...)
 
         """
-        self.reset_(x)
+        self.extend_pe(x)
         x = x + self.alpha * self.pe[:, :x.size(1)]
         return self.dropout(x)
