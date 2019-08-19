@@ -8,6 +8,13 @@ from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEn
 def test_pe_extendable():
     dim = 2
     pe = PositionalEncoding(dim, 0.0, 3)
+    init_cache = pe.pe
+
+    # test not extended from init
+    x = torch.rand(2, 3, dim)
+    y = pe(x)
+    assert pe.pe is init_cache
+
     x = torch.rand(2, 5, dim)
     y = pe(x)
     assert x.shape == y.shape
@@ -23,6 +30,13 @@ def test_pe_extendable():
 def test_scaled_pe_extendable():
     dim = 2
     pe = ScaledPositionalEncoding(dim, 0.0, 3)
+    init_cache = pe.pe
+
+    # test not extended from init
+    x = torch.rand(2, 3, dim)
+    y = pe(x)
+    assert pe.pe is init_cache
+
     x = torch.rand(2, 5, dim)
     y = pe(x)
     assert x.shape == y.shape
