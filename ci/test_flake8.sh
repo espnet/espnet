@@ -6,6 +6,7 @@ fi
 
 set -euo pipefail
 
+# TODO: remove files from this list!
 flake8_black_list="\
 espnet/__init__.py
 espnet/asr/asr_mix_utils.py
