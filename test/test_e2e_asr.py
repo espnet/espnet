@@ -62,7 +62,9 @@ def make_arg(**kwargs):
         sortagrad=0,
         grad_noise=False,
         context_residual=False,
-        use_frontend=False
+        use_frontend=False,
+        replace_sos=False,
+        tgt_lang=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
