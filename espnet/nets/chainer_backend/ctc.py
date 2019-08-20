@@ -7,8 +7,6 @@ import numpy as np
 
 from chainer import cuda
 
-from espnet.nets.chainer_backend.nets_utils import linear_tensor
-
 
 class CTC(chainer.Chain):
     """Chainer implementation of ctc layer.
@@ -44,8 +42,8 @@ class CTC(chainer.Chain):
         olens = [x.shape[0] for x in ys]
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate))
+        y_hat = self.ctc_lo(F.dropout(
+            F.pad_sequence(hs), ratio=self.dropout_rate), n_batch_axes=2)
         y_hat = F.separate(y_hat, axis=1)  # ilen list of batch x hdim
 
         # zero padding for ys
@@ -74,7 +72,7 @@ class CTC(chainer.Chain):
             chainer.Variable: A n-dimension float array.
 
         """
-        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
+        y_hat = self.ctc_lo(F.pad_sequence(hs), n_batch_axes=2)
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
@@ -112,8 +110,8 @@ class WarpCTC(chainer.Chain):
         olens = [x.shape[0] for x in ys]
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate))
+        y_hat = self.ctc_lo(F.dropout(
+            F.pad_sequence(hs), ratio=self.dropout_rate), n_batch_axes=2)
         y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
 
         # get length info
@@ -137,7 +135,7 @@ class WarpCTC(chainer.Chain):
             chainer.Variable: A n-dimension float array.
 
         """
-        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
+        y_hat = self.ctc_lo(F.pad_sequence(hs), n_batch_axes=2)
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
     def argmax(self, hs_pad):

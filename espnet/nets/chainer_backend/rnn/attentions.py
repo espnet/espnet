@@ -4,8 +4,6 @@ import chainer.links as L
 
 import numpy as np
 
-from espnet.nets.chainer_backend.nets_utils import linear_tensor
-
 
 # dot product based attention
 class AttDot(chainer.Chain):
@@ -57,7 +55,7 @@ class AttDot(chainer.Chain):
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
             self.pre_compute_enc_h = F.tanh(
-                linear_tensor(self.mlp_enc, self.enc_h))
+                self.mlp_enc(self.enc_h, n_batch_axes=2))
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -137,7 +135,7 @@ class AttLoc(chainer.Chain):
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h, n_batch_axes=2)
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -159,7 +157,7 @@ class AttLoc(chainer.Chain):
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
         att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
-        att_conv = linear_tensor(self.mlp_att, att_conv)
+        att_conv = self.mlp_att(att_conv, n_batch_axes=2)
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = F.broadcast_to(
@@ -168,8 +166,8 @@ class AttLoc(chainer.Chain):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # TODO(watanabe) use batch_matmul
-        e = F.squeeze(linear_tensor(self.gvec, F.tanh(
-            att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
+        e = F.squeeze(self.gvec(F.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled), n_batch_axes=2), axis=2)
         # Applying a minus-large-number filter to make a probability value zero for a padded area
         # simply degrades the performance, and I gave up this implementation
         # Apply a scaling to make an attention sharp
