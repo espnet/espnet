@@ -81,7 +81,6 @@ espnet/nets/pytorch_backend/tacotron2/decoder.py
 espnet/nets/pytorch_backend/tacotron2/encoder.py
 espnet/nets/pytorch_backend/transformer/decoder.py
 espnet/nets/pytorch_backend/transformer/decoder_layer.py
-espnet/nets/pytorch_backend/transformer/embedding.py
 espnet/nets/pytorch_backend/transformer/encoder.py
 espnet/nets/pytorch_backend/transformer/encoder_layer.py
 espnet/nets/pytorch_backend/transformer/initializer.py
