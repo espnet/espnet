@@ -45,7 +45,7 @@ pip install -e ".[test]"
 pip install -e ".[doc]"
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
-pip install -U flake8
+pip install -U flake8 flake8-docstrings
 
 # install matplotlib
 pip install matplotlib
@@ -62,6 +62,11 @@ mkdir -p tools
 cd tools && git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
 pip install . && cd ../..
+
+# install warp-transducer
+git clone https://github.com/HawkAaron/warp-transducer.git
+cd warp-transducer && mkdir build && cd build && cmake .. && make && cd ..
+cd pytorch_binding && python setup.py install && cd ../..
 
 # log
 pip freeze
