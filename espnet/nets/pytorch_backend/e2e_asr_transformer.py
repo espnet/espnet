@@ -19,23 +19,9 @@ from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
-
-
-def subsequent_mask(size, device="cpu", dtype=torch.uint8):
-    """Create mask for subsequent steps (1, size, size)
-
-    :param int size: size of mask
-    :param str device: "cpu" or "cuda" or torch.Tensor.device
-    :param torch.dtype dtype: result dtype
-    :rtype: torch.Tensor
-    >>> subsequent_mask(3)
-    [[1, 0, 0],
-     [1, 1, 0],
-     [1, 1, 1]]
-    """
-    ret = torch.ones(size, size, device=device, dtype=dtype)
-    return torch.tril(ret, out=ret)
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 
 class E2E(ASRInterface, torch.nn.Module):
@@ -226,6 +212,15 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
+    def scorers(self):
+        return dict(decoder=self.decoder, ctc=CTCPrefixScorer(self.ctc, self.eos))
+
+    def encode(self, feat):
+        self.eval()
+        feat = torch.as_tensor(feat).unsqueeze(0)
+        enc_output, _ = self.encoder(feat, None)
+        return enc_output.squeeze(0)
+
     def recognize(self, feat, recog_args, char_list=None, rnnlm=None, use_jit=False):
         '''recognize feat
 
@@ -238,9 +233,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         TODO(karita): do not recompute previous attention for faster decoding
         '''
-        self.eval()
-        feat = torch.as_tensor(feat).unsqueeze(0)
-        enc_output, _ = self.encoder(feat, None)
+        enc_output = self.encode(feat).unsqueeze(0)
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
