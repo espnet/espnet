@@ -4,11 +4,13 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.scorer_interface import ScorerInterface
 
 
-class Decoder(torch.nn.Module):
+class Decoder(ScorerInterface, torch.nn.Module):
     """Transfomer decoder module
 
     :param int odim: output dim
@@ -41,7 +43,7 @@ class Decoder(torch.nn.Module):
                  pos_enc_class=PositionalEncoding,
                  normalize_before=True,
                  concat_after=False):
-        super(Decoder, self).__init__()
+        torch.nn.Module.__init__(self)
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),
@@ -123,3 +125,10 @@ class Decoder(torch.nn.Module):
             return torch.log_softmax(self.output_layer(x_), dim=-1)
         else:
             return x_
+
+    # beam search API (see ScorerInterface)
+    def score(self, ys, state, x):
+        # TODO(karita) cache previous attentions in state
+        ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        logp = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0))
+        return logp.squeeze(0), None
