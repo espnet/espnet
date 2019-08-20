@@ -60,6 +60,7 @@ class DecoderRNNT(torch.nn.Module):
         self.dlayers = dlayers
         self.dunits = dunits
         self.dtype = dtype
+        self.embed_dim = embed_dim
         self.joint_dim = joint_dim
         self.odim = odim
 
@@ -173,7 +174,7 @@ class DecoderRNNT(torch.nn.Module):
 
         hyp = {'score': 0.0, 'yseq': [self.blank]}
 
-        ey = torch.zeros((1, self.dunits))
+        ey = torch.zeros((1, self.embed_dim))
         z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
         y = self.dropout_dec[-1](z_list[-1])
 
@@ -333,6 +334,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.dtype = dtype
         self.dlayers = dlayers
         self.dunits = dunits
+        self.embed_dim = embed_dim
         self.joint_dim = joint_dim
         self.odim = odim
 
@@ -455,7 +457,7 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         hyp = {'score': 0.0, 'yseq': [self.blank]}
 
-        eys = torch.zeros((1, self.dunits))
+        eys = torch.zeros((1, self.embed_dim))
         att_c, att_w = self.att[0](h.unsqueeze(0), [h.size(0)],
                                    self.dropout_dec[0](z_list[0]), None)
         ey = torch.cat((eys, att_c), dim=1)
