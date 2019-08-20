@@ -47,7 +47,6 @@ espnet/nets/chainer_backend/transformer/layer_norm.py
 espnet/nets/chainer_backend/transformer/plot.py
 espnet/nets/chainer_backend/transformer/positionwise_feed_forward.py
 espnet/nets/chainer_backend/transformer/subsampling.py
-espnet/nets/chainer_backend/transformer/training.py
 espnet/nets/ctc_prefix_score.py
 espnet/nets/e2e_asr_common.py
 espnet/nets/mt_interface.py
