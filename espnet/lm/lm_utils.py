@@ -90,14 +90,14 @@ def count_tokens(data, unk_id=None):
 
 
 def compute_perplexity(result):
-    """Computes and add the perplexity to the LogReport
+    """Compute and add the perplexity to the LogReport.
 
     :param dict result: The current observations
     """
     # Routine to rewrite the result dictionary of LogReport to add perplexity values
-    result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
-    if 'validation/main/loss' in result:
-        result['val_perplexity'] = np.exp(result['validation/main/loss'])
+    result['perplexity'] = np.exp(result['main/nll'] / result['main/count'])
+    if 'validation/main/nll' in result:
+        result['val_perplexity'] = np.exp(result['validation/main/nll'] / result['validation/main/count'])
 
 
 class ParallelSentenceIterator(chainer.dataset.Iterator):
