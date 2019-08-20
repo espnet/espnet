@@ -27,7 +27,6 @@ espnet/lm/lm_utils.py
 espnet/lm/pytorch_backend/extlm.py
 espnet/mt/mt_utils.py
 espnet/mt/pytorch_backend/mt.py
-espnet/nets/asr_interface.py
 espnet/nets/chainer_backend/ctc.py
 espnet/nets/chainer_backend/deterministic_embed_id.py
 espnet/nets/chainer_backend/e2e_asr.py
@@ -55,6 +54,7 @@ espnet/nets/mt_interface.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/e2e_asr.py
 espnet/nets/pytorch_backend/e2e_asr_mix.py
+espnet/nets/pytorch_backend/e2e_asr_transducer.py
 espnet/nets/pytorch_backend/e2e_asr_transformer.py
 espnet/nets/pytorch_backend/e2e_mt.py
 espnet/nets/pytorch_backend/e2e_tts_fastspeech.py
@@ -72,6 +72,7 @@ espnet/nets/pytorch_backend/frontends/mask_estimator.py
 espnet/nets/pytorch_backend/nets_utils.py
 espnet/nets/pytorch_backend/rnn/attentions.py
 espnet/nets/pytorch_backend/rnn/decoders.py
+espnet/nets/pytorch_backend/rnn/decoders_transducer.py
 espnet/nets/pytorch_backend/rnn/encoders.py
 espnet/nets/pytorch_backend/streaming/segment.py
 espnet/nets/pytorch_backend/streaming/window.py
