@@ -136,6 +136,8 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
     ({'rnnt_mode': 'rnnt-att', 'dtype': 'lstm', 'dlayers': 3, 'dunits': 16, 'joint-dim': 4}, {}),
     ({'dec-embed-dim': 16}, {}),
     ({'dec-embed-dim': 16, 'dropout-rate-embed-decoder': 0.1}, {}),
+    ({'dunits': 16}, {'beam_size': 1}),
+    ({'rnnt_mode': 'rnnt-att', 'dunits': 2}, {'beam_size': 1}),
     ({'dropout-rate-decoder': 0.2}, {}),
     ({'rnnt-mode': 'rnnt-att', 'dropout-rate-decoder': 0.2}, {}),
     ({'rnnt_mode': 'rnnt-att', 'atype': 'noatt'}, {}),
