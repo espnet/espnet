@@ -16,7 +16,13 @@ class PositionalEncoding(torch.nn.Module):
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
+        # refrece name:Attention Is All You Need
+        # refrence:https://arxiv.org/pdf/1706.03762.pdf
+        # note: position is per element(e.g.it is model unit,
+        # e.g.:i use letter model, per element is one letter ) position in one sentence. 
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
+        # note :use formula a^(mn)=(a^m)^n
+        # note: e^(-2i(ln10000)/d_model)=(e^(ln10000))^(-2i/d_model)=10000^(-2i/d_model)=1/10000^(2i/d_model)
         div_term = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32) *
                              -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
