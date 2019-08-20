@@ -3,9 +3,13 @@
 import argparse
 import importlib
 import json
+import numpy as np
 import os
 import pytest
 import tempfile
+import torch
+
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 def make_arg(**kwargs):
@@ -59,32 +63,79 @@ def make_arg(**kwargs):
     return argparse.Namespace(**train_defaults)
 
 
+def get_default_scope_inputs():
+    idim = 40
+    odim = 5
+    ilens = [20, 15]
+    olens = [4, 3]
+
+    return idim, odim, ilens, olens
+
+
+def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
+    np.random.seed(1)
+
+    xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
+    ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
+    ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
+
+    xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+    ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
+    ilens = torch.from_numpy(ilens).long()
+
+    if is_cuda:
+        xs_pad = xs_pad.cuda()
+        ys_pad = ys_pad.cuda()
+        ilens = ilens.cuda()
+
+    return xs_pad, ilens, ys_pad
+
+
 @pytest.mark.parametrize("enc_init, enc_mods, dec_init, dec_mods, mtlalpha", [
+    (None, "enc.", None, "dec., att.", 0.0),
     (None, "enc.", None, "dec., att.", 0.5),
+    (None, "enc.", None, "dec., att.", 1.0),
     (True, "enc.", None, "dec., att.", 0.5),
+    (None, "enc.", True, "dec., att.", 0.0),
     (None, "enc.", True, "dec., att.", 0.5),
-    (True, "enc.", True, "dec., att.", 0.5),
-    (True, "test", None, "dec., att.", 0.5),
-    (True, "test", None, "dec., att.", 0.5),
+    (None, "enc.", True, "dec., att.", 1.0),
     (True, "enc.", True, "dec., att.", 0.0),
+    (True, "enc.", True, "dec., att.", 0.5),
     (True, "enc.", True, "dec., att.", 1.0),
-    (True, "enc.", None, "dec., att.", 0.0),
-    (None, "test", True, "dec., att.", 1.0),
+    (True, "test", None, "dec., att.", 0.0),
+    (True, "test", None, "dec., att.", 0.5),
+    (True, "test", None, "dec., att.", 1.0),
+    (None, "enc.", True, "test", 0.0),
     (None, "enc.", True, "test", 0.5),
-    (True, "test", True, "test", 0.5),
+    (None, "enc.", True, "test", 1.0),
+    (True, "enc.enc.0", None, "dec., att.", 0.0),
     (True, "enc.enc.0", None, "dec., att.", 0.5),
+    (True, "enc.enc.0", None, "dec., att.", 1.0),
+    (None, "enc.", True, "dec.embed.", 0.0),
     (None, "enc.", True, "dec.embed.", 0.5),
-    (True, "enc.enc.0, enc.enc.1", None, "dec., att.", 0.5),
-    (None, "enc.", True, "dec.embed.,dec.decoder.1", 0.5),
-    (True, "enc.enc.0, enc.enc.1", True, "dec.embed.,dec.decoder.1", 0.5)])
-def test_torch_transfer_learning(enc_init, enc_mods, dec_init, dec_mods, mtlalpha):
-    m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    (None, "enc.", True, "dec.embed.", 1.0),
+    (True, "enc.enc.0, enc.enc.1", True, "dec., att.", 0.0),
+    (True, "enc.enc.0", True, "dec.embed.,dec.decoder.1", 0.5),
+    (True, "enc.enc.0, enc.enc.1", True, "dec.embed.,dec.decoder.1", 1.0)])
+def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_init, dec_mods, mtlalpha):
+    idim, odim, ilens, olens = get_default_scope_inputs()
     args = make_arg()
-    model = m.E2E(40, 5, args)
+
+    module = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
+    model = module.E2E(idim, odim, args)
+
+    batch = pytorch_prepare_inputs(idim, odim, ilens, olens)
+
+    loss = model(*batch)
+    loss.backward()
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+        model.recognize(in_data, args, args.char_list)
 
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
+    utils = importlib.import_module('espnet.asr.asr_utils')
 
     tmppath = tempfile.mktemp()
     utils.torch_save(tmppath, model)
@@ -93,8 +144,9 @@ def test_torch_transfer_learning(enc_init, enc_mods, dec_init, dec_mods, mtlalph
         enc_init = tmppath
     if dec_init:
         dec_init = tmppath
-    # create dummy model.json for saved model
-    # to go through get_model_conf method
+
+    # create dummy model.json for saved model to go through
+    # get_model_conf(...) called in load_trained_modules method.
     model_conf = os.path.dirname(tmppath) + '/model.json'
     with open(model_conf, 'wb') as f:
         f.write(json.dumps((40, 5, vars(args)),
@@ -106,4 +158,9 @@ def test_torch_transfer_learning(enc_init, enc_mods, dec_init, dec_mods, mtlalph
     transfer = importlib.import_module('espnet.asr.pytorch_backend.asr_init')
     model = transfer.load_trained_modules(40, 5, args)
 
-    os.remove(model_conf)
+    loss = model(*batch)
+    loss.backward()
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+        model.recognize(in_data, args, args.char_list)
