@@ -1,23 +1,18 @@
 #!/usr/bin/env python
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
-from __future__ import division
-from __future__ import print_function
+"""LM training in pytorch."""
 
 import copy
 import json
 import logging
 import numpy as np
-import six
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from chainer import Chain
 from chainer.dataset import convert
@@ -25,13 +20,13 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import compute_perplexity
 from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import load_dataset
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
-from espnet.nets.pytorch_backend.e2e_asr import to_device
+from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.nets.lm_interface import LMInterface
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -48,173 +43,27 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 
-# dummy module to use chainer's trainer
+def compute_perplexity(result):
+    """Compute and add the perplexity to the LogReport.
+
+    :param dict result: The current observations
+    """
+    # Routine to rewrite the result dictionary of LogReport to add perplexity values
+    result['perplexity'] = np.exp(result['main/nll'] / result['main/count'])
+    if 'validation/main/nll' in result:
+        result['val_perplexity'] = np.exp(result['validation/main/nll'] / result['validation/main/count'])
+
+
 class Reporter(Chain):
+    """Dummy module to use chainer's trainer."""
+
     def report(self, loss):
+        """Report nothing."""
         pass
 
 
-class ClassifierWithState(nn.Module):
-    """A wrapper for pytorch RNNLM
-
-    :param torch.nn.Module predictor : The RNNLM
-    :param function lossfun : The loss function to use
-    :param int/str label_key :
-    """
-
-    def __init__(self, predictor,
-                 lossfun=F.cross_entropy,
-                 label_key=-1):
-        if not (isinstance(label_key, (int, str))):
-            raise TypeError('label_key must be int or str, but is %s' %
-                            type(label_key))
-        super(ClassifierWithState, self).__init__()
-        self.lossfun = lossfun
-        self.y = None
-        self.loss = None
-        self.label_key = label_key
-        self.predictor = predictor
-        self.reporter = Reporter()
-
-    def forward(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.az
-
-            It also computes accuracy and stores it to the attribute.
-            When ``label_key`` is ``int``, the corresponding element in ``args``
-            is treated as ground truth labels. And when it is ``str``, the
-            element in ``kwargs`` is used.
-            The all elements of ``args`` and ``kwargs`` except the groundtruth
-            labels are features.
-            It feeds features to the predictor and compare the result
-            with ground truth labels.
-
-        :param torch.Tensor state : the LM state
-        :param list[torch.Tensor] args : Input minibatch
-        :param dict[torch.Tensor] kwargs : Input minibatch
-        :return loss value
-        :rtype torch.Tensor
-        """
-
-        if isinstance(self.label_key, int):
-            if not (-len(args) <= self.label_key < len(args)):
-                msg = 'Label key %d is out of bounds' % self.label_key
-                raise ValueError(msg)
-            t = args[self.label_key]
-            if self.label_key == -1:
-                args = args[:-1]
-            else:
-                args = args[:self.label_key] + args[self.label_key + 1:]
-        elif isinstance(self.label_key, str):
-            if self.label_key not in kwargs:
-                msg = 'Label key "%s" is not found' % self.label_key
-                raise ValueError(msg)
-            t = kwargs[self.label_key]
-            del kwargs[self.label_key]
-
-        self.y = None
-        self.loss = None
-        state, self.y = self.predictor(state, *args, **kwargs)
-        self.loss = self.lossfun(self.y, t)
-        return state, self.loss
-
-    def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
-
-        :param torch.Tensor state : The current state
-        :param torch.Tensor x : The input
-        :return a tuple (new state, log prob vector)
-        :rtype (torch.Tensor, torch.Tensor)
-        """
-        if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
-            return self.predictor(state, x)
-        else:
-            state, z = self.predictor(state, x)
-            return state, F.log_softmax(z, dim=1)
-
-    def buff_predict(self, state, x, n):
-        if self.predictor.__class__.__name__ == 'RNNLM':
-            return self.predict(state, x)
-
-        new_state = []
-        new_log_y = []
-        for i in range(n):
-            state_i = None if state is None else state[i]
-            state_i, log_y = self.predict(state_i, x[i].unsqueeze(0))
-            new_state.append(state_i)
-            new_log_y.append(log_y)
-
-        return new_state, torch.cat(new_log_y)
-
-    def final(self, state):
-        """Predict final log probabilities for given state using the predictor
-
-        :param state: The state
-        :return The final log probabilities
-        :rtype torch.Tensor
-        """
-        if hasattr(self.predictor, 'final'):
-            return self.predictor.final(state)
-        else:
-            return 0.
-
-
-# Definition of a recurrent net for language modeling
-class RNNLM(nn.Module):
-    """A pytorch RNNLM
-
-    :param int n_vocab: The size of the vocabulary
-    :param int n_layers: The number of layers to create
-    :param int n_units: The number of units per layer
-    :param str typ: The RNN type
-    """
-
-    def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
-        super(RNNLM, self).__init__()
-        self.embed = nn.Embedding(n_vocab, n_units)
-        self.rnn = nn.ModuleList(
-            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
-                                                                                            for _ in range(n_layers)])
-        self.dropout = nn.ModuleList(
-            [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
-        self.lo = nn.Linear(n_units, n_vocab)
-        self.n_layers = n_layers
-        self.n_units = n_units
-        self.typ = typ
-
-        # initialize parameters from uniform distribution
-        for param in self.parameters():
-            param.data.uniform_(-0.1, 0.1)
-
-    def zero_state(self, batchsize):
-        return torch.zeros(batchsize, self.n_units).float()
-
-    def forward(self, state, x):
-        if state is None:
-            h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            state = {'h': h}
-            if self.typ == "lstm":
-                c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-                state = {'c': c, 'h': h}
-
-        h = [None] * self.n_layers
-        emb = self.embed(x)
-        if self.typ == "lstm":
-            c = [None] * self.n_layers
-            h[0], c[0] = self.rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
-            for n in six.moves.range(1, self.n_layers):
-                h[n], c[n] = self.rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
-            state = {'c': c, 'h': h}
-        else:
-            h[0] = self.rnn[0](self.dropout[0](emb), state['h'][0])
-            for n in six.moves.range(1, self.n_layers):
-                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
-            state = {'h': h}
-        y = self.lo(self.dropout[-1](h[-1]))
-        return state, y
-
-
 def concat_examples(batch, device=None, padding=None):
-    """Custom concat_examples for pytorch
+    """Concat examples in minibatch.
 
     :param np.ndarray batch: The batch to concatenate
     :param int device: The device to send to
@@ -231,65 +80,19 @@ def concat_examples(batch, device=None, padding=None):
     return x, t
 
 
-class ReduceFramewiseLoss(torch.nn.Module):
-    """Reduce framewise loss values in language modeling
-
-    Args:
-        model (ClassifierWithState): The module for computing framewise loss
-
-    Note:
-        PyTorch seems to have memory leak when one GPU compute this after data parallel.
-        If parallel GPUs compute this, it seems to be fine.
-        See also https://github.com/espnet/espnet/issues/1075
-    """
-
-    def __init__(self, model):
-        super().__init__()
-        self.model = model
-        self.reporter = model.reporter
-
-    def state_dict(self):
-        return self.model.state_dict()
-
-    def load_state_dict(self, d):
-        self.model.load_state_dict(d)
-
-    def forward(self, x, t):
-        """Reduce framewise loss values
-
-        Args:
-            x (torch.Tensor): Input ids. (batch, len)
-            t (torch.Tensor): Target ids. (batch, len)
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor]: Tuple of
-                the reduced loss value along time (scalar)
-                and the number of valid loss values (scalar)
-        """
-        loss = 0
-        count = torch.tensor(0).long()
-        state = None
-        batch_size, sequence_length = x.shape
-        for i in six.moves.range(sequence_length):
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = self.model(state, x[:, i], t[:, i])
-            non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
-            loss += loss_batch * non_zeros
-            count += int(non_zeros)
-        return loss, count.to(loss.device)
-
-
 class BPTTUpdater(training.StandardUpdater):
-    """An updater for a pytorch LM
-
-    :param chainer.dataset.Iterator train_iter : The train iterator
-    :param torch.nn.Module model : The model to update
-    :param optimizer:
-    :param int device : The device id
-    :param int gradclip : The gradient clipping value to use
-    """
+    """An updater for a pytorch LM."""
 
     def __init__(self, train_iter, model, optimizer, device, gradclip=None):
+        """Initialize class.
+
+        :param chainer.dataset.Iterator train_iter : The train iterator
+        :param LMInterface model : The model to update
+        :param optimizer:
+        :param int device : The device id
+        :param int gradclip : The gradient clipping value to use
+
+        """
         super(BPTTUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.device = device
@@ -297,6 +100,7 @@ class BPTTUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Update the model."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -307,56 +111,67 @@ class BPTTUpdater(training.StandardUpdater):
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-        loss, count = self.model(x, t)
-        loss = loss.sum()
-        count = count.sum()
-        reporter.report({'loss': float(loss.detach() / count)}, optimizer.target)
-        reporter.report({'count': int(count)}, optimizer.target)
+        loss, nll, count = self.model(x, t)
+        reporter.report({'loss': float(loss.mean())}, optimizer.target)
+        reporter.report({'nll': float(nll.sum())}, optimizer.target)
+        reporter.report({'count': int(count.sum())}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
-        loss.backward()  # Backprop
+        loss.mean().backward()  # Backprop
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
 
 
 class LMEvaluator(BaseEvaluator):
-    """A custom evaluator for a pytorch LM
-
-    :param chainer.dataset.Iterator val_iter : The validation iterator
-    :param torch.nn.Module eval_model : The model to evaluate
-    :param chainer.Reporter reporter : The observations reporter
-    :param int device : The device id to use
-    """
+    """A custom evaluator for a pytorch LM."""
 
     def __init__(self, val_iter, eval_model, reporter, device):
+        """Initialize class.
+
+        :param chainer.dataset.Iterator val_iter : The validation iterator
+        :param LMInterface eval_model : The model to evaluate
+        :param chainer.Reporter reporter : The observations reporter
+        :param int device : The device id to use
+
+        """
         super(LMEvaluator, self).__init__(
             val_iter, reporter, device=-1)
         self.model = eval_model
         self.device = device
 
     def evaluate(self):
+        """Evaluate the model."""
         val_iter = self.get_iterator('main')
         loss = 0
+        nll = 0
         count = 0
         self.model.eval()
         with torch.no_grad():
             for batch in copy.copy(val_iter):
                 x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-                loss, count = self.model(x, t)
+                l, n, c = self.model(x, t)
+                loss += float(l.sum())
+                nll += float(n.sum())
+                count += int(c.sum())
         self.model.train()
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss.sum() / count.sum())}, self.model.reporter)
+            reporter.report({'loss': loss}, self.model.reporter)
+            reporter.report({'nll': nll}, self.model.reporter)
+            reporter.report({'count': count}, self.model.reporter)
         return observation
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
     :param Namespace args: The program arguments
+    :param type model_class: LMInterface class for training
     """
+    model_class = dynamic_import_lm(args.model_module, args.backend)
+    assert issubclass(model_class, LMInterface), "model should implement LMInterface"
     # display torch version
     logging.info('torch version = ' + torch.__version__)
 
@@ -392,16 +207,14 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type, args.dropout_rate)
-    classifier = ClassifierWithState(rnn)
-    reporter = classifier.reporter
-    model = ReduceFramewiseLoss(classifier)
+    model = model_class(args.n_vocab, args)
+    reporter = Reporter()
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
-        setattr(model, "reporter", reporter)
         gpu_id = 0
     else:
         gpu_id = -1
+    setattr(model, "reporter", reporter)
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
@@ -416,7 +229,6 @@ def train(args):
         optimizer = torch.optim.Adam(model.parameters())
 
     # FIXME: TOO DIRTY HACK
-    reporter = model.reporter
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
@@ -426,7 +238,7 @@ def train(args):
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
+        ['epoch', 'iteration', 'main/loss', 'perplexity', 'val_perplexity', 'elapsed_time']
     ), trigger=(args.report_interval_iters, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     # Save best models
@@ -463,4 +275,5 @@ def train(args):
                                              max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
         evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
         result = evaluator()
-        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
+        compute_perplexity(result)
+        logging.info(f"test perplexity: {result['perplexity']}")

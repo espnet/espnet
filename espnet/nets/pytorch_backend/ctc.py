@@ -18,7 +18,7 @@ class CTC(torch.nn.Module):
     """
 
     def __init__(self, odim, eprojs, dropout_rate, ctc_type='warpctc', reduce=True):
-        super(CTC, self).__init__()
+        super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)

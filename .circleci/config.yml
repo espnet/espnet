@@ -128,7 +128,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip
+            yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip bc
             yum-config-manager --enable rhel-server-rhscl-7-rpms
             yum install -y devtoolset-7-gcc-c++
       - checkout

@@ -33,9 +33,9 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
@@ -521,6 +521,8 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
