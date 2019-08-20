@@ -88,6 +88,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     # The fbank features is generated as pre-processing; 40-dimensional fbanks with 3-dimensional pitch on each frame
+    # Note that this dataset does not include the original audio files
 
     # Divide into source and target languages
     for x in train val dev5; do
