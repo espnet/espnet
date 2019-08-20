@@ -31,6 +31,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -400,23 +401,17 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+    def scorers(self):
+        return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
-        :param ndarray x: input acoustic feature (T, D)
-        :param Namespace recog_args: argument Namespace containing options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        """
-        prev = self.training
+    def encode(self, x):
         self.eval()
         ilens = [x.shape[0]]
 
         # subsample frame
         x = x[::self.subsample[0], :]
-        h = to_device(self, to_torch_tensor(x).float())
+        p = next(self.parameters())
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
@@ -429,7 +424,19 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 1. encoder
         hs, _, _ = self.enc(hs, hlens)
+        return hs.squeeze(0)
 
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        """E2E beam search
+
+        :param ndarray x: input acoustic feature (T, D)
+        :param Namespace recog_args: argument Namespace containing options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        """
+        hs = self.encode(x).unsqueeze(0)
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs)[0]
@@ -439,10 +446,6 @@ class E2E(ASRInterface, torch.nn.Module):
         # 2. Decoder
         # decode the first utterance
         y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
-
-        if prev:
-            self.train()
-
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
