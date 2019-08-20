@@ -49,5 +49,6 @@ tools/venv/
 tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
+tools/warp-transducer/
 tools/*.done
 tools/PESQ*
