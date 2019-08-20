@@ -77,7 +77,7 @@ def test_attn_loss():
     # pys: utt x olen
     # NOTE: -1 is default ignore index for chainer
     pad_ys_out = F.pad_sequence(ys_out, padding=-1)
-    y_all = F.reshape(np_pred, (n_batch * (max(label_length) + 1), n_out))
+    y_all = np_pred.reshape(n_batch * (max(label_length) + 1), n_out)
     ch_loss = F.softmax_cross_entropy(y_all, F.concat(pad_ys_out, axis=0))
 
     # NOTE: this index 0 is only for CTC not attn. so it can be ignored
@@ -120,7 +120,7 @@ def test_train_acc():
     # pys: utt x olen
     # NOTE: -1 is default ignore index for chainer
     pad_ys_out = F.pad_sequence(ys_out, padding=-1)
-    y_all = F.reshape(np_pred, (n_batch * (max(label_length) + 1), n_out))
+    y_all = np_pred.reshape(n_batch * (max(label_length) + 1), n_out)
     ch_acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
 
     # NOTE: this index 0 is only for CTC not attn. so it can be ignored

@@ -61,7 +61,7 @@ class AttDot(chainer.Chain):
             dec_z = chainer.Variable(self.xp.zeros(
                 (batch, self.dunits), dtype=np.float32))
         else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
+            dec_z = dec_z.reshape(batch, self.dunits)
 
         # <phi (h_t), psi (s)> for all t
         u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_dec(dec_z)), 1),
@@ -141,7 +141,7 @@ class AttLoc(chainer.Chain):
             dec_z = chainer.Variable(self.xp.zeros(
                 (batch, self.dunits), dtype=np.float32))
         else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
+            dec_z = dec_z.reshape(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
@@ -150,10 +150,9 @@ class AttLoc(chainer.Chain):
             att_prev = [chainer.Variable(att) for att in att_prev]
             att_prev = F.pad_sequence(att_prev)
 
-        # TODO(watanabe) use <chainer variable>.reshpae(), instead of F.reshape()
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
         att_conv = self.loc_conv(
-            F.reshape(att_prev, (batch, 1, 1, self.h_length)))
+            att_prev.reshape(batch, 1, 1, self.h_length))
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
         att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim

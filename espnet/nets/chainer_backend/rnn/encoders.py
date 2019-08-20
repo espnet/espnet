@@ -188,8 +188,8 @@ class VGG2L(chainer.Chain):
         xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = F.swapaxes(F.reshape(
-            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+        xs = F.swapaxes(
+            xs.reshape(xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel), 1, 2)
 
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
@@ -207,8 +207,7 @@ class VGG2L(chainer.Chain):
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
-        xs = F.reshape(
-            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = xs.reshape(xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
         xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
 
         return xs, ilens
