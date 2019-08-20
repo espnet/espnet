@@ -5,6 +5,8 @@
 
 export LC_ALL=C
 
+copy_fbank=true
+
 . utils/parse_options.sh || exit 1;
 
 if [ "$#" -ne 1 ]; then
@@ -13,11 +15,32 @@ if [ "$#" -ne 1 ]; then
     exit 1;
 fi
 
+# copy fbank features
+if [ ${copy_fbank} = true ]; then
+    echo "copy fbank features..."
+    fbank=$1/features/fbank_pitch_181506
+    mkdir -p fbank
+    cp -rf ${fbank}/* fbank
+
+    # replace ark path
+    for file in $(\find fbank -maxdepth 1 -type f | grep scp); do
+        fbank_path=$(pwd)"/fbank"
+        fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
+        sed -e "s/ARK_PATH/${fbank_path}/" < ${file} | sed -e "s/@/\//g" > ${file}.tmp
+        mv ${file}.tmp ${file}
+    done
+
+    echo "successfully copied fbank features"
+fi
+
+
 for set in train val dev5; do
     src=$1/data/${set}
     dst=data/local/${set}
 
     [ ! -d ${src} ] && echo "$0: no such directory ${src}" && exit 1;
+
+    mkdir -p ${dst} || exit 1;
 
     trans_en=${dst}/text.id.en; [[ -f "${trans_en}" ]] && rm ${trans_en}
     trans_pt=${dst}/text.id.pt; [[ -f "${trans_pt}" ]] && rm ${trans_pt}
@@ -80,16 +103,22 @@ for set in train val dev5; do
     [ ${n} -ne ${n_pt} ] && echo "Warning: expected ${n} data data files, found ${n_pt}" && exit 1;
 
     # replace ark path
-    fbank_path=`pwd`"/fbank"
-    fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
-    sed -e "s/ARK_PATH/${fbank_path}/" < ${feat} | sed -e "s/@/\//g" > ${feat}.tmp
-    mv ${feat}.tmp ${feat}
+    if [ ${copy_fbank} = true ]; then
+        fbank_path=$(pwd)"/fbank"
+        fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
+        sed -e "s/ARK_PATH/${fbank_path}/" < ${feat} | sed -e "s/@/\//g" > ${feat}.tmp
+        mv ${feat}.tmp ${feat}
+    fi
 
     # Copy stuff intoc its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}
-    for f in spk2utt utt2spk feats.scp; do
+    for f in spk2utt utt2spk; do
         cp ${dst}/${f} data/${set}/${f}
     done
+    if [ ${copy_fbank} = true ]; then
+        cp ${dst}/feats.scp data/${set}/feats.scp
+    fi
+
     # NOTE: do not copy segments to pass utils/validate_data_dir.sh
     # en
     cp ${dst}/text.tc.en data/${set}/text.tc.en
@@ -102,20 +131,3 @@ for set in train val dev5; do
 
     echo "$0: successfully prepared data in ${dst}"
 done
-
-# copy fbank features
-echo "copy fbank features..."
-fbank=$1/features/fbank_pitch_181506
-mkdir -p fbank
-cp -rf ${fbank}/* fbank
-
-# replace ark path
-for file in $(\find fbank -maxdepth 1 -type f | grep scp); do
-    fbank_path=`pwd`"/fbank"
-    fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
-    sed -e "s/ARK_PATH/${fbank_path}/" < ${file} | sed -e "s/@/\//g" > ${file}.tmp
-    mv ${file}.tmp ${file}
-done
-
-
-echo "successfully copied fbank features"
