@@ -1,3 +1,4 @@
+batchsize: 0
 lm-weight: 1.0
 beam-size: 20
 penalty: 0.1

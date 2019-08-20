@@ -1,0 +1,55 @@
+# transformer with BPE 2000
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/*.sys
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.callhm.ctm.filt.sys:| SPKR        | # Snt  # Wrd  | Corr     Sub     Del     Ins     Err   S.Err  |
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.callhm.ctm.filt.sys:| Sum/Avg     | 2628   21594  | 81.3    14.8     3.9     3.4    22.1    59.5  |
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.ctm.filt.sys:    | SPKR       | # Snt # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.ctm.filt.sys:    | Sum/Avg    | 4459  42989  | 85.3   11.4    3.3    2.5    17.1   55.3 |
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.swbd.ctm.filt.sys: | SPKR       | # Snt  # Wrd  | Corr     Sub    Del     Ins     Err   S.Err  |
+exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/hyp.swbd.ctm.filt.sys: | Sum/Avg    | 1831   21395  | 89.3     8.0    2.7     1.5    12.2    49.3  |
+```
+
+# transformer with BPE 500 (epoch 50)
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.*.sys
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|      SPKR            |      # Snt           # Wrd      |      Corr              Sub              Del              Ins              Err            S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|      Sum/Avg         |      2628            21594      |      78.0             16.5              5.5              3.4             25.4             64.0      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.ctm.filt.sys:|     SPKR            |     # Snt           # Wrd      |     Corr             Sub             Del              Ins             Err           S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.ctm.filt.sys:|     Sum/Avg         |     4459            42989      |     82.7            12.8             4.5              2.5            19.8            59.0      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|      SPKR           |      # Snt           # Wrd      |      Corr             Sub              Del              Ins              Err            S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_50epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|      Sum/Avg        |      1831            21395      |      87.5             9.1              3.4              1.6             14.1             51.9      |
+```
+
+# transformer with BPE 500 (epoch 30)
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_*_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.*.sys
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|      SPKR            |      # Snt           # Wrd      |      Corr              Sub              Del              Ins              Err            S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|      Sum/Avg         |      2628            21594      |      77.7             17.1              5.2              3.7             26.0             64.5      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.ctm.filt.sys:|     SPKR            |     # Snt           # Wrd      |     Corr             Sub             Del              Ins             Err           S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.ctm.filt.sys:|     Sum/Avg         |     4459            42989      |     82.8            13.0             4.2              2.8            20.0            59.4      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|      SPKR           |      # Snt           # Wrd      |      Corr             Sub              Del              Ins              Err            S.Err      |
+exp/train_nodup_pytorch_transformer_e12_BPE500_lr5_30epoch/decode_eval2000_decode_pytorch_transformer_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|      Sum/Avg        |      1831            21395      |      87.9             9.0              3.2              1.9             14.0             52.0      |
+```
+
+# Initial RNN results
+## BLSTMP
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_a01_pt_blstmp_e6/*p0.1_len0.0-0.0/result.txt
+exp/train_nodup_a01_pt_blstmp_e6/decode_eval2000_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR       |  # Snt     # Wrd  |  Corr      Sub       Del      Ins      Err     S.Err  |
+exp/train_nodup_a01_pt_blstmp_e6/decode_eval2000_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg    |  4458     181952  |  81.7      9.3       8.9     13.3     31.5      79.1  |
+exp/train_nodup_a01_pt_blstmp_e6/decode_rt03_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR         | # Snt    # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
+exp/train_nodup_a01_pt_blstmp_e6/decode_rt03_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg      | 8422    321545  |  78.2    10.6     11.2     12.3    34.1     79.6  |
+exp/train_nodup_a01_pt_blstmp_e6/decode_train_dev_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR       |  # Snt     # Wrd  |  Corr       Sub      Del       Ins      Err     S.Err  |
+exp/train_nodup_a01_pt_blstmp_e6/decode_train_dev_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg    |  3999     235886  |  87.4       6.4      6.2       5.0     17.6      65.4  |
+```
+
+## VGGBLSTMP
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_*_decode_rnn_ctcweight0.3/scoring/hyp.*.sys
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|   SPKR          |   # Snt      # Wrd    |   Corr          Sub         Del         Ins         Err       S.Err    |
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.callhm.ctm.filt.sys:|   Sum/Avg       |   2628       21594    |   75.8         19.3         4.9         4.2        28.5        64.6    |
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.ctm.filt.sys:|   SPKR         |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err       S.Err   |
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.ctm.filt.sys:|   Sum/Avg      |   4459       42989   |   81.2       14.8         4.0        3.2       22.0        60.1   |
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|   SPKR         |   # Snt      # Wrd    |   Corr         Sub         Del         Ins         Err       S.Err    |
+exp/train_nodup_pytorch_vggblstmp_e3_BPE500/decode_eval2000_decode_rnn_ctcweight0.3/scoring/hyp.swbd.ctm.filt.sys:|   Sum/Avg      |   1831       21395    |   86.6        10.3         3.1         2.2        15.6        53.5    |
+```
