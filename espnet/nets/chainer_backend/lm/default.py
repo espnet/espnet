@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# This code is ported from the following implementation written in Torch.
+# This code is ported from the following implementation written in chainer.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
 from __future__ import division

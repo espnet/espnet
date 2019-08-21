@@ -112,9 +112,13 @@ class BPTTUpdater(training.StandardUpdater):
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device, padding=(0, -100))
         loss, nll, count = self.model(x, t)
-        reporter.report({'loss': float(loss.mean())}, optimizer.target)
-        reporter.report({'nll': float(nll.sum())}, optimizer.target)
-        reporter.report({'count': int(count.sum())}, optimizer.target)
+        loss_data = float(loss.mean())
+        nll_data = float(nll.sum())
+        count_data = int(count.sum())
+        reporter.report({'loss': loss_data}, optimizer.target)
+        reporter.report({'nll': nll_data}, optimizer.target)
+        reporter.report({'count': count_data}, optimizer.target)
+        logging.info('loss {:.04f}, nll {:.04f}, counts {}'.format(loss_data, nll_data, count_data))
         # update
         self.model.zero_grad()  # Clear the parameter gradients
         loss.mean().backward()  # Backprop
