@@ -112,6 +112,14 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
         """
         return self.model.final(state)
+    
+    def serialize(self, serializer):
+        # type: (chainer.AbstractSerializer) -> None
+
+        super(chainer.Chain, self).serialize(serializer)
+        d = self.model.__dict__  # type: tp.Dict[str, Link]
+        for name in self.model._children:
+            d[name].serialize(serializer[name])
 
 
 class ClassifierWithState(link.Chain):

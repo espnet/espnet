@@ -39,7 +39,7 @@ from espnet.utils.training.train_utils import set_early_stop
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
-import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.nets.chainer_backend.lm.default as lm_chainer
 
 # numpy related
 import matplotlib
@@ -58,13 +58,11 @@ def load_trained_model(model_path):
 
     """
     # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    idim, odim, train_args = get_model_conf(
+        model_path,os.path.join(os.path.dirname(model_path), 'model.json'))
 
     # specify model architecture
-    logging.info('reading model parameters from ' + args.model)
+    logging.info('reading model parameters from ' + model_path)
     # To be compatible with v.0.3.0 models
     if hasattr(train_args, "model_module"):
         model_module = train_args.model_module
@@ -72,8 +70,7 @@ def load_trained_model(model_path):
         model_module = "espnet.nets.chainer_backend.e2e_asr:E2E"
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
-    assert isinstance(model, ASRInterface)
-    chainer_load(args.model, model)
+    chainer_load(model_path, model)
 
     return model, train_args
 
@@ -394,12 +391,18 @@ def recog(args):
     logging.info('chainer version = ' + chainer.__version__)
 
     set_deterministic_chainer(args)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    model.recog_args = args
 
-
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
             len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         chainer_load(args.rnnlm, rnnlm)
