@@ -8,12 +8,10 @@ from espnet.nets.asr_interface import dynamic_import_asr
     "dtype, device, model, conf",
     [(dtype, device, nn, conf)
      for nn, conf in
-     [
-         ("transformer", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.0)),
-         ("transformer", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.5)),
-         ("rnn", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.0)),
-         ("rnn", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.5)),
-     ]
+     [("transformer", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.0)),
+      ("transformer", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.5)),
+      ("rnn", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.0)),
+      ("rnn", dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.5))]
      for dtype in ("float16", "float32", "float64")
      for device in ("cpu", "cuda")])
 def test_train_pytorch_dtype(dtype, device, model, conf):
