@@ -64,7 +64,7 @@ tedlium2_dir=../../tedlium2
 
 train_set=train
 train_dev=dev
-recog_set="et_mustc_tst-COMMON et_mustc_tst-HE \
+recog_set="et_must_c_tst-COMMON et_must_c_tst-HE \
  et_how2_dev5 et_how2_test_set_iwslt2019 \
  et_tedlium2_dev et_tedlium2_test"
 
