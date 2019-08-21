@@ -86,7 +86,7 @@ n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
 [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
 
 # replace ark path
-fbank_path=`pwd`"/fbank"
+fbank_path=$(pwd)"/fbank"
 fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
 sed -e "s/..\/fbank_pitch/${fbank_path}/" < ${feat} | sed -e "s/@/\//g" > ${feat}.tmp
 mv ${feat}.tmp ${feat}
