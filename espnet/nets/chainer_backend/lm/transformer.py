@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+"""Transformer language model."""
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # This code is ported from the following implementation written in Torch.
@@ -14,6 +14,9 @@ import json
 import logging
 import numpy as np
 import six
+
+from typing import Any
+from typing import Tuple
 
 import chainer
 from chainer.dataset import convert
@@ -51,7 +54,7 @@ from espnet.nets.chainer_backend.transformer.mask import make_history_mask
 
 
 # TODO(karita): reimplement RNNLM with new interface
-class DefaultRNNLM(LMInterface, link.Chain):
+class TransformerLM(LMInterface, link.Chain):
     """Transformer language model."""
 
     @staticmethod
@@ -80,8 +83,46 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
         """
         link.Chain.__init__(self)
+        self.model_type = 'Transformer'
+        self.src_mask = None
         with self.init_scope():
+            self.encoder = Encoder(
+                n_vocab, args.att_unit, args.head, args.unit, args.layer,
+                args.dropout_rate, args.dropout_rate, args.dropout_rate,
+                input_layer="embed")
+            # reset posenc
+            self.encoder.input_layer[1] = PositionalEncoding(args.att_unit, args.dropout_rate, args.posenc_len)
+            self.decoder = L.Linear(args.att_unit, n_vocab)
 
-    
-    def forward(self, x, t) -> Tuple[chainer.Variable, chainer.Variable, int]:
+    def forward(self, x, t):
+        xp = self.xp
         xm = (x != 0)
+        ilens = xp.sum(xm, axis=1)
+        h, _, _ = self.encoder(x, ilens)
+        y = self.decoder(h, n_batch_axes=2)
+        loss = F.softmax_cross_entropy(y.reshape(-1, y.shape[-1]), t.reshape(-1), reduce="no")
+        mask = xm.astype(y.dtype)
+        logp = loss * mask.reshape(-1)
+        logp = F.sum(logp)
+        count = mask.sum()
+        return logp / count, logp, count
+    
+    def score(self, y, state, x):
+        """Score new token.
+
+        Args:
+            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            state: Scorer state for prefix tokens
+            x (torch.Tensor): encoder feature that generates ys.
+
+        Returns:
+            tuple[torch.Tensor, Any]: Tuple of
+                torch.float32 scores for next token (n_vocab)
+                and next state for ys
+
+        """
+        y = F.expand_dims(y, axis=0)
+        h, _, _ = self.encoder(y, y.shape)
+        h = self.decoder(h)[:, -1]
+        logp = h.log_softmax(dim=-1).squeeze(0)
+        return logp, None
