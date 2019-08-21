@@ -199,12 +199,14 @@ class CustomConverter(object):
 
     Args:
         subsampling_factor (int): The subsampling factor.
+        dtype (torch.dtype): Data type to convert.
 
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, dtype=torch.float32):
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
+        self.dtype = dtype
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device.
@@ -232,16 +234,16 @@ class CustomConverter(object):
         # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
-                [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
             xs_pad_imag = pad_list(
-                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
             # Note(kamo):
             # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
         # NOTE: this is for multi-task learning (e.g., speech translation)
@@ -369,7 +371,8 @@ def train(args):
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    model = model.to(device)
+    dtype = getattr(torch, args.train_dtype)
+    model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -390,7 +393,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype)
 
     # read json data
     with open(args.train_json, 'rb') as f:

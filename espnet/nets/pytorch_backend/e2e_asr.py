@@ -135,6 +135,8 @@ class E2E(ASRInterface, torch.nn.Module):
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
         self.verbose = args.verbose
+        # NOTE: for self.build method
+        args.char_list = getattr(args, "char_list", None)
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.space = args.sym_space
@@ -318,7 +320,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.acc = acc
 
         # 4. compute cer without beam search
-        if self.mtlalpha == 0:
+        if self.mtlalpha == 0 or self.char_list is None:
             cer_ctc = None
         else:
             cers = []
