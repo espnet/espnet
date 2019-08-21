@@ -39,6 +39,8 @@ def get_parser():
 
     parser.add_argument('--ngpu', default=None, type=int,
                         help='Number of GPUs. If not given, use all visible devices')
+    parser.add_argument('--train-dtype', default="float32", choices=["float16", "float32", "float64"],
+                        help='Data type for training (only pytorch backend).')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -93,6 +95,11 @@ def main(cmd_args):
     """Train LM."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
+    if args.backend == "chainer" and args.train_dtype != "float32":
+        raise NotImplementedError(
+            f"chainer backend does not support --train-dtype {args.train_dtype}."
+            "Use --dtype float32.")
+
     # parse model-specific arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)

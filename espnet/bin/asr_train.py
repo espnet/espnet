@@ -252,6 +252,10 @@ def get_parser(parser=None):
 def main(cmd_args):
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
+    if args.backend == "chainer" and args.train_dtype != "float32":
+        raise NotImplementedError(
+            f"chainer backend does not support --train-dtype {args.train_dtype}."
+            "Use --dtype float32.")
 
     from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is None:
@@ -267,10 +271,6 @@ def main(cmd_args):
         args.backend = 'chainer'
     if 'pytorch_backend' in args.model_module:
         args.backend = 'pytorch'
-    if args.backend == "chainer" and args.train_dtype != "float32":
-        raise NotImplementedError(
-            f"chainer backend does not support --train-dtype {args.train_dtype}."
-            "Use --dtype float32.")
 
     # logging info
     if args.verbose > 0:

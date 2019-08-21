@@ -207,7 +207,8 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    model = model_class(args.n_vocab, args)
+    dtype = getattr(torch, args.train_dtype)
+    model = model_class(args.n_vocab, args).to(dtype=dtype)
     reporter = Reporter()
     if args.ngpu > 0:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
