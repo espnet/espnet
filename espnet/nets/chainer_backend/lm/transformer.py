@@ -97,7 +97,8 @@ class TransformerLM(LMInterface, link.Chain):
     def forward(self, x, t):
         xp = self.xp
         xm = (x != 0)
-        ilens = xp.sum(xm, axis=1)
+        to_array = xp.asarray if xp is np else xp.asnumpy 
+        ilens = np.sum(to_array(xm), axis=1)
         h, _, _ = self.encoder(x, ilens)
         y = self.decoder(h, n_batch_axes=2)
         loss = F.softmax_cross_entropy(y.reshape(-1, y.shape[-1]), t.reshape(-1), reduce="no")

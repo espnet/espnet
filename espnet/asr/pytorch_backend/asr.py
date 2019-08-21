@@ -577,6 +577,8 @@ def recog(args):
 
     if args.word_rnnlm:
         rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
