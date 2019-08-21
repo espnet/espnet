@@ -30,6 +30,7 @@ from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -47,8 +48,6 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
-
-REPORT_INTERVAL = 100
 
 
 def train(args):
@@ -77,10 +76,6 @@ def train(args):
     odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
-
-    # check attention type
-    if args.atype not in ['noatt', 'dot', 'location']:
-        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
 
     # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
@@ -274,7 +269,7 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(
+    trainer.extend(BaseEvaluator(
         valid_iter, model, converter=converter, device=gpu_id))
 
     # Save attention weight each epoch
@@ -335,24 +330,25 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
-            trigger=(REPORT_INTERVAL, 'iteration'))
+            trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer, att_reporter),
+                       trigger=(args.report_interval_iters, 'iteration'))
 
     # Run the training
     trainer.run()

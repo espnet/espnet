@@ -373,6 +373,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|:----:|
 | Aishell dev            |  6.0 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
 | Aishell test           |  6.7 |  N/A | same as above |
+| Common Voice dev       |  1.7 |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
+| Common Voice test      |  1.8 |  2.3 | same as above |
 | CSJ eval1              |  5.7 |  N/A | N/A |
 | CSJ eval2              |  4.1 |  N/A | N/A |
 | CSJ eval3              |  4.5 |  N/A | N/A |
@@ -414,9 +416,10 @@ You can access the samples of TTS recipes from following links:
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
 - [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
 - [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
-- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Multi English speaker Tacotron2](https://drive.google.com/open?id=18S_B8Ogogij34rIfJOeNF8D--uG7amz2)
 - [Single English speaker Transformer](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
-- [Single English speaker FastSpeech (New!)](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
+- [Single English speaker FastSpeech](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
+- [Multi English speaker Tranformer (New!)](https://drive.google.com/open?id=1_vrdqjM43DdN1Qz7HJkvMQ6lCMmWLeGp)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
@@ -427,19 +430,45 @@ Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 ```sh
 cd egs/ljspeech/tts1
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
+../../../utils/synth_wav.sh example.txt
+```
+You can change the pretrained model as follows:
+```sh
 ../../../utils/synth_wav.sh --models ljspeech.tacotron2.v1 example.txt
 ```
 
-Available pretrained models are listed as follows.
+Available pretrained models are listed as follows:
 
 | Model | Notes |
 |:------|:------|
-| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Location sensitive attention |
-| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | Location sensitive attention |
-| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | Forward attention |
-| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Location sensitive attention + guided attention loss |
-| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep decoder network without reduction factor |
-| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow decoder network with reduction factor = 3 |
+| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Multi-speaker Tacotron 2 with reduction factor = 2 |
+| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | Tactoron 2 with reduction factor = 2|
+| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | Tacotron 2 with forward attention |
+| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Tacotron 2 with guided attention loss |
+| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep Transformer |
+| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow Transformer with reduction factor = 3 |
+| [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
+| [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
+| [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2 |
+
+Waveform synthesis is performed with Griffin-Lim algorithm as default, but we also support a pretrained WaveNet vocoder based on [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder).  
+You can try it by extending the `stop_stage` as follows:
+```
+../../../utils/synth_wav.sh --stop_stage 4 example.txt
+```
+You can change the pretrained vocoder model as follows:
+```
+../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.ns.v1.1000k_iters example.txt
+```
+
+Available pretrained vocoder models are listed as follows:
+
+| Model | Notes |
+|:------|:------|
+| [ljspeech.wavenet.ns.v1.100k_iters](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | WaveNet vocoder with noise shaping @ 100k iters |
+| [ljspeech.wavenet.ns.v1.1000k_iters](https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd) | WaveNet vocoder with noise shaping @ 1000k iters |
+
+If you want to build your own WaveNet vocoder, please check [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder).
 
 
 ## Chainer and Pytorch backends

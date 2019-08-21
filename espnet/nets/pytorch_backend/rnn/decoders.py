@@ -719,4 +719,5 @@ def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual, args.replace_sos)
+                   getattr(args, "context_residual", False),  # use getattr to keep compatibility
+                   getattr(args, "replace_sos", False))  # use getattr to keep compatibility
