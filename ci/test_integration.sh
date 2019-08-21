@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # test asr recipe
 (
     cd ./egs/mini_an4/asr1 || exit 1
-    . path.sh
+    . path.sh  # source here to avoid undefined variable errors
+
+    set -euo pipefail
+
     echo "==== ASR (backend=pytorch) ==="
     ./run.sh
     echo "==== ASR (backend=pytorch, dtype=float64) ==="
@@ -15,6 +16,8 @@ set -euo pipefail
 )
 # test tts recipe
 (
+    set -euo pipefail
+
     cd ./egs/mini_an4/tts1 || exit 1
     echo "==== TTS (backend=pytorch) ==="
     ./run.sh
