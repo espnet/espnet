@@ -5,9 +5,9 @@ import numpy
 import pytest
 import torch
 
-import espnet.lm.chainer_backend.lm as lm_chainer
 from espnet.nets.beam_search import beam_search
 from espnet.nets.lm_interface import dynamic_import_lm
+import espnet.nets.chainer_backend.lm.default as lm_chainer
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.scorers.length_bonus import LengthBonus
 
