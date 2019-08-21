@@ -13,16 +13,11 @@ import copy
 import json
 import logging
 import numpy as np
-import six
 
 import chainer
 from chainer.dataset import convert
-import chainer.functions as F
-import chainer.links as L
 
 # for classifier link
-from chainer.functions.loss import softmax_cross_entropy
-from chainer import link
 from chainer import reporter
 from chainer import training
 from chainer.training import extensions

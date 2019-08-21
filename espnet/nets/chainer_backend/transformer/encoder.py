@@ -5,8 +5,8 @@ import chainer
 
 from chainer import links as L
 
-from espnet.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.chainer_backend.transformer.mask import make_history_mask
 from espnet.nets.chainer_backend.transformer.subsampling import Conv2dSubsampling
@@ -30,7 +30,7 @@ class Encoder(chainer.Chain):
 
     """
 
-    def __init__(self, idim, 
+    def __init__(self, idim,
                  attention_dim=256,
                  attention_heads=4,
                  linear_units=2048,

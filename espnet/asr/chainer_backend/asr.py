@@ -59,7 +59,7 @@ def load_trained_model(model_path):
     """
     # read training config
     idim, odim, train_args = get_model_conf(
-        model_path,os.path.join(os.path.dirname(model_path), 'model.json'))
+        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
 
     # specify model architecture
     logging.info('reading model parameters from ' + model_path)

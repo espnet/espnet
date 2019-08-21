@@ -7,41 +7,19 @@
 from __future__ import division
 from __future__ import print_function
 
-import copy
-import json
-import logging
 import numpy as np
 import six
 
 import chainer
-from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
 
 # for classifier link
 from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
-
-from espnet.lm.lm_utils import compute_perplexity
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
-from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.lm_interface import LMInterface
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.training.evaluator import BaseEvaluator
-from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
 
 
 class DefaultRNNLM(LMInterface, link.Chain):
@@ -63,7 +41,7 @@ class DefaultRNNLM(LMInterface, link.Chain):
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
         return parser
-    
+
     def __init__(self, n_vocab, args):
         chainer.Chain.__init__(self)
         with self.init_scope():
@@ -78,12 +56,12 @@ class DefaultRNNLM(LMInterface, link.Chain):
         for i in six.moves.range(sequence_length):
             # Compute the loss at this time step and accumulate it
             state, loss_batch = self.model(state, chainer.Variable(x[:, i]),
-                                                 chainer.Variable(t[:, i]))
+                                           chainer.Variable(t[:, i]))
             non_zeros = xp.count_nonzero(x[:, i])
             loss += loss_batch * non_zeros
             count += int(non_zeros)
         return loss / batch_size, loss, count
-    
+
     def score(self, y, state, x):
         """Score new token.
 
@@ -112,12 +90,12 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
         """
         return self.model.final(state)
-    
+
     def serialize(self, serializer):
         # type: (chainer.AbstractSerializer) -> None
 
         super(chainer.Chain, self).serialize(serializer)
-        d = self.model.__dict__  # type: tp.Dict[str, Link]
+        d = self.model.__dict__
         for name in self.model._children:
             d[name].serialize(serializer[name])
 

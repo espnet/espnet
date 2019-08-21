@@ -1,47 +1,22 @@
 # Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# This code is ported from the following implementation written in chainer.
-# https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
-
 from __future__ import division
 from __future__ import print_function
 
-import copy
-import json
-import logging
+
 import numpy as np
-import six
 
 import chainer
-from chainer.dataset import convert
+
 import chainer.functions as F
 import chainer.links as L
 
 # for classifier link
-from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
-
-from espnet.lm.lm_utils import compute_perplexity
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
-from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.lm_interface import LMInterface
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.training.evaluator import BaseEvaluator
-from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
 
 
 class SequentialRNNLM(LMInterface, link.Chain):
@@ -63,7 +38,7 @@ class SequentialRNNLM(LMInterface, link.Chain):
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
         return parser
-    
+
     def __init__(self, n_vocab, args):
         chainer.Chain.__init__(self)
         self._setup(
@@ -79,7 +54,6 @@ class SequentialRNNLM(LMInterface, link.Chain):
             self.encoder = DL.EmbedID(ntoken, ninp)
             if rnn_type in ['LSTM', 'GRU']:
                 rnn = L.NStepLSTM if rnn_type == "lstm" else L.NStepGRU
-                
             else:
                 try:
                     nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]

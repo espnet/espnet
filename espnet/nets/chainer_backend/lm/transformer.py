@@ -3,54 +3,19 @@
 # Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# This code is ported from the following implementation written in Torch.
-# https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
-
 from __future__ import division
 from __future__ import print_function
 
-import copy
-import json
-import logging
 import numpy as np
-import six
 
-from typing import Any
-from typing import Tuple
-
-import chainer
-from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
 
-# for classifier link
-from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
 
-from espnet.lm.lm_utils import compute_perplexity
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
-from espnet.lm.lm_utils import read_tokens
-
-import espnet.nets.chainer_backend.deterministic_embed_id as DL
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.training.evaluator import BaseEvaluator
-from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
-
-from espnet.nets.lm_interface import LMInterface
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
-from espnet.nets.chainer_backend.transformer.mask import make_history_mask
+from espnet.nets.lm_interface import LMInterface
 
 
 # TODO(karita): reimplement RNNLM with new interface
@@ -97,7 +62,7 @@ class TransformerLM(LMInterface, link.Chain):
     def forward(self, x, t):
         xp = self.xp
         xm = (x != 0)
-        to_array = xp.asarray if xp is np else xp.asnumpy 
+        to_array = xp.asarray if xp is np else xp.asnumpy
         ilens = np.sum(to_array(xm), axis=1)
         h, _, _ = self.encoder(x, ilens)
         y = self.decoder(h, n_batch_axes=2)
@@ -107,7 +72,7 @@ class TransformerLM(LMInterface, link.Chain):
         logp = F.sum(logp)
         count = mask.sum()
         return logp / count, logp, count
-    
+
     def score(self, y, state, x):
         """Score new token.
 
