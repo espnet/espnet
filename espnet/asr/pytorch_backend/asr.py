@@ -15,6 +15,7 @@ from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
+from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
@@ -43,6 +44,7 @@ from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -58,10 +60,8 @@ if sys.version_info[0] == 2:
 else:
     from itertools import zip_longest as zip_longest
 
-REPORT_INTERVAL = 100
 
-
-class CustomEvaluator(extensions.Evaluator):
+class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Pytorch.
 
     Args:
@@ -117,7 +117,7 @@ class CustomEvaluator(extensions.Evaluator):
         return summary.compute_mean()
 
 
-class CustomUpdater(training.StandardUpdater):
+class CustomUpdater(StandardUpdater):
     """Custom Updater for Pytorch.
 
     Args:
@@ -362,9 +362,10 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -446,7 +447,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.grad_noise, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer,
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -521,7 +523,7 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
@@ -529,21 +531,21 @@ def train(args):
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(REPORT_INTERVAL, 'iteration'))
+            trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
     if args.report_cer:
         report_keys.append('validation/main/cer')
     if args.report_wer:
         report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+                       trigger=(args.report_interval_iters, "iteration"))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)

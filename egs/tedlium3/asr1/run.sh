@@ -161,15 +161,14 @@ mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
-    [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
-    gunzip -c db/TEDLIUM_release-3/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
-	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
-    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-	> ${lmdatadir}/valid.txt
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
+    if [ ! -e ${lmdatadir} ]; then
+        mkdir -p ${lmdatadir}
+        gunzip -c db/TEDLIUM_release-3/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
+	        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+	                                                        > ${lmdatadir}/valid.txt
     fi
+
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
@@ -181,7 +180,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --dict ${dict}
+        --dict ${dict} \
+        --dump-hdf5-path ${lmdatadir}
 fi
 
 if [ -z ${tag} ]; then

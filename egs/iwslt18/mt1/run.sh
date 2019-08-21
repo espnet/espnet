@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Kyoto University (Hirofumi Inaguma)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -24,12 +24,24 @@ decode_config=conf/decode.yaml
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# model average realted (only for transformer)
+n_average=5                  # the number of NMT models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
+                             # if false, the last `n_average` NMT models will be averaged.
+
 # preprocessing related
 src_case=lc.rm
 tgt_case=lc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
+
+# bpemode (unigram or bpe)
+nbpe=106
+bpemode=bpe
+# NOTE: nbpe=88 means character-level NMT (lc.rm)
+# NOTE: nbpe=106 means character-level NMT (lc)
+# NOTE: nbpe=134 means character-level NMT (tc)
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -130,8 +142,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.de.tmp/reclist1
-        cut -f -1 -d " " data/${x}.de.tmp/text > data/${x}.de.tmp/reclist2
+        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.de.tmp/reclist1
+        cut -f 1 -d " " data/${x}.de.tmp/text > data/${x}.de.tmp/reclist2
         comm -12 data/${x}.de.tmp/reclist1 data/${x}.de.tmp/reclist2 > data/${x}.de.tmp/reclist
 
         for lang in en de; do
@@ -142,62 +154,57 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict_src=data/lang_1char/${train_set}_units_${src_case}.txt
-dict_tgt=data/lang_1char/${train_set}_units_${tgt_case}.txt
-nlsyms=data/lang_1char/non_lang_syms_${tgt_case}.txt
-echo "dictionary (src): ${dict_src}"
-echo "dictionary (tgt): ${dict_tgt}"
+dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
+nlsyms=data/lang_1spm/non_lang_syms_${tgt_case}.txt
+bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
+    mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
     cut -f 2- -d' ' data/${train_set_prefix}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a target dictionary"
-    echo "<unk> 1" > ${dict_tgt} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set_prefix}.*/text.${tgt_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_tgt}
-    wc -l ${dict_tgt}
-
-    echo "make a source dictionary"
-    echo "<unk> 1" > ${dict_src} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set_prefix}.*/text.${src_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_src}
-    wc -l ${dict_src}
+    echo "make a joint source and target dictionary"
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    offset=$(wc -l < ${dict})
+    cut -f 2- -d " " data/${train_set_prefix}.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    wc -l ${dict}
 
     echo "make json files"
-    local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_set} ${dict_tgt} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
-    local/data2json.sh --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_dev} ${dict_tgt} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
+    local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model \
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    local/data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model \
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}; mkdir -p ${feat_recog_dir}
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/data2json.sh --text data/${rtask}/text.${tgt_case} --nlsyms ${nlsyms} \
-                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+            local/data2json.sh --text data/${rtask}/text.${tgt_case} --bpecode ${bpemodel}.model \
+                data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         else
-            local/data2json.sh --text data/${rtask}/text_noseg.${tgt_case} --nlsyms ${nlsyms} --skip_utt2spk true \
-                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+            local/data2json.sh --text data/${rtask}/text_noseg.${tgt_case} --bpecode ${bpemodel}.model --skip_utt2spk true \
+                data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         fi
     done
 
     # update json (add source references)
-    local/update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".en ${dict_src}
-    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".en/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_dt_dir}/data.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".en ${dict_src}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
+        ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
+    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
+        ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
     for rtask in ${recog_set}; do
         feat_dir=${dumpdir}/${rtask}
-        data_dir=data/"$(echo ${rtask} | cut -f -1 -d ".")".en
+        data_dir=data/"$(echo ${rtask} | cut -f 1 -d ".")".en
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/update_json.sh --text ${data_dir}/text.${src_case} --nlsyms ${nlsyms} --set ${rtask} \
-                ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
+            local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model --set ${rtask} \
+                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         else
-            local/update_json.sh --text ${data_dir}/text_noseg.${src_case} --nlsyms ${nlsyms} --set ${rtask} \
-                ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
+            local/update_json.sh --text ${data_dir}/text_noseg.${src_case} --bpecode ${bpemodel}.model --set ${rtask} \
+                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         fi
     done
 fi
@@ -205,7 +212,7 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
 else
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
@@ -223,19 +230,34 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
-        --dict-src ${dict_src} \
-        --dict-tgt ${dict_tgt} \
+        --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.${src_case}_${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        # Average NMT models
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+        average_checkpoints.py \
+            ${opt} \
+            --backend ${backend} \
+            --snapshots ${expdir}/results/snapshot.ep.* \
+            --out ${expdir}/results/${recog_model} \
+            --num ${n_average}
+    fi
     nj=16
 
     pids=() # initialize pids
@@ -245,7 +267,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -256,11 +278,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        score_bleu.sh --case ${tgt_case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} de ${dict_tgt} ${dict_src}
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} de ${dict} ${dict}
 
     ) &
     pids+=($!) # store background pids

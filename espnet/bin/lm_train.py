@@ -50,6 +50,8 @@ def get_parser():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--report-interval-iters', default=100, type=int,
+                        help="Report interval iterations")
     # task related
     parser.add_argument('--train-label', type=str, required=True,
                         help='Filename of train label data')
@@ -83,6 +85,8 @@ def get_parser():
                         help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
+    parser.add_argument('--dump-hdf5-path', type=str, default=None,
+                        help='Path to dump a preprocessed dataset as hdf5')
     return parser
 
 
