@@ -167,6 +167,7 @@ class PlotAttentionReport(extension.Extension):
 
         """
         import matplotlib.pyplot as plt
+        att_w = att_w.astype(np.float32)
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 plt.subplot(1, len(att_w), h)
