@@ -75,19 +75,20 @@ class SequentialRNNLM(LMInterface, link.Chain):
             dropout=args.dropout_rate)
 
     def _setup(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, tie_weights=False):
-        self.encoder = DL.EmbedID(ntoken, ninp)
-        if rnn_type in ['LSTM', 'GRU']:
-            rnn = L.NStepLSTM if rnn_type == "lstm" else L.NStepGRU
-            
-        else:
-            try:
-                nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]
-            except KeyError:
-                raise ValueError("""An invalid option for `--model` was supplied,
-                                 options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
-            rnn = L.NStepRNNTanh if nonlinearity == "tanh" else L.NStepRNNReLU
-        self.rnn = rnn(nlayers, ninp, nhid, dropout)
-        self.decoder = L.Linear(nhid, ntoken)
+        with self.init_scope():
+            self.encoder = DL.EmbedID(ntoken, ninp)
+            if rnn_type in ['LSTM', 'GRU']:
+                rnn = L.NStepLSTM if rnn_type == "lstm" else L.NStepGRU
+                
+            else:
+                try:
+                    nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]
+                except KeyError:
+                    raise ValueError("""An invalid option for `--model` was supplied,
+                                    options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
+                rnn = L.NStepRNNTanh if nonlinearity == "tanh" else L.NStepRNNReLU
+            self.rnn = rnn(nlayers, ninp, nhid, dropout)
+            self.decoder = L.Linear(nhid, ntoken)
 
         # Optionally tie weights as in:
         # "Using the Output Embedding to Improve Language Models" (Press & Wolf 2016)
