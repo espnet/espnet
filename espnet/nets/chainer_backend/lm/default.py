@@ -1,3 +1,4 @@
+"""Default Recurrent Neural Network Languge Model in `lm_train.py`."""
 # Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -28,10 +29,12 @@ class DefaultRNNLM(LMInterface, link.Chain):
     Args:
         n_vocab (int): The size of the vocabulary
         args (argparse.Namespace): configurations. see `add_arguments`
+
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Add arguments to command line argument parser."""
         parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
                             help="Which type of RNN to use")
         parser.add_argument('--layer', '-l', type=int, default=2,
@@ -43,11 +46,34 @@ class DefaultRNNLM(LMInterface, link.Chain):
         return parser
 
     def __init__(self, n_vocab, args):
+        """Initialize class.
+
+        Args:
+            n_vocab (int): The size of the vocabulary
+            args (argparse.Namespace): configurations. see py:method:`add_arguments`
+
+        """
         chainer.Chain.__init__(self)
         with self.init_scope():
             self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
 
     def forward(self, x, t):
+        """Compute LM loss value from buffer sequences.
+
+        Args:
+            x (ndarray): Input ids. (batch, len)
+            t (ndarray): Target ids. (batch, len)
+
+        Returns:
+            tuple[chainer.Variable, chainer.Variable, int]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: -log p(t) (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+
+        """
         xp = self.xp
         loss = 0
         count = 0
@@ -92,6 +118,7 @@ class DefaultRNNLM(LMInterface, link.Chain):
         return self.model.final(state)
 
     def serialize(self, serializer):
+        """Serialize state dict."""
         # type: (chainer.AbstractSerializer) -> None
 
         super(chainer.Chain, self).serialize(serializer)
@@ -101,16 +128,18 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
 
 class ClassifierWithState(link.Chain):
-    """A wrapper for a chainer RNNLM
-
-    :param link.Chain predictor : The RNNLM
-    :param function lossfun: The loss function to use
-    :param int/str label_key:
-    """
+    """A wrapper for a chainer RNNLM."""
 
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
                  label_key=-1):
+        """Initialize class.
+
+        :param chainer.Chain predictor : The RNNLM
+        :param function lossfun : The loss function to use
+        :param int/str label_key :
+
+        """
         if not (isinstance(label_key, (int, str))):
             raise TypeError('label_key must be int or str, but is %s' %
                             type(label_key))
@@ -125,7 +154,7 @@ class ClassifierWithState(link.Chain):
             self.predictor = predictor
 
     def forward(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.
+        """Compute the loss value for an input and label pair.
 
             It also computes accuracy and stores it to the attribute.
             When ``label_key`` is ``int``, the corresponding element in ``args``
@@ -142,7 +171,6 @@ class ClassifierWithState(link.Chain):
         :return loss value
         :rtype chainer.Variable
         """
-
         if isinstance(self.label_key, int):
             if not (-len(args) <= self.label_key < len(args)):
                 msg = 'Label key %d is out of bounds' % self.label_key
@@ -181,7 +209,7 @@ class ClassifierWithState(link.Chain):
         return new_state, F.stack(new_log_y)
 
     def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
+        """Predict log probabilities for given state and input x using the predictor.
 
         :param state : the state
         :param x : the input
@@ -195,7 +223,7 @@ class ClassifierWithState(link.Chain):
             return state, F.log_softmax(z).data
 
     def final(self, state):
-        """Predict final log probabilities for given state using the predictor
+        """Predict final log probabilities for given state using the predictor.
 
         :param state : the state
         :return log probability vector
@@ -210,15 +238,16 @@ class ClassifierWithState(link.Chain):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
-    """A chainer RNNLM
-
-    :param int n_vocab: The size of the vocabulary
-    :param int n_layers: The number of layers to create
-    :param int n_units: The number of units per layer
-    :param str type: The RNN type
-    """
+    """A chainer RNNLM."""
 
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
+        """Initialize class.
+
+        :param int n_vocab: The size of the vocabulary
+        :param int n_layers: The number of layers to create
+        :param int n_units: The number of units per layer
+        :param str typ: The RNN type
+        """
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)

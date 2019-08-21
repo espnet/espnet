@@ -1,5 +1,6 @@
 # Copyright 2019 Waseda University (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""Sequential implementation of Recurrent Neural Network Language Model."""
 
 from __future__ import division
 from __future__ import print_function
@@ -29,6 +30,7 @@ class SequentialRNNLM(LMInterface, link.Chain):
 
     @staticmethod
     def add_arguments(parser):
+        """Add arguments to command line argument parser."""
         parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
                             help="Which type of RNN to use")
         parser.add_argument('--layer', '-l', type=int, default=2,
@@ -40,6 +42,13 @@ class SequentialRNNLM(LMInterface, link.Chain):
         return parser
 
     def __init__(self, n_vocab, args):
+        """Initialize class.
+
+        Args:
+            n_vocab (int): The size of the vocabulary
+            args (argparse.Namespace): configurations. see py:method:`add_arguments`
+
+        """
         chainer.Chain.__init__(self)
         self._setup(
             rnn_type=args.type.upper(),
@@ -91,6 +100,22 @@ class SequentialRNNLM(LMInterface, link.Chain):
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
     def forward(self, x, t):
+        """Compute LM loss value from buffer sequences.
+
+        Args:
+            x (ndarray): Input ids. (batch, len)
+            t (ndarray): Target ids. (batch, len)
+
+        Returns:
+            tuple[chainer.Variable, chainer.Variable, int]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: -log p(t) (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+
+        """
         y = self._before_loss(x, None)[0]
         mask = (x != 0).astype(y.dtype)
         loss = F.softmax_cross_entropy(y.reshape(-1, y.shape[-1]), t.reshape(-1), reduce="no")

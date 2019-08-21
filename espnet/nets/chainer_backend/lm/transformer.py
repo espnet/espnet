@@ -60,6 +60,22 @@ class TransformerLM(LMInterface, link.Chain):
             self.decoder = L.Linear(args.att_unit, n_vocab)
 
     def forward(self, x, t):
+        """Compute LM loss value from buffer sequences.
+
+        Args:
+            x (ndarray): Input ids. (batch, len)
+            t (ndarray): Target ids. (batch, len)
+
+        Returns:
+            tuple[chainer.Variable, chainer.Variable, int]: Tuple of
+                loss to backward (scalar),
+                negative log-likelihood of t: -log p(t) (scalar) and
+                the number of elements in x (scalar)
+
+        Notes:
+            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+
+        """
         xp = self.xp
         xm = (x != 0)
         to_array = xp.asarray if xp is np else xp.asnumpy
@@ -77,12 +93,12 @@ class TransformerLM(LMInterface, link.Chain):
         """Score new token.
 
         Args:
-            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            y (ndarray): 1D torch.int64 prefix tokens.
             state: Scorer state for prefix tokens
-            x (torch.Tensor): encoder feature that generates ys.
+            x (ndarray): encoder feature that generates ys.
 
         Returns:
-            tuple[torch.Tensor, Any]: Tuple of
+            tuple[ndarray, Any]: Tuple of
                 torch.float32 scores for next token (n_vocab)
                 and next state for ys
 

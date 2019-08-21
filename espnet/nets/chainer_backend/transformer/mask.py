@@ -1,3 +1,5 @@
+"""Create mask for subsequent steps."""
+
 
 def make_history_mask(xp, block):
     """Prepare the history mask.
