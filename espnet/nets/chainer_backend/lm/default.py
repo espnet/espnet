@@ -46,7 +46,6 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 
-# TODO(karita): reimplement RNNLM with new interface
 class DefaultRNNLM(LMInterface, link.Chain):
     """Default RNNLM wrapper to compute reduce framewise loss values.
 
@@ -63,7 +62,57 @@ class DefaultRNNLM(LMInterface, link.Chain):
                             help='Number of hidden layers')
         parser.add_argument('--unit', '-u', type=int, default=650,
                             help='Number of hidden units')
+        parser.add_argument('--dropout-rate', type=float, default=0.5,
+                            help='dropout probability')
         return parser
+    
+    def __init__(self, n_vocab, args):
+        chainer.Chain.__init__(self)
+        self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
+
+    def forward(self, x, t):
+        xp = self.xp
+        loss = 0
+        count = 0
+        state = None
+        batch_size, sequence_length = x.shape
+        for i in six.moves.range(sequence_length):
+            # Compute the loss at this time step and accumulate it
+            state, loss_batch = self.model(state, chainer.Variable(x[:, i]),
+                                                 chainer.Variable(t[:, i]))
+            non_zeros = xp.count_nonzero(x[:, i])
+            loss += loss_batch * non_zeros
+            count += int(non_zeros)
+        return loss / batch_size, loss, count
+    
+    def score(self, y, state, x):
+        """Score new token.
+
+        Args:
+            y (xp.ndarray): 1D torch.int64 prefix tokens.
+            state: Scorer state for prefix tokens
+            x (xp.ndarray): 2D encoder feature that generates ys.
+
+        Returns:
+            tuple[xp.ndarray, Any]: Tuple of
+                torch.float32 scores for next token (n_vocab)
+                and next state for ys
+
+        """
+        new_state, scores = self.model.predict(state, F.expand_dims(y[-1], axis=0))
+        return F.squeeze(scores, axis=0), new_state
+
+    def final_score(self, state):
+        """Score eos.
+
+        Args:
+            state: Scorer state for prefix tokens
+
+        Returns:
+            float: final score
+
+        """
+        return self.model.final(state)
 
 
 class ClassifierWithState(link.Chain):
@@ -90,7 +139,7 @@ class ClassifierWithState(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, state, *args, **kwargs):
+    def forward(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
             It also computes accuracy and stores it to the attribute.
@@ -131,6 +180,21 @@ class ClassifierWithState(link.Chain):
         self.loss = self.lossfun(self.y, t)
         return state, self.loss
 
+    def buff_predict(self, state, x, n):
+        """Predict new tokens from buffered inputs."""
+        if self.predictor.__class__.__name__ == 'RNNLM':
+            return self.predict(state, x)
+
+        new_state = []
+        new_log_y = []
+        for i in range(n):
+            state_i = None if state is None else state[i]
+            state_i, log_y = self.predict(state_i, F.expand_dims(x[i], axis=0))
+            new_state.append(state_i)
+            new_log_y.append(log_y)
+
+        return new_state, F.stack(new_log_y)
+
     def predict(self, state, x):
         """Predict log probabilities for given state and input x using the predictor
 
@@ -169,7 +233,7 @@ class RNNLM(chainer.Chain):
     :param str type: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
@@ -182,9 +246,11 @@ class RNNLM(chainer.Chain):
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
         self.n_layers = n_layers
         self.n_units = n_units
+        self.dropout = dropout_rate
         self.typ = typ
 
-    def __call__(self, state, x):
+    def forward(self, state, x):
+        """Forward neural networks."""
         if state is None:
             if self.typ == "lstm":
                 state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
@@ -195,9 +261,9 @@ class RNNLM(chainer.Chain):
         emb = self.embed(x)
         if self.typ == "lstm":
             c = [None] * self.n_layers
-            c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
+            c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb, self.dropout))
             for n in six.moves.range(1, self.n_layers):
-                c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
+                c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1], self.dropout))
             state = {'c': c, 'h': h}
         else:
             if state['h'][0] is None:
@@ -205,14 +271,14 @@ class RNNLM(chainer.Chain):
                 with chainer.backends.cuda.get_device_from_id(self._device_id):
                     state['h'][0] = chainer.Variable(
                         xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype))
-            h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
+            h[0] = self.rnn[0](state['h'][0], F.dropout(emb, self.dropout))
             for n in six.moves.range(1, self.n_layers):
                 if state['h'][n] is None:
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
                         state['h'][n] = chainer.Variable(
                             xp.zeros((h[n - 1].shape[0], self.n_units), dtype=h[n - 1].dtype))
-                h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
+                h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1], self.dropout))
             state = {'h': h}
-        y = self.lo(F.dropout(h[-1]))
+        y = self.lo(F.dropout(h[-1], self.dropout))
         return state, y

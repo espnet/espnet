@@ -65,27 +65,15 @@ class BPTTUpdater(training.updaters.StandardUpdater):
         optimizer = self.get_optimizer('main')
         # Progress the dataset iterator for sentences at each iteration.
         batch = train_iter.__next__()
-        x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
         # Concatenate the token IDs to matrices and send them to the device
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
-        xp = chainer.backends.cuda.get_array_module(x)
-        loss = 0
-        count = 0
-        state = None
-        batch_size, sequence_length = x.shape
-        for i in six.moves.range(sequence_length):
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]),
-                                                 chainer.Variable(t[:, i]))
-            non_zeros = xp.count_nonzero(x[:, i])
-            loss += loss_batch * non_zeros
-            count += int(non_zeros)
-
+        x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
+        loss, nll, count = optimizer.target(x, t)
         reporter.report({'loss': float(loss.data)}, optimizer.target)
+        reporter.report({'nll': float(nll.data)}, optimizer.target)
         reporter.report({'count': count}, optimizer.target)
         # update
-        loss /= batch_size  # normalized by batch size
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -108,20 +96,20 @@ class LMEvaluator(BaseEvaluator):
         val_iter = self.get_iterator('main')
         target = self.get_target('main')
         loss = 0
+        nll = 0
         count = 0
         for batch in copy.copy(val_iter):
             x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
-            xp = chainer.backends.cuda.get_array_module(x)
-            state = None
-            for i in six.moves.range(len(x[0])):
-                state, loss_batch = target(state, x[:, i], t[:, i])
-                non_zeros = xp.count_nonzero(x[:, i])
-                loss += loss_batch.data * non_zeros
-                count += int(non_zeros)
+            l, n, c = target(x, t)
+            loss += float(l.data)
+            nll += float(n.data)
+            count += int(c)
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss / count)}, target)
+            reporter.report({'loss': loss}, target)
+            reporter.report({'nll': nll}, target)
+            reporter.report({'count': count}, target)
         return observation
 
 
@@ -170,8 +158,8 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
-    model = ClassifierWithState(rnn)
+    model = model_class(args.n_vocab, args)
+    logging.info(type(model))
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:

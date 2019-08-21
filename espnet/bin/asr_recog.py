@@ -162,8 +162,15 @@ def main(args):
     logging.info('backend = ' + args.backend)
     if args.num_spkrs == 1:
         if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import recog
-            recog(args)
+            # Experimental API that supports custom LMs
+            if args.api == "v2":
+                from espnet.asr.chainer_backend.recog import recog_v2
+                recog_v2(args)
+            else:
+                from espnet.asr.chainer_backend.asr import recog
+                if args.dtype != "float32":
+                    raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
+                recog(args)
         elif args.backend == "pytorch":
             # Experimental API that supports custom LMs
             if args.api == "v2":
