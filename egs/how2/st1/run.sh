@@ -53,7 +53,7 @@ how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
 #    |_ fbank_pitch_181516/
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=1000
 bpemode=bpe
 
 # exp tag

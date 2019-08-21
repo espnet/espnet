@@ -54,7 +54,7 @@ how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
 #    |_ fbank_pitch_181516/
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=1000
 bpemode=bpe
 
 # exp tag
@@ -91,7 +91,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Note that this dataset does not include the original audio files
 
     # Divide into source and target languages
-    for x in train val dev5; do
+    for x in train val dev5 test_set_iwslt2019; do
         local/divide_lang.sh ${x}
     done
 
