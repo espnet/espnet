@@ -162,7 +162,6 @@ def train(args):
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     model = model_class(args.n_vocab, args)
-    logging.info(type(model))
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:

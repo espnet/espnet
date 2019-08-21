@@ -66,7 +66,8 @@ class DefaultRNNLM(LMInterface, link.Chain):
     
     def __init__(self, n_vocab, args):
         chainer.Chain.__init__(self)
-        self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
+        with self.init_scope():
+            self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
 
     def forward(self, x, t):
         xp = self.xp
