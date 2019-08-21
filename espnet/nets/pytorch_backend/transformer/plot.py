@@ -1,6 +1,7 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy
-import logging
 
 from espnet.asr import asr_utils
 
