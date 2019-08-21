@@ -43,7 +43,7 @@ case=lc.rm
 # lc.rm: lowercase with punctuation removal
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=5000
 bpemode=bpe
 
 # exp tag
