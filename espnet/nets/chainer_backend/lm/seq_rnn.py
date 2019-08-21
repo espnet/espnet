@@ -117,17 +117,17 @@ class SequentialRNNLM(LMInterface, link.Chain):
 
     def forward(self, x, t):
         y = self._before_loss(x, None)[0]
-        mask = (x != 0).to(y.dtype)
+        mask = (x != 0).astype(y.dtype)
         loss = F.softmax_cross_entropy(y.reshape(-1, y.shape[-1]), t.reshape(-1), reduce="no")
         logp = loss * mask.reshape(-1)
         logp = F.sum(logp)
-        count = F.sum(mask)
-        return loss / count, F.sum(loss), count
+        count = mask.sum()
+        return logp / count, logp, count
 
     def _before_loss(self, input, hidden):
         emb = self.encoder(input)
-        output, hidden = self.rnn(emb, hidden)
-        decoded = self.decoder(output, n_batch_axes=2)
+        hidden, output = self.rnn(hidden, F.separate(emb, axis=0))
+        decoded = self.decoder(F.stack(output, axis=0), n_batch_axes=2)
         return decoded, hidden
 
     def score(self, y, state, x):
