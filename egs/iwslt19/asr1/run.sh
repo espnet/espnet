@@ -181,8 +181,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
-exit 1
-
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
 if [ -z ${lmtag} ]; then
     lmtag=$(basename ${lm_config%.*})_${case}
