@@ -158,7 +158,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
     grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' >> data/lang_1spm/input.txt
     # NOTE: speed perturbation is not applied in how2
-    cat data/lang_1spm/input.txt | sort | uniq > ${nlsyms}
+    sort data/lang_1spm/input.txt | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
@@ -180,6 +180,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 fi
+
+exit 1
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
 if [ -z ${lmtag} ]; then
