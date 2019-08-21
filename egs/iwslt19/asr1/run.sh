@@ -193,8 +193,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
+    gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
+        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train_${case}.txt
     grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/train_${case}.txt
+        >> ${lmdatadir}/train_${case}.txt
     cut -f 2- -d " " data/${train_dev}/text.${case} | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/valid_${case}.txt
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
