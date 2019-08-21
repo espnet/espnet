@@ -5,13 +5,18 @@ set -euo pipefail
 # test asr recipe
 (
     cd ./egs/mini_an4/asr1 || exit 1
+    . path.sh
+    echo "==== ASR (backend=pytorch) ==="
     ./run.sh
-    ./run.sh --stage 5 --decode-config ./conf/decode_v2.yaml
+    echo "==== ASR (backend=pytorch, dtype=float64) ==="
+    ./run.sh --stage 4 --train-config $(change_yaml.py ./conf/train.yaml -a train-dtype=float64) --decode-config $(change_yaml.py ./conf/decode.yaml -a api=v2 -a dtype=float64)
+    echo "==== ASR (backend=chainer) ==="
     ./run.sh --stage 3 --backend chainer
 )
 # test tts recipe
 (
     cd ./egs/mini_an4/tts1 || exit 1
+    echo "==== TTS (backend=pytorch) ==="
     ./run.sh
 )
 

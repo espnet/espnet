@@ -18,11 +18,12 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 # NOTE: you need this func to generate our sphinx doc
-def get_parser():
-    parser = configargparse.ArgumentParser(
-        description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+def get_parser(parser=None):
+    if parser is None:
+        parser = configargparse.ArgumentParser(
+            description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
+            config_file_parser_class=configargparse.YAMLConfigFileParser,
+            formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,
@@ -32,6 +33,8 @@ def get_parser():
 
     parser.add_argument('--ngpu', default=None, type=int,
                         help='Number of GPUs. If not given, use all visible devices')
+    parser.add_argument('--train-dtype', default="float32", choices=["float16", "float32", "float64"],
+                        help='Data type for training (only pytorch backend).')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -264,6 +267,10 @@ def main(cmd_args):
         args.backend = 'chainer'
     if 'pytorch_backend' in args.model_module:
         args.backend = 'pytorch'
+    if args.backend == "chainer" and args.train_dtype != "float32":
+        raise NotImplementedError(
+            f"chainer backend does not support --train-dtype {args.train_dtype}."
+            "Use --dtype float32.")
 
     # logging info
     if args.verbose > 0:
