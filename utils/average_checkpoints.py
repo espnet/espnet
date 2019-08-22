@@ -16,8 +16,10 @@ def main():
         for log in logs:
             if "validation/main/acc" in log.keys():
                 val_scores += [[log["epoch"], log["validation/main/acc"]]]
+            elif "val_perplexity" in log.keys():
+                val_scores += [[log["epoch"], 1 / log["val_perplexity"]]]
         if len(val_scores) == 0:
-            raise ValueError("`validation/main/acc` is not found in log.")
+            raise ValueError("`validation/main/acc` or `val_perplexity` is not found in log.")
         val_scores = np.array(val_scores)
         sort_idx = np.argsort(val_scores[:, -1])
         sorted_val_scores = val_scores[sort_idx][::-1]
