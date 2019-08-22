@@ -206,7 +206,7 @@ class ClassifierWithState(link.Chain):
             new_state.append(state_i)
             new_log_y.append(log_y)
 
-        return new_state, F.stack(new_log_y)
+        return new_state, F.concat(new_log_y, axis=0)
 
     def predict(self, state, x):
         """Predict log probabilities for given state and input x using the predictor.

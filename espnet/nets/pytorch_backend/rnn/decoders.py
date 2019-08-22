@@ -614,7 +614,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
                              reverse=True)[:min(len(ended_hyps[samp_i]), recog_args.nbest)]
                       for samp_i in six.moves.range(batch)]
-
+        exit(1)
         return nbest_hyps
 
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, tgt_lang_ids=None):

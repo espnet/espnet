@@ -1,4 +1,4 @@
-batchsize: 512
+batchsize: 256
 dropout: 0
 epoch: 20
 layer: 4

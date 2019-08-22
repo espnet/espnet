@@ -406,14 +406,14 @@ class Decoder(chainer.Chain):
         if self.replace_sos and recog_args.tgt_lang:
             logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
             logging.info('<sos> mark: ' + recog_args.tgt_lang)
-            yseq = [[char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)]
+            yseq = xp.full([n_bb, 1], char_list.index(recog_args.tgt_lang), 'i')
         elif tgt_lang_ids is not None:
             # NOTE: used for evaluation during training
-            yseq = [[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
+            yseq = xp.full([n_bb, 1], tgt_lang_ids[b // recog_args.beam_size], 'i')
         else:
             logging.info('<sos> index: ' + str(self.sos))
             logging.info('<sos> mark: ' + char_list[self.sos])
-            yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+            yseq = xp.full([n_bb, 1], self.sos, 'i')
         accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
@@ -430,9 +430,8 @@ class Decoder(chainer.Chain):
             ctc_scores_prev = xp.zeros((batch, n_bo))
 
         for i in six.moves.range(maxlen):
-            logging.info(i)
             logging.debug('position ' + str(i))
-
+            logging.debug('rec_text ' + str(yseq))
             vy = xp.array(self._get_last_yseq(yseq), dtype=xp.int64)
             ey = self.embed(vy)
             att_c, att_w = self.att(exp_h, z_prev[0], a_prev)
@@ -443,22 +442,19 @@ class Decoder(chainer.Chain):
             # get nbest local scores and their ids
             logits = F.log_softmax(self.output(z_list[-1])).data
             local_scores = att_weight * logits
-            logging.info(local_scores.shape)
+
             # rnnlm
             if rnnlm:
                 rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
                 local_scores = local_scores + recog_args.lm_weight * local_lm_scores
-            logging.info(local_scores.shape)
             local_scores = local_scores.reshape(batch, n_bo)
 
             # ctc
             if lpz is not None:
-                logging.info(ctc_states_prev)
-                logging.info(accum_odim_ids)
-                ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev, accum_odim_ids)
+                ctc_scores, ctc_states = ctc_prefix_score(yseq, accum_odim_ids, ctc_states_prev)
                 ctc_scores = ctc_scores.reshape(batch, n_bo)
                 local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
-            local_scores = local_scores.reshape(batch, beam, self.odim)
+            local_scores = local_scores.reshape(batch, beam, self.odim).data
 
             if i == 0:
                 local_scores[:, 1:, :] = self.logzero
@@ -486,8 +482,6 @@ class Decoder(chainer.Chain):
             # global pruning
             accum_best_ids = xp.argsort(vscores, axis=1)[:, :beam]
             accum_best_scores = xp.take(vscores, accum_best_ids)
-            logging.info(accum_best_ids)
-            logging.info(accum_best_scores)
             accum_odim_ids = xp.fmod(accum_best_ids, self.odim).reshape(-1)
             accum_padded_odim_ids = (xp.fmod(accum_best_ids, n_bo) + pad_bo).reshape(-1)
             accum_padded_beam_ids = (xp.floor_divide(accum_best_ids, self.odim) + pad_b).reshape(-1)
@@ -505,7 +499,6 @@ class Decoder(chainer.Chain):
             vscores = accum_best_scores
             vidx = xp.array(accum_padded_beam_ids, dtype=np.int64)
 
-            logging.info(type(att_w))
             if isinstance(att_w, chainer.Variable):
                 a_prev = xp.take(att_w.reshape(n_bb, *att_w.shape[1:]).data, vidx, axis=0)
             elif isinstance(att_w, list):
@@ -566,6 +559,10 @@ class Decoder(chainer.Chain):
                 break
 
         dummy_hyps = [{'yseq': [self.sos, self.eos], 'score': np.array([-float('inf')])}]
+        #ended_hyps = list()
+        #for samp_i in six.moves.range(batch):
+
+        #exit(1)
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
                       for samp_i in six.moves.range(batch)]
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
@@ -628,6 +625,7 @@ class Decoder(chainer.Chain):
     @staticmethod
     def _get_last_yseq(exp_yseq):
         last = []
+        logging.info(exp_yseq)
         for y_seq in exp_yseq:
             last.append(y_seq[-1])
         return last

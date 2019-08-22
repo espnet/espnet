@@ -32,6 +32,7 @@ lm_resume=          # specify a snapshot file to resume LM training
 
 # decoding parameter
 recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+decode_jobs=8
 
 # data
 datadir=./downloads
@@ -223,7 +224,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=8
+    nj=${decode_jobs}
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
