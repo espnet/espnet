@@ -137,7 +137,7 @@ class CustomUpdater(StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1):
+                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -148,6 +148,7 @@ class CustomUpdater(StandardUpdater):
         self.forward_count = 0
         self.grad_noise = grad_noise
         self.iteration = 0
+        self.use_apex = use_apex
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -164,7 +165,12 @@ class CustomUpdater(StandardUpdater):
 
         # Compute the loss at this time step and accumulate it
         loss = self.model(*x).mean() / self.accum_grad
-        loss.backward()  # Backprop
+        if self.use_apex:
+            from apex import amp
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
         # gradient noise injection
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
@@ -371,7 +377,10 @@ def train(args):
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    dtype = getattr(torch, args.train_dtype)
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
+    else:
+        dtype = torch.float32
     model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
@@ -387,6 +396,19 @@ def train(args):
         optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
+
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+            "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -451,7 +473,7 @@ def train(args):
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer,
-        converter, device, args.ngpu, args.grad_noise, args.accum_grad)
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
