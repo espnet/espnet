@@ -12,7 +12,10 @@ import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from argparse import Namespace
 
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.ctc_prefix_score import CTCPrefixScoreCH
 from espnet.nets.e2e_asr_common import end_detect
+
+from espnet.nets.chainer_backend.nets_utils import mask_by_length
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -39,8 +42,9 @@ class Decoder(chainer.Chain):
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
-        super(Decoder, self).__init__()
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
+                 dropout=0.0, context_residual=False, replace_sos=False):
+        chainer.Chain.__init__(self)
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
             self.rnn0 = L.StatelessLSTM(dunits + eprojs, dunits) if dtype == "lstm" \
@@ -53,6 +57,7 @@ class Decoder(chainer.Chain):
         self.loss = None
         self.att = att
         self.dlayers = dlayers
+        self.context_residual = context_residual
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
@@ -63,6 +68,12 @@ class Decoder(chainer.Chain):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+        self.odim = odim
+
+        # for multilingual translation
+        self.replace_sos = replace_sos
+
+        self.logzero = -10000000000.0
 
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
@@ -351,6 +362,218 @@ class Decoder(chainer.Chain):
 
         return nbest_hyps
 
+    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+                             normalize_score=True, strm_idx=0, tgt_lang_ids=None):
+        logging.info('input lengths: ' + str([x.shape[0] for x in h]))
+
+        h = mask_by_length(F.pad_sequence(h), hlens, 0.0)
+        xp = self.xp
+        # search params
+        batch = len(hlens)
+        beam = recog_args.beam_size
+        penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
+        att_weight = 1.0 - ctc_weight
+
+        n_bb = batch * beam
+        n_bo = beam * self.odim
+        n_bbo = n_bb * self.odim
+        pad_b = xp.array([i * beam for i in six.moves.range(batch)], dtype=xp.int64).reshape(-1, 1)
+        pad_bo = xp.array([i * n_bo for i in six.moves.range(batch)], dtype=xp.int64).reshape(-1, 1)
+        pad_o = xp.array([i * self.odim for i in six.moves.range(n_bb)], dtype=xp.int64).reshape(-1, 1)
+
+        max_hlen = int(max(hlens))
+        if recog_args.maxlenratio == 0:
+            maxlen = max_hlen
+        else:
+            maxlen = max(1, int(recog_args.maxlenratio * max_hlen))
+        minlen = int(recog_args.minlenratio * max_hlen)
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+
+        # initialization
+        c_prev = [xp.zeros((n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_prev = [xp.zeros((n_bb, self.dunits)) for _ in range(self.dlayers)]
+        c_list = [xp.zeros((n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_list = [xp.zeros((n_bb, self.dunits)) for _ in range(self.dlayers)]
+        vscores = xp.zeros((batch, beam))
+
+        a_prev = None
+        rnnlm_prev = None
+
+        self.att.reset()  # reset pre-computation of h
+
+        if self.replace_sos and recog_args.tgt_lang:
+            logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
+            logging.info('<sos> mark: ' + recog_args.tgt_lang)
+            yseq = [[char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)]
+        elif tgt_lang_ids is not None:
+            # NOTE: used for evaluation during training
+            yseq = [[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
+        else:
+            logging.info('<sos> index: ' + str(self.sos))
+            logging.info('<sos> mark: ' + char_list[self.sos])
+            yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+        accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
+        stop_search = [False for _ in six.moves.range(batch)]
+        nbest_hyps = [[] for _ in six.moves.range(batch)]
+        ended_hyps = [[] for _ in range(batch)]
+
+        exp_hlens = np.array(hlens).repeat(beam).reshape(beam, batch).transpose(0, 1)
+        exp_hlens = exp_hlens.reshape(-1).tolist()
+        exp_h = F.repeat(F.expand_dims(h, axis=1), beam, axis=1)
+        exp_h = exp_h.reshape(n_bb, h.shape[1], h.shape[2])
+
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScoreCH(lpz, 0, self.eos, beam, exp_hlens, xp)
+            ctc_states_prev = ctc_prefix_score.initial_state()
+            ctc_scores_prev = xp.zeros((batch, n_bo))
+
+        for i in six.moves.range(maxlen):
+            logging.info(i)
+            logging.debug('position ' + str(i))
+
+            vy = xp.array(self._get_last_yseq(yseq), dtype=xp.int64)
+            ey = self.embed(vy)
+            att_c, att_w = self.att(exp_h, z_prev[0], a_prev)
+            ey = F.hstack((ey, att_c))  # utt x (zdim + hdim)
+
+            # attention decoder
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
+            # get nbest local scores and their ids
+            logits = F.log_softmax(self.output(z_list[-1])).data
+            local_scores = att_weight * logits
+            logging.info(local_scores.shape)
+            # rnnlm
+            if rnnlm:
+                rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
+                local_scores = local_scores + recog_args.lm_weight * local_lm_scores
+            logging.info(local_scores.shape)
+            local_scores = local_scores.reshape(batch, n_bo)
+
+            # ctc
+            if lpz is not None:
+                logging.info(ctc_states_prev)
+                logging.info(accum_odim_ids)
+                ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev, accum_odim_ids)
+                ctc_scores = ctc_scores.reshape(batch, n_bo)
+                local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
+            local_scores = local_scores.reshape(batch, beam, self.odim)
+
+            if i == 0:
+                local_scores[:, 1:, :] = self.logzero
+            # from beam search: joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+            local_best_odims = xp.argsort(local_scores.reshape(batch, beam, self.odim), axis=2)[:, :, :beam]
+            local_best_scores = xp.take(local_scores, local_best_odims)
+
+            # local pruning (via xp)
+            local_scores = np.full((n_bbo,), self.logzero)
+            _best_odims = local_best_odims.reshape(n_bb, beam) + pad_o
+            _best_odims = _best_odims.reshape(-1)
+            _best_score = local_best_scores.reshape(-1)
+            if xp is not np:
+                _best_odims = xp.asnumpy(_best_odims)
+                _best_score = xp.asnumpy(_best_score)        
+
+            local_scores[_best_odims] = _best_score
+            local_scores = xp.array(local_scores, dtype=xp.float32).reshape(batch, beam, self.odim)
+
+            eos_vscores = local_scores[:, :, self.eos] + vscores
+            vscores = xp.repeat(vscores.reshape(batch, beam, 1), self.odim, axis=2)
+            vscores[:, :, self.eos] = self.logzero
+            vscores = (vscores + local_scores).reshape(batch, n_bo)
+
+            # global pruning
+            accum_best_ids = xp.argsort(vscores, axis=1)[:, :beam]
+            accum_best_scores = xp.take(vscores, accum_best_ids)
+            logging.info(accum_best_ids)
+            logging.info(accum_best_scores)
+            accum_odim_ids = xp.fmod(accum_best_ids, self.odim).reshape(-1)
+            accum_padded_odim_ids = (xp.fmod(accum_best_ids, n_bo) + pad_bo).reshape(-1)
+            accum_padded_beam_ids = (xp.floor_divide(accum_best_ids, self.odim) + pad_b).reshape(-1)
+            if xp is not np:
+                accum_odim_ids = xp.asnumpy(accum_odim_ids)
+                accum_padded_odim_ids = xp.asnumpy(accum_padded_odim_ids)
+                accum_padded_beam_ids = xp.asnumpy(accum_padded_beam_ids)
+            accum_odim_ids = accum_odim_ids.tolist()
+            accum_padded_odim_ids = accum_padded_odim_ids.tolist()
+            accum_padded_beam_ids = accum_padded_beam_ids.tolist()
+
+            y_prev = yseq[:][:]
+            yseq = self._index_select_list(yseq, accum_padded_beam_ids)
+            yseq = self._append_ids(yseq, accum_odim_ids)
+            vscores = accum_best_scores
+            vidx = xp.array(accum_padded_beam_ids, dtype=np.int64)
+
+            logging.info(type(att_w))
+            if isinstance(att_w, chainer.Variable):
+                a_prev = xp.take(att_w.reshape(n_bb, *att_w.shape[1:]).data, vidx, axis=0)
+            elif isinstance(att_w, list):
+                # handle the case of multi-head attention
+                raise NotImplementedError('WIP')
+                # a_prev = [torch.index_select(att_w_one.view(n_bb, -1), 0, vidx) for att_w_one in att_w]
+            else:
+                # handle the case of location_recurrent when return is a tuple
+                raise NotImplementedError('WIP')
+                # a_prev_ = torch.index_select(att_w[0].view(n_bb, -1), 0, vidx)
+                # h_prev_ = torch.index_select(att_w[1][0].view(n_bb, -1), 0, vidx)
+                # c_prev_ = torch.index_select(att_w[1][1].view(n_bb, -1), 0, vidx)
+                # a_prev = (a_prev_, (h_prev_, c_prev_))
+            z_prev = [xp.take(z_list[li].reshape(n_bb, -1).data, vidx, axis=0) for li in range(self.dlayers)]
+            c_prev = [xp.take(c_list[li].reshape(n_bb, -1).data, vidx, axis=0) for li in range(self.dlayers)]
+
+            if rnnlm:
+                rnnlm_prev = self._index_select_lm_state(xp, rnnlm_state, 0, vidx)
+            if lpz is not None:
+                ctc_vidx = xp.array(accum_padded_odim_ids, dtype=xp.int64)
+                ctc_scores_prev = xp.take(ctc_scores.reshape(-1), ctc_vidx, axis=0)
+                ctc_scores_prev = xp.repeat(ctc_scores_prev.reshape(-1, 1), self.odim, axis=1).reshape(batch, n_bo)
+                
+                ctc_states = xp.swapaxes(ctc_states, 1, 3)
+                ctc_states = ctc_states.reshape(n_bbo, 2, -1)
+                ctc_states_prev = xp.take(ctc_states, ctc_vidx, axis=0).reshape(n_bb, 2, -1)
+                ctc_states_prev = xp.swapaxes(ctc_states_prev, 1, 2)
+
+            # pick ended hyps
+            if i > minlen:
+                k = 0
+                penalty_i = (i + 1) * penalty
+                thr = accum_best_scores[:, -1]
+                for samp_i in six.moves.range(batch):
+                    if stop_search[samp_i]:
+                        k = k + beam
+                        continue
+                    for beam_j in six.moves.range(beam):
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yk = y_prev[k][:]
+                            yk.append(self.eos)
+                            if len(yk) < hlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                                if normalize_score:
+                                    _vscore = _vscore / len(yk)
+                                if xp is not np:    
+                                    _score = xp.asnumpy(_vscore)
+                                else:
+                                    _score = _vscore
+                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                        k = k + 1
+
+            # end detection
+            stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
+                           for samp_i in six.moves.range(batch)]
+            stop_search_summary = list(set(stop_search))
+            if len(stop_search_summary) == 1 and stop_search_summary[0]:
+                break
+
+        dummy_hyps = [{'yseq': [self.sos, self.eos], 'score': np.array([-float('inf')])}]
+        ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
+                      for samp_i in six.moves.range(batch)]
+        nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
+                             reverse=True)[:min(len(ended_hyps[samp_i]), recog_args.nbest)]
+                      for samp_i in six.moves.range(batch)]
+
+        return nbest_hyps
+
     def calculate_all_attentions(self, hs, ys):
         """Calculate all of attentions.
 
@@ -401,6 +624,43 @@ class Decoder(chainer.Chain):
         att_ws.to_cpu()
 
         return att_ws.data
+
+    @staticmethod
+    def _get_last_yseq(exp_yseq):
+        last = []
+        for y_seq in exp_yseq:
+            last.append(y_seq[-1])
+        return last
+
+    @staticmethod
+    def _append_ids(yseq, ids):
+        if isinstance(ids, list):
+            for i, j in enumerate(ids):
+                yseq[i].append(j)
+        else:
+            for i in range(len(yseq)):
+                yseq[i].append(ids)
+        return yseq
+
+    @staticmethod
+    def _index_select_list(yseq, lst):
+        new_yseq = []
+        for l in lst:
+            new_yseq.append(yseq[l][:])
+        return new_yseq
+
+    @staticmethod
+    def _index_select_lm_state(xp, rnnlm_state, axis, vidx):
+        if isinstance(rnnlm_state, dict):
+            new_state = {}
+            for k, v in rnnlm_state.items():
+                new_state[k] = [xp.take(vi.data, vidx, axis=axis) for vi in v]
+                #new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+        elif isinstance(rnnlm_state, list):
+            new_state = []
+            for i in vidx:
+                new_state.append(rnnlm_state[int(i)][:])
+        return new_state
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):

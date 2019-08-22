@@ -202,7 +202,7 @@ class ClassifierWithState(link.Chain):
         new_log_y = []
         for i in range(n):
             state_i = None if state is None else state[i]
-            state_i, log_y = self.predict(state_i, F.expand_dims(x[i], axis=0))
+            state_i, log_y = self.predict(state_i, x[i][None])
             new_state.append(state_i)
             new_log_y.append(log_y)
 

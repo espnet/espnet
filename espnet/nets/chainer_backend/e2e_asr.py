@@ -8,6 +8,7 @@ import logging
 import math
 
 import chainer
+from chainer import functions as F
 from chainer import reporter
 import numpy as np
 
@@ -18,6 +19,7 @@ from espnet.nets.chainer_backend.rnn.decoders import decoder_for
 from espnet.nets.chainer_backend.rnn.encoders import encoder_for
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -140,6 +142,9 @@ class E2E(ASRInterface, chainer.Chain):
         else:
             return self.loss
 
+    def scorers(self):
+        return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
+
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E greedy/beam search.
 
@@ -174,6 +179,39 @@ class E2E(ASRInterface, chainer.Chain):
             y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
+
+    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
+        """E2E beam search
+
+        :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
+        :param Namespace recog_args: argument Namespace containing options
+        :param list char_list: list of characters
+        :param chainer.Chain rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        """
+        xp = self.xp
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        xs = [xp.asarray(xx, dtype=np.float32) for xx in xs]
+        # 0. Frontend
+        # TODO(nelson): implement frontend.
+
+        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+            # 1. Encoder
+            hs, ilens = self.enc(xs, ilens)
+
+            # calculate log P(z_t|X) for CTC scores
+            if recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(hs)
+            else:
+                lpz = None
+
+            # 2. Decoder
+            y = self.dec.recognize_beam_batch(hs, ilens, lpz, recog_args, char_list, rnnlm)
+        return y
 
     def calculate_all_attentions(self, xs, ilens, ys):
         """E2E attention calculation.

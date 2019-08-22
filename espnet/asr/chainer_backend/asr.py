@@ -52,6 +52,9 @@ import matplotlib
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
+from itertools import zip_longest as zip_longest
+
+
 matplotlib.use('Agg')
 
 
@@ -495,7 +498,26 @@ def recog(args):
                     nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
-        raise NotImplementedError('WIP')
+        def grouper(n, iterable, fillvalue=None):
+            kargs = [iter(iterable)] * n
+            return zip_longest(*kargs, fillvalue=fillvalue)
+        
+        # sort data
+        keys = list(js.keys())
+        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+        keys = [keys[i] for i in sorted_index]
+
+        with chainer.no_backprop_mode():
+            for names in grouper(args.batchsize, keys, None):
+                names = [name for name in names if name]
+                batch = [(name, js[name]) for name in names]
+                feats = load_inputs_and_targets(batch)[0]
+                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+
+                for i, nbest_hyp in enumerate(nbest_hyps):
+                    name = names[i]
+                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))

@@ -3,10 +3,23 @@
 # Copyright 2018 Mitsubishi Electric Research Labs (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import chainer
 import torch
+import logging
+
+from chainer import functions as F
 
 import numpy as np
 import six
+
+logzero = -10000000000.0
+
+def _logsumexp(xp, _array, axis=0):
+    # torch.logsumexp for chainer
+    _sum = xp.sum(xp.exp(_array), axis=axis)
+    d = _sum[_sum==0]
+    logging.info(d)
+    return xp.log(_sum)
 
 
 class CTCPrefixScoreTH(object):
@@ -101,6 +114,94 @@ class CTCPrefixScoreTH(object):
             r[:, t, 1] = torch.logsumexp(rp, dim=1) + xt[:, self.blank].view(-1, 1).repeat(1, self.odim)
             log_psi = torch.logsumexp(torch.stack([log_psi, log_phi_x[:, t]]), dim=0)
 
+        for si in six.moves.range(self.n_bb):
+            log_psi[si, self.eos] = r_sum[si, self.hlens[si]]
+
+        return log_psi, r
+
+
+class CTCPrefixScoreCH(object):
+    """Batch processing of CTCPrefixScore for Chainer
+
+    which is based on Algorithm 2 in WATANABE et al.
+    "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
+    but extended to efficiently compute the probablities of multiple labels
+    simultaneously
+    """
+
+    def __init__(self, x, blank, eos, beam, hlens, xp):
+        self.logzero = -10000000000.0
+        self.blank = blank
+        self.eos = eos
+        self.batch = x.shape[0]
+        self.input_length = x.shape[1]
+        self.odim = x.shape[2]
+        self.beam = beam
+        self.n_bb = self.batch * beam
+        self.hlens = hlens
+        self.x = x.data
+        self.xp = xp
+        self.cs = xp.arange(self.odim, dtype=xp.int32)
+
+    def initial_state(self):
+        """Obtain an initial CTC state
+
+        :return: CTC state
+        """
+        xp = self.xp
+        self.x = self.x.reshape(self.batch, 1, self.input_length, self.odim)
+        self.x = xp.repeat(self.x, self.beam, axis=1)
+        self.x = self.x.reshape(self.n_bb, self.input_length, self.odim)
+        # initial CTC state is made of a n_bb x frame x 2 tensor that corresponds to
+        # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
+        # superscripts n and b (non-blank and blank), respectively.
+        r = xp.full((self.n_bb, self.input_length, 2), self.logzero)
+
+        r[:, 0, 1] = self.x[:, 0, self.blank]
+        for i in six.moves.range(1, self.input_length):
+            r[:, i, 1] = r[:, i - 1, 1] + self.x[:, i, self.blank]
+
+        self.hlens = [x - 1 for x in self.hlens]
+
+        return r
+
+    def __call__(self, y, r_prev, last=None):
+        """Compute CTC prefix scores for next labels
+
+        :param y     : prefix label sequence
+        :param r_prev: previous CTC state
+        :param last:
+        :return ctc_scores, ctc_states
+        """
+
+        output_length = len(y[0]) - 1  # ignore sos
+
+        # new CTC states are prepared as a frame x (n or b) x n_labels tensor
+        # that corresponds to r_t^n(h) and r_t^b(h).
+        xp = self.xp
+        r = xp.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
+        if output_length == 0:
+            r[:, 0, 0, :] = self.x[:, 0]
+
+        r_sum = _logsumexp(xp, r_prev, axis=2)
+        if last is None:
+            last = [yi[-1] for yi in y]
+
+        log_phi = xp.repeat(r_sum[:, :, None], self.odim, axis=2)
+        for idx in six.moves.range(self.n_bb):
+            log_phi[idx, :, last[idx]] = r_prev[idx, :, 1]
+
+        # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
+        # and log prefix probabilites log(psi)
+        start = max(output_length, 1)
+        log_psi = r[:, start - 1, 0, :]
+        log_phi_x = xp.concatenate([log_phi[:, 0:1], log_phi[:, :-1]], axis=1) + self.x
+        for t in six.moves.range(start, self.input_length):
+            xt = self.x[:, t]
+            rp = r[:, t - 1]
+            r[:, t, 0] = _logsumexp(xp, xp.stack([rp[:, 0], log_phi[:, t - 1]])) + xt 
+            r[:, t, 1] = _logsumexp(xp, rp, axis=1) + xp.repeat(xt[:, self.blank].reshape(-1, 1), self.odim, axis=1)
+            log_psi = _logsumexp(xp, xp.stack([log_psi, log_phi_x[:, t]]))
         for si in six.moves.range(self.n_bb):
             log_psi[si, self.eos] = r_sum[si, self.hlens[si]]
 
