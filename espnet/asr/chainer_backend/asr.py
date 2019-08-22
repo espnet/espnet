@@ -41,7 +41,12 @@ from espnet.utils.training.train_utils import set_early_stop
 import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.nets.chainer_backend.lm.default as lm_chainer
 
+# streaming related
+from espnet.nets.chainer_backend.streaming.segment import SegmentStreamingE2E
+from espnet.nets.chainer_backend.streaming.window import WindowStreamingE2E
+
 # numpy related
+import numpy as np
 import matplotlib
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
@@ -428,9 +433,18 @@ def recog(args):
                 extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
                                               word_dict, char_dict))
 
+    # gpu
+    if args.ngpu == 1:
+        gpu_id = list(range(args.ngpu))
+        logging.info('gpu id: ' + str(gpu_id))
+        model.to_gpu()
+        if rnnlm:
+            rnnlm.to_gpu()
+
     # read json data
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
+    new_js = {}
 
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
@@ -440,14 +454,48 @@ def recog(args):
     )
 
     # decode each utterance
-    new_js = {}
-    with chainer.no_backprop_mode():
-        for idx, name in enumerate(js.keys(), 1):
-            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            batch = [(name, js[name])]
-            feat = load_inputs_and_targets(batch)[0][0]
-            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    if args.batchsize == 0:
+        with chainer.no_backprop_mode():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                feat = load_inputs_and_targets(batch)[0][0]
+                if args.streaming_mode == 'window':
+                    raise NotImplementedError('WIP')
+                    logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
+                    se2e = WindowStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    for i in range(0, feat.shape[0], args.streaming_window):
+                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+                        se2e.accept_input(feat[i:i + args.streaming_window])
+                    logging.info('Running offline attention decoder')
+                    se2e.decode_with_attention_offline()
+                    logging.info('Offline attention decoder finished')
+                    nbest_hyps = se2e.retrieve_recognition()
+                elif args.streaming_mode == 'segment':
+                    raise NotImplementedError('WIP')
+                    logging.info('Using streaming recognizer with threshold value %d', args.streaming_min_blank_dur)
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
+                else:
+                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    else:
+        raise NotImplementedError('WIP')
 
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
