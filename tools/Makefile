@@ -77,13 +77,17 @@ endif
 
 cupy.done: espnet.done
 ifneq ($(strip $(CUPY_VERSION)),)
-         if $(CUDA_VERSION)=10;then \
-	         . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION) \
-	else \
-	         . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION) \
-        fi
-	touch cupy.done
+ifeq (10,$(CUDA_VERSION))
+    . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
+else
+    . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
+       #. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION) 
+       #. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
+    touch cupy.done
 endif
+
+endif
+
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
