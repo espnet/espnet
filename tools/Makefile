@@ -81,8 +81,6 @@ ifeq (10,$(CUDA_VERSION))
     . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
 else
     . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
-       #. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION) 
-       #. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
     touch cupy.done
 endif
 
