@@ -409,12 +409,12 @@ class Decoder(chainer.Chain):
             yseq = xp.full([n_bb, 1], char_list.index(recog_args.tgt_lang), 'i')
         elif tgt_lang_ids is not None:
             # NOTE: used for evaluation during training
-            yseq = xp.full([n_bb, 1], tgt_lang_ids[b // recog_args.beam_size], 'i')
+            yseq = xp.array([[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)])
         else:
             logging.info('<sos> index: ' + str(self.sos))
             logging.info('<sos> mark: ' + char_list[self.sos])
             yseq = xp.full([n_bb, 1], self.sos, 'i')
-        accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
+        accum_odim_ids = xp.full([n_bb], self.sos, 'i')
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
         ended_hyps = [[] for _ in range(batch)]
@@ -431,10 +431,14 @@ class Decoder(chainer.Chain):
 
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
-            logging.debug('rec_text ' + str(yseq))
+            # logging.debug('rec_text ' + str(yseq))
+            logging.info(yseq.shape)
             vy = xp.array(self._get_last_yseq(yseq), dtype=xp.int64)
+            logging.info(vy.shape)
             ey = self.embed(vy)
             att_c, att_w = self.att(exp_h, z_prev[0], a_prev)
+            logging.info(ey.shape)
+            logging.info(att_c.shape)
             ey = F.hstack((ey, att_c))  # utt x (zdim + hdim)
 
             # attention decoder
@@ -458,12 +462,11 @@ class Decoder(chainer.Chain):
 
             if i == 0:
                 local_scores[:, 1:, :] = self.logzero
-            # from beam search: joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
-            local_best_odims = xp.argsort(local_scores.reshape(batch, beam, self.odim), axis=2)[:, :, :beam]
+            local_best_odims = xp.argsort(local_scores, axis=2)[:, :, ::-1][:, :, :beam]
             local_best_scores = xp.take(local_scores, local_best_odims)
 
             # local pruning (via xp)
-            local_scores = np.full((n_bbo,), self.logzero)
+            local_scores = xp.full((n_bbo,), self.logzero)
             _best_odims = local_best_odims.reshape(n_bb, beam) + pad_o
             _best_odims = _best_odims.reshape(-1)
             _best_score = local_best_scores.reshape(-1)
@@ -480,22 +483,27 @@ class Decoder(chainer.Chain):
             vscores = (vscores + local_scores).reshape(batch, n_bo)
 
             # global pruning
-            accum_best_ids = xp.argsort(vscores, axis=1)[:, :beam]
+            accum_best_ids = xp.argsort(vscores, axis=1)[:, ::-1][:, :beam]
             accum_best_scores = xp.take(vscores, accum_best_ids)
             accum_odim_ids = xp.fmod(accum_best_ids, self.odim).reshape(-1)
             accum_padded_odim_ids = (xp.fmod(accum_best_ids, n_bo) + pad_bo).reshape(-1)
             accum_padded_beam_ids = (xp.floor_divide(accum_best_ids, self.odim) + pad_b).reshape(-1)
-            if xp is not np:
-                accum_odim_ids = xp.asnumpy(accum_odim_ids)
-                accum_padded_odim_ids = xp.asnumpy(accum_padded_odim_ids)
-                accum_padded_beam_ids = xp.asnumpy(accum_padded_beam_ids)
-            accum_odim_ids = accum_odim_ids.tolist()
-            accum_padded_odim_ids = accum_padded_odim_ids.tolist()
-            accum_padded_beam_ids = accum_padded_beam_ids.tolist()
 
             y_prev = yseq[:][:]
-            yseq = self._index_select_list(yseq, accum_padded_beam_ids)
-            yseq = self._append_ids(yseq, accum_odim_ids)
+            # logging.info(yseq)
+            # logging.info(accum_padded_beam_ids)
+            yseq = xp.take(yseq, accum_padded_beam_ids, axis=0)  #self._index_select_list(yseq, accum_padded_beam_ids)
+            #logging.info(yseq.shape)
+            #logging.info(accum_odim_ids.shape)
+            # if i == 0:
+            #    logging.info(accum_odim_ids.shape)
+            #    logging.info(yseq.shape)
+            #    yseq = xp.stack([yseq, accum_odim_ids], axis=-1)
+            #else:
+            logging.info(accum_odim_ids.shape)
+            logging.info(yseq.shape)
+            yseq = xp.concatenate([yseq, accum_odim_ids[:, None]], axis=-1)
+            # yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
             vidx = xp.array(accum_padded_beam_ids, dtype=np.int64)
 
@@ -539,6 +547,9 @@ class Decoder(chainer.Chain):
                     for beam_j in six.moves.range(beam):
                         if eos_vscores[samp_i, beam_j] > thr[samp_i]:
                             yk = y_prev[k][:]
+                            if xp is not np:
+                                yk = xp.asnumpy(yk)
+                            yk = yk.tolist()
                             yk.append(self.eos)
                             if len(yk) < hlens[samp_i]:
                                 _vscore = eos_vscores[samp_i][beam_j] + penalty_i
@@ -625,7 +636,6 @@ class Decoder(chainer.Chain):
     @staticmethod
     def _get_last_yseq(exp_yseq):
         last = []
-        logging.info(exp_yseq)
         for y_seq in exp_yseq:
             last.append(y_seq[-1])
         return last
@@ -653,7 +663,6 @@ class Decoder(chainer.Chain):
             new_state = {}
             for k, v in rnnlm_state.items():
                 new_state[k] = [xp.take(vi.data, vidx, axis=axis) for vi in v]
-                #new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
         elif isinstance(rnnlm_state, list):
             new_state = []
             for i in vidx:
