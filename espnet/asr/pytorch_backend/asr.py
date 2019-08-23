@@ -122,7 +122,7 @@ class CustomUpdater(StandardUpdater):
 
     Args:
         model (torch.nn.Module): The model to update.
-        grad_clip_threshold (int): The gradient clipping value to use.
+        grad_clip_threshold (float): The gradient clipping value to use.
         train_iter (chainer.dataset.Iterator): The training iterator.
         optimizer (torch.optim.optimizer): The training optimizer.
 
@@ -133,6 +133,7 @@ class CustomUpdater(StandardUpdater):
 
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
+        use_apex (bool): The flag to use Apex in backprop.
 
     """
 
