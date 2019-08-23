@@ -190,7 +190,7 @@ def test_batch_beam_search(etype, dtype, m_str):
     numpy.random.seed(1)
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
-    for ctc_weight in [0.0]:
+    for ctc_weight in [0.0, 0.5]:
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
@@ -216,4 +216,10 @@ def test_batch_beam_search(etype, dtype, m_str):
                 s_nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
                 b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list, rnnlm)
 
+            assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']
+
+        if ctc_weight > 0.0:
+            args.ctc_window_margin = 40
+            s_nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
+            b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list, rnnlm)
             assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']
