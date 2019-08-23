@@ -356,7 +356,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, Lmax, X_dim)
+            ey (torch.Tensor): batch of input features (B, (Emb_dim + Eprojs))
 
         Return:
             z_list : list of L zero-init hidden state (B, Hdec)
