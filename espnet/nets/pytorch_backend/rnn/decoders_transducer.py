@@ -1,3 +1,5 @@
+"""Transducer and transducer with attention implementation for training and decoding."""
+
 import six
 
 import torch
@@ -10,7 +12,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class DecoderRNNT(torch.nn.Module):
-    """RNN-T Decoder module
+    """RNN-T Decoder module.
 
     Args:
         eprojs (int): # encoder projection units
@@ -24,11 +26,13 @@ class DecoderRNNT(torch.nn.Module):
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
         rnnt_type (str): type of rnn-t implementation
+
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, blank,
                  embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0,
                  rnnt_type='warp-transducer'):
+        """Transducer initializer."""
         super(DecoderRNNT, self).__init__()
 
         self.embed = torch.nn.Embedding(odim, embed_dim, padding_idx=blank)
@@ -74,15 +78,15 @@ class DecoderRNNT(torch.nn.Module):
         self.blank = blank
 
     def zero_state(self, ey):
-        """Initialize decoder states
+        """Initialize decoder states.
 
         Args:
             ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
 
         Returns:
             (list): list of L zero-init hidden and cell state (1, B, Hdec)
-        """
 
+        """
         z_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
         c_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
 
@@ -93,7 +97,7 @@ class DecoderRNNT(torch.nn.Module):
         return (z_list, c_list)
 
     def rnn_forward(self, ey, dstate):
-        """RNN Forward
+        """RNN forward.
 
         Args:
             ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
@@ -102,8 +106,8 @@ class DecoderRNNT(torch.nn.Module):
         Returns:
             output (torch.Tensor): batch of output features (B, Lmax, Hdec)
             dstate (list): list of L output hidden and cell state (1, B, Hdec)
-        """
 
+        """
         if dstate is None:
             z_prev, c_prev = self.zero_state(ey)
         else:
@@ -124,7 +128,7 @@ class DecoderRNNT(torch.nn.Module):
         return y, (z_list, c_list)
 
     def joint(self, h_enc, h_dec):
-        """Joint computation of z
+        """Joint computation of z.
 
         Args:
             h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, Henc)
@@ -132,15 +136,15 @@ class DecoderRNNT(torch.nn.Module):
 
         Returns:
             z (torch.Tensor): output (B, T, U, odim)
-        """
 
+        """
         z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z
 
     def forward(self, hs_pad, hlens, ys_pad):
-        """Decoder forward
+        """Forward function for transducer.
 
         Args:
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
@@ -149,8 +153,8 @@ class DecoderRNNT(torch.nn.Module):
 
         Returns:
            loss (float): rnnt loss value
-        """
 
+        """
         ys = [y[y != self.ignore_id] for y in ys_pad]
 
         hlens = list(map(int, hlens))
@@ -178,7 +182,7 @@ class DecoderRNNT(torch.nn.Module):
         return loss
 
     def recognize(self, h, recog_args):
-        """Greedy search implementation
+        """Greedy search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
@@ -186,8 +190,8 @@ class DecoderRNNT(torch.nn.Module):
 
         Returns:
             hyp (list of dicts): 1-best decoding results
-        """
 
+        """
         hyp = {'score': 0.0, 'yseq': [self.blank]}
 
         ey = torch.zeros((1, 1, self.embed_dim))
@@ -209,7 +213,7 @@ class DecoderRNNT(torch.nn.Module):
         return [hyp]
 
     def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search implementation
+        """Beam search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
@@ -218,8 +222,8 @@ class DecoderRNNT(torch.nn.Module):
 
         Returns:
             nbest_hyps (list of dicts): n-best decoding results
-        """
 
+        """
         beam = recog_args.beam_size
         k_range = min(beam, self.odim)
         nbest = recog_args.nbest
@@ -284,7 +288,7 @@ class DecoderRNNT(torch.nn.Module):
 
 
 class DecoderRNNTAtt(torch.nn.Module):
-    """RNNT-Att Decoder module
+    """RNNT-Att Decoder module.
 
     Args:
         eprojs (int): # encoder projection units
@@ -299,11 +303,13 @@ class DecoderRNNTAtt(torch.nn.Module):
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
         rnnt_type (str): type of rnnt implementation
+
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, blank, att,
                  embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0,
                  rnnt_type='warp-transducer'):
+        """Transducer with attention initializer."""
         super(DecoderRNNTAtt, self).__init__()
 
         self.embed = torch.nn.Embedding(odim, embed_dim, padding_idx=blank)
@@ -347,7 +353,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.blank = blank
 
     def zero_state(self, ey):
-        """Initialize decoder states
+        """Initialize decoder states.
 
         Args:
             ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
@@ -355,8 +361,8 @@ class DecoderRNNTAtt(torch.nn.Module):
         Return:
             z_list : list of L zero-init hidden state (B, Hdec)
             c_list : list of L zero-init cell state (B, Hdec)
-        """
 
+        """
         z_list = [ey.new_zeros(ey.size(0), self.dunits)]
         c_list = [ey.new_zeros(ey.size(0), self.dunits)]
 
@@ -367,7 +373,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         return z_list, c_list
 
     def rnn_forward(self, ey, dstate):
-        """RNN Forward
+        """RNN forward.
 
         Args:
             ey (torch.Tensor): batch of input features (B, (Emb_dim + Eprojs))
@@ -375,8 +381,8 @@ class DecoderRNNTAtt(torch.nn.Module):
         Returns:
             y (torch.Tensor): decoder output for one step (B, Hdec)
             (list): list of L output hidden and cell state (B, Hdec)
-        """
 
+        """
         if dstate is None:
             z_prev, c_prev = self.zero_state(ey)
         else:
@@ -400,7 +406,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         return y, (z_list, c_list)
 
     def joint(self, h_enc, h_dec):
-        """Joint computation of z
+        """Joint computation of z.
 
         Args:
             h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, Henc)
@@ -408,15 +414,15 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         Returns:
             z (torch.Tensor): output (B, T, U, odim)
-        """
 
+        """
         z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z
 
     def forward(self, hs_pad, hlens, ys_pad):
-        """Decoder forward
+        """Forward function for transducer with attention.
 
         Args:
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
@@ -425,8 +431,8 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         Returns:
            loss (torch.Tensor): rnnt-att loss value
-        """
 
+        """
         ys = [y[y != self.ignore_id] for y in ys_pad]
 
         hlens = list(map(int, hlens))
@@ -468,7 +474,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         return loss
 
     def recognize(self, h, recog_args):
-        """Greedy search implementation
+        """Greedy search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
@@ -476,8 +482,8 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         Returns:
             hyp (list of dicts): 1-best decoding results
-        """
 
+        """
         self.att[0].reset()
 
         z_list, c_list = self.zero_state(h.unsqueeze(0))
@@ -512,7 +518,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         return [hyp]
 
     def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search recognition
+        """Beam search recognition.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
@@ -521,8 +527,8 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         Results:
             nbest_hyps (list of dicts): n-best decoding results
-        """
 
+        """
         beam = recog_args.beam_size
         k_range = min(beam, self.odim)
         nbest = recog_args.nbest
@@ -604,7 +610,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         return nbest_hyps
 
     def calculate_all_attentions(self, hs_pad, hlens, ys_pad):
-        """Calculate all of attentions
+        """Calculate all of attentions.
 
         Args:
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
@@ -615,8 +621,8 @@ class DecoderRNNTAtt(torch.nn.Module):
             att_ws (ndarray): attention weights with the following shape,
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                 2) other case => attention weights (B, Lmax, Tmax).
-        """
 
+        """
         ys = [y[y != self.ignore_id] for y in ys_pad]
 
         hlens = list(map(int, hlens))
@@ -648,6 +654,7 @@ class DecoderRNNTAtt(torch.nn.Module):
 
 
 def decoder_for(args, odim, att=None, blank=0):
+    """Transducer mode selector."""
     if args.rnnt_mode == 'rnnt':
         return DecoderRNNT(args.eprojs, odim, args.dtype, args.dlayers, args.dunits,
                            blank, args.dec_embed_dim, args.joint_dim,
