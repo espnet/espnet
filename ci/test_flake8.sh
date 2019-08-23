@@ -72,7 +72,6 @@ espnet/nets/pytorch_backend/frontends/mask_estimator.py
 espnet/nets/pytorch_backend/nets_utils.py
 espnet/nets/pytorch_backend/rnn/attentions.py
 espnet/nets/pytorch_backend/rnn/decoders.py
-espnet/nets/pytorch_backend/rnn/decoders_transducer.py
 espnet/nets/pytorch_backend/rnn/encoders.py
 espnet/nets/pytorch_backend/streaming/segment.py
 espnet/nets/pytorch_backend/streaming/window.py
