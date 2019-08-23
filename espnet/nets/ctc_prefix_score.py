@@ -65,12 +65,12 @@ class CTCPrefixScoreTH(object):
         self.pad_o = (torch.arange(self.batch, device=self.device) * self.odim).unsqueeze(1).repeat(1, beam).view(-1, 1)
         self.bb_idx = torch.arange(self.n_bb, device=self.device).view(-1, 1)
 
-    def __call__(self, y, state, prep_scores=None, att_w=None):
+    def __call__(self, y, state, pre_scores=None, att_w=None):
         """Compute CTC prefix scores for next labels
 
         :param list y: prefix label sequences
         :param tuple state: previous CTC state
-        :param torch.Tensor prep_scores: preparatory scores used to select scoring hypotheses (BW, O)
+        :param torch.Tensor pre_scores: scores for pre-selection of hypotheses (BW, O)
         :param torch.Tensor att_w: attention weights to decide CTC window
         :return new_state, ctc_local_scores (BW, O)
         """
@@ -94,8 +94,9 @@ class CTCPrefixScoreTH(object):
             r_prev, s_prev, f_min_prev, f_max_prev = state
 
         # select input dimensions for scoring
-        if self.scoring_num > 0 and prep_scores is not None:
-            scoring_ids = torch.topk(prep_scores, self.scoring_num, 1)[1]
+        if self.scoring_num > 0 and pre_scores is not None:
+            pre_scores[:, self.blank] = self.logzero  # ignore blank from pre-selection
+            scoring_ids = torch.topk(pre_scores, self.scoring_num, 1)[1]
             scoring_idmap = torch.full((self.n_bb, self.odim), -1, dtype=torch.long, device=self.device)
             snum = scoring_ids.size(1)
             scoring_idmap[self.bb_idx, scoring_ids] = torch.arange(snum, device=self.device)
