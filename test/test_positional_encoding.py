@@ -85,7 +85,7 @@ class LegacyPositionalEncoding(torch.nn.Module):
         return self.dropout(x)
 
 
-class LegacyScaledPositionalEncoding(PositionalEncoding):
+class LegacyScaledPositionalEncoding(LegacyPositionalEncoding):
     """Positional encoding module until v.0.5.2."""
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
@@ -93,7 +93,6 @@ class LegacyScaledPositionalEncoding(PositionalEncoding):
         self.alpha = torch.nn.Parameter(torch.tensor(1.0))
 
     def forward(self, x):
-        self.extend_pe(x)
         x = x + self.alpha * self.pe[:, :x.size(1)]
         return self.dropout(x)
 
