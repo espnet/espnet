@@ -4,6 +4,7 @@
 #           2018 (Xuankai Chang)Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
 nj=1
@@ -13,16 +14,15 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
+allow_one_column=false
 verbose=0
+trans_type=char
 filetype=""
 preprocess_conf=""
-out="" # if omitted, write in stdout
+category=""
+out="" # If omitted, write in stdout
 num_spkrs=1
-
-. utils/parse_options.sh
-
-if [ $# != 2 ]; then
-    cat << EOF 1>&2
+help_message=$(cat << EOF
 Usage: $0 <data-dir> <dict>
 e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
@@ -36,6 +36,11 @@ Options:
   --verbose <num>                                  # Default: 0
   --num-spkrs <num>                                # Number of speakers Default: 2
 EOF
+)
+. utils/parse_options.sh
+
+if [ $# != 2 ]; then
+    echo "${help_message}" 1>&2
     exit 1;
 fi
 
@@ -43,14 +48,14 @@ set -euo pipefail
 
 dir=$1
 dic=$2
-tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
+tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
-mkdir -p ${tmpdir}/input
 input_strs=""
-if [ -n ${feat} ]; then
+mkdir -p ${tmpdir}/input
+if [ -n "${feat}" ]; then
     cat ${feat} > ${tmpdir}/input/feat.scp
 
     # Dump in the "legacy" style JSON format
@@ -64,7 +69,8 @@ if [ -n ${feat} ]; then
         --preprocess-conf "${preprocess_conf}" \
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 
-    input_strs=${input_strs}"--input-scps feat:${tmpdir}/input/feat.scp shape:${tmpdir}/input/shape.scp:shape "
+    input_strs=${input_strs}"--input-scps feat:${tmpdir}/input/feat.scp filetype:${tmpdir}/input/filetype.scp \
+                             shape:${tmpdir}/input/shape.scp:shape "
 fi
 
 # 2. Create scp files for outputs
@@ -98,20 +104,50 @@ for outidx in $(seq ${num_spkrs}); do
   if [ -n "${lang}" ]; then
       awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text${suffix} > ${tmpdir}/other/lang${suffix}.scp
   fi
+
   output_strs=${output_strs}"--output-scps text:${tmpdir}/output/text${suffix}.scp \
                              token:${tmpdir}/output/token${suffix}.scp \
                              tokenid:${tmpdir}/output/tokenid${suffix}.scp \
                              shape:${tmpdir}/output/shape${suffix}.scp:shape "
 done
-cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
-# 5. Merge JSON files into one and output to stdout
-if [ -n "${out}" ]; then
-    out_opt="-O ${out}"
-else
-    out_opt=""
+if [ -n "${category}" ]; then
+    awk -v category=${category} '{print $1 " " category}' ${dir}/text${suffix} \
+        > ${tmpdir}/other/category.scp
 fi
-local/merge_scp2json.py --verbose ${verbose} \
-    ${input_strs} \
-    ${output_strs} \
-    --scps utt2spk:${tmpdir}/other/utt2spk.scp ${out_opt}
+cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
+
+# 4. Merge scp files into a JSON file
+opts="${input_strs} ${output_strs} "
+for intype in other; do
+    if [ -z "$(find "${tmpdir}/${intype}" -name "*.scp")" ]; then
+        continue
+    fi
+
+    if [ ${intype} != other ]; then
+        opts+="--${intype}-scps "
+    else
+        opts+="--scps "
+    fi
+
+    for x in "${tmpdir}/${intype}"/*.scp; do
+        k=$(basename ${x} .scp)
+        if [ ${k} = shape ]; then
+            opts+="shape:${x}:shape "
+        else
+            opts+="${k}:${x} "
+        fi
+    done
+done
+
+if ${allow_one_column}; then
+    opts+="--allow-one-column true "
+else
+    opts+="--allow-one-column false "
+fi
+
+if [ -n "${out}" ]; then
+    opts+="-O ${out}"
+fi
+merge_scp2json.py --verbose ${verbose} ${opts}
+

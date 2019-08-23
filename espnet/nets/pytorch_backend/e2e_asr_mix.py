@@ -10,13 +10,18 @@ import argparse
 import logging
 import math
 import sys
+import os
+
+import editdistance
 
 import chainer
-from chainer import reporter
-import editdistance
 import numpy as np
 import six
 import torch
+
+from itertools import groupby
+
+from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
@@ -25,8 +30,10 @@ from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import Encoder
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 
@@ -147,11 +154,25 @@ class E2E(ASRInterface, torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        if args.lsm_type and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
+            labeldist = label_smoothing_dist(odim, args.lsm_type,
+            transcript=args.train_json)
         else:
             labeldist = None
+
+        if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
+            # Relative importing because of using python3 syntax
+            from espnet.nets.pytorch_backend.frontends.feature_transform \
+                import feature_transform_for
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
+
+            self.frontend = frontend_for(args, idim)
+            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
+            idim = args.n_mels
+        else:
+            self.frontend = None
 
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
@@ -232,12 +253,12 @@ class E2E(ASRInterface, torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad_sd):
+    def forward(self, xs_pad, ilens, ys_pad):
         """E2E forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad_sd: batch of padded character id sequence tensor (B, num_spkrs, Lmax)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, num_spkrs, Lmax)
         :return: ctc loss value
         :rtype: torch.Tensor
         :return: attention loss value
@@ -245,55 +266,80 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
-        # 1. encoder
-        hs_pad_sd, hlens = self.enc(xs_pad, ilens)
+        # 0. Frontend
+        if self.frontend is not None:
+            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+            if isinstance(hs_pad, list):
+                hlens_n = [None] * self.num_spkrs
+                for i in range(self.num_spkrs):
+                    hs_pad[i], hlens_n[i] = self.feature_transform(hs_pad[i], hlens)
+                hlens = hlens_n
+            else:
+                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+        else:
+            hs_pad, hlens = xs_pad, ilens
+
+        # 1. Encoder
+        if not isinstance(hs_pad, list):  # single-channel input xs_pad (single- or multi-speaker)
+            hs_pad, hlens, _ = self.enc(hs_pad, hlens)
+        else:  # multi-channel multi-speaker input xs_pad
+            for i in range(self.num_spkrs):
+                hs_pad[i], hlens[i], _ = self.enc(hs_pad[i], hlens[i])
 
         # 2. CTC loss
-        ys_pad_sd = ys_pad_sd.transpose(0, 1)  # (num_spkrs, B, Lmax)
         if self.mtlalpha == 0:
             loss_ctc, min_perm = None, None
-        elif self.num_spkrs <= 3:
-            loss_ctc_perm = torch.stack([self.ctc(hs_pad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
-                                         for i in range(self.num_spkrs ** 2)], dim=1)  # (B, num_spkrs^2)
-            loss_ctc, min_perm = self.pit.pit_process(loss_ctc_perm)
-            logging.info('ctc loss:' + str(float(loss_ctc)))
+        else:
+            if not isinstance(hs_pad, list):  # single-speaker input xs_pad
+                loss_ctc = torch.mean(self.ctc(hs_pad, hlens, ys_pad))
+            else:  # multi-speaker input xs_pad
+                ys_pad = ys_pad.transpose(0, 1)  # (num_spkrs, B, Lmax)
+                loss_ctc_perm = torch.stack([self.ctc(hs_pad[i // self.num_spkrs],
+                                                      hlens[i // self.num_spkrs],
+                                                      ys_pad[i % self.num_spkrs])
+                                             for i in range(self.num_spkrs ** 2)], dim=1)  # (B, num_spkrs^2)
+                loss_ctc, min_perm = self.pit.pit_process(loss_ctc_perm)
+                logging.info('ctc loss:' + str(float(loss_ctc)))
 
         # 3. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
         else:
-            for i in range(ys_pad_sd.size(1)):  # B
-                ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
-            rslt = [self.dec(hs_pad_sd[i], hlens, ys_pad_sd[i], strm_idx=i) for i in range(self.num_spkrs)]
-            loss_att = sum([r[0] for r in rslt]) / float(len(rslt))
-            acc = sum([r[1] for r in rslt]) / float(len(rslt))
+            if not isinstance(hs_pad, list):  # single-speaker input xs_pad
+                loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad)
+            else:
+                for i in range(ys_pad.size(1)):  # B
+                    ys_pad[:, i] = ys_pad[min_perm[i], i]
+                rslt = [self.dec(hs_pad[i], hlens[i], ys_pad[i], strm_idx=i) for i in range(self.num_spkrs)]
+                loss_att = sum([r[0] for r in rslt]) / float(len(rslt))
+                acc = sum([r[1] for r in rslt]) / float(len(rslt))
         self.acc = acc
 
         # 5. compute cer/wer
-        if self.training or not (self.report_cer or self.report_wer):
+        if self.training or not (self.report_cer or self.report_wer) or not isinstance(hs_pad, list):
             cer, wer = 0.0, 0.0
             # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             if self.recog_args.ctc_weight > 0.0:
-                lpz_sd = [self.ctc.log_softmax(hs_pad_sd[i]).data for i in range(self.num_spkrs)]
+                lpz = [self.ctc.log_softmax(hs_pad[i]).data for i in range(self.num_spkrs)]
             else:
-                lpz_sd = None
+                lpz = None
 
             word_eds, char_eds, word_ref_lens, char_ref_lens = [], [], [], []
-            nbest_hyps_sd = [self.dec.recognize_beam_batch(hs_pad_sd[i], torch.tensor(hlens), lpz_sd[i],
-                                                           self.recog_args, self.char_list, self.rnnlm, strm_idx=i)
-                             for i in range(self.num_spkrs)]
+            nbest_hyps = [self.dec.recognize_beam_batch(hs_pad[i], torch.tensor(hlens[i]), lpz[i],
+                                                        self.recog_args, self.char_list, self.rnnlm, strm_idx=i)
+                          for i in range(self.num_spkrs)]
             # remove <sos> and <eos>
-            y_hats_sd = [[nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps_sd[i]] for i in range(self.num_spkrs)]
-            for i in range(len(y_hats_sd[0])):
+            y_hats = [[nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps[i]] for i in range(self.num_spkrs)]
+            for i in range(len(y_hats[0])):
                 hyp_words = []
                 hyp_chars = []
                 ref_words = []
                 ref_chars = []
                 for ns in range(self.num_spkrs):
-                    y_hat = y_hats_sd[ns][i]
-                    y_true = ys_pad_sd[ns][i]
+                    y_hat = y_hats[ns][i]
+                    y_true = ys_pad[ns][i]
 
                     seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
                     seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
@@ -352,26 +398,40 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = [x.shape[0]]
+
         # subsample frame
         x = x[::self.subsample[0], :]
-        ilen = [x.shape[0]]
-        h = to_device(self, torch.from_numpy(
-            np.array(x, dtype=np.float32)))
-
-        # 1. encoder
+        h = to_device(self, to_torch_tensor(x).float())
         # make a utt list (1) to use the same interface for encoder
-        h = h.contiguous()
-        h_sd, _ = self.enc(h.unsqueeze(0), ilen)
+        hs = h.continguous().unsqueeze(0)
+
+        # 0. Frontend
+        if self.frontend is not None:
+            hs, hlens, mask = self.frontend(hs, ilens)
+            hlens_n = [None] * self.num_spkrs
+            for i in range(self.num_spkrs):
+                hs[i], hlens_n[i] = self.feature_transform(hs[i], hlens)
+            hlens = hlens_n
+        else:
+            hs, hlens = hs, ilens
+
+        # 1. Encoder
+        if not isinstance(hs, list):  # single-channel multi-speaker input x
+            hs, hlens, _ = self.enc(hs, hlens)
+        else:  # multi-channel multi-speaker input x
+            for i in range(self.num_spkrs):
+                hs[i], hlens[i], _ = self.enc(hs[i], hlens[i])
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz_sd = [self.ctc.log_softmax(i)[0] for i in h_sd]
+            lpz = [self.ctc.log_softmax(i)[0] for i in hs]
         else:
-            lpz_sd = None
+            lpz = None
 
         # 2. decoder
         # decode the first utterance
-        y = [self.dec.recognize_beam(h_sd[i][0], lpz_sd[i], recog_args, char_list, rnnlm, strm_idx=i)
+        y = [self.dec.recognize_beam(hs[i][0], lpz[i], recog_args, char_list, rnnlm, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
@@ -390,62 +450,93 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_device(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
-              for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
 
-        # 1. encoder
-        xpad = pad_list(hs, 0.0)
-        hpad_sd, hlens = self.enc(xpad, ilens)
+        # 0. Frontend
+        if self.frontend is not None:
+            hs_pad, hlens, mask = self.frontend(xs_pad, ilens)
+            hlens_n = [None] * self.num_spkrs
+            for i in range(self.num_spkrs):
+                hs_pad[i], hlens_n[i] = self.feature_transform(hs_pad[i], hlens)
+            hlens = hlens_n
+        else:
+            hs_pad, hlens = xs_pad, ilens
+
+        # 1. Encoder
+        if not isinstance(hs_pad, list):  # single-channel multi-speaker input x
+            hs_pad, hlens, _ = self.enc(hs_pad, hlens)
+        else:  # multi-channel multi-speaker input x
+            for i in range(self.num_spkrs):
+                hs_pad[i], hlens[i], _ = self.enc(hs_pad[i], hlens[i])
+
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz_sd = [self.ctc.log_softmax(hpad_sd[i]) for i in range(self.num_spkrs)]
+            lpz = [self.ctc.log_softmax(hs_pad[i]) for i in range(self.num_spkrs)]
         else:
-            lpz_sd = None
+            lpz = None
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, rnnlm, strm_idx=i)
+        y = [self.dec.recognize_beam_batch(hs_pad[i], hlens[i], lpz[i], recog_args, char_list, rnnlm, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad_sd):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad_sd: batch of padded character id sequence tensor (B, num_spkrs, Lmax)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, num_spkrs, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
         with torch.no_grad():
-            # encoder
-            hpad_sd, hlens = self.enc(xs_pad, ilens)
+            # 0. Frontend
+            if self.frontend is not None:
+                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+                hlens_n = [None] * self.num_spkrs
+                for i in range(self.num_spkrs):
+                    hs_pad[i], hlens_n[i] = self.feature_transform(hs_pad[i], hlens)
+                hlens = hlens_n
+            else:
+                hs_pad, hlens = xs_pad, ilens
+
+            # 1. Encoder
+            if not isinstance(hs_pad, list):  # single-channel multi-speaker input x
+                hs_pad, hlens, _ = self.enc(hs_pad, hlens)
+            else:  # multi-channel multi-speaker input x
+                for i in range(self.num_spkrs):
+                    hs_pad[i], hlens[i], _ = self.enc(hs_pad[i], hlens[i])
 
             # Permutation
-            ys_pad_sd = ys_pad_sd.transpose(0, 1)  # (num_spkrs, B, Lmax)
+            ys_pad = ys_pad.transpose(0, 1)  # (num_spkrs, B, Lmax)
             if self.num_spkrs <= 3:
-                loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
+                loss_ctc = torch.stack([self.ctc(hs_pad[i // self.num_spkrs],
+                                                 hlens[i // self.num_spkrs],
+                                                 ys_pad[i % self.num_spkrs])
                                         for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
                 loss_ctc, min_perm = self.pit.pit_process(loss_ctc)
-            for i in range(ys_pad_sd.size(1)):  # B
-                ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
+            for i in range(ys_pad.size(1)):  # B
+                ys_pad[:, i] = ys_pad[min_perm[i], i]
 
-            # decoder
-            att_ws_sd = [self.dec.calculate_all_attentions(hpad_sd[i], hlens, ys_pad_sd[i], strm_idx=i)
+            # 2. Decoder
+            att_ws = [self.dec.calculate_all_attentions(hs_pad[i], hlens[i], ys_pad[i], strm_idx=i)
                          for i in range(self.num_spkrs)]
 
-        return att_ws_sd
+        return att_ws
 
 
-class Encoder(torch.nn.Module):
+class EncoderMix(torch.nn.Module):
     """Encoder module
 
     :param str etype: type of encoder network
@@ -462,7 +553,7 @@ class Encoder(torch.nn.Module):
 
     def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs,
                  subsample, dropout, num_spkrs=2, in_channel=1):
-        super(Encoder, self).__init__()
+        super(EncoderMix, self).__init__()
         typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
         if typ != "lstm" and typ != "gru":
             logging.error("Error: need to specify an appropriate encoder architecture")
@@ -511,9 +602,14 @@ class Encoder(torch.nn.Module):
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens_sd[0]).unsqueeze(-1))
 
-        return [x.masked_fill(mask, 0.0) for x in xs_pad_sd], ilens_sd[0]
+        return [x.masked_fill(mask, 0.0) for x in xs_pad_sd], ilens_sd, None
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers_sd, args.elayers, args.eunits, args.eprojs, subsample,
-                   args.dropout_rate, args.num_spkrs)
+    if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
+        # with frontend, the mixed speech are separated as streams for each speaker
+        from espnet.nets.pytorch_backend.rnn.encoders import encoder_for as encoder_for_single
+        return encoder_for_single(args, idim, subsample)
+    else:
+        return EncoderMix(args.etype, idim, args.elayers_sd, args.elayers, args.eunits, args.eprojs, subsample,
+                          args.dropout_rate, args.num_spkrs)

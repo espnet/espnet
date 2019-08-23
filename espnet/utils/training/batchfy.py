@@ -7,7 +7,7 @@ import numpy as np
 def batchfy_by_seq(
         sorted_data, batch_size, max_length_in, max_length_out,
         min_batch_size=1, shortest_first=False,
-        ikey="input", iaxis=0, okey="output", oaxis=0):
+        ikey="input", iaxis=0, okey="output", oaxis=-1):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
@@ -20,7 +20,8 @@ def batchfy_by_seq(
     :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
     :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
     :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
-    :param int oaxis: dimension to access input (for ASR, TTS, MT iaxis=0, reserved for future research.)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
+                      -1 means all axis.)
 
     :return: List[List[Tuple[str, dict]]] list of batches
     """
@@ -29,7 +30,7 @@ def batchfy_by_seq(
 
     # check #utts is more than min_batch_size
     if len(sorted_data) < min_batch_size:
-        raise ValueError(f"#utts({len(sorted_data)}) is less than min_batch_size({min_batch_size}).")
+        raise ValueError("#utts is less than min_batch_size.")
 
     # make list of minibatches
     minibatches = []
@@ -37,7 +38,7 @@ def batchfy_by_seq(
     while True:
         _, info = sorted_data[start]
         ilen = int(info[ikey][iaxis]['shape'][0])
-        olen = int(info[okey][oaxis]['shape'][0])
+        olen = int(info[okey][oaxis]['shape'][0]) if oaxis >= 0 else max(map(lambda x: int(x['shape'][0]), info[okey]))
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -302,7 +303,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
 
     # TODO(karita): remove this by creating converter from ASR to TTS json format
     batch_sort_axis = 0
-    iaxis, oaxis = 0, 0
+    iaxis, oaxis = 0, -1
     if swap_io:
         # for TTS
         ikey = "output"
