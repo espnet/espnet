@@ -74,6 +74,15 @@ class DecoderRNNT(torch.nn.Module):
         self.blank = blank
 
     def zero_state(self, ey):
+        """Initialize decoder states
+
+        Args:
+            ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
+
+        Returns:
+            (list): list of L zero-init hidden and cell state (1, B, Hdec)
+        """
+
         z_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
         c_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
 
@@ -84,6 +93,17 @@ class DecoderRNNT(torch.nn.Module):
         return (z_list, c_list)
 
     def rnn_forward(self, ey, dstate):
+        """RNN Forward
+
+        Args:
+            ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
+            dstate (list): list of L input hidden and cell state (1, B, Hdec)
+
+        Returns:
+            output (torch.Tensor): batch of output features (B, Lmax, Hdec)
+            dstate (list): list of L output hidden and cell state (1, B, Hdec)
+        """
+
         if dstate is None:
             z_prev, c_prev = self.zero_state(ey)
         else:
@@ -327,6 +347,16 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.blank = blank
 
     def zero_state(self, ey):
+        """Initialize decoder states
+
+        Args:
+            ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
+
+        Return:
+            z_list : list of L zero-init hidden state (B, Hdec)
+            c_list : list of L zero-init cell state (B, Hdec)
+        """
+
         z_list = [ey.new_zeros(ey.size(0), self.dunits)]
         c_list = [ey.new_zeros(ey.size(0), self.dunits)]
 
@@ -337,6 +367,16 @@ class DecoderRNNTAtt(torch.nn.Module):
         return z_list, c_list
 
     def rnn_forward(self, ey, dstate):
+        """RNN Forward
+
+        Args:
+            ey (torch.Tensor): batch of input features (B, (Emb_dim + Eprojs))
+            dstate (list): list of L input hidden and cell state (B, Hdec)
+        Returns:
+            y (torch.Tensor): decoder output for one step (B, Hdec)
+            (list): list of L output hidden and cell state (B, Hdec)
+        """
+
         if dstate is None:
             z_prev, c_prev = self.zero_state(ey)
         else:
