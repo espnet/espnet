@@ -39,8 +39,10 @@ def get_parser():
 
     parser.add_argument('--ngpu', default=None, type=int,
                         help='Number of GPUs. If not given, use all visible devices')
-    parser.add_argument('--train-dtype', default="float32", choices=["float16", "float32", "float64"],
-                        help='Data type for training (only pytorch backend).')
+    parser.add_argument('--train-dtype', default="float32",
+                        choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
+                        help='Data type for training (only pytorch backend). '
+                        'O0,O1,.. flags require apex. See https://nvidia.github.io/apex/amp.html#opt-levels')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
