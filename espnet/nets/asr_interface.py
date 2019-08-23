@@ -63,6 +63,19 @@ class ASRInterface:
         """
         raise NotImplementedError("recognize method is not implemented")
 
+    def recognize_batch(self, x, recog_args, char_list=None, rnnlm=None):
+        """Beam search implementation for batch
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (B, Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+        """
+        raise NotImplementedError(f"Batch decoding for transducer is not supported yet.")
+
     def calculate_all_attentions(self, xs, ilens, ys):
         """Caluculate attention.
 
