@@ -3,6 +3,8 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+. ./path.sh || exit 1
+
 remove_archive=false
 
 if [ "$1" == --remove-archive ]; then
@@ -63,11 +65,7 @@ if [ ! -f ${data}/MUSTC_v1.0_en-${lang}.tar.gz ]; then
         exit 1;
     fi
     echo "$0: downloading data from ${url}.  This may take some time, please be patient."
-
-    if ! wget --no-check-certificate -P ${data} ${url}; then
-        echo "$0: error executing wget ${url}"
-        exit 1;
-    fi
+    download_from_google_drive.sh ${url} ${data} tar.gz || exit 1
 fi
 
 if ! tar -zxvf ${data}/MUSTC_v1.0_en-${lang}.tar.gz -d -C ${data}; then

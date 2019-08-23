@@ -106,6 +106,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/copy_data_dir.sh --utt-suffix -${data_code} ${tedlium2_dir}/asr1/data/dev_trim      data/dt_${data_code}
     local/copy_data_dir.sh --utt-suffix -${data_code} ${tedlium2_dir}/asr1/data/dev           data/et_${data_code}_dev
     local/copy_data_dir.sh --utt-suffix -${data_code} ${tedlium2_dir}/asr1/data/test          data/et_${data_code}_test
+    # additionally we copy text to text.${case}
+    cp data/tr_${data_code}/text      data/tr_${data_code}/text.${case}
+    cp data/dt_${data_code}/text      data/dt_${data_code}/text.${case}
+    cp data/et_${data_code}_dev/text  data/et_${data_code}_dev/text.${case}
+    cp data/et_${data_code}_test/text data/et_${data_code}_test/text.${case}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -114,6 +119,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
+
+    fbankdir=fbank
+    # Generate the fbank features; by 40-dimensional fbanks with pitch on each frame
+    # to unify the fbank feature setup with how2
+    # This is different from the other ESPnet recipe (80-dimensional fbanks)
+    for x in tr_must_c tr_tedlium2 dt_must_c dt_tedlium2 $(echo ${recog_set} | tr ' ' '\n' | grep -v how2); do
+	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+				  data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
 
     rm data/*/segments
     utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/${train_set} data/tr_must_c data/tr_how2 data/tr_tedlium2
@@ -133,6 +147,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
           /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt19/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
+
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -158,7 +173,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
     grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' >> data/lang_1spm/input.txt
     # NOTE: speed perturbation is not applied in how2
-    sort data/lang_1spm/input.txt | uniq > ${nlsyms}
+    sort data/lang_1spm/input.txt | grep -o -P '&[^;]*;' | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
