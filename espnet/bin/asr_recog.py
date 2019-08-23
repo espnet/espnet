@@ -119,6 +119,9 @@ def main(args):
     parser = get_parser()
     args = parser.parse_args(args)
 
+    if args.ngpu == 0 and args.dtype == "float16":
+        raise ValueError(f"--dtype {args.dtype} does not support the CPU backend.")
+
     # logging info
     if args.verbose == 1:
         logging.basicConfig(

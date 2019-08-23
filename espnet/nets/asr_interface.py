@@ -26,10 +26,11 @@ class ASRInterface:
             ASRinterface: A new instance of ASRInterface.
 
         """
+        def wrap(parser):
+            return get_parser(parser, required=False)
+
         args = argparse.Namespace(**kwargs)
-        args = fill_missing_args(
-            args, get_parser,
-            dummy_input="--outdir /tmp --dict /tmp/dummy.txt".split())
+        args = fill_missing_args(args, wrap)
         args = fill_missing_args(args, cls.add_arguments)
         return cls(idim, odim, args)
 

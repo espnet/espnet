@@ -7,7 +7,7 @@ import argparse
 import logging
 
 
-def fill_missing_args(args, add_arguments, dummy_input=None):
+def fill_missing_args(args, add_arguments):
     """Fill missing arguments in args.
 
     Args:
@@ -30,7 +30,7 @@ def fill_missing_args(args, add_arguments, dummy_input=None):
     assert callable(add_arguments)
 
     # get default arguments
-    default_args, _ = add_arguments(argparse.ArgumentParser()).parse_known_args(dummy_input)
+    default_args, _ = add_arguments(argparse.ArgumentParser()).parse_known_args()
 
     # convert to dict
     args = {} if args is None else vars(args)
