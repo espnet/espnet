@@ -694,11 +694,6 @@ def recog(args):
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     else:
-        if hasattr(train_args, "model_module"):
-            if 'transducer' in train_args.model_module:
-                logging.error("Batch decoding for transducer is not supported yet.")
-                raise NotImplementedError
-
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
