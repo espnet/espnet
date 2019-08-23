@@ -73,7 +73,7 @@ class ASRInterface:
         :return: N-best decoding results
         :rtype: list
         """
-        raise NotImplementedError(f"Batch decoding for transducer is not supported yet.")
+        raise NotImplementedError("Batch decoding is not supported yet.")
 
     def calculate_all_attentions(self, xs, ilens, ys):
         """Caluculate attention.
