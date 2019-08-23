@@ -18,7 +18,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 # NOTE: you need this func to generate our sphinx doc
-def get_parser(parser=None):
+def get_parser(parser=None, required=True):
     if parser is None:
         parser = configargparse.ArgumentParser(
             description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
@@ -40,11 +40,11 @@ def get_parser(parser=None):
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
+    parser.add_argument('--outdir', type=str, required=required,
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', required=True,
+    parser.add_argument('--dict', required=required,
                         help='Dictionary')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
@@ -258,6 +258,8 @@ def main(cmd_args):
         raise NotImplementedError(
             f"chainer backend does not support --train-dtype {args.train_dtype}."
             "Use --dtype float32.")
+    if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
+        raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
     from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is None:

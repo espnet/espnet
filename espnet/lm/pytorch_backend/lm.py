@@ -115,8 +115,11 @@ class BPTTUpdater(training.StandardUpdater):
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
         x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
-        # apex does not support torch.nn.DataParallel
-        loss, nll, count = data_parallel(self.model, (x, t), self.device)
+        if self.device[0] == -1:
+            loss, nll, count = self.model(x, t)
+        else:
+            # apex does not support torch.nn.DataParallel
+            loss, nll, count = data_parallel(self.model, (x, t), self.device)
         reporter.report({'loss': float(loss.mean())}, optimizer.target)
         reporter.report({'nll': float(nll.sum())}, optimizer.target)
         reporter.report({'count': int(count.sum())}, optimizer.target)
@@ -160,7 +163,11 @@ class LMEvaluator(BaseEvaluator):
         with torch.no_grad():
             for batch in copy.copy(val_iter):
                 x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
-                l, n, c = data_parallel(self.model, (x, t), self.device)
+                if self.device[0] == -1:
+                    l, n, c = self.model(x, t)
+                else:
+                    # apex does not support torch.nn.DataParallel
+                    l, n, c = data_parallel(self.model, (x, t), self.device)
                 loss += float(l.sum())
                 nll += float(n.sum())
                 count += int(c.sum())
@@ -223,7 +230,7 @@ def train(args):
         dtype = torch.float32
     model = model_class(args.n_vocab, args).to(dtype=dtype)
     if args.ngpu > 0:
-        model.to("cuda:0")
+        model.to("cuda")
         gpu_id = list(range(args.ngpu))
     else:
         gpu_id = [-1]

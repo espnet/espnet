@@ -101,6 +101,8 @@ def main(cmd_args):
         raise NotImplementedError(
             f"chainer backend does not support --train-dtype {args.train_dtype}."
             "Use --dtype float32.")
+    if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
+        raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
     # parse model-specific arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)

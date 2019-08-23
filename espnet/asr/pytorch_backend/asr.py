@@ -19,6 +19,7 @@ from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
+from torch.nn.parallel import data_parallel
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
@@ -77,13 +78,20 @@ class CustomEvaluator(BaseEvaluator):
             :func:`chainer.dataset.concat_examples` is used by default.
 
         device (torch.device): The device used.
+        ngpu (int): The number of GPUs.
     """
 
-    def __init__(self, model, iterator, target, converter, device):
+    def __init__(self, model, iterator, target, converter, device, ngpu=None):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.converter = converter
         self.device = device
+        if ngpu is not None:
+            self.ngpu = ngpu
+        elif device.type == "cpu":
+            self.ngpu = 0
+        else:
+            self.ngpu = 1
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
@@ -110,7 +118,12 @@ class CustomEvaluator(BaseEvaluator):
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
                     x = self.converter(batch, self.device)
-                    self.model(*x)
+                    if self.ngpu == 0:
+                        self.model(*x)
+                    else:
+                        # apex does not support torch.nn.DataParallel
+                        data_parallel(self.model, x, range(self.ngpu))
+
                 summary.add(observation)
         self.model.train()
 
@@ -165,7 +178,11 @@ class CustomUpdater(StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(*x).mean() / self.accum_grad
+        if self.ngpu == 0:
+            loss = self.model(*x).mean() / self.accum_grad
+        else:
+            # apex does not support torch.nn.DataParallel
+            loss = data_parallel(self.model, x, range(self.ngpu)).mean() / self.accum_grad
         if self.use_apex:
             from apex import amp
             with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -370,7 +387,6 @@ def train(args):
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
             logging.info('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
@@ -488,7 +504,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
