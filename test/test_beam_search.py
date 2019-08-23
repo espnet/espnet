@@ -170,7 +170,7 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
         nbest_bs = beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
-    if dtype != torch.float32:
+    if dtype == torch.float16:
         # skip because results are different. just checking it is decodable
         return
 
