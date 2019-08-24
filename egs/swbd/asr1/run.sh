@@ -175,9 +175,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})_$(basename ${preprocess_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
-        expname=${expname}_delta
+	expname=${expname}_delta
+    fi
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
     expname=${train_set}_${backend}_${tag}
