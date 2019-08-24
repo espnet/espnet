@@ -613,3 +613,10 @@ class ChainerDataLoader(object):
         self.idx += 1
         self.epoch_detail = self.idx * 1. / self.len
         return ret
+
+    def __iter__(self):
+        for batch in self.loader:
+            yield batch
+
+    def serialize(self, serializer):
+        pass
