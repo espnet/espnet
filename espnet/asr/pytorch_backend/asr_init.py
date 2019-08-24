@@ -208,7 +208,7 @@ def load_trained_modules(idim, odim, args):
     logging.info('model(s) found for pre-initialization')
     for model_path, modules in [(enc_model_path, enc_modules),
                                 (dec_model_path, dec_modules)]:
-        if model_path:
+        if model_path is not None:
             if os.path.isfile(model_path):
                 model_state_dict, mode = get_trained_model_state_dict(model_path)
 

@@ -285,7 +285,7 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
-    if args.enc_init or args.dec_init:
+    if args.enc_init is not None or args.dec_init is not None:
         model = load_trained_modules(idim, odim, args)
     else:
         model_class = dynamic_import(args.model_module)
