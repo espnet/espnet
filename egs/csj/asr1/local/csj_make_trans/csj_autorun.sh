@@ -27,7 +27,7 @@ esac
 
 [ ! -e $resource ] && echo "Not exist CSJ or incorrect PATH." && exit 1;
 
-if [ ! -e $outd/.done_make_trans ];then
+if [ ! -e $outd/.done_make_trans ]; then
 (
     echo "Make Transcription and PATH of WAV file."
     mkdir -p $outd
@@ -78,7 +78,7 @@ if [ ! -e $outd/.done_make_trans ];then
 
             done
 
-            if [ -s $outd/$vol/$id/${id}-trans.text ] ;then
+            if [ -s $outd/$vol/$id/${id}-trans.text ]; then
                 echo -n >$outd/$vol/.done_$vol
                 echo "Complete processing transcription data in $vol"
             else
@@ -88,7 +88,7 @@ if [ ! -e $outd/.done_make_trans ];then
     done
     wait
 
-    if [ -e $outd/$vol/.done_$vol ] ;then
+    if [ -e $outd/$vol/.done_$vol ]; then
         echo -n >$outd/.done_make_trans
         echo "Done!"
     else
@@ -132,7 +132,7 @@ if [ ! -e $outd/.done_mv_eval_dup ]; then
     [ 10 -eq `ls $outd/eval/eval1 | wc -l` ] && echo -n >$outd/eval/.done_eval1
     [ 10 -eq `ls $outd/eval/eval2 | wc -l` ] && echo -n >$outd/eval/.done_eval2
     [ 10 -eq `ls $outd/eval/eval3 | wc -l` ] && echo -n >$outd/eval/.done_eval3
-    if [ 3 -eq `ls -a $outd/eval | grep done_eval | wc -l` ] ;then
+    if [ 3 -eq `ls -a $outd/eval | grep done_eval | wc -l` ]; then
         echo -n >$outd/.done_mv_eval_dup
         echo "Done!"
     else
@@ -154,7 +154,7 @@ if [ ! -e $outd/.done_make_lexicon ]; then
     cut -d'+' -f1,3- $lexicon/lexicon.txt >$lexicon/lexicon_htk.txt
     cut -f1,3- $lexicon/lexicon_htk.txt | perl -ape 's:\t: :g' >$lexicon/lexicon.txt
 
-    if [ -s $lexicon/lexicon.txt ] ;then
+    if [ -s $lexicon/lexicon.txt ]; then
       echo -n >$outd/.done_make_lexicon
       echo "Done!"
     else

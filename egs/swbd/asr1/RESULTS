@@ -1,7 +1,0 @@
-$ grep -e Avg -e SPKR -m 2 exp/train_nodup_a01_pt_blstmp_e6/*p0.1_len0.0-0.0/result.txt
-exp/train_nodup_a01_pt_blstmp_e6/decode_eval2000_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR       |  # Snt     # Wrd  |  Corr      Sub       Del      Ins      Err     S.Err  |
-exp/train_nodup_a01_pt_blstmp_e6/decode_eval2000_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg    |  4458     181952  |  81.7      9.3       8.9     13.3     31.5      79.1  |
-exp/train_nodup_a01_pt_blstmp_e6/decode_rt03_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR         | # Snt    # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
-exp/train_nodup_a01_pt_blstmp_e6/decode_rt03_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg      | 8422    321545  |  78.2    10.6     11.2     12.3    34.1     79.6  |
-exp/train_nodup_a01_pt_blstmp_e6/decode_train_dev_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  SPKR       |  # Snt     # Wrd  |  Corr       Sub      Del       Ins      Err     S.Err  |
-exp/train_nodup_a01_pt_blstmp_e6/decode_train_dev_beam20_eacc.best_p0.1_len0.0-0.0/result.txt:|  Sum/Avg    |  3999     235886  |  87.4       6.4      6.2       5.0     17.6      65.4  |

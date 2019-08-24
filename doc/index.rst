@@ -3,9 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-espnet: end-to-end speech processing toolkit
+ESPnet: end-to-end speech processing toolkit
 ============================================
-espnet is an end-to-end speech processing toolkit.
+.. image:: ./image/espnet_logo1.png
+
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 
 .. toctree::
    :maxdepth: 1
@@ -13,12 +15,24 @@ espnet is an end-to-end speech processing toolkit.
 
    ./tutorial.md
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Notebook:
+
+   ./notebook/asr_cli.ipynb
+   ./notebook/asr_library.ipynb
+   ./notebook/tts_cli.ipynb
+   ./notebook/pretrained.ipynb
+
+.. include:: ./_gen/modules.rst
 
 .. toctree::
    :maxdepth: 1
-   :caption: Reference Manual:
+   :caption: Tool Reference:
 
-   ./apis/nets.rst
+   ./apis/espnet_bin.rst
+   ./apis/utils_py.rst
+   ./apis/utils_sh.rst
 
 
 Indices and tables

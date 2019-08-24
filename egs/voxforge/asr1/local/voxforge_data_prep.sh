@@ -24,6 +24,9 @@ command -v flac >/dev/null 2>&1 ||\
 DATA=$1
 lang=$2
 
+# make $DATA an absolute pathname.
+DATA=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $DATA ${PWD}`
+
 locdata=data/local/$lang
 loctmp=$locdata/tmp
 rm -rf $loctmp >/dev/null 2>&1
@@ -121,7 +124,7 @@ for s in all; do
 	    cp $dir/etc/PROMPTS ${loctmp}/char_tmp/$idpfx.utf8
 	fi
 
-	local/make_trans.py ${loctmp}/char_tmp/$idpfx.utf8 ${idpfx} "${all_wavs[@]}" \
+	PYTHONIOENCODING=utf-8 local/make_trans.py ${loctmp}/char_tmp/$idpfx.utf8 ${idpfx} "${all_wavs[@]}" \
 			    2>>${logdir}/make_trans.log >> ${loctmp}/${s}_trans.txt.unsorted
     done
 
