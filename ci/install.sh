@@ -6,13 +6,7 @@ set -euo pipefail
 
 $CXX -v
 
-if [[ ${USE_CONDA} == false ]]; then
-    if [[ ${TH_VERSION} == nightly ]]; then
-        pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
-    else
-        pip install --quiet torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
-    fi
-else
+if ${USE_CONDA}; then
     (
         cd tools
         make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
@@ -27,6 +21,17 @@ else
         conda install -q -y pytorch-cpu="${TH_VERSION}" -c pytorch
     fi
     conda install -c conda-forge ffmpeg
+else
+    # to suppress errors during doc generation of utils/ when USE_CONDA=false in travis
+    mkdir -p tools/venv/bin
+    touch tools/venv/bin/activate
+    . tools/venv/bin/activate
+
+    if [[ ${TH_VERSION} == nightly ]]; then
+        pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+    else
+        pip install --quiet torch=="${TH_VERSION}" -f https://download.pytorch.org/whl/cpu/stable
+    fi
 fi
 
 python --version
@@ -50,9 +55,6 @@ git clone https://github.com/jnishi/warp-ctc.git -b pytorch-1.0.0
 cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
 pip install cffi
 cd pytorch_binding && python setup.py install && cd ../..
-
-# install kaldiio
-pip install git+https://github.com/nttcslab-sp/kaldiio.git
 
 # install chainer_ctc
 pip install cython

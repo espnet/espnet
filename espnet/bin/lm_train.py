@@ -14,7 +14,6 @@ import logging
 
 import numpy as np
 import os
-import platform
 import random
 import subprocess
 import sys
@@ -33,8 +32,8 @@ def get_parser():
     parser.add('--config3', is_config_file=True,
                help='third config file path that overwrites the settings in `--config` and `--config2`.')
 
-    parser.add_argument('--ngpu', default=0, type=int,
-                        help='Number of GPUs')
+    parser.add_argument('--ngpu', default=None, type=int,
+                        help='Number of GPUs. If not given, use all visible devices')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -80,6 +79,8 @@ def get_parser():
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of hidden units')
+    parser.add_argument('--dropout-rate', type=float, default=0.5,
+                        help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
     return parser
@@ -98,26 +99,27 @@ def main(args):
             level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
 
-    # check CUDA_VISIBLE_DEVICES
-    if args.ngpu > 0:
-        # python 2 case
-        if platform.python_version_tuple()[0] == '2':
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-        # python 3 case
-        else:
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+    # If --ngpu is not given,
+    #   1. if CUDA_VISIBLE_DEVICES is set, all visible devices
+    #   2. if nvidia-smi exists, use all devices
+    #   3. else ngpu=0
+    if args.ngpu is None:
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
-        if cvd is None:
+        if cvd is not None:
+            ngpu = len(cvd.split(','))
+        else:
             logging.warning("CUDA_VISIBLE_DEVICES is not set.")
-        elif args.ngpu != len(cvd.split(",")):
-            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
-            sys.exit(1)
+            try:
+                p = subprocess.run(['nvidia-smi', '-L'],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                ngpu = 0
+            else:
+                ngpu = len(p.stderr.decode().split('\n')) - 1
+    else:
+        ngpu = args.ngpu
+    logging.info(f"ngpu: {ngpu}")
 
     # display PYTHONPATH
     logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))

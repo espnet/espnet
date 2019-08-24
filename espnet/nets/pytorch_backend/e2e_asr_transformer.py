@@ -149,24 +149,24 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         '''
-        # forward encoder
+        # 1. forward encoder
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
-        # forward decoder
+        # 2. forward decoder
         ys_in_pad, ys_out_pad = self.add_sos_eos(ys_pad)
         ys_mask = self.target_mask(ys_in_pad)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
-        # compute loss
+        # 3. compute attenttion loss
         loss_att = self.criterion(pred_pad, ys_out_pad)
         self.acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
                                ignore_label=self.ignore_id)
 
-        # TODO(karita) show predected text
+        # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
         cer_ctc = None
         if self.mtlalpha == 0.0:
