@@ -31,6 +31,7 @@ lang_model=
 recog_model=
 decode_config=
 decode_dir=decode
+api=v2
 
 # download related
 models=
@@ -43,11 +44,12 @@ Options:
   --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
   --ngpu <ngpu>                   # Number of GPUs (Default: 0)
   --decode_dir <directory_name>   # Name of directory to store decoding temporary data
-  --model <model_name>            # Model name (e.g. tedlium2.tacotron2.v1)
+  --models <model_name>           # Model name (e.g. tedlium2.tacotron2.v1)
   --cmvn <path>                   # Location of cmvn.ark
   --lang_model <path>             # Location of language model
   --recog_model <path>            # Location of E2E model
   --decode_config <path>          # Location of configuration file
+  --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
 
 Example:
     # Record audio from microphone input as example.wav
@@ -79,6 +81,12 @@ fi
 set -e
 set -u
 set -o pipefail
+
+# check api version
+if [ "${api}" = "v2" ] && [ "${backend}" = "chainer" ]; then
+    echo "chainer backend does not support api v2." >&2
+    exit 1;
+fi
 
 # Check model name or model file is set
 if [ -z $models ]; then
@@ -195,7 +203,6 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
-
     if ${use_lang_model}; then
         recog_opts="--rnnlm ${lang_model}"
     else
@@ -213,6 +220,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --recog-json ${feat_recog_dir}/data.json \
         --result-label ${decode_dir}/result.json \
         --model ${recog_model} \
+        --api ${api} \
         ${recog_opts}
 
     echo ""
