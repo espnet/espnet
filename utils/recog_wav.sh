@@ -31,7 +31,7 @@ lang_model=
 recog_model=
 decode_config=
 decode_dir=decode
-api=v1
+api=v2
 
 # download related
 models=
@@ -81,6 +81,12 @@ fi
 set -e
 set -u
 set -o pipefail
+
+# check api version
+if [ "${api}" = "v2" ] && [ "${backend}" = "chainer" ]; then
+    echo "chainer backend does not support api v2." >&2
+    exit 1;
+fi
 
 # Check model name or model file is set
 if [ -z $models ]; then
@@ -197,7 +203,6 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
-
     if ${use_lang_model}; then
         recog_opts="--rnnlm ${lang_model}"
     else
