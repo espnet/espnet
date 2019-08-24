@@ -13,6 +13,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from torch.nn.parallel import data_parallel
 
 from chainer import Chain
 from chainer.dataset import convert
@@ -83,20 +84,23 @@ def concat_examples(batch, device=None, padding=None):
 class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM."""
 
-    def __init__(self, train_iter, model, optimizer, device, gradclip=None):
+    def __init__(self, train_iter, model, optimizer, device, gradclip=None, use_apex=False):
         """Initialize class.
 
-        :param chainer.dataset.Iterator train_iter : The train iterator
-        :param LMInterface model : The model to update
-        :param optimizer:
-        :param int device : The device id
-        :param int gradclip : The gradient clipping value to use
+        Args:
+            train_iter (chainer.dataset.Iterator): The train iterator
+            model (LMInterface) : The model to update
+            optimizer (torch.optim.Optimizer): The optimizer for training
+            device (int): The device id
+            gradclip (float): The gradient clipping value to use
+            use_apex (bool): The flag to use Apex in backprop.
 
         """
         super(BPTTUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.device = device
         self.gradclip = gradclip
+        self.use_apex = use_apex
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -110,14 +114,23 @@ class BPTTUpdater(training.StandardUpdater):
         # Concatenate the token IDs to matrices and send them to the device
         # self.converter does this job
         # (it is chainer.dataset.concat_examples by default)
-        x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-        loss, nll, count = self.model(x, t)
+        x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
+        if self.device[0] == -1:
+            loss, nll, count = self.model(x, t)
+        else:
+            # apex does not support torch.nn.DataParallel
+            loss, nll, count = data_parallel(self.model, (x, t), self.device)
         reporter.report({'loss': float(loss.mean())}, optimizer.target)
         reporter.report({'nll': float(nll.sum())}, optimizer.target)
         reporter.report({'count': int(count.sum())}, optimizer.target)
         # update
         self.model.zero_grad()  # Clear the parameter gradients
-        loss.mean().backward()  # Backprop
+        if self.use_apex:
+            from apex import amp
+            with amp.scale_loss(loss.mean(), optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.mean().backward()  # Backprop
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
@@ -149,8 +162,12 @@ class LMEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in copy.copy(val_iter):
-                x, t = concat_examples(batch, device=self.device, padding=(0, -100))
-                l, n, c = self.model(x, t)
+                x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
+                if self.device[0] == -1:
+                    l, n, c = self.model(x, t)
+                else:
+                    # apex does not support torch.nn.DataParallel
+                    l, n, c = data_parallel(self.model, (x, t), self.device)
                 loss += float(l.sum())
                 nll += float(n.sum())
                 count += int(c.sum())
@@ -207,14 +224,16 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    model = model_class(args.n_vocab, args)
-    reporter = Reporter()
-    if args.ngpu > 0:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu))).cuda()
-        gpu_id = 0
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
     else:
-        gpu_id = -1
-    setattr(model, "reporter", reporter)
+        dtype = torch.float32
+    model = model_class(args.n_vocab, args).to(dtype=dtype)
+    if args.ngpu > 0:
+        model.to("cuda")
+        gpu_id = list(range(args.ngpu))
+    else:
+        gpu_id = [-1]
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
@@ -228,11 +247,27 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
 
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+                          "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
+
     # FIXME: TOO DIRTY HACK
+    reporter = Reporter()
+    setattr(model, "reporter", reporter)
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
-    updater = BPTTUpdater(train_iter, model, optimizer, gpu_id, gradclip=args.gradclip)
+    updater = BPTTUpdater(train_iter, model, optimizer, gpu_id,
+                          gradclip=args.gradclip, use_apex=use_apex)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
