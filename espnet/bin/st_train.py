@@ -158,7 +158,8 @@ def get_parser():
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=None, type=str, nargs='?',
                         help='Pre-trained MT model')
-    parser.add_argument('--replace-sos', default=False, nargs='?',
+    # multilingual related
+    parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
