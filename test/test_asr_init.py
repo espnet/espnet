@@ -140,9 +140,9 @@ def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_in
     tmppath = tempfile.mktemp()
     utils.torch_save(tmppath, model)
 
-    if enc_init:
+    if enc_init is not None:
         enc_init = tmppath
-    if dec_init:
+    if dec_init is not None:
         dec_init = tmppath
 
     # create dummy model.json for saved model to go through
