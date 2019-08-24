@@ -1,0 +1,25 @@
+#WSJ-2mix
+# word level rnnlm without speaker parallel attention
+$ grep -e Total -e Error -m 2 exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spafalse_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result*.json
+# CER
+exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spafalse_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result.json
+Total Scores: (#C #S #D #I) 60849 3537 2695 1920
+Error Rate:   12.15
+# WER
+exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spafalse_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result.wrd.json
+Total Scores: (#C #S #D #I) 9350 1677 291 308
+Error Rate:   20.11)
+
+# word level rnnlm with speaker parallel attention
+$ grep -e Total -e Error -m 2 exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spatrue_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result*.json
+# CER
+exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spatrue_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result.json
+Total Scores: (#C #S #D #I) 61630 3176 2275 1842
+Error Rate:   10.87
+# WER
+exp/tr_pytorch_vggblstmp_sde1_rece2_subsample1_2_2_1_1_unit1024_proj1024_d1_unit300_location_spatrue_aconvc10_aconvf100_mtlalpha0.2_adadelta_sampprob0.0_bs10_mli800_mlo150_lsmunigram0.05_delta/decode_tt_beam30_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/min_perm_result.wrd.json
+Total Scores: (#C #S #D #I) 9557 1501 260 308
+Error Rate:   18.28
+
+# WSJ0-2mix
+# future work

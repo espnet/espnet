@@ -1,0 +1,17 @@
+# ignored folders
+doc/
+src/
+egs/
+test/
+tools/kaldi
+tools/kaldi-io-for-python/
+tools/kaldi_github/
+tools/miniconda.sh
+tools/nkf/
+tools/venv/
+tools/warp-ctc/
+tools/warp-transducer/
+tools/chainer_ctc/
+tools/subword-nmt/
+
+.pytest_cache

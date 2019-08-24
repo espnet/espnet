@@ -1,60 +1,48 @@
+dist: xenial
 language: python
+python:
+  - "3.7"
 
 cache:
   - pip
   - ccache
 
-matrix:
-  include:
-    - os: linux
-      python: "2.7"
-    - os: linux
-      python: "3.6"
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake
+      - python3-dev
+      - g++-7
+      - pandoc
+      - ffmpeg
+      - bc
 
+env:
+  # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=1.1.0 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  # torch nightly
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+
+matrix:
+  allow_failures:
+    # torch nightly
+    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
 install:
-  - pip install -U pip wheel
-  - pip install -r ./tools/test_requirements.txt
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-          pip install http://download.pytorch.org/whl/cpu/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl;
-    else
-          pip3 install http://download.pytorch.org/whl/cpu/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl;
-    fi
-  # install warp-ctc
-  - git clone https://github.com/SeanNaren/warp-ctc.git
-  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-  - pip install cffi
-  - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
-  # install chainer
-  - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
-  - cd tools && make kaldi-io-for-python && cd -
-  # install doc deps
-  - pip install -r doc/requirements.txt
-  # install chainer_ctc
-  - pip install cython
-  - git clone https://github.com/jheymann85/chainer_ctc.git
-  - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-  - pip install . && cd ..
-  - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
-
+  - travis_retry ./ci/install.sh
+  - travis_retry ./ci/install_kaldi.sh
 
 script:
-  # TODO test coding style?
-  - flake8 src test
-  - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
-  - test ! -s check_autopep8
-  - pytest
-  - travis-sphinx build --source=doc --nowarn
+  - ./ci/test_shell.sh
+  - ./ci/test_python.sh
+  - ./ci/test_integration.sh
+  - ./ci/doc.sh
 
 sudo: false
 
-
 after_success:
-    - travis-sphinx deploy
-
-addons:
-  apt:
-    packages:
-      - cmake
-      - python-dev
-      - python3-dev
+  - bash <(curl -s https://codecov.io/bash)
+  - travis-sphinx deploy -m "Update documentation [ci skip]"

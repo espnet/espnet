@@ -1,29 +1,53 @@
+# general
 *~
 *.pyc
 \#*\#
 .\#*
 *DS_Store
-
+espnet.egg-info/
 doc/_build
+slurm-*.out
+tmp*
+.eggs/
+.hypothesis/
+.idea
+.pytest_cache/
+__pycache__/
+check_autopep8
+.coverage*
+coverage.xml*
+bats-core/
+shellcheck*
+check_shellcheck*
+test_spm.vocab
+test_spm.model
 
 # recipe related
 egs/*/*/data*
 egs/*/*/db
 egs/*/*/downloads
 egs/*/*/dump
+egs/*/*/enhan
 egs/*/*/exp
 egs/*/*/fbank
+egs/*/*/mfcc
 egs/*/*/stft
-egs/*/*/enhan
+egs/*/*/tensorboard
+egs/*/*/wav*
 
 # tools related
-src/utils/kaldi_io_py.py
-tools/kaldi
-tools/kaldi-io-for-python/
-tools/kaldi_github/
+tools/bats-core
+tools/chainer_ctc/
+tools/kaldi*
+tools/mecab/
 tools/miniconda.sh
+tools/moses/
+tools/mwerSegmenter/
 tools/nkf/
 tools/venv/
+tools/sentencepiece/
+tools/swig/
 tools/warp-ctc/
-tools/chainer_ctc/
-tools/subword-nmt/
+tools/warp-transducer/
+tools/*.done
+tools/PESQ*

@@ -1,6 +1,39 @@
-# grep -e Avg -e SPKR -m 2 Avg exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_*_beam20_eacc.best_p0.2_len0.1-0.8/result.txt
+#!/bin/bash
+grep -e Avg -e SPKR -m 2 exp/train_*/decode*/result.txt
 
-exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        SPKR           |        # Snt               # Wrd         |        Corr                  Sub                   Del                  Ins                   Err                S.Err         |
-exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        Sum/Avg        |         130                 2565         |        37.0                 22.7                  40.3                  7.6                  70.6                 90.8         |
-exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_train_dev_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        SPKR           |        # Snt                # Wrd         |        Corr                    Sub                   Del                   Ins                   Err                 S.Err         |
-exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_train_dev_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        Sum/Avg        |         100                  1915         |        36.6                   23.9                  39.5                   8.0                  71.5                  91.0         |
+<< EOF
+
+1. hybrid CTC/attention without word-LM
+backend=pytorch, train_config=conf/train_mtlalpha0.5.yaml, decode_config=conf/decode_ctcweight1.0.yaml, lm_weight=0
+
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_test_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr       Sub        Del        Ins        Err      S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_test_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   Sum/Avg  |    130       2565   |   83.0       3.1       13.9        0.7       17.7       85.4   |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_train_dev_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   SPKR     |   # Snt      # Wrd   |   Corr         Sub        Del         Ins        Err       S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_train_dev_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   Sum/Avg  |    100        1915   |   75.2         3.6       21.1         0.5       25.3        88.0   |
+
+
+2. hybrid CTC/attention using word-LM
+backend=pytorch, train_config=conf/train_mtlalpha0.5.yaml, decode_config=conf/decode_ctcweight1.0.yaml, lm_weight=1.0
+
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_test_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_test_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   Sum/Avg  |    130       2565   |   90.0        4.6         5.4        1.3       11.3       57.7   |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_train_dev_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   SPKR      |   # Snt     # Wrd    |   Corr         Sub        Del         Ins         Err      S.Err    |
+exp/train_nodev_pytorch_train_mtlalpha0.5/decode_train_dev_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   Sum/Avg   |    100       1915    |   83.3         7.0        9.7         2.1        18.9       75.0    |
+
+
+3. CTC only wihtout word-LM
+
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr       Sub        Del        Ins        Err      S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   Sum/Avg  |    130       2565   |   90.8       2.5        6.7        0.9       10.1       65.4   |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_train_dev_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   SPKR     |   # Snt      # Wrd   |   Corr         Sub        Del         Ins        Err       S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_train_dev_decode_ctcweight1.0_rnnlm0_lm_word100/result.txt:|   Sum/Avg  |    100        1915   |   82.0         4.2       13.8         1.0       19.1        81.0   |
+
+
+4. CTC only using word-LM
+
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   Sum/Avg  |    130       2565   |   92.6        3.5         3.8        1.5        8.8       56.2   |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_train_dev_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   SPKR      |   # Snt     # Wrd    |   Corr         Sub        Del         Ins         Err      S.Err    |
+exp/train_nodev_pytorch_train_mtlalpha1.0/decode_train_dev_decode_ctcweight1.0_rnnlm1.0_lm_word100/result.txt:|   Sum/Avg   |    100       1915    |   86.8         5.7        7.5         1.9        15.1       69.0    |
+
+EOF

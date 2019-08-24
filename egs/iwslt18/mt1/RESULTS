@@ -1,0 +1,8 @@
+# character (lc.rm) -> character (lc), RNN
+dev:     BLEU = 21.90, 55.6/27.7/15.9/9.4 (BP=1.000, ratio=1.016, hyp_len=33797, ref_len=33261)
+test:    BLEU = 23.06, 58.2/29.5/17.3/10.6 (BP=0.974, ratio=0.975, hyp_len=34628, ref_len=35529)
+dev2010: BLEU = 22.99, 59.9/30.9/17.7/10.3 (BP=0.954, ratio=0.955, hyp_len=18405, ref_len=19274)
+tst2010: BLEU = 23.80, 60.2/31.2/18.5/11.3 (BP=0.950, ratio=0.952, hyp_len=29287, ref_len=30779)
+tst2013: BLEU = 24.90, 60.9/32.1/19.2/11.9 (BP=0.965, ratio=0.965, hyp_len=19154, ref_len=19842)
+tst2014: BLEU = 21.17, 56.8/27.9/15.9/9.6 (BP=0.954, ratio=0.955, hyp_len=23163, ref_len=24254)
+tst2015: BLEU = 22.33, 57.1/28.9/16.7/10.0 (BP=0.974, ratio=0.975, hyp_len=19491, ref_len=19999)
