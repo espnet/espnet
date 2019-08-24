@@ -77,10 +77,6 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
-    # transducer related
-    parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
-                        default=True,
-                        help='Normalize transducer scores by length')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -109,7 +105,7 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
                         help='Offset margin')
     # multilingual related
     parser.add_argument('--tgt-lang', default=False, type=str,
-                        help='target language ID (e.g., <en>, <de>, <fr> etc.)')
+                        help='target language ID (e.g., <en>, <de>, and <fr> etc.)')
     return parser
 
 
