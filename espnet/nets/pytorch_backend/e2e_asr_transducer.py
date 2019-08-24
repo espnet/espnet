@@ -22,6 +22,8 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 
+from espnet.utils.cli_utils import strtobool
+
 
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
@@ -103,6 +105,10 @@ class E2E(ASRInterface, torch.nn.Module):
                             help='RNN-Transducing mode')
         parser.add_argument('--joint-dim', default=320, type=int,
                             help='Number of dimensions in joint space')
+        # decoding
+        parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
+                            default=True,
+                            help='Normalize transducer scores by length')
 
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
@@ -163,7 +169,8 @@ class E2E(ASRInterface, torch.nn.Module):
         # options for beam search
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
             recog_args = {'beam_size': args.beam_size, 'nbest': args.nbest,
-                          'space': args.sym_space}
+                          'space': args.sym_space,
+                          'score_norm_transducer': args.score_norm_transducer}
 
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
