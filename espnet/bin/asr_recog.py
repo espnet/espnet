@@ -114,9 +114,6 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
                         help='Onset margin')
     parser.add_argument('--streaming-offset-margin', type=int, default=1,
                         help='Offset margin')
-    # speech translation related
-    parser.add_argument('--tgt-lang', default=False, type=str,
-                        help='target language ID (e.g., <en>, <de>, <fr> etc.)')
     return parser
 
 

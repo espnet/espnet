@@ -167,7 +167,7 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--elayers-sd', default=4, type=int,
                         help='Number of encoder layers for speaker '
                              'differentiate part. (multi-speaker asr mode only)')
-    # speech translation related
+    # decoder related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
     parser.add_argument('--replace-sos', default=False, nargs='?',
