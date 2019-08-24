@@ -25,7 +25,7 @@ train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
 n_average=5                  # the number of ST models to be averaged
@@ -69,7 +69,7 @@ set -o pipefail
 
 train_set=train.pt
 train_dev=val.pt
-recog_set="dev5.pt"
+trans_set="dev5.pt"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -131,11 +131,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
-            ${feat_recog_dir}
+            data/${ttask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${ttask} \
+            ${feat_trans_dir}
     done
 fi
 
@@ -165,10 +165,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
-            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
+        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${case} --bpecode ${bpemodel}.model \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 
     # update json (add source references)
@@ -206,7 +206,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        st_train.py \
         --config ${train_config} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
@@ -231,42 +231,42 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average ST models
         if ${use_valbest_average}; then
-            recog_model=model.val${n_average}.avg.best
+            trans_model=model.val${n_average}.avg.best
             opt="--log ${expdir}/results/log"
         else
-            recog_model=model.last${n_average}.avg.best
+            trans_model=model.last${n_average}.avg.best
             opt="--log"
         fi
         average_checkpoints.py \
             ${opt} \
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
-            --out ${expdir}/results/${recog_model} \
+            --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for ttask in ${trans_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            st_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} pt ${dict}
