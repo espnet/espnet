@@ -56,18 +56,18 @@ def prepare(backend):
         eunits=64,
         dlayers=3,
         dunits=64,
+        sym_space="<space>",
+        sym_blank="<blank>",
         transformer_init="pytorch",
-        transformer_input_layer="linear",
+        transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
         report_cer=False,
         report_wer=False,
-        sym_space="<space>",
-        sym_blank="<blank>",
         mtlalpha=0.0,
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
     )
-    idim = 83
+    idim = 84
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
 
@@ -114,7 +114,6 @@ def test_transformer_mask(module):
 
 @pytest.mark.parametrize("module", ["pytorch", "chainer"])
 def test_transformer_synth(module):
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
     model, x, ilens, y, data = prepare(module)
 
     # test beam search
@@ -123,6 +122,7 @@ def test_transformer_synth(module):
         penalty=0.0,
         ctc_weight=0.0,
         maxlenratio=0,
+        lm_weight=0,
         minlenratio=0,
         nbest=1
     )
@@ -137,7 +137,6 @@ def test_transformer_synth(module):
             optim.step()
             max_acc = max(model.acc, max_acc)
         assert max_acc > 0.8
-
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
         from espnet.nets.pytorch_backend.transformer import plot
@@ -161,7 +160,8 @@ def test_transformer_synth(module):
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+        from espnet.nets.pytorch_backend.transformer import plot
+        plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
         with chainer.no_backprop_mode():
             nbest = model.recognize(x[0, :ilens[0]], recog_args)
