@@ -41,7 +41,7 @@ class DefaultRNNLM(LMInterface, nn.Module):
         """
         nn.Module.__init__(self)
         # NOTE: for a compatibility with less than 0.5.0 version models
-        dropout_rate = getattr(args, "dropout_rate", args.dropout)
+        dropout_rate = getattr(args, "dropout_rate", 0.0)
         self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, dropout_rate))
 
     def state_dict(self):
