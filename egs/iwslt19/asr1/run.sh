@@ -43,7 +43,7 @@ case=lc.rm
 # lc.rm: lowercase with punctuation removal
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=5000
 bpemode=bpe
 
 # exp tag
@@ -208,8 +208,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/train_${case}.txt
+    spm_encode --model=${bpemodel}.model --output_format=piece  < data/lang_1spm/input.txt > ${lmdatadir}/train_${case}.txt
     cut -f 2- -d " " data/${train_dev}/text.${case} | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/valid_${case}.txt
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
