@@ -25,6 +25,7 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
+import torch.utils.data
 matplotlib.use('Agg')
 
 
@@ -576,3 +577,39 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
                     labelbottom=labelbottom, labelleft=labelleft,
                     labelright=labelright, labeltop=labeltop)
     plt.axis('auto')
+
+
+class TransformDataset(torch.utils.data.Dataset):
+    def __init__(self, data, transform):
+        super(TransformDataset).__init__()
+        self.data = data
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.transform(self.data[idx])
+
+
+class ChainerDataLoader(object):
+    def __init__(self, **kwargs):
+        self.loader = torch.utils.data.dataloader.DataLoader(**kwargs)
+        self.len = len(kwargs['dataset'])
+        self.idx = 0
+        self.epoch_detail = 0
+        self.epoch = 0
+        self.iter = None
+
+    def next(self):
+        if self.iter is None:
+            self.iter = iter(self.loader)
+        try:
+            ret = next(self.iter)
+        except StopIteration:
+            self.iter = None
+            self.epoch += 1
+            return self.next()
+        self.idx += 1
+        self.epoch_detail = self.idx * 1. / self.len
+        return ret
