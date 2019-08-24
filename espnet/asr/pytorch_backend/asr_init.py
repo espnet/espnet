@@ -37,8 +37,9 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
             modules_model += [(key_m, value_m.shape)]
 
     len_match = (len(modules_model) == len(partial_modules))
-    module_match = (sorted([x for x in modules_model]) ==
-                    sorted([x for x in partial_modules]))
+
+    module_match = (sorted(modules_model, key=lambda x: (x[0], x[1])) ==
+                    sorted(partial_modules, key=lambda x: (x[0], x[1])))
 
     return len_match and module_match
 
