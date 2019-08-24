@@ -185,7 +185,9 @@ class CustomUpdater(StandardUpdater):
             loss = data_parallel(self.model, x, range(self.ngpu)).mean() / self.accum_grad
         if self.use_apex:
             from apex import amp
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            # NOTE: for a compatibility with noam optimizer
+            opt = optimizer.optimizer if hasattr(optimizer, "optimizer") else optimizer
+            with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
@@ -422,7 +424,10 @@ def train(args):
             logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
                           "See https://github.com/NVIDIA/apex#linux")
             raise e
-        model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        if args.opt == 'noam':
+            model, optimizer.optimizer = amp.initialize(model, optimizer.optimizer, opt_level=args.train_dtype)
+        else:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
         use_apex = True
     else:
         use_apex = False
