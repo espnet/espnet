@@ -18,11 +18,12 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 # NOTE: you need this func to generate our sphinx doc
-def get_parser():
-    parser = configargparse.ArgumentParser(
-        description="Train an speech translation (ST) model on one CPU, one or multiple GPUs",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+def get_parser(parser=None, required=True):
+    if parser is None:
+        parser = configargparse.ArgumentParser(
+            description="Train an speech translation (ST) model on one CPU, one or multiple GPUs",
+            config_file_parser_class=configargparse.YAMLConfigFileParser,
+            formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,
@@ -32,14 +33,18 @@ def get_parser():
 
     parser.add_argument('--ngpu', default=None, type=int,
                         help='Number of GPUs. If not given, use all visible devices')
+    parser.add_argument('--train-dtype', default="float32",
+                        choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
+                        help='Data type for training (only pytorch backend). '
+                        'O0,O1,.. flags require apex. See https://nvidia.github.io/apex/amp.html#opt-levels')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
+    parser.add_argument('--outdir', type=str, required=required,
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', required=True,
+    parser.add_argument('--dict', required=required,
                         help='Dictionary')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
@@ -189,6 +194,12 @@ def get_parser():
 def main(cmd_args):
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
+    if args.backend == "chainer" and args.train_dtype != "float32":
+        raise NotImplementedError(
+            f"chainer backend does not support --train-dtype {args.train_dtype}."
+            "Use --dtype float32.")
+    if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
+        raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
     from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is None:

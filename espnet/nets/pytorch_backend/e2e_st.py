@@ -132,10 +132,12 @@ class E2E(ASRInterface, torch.nn.Module):
         assert 0.0 <= self.asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         self.etype = args.etype
         self.verbose = args.verbose
+        # NOTE: for self.build method
+        args.char_list = getattr(args, "char_list", None)
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.space = args.sym_space
-        self.blank = args.sym_blank  # TODO():remove
+        self.blank = args.sym_blank  # TODO(hirofumi0810): remove this
         self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID

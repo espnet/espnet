@@ -63,7 +63,7 @@ class CustomUpdater(StandardUpdater):
 
     Args:
         model (torch.nn.Module): The model to update.
-        grad_clip_threshold (int): The gradient clipping value to use.
+        grad_clip_threshold (float): The gradient clipping value to use.
         train_iter (chainer.dataset.Iterator): The training iterator.
         optimizer (torch.optim.optimizer): The training optimizer.
 
@@ -74,11 +74,12 @@ class CustomUpdater(StandardUpdater):
 
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
+        use_apex (bool): The flag to use Apex in backprop.
 
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1):
+                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -89,6 +90,7 @@ class CustomUpdater(StandardUpdater):
         self.forward_count = 0
         self.grad_noise = grad_noise
         self.iteration = 0
+        self.use_apex = use_apex
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -104,8 +106,19 @@ class CustomUpdater(StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(*x).mean() / self.accum_grad
-        loss.backward()  # Backprop
+        if self.ngpu == 0:
+            loss = self.model(*x).mean() / self.accum_grad
+        else:
+            # apex does not support torch.nn.DataParallel
+            loss = data_parallel(self.model, x, range(self.ngpu)).mean() / self.accum_grad
+        if self.use_apex:
+            from apex import amp
+            # NOTE: for a compatibility with noam optimizer
+            opt = optimizer.optimizer if hasattr(optimizer, "optimizer") else optimizer
+            with amp.scale_loss(loss, opt) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
         # gradient noise injection
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
@@ -140,13 +153,15 @@ class CustomConverter(object):
 
     Args:
         subsampling_factor (int): The subsampling factor.
-        asr_task (bool): multi-task with ASR task
+        dtype (torch.dtype): Data type to convert.
+        asr_task (bool): multi-task with ASR task.
 
     """
 
-    def __init__(self, subsampling_factor=1, asr_task=False):
+    def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
+        self.dtype = dtype
         self.asr_task = asr_task
 
     def __call__(self, batch, device):
@@ -175,16 +190,16 @@ class CustomConverter(object):
         # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
-                [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
             xs_pad_imag = pad_list(
-                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
             # Note(kamo):
             # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
@@ -236,9 +251,6 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    # TODO(hirofumi0810) better to simplify the E2E model interface by only allowing idim, odim, and args
-    # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
-    # to attach these models
     model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
@@ -272,7 +284,6 @@ def train(args):
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
             logging.info('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
@@ -280,7 +291,11 @@ def train(args):
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    model = model.to(device)
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
+    else:
+        dtype = torch.float32
+    model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -296,12 +311,28 @@ def train(args):
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+                          "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        if args.opt == 'noam':
+            model, optimizer.optimizer = amp.initialize(model, optimizer.optimizer, opt_level=args.train_dtype)
+        else:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
+
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor,
+    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype,
                                 asr_task=args.asr_weight > 0)
 
     # read json data
@@ -360,7 +391,7 @@ def train(args):
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer,
-        converter, device, args.ngpu, args.grad_noise, args.accum_grad)
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -374,7 +405,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
