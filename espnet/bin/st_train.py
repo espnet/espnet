@@ -80,7 +80,7 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--report-wer', default=False, action='store_true',
                         help='Compute WER on development set')
     # translations options to compute BLEU
-    parser.add_argument('--report-bleu', default=False, action='store_true',
+    parser.add_argument('--report-bleu', default=True, action='store_true',
                         help='Compute BLEU on development set')
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -170,6 +170,12 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
+    parser.add_argument('--lang-ids', default=None,
+                        help='language tag list')
+    parser.add_argument('--enc-lang-emb', default=False, type=strtobool,
+                        help='Inject language embedding in the encoder side')
+    parser.add_argument('--dec-lang-emb', default=False, type=strtobool,
+                        help='Inject language embedding in the decoder side')
 
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,

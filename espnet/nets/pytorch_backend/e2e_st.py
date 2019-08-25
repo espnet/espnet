@@ -13,6 +13,7 @@ import math
 import os
 
 import editdistance
+import nltk
 
 import chainer
 import numpy as np
@@ -20,7 +21,6 @@ import six
 import torch
 
 from chainer import reporter
-
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -207,7 +207,7 @@ class E2E(ASRInterface, torch.nn.Module):
         # options for beam search
         if args.report_cer or args.report_wer:
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
-                          'maxlenratio': args.maxlenratio,
+                          'ctc_weight': 0, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
                           'space': args.sym_space, 'blank': args.sym_blank,
@@ -221,7 +221,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.report_wer = False
         if args.report_bleu:
             trans_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
-                          'maxlenratio': args.maxlenratio,
+                          'ctc_weight': 0, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
                           'space': args.sym_space, 'blank': args.sym_blank,
@@ -230,9 +230,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.trans_args = argparse.Namespace(**trans_args)
             self.report_bleu = args.report_bleu
         else:
-            self.report_cer = False
-            self.report_wer = False
-            self.report_bleu = args.report_bleu
+            self.report_bleu = False
         self.rnnlm = None
 
         self.logzero = -10000000000.0
@@ -325,7 +323,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 lpz = None
 
                 word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-                nbest_hyps = self.dec.recognize_beam_batch(
+                nbest_hyps = self.dec_asr.recognize_beam_batch(
                     hs_pad, torch.tensor(hlens), lpz,
                     self.recog_args, self.char_list,
                     self.rnnlm)
@@ -358,7 +356,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             lpz = None
 
-            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
+            bleus = []
             nbest_hyps = self.dec.recognize_beam_batch(
                 hs_pad, torch.tensor(hlens), lpz,
                 self.trans_args, self.char_list,
@@ -375,16 +373,10 @@ class E2E(ASRInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, '')
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, ' ')
 
-                hyp_words = seq_hat_text.split()
-                ref_words = seq_true_text.split()
-                word_eds.append(editdistance.eval(hyp_words, ref_words))
-                word_ref_lens.append(len(ref_words))
-                hyp_chars = seq_hat_text.replace(' ', '')
-                ref_chars = seq_true_text.replace(' ', '')
-                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-                char_ref_lens.append(len(ref_chars))
+                bleu = nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
+                bleus.append(bleu)
 
-            bleu = 0.0 if not self.report_bleu else float(sum(word_eds)) / sum(word_ref_lens)
+            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
 
         if self.asr_weight == 0:
             self.loss = self.loss_st
