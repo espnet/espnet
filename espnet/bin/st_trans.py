@@ -17,6 +17,7 @@ import numpy as np
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get default args."""
     parser = configargparse.ArgumentParser(
         description='Translate text from speech using a speech translation model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -48,8 +49,8 @@ def get_parser():
                         help='The configuration file for the pre-processing')
     parser.add_argument('--api', default="v1", choices=["v1", "v2"],
                         help='''Beam search APIs
-v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
-v2: Experimental API. It supports any models that implements ScorerInterface.''')
+        v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
+        v2: Experimental API. It supports any models that implements ScorerInterface.''')
     # task related
     parser.add_argument('--trans-json', type=str,
                         help='Filename of translation data (json)')
