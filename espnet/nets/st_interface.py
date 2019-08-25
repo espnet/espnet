@@ -1,6 +1,7 @@
 """ST Interface module."""
 
 from espnet.nets.asr_interface import ASRInterface
+from espnet.utils.dynamic_import import dynamic_import
 
 
 class STInterface(ASRInterface):
@@ -29,3 +30,32 @@ class STInterface(ASRInterface):
         :rtype: list
         """
         raise NotImplementedError("Batch decoding is not supported yet.")
+
+
+predefined_st = {
+    "pytorch": {
+        "rnn": "espnet.nets.pytorch_backend.e2e_st:E2E",
+        "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
+    },
+    "chainer": {
+        "rnn": "espnet.nets.chainer_backend.e2e_st:E2E",
+        "transformer": "espnet.nets.chainer_backend.e2e_asr_transformer:E2E",
+    }
+}
+# TODO(hirofumi): fix transformer
+
+
+def dynamic_import_st(module, backend):
+    """Import ST models dynamically.
+
+    Args:
+        module (str): module_name:class_name or alias in `predefined_st`
+        backend (str): NN backend. e.g., pytorch, chainer
+
+    Returns:
+        type: ST class
+
+    """
+    model_class = dynamic_import(module, predefined_st.get(backend, dict()))
+    assert issubclass(model_class, STInterface), f"{module} does not implement STInterface"
+    return model_class
