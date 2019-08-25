@@ -32,9 +32,10 @@ from espnet.nets.st_interface import STInterface
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
+    """A chainer reporter wrapper."""
 
     def report(self, loss_asr, loss_st, acc_asr, acc, cer, wer, bleu, mtl_loss):
+        """Report at every step."""
         reporter.report({'loss_asr': loss_asr}, self)
         reporter.report({'loss_st': loss_st}, self)
         reporter.report({'acc_asr': acc_asr}, self)
@@ -47,7 +48,7 @@ class Reporter(chainer.Chain):
 
 
 class E2E(STInterface, torch.nn.Module):
-    """E2E module
+    """E2E module.
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
@@ -66,7 +67,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_add_arguments(parser):
-        """Add arguments for the encoder"""
+        """Add arguments for the encoder."""
         group = parser.add_argument_group("E2E encoder setting")
         # encoder
         group.add_argument('--etype', default='blstmp', type=str,
@@ -86,7 +87,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def attention_add_arguments(parser):
-        """Add arguments for the attention"""
+        """Add arguments for the attention."""
         group = parser.add_argument_group("E2E attention setting")
         # attention
         group.add_argument('--atype', default='dot', type=str,
@@ -113,7 +114,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def decoder_add_arguments(parser):
-        """Add arguments for the decoder"""
+        """Add arguments for the decoder."""
         group = parser.add_argument_group("E2E encoder setting")
         group.add_argument('--dtype', default='lstm', type=str,
                            choices=['lstm', 'gru'],
@@ -129,6 +130,14 @@ class E2E(STInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
+        """Constructs an E2E object.
+
+        :param int idim: input dimension
+        :param int odim: output dimension
+        :param Namespace args: argument Namespace containing options
+        :param ASRInterface asr_model: ASR model for pre-training the encoder
+        :param MTInterface mt_model: MT model for pre-training the decoder
+        """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.asr_weight = getattr(args, "asr_weight", 0)
@@ -241,11 +250,10 @@ class E2E(STInterface, torch.nn.Module):
         self.acc = None
 
     def init_like_chainer(self):
-        """Initialize weight like chainer
+        """Initialize weight like chainer.
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
-
         however, there are two exceptions as far as I know.
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
@@ -287,7 +295,7 @@ class E2E(STInterface, torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     def forward(self, xs_pad, ilens, ys_pad, ys_pad_asr):
-        """E2E forward
+        """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -403,7 +411,7 @@ class E2E(STInterface, torch.nn.Module):
         return dict(decoder=self.dec)
 
     def encode(self, x):
-        """Encode function"""
+        """Encode function."""
         self.eval()
         ilens = [x.shape[0]]
 
@@ -419,7 +427,7 @@ class E2E(STInterface, torch.nn.Module):
         return hs.squeeze(0)
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
         :param Namespace trans_args: argument Namespace containing options
@@ -437,7 +445,7 @@ class E2E(STInterface, torch.nn.Module):
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace trans_args: argument Namespace containing options
@@ -468,7 +476,7 @@ class E2E(STInterface, torch.nn.Module):
         return y
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_asr):
-        """E2E attention calculation
+        """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -493,7 +501,7 @@ class E2E(STInterface, torch.nn.Module):
         return att_ws
 
     def subsample_frames(self, x):
-        """Subsample speeh frames in the encoder"""
+        """Subsample speeh frames in the encoder."""
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
