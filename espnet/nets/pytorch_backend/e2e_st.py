@@ -21,7 +21,7 @@ import six
 import torch
 
 from chainer import reporter
-from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.st_interface import STInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -47,7 +47,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-class E2E(ASRInterface, torch.nn.Module):
+class E2E(STInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
