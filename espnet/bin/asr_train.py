@@ -14,7 +14,7 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
+from espnet.utils.cli_utils import strtobool, format_args
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
@@ -65,19 +65,21 @@ def get_parser():
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
                         help='Number of speakers in the speech.')
-    parser.add_argument('--etype', default='blstmp', type=str,
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
+    parser.add_argument('--etype', action='append', type=str,
                         choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
                                  'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers-sd', default=4, type=int,
                         help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
-    parser.add_argument('--elayers', default=4, type=int,
+    parser.add_argument('--elayers', type=int, action='append',
                         help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
-    parser.add_argument('--eunits', '-u', default=300, type=int,
+    parser.add_argument('--eunits', '-u', type=int, action='append',
                         help='Number of encoder hidden units')
-    parser.add_argument('--eprojs', default=320, type=int,
+    parser.add_argument('--eprojs', type=int, default=320,
                         help='Number of encoder projection units')
-    parser.add_argument('--subsample', default="1", type=str,
+    parser.add_argument('--subsample', type=str, action='append',
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
@@ -85,26 +87,57 @@ def get_parser():
                         choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention
-    parser.add_argument('--atype', default='dot', type=str,
+    parser.add_argument('--atype', type=str, action='append',
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
                                  'coverage_location', 'location2d', 'location_recurrent',
                                  'multi_head_dot', 'multi_head_add', 'multi_head_loc',
                                  'multi_head_multi_res_loc'],
                         help='Type of attention architecture')
-    parser.add_argument('--adim', default=320, type=int,
+    parser.add_argument('--adim', type=int, action='append',
                         help='Number of attention transformation dimensions')
-    parser.add_argument('--awin', default=5, type=int,
+    parser.add_argument('--awin', type=int, action='append',
                         help='Window size for location2d attention')
-    parser.add_argument('--aheads', default=4, type=int,
+    parser.add_argument('--aheads', type=int, action='append',
                         help='Number of heads for multi head attention')
-    parser.add_argument('--aconv-chans', default=-1, type=int,
+    parser.add_argument('--aconv-chans', type=int, action='append',
                         help='Number of attention convolution channels \
                         (negative value indicates no location-aware attention)')
-    parser.add_argument('--aconv-filts', default=100, type=int,
+    parser.add_argument('--aconv-filts', type=int, action='append',
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
     parser.add_argument('--spa', action='store_true',
                         help='Enable speaker parallel attention.')
+    # hierarchical attention network (HAN)
+    parser.add_argument('--han-type', default='dot', type=str,
+                        choices=['noatt', 'dot', 'add', 'location', 'coverage',
+                                 'coverage_location', 'location2d', 'location_recurrent',
+                                 'multi_head_dot', 'multi_head_add', 'multi_head_loc',
+                                 'multi_head_multi_res_loc'],
+                        help='Type of attention architecture (multi-encoder asr mode only)')
+    parser.add_argument('--han-dim', default=320, type=int,
+                        help='Number of attention transformation dimensions in HAN')
+    parser.add_argument('--han-win', default=5, type=int,
+                        help='Window size for location2d attention in HAN')
+    parser.add_argument('--han-heads', default=4, type=int,
+                        help='Number of heads for multi head attention in HAN')
+    parser.add_argument('--han-conv-chans', default=-1, type=int,
+                        help='Number of attention convolution channels  in HAN \
+                        (negative value indicates no location-aware attention)')
+    parser.add_argument('--han-conv-filts', default=100, type=int,
+                        help='Number of attention convolution filters in HAN \
+                        (negative value indicates no location-aware attention)')
+    # multi-ctc related
+    parser.add_argument('--share-ctc', type=strtobool, default=False,
+                        help='The flag to switch to share ctc across multiple encoders (multi-encoder asr mode only).')
+    parser.add_argument('--weights-ctc-train', type=float, action='append',
+                        help='ctc weight assigned to each encoder during training.')
+    parser.add_argument('--weights-ctc-dec', type=float, action='append',
+                        help='ctc weight assigned to each encoder during decoding.')
+    # multi-encoder related problem_utts_file
+    parser.add_argument('--problem-utts-file', default=None, type=str,
+                        help='File of list of problematic utterances to exclude from training and decoding.')
+    parser.add_argument('--pretrain-conf', type=str, default=None, nargs='?',
+                        help='The configuration file for the pre-train (multi-encoder asr mode only)')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
                         choices=['lstm', 'gru'],
@@ -115,12 +148,16 @@ def get_parser():
                         help='Number of decoder hidden units')
     parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+    parser.add_argument('--mtlalpha-exp-decay', default=1.0, type=float,
+                        help='Multitask learning exponential decay coefficient, mtlalpha *= mtlalphga-exp-decay every epoch')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
+    parser.add_argument('--sampling-probability-exp-decay', default=1.0, type=float,
+                        help='Exponential deacay of Ratio of predicted labels fed back to decoder, sampling-probability *= samp-prob-exp-decay')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')
@@ -151,7 +188,7 @@ def get_parser():
     parser.add_argument('--sym-blank', default='<blank>', type=str,
                         help='Blank symbol')
     # model (parameter) related
-    parser.add_argument('--dropout-rate', default=0.0, type=float,
+    parser.add_argument('--dropout-rate', type=float, action='append',
                         help='Dropout rate for the encoder')
     parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
                         help='Dropout rate for the decoder')
@@ -364,8 +401,13 @@ def main(cmd_args):
             from espnet.asr.chainer_backend.asr import train
             train(args)
         elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
-            train(args)
+            args = format_args(args)
+            if args.num_encs == 1:
+                from espnet.asr.pytorch_backend.asr import train
+                train(args)
+            else:
+                from espnet.asr.pytorch_backend.asr_mulenc import train
+                train(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     elif args.num_spkrs > 1:

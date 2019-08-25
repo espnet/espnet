@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -112,20 +113,61 @@ class PlotAttentionReport(extension.Extension):
     def __call__(self, trainer):
         """Plot and save image file of att_ws matrix."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            filename = "%s/%s.ep.{.updater.epoch}.png" % (
-                self.outdir, self.data[idx][0])
-            att_w = self.get_attention_weight(idx, att_w)
-            self._plot_and_save_attention(att_w, filename.format(trainer))
+        if isinstance(att_ws, list): # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    filename = "%s/%s.ep.{.updater.epoch}.att%d.png" % (
+                        self.outdir, self.data[idx][0], i+1)
+                    att_w = self.get_attention_weight(idx, att_w)
+                    np_filename = "%s/%s.ep.{.updater.epoch}.att%d.npy" % (
+                        self.outdir, self.data[idx][0], i+1)
+                    np.save(np_filename.format(trainer), att_w)
+                    self._plot_and_save_attention(att_w, filename.format(trainer))
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                filename = "%s/%s.ep.{.updater.epoch}.han.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.han.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer), han_mode=True)
+        else:
+            for idx, att_w in enumerate(att_ws):
+                filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def log_attentions(self, logger, step):
         """Add image files of att_ws matrix to the tensorboard."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-            plot.clf()
+        if isinstance(att_ws, list): # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    att_w = self.get_attention_weight(idx, att_w)
+                    plot = self.draw_attention_plot(att_w)
+                    logger.add_figure("%s_att%d" % (self.data[idx][0], i+1), plot.gcf(), step)
+                    plot.clf()
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_han_plot(att_w)
+                logger.add_figure("%s_han" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
+        else:
+            for idx, att_w in enumerate(att_ws):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_attention_plot(att_w)
+                logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
 
     def get_attention_weights(self):
         """Return attention weights.
@@ -179,8 +221,46 @@ class PlotAttentionReport(extension.Extension):
         plt.tight_layout()
         return plt
 
-    def _plot_and_save_attention(self, att_w, filename):
-        plt = self.draw_attention_plot(att_w)
+    def draw_han_plot(self, att_w):
+        """Plot the att_w matrix for hierarchical attention.
+
+        Returns:
+            matplotlib.pyplot: pyplot object with attention matrix image.
+
+        """
+        import matplotlib.pyplot as plt
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                legends = []
+                plt.subplot(1, len(att_w), h)
+                for i in range(aw.shape[1]):
+                    plt.plot(aw[:, i])
+                    legends.append('Att{}'.format(i))
+                plt.ylim([0, 1.0])
+                plt.xlim([0, aw.shape[0]])
+                plt.grid(True)
+                plt.ylabel("Attention Weight")
+                plt.xlabel("Decoder Index")
+                plt.legend(legends)
+        else:
+            legends = []
+            for i in range(att_w.shape[1]):
+                plt.plot(att_w[:,i])
+                legends.append('Att{}'.format(i))
+            plt.ylim([0,1.0])
+            plt.xlim([0,att_w.shape[0]])
+            plt.grid(True)
+            plt.ylabel("Attention Weight")
+            plt.xlabel("Decoder Index")
+            plt.legend(legends)
+        plt.tight_layout()
+        return plt
+
+    def _plot_and_save_attention(self, att_w, filename, han_mode=False):
+        if han_mode:
+            plt = self.draw_han_plot(att_w)
+        else:
+            plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
@@ -233,6 +313,24 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
+
+
+def mtlalpha_exp_decay(exp_decay):
+    '''Extension to perform mtlalpha expoential decay'''
+    @training.make_extension(trigger=(1, 'iteration'))
+    def mtlalpha_exp_decay(trainer):
+        trainer.updater.model.mtlalpha *= exp_decay
+        logging.warning('mtlalpha decayed to {}'.format(trainer.updater.model.mtlalpha))
+    return mtlalpha_exp_decay
+
+
+def sampling_probability_exp_decay(exp_decay):
+    '''Extension to perform sampling probability expoential decay'''
+    @training.make_extension(trigger=(1, 'iteration'))
+    def sampling_probability_exp_decay(trainer):
+        trainer.updater.model.dec.sampling_probability *= exp_decay
+        logging.warning('sampling probability decayed to {}'.format(trainer.updater.model.dec.sampling_probability))
+    return sampling_probability_exp_decay
 
 
 def torch_snapshot(savefun=torch.save,
@@ -431,6 +529,59 @@ def torch_load(path, model):
         model.load_state_dict(model_state_dict)
 
     del model_state_dict
+
+
+def torch_load_trained(model, process):
+    """Load the trained modules.
+
+    Args:
+        model(torch.nn.Module): torch model
+        process (dict): dictionary to define pretrained modules to load.
+
+    """
+    for key in ['prefix_src', 'prefix_tgt', 'trained_model']:
+        assert key in process, '{} is not specified.'.format(key)
+
+    prefix_src = process['prefix_src']
+    prefix_tgt = process['prefix_tgt']
+    trained_model = process['trained_model']
+    freeze_params = process['freeze_params'] if 'freeze_params' in process and process['freeze_params'] is True else False
+
+    if 'snapshot' in trained_model:
+        model_state_dict = torch.load(trained_model, map_location=lambda storage, loc: storage)['model']
+    else:
+        model_state_dict = torch.load(trained_model, map_location=lambda storage, loc: storage)
+
+    # change prefix_src to prefix_tgt in model_state_dict
+    model_state_dict = dict(model_state_dict)
+    keys = [*model_state_dict.keys()]
+    for key in keys:
+        if key.startswith(prefix_src):
+            key_tgt = key.replace(prefix_src, prefix_tgt, 1)
+        else:
+            key_tgt = key.replace(key[:2], 'dummy.', 1)
+        model_state_dict[key_tgt] = model_state_dict.pop(key)
+
+    # filter
+    param_dict = dict(model.named_parameters())
+    model_state_dict_filtered = {k: v for k, v in model_state_dict.items() if k in param_dict.keys() and v.size() == model.state_dict()[k].size()}
+
+    logging.warning("Loading pretrained modules. prefix_src:{}; prefix_tgt:{}".format(prefix_src, prefix_tgt))
+    for key in model_state_dict_filtered.keys():
+        logging.warning("Inititializing {}".format(key))
+
+    if hasattr(model, 'module'):
+        model.module.load_state_dict(model_state_dict_filtered, strict=False)
+    else:
+        model.load_state_dict(model_state_dict_filtered, strict=False)
+
+    if freeze_params:
+        for name, param in model.named_parameters():
+            if name in model_state_dict_filtered.keys():
+                param.requires_grad = False
+                logging.warning("Freezed {}".format(name))
+
+    del model_state_dict, model_state_dict_filtered, param_dict
 
 
 def torch_resume(snapshot_path, trainer):

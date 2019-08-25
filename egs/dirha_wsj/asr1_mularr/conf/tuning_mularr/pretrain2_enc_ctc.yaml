@@ -1,0 +1,27 @@
+# loading pretrained modules (specified using prefix_src) into modules (specified using prefix_tgt)
+# prefix_src: prefix of modules to be used in the pre-trained model
+# prefix_tgt: prefix of modules to be updated with in the target model
+# trained_model: path of the pre-trained model
+# freeze_params: flag to freeze the modules during training
+# enc
+process1:
+  prefix_src: "enc"
+  prefix_tgt: "enc.0"
+  trained_model: ""
+  freeze_params: ""
+process2:
+  prefix_src: "enc"
+  prefix_tgt: "enc.1"
+  trained_model: ""
+  freeze_params: ""
+# ctc
+process3:
+  prefix_src: "ctc"
+  prefix_tgt: "ctc.0"
+  trained_model: ""
+  freeze_params: ""
+process4:
+  prefix_src: "ctc"
+  prefix_tgt: "ctc.1"
+  trained_model: ""
+  freeze_params: ""

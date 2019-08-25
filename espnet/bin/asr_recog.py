@@ -56,6 +56,8 @@ def get_parser():
     parser.add_argument('--num-spkrs', type=int, default=1,
                         choices=[1, 2],
                         help='Number of speakers in the speech')
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -71,6 +73,8 @@ def get_parser():
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
+    parser.add_argument('--weights-ctc-dec', type=float, action='append',
+                        help='ctc weight assigned to each encoder during decoding.[in multi-encoder mode only]')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -153,8 +157,12 @@ def main(args):
             from espnet.asr.chainer_backend.asr import recog
             recog(args)
         elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import recog
-            recog(args)
+            if args.num_encs == 1:
+                from espnet.asr.pytorch_backend.asr import recog
+                recog(args)
+            else:
+                from espnet.asr.pytorch_backend.asr_mulenc import recog
+                recog(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     elif args.num_spkrs == 2:

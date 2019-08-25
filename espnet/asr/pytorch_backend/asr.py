@@ -15,6 +15,7 @@ from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
+from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
@@ -29,6 +30,8 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.asr_utils import mtlalpha_exp_decay
+from espnet.asr.asr_utils import sampling_probability_exp_decay
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
@@ -448,6 +451,16 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+
+    # expoential decay for mtlalpha
+    if 0 < args.mtlalpha < 1 and 0 < args.mtlalpha_exp_decay < 1:
+        trainer.extend(mtlalpha_exp_decay(args.mtlalpha_exp_decay),
+                       trigger=(1, 'epoch'))
+
+    # expoential decay for sampling probability
+    if mtl_mode is not 'ctc' and 0 < args.sampling_probability_exp_decay < 1:
+        trainer.extend(sampling_probability_exp_decay(args.sampling_probability_exp_decay),
+                       trigger=(1, 'epoch'))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:

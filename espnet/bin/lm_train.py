@@ -68,6 +68,8 @@ def get_parser():
                         help='Number of examples in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
+    parser.add_argument('--lr', type=float, default=1.0,
+                        help='Learning rate for sgd')
     parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',

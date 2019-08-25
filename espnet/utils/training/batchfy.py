@@ -259,7 +259,7 @@ BATCH_SORT_KEY_CHOICES = ["input", "output", "shuffle"]
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
                   num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input",
                   swap_io=False, mt=False, count="auto",
-                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
+                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0, problem_utts_file=None):
     """Make batch set from json dictionary
 
     if utts have "category" value,
@@ -279,7 +279,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     :param int batch_bins: maximum number of bins (frames x dim) in a minibatch.
     :param int batch_frames_in:  maximum number of input frames in a minibatch.
     :param int batch_frames_out: maximum number of output frames in a minibatch.
-    :param int batch_frames_out: maximum number of input+output frames in a minibatch.
+    :param int batch_frames_inout: maximum number of input+output frames in a minibatch.
     :param str count: strategy to count maximum size of batch.
         For choices, see espnet.asr.batchfy.BATCH_COUNT_CHOICES
 
@@ -292,7 +292,20 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
     :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
     :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
+    :param str problem_utts_file: file of names of problematic utterances
     """
+    # filter out problem utts
+    problem_utts_dict = {}
+    if problem_utts_file:
+        with open(problem_utts_file, 'r') as f:
+            fs=f.readlines()
+        prob_utts=[i.strip() for i in fs]
+        for key in prob_utts:
+            if key in data.keys():
+                problem_utts_dict[key] = data[key]
+                del data[key]
+                lens = [problem_utts_dict[key]['input'][idx]['shape'][0] for idx in range(len(problem_utts_dict[key]['input']))]
+                logging.warning("Problem Utts: {}; len: {}".format(key, lens))
 
     # check args
     if count not in BATCH_COUNT_CHOICES:

@@ -382,3 +382,41 @@ class FileWriterWrapper(object):
                 self.writer_nframe.close()
             except Exception:
                 pass
+
+
+def format_args(args):
+    # arguments of network architecture are of type List, format_args get rid of List when num_encs is 1 (single encoder case).
+    # e.g. etype: List('vggblstmp') --> 'vggblstmp'
+    default_dict = {'etype': 'blstmp',
+            'elayers':4,
+            'eunits': 300,
+            'subsample':'1',
+            'dropout_rate':0.0,
+            'atype':'dot',
+            'adim':320,
+            'awin':5,
+            'aheads':4,
+            'aconv_chans':-1,
+            'aconv_filts':100
+            }
+
+    if args.num_encs == 1:
+        for k in default_dict.keys():
+            if isinstance(vars(args)[k], list):
+                vars(args)[k] = vars(args)[k][0]
+            if not vars(args)[k]:
+                # assign default value if it is None
+                vars(args)[k] = default_dict[k]
+
+    else: # multi-encoder case
+        for k in default_dict.keys():
+            if isinstance(vars(args)[k], list):
+                assert len(vars(args)[k]) >= args.num_encs, (len(vars(args)[k]), args.num_encs)
+                vars(args)[k] = vars(args)[k][:args.num_encs]
+            else:
+                if not vars(args)[k]:
+                    # assign default value if it is None
+                    vars(args)[k] = default_dict[k]
+                # duplicate
+                vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
+    return args

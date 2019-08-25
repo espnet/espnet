@@ -161,10 +161,11 @@ class LoadInputsAndTargets(object):
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            # Apply pre-processing only to input1 feature, now
-            if 'input1' in return_batch:
-                return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'], uttid_list,
+            # Apply pre-processing all input features
+            x_names = [i for i in return_batch.keys() if i.startswith("input")]
+            for x_name in x_names:
+                return_batch[x_name] = \
+                    self.preprocessing(return_batch[x_name], uttid_list,
                                        **self.preprocess_args)
 
         # Doesn't return the names now.
@@ -184,19 +185,18 @@ class LoadInputsAndTargets(object):
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
         """
-        # Create a list from the first item
-        xs = list(x_feats_dict.values())[0]
+        xs = list(x_feats_dict.values()) # handle single-encoder and multi-encoder asr mode
 
         if self.load_output:
             if len(y_feats_dict) == 1:
                 ys = list(y_feats_dict.values())[0]
-                assert len(xs) == len(ys), (len(xs), len(ys))
+                assert len(xs[0]) == len(ys), (len(xs[0]), len(ys))
 
                 # get index of non-zero length samples
                 nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
             elif len(y_feats_dict) > 1:  # multi-speaker asr mode
                 ys = list(y_feats_dict.values())
-                assert len(xs) == len(ys[0]), (len(xs), len(ys[0]))
+                assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
 
                 # get index of non-zero length samples
                 nonzero_idx = list(filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0]))))
@@ -204,24 +204,24 @@ class LoadInputsAndTargets(object):
                     nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
         else:
             # Note(kamo): Be careful not to make nonzero_idx to a generator
-            nonzero_idx = list(range(len(xs)))
+            nonzero_idx = list(range(len(xs[0])))
 
         if self.sort_in_input_length:
             # sort in input lengths
-            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[0][i]))
         else:
             nonzero_sorted_idx = nonzero_idx
 
-        if len(nonzero_sorted_idx) != len(xs):
+        if len(nonzero_sorted_idx) != len(xs[0]):
             logging.warning(
                 'Target sequences include empty tokenid (batch {} -> {}).'
-                .format(len(xs), len(nonzero_sorted_idx)))
+                .format(len(xs[0]), len(nonzero_sorted_idx)))
 
         # remove zero-length samples
-        xs = [xs[i] for i in nonzero_sorted_idx]
+        xs = [[x[i] for i in nonzero_sorted_idx] for x in xs]
         uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
 
-        x_name = list(x_feats_dict.keys())[0]
+        x_names = list(x_feats_dict.keys())
         if self.load_output:
             if len(y_feats_dict) == 1:
                 ys = [ys[i] for i in nonzero_sorted_idx]
@@ -230,10 +230,10 @@ class LoadInputsAndTargets(object):
 
             y_name = list(y_feats_dict.keys())[0]
 
-            # Keepng x_name and y_name, e.g. input1, for future extension
-            return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
+            # Keeping x_name and y_name, e.g. input1, for future extension
+            return_batch = OrderedDict([*[(x_name, x) for x_name, x in zip(x_names,xs)], (y_name, ys)])
         else:
-            return_batch = OrderedDict([(x_name, xs)])
+            return_batch = OrderedDict([(x_name, x) for x_name, x in zip(x_names,xs)])
         return return_batch, uttid_list
 
     def _create_batch_mt(self, x_feats_dict, y_feats_dict, uttid_list):

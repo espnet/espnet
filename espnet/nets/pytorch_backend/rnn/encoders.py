@@ -263,4 +263,24 @@ class Encoder(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+    """Instantiates an encoder module given the program arguments
+
+    :param Namespace args: The arguments
+    :param int or List of integer idim: dimension of input, e.g. 83, or
+                                        List of dimensions of inputs, e.g. [83,83]
+    :param List or List of List subsample: subsample factors, e.g. [1,2,2,1,1], or
+                                        List of subsample factors of each encoder. e.g. [[1,2,2,1,1], [1,2,2,1,1]]
+    :rtype torch.nn.Module
+    :return: The encoder module
+    """
+    if args.num_encs == 1:
+        # compatible with single encoder asr mode
+        return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+    elif args.num_encs >= 1:
+        enc_list = torch.nn.ModuleList()
+        for idx in range(args.num_encs):
+            enc = Encoder(args.etype[idx], idim[idx], args.elayers[idx], args.eunits[idx], args.eprojs, subsample[idx], args.dropout_rate[idx])
+            enc_list.append(enc)
+        return enc_list
+    else:
+        raise ValueError("Number of encoders needs to be more than one. {}".format(args.num_encs))
