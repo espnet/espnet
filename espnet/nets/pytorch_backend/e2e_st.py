@@ -28,7 +28,6 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.st_interface import STInterface
 
 
@@ -59,6 +58,7 @@ class E2E(STInterface, torch.nn.Module):
     """
     @staticmethod
     def add_arguments(parser):
+        """Add arguments"""
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
@@ -66,6 +66,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_add_arguments(parser):
+        """Add arguments for the encoder"""
         group = parser.add_argument_group("E2E encoder setting")
         # encoder
         group.add_argument('--etype', default='blstmp', type=str,
@@ -85,6 +86,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def attention_add_arguments(parser):
+        """Add arguments for the attention"""
         group = parser.add_argument_group("E2E attention setting")
         # attention
         group.add_argument('--atype', default='dot', type=str,
@@ -111,6 +113,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @staticmethod
     def decoder_add_arguments(parser):
+        """Add arguments for the decoder"""
         group = parser.add_argument_group("E2E encoder setting")
         group.add_argument('--dtype', default='lstm', type=str,
                            choices=['lstm', 'gru'],
@@ -396,9 +399,11 @@ class E2E(STInterface, torch.nn.Module):
         return self.loss
 
     def scorers(self):
-        return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
+        """Scorers"""
+        return dict(decoder=self.dec)
 
     def encode(self, x):
+        """Encode function"""
         self.eval()
         ilens = [x.shape[0]]
 
@@ -488,6 +493,7 @@ class E2E(STInterface, torch.nn.Module):
         return att_ws
 
     def subsample_frames(self, x):
+        """Subsample speeh frames in the encoder"""
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
