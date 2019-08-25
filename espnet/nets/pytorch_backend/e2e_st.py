@@ -137,7 +137,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.space = args.sym_space
-        self.blank = args.sym_blank  # TODO(hirofumi0810): remove this
+        self.blank = args.sym_blank
         self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
@@ -166,6 +166,7 @@ class E2E(ASRInterface, torch.nn.Module):
             labeldist = None
 
         # multilingual related
+        self.multilingual = args.multilingual
         self.replace_sos = args.replace_sos
 
         # encoder
@@ -205,6 +206,20 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # options for beam search
         if args.report_cer or args.report_wer:
+            recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
+                          'maxlenratio': args.maxlenratio,
+                          'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
+                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
+                          'space': args.sym_space, 'blank': args.sym_blank,
+                          'tgt_lang': False}
+
+            self.recog_args = argparse.Namespace(**recog_args)
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+        if args.report_bleu:
             trans_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
@@ -213,8 +228,6 @@ class E2E(ASRInterface, torch.nn.Module):
                           'tgt_lang': False}
 
             self.trans_args = argparse.Namespace(**trans_args)
-            self.report_cer = args.report_cer
-            self.report_wer = args.report_wer
             self.report_bleu = args.report_bleu
         else:
             self.report_cer = False
@@ -282,13 +295,13 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # 1. Encoder
-        if self.replace_sos:
+        if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
         else:
             tgt_lang_ids = None
 
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens, lang_ids=tgt_lang_ids)
 
         # 2. ASR loss
         if self.asr_weight == 0:
@@ -314,9 +327,8 @@ class E2E(ASRInterface, torch.nn.Module):
                 word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
                 nbest_hyps = self.dec.recognize_beam_batch(
                     hs_pad, torch.tensor(hlens), lpz,
-                    self.trans_args, self.char_list,
-                    self.rnnlm,
-                    tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+                    self.recog_args, self.char_list,
+                    self.rnnlm)
                 # remove <sos> and <eos>
                 y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
                 for i, y_hat in enumerate(y_hats):
@@ -324,9 +336,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
                     seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
                     seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                    seq_hat_text = "".join(seq_hat).replace(self.trans_args.space, ' ')
-                    seq_hat_text = seq_hat_text.replace(self.trans_args.blank, '')
-                    seq_true_text = "".join(seq_true).replace(self.trans_args.space, ' ')
+                    seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
+                    seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
+                    seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
 
                     hyp_words = seq_hat_text.split()
                     ref_words = seq_true_text.split()
@@ -351,7 +363,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 hs_pad, torch.tensor(hlens), lpz,
                 self.trans_args, self.char_list,
                 self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.multilingual else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -471,7 +483,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # 1. Encoder
-            if self.replace_sos:
+            if self.multilingual:
                 tgt_lang_ids = ys_pad[:, 0:1]
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
             else:

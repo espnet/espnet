@@ -164,6 +164,9 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--mt-model', default=None, type=str, nargs='?',
                         help='Pre-trained MT model')
     # multilingual related
+    parser.add_argument('--multilingual', default=False, type=strtobool,
+                        help='Prepend target language ID to the source sentence. \
+                        Both source/target language IDs must be prepend in the pre-processing stage.')
     parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
@@ -266,6 +269,16 @@ def main(cmd_args):
         args.char_list = char_list
     else:
         args.char_list = None
+
+    # load language ids for debug log
+    if args.lang_ids is not None:
+        with open(args.lang_ids, 'rb') as f:
+            dictionary = f.readlines()
+        lang_list = [entry.decode('utf-8').split(' ')[0]
+                     for entry in dictionary]
+        args.lang_list = lang_list
+    else:
+        args.lang_list = []
 
     # train
     logging.info('backend = ' + args.backend)
