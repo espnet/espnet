@@ -19,12 +19,13 @@ from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.scorer_interface import ScorerInterface
 
 MAX_DECODER_OUTPUT = 5
 CTC_SCORING_RATIO = 1.5
 
 
-class Decoder(torch.nn.Module):
+class Decoder(torch.nn.Module, ScorerInterface):
     """Decoder module
 
     :param int eprojs: # encoder projection units
@@ -49,7 +50,7 @@ class Decoder(torch.nn.Module):
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
                  dropout=0.0, context_residual=False, replace_sos=False):
 
-        super(Decoder, self).__init__()
+        torch.nn.Module.__init__(self)
         self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
@@ -690,9 +691,39 @@ class Decoder(torch.nn.Module):
                 new_state.append(rnnlm_state[int(i)][:])
         return new_state
 
+    # scorer interface methods
+    def init_state(self, x):
+        c_list = [self.zero_state(x.unsqueeze(0))]
+        z_list = [self.zero_state(x.unsqueeze(0))]
+        for _ in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(x.unsqueeze(0)))
+            z_list.append(self.zero_state(x.unsqueeze(0)))
+        # TODO(karita): support strm_index for `asr_mix`
+        strm_index = 0
+        att_idx = min(strm_index, len(self.att) - 1)
+        self.att[att_idx].reset()  # reset pre-computation of h
+        return dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=None, workspace=(att_idx, z_list, c_list))
+
+    def score(self, yseq, state, x):
+        att_idx, z_list, c_list = state["workspace"]
+        vy = yseq[-1].unsqueeze(0)
+        ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
+        att_c, att_w = self.att[att_idx](
+            x.unsqueeze(0), [x.size(0)],
+            self.dropout_dec[0](state['z_prev'][0]), state['a_prev'])
+        ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
+        z_list, c_list = self.rnn_forward(ey, z_list, c_list, state['z_prev'], state['c_prev'])
+        if self.context_residual:
+            logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
+        else:
+            logits = self.output(self.dropout_dec[-1](z_list[-1]))
+        logp = F.log_softmax(logits, dim=1).squeeze(0)
+        return logp, dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=att_w, workspace=(att_idx, z_list, c_list))
+
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual, args.replace_sos)
+                   getattr(args, "context_residual", False),  # use getattr to keep compatibility
+                   getattr(args, "replace_sos", False))  # use getattr to keep compatibility

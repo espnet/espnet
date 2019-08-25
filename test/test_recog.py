@@ -3,7 +3,7 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.pytorch_backend.lm as lm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
 

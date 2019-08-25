@@ -202,10 +202,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
     fi
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-	echo "LM training does not support multi-gpu. single gpu will be used."
-    fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \

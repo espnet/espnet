@@ -17,6 +17,7 @@ from espnet.nets.chainer_backend.rnn.attentions import att_for
 from espnet.nets.chainer_backend.rnn.decoders import decoder_for
 from espnet.nets.chainer_backend.rnn.encoders import encoder_for
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -33,6 +34,9 @@ class E2E(ASRInterface, chainer.Chain):
             loss.
 
     """
+    @staticmethod
+    def add_arguments(parser):
+        return E2E_pytorch.add_arguments(parser)
 
     def __init__(self, idim, odim, args, flag_return=True):
         chainer.Chain.__init__(self)

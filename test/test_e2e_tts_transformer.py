@@ -17,22 +17,22 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 def make_transformer_args(**kwargs):
     defaults = dict(
-        embed_dim=512,
+        embed_dim=32,
         spk_embed_dim=None,
         eprenet_conv_layers=2,
         eprenet_conv_filts=5,
-        eprenet_conv_chans=512,
+        eprenet_conv_chans=32,
         dprenet_layers=2,
-        dprenet_units=256,
+        dprenet_units=32,
         adim=32,
         aheads=4,
         elayers=2,
-        eunits=512,
+        eunits=32,
         dlayers=2,
-        dunits=512,
-        postnet_layers=5,
+        dunits=32,
+        postnet_layers=2,
         postnet_filts=5,
-        postnet_chans=512,
+        postnet_chans=32,
         eprenet_dropout_rate=0.1,
         dprenet_dropout_rate=0.5,
         postnet_dropout_rate=0.1,
@@ -43,6 +43,7 @@ def make_transformer_args(**kwargs):
         transformer_dec_positional_dropout_rate=0.1,
         transformer_dec_attn_dropout_rate=0.3,
         transformer_enc_dec_attn_dropout_rate=0.0,
+        spk_embed_integration_type="add",
         use_masking=True,
         bce_pos_weight=1.0,
         use_batch_norm=True,
@@ -60,6 +61,7 @@ def make_transformer_args(**kwargs):
         num_heads_applied_guided_attn=2,
         num_layers_applied_guided_attn=2,
         guided_attn_loss_sigma=0.4,
+        guided_attn_loss_lambda=1.0,
         modules_applied_guided_attn=["encoder", "decoder", "encoder-decoder"]
     )
     defaults.update(kwargs)
@@ -105,7 +107,8 @@ def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
     "model_dict", [
         ({}),
         ({"use_masking": False}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
         ({"reduction_factor": 2}),
@@ -120,6 +123,7 @@ def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
         ({"loss_type": "L2"}),
         ({"loss_type": "L1+L2"}),
         ({"use_guided_attn_loss": True}),
+        ({"use_guided_attn_loss": True, "reduction_factor": 3}),
         ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder-decoder"]}),
         ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder", "decoder"]}),
         ({"use_guided_attn_loss": True, "num_heads_applied_guided_attn": -1}),
@@ -168,7 +172,8 @@ def test_transformer_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
@@ -221,7 +226,8 @@ def test_transformer_gpu_trainable_and_decodable(model_dict):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
-        ({"spk_embed_dim": 128}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),

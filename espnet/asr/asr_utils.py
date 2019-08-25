@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 import copy
 import json
 import logging
@@ -166,6 +167,7 @@ class PlotAttentionReport(extension.Extension):
 
         """
         import matplotlib.pyplot as plt
+        att_w = att_w.astype(np.float32)
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 plt.subplot(1, len(att_w), h)
@@ -307,41 +309,6 @@ def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.5
 
 
 # * -------------------- general -------------------- *
-class AttributeDict(object):
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __getstate__(self):
-        return self.obj.items()
-
-    def __setstate__(self, items):
-        if not hasattr(self, 'obj'):
-            self.obj = {}
-        for key, val in items:
-            self.obj[key] = val
-
-    def __getattr__(self, name):
-        if name in self.obj:
-            return self.obj.get(name)
-        else:
-            return None
-
-    def __getitem__(self, name):
-        return self.obj[name]
-
-    def __len__(self):
-        return len(self.obj)
-
-    def fields(self):
-        return self.obj
-
-    def items(self):
-        return self.obj.items()
-
-    def keys(self):
-        return self.obj.keys()
-
-
 def get_model_conf(model_path, conf_path=None):
     """Get model config information by reading a model config file (model.json).
 
@@ -359,7 +326,15 @@ def get_model_conf(model_path, conf_path=None):
         model_conf = conf_path
     with open(model_conf, "rb") as f:
         logging.info('reading a config file from ' + model_conf)
-        return json.load(f, object_hook=AttributeDict)
+        confs = json.load(f)
+    if isinstance(confs, dict):
+        # for lm
+        args = confs
+        return argparse.Namespace(**args)
+    else:
+        # for asr, tts, mt
+        idim, odim, args = confs
+        return idim, odim, argparse.Namespace(**args)
 
 
 def chainer_load(path, model):

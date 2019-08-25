@@ -17,8 +17,6 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
-from cupy.cuda import nccl
-
 import numpy as np
 
 
@@ -73,6 +71,8 @@ class CustomUpdater(training.StandardUpdater):
         self.forward_count = 0
         self.accum_grad = accum_grad
         self.start = True
+        # To solve #1091, it is required to set the variable inside this class.
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -141,8 +141,10 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
+        from cupy.cuda import nccl
         self.accum_grad = accum_grad
         self.forward_count = 0
+        self.nccl = nccl
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -166,8 +168,8 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             if self.comm is not None:
                 gg = gather_grads(self._master)
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 nccl.NCCL_FLOAT,
-                                 nccl.NCCL_SUM,
+                                 self.nccl.NCCL_FLOAT,
+                                 self.nccl.NCCL_SUM,
                                  0, null_stream.ptr)
                 scatter_grads(self._master, gg)
                 del gg
@@ -191,7 +193,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
             if self.comm is not None:
                 gp = gather_params(self._master)
-                self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
+                self.comm.bcast(gp.data.ptr, gp.size, self.nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
     def update(self):

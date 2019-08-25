@@ -1,7 +1,9 @@
 import logging
 
-from espnet.asr import asr_utils
 import matplotlib.pyplot as plt
+import numpy
+
+from espnet.asr import asr_utils
 
 
 def _plot_and_save_attention(att_w, filename):
@@ -18,7 +20,7 @@ def _plot_and_save_attention(att_w, filename):
         axes = [axes]
     for ax, aw in zip(axes, att_w):
         # plt.subplot(1, len(att_w), h)
-        ax.imshow(aw, aspect="auto")
+        ax.imshow(aw.astype(numpy.float32), aspect="auto")
         ax.set_xlabel("Input")
         ax.set_ylabel("Output")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
