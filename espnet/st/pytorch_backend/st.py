@@ -32,11 +32,11 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
-from espnet.nets.st_interface import STInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
+from espnet.nets.st_interface import STInterface
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
