@@ -299,7 +299,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             tgt_lang_ids = None
 
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens, lang_ids=tgt_lang_ids)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. ASR loss
         if self.asr_weight == 0:
