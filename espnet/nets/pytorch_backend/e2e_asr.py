@@ -482,12 +482,15 @@ class E2E(ASRInterface, torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs_pad)
+            normalize_score = False
         else:
             lpz = None
+            normalize_score = True
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
-        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list,
+                                          rnnlm, normalize_score=normalize_score)
 
         if prev:
             self.train()
