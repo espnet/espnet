@@ -200,12 +200,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # update json (add source references)
-    local/update_json.sh --text data/$(echo ${train_set} | cut -f 1 -d ".").en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data.${case}.json data/$(echo ${train_set} | cut -f 1 -d ".").en ${dict}
-    local/update_json.sh --text data/$(echo ${train_set} | cut -f 1 -d ".").en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data_gtranslate.${case}.json data/$(echo ${train_set} | cut -f 1 -d ".").en ${dict}
-    local/update_json.sh --text data/$(echo ${train_dev} | cut -f 1 -d ".").en/text.${case} --nlsyms ${nlsyms} \
-        ${feat_dt_dir}/data.${case}.json data/$(echo ${train_dev} | cut -f 1 -d ".").en ${dict}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data.${case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
+    local/update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data_gtranslate.${case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
+    local/update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".en/text.${case} --nlsyms ${nlsyms} \
+        ${feat_dt_dir}/data.${case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
 
     # concatenate Fr and Fr (Google translation) jsons
     local/concat_json_multiref.py \
