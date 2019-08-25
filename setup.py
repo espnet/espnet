@@ -41,6 +41,7 @@ requirements = {
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
+        'nltk',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
