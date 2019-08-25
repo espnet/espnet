@@ -17,7 +17,7 @@ import numpy as np
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
-    """Get default args."""
+    """Get default arguments."""
     parser = configargparse.ArgumentParser(
         description='Translate text from speech using a speech translation model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -110,6 +110,7 @@ def get_parser():
 
 
 def main(args):
+    """Main function."""
     parser = get_parser()
     args = parser.parse_args(args)
 
