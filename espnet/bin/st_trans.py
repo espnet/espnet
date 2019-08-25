@@ -13,8 +13,6 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
-
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
