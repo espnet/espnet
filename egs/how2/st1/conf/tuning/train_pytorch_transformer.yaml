@@ -9,8 +9,8 @@ dunits: 2048
 adim: 256
 aheads: 4
 
-# hybrid CTC/attention
-mtlalpha: 0.0  # this must be 0.0
+# multitask
+asr-weight: 0.0
 
 # label smoothing
 lsm-weight: 0.1
