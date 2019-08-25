@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
+from espnet.nets.st_interface import STInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
@@ -253,7 +254,7 @@ def train(args):
     # specify model architecture
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
-    assert isinstance(model, ASRInterface)
+    assert isinstance(model, STInterface)
     subsampling_factor = model.subsample[0]
 
     # delete pre-trained models
@@ -512,8 +513,9 @@ def trans(args):
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
-    assert isinstance(model, ASRInterface)
-    model.recog_args = args
+    assert isinstance(model, STInterface)
+    args.ctc_weight = 0.0
+    model.trans_args = args
 
     # read rnnlm
     if args.rnnlm:
@@ -601,7 +603,7 @@ def trans(args):
                                 nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
                                 nbest_hyps[n]['score'] += hyps[n]['score']
                 else:
-                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                    nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     else:
@@ -620,7 +622,7 @@ def trans(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                nbest_hyps = model.translate_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
