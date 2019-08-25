@@ -34,16 +34,36 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
+from espnet.nets.lm_interface import LMInterface
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-REPORT_INTERVAL = 100
+
+# TODO(karita): reimplement RNNLM with new interface
+class DefaultRNNLM(LMInterface, link.Chain):
+    """Default RNNLM wrapper to compute reduce framewise loss values.
+
+    Args:
+        n_vocab (int): The size of the vocabulary
+        args (argparse.Namespace): configurations. see `add_arguments`
+    """
+
+    @staticmethod
+    def add_arguments(parser):
+        parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
+                            help="Which type of RNN to use")
+        parser.add_argument('--layer', '-l', type=int, default=2,
+                            help='Number of hidden layers')
+        parser.add_argument('--unit', '-u', type=int, default=650,
+                            help='Number of hidden units')
+        return parser
 
 
 class ClassifierWithState(link.Chain):
@@ -245,7 +265,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
         optimizer.update()  # Update the parameters
 
 
-class LMEvaluator(extensions.Evaluator):
+class LMEvaluator(BaseEvaluator):
     """A custom evaluator for a chainer LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
@@ -283,6 +303,10 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
+    # TODO(karita): support this
+    if args.model_module != "default":
+        raise NotImplementedError("chainer backend does not support --model-module")
+
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
@@ -352,11 +376,11 @@ def train(args):
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
-                                        trigger=(REPORT_INTERVAL, 'iteration')))
+                                        trigger=(args.report_interval_iters, 'iteration')))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
-    ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    ), trigger=(args.report_interval_iters, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(extensions.snapshot_object(
         model, 'rnnlm.model.{.updater.epoch}'))
@@ -374,7 +398,7 @@ def train(args):
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(writer), trigger=(args.report_interval_iters, 'iteration'))
 
     trainer.run()
     check_early_stop(trainer, args.epoch)

@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
+#           2019 RevComm Inc. (Takekatsu Hiramura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
-    echo "Please change directory to e.g., egs/tedlium2/asr1"
+    echo "Please change current directory to recipe directory e.g., egs/tedlium2/asr1"
     exit 1
 fi
 
@@ -30,17 +31,35 @@ lang_model=
 recog_model=
 decode_config=
 decode_dir=decode
+api=v2
 
 # download related
-models=tedlium2.tacotron2.v1
+models=
 
 help_message=$(cat <<EOF
 Usage:
-    $0 <wav>
+    $0 [options] <wav_file>
+
+Options:
+  --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
+  --ngpu <ngpu>                   # Number of GPUs (Default: 0)
+  --decode_dir <directory_name>   # Name of directory to store decoding temporary data
+  --models <model_name>           # Model name (e.g. tedlium2.tacotron2.v1)
+  --cmvn <path>                   # Location of cmvn.ark
+  --lang_model <path>             # Location of language model
+  --recog_model <path>            # Location of E2E model
+  --decode_config <path>          # Location of configuration file
+  --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
 
 Example:
+    # Record audio from microphone input as example.wav
     rec -c 1 -r 16000 example.wav trim 0 5
-    $0 example.wav
+
+    # Decode using model name
+    $0 --model tedlium2.tacotron2.v1 example.wav
+
+    # Decode using model file
+    $0 --cmvn cmvn.ark --lang_model rnnlm.model.best --recog_model model.acc.best --decode_config conf/decode.yaml example.wav
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -54,8 +73,8 @@ decode_cmd=
 wav=$1
 download_dir=${decode_dir}/download
 
-if [ $# -gt 1 ]; then
-    echo $help_message
+if [ $# -lt 1 ]; then
+    echo "${help_message}"
     exit 1;
 fi
 
@@ -63,17 +82,42 @@ set -e
 set -u
 set -o pipefail
 
+# check api version
+if [ "${api}" = "v2" ] && [ "${backend}" = "chainer" ]; then
+    echo "chainer backend does not support api v2." >&2
+    exit 1;
+fi
+
+# Check model name or model file is set
+if [ -z $models ]; then
+    if [ $use_lang_model = "true" ]; then
+        if [[ -z $cmvn || -z $lang_model || -z $recog_model || -z $decode_config ]]; then
+            echo 'Error: models or set of cmvn, lang_model, recog_model and decode_config are required.' >&2
+            exit 1
+        fi
+    else
+        if [[ -z $cmvn || -z $recog_model || -z $decode_config ]]; then
+            echo 'Error: models or set of cmvn, recog_model and decode_config are required.' >&2
+            exit 1
+        fi
+    fi
+fi
+
+dir=${download_dir}/${models}
+mkdir -p ${dir}
+
 function download_models () {
+    if [ -z $models ]; then
+        return
+    fi
     case "${models}" in
         "tedlium2.tacotron2.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
-    dir=${download_dir}/${models}
-    mkdir -p ${dir}
     if [ ! -e ${dir}/.complete ]; then
         download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
-	touch ${dir}/.complete
+        touch ${dir}/.complete
     fi
 }
 
@@ -159,7 +203,6 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
-
     if ${use_lang_model}; then
         recog_opts="--rnnlm ${lang_model}"
     else
@@ -177,10 +220,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --recog-json ${feat_recog_dir}/data.json \
         --result-label ${decode_dir}/result.json \
         --model ${recog_model} \
+        --api ${api} \
         ${recog_opts}
 
     echo ""
-    recog_text=$(grep rec_text ${decode_dir}/result.json | sed -e 's/.*: "\(.*\)<eos>.*/\1/')
+    recog_text=$(grep rec_text ${decode_dir}/result.json | sed -e 's/.*: "\(.*\)".*/\1/' | sed -e 's/<eos>//')
     echo "Recognized text: ${recog_text}"
     echo ""
     echo "Finished"

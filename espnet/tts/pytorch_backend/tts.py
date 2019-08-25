@@ -29,6 +29,7 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import BaseEvaluator
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
@@ -46,7 +47,7 @@ from tensorboardX import SummaryWriter
 matplotlib.use('Agg')
 
 
-class CustomEvaluator(extensions.Evaluator):
+class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Tacotron2 training
 
     :param torch.nn.Model model : The model to evaluate
@@ -256,9 +257,10 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
