@@ -48,6 +48,7 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+from espnet.asr.pytorch_backend.asr import CustomConverter
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
@@ -61,7 +62,7 @@ else:
     from itertools import zip_longest as zip_longest
 
 
-class CustomConverter(object):
+class CustomConverter_v2(CustomConverter):
     """Custom batch converter for Pytorch.
 
     Args:
@@ -88,35 +89,7 @@ class CustomConverter(object):
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
 
         """
-        # batch should be located in list
-        assert len(batch) == 1
-        xs, ys = batch[0]
-
-        # perform subsampling
-        if self.subsampling_factor > 1:
-            xs = [x[::self.subsampling_factor, :] for x in xs]
-
-        # get batch of lengths of input sequences
-        ilens = np.array([x.shape[0] for x in xs])
-
-        # perform padding and convert to tensor
-        # currently only support real number
-        if xs[0].dtype.kind == 'c':
-            xs_pad_real = pad_list(
-                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
-            xs_pad_imag = pad_list(
-                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
-            # Note(kamo):
-            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
-            # Don't create ComplexTensor and give it E2E here
-            # because torch.nn.DataParellel can't handle it.
-            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
-        else:
-            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
-
-        ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                           for y in copy.deepcopy(ys)], self.ignore_id).to(device)
+        xs_pad, ilens, ys_pad = super().__call__(batch, device)
         if self.asr_task:
             ys_pad_asr = pad_list([torch.from_numpy(np.array(y[1])).long()
                                    for y in ys], self.ignore_id).to(device)
@@ -245,8 +218,8 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype,
-                                asr_task=args.asr_weight > 0)
+    converter = CustomConverter_v2(subsampling_factor=subsampling_factor, dtype=dtype,
+                                   asr_task=args.asr_weight > 0)
 
     # read json data
     with open(args.train_json, 'rb') as f:
