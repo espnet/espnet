@@ -45,6 +45,7 @@ def make_arg(**kwargs):
         maxlenratio=1.0,
         minlenratio=0.0,
         ctc_weight=0.0,  # dummy
+        ctc_window_margin=0,  # dummy
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
