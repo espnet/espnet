@@ -21,9 +21,10 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser(parser=None, required=True):
+    """Get default arguments."""
     if parser is None:
         parser = configargparse.ArgumentParser(
-            description="Train an speech translation (ST) model on one CPU, one or multiple GPUs",
+            description="Train a speech translation (ST) model on one CPU, one or multiple GPUs",
             config_file_parser_class=configargparse.YAMLConfigFileParser,
             formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -200,6 +201,7 @@ def get_parser(parser=None, required=True):
 
 
 def main(cmd_args):
+    """Main function."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     if args.backend == "chainer" and args.train_dtype != "float32":
