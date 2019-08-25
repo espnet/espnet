@@ -249,7 +249,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        st_train.py \
         --config ${train_config} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
@@ -302,7 +302,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_trans.py \
+            st_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
