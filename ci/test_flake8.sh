@@ -26,6 +26,7 @@ espnet/lm/lm_utils.py
 espnet/lm/pytorch_backend/extlm.py
 espnet/mt/mt_utils.py
 espnet/mt/pytorch_backend/mt.py
+espnet/st/pytorch_backend/st.py
 espnet/nets/chainer_backend/ctc.py
 espnet/nets/chainer_backend/deterministic_embed_id.py
 espnet/nets/chainer_backend/e2e_asr.py

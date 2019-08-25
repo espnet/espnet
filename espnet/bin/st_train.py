@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-# Copyright 2019 Hirofumi Inaguma (Kyoto University)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""End-to-end speech translation model training script."""
 
 import configargparse
 import logging
