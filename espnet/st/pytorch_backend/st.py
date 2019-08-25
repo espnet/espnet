@@ -4,21 +4,17 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import copy
 import json
 import logging
-import math
 import os
 import sys
 
 from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
-from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
-from torch.nn.parallel import data_parallel
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
@@ -89,6 +85,7 @@ class CustomConverter_v2(CustomConverter):
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
 
         """
+        _, ys = batch[0]
         xs_pad, ilens, ys_pad = super().__call__(batch, device)
         if self.asr_task:
             ys_pad_asr = pad_list([torch.from_numpy(np.array(y[1])).long()
