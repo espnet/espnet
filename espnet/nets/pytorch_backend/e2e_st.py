@@ -166,7 +166,7 @@ class E2E(ASRInterface, torch.nn.Module):
             labeldist = None
 
         # multilingual related
-        self.multilingual = args.multilingual
+        self.multilingual = getattr(args, "multilingual", False)
         self.replace_sos = args.replace_sos
 
         # encoder
@@ -289,7 +289,7 @@ class E2E(ASRInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: loass value
+        :return: loss value
         :rtype: torch.Tensor
         """
         # 1. Encoder
