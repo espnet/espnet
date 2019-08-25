@@ -42,6 +42,7 @@ espnet/nets/pytorch_backend/e2e_asr.py
 espnet/nets/pytorch_backend/e2e_asr_mix.py
 espnet/nets/pytorch_backend/e2e_asr_transducer.py
 espnet/nets/pytorch_backend/e2e_asr_transformer.py
+espnet/nets/pytorch_backend/e2e_st.py
 espnet/nets/pytorch_backend/e2e_mt.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_beamformer.py
