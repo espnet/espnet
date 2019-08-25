@@ -68,6 +68,9 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
     # loss related
+    parser.add_argument('--mtlalpha', default=0.0, type=float,
+                        help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+    # TODO(hirofumi0810): remove this after adding e2e_st_transformer.py
     parser.add_argument('--asr-weight', default=0.0, type=float,
                         help='Multitask learning coefficient, weight: weight*asr_loss + (1-weight)*st_loss')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
@@ -170,12 +173,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
-    parser.add_argument('--lang-ids', default=None,
-                        help='language tag list')
-    parser.add_argument('--enc-lang-emb', default=False, type=strtobool,
-                        help='Inject language embedding in the encoder side')
-    parser.add_argument('--dec-lang-emb', default=False, type=strtobool,
-                        help='Inject language embedding in the decoder side')
 
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
