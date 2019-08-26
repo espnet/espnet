@@ -255,7 +255,7 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Run training of E2E-TTS model."""
+    """Train E2E-TTS model."""
     set_deterministic_pytorch(args)
 
     # check cuda availability
@@ -473,7 +473,7 @@ def train(args):
 
 
 def decode(args):
-    """Run decoding of E2E-TTS model."""
+    """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
