@@ -61,9 +61,6 @@ def get_parser():
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
-    parser.add_argument('--num-spkrs', type=int, default=1,
-                        choices=[1, 2],
-                        help='Number of speakers in the speech')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
