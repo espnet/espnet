@@ -3,6 +3,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Training/decoding definition for RNN sequence-to-sequence speech translation model."""
 
 import json
 import logging
@@ -65,7 +66,6 @@ class CustomConverter_v2(CustomConverter):
         subsampling_factor (int): The subsampling factor.
         dtype (torch.dtype): Data type to convert.
         asr_task (bool): multi-task with ASR task.
-
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
@@ -101,7 +101,6 @@ def train(args):
 
     Args:
         args (namespace): The program arguments.
-
     """
     set_deterministic_pytorch(args)
 
