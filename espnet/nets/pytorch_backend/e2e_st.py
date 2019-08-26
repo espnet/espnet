@@ -23,6 +23,8 @@ import torch
 
 from chainer import reporter
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
+from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
@@ -56,7 +58,9 @@ class E2E(STInterface, torch.nn.Module):
     :param Namespace args: argument Namespace containing options
     :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
     :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
+
     """
+
     @staticmethod
     def add_arguments(parser):
         """Add arguments."""
@@ -257,34 +261,8 @@ class E2E(STInterface, torch.nn.Module):
         however, there are two exceptions as far as I know.
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
+
         """
-
-        def lecun_normal_init_parameters(module):
-            for p in module.parameters():
-                data = p.data
-                if data.dim() == 1:
-                    # bias
-                    data.zero_()
-                elif data.dim() == 2:
-                    # linear weight
-                    n = data.size(1)
-                    stdv = 1. / math.sqrt(n)
-                    data.normal_(0, stdv)
-                elif data.dim() in (3, 4):
-                    # conv weight
-                    n = data.size(1)
-                    for k in data.size()[2:]:
-                        n *= k
-                    stdv = 1. / math.sqrt(n)
-                    data.normal_(0, stdv)
-                else:
-                    raise NotImplementedError
-
-        def set_forget_bias_to_one(bias):
-            n = bias.size(0)
-            start, end = n // 4, n // 2
-            bias.data[start:end].fill_(1.)
-
         lecun_normal_init_parameters(self)
         # exceptions
         # embed weight ~ Normal(0, 1)
@@ -411,7 +389,12 @@ class E2E(STInterface, torch.nn.Module):
         return dict(decoder=self.dec)
 
     def encode(self, x):
-        """Encode acoustic features."""
+        """Encode acoustic features.
+
+        :param ndarray x: input acoustic feature (T, D)
+        :return: encoder outputs
+        :rtype: torch.Tensor
+        """
         self.eval()
         ilens = [x.shape[0]]
 
