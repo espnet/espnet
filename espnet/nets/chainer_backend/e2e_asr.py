@@ -108,6 +108,7 @@ class E2E(ASRInterface, chainer.Chain):
             float (optional): Ctc loss.
             float (optional): Attention loss.
             float (optional): Accuracy.
+
         """
         # 1. encoder
         hs, ilens = self.enc(xs, ilens)
@@ -159,6 +160,7 @@ class E2E(ASRInterface, chainer.Chain):
 
         Returns:
             List[Dict[str, Any]]: Result of recognition.
+
         """
         # subsample frame
         x = x[::self.subsample[0], :]
@@ -192,6 +194,7 @@ class E2E(ASRInterface, chainer.Chain):
 
         Returns:
             float np.ndarray: Attention weights. (B, Lmax, Tmax)
+
         """
         hs, ilens = self.enc(xs, ilens)
         att_ws = self.dec.calculate_all_attentions(hs, ys)
