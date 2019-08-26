@@ -3,6 +3,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""TTS training script."""
+
 
 import configargparse
 import logging
@@ -123,6 +125,7 @@ def get_parser():
 
 
 def main(cmd_args):
+    """Run training."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 
