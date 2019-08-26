@@ -466,37 +466,7 @@ def trans(args):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                if args.streaming_mode == 'window':
-                    logging.info('Using streaming translator with window size %d frames', args.streaming_window)
-                    se2e = WindowStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
-                    for i in range(0, feat.shape[0], args.streaming_window):
-                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
-                        se2e.accept_input(feat[i:i + args.streaming_window])
-                    logging.info('Running offline attention decoder')
-                    se2e.decode_with_attention_offline()
-                    logging.info('Offline attention decoder finished')
-                    nbest_hyps = se2e.retrieve_recognition()
-                elif args.streaming_mode == 'segment':
-                    logging.info('Using streaming translator with threshold value %d', args.streaming_min_blank_dur)
-                    nbest_hyps = []
-                    for n in range(args.nbest):
-                        nbest_hyps.append({'yseq': [], 'score': 0.0})
-                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
-                    r = np.prod(model.subsample)
-                    for i in range(0, feat.shape[0], r):
-                        hyps = se2e.accept_input(feat[i:i + r])
-                        if hyps is not None:
-                            text = ''.join([train_args.char_list[int(x)]
-                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
-                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
-                            text = text.replace(model.space, ' ')
-                            text = text.replace(model.blank, '')
-                            logging.info(text)
-                            for n in range(args.nbest):
-                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
-                                nbest_hyps[n]['score'] += hyps[n]['score']
-                else:
-                    nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     else:

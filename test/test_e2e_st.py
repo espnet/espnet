@@ -191,20 +191,6 @@ def test_model_trainable_and_decodable(module, model_dict):
             model.translate_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
-# def test_segment_streaming_e2e():
-#     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_st')
-#     args = make_arg()
-#     args.etype = 'vgglstm'
-#     model = m.E2E(40, 5, args)
-#     n = importlib.import_module('espnet.nets.pytorch_backend.streaming.segment')
-#     asr = n.SegmentStreamingE2E(model, args)
-#
-#     in_data = np.random.randn(100, 40)
-#     r = np.prod(model.subsample)
-#     for i in range(0, 100, r):
-#         asr.accept_input(in_data[i:i + r])
-
-
 @pytest.mark.parametrize(
     "module", ["pytorch"]
 )
