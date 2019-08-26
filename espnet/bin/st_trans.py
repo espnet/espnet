@@ -90,19 +90,6 @@ def get_parser():
                         help='Word list to read')
     parser.add_argument('--lm-weight', type=float, default=0.1,
                         help='RNNLM weight')
-    # streaming related
-    parser.add_argument('--streaming-mode', type=str, default=None,
-                        choices=['window', 'segment'],
-                        help="""Use streaming translator for inference.
-                        `--batchsize` must be set to 0 to enable this mode""")
-    parser.add_argument('--streaming-window', type=int, default=10,
-                        help='Window size')
-    parser.add_argument('--streaming-min-blank-dur', type=int, default=10,
-                        help='Minimum blank duration threshold')
-    parser.add_argument('--streaming-onset-margin', type=int, default=1,
-                        help='Onset margin')
-    parser.add_argument('--streaming-offset-margin', type=int, default=1,
-                        help='Offset margin')
     # multilingual related
     parser.add_argument('--tgt-lang', default=False, type=str,
                         help='target language ID (e.g., <en>, <de>, and <fr> etc.)')
