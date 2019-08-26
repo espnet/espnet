@@ -15,6 +15,7 @@ import sys
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser of decoding arguments."""
     parser = configargparse.ArgumentParser(
         description='Synthesize speech from text using a TTS model on one CPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,

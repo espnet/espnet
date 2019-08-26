@@ -22,6 +22,7 @@ class TTSInterface(object):
 
     @staticmethod
     def add_arguments(parser):
+        """Add model specific argments to parser."""
         return parser
 
     def __init__(self):

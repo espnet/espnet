@@ -22,6 +22,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser of training arguments."""
     parser = configargparse.ArgumentParser(
         description='Train a new text-to-speech (TTS) model on one CPU, one or multiple GPUs',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
