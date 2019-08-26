@@ -500,7 +500,8 @@ def decode(args):
             raise NotImplementedError("Support only from 1D to 4D array.")
         plt.tight_layout()
         if not os.path.exists(os.path.dirname(figname)):
-            os.makedirs(os.path.dirname(figname))
+            # NOTE: exist_ok = True is needed for parallel process decoding
+            os.makedirs(os.path.dirname(figname), exist_ok=True)
         plt.savefig(figname)
         plt.clf()
 
