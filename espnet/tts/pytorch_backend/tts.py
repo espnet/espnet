@@ -409,7 +409,7 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=report_interval))
     report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
     trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.ProgressBar(trigger=report_interval))
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
@@ -503,7 +503,7 @@ def decode(args):
             # NOTE: exist_ok = True is needed for parallel process decoding
             os.makedirs(os.path.dirname(figname), exist_ok=True)
         plt.savefig(figname)
-        plt.clf()
+        plt.close()
 
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
