@@ -456,7 +456,7 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=report_interval))
     report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
     trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
-    trainer.extend(extensions.ProgressBar(trigger=report_interval))
+    trainer.extend(extensions.ProgressBar(), trigger=report_interval)
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
