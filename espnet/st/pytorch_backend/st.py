@@ -33,7 +33,7 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
-from espnet.nets.st_interface import STInterface
+# from espnet.nets.st_interface import STInterface
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -144,7 +144,8 @@ def train(args):
     # specify model architecture
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
-    assert isinstance(model, STInterface)
+    # assert isinstance(model, STInterface)
+    # TODO(hirofumi0810) fix this for after supporting Transformer
     subsampling_factor = model.subsample[0]
 
     # delete pre-trained models
