@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""RNN sequence-to-sequence speech recognition model (chainer)."""
 
 import logging
 import math
@@ -34,11 +35,19 @@ class E2E(ASRInterface, chainer.Chain):
             loss.
 
     """
+
     @staticmethod
     def add_arguments(parser):
+        """Add arguments."""
         return E2E_pytorch.add_arguments(parser)
 
     def __init__(self, idim, odim, args, flag_return=True):
+        """Construct an E2E object.
+
+        :param int idim: dimension of inputs
+        :param int odim: dimension of outputs
+        :param Namespace args: argument Namespace containing options
+        """
         chainer.Chain.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -99,7 +108,6 @@ class E2E(ASRInterface, chainer.Chain):
             float (optional): Ctc loss.
             float (optional): Attention loss.
             float (optional): Accuracy.
-
         """
         # 1. encoder
         hs, ilens = self.enc(xs, ilens)
@@ -151,7 +159,6 @@ class E2E(ASRInterface, chainer.Chain):
 
         Returns:
             List[Dict[str, Any]]: Result of recognition.
-
         """
         # subsample frame
         x = x[::self.subsample[0], :]
@@ -185,7 +192,6 @@ class E2E(ASRInterface, chainer.Chain):
 
         Returns:
             float np.ndarray: Attention weights. (B, Lmax, Tmax)
-
         """
         hs, ilens = self.enc(xs, ilens)
         att_ws = self.dec.calculate_all_attentions(hs, ys)
