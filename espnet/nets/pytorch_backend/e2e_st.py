@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -261,7 +262,6 @@ class E2E(STInterface, torch.nn.Module):
         however, there are two exceptions as far as I know.
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
-
         """
         lecun_normal_init_parameters(self)
         # exceptions
