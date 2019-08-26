@@ -4,6 +4,8 @@
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Tacotron2 encoder related modules."""
+
 import six
 
 import torch
@@ -25,18 +27,6 @@ class Encoder(torch.nn.Module):
     Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_. This is the encoder which converts the
     sequence of characters into the sequence of hidden states.
 
-    Args:
-        idim (int) Dimension of the inputs.
-        embed_dim (int, optional) Dimension of character embedding.
-        elayers (int, optional) The number of encoder blstm layers.
-        eunits (int, optional) The number of encoder blstm units.
-        econv_layers (int, optional) The number of encoder conv layers.
-        econv_filts (int, optional) The number of encoder conv filter size.
-        econv_chans (int, optional) The number of encoder conv filter channels.
-        use_batch_norm (bool, optional) Whether to use batch normalization.
-        use_residual (bool, optional) Whether to use residual connection.
-        dropout_rate (float, optional) Dropout rate.
-
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
 
@@ -53,6 +43,21 @@ class Encoder(torch.nn.Module):
                  use_residual=False,
                  dropout_rate=0.5,
                  padding_idx=0):
+        """Initialize Tacotron2 encoder module.
+
+        Args:
+            idim (int) Dimension of the inputs.
+            embed_dim (int, optional) Dimension of character embedding.
+            elayers (int, optional) The number of encoder blstm layers.
+            eunits (int, optional) The number of encoder blstm units.
+            econv_layers (int, optional) The number of encoder conv layers.
+            econv_filts (int, optional) The number of encoder conv filter size.
+            econv_chans (int, optional) The number of encoder conv filter channels.
+            use_batch_norm (bool, optional) Whether to use batch normalization.
+            use_residual (bool, optional) Whether to use residual connection.
+            dropout_rate (float, optional) Dropout rate.
+
+        """
         super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
