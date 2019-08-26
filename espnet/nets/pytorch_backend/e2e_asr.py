@@ -461,7 +461,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return y
 
     def enhance(self, xs):
-        """Forwarding only the frontend stage.
+        """Forward only in the frontend stage.
 
         :param ndarray xs: input acoustic feature (T, C, F)
         :return: enhaned feature
