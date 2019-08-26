@@ -68,9 +68,6 @@ def make_arg(**kwargs):
         multilingual=False,
         replace_sos=False,
         tgt_lang=False,
-        enc_lang_emb=False,
-        dec_lang_emb=False,
-        lang_list=[],
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
