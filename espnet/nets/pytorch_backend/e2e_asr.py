@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""RNN sequence-to-sequence speech recognition model."""
 
 from __future__ import division
 
@@ -37,7 +38,7 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
+    """A chainer reporter wrapper."""
 
     def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
@@ -51,7 +52,7 @@ class Reporter(chainer.Chain):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-    """E2E module
+    """E2E module.
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
@@ -60,6 +61,7 @@ class E2E(ASRInterface, torch.nn.Module):
     """
     @staticmethod
     def add_arguments(parser):
+        """Add arguments."""
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
@@ -67,6 +69,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_add_arguments(parser):
+        """Add arguments for the encoder."""
         group = parser.add_argument_group("E2E encoder setting")
         # encoder
         group.add_argument('--etype', default='blstmp', type=str,
@@ -86,6 +89,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def attention_add_arguments(parser):
+        """Add arguments for the attention."""
         group = parser.add_argument_group("E2E attention setting")
         # attention
         group.add_argument('--atype', default='dot', type=str,
@@ -112,6 +116,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def decoder_add_arguments(parser):
+        """Add arguments for the decoder."""
         group = parser.add_argument_group("E2E encoder setting")
         group.add_argument('--dtype', default='lstm', type=str,
                            choices=['lstm', 'gru'],
@@ -127,6 +132,12 @@ class E2E(ASRInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args):
+        """Construct an E2E object.
+
+        :param int idim: dimension of inputs
+        :param int odim: dimension of outputs
+        :param Namespace args: argument Namespace containing options
+        """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
@@ -212,11 +223,10 @@ class E2E(ASRInterface, torch.nn.Module):
         self.acc = None
 
     def init_like_chainer(self):
-        """Initialize weight like chainer
+        """Initialize weight like chainer.
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
-
         however, there are two exceptions as far as I know.
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
@@ -258,12 +268,12 @@ class E2E(ASRInterface, torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """E2E forward
+        """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: loass value
+        :return: loss value
         :rtype: torch.Tensor
         """
         # 0. Frontend
@@ -373,9 +383,11 @@ class E2E(ASRInterface, torch.nn.Module):
         return self.loss
 
     def scorers(self):
+        """Scorers."""
         return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
     def encode(self, x):
+        """Encode acoustic features."""
         self.eval()
         ilens = [x.shape[0]]
 
@@ -487,7 +499,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
-        """E2E attention calculation
+        """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -514,6 +526,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return att_ws
 
     def subsample_frames(self, x):
+        """Subsample speeh frames in the encoder."""
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]

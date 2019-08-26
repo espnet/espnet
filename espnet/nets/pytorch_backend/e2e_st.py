@@ -3,7 +3,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""End-to-End speech translation model."""
+"""RNN sequence-to-sequence speech translation model."""
 
 from __future__ import division
 
@@ -56,7 +56,6 @@ class E2E(STInterface, torch.nn.Module):
     :param Namespace args: argument Namespace containing options
     :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
     :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
-
     """
     @staticmethod
     def add_arguments(parser):
@@ -252,6 +251,7 @@ class E2E(STInterface, torch.nn.Module):
 
     def init_like_chainer(self):
         """Initialize weight like chainer.
+
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
         however, there are two exceptions as far as I know.
@@ -411,7 +411,7 @@ class E2E(STInterface, torch.nn.Module):
         return dict(decoder=self.dec)
 
     def encode(self, x):
-        """Encode function."""
+        """Encode acoustic features."""
         self.eval()
         ilens = [x.shape[0]]
 
