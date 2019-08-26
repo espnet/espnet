@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""E2E-TTS training / decoding functions."""
 
 import copy
 import json
@@ -48,16 +51,19 @@ matplotlib.use('Agg')
 
 
 class CustomEvaluator(BaseEvaluator):
-    """Custom Evaluator for Tacotron2 training
-
-    :param torch.nn.Model model : The model to evaluate
-    :param chainer.dataset.Iterator iterator : The validation iterator
-    :param target :
-    :param CustomConverter converter : The batch converter
-    :param torch.device device : The device to use
-    """
+    """Custom evaluator."""
 
     def __init__(self, model, iterator, target, converter, device):
+        """Initilize module.
+
+        Args:
+            model (torch.nn.Module): Pytorch model instance.
+            iterator (chainer.dataset.Iterator): Iterator for validation.
+            target (chainer.Chain): Dummy chain instance.
+            converter (CustomConverter): The batch converter.
+            device (torch.device): The device to be used in evaluation.
+
+        """
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.converter = converter
@@ -65,6 +71,7 @@ class CustomEvaluator(BaseEvaluator):
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
+        """Evaluate over validation iterator."""
         iterator = self._iterators['main']
 
         if self.eval_hook:
@@ -96,18 +103,21 @@ class CustomEvaluator(BaseEvaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """Custom updater for Tacotron2 training
+    """Custom updater."""
 
-    :param torch.nn.Module model: The model to update
-    :param float grad_clip : The gradient clipping value to use
-    :param chainer.dataset.Iterator train_iter : The training iterator
-    :param optimizer :
-    :param CustomConverter converter : The batch converter
-    :param torch.device device : The device to use
-    """
+    def __init__(self, model, grad_clip, iterator, optimizer, converter, device, accum_grad=1):
+        """Initilize module.
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device, accum_grad=1):
-        super(CustomUpdater, self).__init__(train_iter, optimizer)
+        Args:
+            model (torch.nn.Module) model: Pytorch model instance.
+            grad_clip (float) grad_clip : The gradient clipping value.
+            iterator (chainer.dataset.Iterator): Iterator for training.
+            optimizer (torch.optim.Optimizer) : Pytorch optimizer instance.
+            converter (CustomConverter) : The batch converter.
+            device (torch.device): The device to be used in training.
+
+        """
+        super(CustomUpdater, self).__init__(iterator, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
@@ -118,6 +128,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Update model one step."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -150,24 +161,63 @@ class CustomUpdater(training.StandardUpdater):
         optimizer.zero_grad()
 
     def update(self):
+        """Run update function."""
         self.update_core()
         if self.forward_count == 0:
             self.iteration += 1
 
 
 class CustomConverter(object):
-    """Custom converter for E2E-TTS model training"""
+    """Custom converter."""
 
     def __init__(self):
+        """Initilize module."""
+        # NOTE: keep as class for future development
         pass
 
     def __call__(self, batch, device):
+        """Convert a given batch.
+
+        Args:
+            batch (list): List of ndarrays.
+            device (torch.device): The device to be send.
+
+        Returns:
+            dict: Dict of converted tensors.
+
+        Examples:
+            >>> batch = [([np.arange(5), np.arange(3)],
+                          [np.random.randn(8, 2), np.random.randn(4, 2)],
+                          None, None)]
+            >>> conveter = CustomConverter()
+            >>> conveter(batch, torch.device("cpu"))
+            {'xs': tensor([[0, 1, 2, 3, 4],
+                           [0, 1, 2, 0, 0]]),
+             'ilens': tensor([5, 3]),
+             'ys': tensor([[[-0.4197, -1.1157],
+                            [-1.5837, -0.4299],
+                            [-2.0491,  0.9215],
+                            [-2.4326,  0.8891],
+                            [ 1.2323,  1.7388],
+                            [-0.3228,  0.6656],
+                            [-0.6025,  1.3693],
+                            [-1.0778,  1.3447]],
+                           [[ 0.1768, -0.3119],
+                            [ 0.4386,  2.5354],
+                            [-1.2181, -0.5918],
+                            [-0.6858, -0.8843],
+                            [ 0.0000,  0.0000],
+                            [ 0.0000,  0.0000],
+                            [ 0.0000,  0.0000],
+                            [ 0.0000,  0.0000]]]),
+             'labels': tensor([[0., 0., 0., 0., 0., 0., 0., 1.],
+                               [0., 0., 0., 1., 1., 1., 1., 1.]]),
+             'olens': tensor([8, 4])}
+
+        """
         # batch should be located in list
         assert len(batch) == 1
-        inputs_and_targets = batch[0]
-
-        # parse inputs and targets
-        xs, ys, spembs, spcs = inputs_and_targets
+        xs, ys, spembs, spcs = batch[0]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -205,10 +255,7 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Train with the given args
-
-    :param Namespace args: The program arguments
-    """
+    """Train E2E-TTS model."""
     set_deterministic_pytorch(args)
 
     # check cuda availability
@@ -409,7 +456,7 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=report_interval))
     report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
     trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.ProgressBar(), trigger=report_interval)
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
@@ -426,10 +473,7 @@ def train(args):
 
 
 def decode(args):
-    """Decode with the given args
-
-    :param Namespace args: The program arguments
-    """
+    """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
@@ -503,7 +547,7 @@ def decode(args):
             # NOTE: exist_ok = True is needed for parallel process decoding
             os.makedirs(os.path.dirname(figname), exist_ok=True)
         plt.savefig(figname)
-        plt.clf()
+        plt.close()
 
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:

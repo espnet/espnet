@@ -4,6 +4,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Tacotron 2 related modules."""
+
 import logging
 
 from distutils.util import strtobool
@@ -17,6 +19,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
+from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
@@ -29,17 +32,20 @@ class GuidedAttentionLoss(torch.nn.Module):
     This module calculates the guided attention loss described in `Efficiently Trainable Text-to-Speech System Based
     on Deep Convolutional Networks with Guided Attention`_, which forces the attention to be diagonal.
 
-    Args:
-        sigma (float, optional): Standard deviation to control how close attention to a diagonal.
-        alpha (float, optional): Scaling coefficient (lambda).
-        reset_always (bool, optional): Whether to always reset masks.
-
     .. _`Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention`:
         https://arxiv.org/abs/1710.08969
 
     """
 
     def __init__(self, sigma=0.4, alpha=1.0, reset_always=True):
+        """Initialize guided attention loss module.
+
+        Args:
+            sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+            alpha (float, optional): Scaling coefficient (lambda).
+            reset_always (bool, optional): Whether to always reset masks.
+
+        """
         super(GuidedAttentionLoss, self).__init__()
         self.sigma = sigma
         self.alpha = alpha
@@ -142,54 +148,17 @@ class GuidedAttentionLoss(torch.nn.Module):
         return out_masks.unsqueeze(-1) & in_masks.unsqueeze(-2)  # (B, T_out, T_in)
 
 
-class CBHGLoss(torch.nn.Module):
-    """Loss function module for CBHG.
-
-    Args:
-        use_masking (bool): Whether to mask padded part in loss calculation.
-
-    """
-
-    def __init__(self, use_masking=True):
-        super(CBHGLoss, self).__init__()
-        self.use_masking = use_masking
-
-    def forward(self, cbhg_outs, spcs, olens):
-        """Calculate forward propagation.
-
-        Args:
-            cbhg_outs (Tensor): Batch of CBHG outputs (B, Lmax, spc_dim).
-            spcs (Tensor): Batch of groundtruth of spectrogram (B, Lmax, spc_dim).
-            olens (LongTensor): Batch of the lengths of each sequence (B,).
-
-        Returns:
-            Tensor: L1 loss value
-            Tensor: Mean square error loss value.
-
-        """
-        # perform masking for padded values
-        if self.use_masking:
-            mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
-            spcs = spcs.masked_select(mask)
-            cbhg_outs = cbhg_outs.masked_select(mask)
-
-        # calculate loss
-        cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
-        cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
-
-        return cbhg_l1_loss, cbhg_mse_loss
-
-
 class Tacotron2Loss(torch.nn.Module):
-    """Loss function module for Tacotron2.
-
-    Args:
-        use_masking (bool): Whether to mask padded part in loss calculation.
-        bce_pos_weight (float): Weight of positive sample of stop token.
-
-    """
+    """Loss function module for Tacotron2."""
 
     def __init__(self, use_masking=True, bce_pos_weight=20.0):
+        """Initialize Tactoron2 loss module.
+
+        Args:
+            use_masking (bool): Whether to mask padded part in loss calculation.
+            bce_pos_weight (float): Weight of positive sample of stop token.
+
+        """
         super(Tacotron2Loss, self).__init__()
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
@@ -235,50 +204,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     This is a module of Spectrogram prediction network in Tacotron2 described in `Natural TTS Synthesis
     by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts the sequence of characters
     into the sequence of Mel-filterbanks.
-
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        args (Namespace, optional):
-            - spk_embed_dim (int): Dimension of the speaker embedding.
-            - embed_dim (int): Dimension of character embedding.
-            - elayers (int): The number of encoder blstm layers.
-            - eunits (int): The number of encoder blstm units.
-            - econv_layers (int): The number of encoder conv layers.
-            - econv_filts (int): The number of encoder conv filter size.
-            - econv_chans (int): The number of encoder conv filter channels.
-            - dlayers (int): The number of decoder lstm layers.
-            - dunits (int): The number of decoder lstm units.
-            - prenet_layers (int): The number of prenet layers.
-            - prenet_units (int): The number of prenet units.
-            - postnet_layers (int): The number of postnet layers.
-            - postnet_filts (int): The number of postnet filter size.
-            - postnet_chans (int): The number of postnet filter channels.
-            - output_activation (int): The name of activation function for outputs.
-            - adim (int): The number of dimension of mlp in attention.
-            - aconv_chans (int): The number of attention conv filter channels.
-            - aconv_filts (int): The number of attention conv filter size.
-            - cumulate_att_w (bool): Whether to cumulate previous attention weight.
-            - use_batch_norm (bool): Whether to use batch normalization.
-            - use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
-            - dropout_rate (float): Dropout rate.
-            - zoneout_rate (float): Zoneout rate.
-            - reduction_factor (int): Reduction factor.
-            - spk_embed_dim (int): Number of speaker embedding dimenstions.
-            - spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
-            - use_cbhg (bool): Whether to use CBHG module.
-            - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
-            - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
-            - cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
-            - cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
-            - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
-            - cbhg_highway_units (int): The number of units of highway network in CBHG.
-            - cbhg_gru_units (int): The number of units of GRU in CBHG.
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
-            - use-guided-attn-loss (bool): Whether to use guided attention loss.
-            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
-            - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
@@ -379,6 +304,53 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args=None):
+        """Initialize Tacotron2 module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            args (Namespace, optional):
+                - spk_embed_dim (int): Dimension of the speaker embedding.
+                - embed_dim (int): Dimension of character embedding.
+                - elayers (int): The number of encoder blstm layers.
+                - eunits (int): The number of encoder blstm units.
+                - econv_layers (int): The number of encoder conv layers.
+                - econv_filts (int): The number of encoder conv filter size.
+                - econv_chans (int): The number of encoder conv filter channels.
+                - dlayers (int): The number of decoder lstm layers.
+                - dunits (int): The number of decoder lstm units.
+                - prenet_layers (int): The number of prenet layers.
+                - prenet_units (int): The number of prenet units.
+                - postnet_layers (int): The number of postnet layers.
+                - postnet_filts (int): The number of postnet filter size.
+                - postnet_chans (int): The number of postnet filter channels.
+                - output_activation (int): The name of activation function for outputs.
+                - adim (int): The number of dimension of mlp in attention.
+                - aconv_chans (int): The number of attention conv filter channels.
+                - aconv_filts (int): The number of attention conv filter size.
+                - cumulate_att_w (bool): Whether to cumulate previous attention weight.
+                - use_batch_norm (bool): Whether to use batch normalization.
+                - use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
+                - dropout_rate (float): Dropout rate.
+                - zoneout_rate (float): Zoneout rate.
+                - reduction_factor (int): Reduction factor.
+                - spk_embed_dim (int): Number of speaker embedding dimenstions.
+                - spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
+                - use_cbhg (bool): Whether to use CBHG module.
+                - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
+                - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
+                - cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
+                - cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
+                - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
+                - cbhg_highway_units (int): The number of units of highway network in CBHG.
+                - cbhg_gru_units (int): The number of units of GRU in CBHG.
+                - use_masking (bool): Whether to mask padded part in loss calculation.
+                - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+                - use-guided-attn-loss (bool): Whether to use guided attention loss.
+                - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+                - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
+
+        """
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
