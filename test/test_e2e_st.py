@@ -48,6 +48,7 @@ def make_arg(**kwargs):
         maxlenratio=1.0,
         minlenratio=0.0,
         ctc_weight=0.0,  # dummy
+        ctc_window_margin=0,
         lm_weight=0.0,
         rnnlm=None,
         streaming_min_blank_dur=10,
@@ -67,6 +68,9 @@ def make_arg(**kwargs):
         multilingual=False,
         replace_sos=False,
         tgt_lang=False,
+        enc_lang_emb=False,
+        dec_lang_emb=False,
+        lang_list=[],
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
