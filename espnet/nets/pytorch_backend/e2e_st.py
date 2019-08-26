@@ -3,6 +3,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""End-to-End speech translation model."""
 
 from __future__ import division
 
@@ -53,13 +54,13 @@ class E2E(STInterface, torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
-    :param E2E (torch.nn.Module) asr_model: pre-trained ASR model for encoder initialization
-    :param E2E (torch.nn.Module) mt_model: pre-trained NMT model for decoder initialization
+    :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
+    :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
 
     """
     @staticmethod
     def add_arguments(parser):
-        """Add arguments"""
+        """Add arguments."""
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
@@ -130,13 +131,13 @@ class E2E(STInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
-        """Constructs an E2E object.
+        """Construct an E2E object.
 
-        :param int idim: input dimension
-        :param int odim: output dimension
+        :param int idim: dimension of inputs
+        :param int odim: dimension of outputs
         :param Namespace args: argument Namespace containing options
-        :param ASRInterface asr_model: ASR model for pre-training the encoder
-        :param MTInterface mt_model: MT model for pre-training the decoder
+        :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
+        :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
@@ -251,7 +252,6 @@ class E2E(STInterface, torch.nn.Module):
 
     def init_like_chainer(self):
         """Initialize weight like chainer.
-
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
         however, there are two exceptions as far as I know.
@@ -407,7 +407,7 @@ class E2E(STInterface, torch.nn.Module):
         return self.loss
 
     def scorers(self):
-        """Scorers"""
+        """Scorers."""
         return dict(decoder=self.dec)
 
     def encode(self, x):
