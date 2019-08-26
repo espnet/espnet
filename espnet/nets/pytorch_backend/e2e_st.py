@@ -3,7 +3,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""RNN sequence-to-sequence speech translation model."""
+"""RNN sequence-to-sequence speech translation model (pytorch)."""
 
 from __future__ import division
 
