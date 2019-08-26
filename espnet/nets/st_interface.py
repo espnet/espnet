@@ -5,7 +5,12 @@ from espnet.utils.dynamic_import import dynamic_import
 
 
 class STInterface(ASRInterface):
-    """ST Interface for ESPnet model implementation."""
+    """ST Interface for ESPnet model implementation.
+
+    NOTE: This class is inherited from ASRInterface to enable joint translation
+    and recognition when performing multi-task learning with the ASR task.
+
+    """
 
     def translate(self, x, trans_args, char_list=None, rnnlm=None):
         """Recognize x for evaluation.
@@ -42,7 +47,7 @@ predefined_st = {
         "transformer": "espnet.nets.chainer_backend.e2e_asr_transformer:E2E",
     }
 }
-# TODO(hirofumi): fix transformer
+# TODO(hirofumi0810): fix transformer
 
 
 def dynamic_import_st(module, backend):
