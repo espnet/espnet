@@ -66,9 +66,17 @@ class CustomConverter_v2(CustomConverter):
         subsampling_factor (int): The subsampling factor.
         dtype (torch.dtype): Data type to convert.
         asr_task (bool): multi-task with ASR task.
+
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
+        """Construct a CustomConverter_v2 object.
+
+        Args:
+            subsampling_factor (int): The subsampling factor.
+            dtype (torch.dtype): Data type to convert.
+            asr_task (bool): multi-task with ASR task.
+        """
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype
@@ -83,7 +91,6 @@ class CustomConverter_v2(CustomConverter):
 
         Returns:
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
-
         """
         _, ys = batch[0]
         xs_pad, ilens, ys_pad = super().__call__(batch, device)
@@ -101,6 +108,7 @@ def train(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
 
@@ -390,6 +398,7 @@ def trans(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
