@@ -139,11 +139,11 @@ if [ -z "${cmvn}" ]; then
 fi
 if [ -z "${lang_model}" ] && ${use_lang_model}; then
     download_models
-    lang_model=$(find ${download_dir}/${models} -name "rnnlm*.best" | head -n 1)
+    lang_model=$(find ${download_dir}/${models} -name "rnnlm*.best*" | head -n 1)
 fi
 if [ -z "${recog_model}" ]; then
     download_models
-    recog_model=$(find ${download_dir}/${models} -name "model*.best" | head -n 1)
+    recog_model=$(find ${download_dir}/${models} -name "model*.best*" | head -n 1)
 fi
 if [ -z "${decode_config}" ]; then
     download_models
