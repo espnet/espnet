@@ -31,9 +31,10 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
@@ -279,31 +280,6 @@ class CustomConverter(object):
         return xs_pad, ilens, ys_pad
 
 
-def load_trained_model(model_path):
-    """Load the trained model.
-
-    Args:
-        model_path(str): Path to model.***.best
-
-    """
-    # read training config
-    idim, odim, train_args = get_model_conf(
-        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + model_path)
-    # To be compatible with v.0.3.0 models
-    if hasattr(train_args, "model_module"):
-        model_module = train_args.model_module
-    else:
-        model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
-    torch_load(model_path, model)
-
-    return model, train_args
-
-
 def train(args):
     """Train with the given args.
 
@@ -337,34 +313,14 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
-    asr_model, mt_model = None, None
-    # Initialize encoder with pre-trained ASR encoder
-    if args.asr_model:
-        asr_model, _ = load_trained_model(args.asr_model)
-        assert isinstance(asr_model, ASRInterface)
-
-    # Initialize decoder with pre-trained MT decoder
-    if args.mt_model:
-        mt_model, _ = load_trained_model(args.mt_model)
-        assert isinstance(mt_model, MTInterface)
-
-    # specify model architecture
-    model_class = dynamic_import(args.model_module)
-    # TODO(hirofumi0810) better to simplify the E2E model interface by only allowing idim, odim, and args
-    # the pre-trained ASR and MT model arguments should be removed here and we should implement an additional method
-    # to attach these models
-    if asr_model is None and mt_model is None:
-        model = model_class(idim, odim, args)
+    if args.enc_init is not None or args.dec_init is not None:
+        model = load_trained_modules(idim, odim, args)
     else:
-        model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
     assert isinstance(model, ASRInterface)
-    subsampling_factor = model.subsample[0]
 
-    # delete pre-trained models
-    if args.asr_model:
-        del asr_model
-    if args.mt_model:
-        del mt_model
+    subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
