@@ -3,6 +3,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""TTS decoding script."""
+
 import configargparse
 import logging
 import os
@@ -13,6 +15,7 @@ import sys
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser of decoding arguments."""
     parser = configargparse.ArgumentParser(
         description='Synthesize speech from text using a TTS model on one CPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -57,6 +60,7 @@ def get_parser():
 
 
 def main(args):
+    """Run deocding."""
     parser = get_parser()
     args = parser.parse_args(args)
 
