@@ -4,6 +4,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""End-to-end speech recognition model decoding script."""
 
 import configargparse
 import logging
@@ -15,9 +16,11 @@ import numpy as np
 
 from espnet.utils.cli_utils import strtobool
 
-
 # NOTE: you need this func to generate our sphinx doc
+
+
 def get_parser():
+    """Get default arguments."""
     parser = configargparse.ArgumentParser(
         description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -49,8 +52,8 @@ def get_parser():
                         help='The configuration file for the pre-processing')
     parser.add_argument('--api', default="v1", choices=["v1", "v2"],
                         help='''Beam search APIs
-v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
-v2: Experimental API. It supports any models that implements ScorerInterface.''')
+        v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
+        v2: Experimental API. It supports any models that implements ScorerInterface.''')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -118,6 +121,7 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
 
 
 def main(args):
+    """Run the main decoding function."""
     parser = get_parser()
     args = parser.parse_args(args)
 

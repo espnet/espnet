@@ -16,7 +16,6 @@ espnet/asr/pytorch_backend/asr.py
 espnet/asr/pytorch_backend/asr_init.py
 espnet/asr/pytorch_backend/asr_mix.py
 espnet/bin/asr_enhance.py
-espnet/bin/asr_train.py
 espnet/bin/mt_recog.py
 espnet/bin/mt_train.py
 espnet/bin/asr_recog.py

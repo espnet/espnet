@@ -110,7 +110,7 @@ def get_parser():
 
 
 def main(args):
-    """Run the main function."""
+    """Run the main decoding function."""
     parser = get_parser()
     args = parser.parse_args(args)
 

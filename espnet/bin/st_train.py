@@ -201,7 +201,7 @@ def get_parser(parser=None, required=True):
 
 
 def main(cmd_args):
-    """Run the main function."""
+    """Run the main training function."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     if args.backend == "chainer" and args.train_dtype != "float32":
