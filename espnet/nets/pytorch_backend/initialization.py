@@ -1,7 +1,15 @@
+#!/usr/bin/env python
+
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Initialization functions for RNN sequence-to-sequence models."""
+
 import math
 
 
 def lecun_normal_init_parameters(module):
+    """Initialize parameters in the LeCun's manner."""
     for p in module.parameters():
         data = p.data
         if data.dim() == 1:
@@ -24,6 +32,7 @@ def lecun_normal_init_parameters(module):
 
 
 def set_forget_bias_to_one(bias):
+    """Initialize bias paramter with a zero vector."""
     n = bias.size(0)
     start, end = n // 4, n // 2
     bias.data[start:end].fill_(1.)
