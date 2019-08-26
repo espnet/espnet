@@ -34,32 +34,39 @@ decode_dir=decode
 api=v2
 
 # download related
-models=
+models=tedlium2.transformer.v1
 
 help_message=$(cat <<EOF
 Usage:
     $0 [options] <wav_file>
 
 Options:
-  --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
-  --ngpu <ngpu>                   # Number of GPUs (Default: 0)
-  --decode_dir <directory_name>   # Name of directory to store decoding temporary data
-  --models <model_name>           # Model name (e.g. tedlium2.tacotron2.v1)
-  --cmvn <path>                   # Location of cmvn.ark
-  --lang_model <path>             # Location of language model
-  --recog_model <path>            # Location of E2E model
-  --decode_config <path>          # Location of configuration file
-  --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
+    --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
+    --ngpu <ngpu>                   # Number of GPUs (Default: 0)
+    --decode_dir <directory_name>   # Name of directory to store decoding temporary data
+    --models <model_name>           # Model name (e.g. tedlium2.tacotron2.v1)
+    --cmvn <path>                   # Location of cmvn.ark
+    --lang_model <path>             # Location of language model
+    --recog_model <path>            # Location of E2E model
+    --decode_config <path>          # Location of configuration file
+    --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
 
 Example:
     # Record audio from microphone input as example.wav
     rec -c 1 -r 16000 example.wav trim 0 5
 
     # Decode using model name
-    $0 --model tedlium2.tacotron2.v1 example.wav
+    $0 --models tedlium2.rnn.v1 example.wav
 
     # Decode using model file
     $0 --cmvn cmvn.ark --lang_model rnnlm.model.best --recog_model model.acc.best --decode_config conf/decode.yaml example.wav
+
+Available models:
+    - tedlium2.rnn.v1
+    - tedlium2.transformer.v1
+    - tedlium3.transformer.v1
+    - librispeech.transformer.v1
+    - commonvoice.transformer.v1
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -111,7 +118,11 @@ function download_models () {
         return
     fi
     case "${models}" in
-        "tedlium2.tacotron2.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+        "tedlium2.rnn.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+        "tedlium2.transformer.v1") share_url="https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U" ;;
+        "tedlium3.transformer.v1") share_url="https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO" ;;
+        "librispeech.transformer.v1") share_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" ;;
+        "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
