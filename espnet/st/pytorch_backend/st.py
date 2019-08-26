@@ -76,6 +76,7 @@ class CustomConverter_v2(CustomConverter):
             subsampling_factor (int): The subsampling factor.
             dtype (torch.dtype): Data type to convert.
             asr_task (bool): multi-task with ASR task.
+
         """
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
@@ -83,7 +84,7 @@ class CustomConverter_v2(CustomConverter):
         self.asr_task = asr_task
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list): The batch to transform.
@@ -91,6 +92,7 @@ class CustomConverter_v2(CustomConverter):
 
         Returns:
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+
         """
         _, ys = batch[0]
         xs_pad, ilens, ys_pad = super().__call__(batch, device)
