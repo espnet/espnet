@@ -36,6 +36,7 @@ class DurationPredictor(torch.nn.Module):
             kernel_size (int, optional): Kernel size of convolutional layers.
             dropout_rate (float, optional): Dropout rate.
             offset (float, optional): Offset value to avoid nan in log domain.
+
         """
         super(DurationPredictor, self).__init__()
         self.offset = offset
