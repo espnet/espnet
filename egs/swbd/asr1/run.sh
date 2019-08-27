@@ -20,6 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+preprocess_config=conf/specaug.yaml 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
@@ -176,7 +177,10 @@ fi
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
-        expname=${expname}_delta
+	expname=${expname}_delta
+    fi
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -190,6 +194,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \

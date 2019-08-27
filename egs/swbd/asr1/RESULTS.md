@@ -1,3 +1,15 @@
+# transformer with BPE 2000, specaug
+
+```
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/*.sys
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.callhm.ctm.filt.sys:|   SPKR         |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err       S.Err   |
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.callhm.ctm.filt.sys:|   Sum/Avg      |   2628       21594   |   84.6       12.0         3.5        2.7       18.1        55.7   |
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.ctm.filt.sys:|   SPKR         |  # Snt     # Wrd   |  Corr        Sub       Del        Ins       Err      S.Err   |
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.ctm.filt.sys:|   Sum/Avg      |  4459      42989   |  88.4        8.8       2.8        1.9      13.6       50.1   |
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.swbd.ctm.filt.sys:|   SPKR        |   # Snt     # Wrd    |   Corr        Sub        Del        Ins         Err      S.Err   |
+exp/train_nodup_pytorch_train_pytorch_transformer_ag8_specaug/decode_eval2000_decode/scoring/hyp.swbd.ctm.filt.sys:|   Sum/Avg     |   1831      21395    |   92.2        5.6        2.2        1.2         9.0       42.2   |
+```
+
 # transformer with BPE 2000
 ```
 $ grep -e Avg -e SPKR -m 2 exp/train_nodup_pytorch_bpe2000/decode_eval2000_decode/scoring/*.sys

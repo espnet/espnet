@@ -251,7 +251,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Average LM models
         if ${use_lm_valbest_average}; then
             lang_model=rnnlm.val${lm_n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${lmexpdir}/log"
         else
             lang_model=rnnlm.last${lm_n_average}.avg.best
             opt="--log"

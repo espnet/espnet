@@ -10,7 +10,6 @@ import os
 from chainer.training import extension
 
 import matplotlib
-import numpy as np
 
 """
 Utility functions for ASR mix recipes. Reuse following modules in asr_utils:
