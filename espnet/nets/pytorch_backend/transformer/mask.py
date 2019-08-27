@@ -15,3 +15,9 @@ def subsequent_mask(size, device="cpu", dtype=torch.uint8):
     """
     ret = torch.ones(size, size, device=device, dtype=dtype)
     return torch.tril(ret, out=ret)
+
+
+def target_mask(ys_in_pad, ignore_id):
+    ys_mask = ys_in_pad != ignore_id
+    m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
+    return ys_mask.unsqueeze(-2) & m
