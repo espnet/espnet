@@ -402,7 +402,7 @@ class E2E(ASRInterface, torch.nn.Module):
         x = x[::self.subsample[0], :]
         h = to_device(self, to_torch_tensor(x).float())
         # make a utt list (1) to use the same interface for encoder
-        hs = h.continguous().unsqueeze(0)
+        hs = h.contiguous().unsqueeze(0)
 
         # 0. Frontend
         if self.frontend is not None:
