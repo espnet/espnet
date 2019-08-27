@@ -625,3 +625,6 @@ class ChainerDataLoader(object):
     def start_shuffle(self):
         self.kwargs['shuffle'] = True
         self.loader = torch.utils.data.dataloader.DataLoader(**self.kwargs)
+
+    def finalize(self):
+        del self.loader
