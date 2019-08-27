@@ -33,7 +33,7 @@ dropout-rate: 0.1
 backend: pytorch
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E"
 transformer-input-layer: conv2d     # encoder architecture type
-transformer-lr: 10.0
+transformer-lr: 5.0
 transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
 transformer-length-normalized-loss: false
