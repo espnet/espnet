@@ -4,8 +4,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 TMP=./local/tmp
+LAB=lab_wo_sil
 mkdir -p ${TMP}
-find $1 -name "*.lab" | xargs dirname | xargs dirname | sort | uniq > ${TMP}/dir_list.txt
+find $1/fls/*/lab -name "*.lab" | xargs dirname | xargs dirname | sort | uniq > ${TMP}/dir_list.txt
 cat ${TMP}/dir_list.txt | while read -r dir;do
     
     echo ${dir}
@@ -14,7 +15,7 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     echo -n > ${TMP}/lab_token.txt
     echo -n > ${TMP}/lab_token_num.txt
     echo -n > ${TMP}/lab_list.txt
-    find ${dir}/lab/ -name "*.lab" | sort | while read -r f;do
+    find ${dir}/${LAB}/ -name "*.lab" | sort | while read -r f;do
         cat $f | awk '{if($3!="#"){for(i=3;i<=NF;i++){print $i}}}' | grep -v '^\s*$' >> ${TMP}/lab_token.txt
         cat $f | awk '{if($3!="#"){print NF-2}}' >> ${TMP}/lab_token_num.txt
         cat $f | awk -v f=$f '{if($3!="#"){print f,NR}}' >> ${TMP}/lab_list.txt
@@ -62,5 +63,5 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     done
 
     # make lab-like txt file
-    python local/make_new_lab.py ${TMP}/lab_list.txt ${TMP}/txt_sentence.txt ${dir}/new_lab
+    python local/make_lab_w_punc.py ${TMP}/lab_list.txt ${TMP}/txt_sentence.txt ${dir}/new_${LAB}
 done
