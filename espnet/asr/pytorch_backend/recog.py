@@ -48,7 +48,9 @@ def recog_v2(args):
 
     if args.rnnlm:
         lm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        lm_class = dynamic_import_lm(lm_args.model_module, lm_args.backend)
+        # NOTE: for a compatibility with less than 0.5.0 version models
+        lm_model_module = getattr(lm_args, "model_module", "default")
+        lm_class = dynamic_import_lm(lm_model_module, lm_args.backend)
         lm = lm_class(len(train_args.char_list), lm_args)
         torch_load(args.rnnlm, lm)
         lm.eval()
