@@ -118,10 +118,10 @@ def filter_modules(model_state_dict, modules):
             incorrect_mods += [mod]
 
     if incorrect_mods:
-        logging.info("module(s) %s don\'t match or (partially match) "
-                     "available modules in model.", incorrect_mods)
-        logging.info('for information, the existing modules in model are:')
-        logging.info('%s', mods_model)
+        logging.warning("module(s) %s don\'t match or (partially match) "
+                        "available modules in model.", incorrect_mods)
+        logging.warning('for information, the existing modules in model are:')
+        logging.warning('%s', mods_model)
 
     return new_mods
 
@@ -136,7 +136,7 @@ def load_trained_model(model_path):
     idim, odim, train_args = get_model_conf(
         model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
 
-    logging.info('reading model parameters from ' + model_path)
+    logging.warning('reading model parameters from ' + model_path)
 
     if hasattr(train_args, "model_module"):
         model_module = train_args.model_module
@@ -162,13 +162,13 @@ def get_trained_model_state_dict(model_path):
 
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
     if 'rnnlm' in model_path:
-        logging.info('reading model parameters from %s', model_path)
+        logging.warning('reading model parameters from %s', model_path)
 
         return torch.load(model_path), 'lm'
 
     idim, odim, args = get_model_conf(model_path, conf_path)
 
-    logging.info('reading model parameters from ' + model_path)
+    logging.warning('reading model parameters from ' + model_path)
 
     if hasattr(args, "model_module"):
         model_module = args.model_module
@@ -183,13 +183,14 @@ def get_trained_model_state_dict(model_path):
     return model.state_dict(), 'asr-mt'
 
 
-def load_trained_modules(idim, odim, args):
+def load_trained_modules(idim, odim, args, interface=ASRInterface):
     """Load model encoder or/and decoder modules with ESPNET pre-trained model(s).
 
     Args:
         idim (int): initial input dimension.
         odim (int): initial output dimension.
         args (namespace): The initial model arguments.
+        interface (Interface): ASRInterface or STInterface
 
     Return:
         model (torch.nn.Module): The model with pretrained modules.
@@ -202,11 +203,11 @@ def load_trained_modules(idim, odim, args):
 
     model_class = dynamic_import(args.model_module)
     main_model = model_class(idim, odim, args)
-    assert isinstance(main_model, ASRInterface)
+    assert isinstance(main_model, interface)
 
     main_state_dict = main_model.state_dict()
 
-    logging.info('model(s) found for pre-initialization')
+    logging.warning('model(s) found for pre-initialization')
     for model_path, modules in [(enc_model_path, enc_modules),
                                 (dec_model_path, dec_modules)]:
         if model_path is not None:
@@ -222,13 +223,13 @@ def load_trained_modules(idim, odim, args):
                     if partial_state_dict:
                         if transfer_verification(main_state_dict, partial_state_dict,
                                                  modules):
-                            logging.info('loading %s from model: %s', modules, model_path)
+                            logging.warning('loading %s from model: %s', modules, model_path)
                             main_state_dict.update(partial_state_dict)
                         else:
-                            logging.info('modules %s in model %s don\'t match your training config',
-                                         modules, model_path)
+                            logging.warning('modules %s in model %s don\'t match your training config',
+                                            modules, model_path)
             else:
-                logging.info('model was not found : %s', model_path)
+                logging.warning('model was not found : %s', model_path)
 
     main_model.load_state_dict(main_state_dict)
 
