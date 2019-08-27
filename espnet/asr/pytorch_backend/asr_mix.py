@@ -12,6 +12,7 @@ import sys
 from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
+from itertools import zip_longest as zip_longest
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
@@ -46,11 +47,6 @@ from espnet.utils.training.train_utils import set_early_stop
 
 import matplotlib
 matplotlib.use('Agg')
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
 
 
 class CustomConverter(object):
