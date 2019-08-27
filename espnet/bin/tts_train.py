@@ -3,6 +3,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""TTS training script."""
+
 
 import configargparse
 import logging
@@ -20,6 +22,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser of training arguments."""
     parser = configargparse.ArgumentParser(
         description='Train a new text-to-speech (TTS) model on one CPU, one or multiple GPUs',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -123,6 +126,7 @@ def get_parser():
 
 
 def main(cmd_args):
+    """Run training."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
 

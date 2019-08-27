@@ -61,7 +61,7 @@ Example:
     $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
 
     # also you can specify vocoder model
-    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.ns.v1 --stop_stage 4 example.txt
+    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.ns.v1.1000k_iters --stop_stage 4 example.txt
 
 Available models:
     - libritts.tacotron2.v1
