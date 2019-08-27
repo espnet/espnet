@@ -76,9 +76,7 @@ class CustomConverter_v2(CustomConverter):
             asr_task (bool): multi-task with ASR task.
 
         """
-        self.subsampling_factor = subsampling_factor
-        self.ignore_id = -1
-        self.dtype = dtype
+        super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
         self.asr_task = asr_task
 
     def __call__(self, batch, device):
