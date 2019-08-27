@@ -489,6 +489,35 @@ class E2E(ASRInterface, torch.nn.Module):
             self.train()
         return y
 
+    def enhance(self, xs):
+        """Forwarding only the frontend stage
+
+        :param ndarray xs: input acoustic feature (T, C, F)
+        """
+
+        if self.frontend is None:
+            raise RuntimeError('Frontend doesn\'t exist')
+        prev = self.training
+        self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
+        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
+        if prev:
+            self.train()
+        
+        if isinstance(enhanced, (tuple, list)):
+            enhanced = list(enhanced)
+            masks = list(masks)
+            for idx in range(len(enhanced)):  # number of speakers
+                enhanced[idx] = enhanced[idx].cpu().numpy()
+                mask[idx] = mask[idx].cpu().numpy()
+            return enhanced, mask, ilens
+        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
+
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
@@ -554,8 +583,8 @@ class EncoderMix(torch.nn.Module):
     def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs,
                  subsample, dropout, num_spkrs=2, in_channel=1):
         super(EncoderMix, self).__init__()
-        typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
-        if typ != "lstm" and typ != "gru":
+        typ = etype.lstrip("vgg").rstrip("p")
+        if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
             logging.error("Error: need to specify an appropriate encoder architecture")
         if etype.startswith("vgg"):
             if etype[-1] == "p":
