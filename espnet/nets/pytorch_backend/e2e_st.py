@@ -196,24 +196,6 @@ class E2E(STInterface, torch.nn.Module):
         # weight initialization
         self.init_like_chainer()
 
-        # pre-training w/ ASR encoder and NMT decoder
-        if asr_model is not None:
-            param_dict = dict(asr_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the encoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'enc.enc' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
-        if mt_model is not None:
-            param_dict = dict(mt_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the decoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'dec.' in n or 'att' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
-
         # options for beam search
         if args.report_cer or args.report_wer:
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,

@@ -26,12 +26,13 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-# from espnet.nets.st_interface import STInterface
+from espnet.nets.st_interface import STInterface
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -43,10 +44,9 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-from espnet.asr.pytorch_backend.asr import CustomConverter
+from espnet.asr.pytorch_backend.asr import CustomConverter as ASRCustomConverter
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
-from espnet.asr.pytorch_backend.asr import load_trained_model
 
 import matplotlib
 matplotlib.use('Agg')
@@ -57,7 +57,7 @@ else:
     from itertools import zip_longest as zip_longest
 
 
-class CustomConverter_v2(CustomConverter):
+class CustomConverter(ASRCustomConverter):
     """Custom batch converter for Pytorch.
 
     Args:
@@ -68,7 +68,7 @@ class CustomConverter_v2(CustomConverter):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
-        """Construct a CustomConverter_v2 object.
+        """Construct a CustomConverter object.
 
         Args:
             subsampling_factor (int): The subsampling factor.
@@ -123,32 +123,16 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
-    # Initialize encoder with pre-trained ASR encoder
-    if args.asr_model:
-        asr_model, _ = load_trained_model(args.asr_model)
-        assert isinstance(asr_model, ASRInterface)
+    # Initialize with pre-trained ASR encoder and MT decoder
+    if args.enc_init is not None or args.dec_init is not None:
+        model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
-        asr_model = None
-
-    # Initialize decoder with pre-trained MT decoder
-    if args.mt_model:
-        mt_model, _ = load_trained_model(args.mt_model)
-        assert isinstance(mt_model, MTInterface)
-    else:
-        mt_model = None
-
-    # specify model architecture
-    model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args, asr_model=asr_model, mt_model=mt_model)
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
     # assert isinstance(model, STInterface)
     # TODO(hirofumi0810) fix this for after supporting Transformer
-    subsampling_factor = model.subsample[0]
 
-    # delete pre-trained models
-    if asr_model is not None:
-        del asr_model
-    if mt_model is not None:
-        del mt_model
+    subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -221,8 +205,8 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter_v2(subsampling_factor=subsampling_factor, dtype=dtype,
-                                   asr_task=args.asr_weight > 0)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype,
+                                asr_task=args.asr_weight > 0)
 
     # read json data
     with open(args.train_json, 'rb') as f:
