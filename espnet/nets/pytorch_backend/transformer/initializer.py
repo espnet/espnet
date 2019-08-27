@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Parameter initialization."""
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 def initialize(model, init_type="pytorch"):
-    """Initialize Transformer module
+    """Initialize Transformer module.
 
     :param torch.nn.Module model: transformer instance
     :param str init_type: initialization type
