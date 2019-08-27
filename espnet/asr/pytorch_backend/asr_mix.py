@@ -33,11 +33,12 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
+from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.pytorch_backend.e2e_asr_mix_multich import E2E
-from espnet.nets.pytorch_backend.e2e_asr_mix_multich import pad_list
+from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
@@ -122,30 +123,6 @@ class CustomConverter(object):
             ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
-
-def load_trained_model(model_path):
-    """Load the trained model.
-
-    Args:
-        model_path(str): Path to model.***.best
-
-    """
-    # read training config
-    idim, odim, train_args = get_model_conf(
-        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + model_path)
-    # To be compatible with v.0.3.0 models
-    if hasattr(train_args, "model_module"):
-        model_module = train_args.model_module
-    else:
-        model_module = "espnet.nets.pytorch_backend.e2e_asr_mix:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
-    torch_load(model_path, model)
-
-    return model, train_args
 
 
 def train(args):
@@ -404,6 +381,8 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
