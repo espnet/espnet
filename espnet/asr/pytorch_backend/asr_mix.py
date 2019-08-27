@@ -11,7 +11,6 @@ import os
 # chainer related
 import chainer
 
-from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 
@@ -23,6 +22,7 @@ from espnet.asr.asr_mix_utils import add_results_to_json
 from espnet.asr.asr_mix_utils import make_batchset
 from espnet.asr.asr_mix_utils import PlotAttentionReport
 from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import ChainerDataLoader
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
@@ -30,6 +30,7 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.asr_utils import TransformDataset
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
@@ -219,21 +220,16 @@ def train(args):
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = chainer.iterators.SerialIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
-            batch_size=1, repeat=False, shuffle=False)
+    # default collate function converts numpy array to pytorch tensor
+    # we used an empty collate function instead which returns list
+    train_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(train, load_tr),
+        batch_size=1, num_workers=args.n_iter_processes,
+        shuffle=True, collate_fn=lambda x: x)}
+    valid_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(valid, load_cv),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x,
+        num_workers=args.n_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(
