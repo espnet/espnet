@@ -56,8 +56,6 @@ class E2E(ASRInterface, torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
-    :param E2E (torch.nn.Module) asr_model: pre-trained ASR model for encoder initialization
-    :param E2E (torch.nn.Module) mt_model: pre-trained NMT model for decoder initialization
 
     """
     @staticmethod
@@ -128,7 +126,7 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Ratio of predicted labels fed back to decoder')
         return parser
 
-    def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
+    def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
@@ -195,24 +193,6 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # weight initialization
         self.init_like_chainer()
-
-        # pre-training w/ ASR encoder and NMT decoder
-        if asr_model is not None:
-            param_dict = dict(asr_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the encoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'enc.enc' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
-        if mt_model is not None:
-            param_dict = dict(mt_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the decoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'dec.' in n or 'att' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
 
         # options for beam search
         if args.report_cer or args.report_wer:
@@ -482,12 +462,15 @@ class E2E(ASRInterface, torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs_pad)
+            normalize_score = False
         else:
             lpz = None
+            normalize_score = True
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
-        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list,
+                                          rnnlm, normalize_score=normalize_score)
 
         if prev:
             self.train()
