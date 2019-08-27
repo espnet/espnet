@@ -53,7 +53,7 @@ how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
 #    |_ fbank_pitch_181516/
 
 # bpemode (unigram or bpe)
-nbpe=1000
+nbpe=8000
 bpemode=bpe
 
 # exp tag
@@ -222,8 +222,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json \
-        --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --enc-init ${asr_model} \
+        --dec-init ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
