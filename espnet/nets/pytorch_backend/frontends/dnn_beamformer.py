@@ -84,6 +84,7 @@ class DNN_Beamformer(torch.nn.Module):
 
         # mask: (B, F, C, T)
         masks, _ = self.mask(data, ilens)
+        assert self.nmask == len(masks)
 
         if self.nmask == 2:  # (mask_speech, mask_noise)
             mask_speech, mask_noise = masks

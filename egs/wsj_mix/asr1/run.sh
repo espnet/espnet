@@ -102,7 +102,6 @@ set -o pipefail
 
 train_set="tr"
 train_dev="cv"
-train_test="tt"
 recog_set="tt"
 
 if [ ${stage} -le 0 ]; then
@@ -161,7 +160,7 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    for rtask in ${train_test}; do
+    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
@@ -196,7 +195,7 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --num-spkrs 2 \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    for rtask in ${train_test}; do
+    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         local/data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} --num-spkrs 2 data/${rtask} ${dict} > ${feat_recog_dir}/data.json
