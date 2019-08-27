@@ -7,7 +7,6 @@
 import json
 import logging
 import os
-import sys
 
 from chainer.datasets import TransformDataset
 from chainer import training
