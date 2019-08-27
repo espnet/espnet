@@ -169,6 +169,7 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     assert min_loss == true_losses[data_idx]
     assert torch.equal(min_perm, true_perm[data_idx])
 
+
 @pytest.mark.parametrize(("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"), [
     (True, True, 3, 2, "espnet.nets.pytorch_backend.e2e_asr_mix"),
 ])
@@ -219,7 +220,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     ws2 = b.get_mvdr_vector(psd_speech2, psd_speech1 + psd_noise, u2)
 
     enhanced1 = b.apply_beamforming_vector(ws1, feat).transpose(-1, -2)
-    enhanced2 = b.apply_beamforming_vector(ws1, feat).transpose(-1, -2)
+    enhanced2 = b.apply_beamforming_vector(ws2, feat).transpose(-1, -2)
 
     assert torch.equal(enhanced1.real, enhanced[0].real)
     assert torch.equal(enhanced2.real, enhanced[1].real)
