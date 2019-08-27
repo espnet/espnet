@@ -65,7 +65,7 @@ def prepare(backend):
         report_wer=False,
         mtlalpha=0.0,
         lsm_weight=0.001,
-        char_list=['a', 'e', 'i', 'o', 'u']
+        char_list=['a', 'e', 'i', 'o', 'u'],
     )
     idim = 40
     odim = 5
@@ -103,8 +103,10 @@ def prepare(backend):
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_transformer_mask(module):
     model, x, ilens, y, data = prepare(module)
-    yi, yo = model.add_sos_eos(y)
-    y_mask = model.target_mask(yi)
+    from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+    from espnet.nets.pytorch_backend.transformer.mask import target_mask
+    yi, yo = add_sos_eos(y, model.sos, model.eos, model.ignore_id)
+    y_mask = target_mask(yi, model.ignore_id)
     y = model.decoder.embed(yi)
     y[0, 3:] = float("nan")
     a = model.decoder.decoders[0].self_attn

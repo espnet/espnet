@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""End-to-end speech recognition model decoding script."""
+"""End-to-end speech translation model decoding script."""
 
 import configargparse
 import logging
@@ -14,15 +14,12 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
 
 # NOTE: you need this func to generate our sphinx doc
-
-
 def get_parser():
     """Get default arguments."""
     parser = configargparse.ArgumentParser(
-        description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
+        description='Translate text from speech using a speech translation model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -55,8 +52,8 @@ def get_parser():
         v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
         v2: Experimental API. It supports any models that implements ScorerInterface.''')
     # task related
-    parser.add_argument('--recog-json', type=str,
-                        help='Filename of recognition data (json)')
+    parser.add_argument('--trans-json', type=str,
+                        help='Filename of translation data (json)')
     parser.add_argument('--result-label', type=str, required=True,
                         help='Filename of result label data (json)')
     # model (parameter) related
@@ -64,9 +61,6 @@ def get_parser():
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
-    parser.add_argument('--num-spkrs', type=int, default=1,
-                        choices=[1, 2],
-                        help='Number of speakers in the speech')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -80,17 +74,6 @@ def get_parser():
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', type=float, default=0.0,
-                        help='CTC weight in joint decoding')
-    parser.add_argument('--ctc-window-margin', type=int, default=0,
-                        help="""Use CTC window with margin parameter to accelerate
-                        CTC/attention decoding especially on GPU. Smaller magin
-                        makes decoding faster, but may increase search errors.
-                        If margin=0 (default), this function is disabled""")
-    # transducer related
-    parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
-                        default=True,
-                        help='Normalize transducer scores by length')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -104,19 +87,9 @@ def get_parser():
                         help='Word list to read')
     parser.add_argument('--lm-weight', type=float, default=0.1,
                         help='RNNLM weight')
-    # streaming related
-    parser.add_argument('--streaming-mode', type=str, default=None,
-                        choices=['window', 'segment'],
-                        help="""Use streaming recognizer for inference.
-                        `--batchsize` must be set to 0 to enable this mode""")
-    parser.add_argument('--streaming-window', type=int, default=10,
-                        help='Window size')
-    parser.add_argument('--streaming-min-blank-dur', type=int, default=10,
-                        help='Minimum blank duration threshold')
-    parser.add_argument('--streaming-onset-margin', type=int, default=1,
-                        help='Onset margin')
-    parser.add_argument('--streaming-offset-margin', type=int, default=1,
-                        help='Offset margin')
+    # multilingual related
+    parser.add_argument('--tgt-lang', default=False, type=str,
+                        help='target language ID (e.g., <en>, <de>, and <fr> etc.)')
     return parser
 
 
@@ -124,9 +97,6 @@ def main(args):
     """Run the main decoding function."""
     parser = get_parser()
     args = parser.parse_args(args)
-
-    if args.ngpu == 0 and args.dtype == "float16":
-        raise ValueError(f"--dtype {args.dtype} does not support the CPU backend.")
 
     # logging info
     if args.verbose == 1:
@@ -167,30 +137,16 @@ def main(args):
         logging.error("It seems that both --rnnlm and --word-rnnlm are specified. Please use either option.")
         sys.exit(1)
 
-    # recog
+    # trans
     logging.info('backend = ' + args.backend)
-    if args.num_spkrs == 1:
-        if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import recog
-            recog(args)
-        elif args.backend == "pytorch":
-            # Experimental API that supports custom LMs
-            if args.api == "v2":
-                from espnet.asr.pytorch_backend.recog import recog_v2
-                recog_v2(args)
-            else:
-                from espnet.asr.pytorch_backend.asr import recog
-                if args.dtype != "float32":
-                    raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
-                recog(args)
-        else:
-            raise ValueError("Only chainer and pytorch are supported.")
-    elif args.num_spkrs == 2:
-        if args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr_mix import recog
-            recog(args)
-        else:
-            raise ValueError("Only pytorch is supported.")
+    if args.backend == "pytorch":
+        # Experimental API that supports custom LMs
+        from espnet.st.pytorch_backend.st import trans
+        if args.dtype != "float32":
+            raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
+        trans(args)
+    else:
+        raise ValueError("Only pytorch are supported.")
 
 
 if __name__ == '__main__':

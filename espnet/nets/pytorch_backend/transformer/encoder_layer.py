@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Encoder self-attention layer definition."""
+
 import torch
 
 from torch import nn
@@ -6,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class EncoderLayer(nn.Module):
-    """Encoder layer module
+    """Encoder layer module.
 
     :param int size: input dim
     :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention self_attn: self attention module
@@ -17,10 +25,12 @@ class EncoderLayer(nn.Module):
     :param bool concat_after: whether to concat attention layer's input and output
         if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
+
     """
 
     def __init__(self, size, self_attn, feed_forward, dropout_rate,
                  normalize_before=True, concat_after=False):
+        """Construct an EncoderLayer object."""
         super(EncoderLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
@@ -34,7 +44,7 @@ class EncoderLayer(nn.Module):
             self.concat_linear = nn.Linear(size + size, size)
 
     def forward(self, x, mask):
-        """Compute encoded features
+        """Compute encoded features.
 
         :param torch.Tensor x: encoded source features (batch, max_time_in, size)
         :param torch.Tensor mask: mask for x (batch, max_time_in)
