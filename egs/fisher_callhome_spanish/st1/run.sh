@@ -268,8 +268,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.${case}.json \
         --valid-json ${feat_dt_dir}/data.${case}.json \
-        --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --enc-init ${asr_model} \
+        --dec-init ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
