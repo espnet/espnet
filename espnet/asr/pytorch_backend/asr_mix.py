@@ -223,11 +223,11 @@ def train(args):
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(train, load_tr),
+        dataset=TransformDataset(train, converter.transform),
         batch_size=1, num_workers=args.n_iter_processes,
         shuffle=True, collate_fn=lambda x: x)}
     valid_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(valid, load_cv),
+        dataset=TransformDataset(valid, converter.transform),
         batch_size=1, shuffle=False, collate_fn=lambda x: x,
         num_workers=args.n_iter_processes)}
 
