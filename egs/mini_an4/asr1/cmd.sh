@@ -27,8 +27,8 @@
 # =========================================================~
 
 
-# Select the backend used by run.sh from "local", "sge", "slurm", or "ssh"
-cmd_backend='local'
+# Select the backend used by run.sh from "local", "stdout", "sge", "slurm", or "ssh"
+cmd_backend='stdout'
 
 # Local machine, without any Job scheduling system
 if [ "${cmd_backend}" = local ]; then
@@ -39,6 +39,16 @@ if [ "${cmd_backend}" = local ]; then
     export cuda_cmd="run.pl"
     # Used for "*_recog.py"
     export decode_cmd="run.pl"
+
+# Local machine logging to stdout and log file, without any Job scheduling system
+elif [ "${cmd_backend}" = stdout ]; then
+
+    # The other usage
+    export train_cmd="stdout.pl"
+    # Used for "*_train.py": "--gpu" is appended optionally by run.sh
+    export cuda_cmd="stdout.pl"
+    # Used for "*_recog.py"
+    export decode_cmd="stdout.pl"
 
 # "qsub" (SGE, Torque, PBS, etc.)
 elif [ "${cmd_backend}" = sge ]; then
@@ -80,7 +90,7 @@ elif [ "${cmd_backend}" = ssh ]; then
 elif [ "${cmd_backend}" = jhu ]; then
 
     export train_cmd="queue.pl --mem 2G"
-    export cuda_cmd="queue.pl --mem 2G --gpu 1 --config conf/gpu.conf"
+    export cuda_cmd="queue-freegpu.pl --mem 2G --gpu 1 --config conf/gpu.conf"
     export decode_cmd="queue.pl --mem 4G"
 
 else

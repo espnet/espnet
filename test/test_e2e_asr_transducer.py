@@ -39,6 +39,7 @@ def get_default_train_args(**kwargs):
         sym_blank='<blank>',
         report_cer=False,
         report_wer=False,
+        score_norm_transducer=True,
         beam_size=1,
         nbest=1,
         verbose=2,

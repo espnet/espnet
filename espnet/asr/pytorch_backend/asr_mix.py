@@ -4,18 +4,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import copy
 import json
 import logging
-import math
 import os
 import sys
 
 from chainer.datasets import TransformDataset
-from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
-from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
@@ -25,7 +21,6 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -36,14 +31,10 @@ from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.transform.spectrogram import IStft
-from espnet.transform.transformation import Transformation
-from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -114,7 +105,7 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
-        # TODO: try to make this neat
+        # TODO(Xuankai): try to make this neat
         if not isinstance(ys[0], np.ndarray):
             ys_pad = [torch.from_numpy(y[0]).long() for y in ys] + [torch.from_numpy(y[1]).long() for y in ys]
             ys_pad = pad_list(ys_pad, self.ignore_id)
@@ -442,11 +433,12 @@ def recog(args):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
 
-        # sort data
+        # sort data if batchsize > 1
         keys = list(js.keys())
-        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-        keys = [keys[i] for i in sorted_index]
+        if args.batchsize > 1:
+            feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+            sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+            keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):

@@ -9,8 +9,8 @@ from __future__ import division
 import argparse
 import logging
 import math
-import sys
 import os
+import sys
 
 import editdistance
 
@@ -18,8 +18,6 @@ import chainer
 import numpy as np
 import six
 import torch
-
-from itertools import groupby
 
 from chainer import reporter
 
@@ -33,7 +31,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import Encoder
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for as encoder_for_single
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 
@@ -157,7 +155,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if args.lsm_type and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type,
-            transcript=args.train_json)
+                                             transcript=args.train_json)
         else:
             labeldist = None
 
@@ -474,15 +472,17 @@ class E2E(ASRInterface, torch.nn.Module):
             for i in range(self.num_spkrs):
                 hs_pad[i], hlens[i], _ = self.enc(hs_pad[i], hlens[i])
 
-
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = [self.ctc.log_softmax(hs_pad[i]) for i in range(self.num_spkrs)]
+            normalize_score = False
         else:
             lpz = None
+            normalize_score = True
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hs_pad[i], hlens[i], lpz[i], recog_args, char_list, rnnlm, strm_idx=i)
+        y = [self.dec.recognize_beam_batch(hs_pad[i], hlens[i], lpz[i], recog_args, char_list,
+                                           rnnlm, normalize_score=normalize_score, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
@@ -508,10 +508,10 @@ class E2E(ASRInterface, torch.nn.Module):
         enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
         if prev:
             self.train()
-        
+
         if isinstance(enhanced, (tuple, list)):
             enhanced = list(enhanced)
-            masks = list(masks)
+            mask = list(mask)
             for idx in range(len(enhanced)):  # number of speakers
                 enhanced[idx] = enhanced[idx].cpu().numpy()
                 mask[idx] = mask[idx].cpu().numpy()
@@ -560,7 +560,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             # 2. Decoder
             att_ws = [self.dec.calculate_all_attentions(hs_pad[i], hlens[i], ys_pad[i], strm_idx=i)
-                         for i in range(self.num_spkrs)]
+                      for i in range(self.num_spkrs)]
 
         return att_ws
 
@@ -637,7 +637,6 @@ class EncoderMix(torch.nn.Module):
 def encoder_for(args, idim, subsample):
     if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
         # with frontend, the mixed speech are separated as streams for each speaker
-        from espnet.nets.pytorch_backend.rnn.encoders import encoder_for as encoder_for_single
         return encoder_for_single(args, idim, subsample)
     else:
         return EncoderMix(args.etype, idim, args.elayers_sd, args.elayers, args.eunits, args.eprojs, subsample,

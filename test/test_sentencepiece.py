@@ -30,8 +30,8 @@ def test_spm_compatibility():
     # test encode and decode
     sp = spm.SentencePieceProcessor()
     sp.Load(f"{bpemodel}.model")
-    txt = "test sentencepiece."
+    txt = "test sentencepiece.[noise]"
     actual = sp.EncodeAsPieces(txt)
-    expect = "▁ te s t ▁ s en t en c e p ie c e .".split()
+    expect = "▁ te s t ▁ s en t en c e p ie c e . [noise]".split()
     assert actual == expect
     assert sp.DecodePieces(actual) == txt

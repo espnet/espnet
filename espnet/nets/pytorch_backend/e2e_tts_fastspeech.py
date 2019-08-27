@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""FastSpeech related modules."""
+
 import logging
 
 import torch
@@ -35,42 +37,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     This is a module of FastSpeech, feed-forward Transformer with duration predictor described in
     `FastSpeech: Fast, Robust and Controllable Text to Speech`_, which does not require any auto-regressive
     processing during inference, resulting in fast decoding compared with auto-regressive Transformer.
-
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        args (Namespace, optional):
-            - elayers (int): Number of encoder layers.
-            - eunits (int): Number of encoder hidden units.
-            - adim (int): Number of attention transformation dimensions.
-            - aheads (int): Number of heads for multi head attention.
-            - dlayers (int): Number of decoder layers.
-            - dunits (int): Number of decoder hidden units.
-            - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
-            - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
-            - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
-            - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
-            - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
-            - duration_predictor_layers (int): Number of duration predictor layers.
-            - duration_predictor_chans (int): Number of duration predictor channels.
-            - duration_predictor_kernel_size (int): Kernel size of duration predictor.
-            - spk_embed_dim (int): Number of speaker embedding dimenstions.
-            - spk_embed_integration_type: How to integrate speaker embedding.
-            - teacher_model (str): Teacher auto-regressive transformer model path.
-            - reduction_factor (int): Reduction factor.
-            - transformer_init (float): How to initialize transformer parameters.
-            - transformer_lr (float): Initial value of learning rate.
-            - transformer_warmup_steps (int): Optimizer warmup steps.
-            - transformer_enc_dropout_rate (float): Dropout rate in encoder except for attention & positional encoding.
-            - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
-            - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
-            - transformer_dec_dropout_rate (float): Dropout rate in decoder except for attention & positional encoding.
-            - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
-            - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
-            - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-            - use_masking (bool): Whether to use masking in calculation of loss.
-            - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
-            - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
@@ -164,6 +130,45 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args=None):
+        """Initialize feed-forward Transformer module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            args (Namespace, optional):
+                - elayers (int): Number of encoder layers.
+                - eunits (int): Number of encoder hidden units.
+                - adim (int): Number of attention transformation dimensions.
+                - aheads (int): Number of heads for multi head attention.
+                - dlayers (int): Number of decoder layers.
+                - dunits (int): Number of decoder hidden units.
+                - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
+                - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
+                - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
+                - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
+                - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+                - duration_predictor_layers (int): Number of duration predictor layers.
+                - duration_predictor_chans (int): Number of duration predictor channels.
+                - duration_predictor_kernel_size (int): Kernel size of duration predictor.
+                - spk_embed_dim (int): Number of speaker embedding dimenstions.
+                - spk_embed_integration_type: How to integrate speaker embedding.
+                - teacher_model (str): Teacher auto-regressive transformer model path.
+                - reduction_factor (int): Reduction factor.
+                - transformer_init (float): How to initialize transformer parameters.
+                - transformer_lr (float): Initial value of learning rate.
+                - transformer_warmup_steps (int): Optimizer warmup steps.
+                - transformer_enc_dropout_rate (float): Dropout rate in encoder except attention & positional encoding.
+                - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
+                - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
+                - transformer_dec_dropout_rate (float): Dropout rate in decoder except attention & positional encoding.
+                - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
+                - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
+                - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
+                - use_masking (bool): Whether to use masking in calculation of loss.
+                - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
+                - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
+
+        """
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
