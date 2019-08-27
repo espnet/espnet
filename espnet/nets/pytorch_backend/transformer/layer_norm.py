@@ -17,6 +17,7 @@ class LayerNorm(torch.nn.LayerNorm):
     """
 
     def __init__(self, nout, dim=-1):
+        """Construct an LayerNorm object."""
         super(LayerNorm, self).__init__(nout, eps=1e-12)
         self.dim = dim
 

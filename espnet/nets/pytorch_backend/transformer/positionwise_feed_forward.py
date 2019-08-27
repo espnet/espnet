@@ -26,4 +26,5 @@ class PositionwiseFeedForward(torch.nn.Module):
         self.dropout = torch.nn.Dropout(dropout_rate)
 
     def forward(self, x):
+        """Forward funciton."""
         return self.w_2(self.dropout(torch.relu(self.w_1(x))))
