@@ -51,10 +51,6 @@ espnet/nets/pytorch_backend/rnn/decoders.py
 espnet/nets/pytorch_backend/rnn/encoders.py
 espnet/nets/pytorch_backend/streaming/segment.py
 espnet/nets/pytorch_backend/streaming/window.py
-espnet/nets/pytorch_backend/transformer/decoder.py
-espnet/nets/pytorch_backend/transformer/encoder.py
-espnet/nets/pytorch_backend/transformer/multi_layer_conv.py
-espnet/nets/pytorch_backend/transformer/optimizer.py
 espnet/nets/pytorch_backend/transformer/plot.py
 espnet/nets/pytorch_backend/wavenet.py
 espnet/transform/add_deltas.py
