@@ -600,6 +600,7 @@ class ChainerDataLoader(object):
         self.epoch_detail = 0
         self.epoch = 0
         self.iter = None
+        self.kwargs = kwargs
 
     def next(self):
         if self.iter is None:
@@ -620,3 +621,7 @@ class ChainerDataLoader(object):
 
     def serialize(self, serializer):
         pass
+
+    def start_shuffle(self):
+        self.kwargs['shuffle'] = True
+        self.loader = torch.utils.data.dataloader.DataLoader(**self.kwargs)
