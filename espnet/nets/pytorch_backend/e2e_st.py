@@ -135,14 +135,7 @@ class E2E(STInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
-        """Construct an E2E object.
-
-        :param int idim: dimension of inputs
-        :param int odim: dimension of outputs
-        :param Namespace args: argument Namespace containing options
-        :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
-        :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
-        """
+        """Construct an E2E object."""
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.asr_weight = getattr(args, "asr_weight", 0)
@@ -281,13 +274,14 @@ class E2E(STInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
-        # 1. Encoder
+        # 0. Extract target language ID
         if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
         else:
             tgt_lang_ids = None
 
+        # 1. Encoder
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. ASR loss
