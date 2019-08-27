@@ -9,8 +9,6 @@ import logging
 import os
 
 # chainer related
-import chainer
-
 from chainer import training
 from chainer.training import extensions
 
