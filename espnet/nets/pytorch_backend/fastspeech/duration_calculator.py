@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Duration calculator related modules."""
+
 import torch
 
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
@@ -13,15 +15,18 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class DurationCalculator(torch.nn.Module):
     """Duration calculator module for FastSpeech.
 
-    Args:
-        teacher_model (e2e_tts_transformer.Transformer): Pretrained auto-regressive Transformer.
-
     Todo:
         * Fix the duplicated calculation of diagonal head decision
 
     """
 
     def __init__(self, teacher_model):
+        """Initialize duration calculator module.
+
+        Args:
+            teacher_model (e2e_tts_transformer.Transformer): Pretrained auto-regressive Transformer.
+
+        """
         super(DurationCalculator, self).__init__()
         if not isinstance(teacher_model, Transformer):
             raise ValueError("teacher model should be the instance of e2e_tts_transformer.Transformer")
@@ -31,11 +36,12 @@ class DurationCalculator(torch.nn.Module):
     def forward(self, xs, ilens, ys, olens, spembs=None):
         """Calculate forward propagation.
 
-        xs (Tensor): Batch of the padded sequences of character ids (B, Tmax).
-        ilens (Tensor): Batch of lengths of each input sequence (B,).
-        ys (Tensor): Batch of the padded sequence of target features (B, Lmax, odim).
-        olens (Tensor): Batch of lengths of each output sequence (B,).
-        spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+        Args:
+            xs (Tensor): Batch of the padded sequences of character ids (B, Tmax).
+            ilens (Tensor): Batch of lengths of each input sequence (B,).
+            ys (Tensor): Batch of the padded sequence of target features (B, Lmax, odim).
+            olens (Tensor): Batch of lengths of each output sequence (B,).
+            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
 
         Returns:
             Tensor: Batch of durations (B, Tmax).
