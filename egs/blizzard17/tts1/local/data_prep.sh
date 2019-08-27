@@ -6,6 +6,7 @@
 db=$1
 data_dir=$2
 fs=44100
+LAB=new_lab_wo_sil
 
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
@@ -35,21 +36,28 @@ mkdir -p local/tmp
 edit_file=${db}/enUK.rename/fls/WindInTheWillows_picturebook/lab/Wind_in_Willows_final01.lab
 cat ${edit_file} | awk '{if(NR==27){printf("%s poop\n",$0);}else{print $0;}}' > local/tmp/tmp.txt
 cat local/tmp/tmp.txt > ${edit_file}
+edit_file=${db}/enUK.rename/fls/RomeoAndJuliet/lab/03_Track_03.lab
+cat ${edit_file} | sed -e 's/8.914800/8.700000/g' -e 's/12.903200/12.920000/g' > local/tmp/tmp.txt
+cat local/tmp/tmp.txt > ${edit_file}
 
-# make new lab file from txt
-local/make_new_lab.sh ${db}/enUK.rename
+# make lab_wosil file to ignore longer silence (based on wav, lab)
+local/make_lab_wo_sil.sh ${db}/enUK.rename
+
+# make lab_wosil_wp file to add punctuationfrom mark (based on txt, lab)
+local/make_lab_w_punc.sh ${db}/enUK.rename
+echo "finished creating new_lab_wo_sil."
 
 # make scp
 echo -n > local/tmp/tmp.scp
 for ftype in "m4a" "mp3" "wma";do
-    find ${db}/enUK.rename -name "*.${ftype}" | sort | while read -r in_file;do
-	lab_file=$(echo ${in_file} | sed -e "s/audio/new_lab/g" -e "s/${ftype}/lab/g")
+   find ${db}/enUK.rename -name "*.${ftype}" | sort | while read -r in_file;do
+	lab_file=$(echo ${in_file} | sed -e "s/audio/${LAB}/g" -e "s/${ftype}/lab/g")
 	if [ -e ${lab_file} ]; then
 	    id=$(basename ${in_file} | sed -e "s/\.[^\.]*$//g")
 	    dir_id=$(echo ${in_file} | awk -F'/' '{print $(NF-2)}')
 	    echo "${dir_id}_${id} ffmpeg -loglevel warning -i ${in_file} -ac 1 -ar ${fs} -acodec pcm_s16le -f wav -y - |" >> local/tmp/tmp.scp
 	fi
-    done
+   done
 done
 cat local/tmp/tmp.scp | sort > ${scp}
 echo "finished making wav.scp."
@@ -57,7 +65,7 @@ echo "finished making wav.scp."
 # make segments, text
 echo -n > ${segments}
 echo -n > ${text}
-cat ${scp} | awk '{print $6}' | sed -e "s/audio/new_lab/g" -e "s/mp3/lab/g" -e "s/m4a/lab/g" -e "s/wma/lab/g" | while read -r filename;do
+cat ${scp} | awk '{print $6}' | sed -e "s/audio/${LAB}/g" -e "s/mp3/lab/g" -e "s/m4a/lab/g" -e "s/wma/lab/g" | while read -r filename;do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
     dir_id=$(echo ${filename} | awk -F'/' '{print $(NF-2)}')
     cat ${filename} | awk -v "utt_id=${dir_id}_${id}" \

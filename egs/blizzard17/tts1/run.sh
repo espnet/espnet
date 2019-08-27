@@ -18,6 +18,7 @@ N=0          # number of minibatches to be used (mainly for debugging). "0" uses
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
+
 # feature extraction related
 fs=44100      # sampling frequency
 fmax=""       # maximum frequency
@@ -28,7 +29,7 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/tuning/train_pytorch_tacotron2.tuning.rev2.yaml # you can select from conf or conf/tuning.
+train_config=conf/tuning/train_pytorch_tacotron2.tuning.lab3-rev3.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
@@ -143,7 +144,11 @@ else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
+# if [ -e ${expdir}/ ]; then
+#     echo "${expdir} exits. Please chenge the config file name to avoid overwrite the results." && exit 1
+# fi
 mkdir -p ${expdir}
+
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
