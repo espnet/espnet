@@ -11,9 +11,10 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer
 
-    :param int n_head: the number of head s
-    :param int n_feat: the number of features
+    :param int n_head: the number of head s,default is 4
+    :param int n_feat: the number of features, default is 256
     :param float dropout_rate: dropout rate
+    
     """
 
     def __init__(self, n_head, n_feat, dropout_rate):
@@ -32,12 +33,13 @@ class MultiHeadedAttention(nn.Module):
     def forward(self, query, key, value, mask):
         """Compute 'Scaled Dot Product Attention'
 
-        :param torch.Tensor query: (batch, time1, size)
+        :param torch.Tensor query: (batch, time1, size), I think "n_feat" equal to "size".
+        so,self.linear_q(query) output is (batch,time1,n_feat),where n_feat=h * d_k
         :param torch.Tensor key: (batch, time2, size)
         :param torch.Tensor value: (batch, time2, size)
         :param torch.Tensor mask: (batch, time1, time2)
         :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attentined and transformed `value` (batch, time1, d_model)
+        :return torch.Tensor: attentioned and transformed `value` (batch, time1, d_model)
              weighted by the query dot key attention (batch, head, time1, time2)
         """
         n_batch = query.size(0)
@@ -49,6 +51,7 @@ class MultiHeadedAttention(nn.Module):
         v = v.transpose(1, 2)  # (batch, head, time2, d_k)
 
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)  # (batch, head, time1, time2)
+                                                                             # score is QK^T/sqrt(self.d_k)
         if mask is not None:
             mask = mask.unsqueeze(1).eq(0)  # (batch, 1, time1, time2)
             scores = scores.masked_fill(mask, MIN_VALUE)
@@ -58,5 +61,5 @@ class MultiHeadedAttention(nn.Module):
 
         p_attn = self.dropout(self.attn)
         x = torch.matmul(p_attn, v)  # (batch, head, time1, d_k)
-        x = x.transpose(1, 2).contiguous().view(n_batch, -1, self.h * self.d_k)  # (batch, time1, d_model)
-        return self.linear_out(x)  # (batch, time1, d_model)
+        x = x.transpose(1, 2).contiguous().view(n_batch, -1, self.h * self.d_k)  # (batch, time1, d_model),note:d_model=n_feat
+        return self.linear_out(x)  # (batch, time1, d_model) note:d_model=n_feat
