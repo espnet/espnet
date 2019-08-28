@@ -1,14 +1,38 @@
 """ASR Interface module."""
+import argparse
+
+from espnet.bin.asr_train import get_parser
 from espnet.utils.dynamic_import import dynamic_import
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
-class ASRInterface(object):
+class ASRInterface:
     """ASR Interface for ESPnet model implementation."""
 
     @staticmethod
     def add_arguments(parser):
         """Add arguments to parser."""
         return parser
+
+    @classmethod
+    def build(cls, idim: int, odim: int, **kwargs):
+        """Initialize this class with python-level args.
+
+        Args:
+            idim (int): The number of an input feature dim.
+            odim (int): The number of output vocab.
+
+        Returns:
+            ASRinterface: A new instance of ASRInterface.
+
+        """
+        def wrap(parser):
+            return get_parser(parser, required=False)
+
+        args = argparse.Namespace(**kwargs)
+        args = fill_missing_args(args, wrap)
+        args = fill_missing_args(args, cls.add_arguments)
+        return cls(idim, odim, args)
 
     def forward(self, xs, ilens, ys):
         """Compute loss for training.
@@ -38,6 +62,18 @@ class ASRInterface(object):
         :rtype: list
         """
         raise NotImplementedError("recognize method is not implemented")
+
+    def recognize_batch(self, x, recog_args, char_list=None, rnnlm=None):
+        """Beam search implementation for batch.
+
+        :param torch.Tensor x: encoder hidden state sequences (B, Tmax, Henc)
+        :param namespace recog_args: argument namespace containing options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        """
+        raise NotImplementedError("Batch decoding is not supported yet.")
 
     def calculate_all_attentions(self, xs, ilens, ys):
         """Caluculate attention.

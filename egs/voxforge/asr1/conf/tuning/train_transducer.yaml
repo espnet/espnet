@@ -13,26 +13,32 @@ patience: 3
 
 # network architecture
 ## encoder related
-etype: vggblstmp
+etype: vggblstm
 elayers: 4
-eunits: 320
-eprojs: 320
+eunits: 256
+eprojs: 256
+subsample: "1_1_1_1_1"
+dropout-rate: 0.5
 ## decoder related
 dtype: lstm
 dlayers: 1
-dunits: 300
-dec-embed-dim: 320
+dec-embed-dim: 256
+dunits: 256
+dropout-rate-decoder: 0.2
+dropout-rate-embed-decoder: 0.2
 ## attention related
 atype: location
-adim: 320
+adim: 256
+aheads: 1
+awin: 5
 aconv-chans: 10
 aconv-filts: 100
 ## joint network related
-joint-dim: 320
+joint-dim: 256
 
 # transducer related
 ## mtlalpha should be set to 1.0 (CTC) to use transducer
 mtlalpha: 1.0
-## transducer mode
-rnnt-mode: 'rnnt-att'
+## switch to 'rnnt-att' to use transducer with attention
+rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

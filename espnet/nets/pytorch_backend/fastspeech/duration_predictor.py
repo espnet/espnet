@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Duration predictor related modules."""
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -15,14 +17,6 @@ class DurationPredictor(torch.nn.Module):
     This is a module of duration predictor described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
     The duration predictor predicts a duration of each frame in log domain from the hidden embeddings of encoder.
 
-    Args:
-        idim (int): Input dimension.
-        n_layers (int, optional): Number of convolutional layers.
-        n_chans (int, optional): Number of channels of convolutional layers.
-        kernel_size (int, optional): Kernel size of convolutional layers.
-        dropout_rate (float, optional): Dropout rate.
-        offset (float, optional): Offset value to avoid nan in log domain.
-
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
@@ -33,6 +27,17 @@ class DurationPredictor(torch.nn.Module):
     """
 
     def __init__(self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0):
+        """Initilize duration predictor module.
+
+        Args:
+            idim (int): Input dimension.
+            n_layers (int, optional): Number of convolutional layers.
+            n_chans (int, optional): Number of channels of convolutional layers.
+            kernel_size (int, optional): Kernel size of convolutional layers.
+            dropout_rate (float, optional): Dropout rate.
+            offset (float, optional): Offset value to avoid nan in log domain.
+
+        """
         super(DurationPredictor, self).__init__()
         self.offset = offset
         self.conv = torch.nn.ModuleList()
@@ -95,12 +100,15 @@ class DurationPredictorLoss(torch.nn.Module):
 
     The loss value is Calculated in log domain to make it Gaussian.
 
-    Args:
-        offset (float, optional): Offset value to avoid nan in log domain.
-
     """
 
     def __init__(self, offset=1.0):
+        """Initilize duration predictor loss module.
+
+        Args:
+            offset (float, optional): Offset value to avoid nan in log domain.
+
+        """
         super(DurationPredictorLoss, self).__init__()
         self.criterion = torch.nn.MSELoss()
         self.offset = offset

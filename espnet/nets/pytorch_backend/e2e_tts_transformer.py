@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""TTS-Transformer related modules."""
+
 import logging
 
 import torch
@@ -63,15 +65,16 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
 
 class TransformerLoss(torch.nn.Module):
-    """Loss function module for TTS-Transformer.
-
-    Args:
-        use_masking (bool, optional): Whether to mask padded part in loss calculation.
-        bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
-
-    """
+    """Loss function module for TTS-Transformer."""
 
     def __init__(self, use_masking=True, bce_pos_weight=5.0):
+        """Initialize Transformer loss module.
+
+        Args:
+            use_masking (bool, optional): Whether to mask padded part in loss calculation.
+            bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
+
+        """
         super(TransformerLoss, self).__init__()
         # store hyperparameters
         self.use_masking = use_masking
@@ -149,57 +152,6 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     This is a module of text-to-speech Transformer described in `Neural Speech Synthesis with Transformer Network`_,
     which convert the sequence of characters or phonemes into the sequence of Mel-filterbanks.
-
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        args (Namespace, optional):
-            - embed_dim (int): Dimension of character embedding.
-            - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
-            - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
-            - eprenet_conv_filts (int): Filter size of encoder prenet convolution.
-            - dprenet_layers (int): Number of decoder prenet layers.
-            - dprenet_units (int): Number of decoder prenet hidden units.
-            - elayers (int): Number of encoder layers.
-            - eunits (int): Number of encoder hidden units.
-            - adim (int): Number of attention transformation dimensions.
-            - aheads (int): Number of heads for multi head attention.
-            - dlayers (int): Number of decoder layers.
-            - dunits (int): Number of decoder hidden units.
-            - postnet_layers (int): Number of postnet layers.
-            - postnet_chans (int): Number of postnet channels.
-            - postnet_filts (int): Filter size of postnet.
-            - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
-            - use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
-            - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
-            - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
-            - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
-            - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
-            - reduction_factor (int): Reduction factor.
-            - spk_embed_dim (int): Number of speaker embedding dimenstions.
-            - spk_embed_integration_type: How to integrate speaker embedding.
-            - transformer_init (float): How to initialize transformer parameters.
-            - transformer_lr (float): Initial value of learning rate.
-            - transformer_warmup_steps (int): Optimizer warmup steps.
-            - transformer_enc_dropout_rate (float): Dropout rate in encoder except for attention & positional encoding.
-            - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
-            - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
-            - transformer_dec_dropout_rate (float): Dropout rate in decoder except for attention & positional encoding.
-            - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
-            - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
-            - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-            - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
-            - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
-            - postnet_dropout_rate (float): Dropout rate in postnet.
-            - use_masking (bool): Whether to use masking in calculation of loss.
-            - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
-            - loss_type (str): How to calculate loss.
-            - use_guided_attn_loss (bool): Whether to use guided attention loss.
-            - num_heads_applied_guided_attn (int): Number of heads in each layer to be applied guided attention loss.
-            - num_layers_applied_guided_attn (int): Number of layers to be applied guided attention loss.
-            - modules_applied_guided_attn (list): List of module names to be applied guided attention loss.
-            - guided-attn-loss-sigma (float) Sigma in guided attention loss.
-            - guided-attn-loss-lambda (float): Lambda in guided attention loss.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
@@ -323,6 +275,60 @@ class Transformer(TTSInterface, torch.nn.Module):
         return TTSPlot
 
     def __init__(self, idim, odim, args=None):
+        """Initialize TTS-Transformer module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            args (Namespace, optional):
+                - embed_dim (int): Dimension of character embedding.
+                - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
+                - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
+                - eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+                - dprenet_layers (int): Number of decoder prenet layers.
+                - dprenet_units (int): Number of decoder prenet hidden units.
+                - elayers (int): Number of encoder layers.
+                - eunits (int): Number of encoder hidden units.
+                - adim (int): Number of attention transformation dimensions.
+                - aheads (int): Number of heads for multi head attention.
+                - dlayers (int): Number of decoder layers.
+                - dunits (int): Number of decoder hidden units.
+                - postnet_layers (int): Number of postnet layers.
+                - postnet_chans (int): Number of postnet channels.
+                - postnet_filts (int): Filter size of postnet.
+                - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
+                - use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+                - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
+                - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
+                - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
+                - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+                - reduction_factor (int): Reduction factor.
+                - spk_embed_dim (int): Number of speaker embedding dimenstions.
+                - spk_embed_integration_type: How to integrate speaker embedding.
+                - transformer_init (float): How to initialize transformer parameters.
+                - transformer_lr (float): Initial value of learning rate.
+                - transformer_warmup_steps (int): Optimizer warmup steps.
+                - transformer_enc_dropout_rate (float): Dropout rate in encoder except attention & positional encoding.
+                - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
+                - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
+                - transformer_dec_dropout_rate (float): Dropout rate in decoder except attention & positional encoding.
+                - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
+                - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
+                - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
+                - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
+                - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
+                - postnet_dropout_rate (float): Dropout rate in postnet.
+                - use_masking (bool): Whether to use masking in calculation of loss.
+                - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
+                - loss_type (str): How to calculate loss.
+                - use_guided_attn_loss (bool): Whether to use guided attention loss.
+                - num_heads_applied_guided_attn (int): Number of heads in each layer to apply guided attention loss.
+                - num_layers_applied_guided_attn (int): Number of layers to apply guided attention loss.
+                - modules_applied_guided_attn (list): List of module names to apply guided attention loss.
+                - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+                - guided-attn-loss-lambda (float): Lambda in guided attention loss.
+
+        """
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
