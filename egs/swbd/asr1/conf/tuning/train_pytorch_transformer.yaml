@@ -23,10 +23,10 @@ maxlen-out: 150 # if output length > maxlen-out, batchsize is automatically redu
 # optimization related
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt: noam
-accum-grad: 2
+accum-grad: 8
 grad-clip: 5
 patience: 0
-epochs: 30
+epochs: 100
 dropout-rate: 0.1
 
 # transformer specific setting

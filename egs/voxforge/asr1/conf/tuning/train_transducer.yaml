@@ -1,0 +1,44 @@
+# minibatch related
+batch-size: 20
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+criterion: loss
+early-stop-criterion: "validation/main/loss"
+sortagrad: 0
+opt: adadelta
+epochs: 20
+patience: 3
+
+# network architecture
+## encoder related
+etype: vggblstm
+elayers: 4
+eunits: 256
+eprojs: 256
+subsample: "1_1_1_1_1"
+dropout-rate: 0.5
+## decoder related
+dtype: lstm
+dlayers: 1
+dec-embed-dim: 256
+dunits: 256
+dropout-rate-decoder: 0.2
+dropout-rate-embed-decoder: 0.2
+## attention related
+atype: location
+adim: 256
+aheads: 1
+awin: 5
+aconv-chans: 10
+aconv-filts: 100
+## joint network related
+joint-dim: 256
+
+# transducer related
+## mtlalpha should be set to 1.0 (CTC) to use transducer
+mtlalpha: 1.0
+## switch to 'rnnt-att' to use transducer with attention
+rnnt-mode: 'rnnt'
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
