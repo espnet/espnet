@@ -55,7 +55,9 @@ requirements = {
         'hacking>=1.1.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3',
-        'jsondiff>=1.2.0'
+        'jsondiff>=1.2.0',
+        'flake8>=3.7.8',
+        'flake8-docstrings>=1.3.1'
     ],
     'doc': [
         'Sphinx==2.1.2',
@@ -74,7 +76,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.5.1',
+      version='0.5.2',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

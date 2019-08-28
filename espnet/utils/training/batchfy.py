@@ -29,7 +29,7 @@ def batchfy_by_seq(
 
     # check #utts is more than min_batch_size
     if len(sorted_data) < min_batch_size:
-        raise ValueError("#utts is less than min_batch_size.")
+        raise ValueError(f"#utts({len(sorted_data)}) is less than min_batch_size({min_batch_size}).")
 
     # make list of minibatches
     minibatches = []
