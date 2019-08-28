@@ -31,6 +31,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -55,8 +56,6 @@ class E2E(ASRInterface, torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
-    :param E2E (torch.nn.Module) asr_model: pre-trained ASR model for encoder initialization
-    :param E2E (torch.nn.Module) mt_model: pre-trained NMT model for decoder initialization
 
     """
     @staticmethod
@@ -127,13 +126,15 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Ratio of predicted labels fed back to decoder')
         return parser
 
-    def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
+    def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
         self.verbose = args.verbose
+        # NOTE: for self.build method
+        args.char_list = getattr(args, "char_list", None)
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.space = args.sym_space
@@ -192,24 +193,6 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # weight initialization
         self.init_like_chainer()
-
-        # pre-training w/ ASR encoder and NMT decoder
-        if asr_model is not None:
-            param_dict = dict(asr_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the encoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'enc.enc' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
-        if mt_model is not None:
-            param_dict = dict(mt_model.named_parameters())
-            for n, p in self.named_parameters():
-                # overwrite the decoder
-                if n in param_dict.keys() and p.size() == param_dict[n].size():
-                    if 'dec.' in n or 'att' in n:
-                        p.data = param_dict[n].data
-                        logging.warning('Overwrite %s' % n)
 
         # options for beam search
         if args.report_cer or args.report_wer:
@@ -317,7 +300,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.acc = acc
 
         # 4. compute cer without beam search
-        if self.mtlalpha == 0:
+        if self.mtlalpha == 0 or self.char_list is None:
             cer_ctc = None
         else:
             cers = []
@@ -400,23 +383,17 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+    def scorers(self):
+        return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
-        :param ndarray x: input acoustic feature (T, D)
-        :param Namespace recog_args: argument Namespace containing options
-        :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
-        :return: N-best decoding results
-        :rtype: list
-        """
-        prev = self.training
+    def encode(self, x):
         self.eval()
         ilens = [x.shape[0]]
 
         # subsample frame
         x = x[::self.subsample[0], :]
-        h = to_device(self, to_torch_tensor(x).float())
+        p = next(self.parameters())
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
@@ -429,7 +406,19 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 1. encoder
         hs, _, _ = self.enc(hs, hlens)
+        return hs.squeeze(0)
 
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        """E2E beam search
+
+        :param ndarray x: input acoustic feature (T, D)
+        :param Namespace recog_args: argument Namespace containing options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        """
+        hs = self.encode(x).unsqueeze(0)
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs)[0]
@@ -439,10 +428,6 @@ class E2E(ASRInterface, torch.nn.Module):
         # 2. Decoder
         # decode the first utterance
         y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
-
-        if prev:
-            self.train()
-
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
@@ -477,12 +462,15 @@ class E2E(ASRInterface, torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs_pad)
+            normalize_score = False
         else:
             lpz = None
+            normalize_score = True
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
-        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list,
+                                          rnnlm, normalize_score=normalize_score)
 
         if prev:
             self.train()
