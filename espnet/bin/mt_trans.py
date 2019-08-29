@@ -17,7 +17,7 @@ import numpy as np
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
     parser = configargparse.ArgumentParser(
-        description='Transcribe text from speech using a speech recognition model on one CPU or GPU',
+        description='Transcribe text from speech using a speech translation model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -44,8 +44,8 @@ def get_parser():
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
     # task related
-    parser.add_argument('--recog-json', type=str,
-                        help='Filename of recognition data (json)')
+    parser.add_argument('--trans-json', type=str,
+                        help='Filename of translation data (json)')
     parser.add_argument('--result-label', type=str, required=True,
                         help='Filename of result label data (json)')
     # model (parameter) related
@@ -66,8 +66,6 @@ def get_parser():
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', type=float, default=0.0,
-                        help='dummy')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -77,7 +75,7 @@ def get_parser():
                         help='RNNLM weight')
     # multilingual related
     parser.add_argument('--tgt-lang', default=False, type=str,
-                        help='target language ID (e.g., <en>, <de>, <fr> etc.)')
+                        help='target language ID (e.g., <en>, <de>, and <fr> etc.)')
     return parser
 
 
@@ -121,14 +119,11 @@ def main(args):
 
     # trans
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        raise NotImplementedError("chainer is not supported for MT now.")
-        # TODO(hirofumi): support chainer backend
-    elif args.backend == "pytorch":
+    if args.backend == "pytorch":
         from espnet.mt.pytorch_backend.mt import trans
         trans(args)
     else:
-        raise ValueError("Only chainer and pytorch are supported.")
+        raise ValueError("Only pytorch are supported.")
 
 
 if __name__ == '__main__':
