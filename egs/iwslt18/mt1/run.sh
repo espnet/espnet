@@ -22,7 +22,7 @@ train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
 n_average=5                  # the number of NMT models to be averaged
@@ -63,7 +63,7 @@ set -o pipefail
 train_set=train_nodevtest.de
 train_set_prefix=train_nodevtest
 train_dev=train_dev.de
-recog_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
+trans_set="test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -180,14 +180,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     local/data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}; mkdir -p ${feat_recog_dir}
-        if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/data2json.sh --text data/${rtask}/text.${tgt_case} --bpecode ${bpemodel}.model \
-                data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}; mkdir -p ${feat_trans_dir}
+        if [ ${ttask} = "dev.de" ] || [ ${ttask} = "test.de" ]; then
+            local/data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model \
+                data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         else
-            local/data2json.sh --text data/${rtask}/text_noseg.${tgt_case} --bpecode ${bpemodel}.model --skip_utt2spk true \
-                data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+            local/data2json.sh --text data/${ttask}/text_noseg.${tgt_case} --bpecode ${bpemodel}.model --skip_utt2spk true \
+                data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         fi
     done
 
@@ -196,14 +196,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
     local/update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
         ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
-    for rtask in ${recog_set}; do
-        feat_dir=${dumpdir}/${rtask}
-        data_dir=data/"$(echo ${rtask} | cut -f 1 -d ".")".en
-        if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
-            local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model --set ${rtask} \
+    for ttask in ${trans_set}; do
+        feat_dir=${dumpdir}/${ttask}
+        data_dir=data/"$(echo ${ttask} | cut -f 1 -d ".")".en
+        if [ ${ttask} = "dev.de" ] || [ ${ttask} = "test.de" ]; then
+            local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model --set ${ttask} \
                 ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         else
-            local/update_json.sh --text ${data_dir}/text_noseg.${src_case} --bpecode ${bpemodel}.model --set ${rtask} \
+            local/update_json.sh --text ${data_dir}/text_noseg.${src_case} --bpecode ${bpemodel}.model --set ${ttask} \
                 ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         fi
     done
@@ -240,49 +240,52 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
 
+trans_set="test.de"
+
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average NMT models
         if ${use_valbest_average}; then
-            recog_model=model.val${n_average}.avg.best
+            trans_model=model.val${n_average}.avg.best
             opt="--log ${expdir}/results/log"
         else
-            recog_model=model.last${n_average}.avg.best
+            trans_model=model.last${n_average}.avg.best
             opt="--log"
         fi
         average_checkpoints.py \
             ${opt} \
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
-            --out ${expdir}/results/${recog_model} \
+            --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for ttask in ${trans_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${ttask}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_recog.py \
+            mt_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} de ${dict} ${dict}
+        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            ${expdir}/${decode_dir} de ${dict} ${dict}
 
     ) &
     pids+=($!) # store background pids
