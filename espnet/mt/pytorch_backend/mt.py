@@ -18,6 +18,7 @@ from tensorboardX import SummaryWriter
 import torch
 
 from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import adam_lr_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
@@ -40,7 +41,6 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-# duplicate
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
@@ -60,9 +60,9 @@ class CustomConverter(object):
     :param int idim : index for <pad> in the source language
     """
 
-    def __init__(self, idim):
+    def __init__(self):
         self.ignore_id = -1
-        self.pad = idim
+        self.pad = 0
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device
@@ -152,6 +152,7 @@ def train(args):
             weight_decay=args.weight_decay)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
+                                     lr=args.lr,
                                      weight_decay=args.weight_decay)
     elif args.opt == 'noam':
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
@@ -164,7 +165,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(idim=idim)
+    converter = CustomConverter()
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -296,6 +297,25 @@ def train(args):
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
+    elif args.opt == 'adam':
+        if args.criterion == 'acc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adam_lr_decay(args.lr_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(adam_lr_decay(args.lr_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
@@ -308,6 +328,11 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
+    elif args.opt in ['adam', 'noam']:
+        trainer.extend(extensions.observe_value(
+            'lr', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["lr"]),
+            trigger=(args.report_interval_iters, 'iteration'))
+        report_keys.append('lr')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
@@ -331,7 +356,7 @@ def trans(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, MTInterface)
-    model.recog_args = args
+    model.trans_args = args
 
     # read rnnlm
     if args.rnnlm:
@@ -353,12 +378,12 @@ def trans(args):
             rnnlm.cuda()
 
     # read json data
-    with open(args.recog_json, 'rb') as f:
+    with open(args.trans_json, 'rb') as f:
         js = json.load(f)['utts']
     new_js = {}
 
     # remove enmpy utterances
-    if train_args.replace_sos:
+    if train_args.multilingual:
         js = {k: v for k, v in js.items() if v['output'][0]['shape'][0] > 1 and v['output'][1]['shape'][0] > 1}
     else:
         js = {k: v for k, v in js.items() if v['output'][0]['shape'][0] > 0 and v['output'][1]['shape'][0] > 0}
