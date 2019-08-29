@@ -76,11 +76,12 @@ espnet.done: venv
 endif
 
 cupy.done: espnet.done
+# Align to use tab
 ifneq ($(strip $(CUPY_VERSION)),)
 ifeq (10,$(CUDA_VERSION))
-    . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
+	. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)0))==$(CUPY_VERSION)
 else
-    . venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
+	. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
     touch cupy.done
 endif
 
