@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright  2014  Nickolay V. Shmyrev
 #            2016  Johns Hopkins University (author: Daniel Povey)

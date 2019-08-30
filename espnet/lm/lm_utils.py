@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -72,12 +72,15 @@ def read_tokens(filename, label_dict):
 
 
 def count_tokens(data, unk_id=None):
-    """Count tokens and oovs in token ID sequences
+    """Count tokens and oovs in token ID sequences.
 
-    :param list[np.ndarray] data: list of token ID sequences
-    :param int unk_id: ID of unknown token '<unk>'
-    :return number of token occurrences, number of oov tokens
-    :rtype int, int
+    Args:
+        data (list[np.ndarray]): list of token ID sequences
+        unk_id (int): ID of unknown token
+
+    Returns:
+        tuple: tuple of number of token occurrences and number of oov tokens
+
     """
 
     n_tokens = 0
