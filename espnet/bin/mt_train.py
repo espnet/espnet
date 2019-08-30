@@ -4,6 +4,8 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Neural machine translation model training script."""
+
 import configargparse
 import logging
 import os
@@ -19,6 +21,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser(parser=None, required=True):
+    """Get default arguments."""
     if parser is None:
         parser = configargparse.ArgumentParser(
             description="Train a neural machine translation (NMT) model on one CPU, one or multiple GPUs",
@@ -127,7 +130,7 @@ def get_parser(parser=None, required=True):
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
                         help='Number of gradient accumuration')
-    parser.add_argument('--eps', default=1e-6, type=float,
+    parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
@@ -163,11 +166,15 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--multilingual', default=False, type=strtobool,
                         help='Prepend target language ID to the source sentence. \
                         Both source/target language IDs must be prepend in the pre-processing stage.')
+    parser.add_argument('--replace-sos', default=False, type=strtobool,
+                        help='Replace <sos> in the decoder with a target language ID \
+                              (the first token in the target sequence)')
 
     return parser
 
 
 def main(cmd_args):
+    """Run the main training function."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     if args.backend == "chainer" and args.train_dtype != "float32":
@@ -245,14 +252,12 @@ def main(cmd_args):
 
     # train
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        raise NotImplementedError("chainer is not supported for MT now.")
-        # TODO(hirofumi): support chainer backend
-    elif args.backend == "pytorch":
-        from espnet.mt.pytorch_backend.mt import train
+
+    if args.backend == "pytorch":
+        from espnet.st.pytorch_backend.st import train
         train(args)
     else:
-        raise ValueError("Only chainer and pytorch are supported.")
+        raise ValueError("Only pytorch are supported.")
 
 
 if __name__ == '__main__':
