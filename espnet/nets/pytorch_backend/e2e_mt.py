@@ -280,6 +280,7 @@ class E2E(MTInterface, torch.nn.Module):
 
     def target_language_biasing(self, xs_pad, ilens, ys_pad):
         """Prepend target language IDs to source sentences for multilingual NMT.
+
         These tags are prepended in source/target sentences as pre-processing.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
