@@ -72,19 +72,14 @@ class CustomEvaluator(BaseEvaluator):
         target (link | dict[str, link]) :Link object or a dictionary of
             links to evaluate. If this is just a link object, the link is
             registered by the name ``'main'``.
-        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
-            function to build input arrays. Each batch extracted by the main
-            iterator and the ``device`` option are passed to this function.
-            :func:`chainer.dataset.concat_examples` is used by default.
 
         device (torch.device): The device used.
         ngpu (int): The number of GPUs.
     """
 
-    def __init__(self, model, iterator, target, converter, device, ngpu=None):
+    def __init__(self, model, iterator, target, device, ngpu=None):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
-        self.converter = converter
         self.device = device
         if ngpu is not None:
             self.ngpu = ngpu
@@ -112,12 +107,12 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
+                x = tuple(arr.to(self.device) for arr in batch)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
                     if self.ngpu == 0:
                         self.model(*x)
                     else:
@@ -139,11 +134,6 @@ class CustomUpdater(StandardUpdater):
         train_iter (chainer.dataset.Iterator): The training iterator.
         optimizer (torch.optim.optimizer): The training optimizer.
 
-        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
-            function to build input arrays. Each batch extracted by the main
-            iterator and the ``device`` option are passed to this function.
-            :func:`chainer.dataset.concat_examples` is used by default.
-
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
         use_apex (bool): The flag to use Apex in backprop.
@@ -151,11 +141,10 @@ class CustomUpdater(StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
+                 optimizer, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
-        self.converter = converter
         self.device = device
         self.ngpu = ngpu
         self.accum_grad = accum_grad
@@ -175,7 +164,8 @@ class CustomUpdater(StandardUpdater):
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
         self.iteration += 1
-        x = self.converter(batch, self.device)
+        
+        x = tuple(arr.to(self.device) for arr in batch)
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -234,12 +224,11 @@ class CustomConverter(object):
         self.ignore_id = -1
         self.dtype = dtype
 
-    def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+    def __call__(self, batch, device=None):
+        """Transforms a batch.
 
         Args:
             batch (list): The batch to transform.
-            device (torch.device): The device to send to.
 
         Returns:
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
@@ -258,23 +247,24 @@ class CustomConverter(object):
 
         # perform padding and convert to tensor
         # currently only support real number
+        to_func = (lambda data: data) if device is None else (lambda data: data.to(device))
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
-                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
+                [torch.from_numpy(x.real).float() for x in xs], 0)
             xs_pad_imag = pad_list(
-                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
+                [torch.from_numpy(x.imag).float() for x in xs], 0)
             # Note(kamo):
             # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
-            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
+            xs_pad = {'real': to_func(xs_pad_real), 'imag': to_func(xs_pad_imag)}
         else:
-            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
+            xs_pad = to_func(pad_list([torch.from_numpy(x).float() for x in xs], 0))
 
-        ilens = torch.from_numpy(ilens).to(device)
+        ilens = to_func(torch.from_numpy(ilens))
         # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                           for y in ys], self.ignore_id).to(device)
+        ys_pad = to_func(pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+                           for y in ys], self.ignore_id))
 
         return xs_pad, ilens, ys_pad
 
@@ -433,18 +423,18 @@ def train(args):
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(train, load_tr),
+        dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
-        shuffle=not use_sortagrad, collate_fn=lambda x: x)}
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
     valid_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(valid, load_cv),
-        batch_size=1, shuffle=False, collate_fn=lambda x: x,
+        dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
         num_workers=args.n_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer,
-        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
+        device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -458,7 +448,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
