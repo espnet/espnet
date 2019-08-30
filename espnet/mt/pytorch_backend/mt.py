@@ -218,14 +218,8 @@ def train(args):
                           batch_frames_inout=args.batch_frames_inout,
                           mt=True)
 
-    load_tr = LoadInputsAndTargets(
-        mode='mt', load_output=True, preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': True}  # Switch the mode of preprocessing
-    )
-    load_cv = LoadInputsAndTargets(
-        mode='mt', load_output=True, preprocess_conf=args.preprocess_conf,
-        preprocess_args={'train': False}  # Switch the mode of preprocessing
-    )
+    load_tr = LoadInputsAndTargets(mode='mt', load_output=True)
+    load_cv = LoadInputsAndTargets(mode='mt', load_output=True)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:

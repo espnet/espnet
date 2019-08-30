@@ -163,7 +163,8 @@ class E2E(MTInterface, torch.nn.Module):
             labeldist = None
 
         # multilingual related
-        self.multilingual = args.multilingual
+        self.multilingual = getattr(args, "multilingual", False)
+        self.replace_sos = getattr(args, "replace_sos", False)
 
         # encoder
         self.embed = torch.nn.Embedding(idim, args.eunits, padding_idx=self.pad)
