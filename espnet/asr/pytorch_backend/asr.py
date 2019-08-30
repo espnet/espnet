@@ -225,10 +225,11 @@ class CustomConverter(object):
         self.dtype = dtype
 
     def __call__(self, batch, device=None):
-        """Transforms a batch.
+        """Transforms a batch and send it to a device for visualization.
 
         Args:
             batch (list): The batch to transform.
+            device (torch.device): The device to send to.
 
         Returns:
             tuple(torch.Tensor, torch.Tensor, torch.Tensor)
