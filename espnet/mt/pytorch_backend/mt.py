@@ -285,7 +285,7 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/ppl', 'validation/main/ppl'],
                                          'epoch', file_name='ppl.png'))
     trainer.extend(extensions.PlotReport(['main/bleu', 'validation/main/bleu'],
-                                         'epoch', file_name='cer.png'))
+                                         'epoch', file_name='bleu.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
