@@ -22,7 +22,10 @@ print(args)
 
 
 def to_module(path_name):
-    return path_name.replace(".py", "").replace("/", ".")
+    ret = path_name.replace(".py", "").replace("/", ".")
+    if ret.endswith("."):
+        return ret[:-1]
+    return ret
 
 
 def gen_rst(module_path, f):
@@ -40,12 +43,12 @@ def gen_rst(module_path, f):
 
 """)
 
-    for cpath in glob(module_path + "/**"):
+    for cpath in glob(module_path + "/**/*.py", recursive=True):
         if not os.path.exists(cpath):
             continue
         if "__pycache__" in cpath:
             continue
-        if "__init__" in cpath:
+        if "__init__.py" in cpath:
             continue
         cname = to_module(cpath)
         csep = "-" * len(cname)
@@ -77,7 +80,7 @@ for p in glob(args.root + "/**", recursive=False):
         continue
     if "__pycache__" in p:
         continue
-    if "__init__" in p:
+    if "__init__.py" in p:
         continue
     fname = to_module(p) + ".rst"
     dst = f"{gendir}/{fname}"
