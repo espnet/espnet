@@ -252,7 +252,7 @@ def main(cmd_args):
     logging.info('backend = ' + args.backend)
 
     if args.backend == "pytorch":
-        from espnet.st.pytorch_backend.st import train
+        from espnet.mt.pytorch_backend.mt import train
         train(args)
     else:
         raise ValueError("Only pytorch are supported.")
