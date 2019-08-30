@@ -30,7 +30,7 @@ find ./utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_
 ./doc/module2rst.py espnet ./doc --exclude espnet.bin
 
 # build html
-travis-sphinx build --source=doc --nowarn
+travis-sphinx build --source=doc
 
 touch doc/build/.nojekyll
 
