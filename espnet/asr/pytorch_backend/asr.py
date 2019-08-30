@@ -264,7 +264,7 @@ class CustomConverter(object):
         ilens = to_func(torch.from_numpy(ilens))
         # NOTE: this is for multi-task learning (e.g., speech translation)
         ys_pad = to_func(pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                                  for y in ys], self.ignore_id))
+                                   for y in ys], self.ignore_id))
 
         return xs_pad, ilens, ys_pad
 
