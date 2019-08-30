@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 from glob import glob
 import importlib
-import logging
 import os
-import pkgutil
 
 import configargparse
 
@@ -50,7 +48,6 @@ def gen_rst(module_path, f):
         if "__init__" in cpath:
             continue
         cname = to_module(cpath)
-        c = importlib.import_module(cname)
         csep = "-" * len(cname)
         f.write(f"""
 .. _{cname}:
