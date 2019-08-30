@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 Johns Hopkins University (Author: Aswin Shanmugam Subramanian)
 # Apache 2.0
 # Works with both python2 and python3
