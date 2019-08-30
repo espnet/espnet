@@ -214,8 +214,7 @@ class E2E(MTInterface, torch.nn.Module):
     def init_like_fairseq(self):
         """Initialize weight like fairseq.
 
-        fairseq basically uses W, b ~ Uniform(-0.1, 0.1),
-                               EmbedID.W ~ Normal(-0.1, 0.1)
+        fairseq basically uses W, b, EmbedID.W ~ Uniform(-0.1, 0.1),
         """
         uniform_init_parameters(self)
         # exceptions
