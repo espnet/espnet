@@ -203,3 +203,5 @@ texinfo_documents = [
      author, 'ESPnet', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+autoclass_content = 'both'
