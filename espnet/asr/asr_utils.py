@@ -596,8 +596,7 @@ class ChainerDataLoader(object):
     def __init__(self, **kwargs):
         self.loader = torch.utils.data.dataloader.DataLoader(**kwargs)
         self.len = len(kwargs['dataset'])
-        self.idx = 0
-        self.epoch_detail = 0
+        self.current_position = 0
         self.epoch = 0
         self.iter = None
         self.kwargs = kwargs
@@ -609,18 +608,26 @@ class ChainerDataLoader(object):
             ret = next(self.iter)
         except StopIteration:
             self.iter = None
-            self.epoch += 1
             return self.next()
-        self.idx += 1
-        self.epoch_detail = self.idx * 1. / self.len
+        self.current_position += 1
+        if self.current_position == self.len:
+            self.epoch = self.epoch + 1
+            self.current_position = 0
         return ret
 
     def __iter__(self):
         for batch in self.loader:
             yield batch
 
+    @property
+    def epoch_detail(self):
+        return self.epoch + self.current_position / self.len
+
     def serialize(self, serializer):
-        pass
+        epoch = serializer('epoch', self.epoch)
+        current_position = serializer('current_position', self.current_position)
+        self.epoch = epoch
+        self.current_position = current_position
 
     def start_shuffle(self):
         self.kwargs['shuffle'] = True

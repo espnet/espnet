@@ -83,7 +83,7 @@ class CustomConverter(object):
         """
         return self.load_inputs_and_targets(item)
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=None):
         """Transforms a batch and send it to a device.
 
         Args:
@@ -99,6 +99,8 @@ class CustomConverter(object):
         xs, ys = batch[0]
         ys = list(ys)  # Convert zip object to list in python 3.x
 
+        to_func = (lambda data: data) if device is None else (lambda data: data.to(device))
+
         # perform subsampling
         if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
@@ -113,7 +115,7 @@ class CustomConverter(object):
         ys_pad = pad_list(ys_pad, self.ignore_id)
         ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1).to(device)  # (num_spkrs, B, Tmax)
 
-        return xs_pad, ilens, ys_pad
+        return to_func(xs_pad), to_func(ilens), to_func(ys_pad)
 
 
 def train(args):
@@ -221,17 +223,17 @@ def train(args):
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(train, converter.transform),
+        dataset=TransformDataset(train, lambda data: converter([converter.transform(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
-        shuffle=True, collate_fn=lambda x: x)}
+        shuffle=True, collate_fn=lambda x: x[0])}
     valid_iter = {'main': ChainerDataLoader(
-        dataset=TransformDataset(valid, converter.transform),
+        dataset=TransformDataset(valid, lambda data: converter([converter.transform(data)])),
         batch_size=1, shuffle=False, collate_fn=lambda x: x,
         num_workers=args.n_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -241,7 +243,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
