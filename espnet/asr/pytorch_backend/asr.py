@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Training/decoding definition for RNN sequence-to-sequence speech recognition model."""
-
+"""Training/decoding definition for the speech recognition task."""
 
 import copy
 import json
@@ -234,13 +234,7 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32):
-        """Construct a CustomConverter object.
-
-        Args:
-            subsampling_factor (int): The subsampling factor.
-            dtype (torch.dtype): Data type to convert.
-
-        """
+        """Construct a CustomConverter object."""
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype
