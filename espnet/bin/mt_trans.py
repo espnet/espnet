@@ -4,6 +4,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Neural machine translation model decoding script."""
 
 import configargparse
 import logging
@@ -16,8 +17,9 @@ import numpy as np
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get default arguments."""
     parser = configargparse.ArgumentParser(
-        description='Transcribe text from speech using a speech translation model on one CPU or GPU',
+        description='Translate text from speech using a speech translation model on one CPU or GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
@@ -30,6 +32,8 @@ def get_parser():
 
     parser.add_argument('--ngpu', type=int, default=0,
                         help='Number of GPUs')
+    parser.add_argument('--dtype', choices=("float16", "float32", "float64"), default="float32",
+                        help='Float precision (only available in --api v2)')
     parser.add_argument('--backend', type=str, default='chainer',
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -43,6 +47,10 @@ def get_parser():
                         help='Batch size for beam search (0: means no batch processing)')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
+    parser.add_argument('--api', default="v1", choices=["v1", "v2"],
+                        help='''Beam search APIs
+        v1: Default API. It only supports the ASRInterface.recognize method and DefaultRNNLM.
+        v2: Experimental API. It supports any models that implements ScorerInterface.''')
     # task related
     parser.add_argument('--trans-json', type=str,
                         help='Filename of translation data (json)')
@@ -80,6 +88,7 @@ def get_parser():
 
 
 def main(args):
+    """Run the main decoding function."""
     parser = get_parser()
     args = parser.parse_args(args)
 
@@ -120,7 +129,10 @@ def main(args):
     # trans
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
+        # Experimental API that supports custom LMs
         from espnet.mt.pytorch_backend.mt import trans
+        if args.dtype != "float32":
+            raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
         trans(args)
     else:
         raise ValueError("Only pytorch are supported.")
