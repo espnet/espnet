@@ -4,6 +4,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Training/decoding definition for the text translation task."""
 
 import json
 import logging
@@ -55,22 +56,23 @@ else:
 
 
 class CustomConverter(object):
-    """Custom batch converter for Pytorch
-
-    :param int idim : index for <pad> in the source language
-    """
+    """Custom batch converter for Pytorch."""
 
     def __init__(self):
+        """Construct a CustomConverter object."""
         self.ignore_id = -1
         self.pad = 0
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device
+        """Transform a batch and send it to a device.
 
-        :param list batch: The batch to transform
-        :param torch.device device: The device to send to
-        :return: a tuple xs_pad, ilens, ys_pad
-        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        Args:
+            batch (list): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
+
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -88,9 +90,11 @@ class CustomConverter(object):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
 
@@ -135,7 +139,6 @@ def train(args):
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
             logging.info('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
@@ -143,7 +146,11 @@ def train(args):
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    model = model.to(device)
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
+    else:
+        dtype = torch.float32
+    model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -159,6 +166,22 @@ def train(args):
         optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
+
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+                          "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        if args.opt == 'noam':
+            model, optimizer.optimizer = amp.initialize(model, optimizer.optimizer, opt_level=args.train_dtype)
+        else:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -224,7 +247,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer,
+        converter, device, args.ngpu, False, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -238,11 +262,11 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
-        # sort it by output lengths
+        # NOTE: sort it by output lengths
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['output'][0]['shape'][0]), reverse=True)
         if hasattr(model, "module"):
@@ -260,13 +284,14 @@ def train(args):
         att_reporter = None
 
     # Make a plot for training and validation values
-    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
-                                          'main/loss_att', 'validation/main/loss_att'],
+    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss'],
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
     trainer.extend(extensions.PlotReport(['main/ppl', 'validation/main/ppl'],
                                          'epoch', file_name='ppl.png'))
+    trainer.extend(extensions.PlotReport(['main/bleu', 'validation/main/bleu'],
+                                         'epoch', file_name='cer.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
@@ -333,6 +358,8 @@ def train(args):
             'lr', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["lr"]),
             trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('lr')
+    if args.report_bleu:
+        report_keys.append('validation/main/bleu')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
@@ -340,18 +367,19 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter),
-                       trigger=(args.report_interval_iters, 'iteration'))
+        trainer.extend(TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+                       trigger=(args.report_interval_iters, "iteration"))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
 
 
 def trans(args):
-    """Decode with the given args
+    """Decode with the given args.
 
-    :param Namespace args: The program arguments
+    Args:
+        args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
@@ -361,6 +389,8 @@ def trans(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
@@ -395,6 +425,7 @@ def trans(args):
                 feat = [js[name]['output'][1]['tokenid'].split()]
                 nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+
     else:
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
@@ -412,6 +443,7 @@ def trans(args):
                 feats = [np.fromiter(map(int, js[name]['output'][1]['tokenid'].split()), dtype=np.int64)
                          for name in names]
                 nbest_hyps = model.translate_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
