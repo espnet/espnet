@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=3
+stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
@@ -29,7 +29,7 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/tuning/train_pytorch_tacotron2.tuning.lab3-rev3.yaml # you can select from conf or conf/tuning.
+train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
@@ -40,7 +40,7 @@ n_average=1 # if > 0, the model averaged with n_average ckpts will be used inste
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
-db_root=/abelab-rw/DB4 #/export/a06/katsuki/DB #downloads
+db_root=downloads
 
 # user id and pw for db download
 # Please get your account to download db.
