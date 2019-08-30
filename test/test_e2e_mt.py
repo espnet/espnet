@@ -378,36 +378,3 @@ def test_multi_gpu_trainable(module):
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         raise NotImplementedError
-
-
-# def test_fairseq_init_torch():
-#     torch = pytest.importorskip("torch")
-#     nseed = args.seed
-#     random.seed(nseed)
-#     torch.manual_seed(nseed)
-#     np.random.seed(nseed)
-#     os.environ["CHAINER_SEED"] = str(nseed)
-#     import espnet.nets.pytorch_backend.e2e_asr as m
-#     model = m.E2E(40, 5, args)
-#     b = model.ctc.ctc_lo.bias.data.numpy()
-#     assert np.all(b == 0.0)
-#     w = model.ctc.ctc_lo.weight.data.numpy()
-#     np.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
-#     np.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
-#
-#     for name, p in model.named_parameters():
-#         print(name)
-#         data = p.data.numpy()
-#         if "embed" in name:
-#             np.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
-#             np.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
-#         elif "dec.decoder.0.bias_ih" in name:
-#             assert data.sum() == data.size // 4
-#         elif "dec.decoder.1.bias_ih" in name:
-#             assert data.sum() == data.size // 4
-#         elif data.ndim == 1:
-#             assert np.all(data == 0.0)
-#         else:
-#             np.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
-#             np.testing.assert_allclose(
-#                 data.var(), 1.0 / np.prod(data.shape[1:]), 5e-2, 5e-2)
