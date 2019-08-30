@@ -281,17 +281,20 @@ def phi(r, order):
 def apply_interpolation(query_points, train_points, w, v, order):
     """Apply polyharmonic interpolation model to data.
 
-    Given coefficients w and v for the interpolation model, we evaluate
-    interpolated function values at query_points.
+    Notes:
+        Given coefficients w and v for the interpolation model, we evaluate
+        interpolated function values at query_points.
+
     Args:
-    query_points: `[b, m, d]` x values to evaluate the interpolation at
-    train_points: `[b, n, d]` x values that act as the interpolation centers
-                    ( the c variables in the wikipedia article)
-    w: `[b, n, k]` weights on each interpolation center
-    v: `[b, d, k]` weights on each input dimension
-    order: order of the interpolation
+        query_points: `[b, m, d]` x values to evaluate the interpolation at
+        train_points: `[b, n, d]` x values that act as the interpolation centers
+            ( the c variables in the wikipedia article)
+            w: `[b, n, k]` weights on each interpolation center
+            v: `[b, d, k]` weights on each input dimension
+        order: order of the interpolation
+
     Returns:
-    Polyharmonic interpolation evaluated at points defined in query_points.
+        Polyharmonic interpolation evaluated at points defined in query_points.
     """
     query_points = query_points.unsqueeze(0)
     # First, compute the contribution from the rbf term.
@@ -366,18 +369,22 @@ def interpolate_bilinear(grid,
                          indexing='ij'):
     """Similar to Matlab's interp2 function.
 
-    Finds values for query points on a grid using bilinear interpolation.
+    Notes:
+        Finds values for query points on a grid using bilinear interpolation.
+
     Args:
-    grid: a 4-D float `Tensor` of shape `[batch, height, width, channels]`.
-    query_points: a 3-D float `Tensor` of N points with shape `[batch, N, 2]`.
-    name: a name for the operation (optional).
-    indexing: whether the query points are specified as row and column (ij),
-      or Cartesian coordinates (xy).
+        grid: a 4-D float `Tensor` of shape `[batch, height, width, channels]`.
+        query_points: a 3-D float `Tensor` of N points with shape `[batch, N, 2]`.
+        name: a name for the operation (optional).
+        indexing: whether the query points are specified as row and column (ij),
+            or Cartesian coordinates (xy).
+
     Returns:
-    values: a 3-D `Tensor` with shape `[batch, N, channels]`
+        values: a 3-D `Tensor` with shape `[batch, N, channels]`
+
     Raises:
-    ValueError: if the indexing mode is invalid, or if the shape of the inputs
-      invalid.
+        ValueError: if the indexing mode is invalid, or if the shape of the inputs
+        invalid.
     """
     if indexing != 'ij' and indexing != 'xy':
         raise ValueError('Indexing mode must be \'ij\' or \'xy\'')
