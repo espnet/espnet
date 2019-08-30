@@ -315,7 +315,7 @@ class BeamSearch(torch.nn.Module):
         if len(nbest_hyps) == 0:
             logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
             return [] if minlenratio < 0.1 else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
-        
+
         # report the best result
         best = nbest_hyps[0]
         logging.info(f'total log probability: {best.score}')
