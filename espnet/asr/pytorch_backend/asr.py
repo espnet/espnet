@@ -164,7 +164,7 @@ class CustomUpdater(StandardUpdater):
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
         self.iteration += 1
-        
+
         x = tuple(arr.to(self.device) for arr in batch)
 
         # Compute the loss at this time step and accumulate it
@@ -264,7 +264,7 @@ class CustomConverter(object):
         ilens = to_func(torch.from_numpy(ilens))
         # NOTE: this is for multi-task learning (e.g., speech translation)
         ys_pad = to_func(pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                           for y in ys], self.ignore_id))
+                                  for y in ys], self.ignore_id))
 
         return xs_pad, ilens, ys_pad
 
