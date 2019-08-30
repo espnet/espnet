@@ -40,14 +40,10 @@ def uniform_init_parameters(module):
             data.uniform_(-0.1, 0.1)
         elif data.dim() == 2:
             # linear weight
-            n = data.size(1)
             data.uniform_(-0.1, 0.1)
         elif data.dim() in (3, 4):
             # conv weight
-            n = data.size(1)
-            for k in data.size()[2:]:
-                n *= k
-            data.uniform_(-0.1, 0.1)
+            pass  # use the pytorch default
         else:
             raise NotImplementedError
 
