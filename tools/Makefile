@@ -86,7 +86,7 @@ warp-ctc.done: espnet.done
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; \
     fi
-	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
+	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && $(MAKE); true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
@@ -98,7 +98,7 @@ warp-transducer.done: espnet.done
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('5.0'), 'Requires gcc>=5.0'"; \
 	fi
-	. venv/bin/activate; cd warp-transducer && mkdir build && cd build && cmake .. && make; true
+	. venv/bin/activate; cd warp-transducer && mkdir build && cd build && cmake .. && $(MAKE); true
 	. venv/bin/activate; cd warp-transducer/pytorch_binding && python setup.py install
 	touch warp-transducer.done
 
