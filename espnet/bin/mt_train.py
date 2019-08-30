@@ -122,8 +122,6 @@ def get_parser(parser=None, required=True):
                         help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
-    parser.add_argument('--preprocess-conf', type=str, default=None, nargs='?',
-                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam', 'noam'],
