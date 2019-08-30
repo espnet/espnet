@@ -247,7 +247,7 @@ class CustomConverter(object):
 
         # perform padding and convert to tensor
         # currently only support real number
-        to_func = (lambda data: data) if device is None else (lambda data: data.to(device))
+        to_func = (lambda data: data.to(dtype=self.dtype)) if device is None else (lambda data: data.to(device, dtype=self.dtype))
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
                 [torch.from_numpy(x.real).float() for x in xs], 0)
