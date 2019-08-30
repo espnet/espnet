@@ -4,12 +4,14 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Utility funcitons for the text translation task."""
+
 import logging
 
 
 # * ------------------ recognition related ------------------ *
 def parse_hypothesis(hyp, char_list):
-    """Function to parse hypothesis
+    """Function to parse hypothesis.
 
     :param list hyp: recognition hypothesis
     :param list char_list: list of characters
@@ -31,7 +33,7 @@ def parse_hypothesis(hyp, char_list):
 
 
 def add_results_to_json(js, nbest_hyps, char_list):
-    """Function to add N-best results to json
+    """Function to add N-best results to json.
 
     :param dict js: groundtruth utterance dict
     :param list nbest_hyps: list of hypothesis
