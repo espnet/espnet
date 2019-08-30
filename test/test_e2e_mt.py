@@ -49,7 +49,9 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
+        report_bleu=False,
         sym_space="<space>",
+        sym_blank="<blank>",
         sortagrad=0,
         context_residual=False,
         tie_src_tgt_embedding=False,
@@ -74,7 +76,7 @@ def prepare_inputs(mode, ilens=[20, 10], olens=[4, 3], is_cuda=False):
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
-        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], 6)
+        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], 0)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
         if is_cuda:
             xs_pad = xs_pad.cuda()
@@ -93,7 +95,7 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=5, odim=5):
     ys = [np.random.randint(0, odim, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
-        xs = pad_list([torch.from_numpy(x).long() for x in xs], idim)
+        xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
         ilens = torch.from_numpy(ilens).long()
         ys = pad_list([torch.from_numpy(y).long() for y in ys], -1)
 
@@ -376,3 +378,36 @@ def test_multi_gpu_trainable(module):
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         raise NotImplementedError
+
+
+# def test_fairseq_init_torch():
+#     torch = pytest.importorskip("torch")
+#     nseed = args.seed
+#     random.seed(nseed)
+#     torch.manual_seed(nseed)
+#     np.random.seed(nseed)
+#     os.environ["CHAINER_SEED"] = str(nseed)
+#     import espnet.nets.pytorch_backend.e2e_asr as m
+#     model = m.E2E(40, 5, args)
+#     b = model.ctc.ctc_lo.bias.data.numpy()
+#     assert np.all(b == 0.0)
+#     w = model.ctc.ctc_lo.weight.data.numpy()
+#     np.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
+#     np.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
+#
+#     for name, p in model.named_parameters():
+#         print(name)
+#         data = p.data.numpy()
+#         if "embed" in name:
+#             np.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+#             np.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
+#         elif "dec.decoder.0.bias_ih" in name:
+#             assert data.sum() == data.size // 4
+#         elif "dec.decoder.1.bias_ih" in name:
+#             assert data.sum() == data.size // 4
+#         elif data.ndim == 1:
+#             assert np.all(data == 0.0)
+#         else:
+#             np.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+#             np.testing.assert_allclose(
+#                 data.var(), 1.0 / np.prod(data.shape[1:]), 5e-2, 5e-2)
