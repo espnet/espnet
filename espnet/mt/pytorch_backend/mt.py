@@ -62,6 +62,9 @@ class CustomConverter(object):
         """Construct a CustomConverter object."""
         self.ignore_id = -1
         self.pad = 0
+        # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
+        # in ASR. However, blank labels are not used in NMT. To keep the vocabulary size,
+        # we use index:0 for padding instead of adding one more class.
 
     def __call__(self, batch, device):
         """Transform a batch and send it to a device.
