@@ -85,7 +85,9 @@ warp-ctc.done: espnet.done
 	fi
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; \
-    fi
+	elif . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "0"' &> /dev/null; then \
+        cd warp-ctc; git checkout -b pytorch-0.4.0 remotes/origin/pytorch-0.4; \
+	fi
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && $(MAKE); true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
