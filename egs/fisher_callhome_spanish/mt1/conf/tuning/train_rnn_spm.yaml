@@ -9,7 +9,7 @@ subsample: "1_1" # skip every n frame from input to nth layers
 dlayers: 2
 dunits: 1024
 context-residual: true
-tie-src-tgt-embedding: true
+tie-src-tgt-embedding: false
 # attention related
 atype: add
 adim: 1024
