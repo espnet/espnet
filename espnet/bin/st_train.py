@@ -69,7 +69,7 @@ def get_parser(parser=None, required=True):
                         help='Filename of validation label data (json)')
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
-                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_st:E2E)')
     # loss related
     parser.add_argument('--mtlalpha', default=0.0, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
@@ -104,7 +104,7 @@ def get_parser(parser=None, required=True):
                         help='RNNLM model file to read')
     parser.add_argument('--rnnlm-conf', type=str, default=None,
                         help='RNNLM model config file to read')
-    parser.add_argument('--lm-weight', default=0.1, type=float,
+    parser.add_argument('--lm-weight', default=0.0, type=float,
                         help='RNNLM weight.')
     parser.add_argument('--sym-space', default='<space>', type=str,
                         help='Space symbol')
@@ -143,6 +143,10 @@ def get_parser(parser=None, required=True):
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
+    parser.add_argument('--lr', default=1e-3, type=float,
+                        help='Learning rate for optimizer')
+    parser.add_argument('--lr-decay', default=1.0, type=float,
+                        help='Decaying ratio of learning rate')
     parser.add_argument('--weight-decay', default=0.0, type=float,
                         help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
@@ -284,16 +288,6 @@ def main(cmd_args):
         args.char_list = char_list
     else:
         args.char_list = None
-
-    # load language ids for debug log
-    if args.lang_ids is not None:
-        with open(args.lang_ids, 'rb') as f:
-            dictionary = f.readlines()
-        lang_list = [entry.decode('utf-8').split(' ')[0]
-                     for entry in dictionary]
-        args.lang_list = lang_list
-    else:
-        args.lang_list = []
 
     # train
     logging.info('backend = ' + args.backend)

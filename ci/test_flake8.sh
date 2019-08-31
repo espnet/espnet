@@ -16,14 +16,10 @@ espnet/asr/pytorch_backend/asr.py
 espnet/asr/pytorch_backend/asr_init.py
 espnet/asr/pytorch_backend/asr_mix.py
 espnet/bin/asr_enhance.py
-espnet/bin/mt_recog.py
-espnet/bin/mt_train.py
 espnet/lm/chainer_backend/extlm.py
 espnet/lm/chainer_backend/lm.py
 espnet/lm/lm_utils.py
 espnet/lm/pytorch_backend/extlm.py
-espnet/mt/mt_utils.py
-espnet/mt/pytorch_backend/mt.py
 espnet/nets/chainer_backend/ctc.py
 espnet/nets/chainer_backend/deterministic_embed_id.py
 espnet/nets/chainer_backend/nets_utils.py
@@ -33,12 +29,10 @@ espnet/nets/chainer_backend/rnn/encoders.py
 espnet/nets/chainer_backend/rnn/training.py
 espnet/nets/ctc_prefix_score.py
 espnet/nets/e2e_asr_common.py
-espnet/nets/mt_interface.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/e2e_asr_mix.py
 espnet/nets/pytorch_backend/e2e_asr_transducer.py
 espnet/nets/pytorch_backend/e2e_asr_transformer.py
-espnet/nets/pytorch_backend/e2e_mt.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_wpe.py

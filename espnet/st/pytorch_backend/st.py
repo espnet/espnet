@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Training/decoding definition for RNN sequence-to-sequence speech translation model."""
+"""Training/decoding definition for the speech translation task."""
 
 import json
 import logging
@@ -18,6 +19,7 @@ from tensorboardX import SummaryWriter
 import torch
 
 from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import adam_lr_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
@@ -32,6 +34,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.nets.st_interface import ASRInterface
 from espnet.nets.st_interface import STInterface
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
@@ -68,14 +71,7 @@ class CustomConverter(ASRCustomConverter):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
-        """Construct a CustomConverter object.
-
-        Args:
-            subsampling_factor (int): The subsampling factor.
-            dtype (torch.dtype): Data type to convert.
-            asr_task (bool): multi-task with ASR task.
-
-        """
+        """Construct a CustomConverter object."""
         super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
         self.asr_task = asr_task
 
@@ -125,7 +121,11 @@ def train(args):
 
     # Initialize with pre-trained ASR encoder and MT decoder
     if args.enc_init is not None or args.dec_init is not None:
-        model = load_trained_modules(idim, odim, args, interface=STInterface)
+        if "transformer" in args.model_module:
+            interface = ASRInterface
+        else:
+            interface = STInterface
+        model = load_trained_modules(idim, odim, args, interface=interface)
     else:
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)
@@ -177,6 +177,7 @@ def train(args):
             weight_decay=args.weight_decay)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
+                                     lr=args.lr,
                                      weight_decay=args.weight_decay)
     elif args.opt == 'noam':
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
@@ -333,6 +334,25 @@ def train(args):
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
             trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+    elif args.opt == 'adam':
+        if args.criterion == 'acc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adam_lr_decay(args.lr_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(adam_lr_decay(args.lr_decay),
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
