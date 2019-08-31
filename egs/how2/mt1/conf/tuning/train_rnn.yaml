@@ -30,7 +30,7 @@ weight-decay: 1e-6
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt: adam
 lr-decay: 0.9
-epochs: 70
+epochs: 30
 patience: 3
 
 # scheduled sampling option
