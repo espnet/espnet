@@ -221,7 +221,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${tgt_case} --set ${ttask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${dict}
+        local/score_bleu.sh --case ${tgt_case} --set ${ttask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
