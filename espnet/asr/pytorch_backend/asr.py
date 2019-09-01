@@ -225,7 +225,7 @@ class CustomConverter(object):
         self.dtype = dtype
 
     def __call__(self, batch, device=torch.device('cpu')):
-        """Transforms a batch and send it to a device for visualization.
+        """Transforms a batch and send it to a device.
 
         Args:
             batch (list): The batch to transform.
@@ -264,7 +264,7 @@ class CustomConverter(object):
         ilens = torch.from_numpy(ilens).to(device)
         # NOTE: this is for multi-task learning (e.g., speech translation)
         ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                                   for y in ys], self.ignore_id).to(device)
+                           for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
