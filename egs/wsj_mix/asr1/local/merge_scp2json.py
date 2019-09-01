@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python33
+# encoding: utf-8
+
+#!/usr/bin/env python33
 # encoding: utf-8
 
 from __future__ import print_function
@@ -6,7 +9,6 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
-from distutils.util import strtobool
 from io import open
 import json
 import logging
@@ -15,7 +17,7 @@ import sys
 from espnet.utils.cli_utils import get_commandline_args
 
 PY2 = sys.version_info[0] == 2
-sys.stdin = codecs.getreader('utf-8')(sys.stdin if PY2 else sys.stdin.buffer)
+sys.stdin = codecs.getwriter('utf-8')(sys.stdin if PY2 else sys.stdin.buffer)
 sys.stdout = codecs.getwriter('utf-8')(
     sys.stdout if PY2 else sys.stdout.buffer)
 
@@ -41,7 +43,9 @@ def shape(x):
     return list(map(int, x.split(',')))
 
 
-def get_parser():
+if __name__ == '__main__':
+    description = '''
+'''
     parser = argparse.ArgumentParser(
         description='Given each file paths with such format as '
                     '<key>:<file>:<type>. type> can be omitted and the default '
@@ -59,17 +63,11 @@ def get_parser():
                         help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
-    parser.add_argument('--allow-one-column', type=strtobool, default=False,
-                        help='Allow one column in input scp files. '
-                             'In this case, the value will be empty string.')
-    parser.add_argument('--out', '-O', type=str,
+    parser.add_argument('--out', '-O', type=argparse.FileType('w'),
+                        default=sys.stdout,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
-    return parser
 
-
-if __name__ == '__main__':
-    parser = get_parser()
     args = parser.parse_args()
     args.scps = [args.scps]
 
@@ -94,8 +92,8 @@ if __name__ == '__main__':
                 sps = key_scp.split(':')
                 if len(sps) == 2:
                     key, scp = sps
-                    type_func = None
-                    type_func_str = 'none'
+                    type_func = str
+                    type_func_str = 'str'
                 elif len(sps) == 3:
                     key, scp, type_func_str = sps
                     fail = False
@@ -146,11 +144,7 @@ if __name__ == '__main__':
     #
     # To reduce memory usage, reading the input text files for each lines
     # and writing JSON elements per samples.
-    if args.out is None:
-        out = sys.stdout
-    else:
-        out = open(args.out, 'w', encoding='utf-8')
-    out.write('{\n    "utts": {\n')
+    args.out.write('{\n    "utts": {\n')
     nutt = 0
     while True:
         nutt += 1
@@ -170,7 +164,7 @@ if __name__ == '__main__':
         for ls_list in (input_lines, output_lines, lines):
             for ls in ls_list:
                 for line in ls:
-                    if line == '' or first == '':
+                    if line == ''or first == '':
                         if line != first:
                             concat = sum(
                                 input_infos + output_infos + infos, [])
@@ -191,10 +185,10 @@ if __name__ == '__main__':
         # The end of file
         if first == '':
             if nutt != 1:
-                out.write('\n')
+                args.out.write('\n')
             break
         if nutt != 1:
-            out.write(',\n')
+            args.out.write(',\n')
 
         entry = {}
         for inout, _lines, _infos in [('input', input_lines, input_infos),
@@ -216,29 +210,23 @@ if __name__ == '__main__':
                 for line, info in zip(line_list, info_list):
                     sps = line.split(None, 1)
                     if len(sps) < 2:
-                        if not args.allow_one_column:
-                            raise RuntimeError(
-                                'Format error {}th line in {}: '
-                                ' Expecting "<key> <value>":\n>>> {}'
-                                .format(nutt, info[1], line))
-                        uttid = sps[0]
-                        value = ''
-                    else:
-                        uttid, value = sps
-
+                        raise RuntimeError(
+                            'Format error {}th line in {}: '
+                            ' Expecting "<key> <value>":\n>>> {}'
+                            .format(nutt, info[1], line))
+                    uttid, value = sps
                     key = info[0]
                     type_func = info[2]
                     value = value.rstrip()
 
-                    if type_func is not None:
-                        try:
-                            # type_func: Callable[[str], Any]
-                            value = type_func(value)
-                        except Exception:
-                            logging.error('"{}" is an invalid function '
-                                          'for the {} th line in {}: \n>>> {}'
-                                          .format(info[4], nutt, info[1], line))
-                            raise
+                    try:
+                        # type_func: Callable[[str], Any]
+                        value = type_func(value)
+                    except Exception:
+                        logging.error('"{}" is an invalid function '
+                                      'for the {} th line in {}: \n>>> {}'
+                                      .format(info[4], nutt, info[1], line))
+                        raise
 
                     d[key] = value
                 lis.append(d)
@@ -256,8 +244,8 @@ if __name__ == '__main__':
         entry = ('\n' + indent).join(entry.split('\n'))
 
         uttid = first.split()[0]
-        out.write('        "{}": {}'.format(uttid, entry))
+        args.out.write('        "{}": {}'.format(uttid, entry))
 
-    out.write('    }\n}\n')
+    args.out.write('    }\n}\n')
 
-    logging.info('{} entries in {}'.format(nutt, out.name))
+    logging.info('{} entries in {}'.format(nutt, args.out.name))
