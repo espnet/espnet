@@ -273,7 +273,7 @@ class AttLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             # if no bias, 0 0-pad goes 0
-            att_prev = to_device(self, (1. - make_pad_mask(enc_hs_len).float()))
+            att_prev = (1. - make_pad_mask(enc_hs_len).to(device=dec_z.device, dtype=dec_z.dtype))
             att_prev = att_prev / att_prev.new(enc_hs_len).unsqueeze(-1)
 
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
@@ -1406,22 +1406,23 @@ def att_for(args, num_att=1, han_mode=False):
     :return: The attention module
     """
     att_list = torch.nn.ModuleList()
-    if args.num_encs == 1:
+    num_encs = getattr(args, "num_encs", 1)
+    if num_encs == 1:
         for i in range(num_att):
             att = initial_att(args.atype, args.eprojs, args.dunits, args.aheads, args.adim, args.awin, args.aconv_chans, args.aconv_filts)
             att_list.append(att)
-    elif args.num_encs > 1: # no multi-speaker mode
+    elif num_encs > 1: # no multi-speaker mode
         if han_mode:
             att = initial_att(args.han_type, args.eprojs, args.dunits, args.han_heads, args.han_dim,
                               args.han_win, args.han_conv_chans, args.han_conv_filts, han_mode=True)
             return att
         else:
             att_list = torch.nn.ModuleList()
-            for idx in range(args.num_encs):
+            for idx in range(num_encs):
                 att = initial_att(args.atype[idx], args.eprojs, args.dunits, args.aheads[idx], args.adim[idx], args.awin[idx], args.aconv_chans[idx], args.aconv_filts[idx])
                 att_list.append(att)
     else:
-        raise ValueError("Number of encoders needs to be more than one. {}".format(args.num_encs))
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))
     return att_list
 
 def initial_att(atype, eprojs, dunits, aheads, adim, awin, aconv_chans, aconv_filts, han_mode=False):

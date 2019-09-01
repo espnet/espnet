@@ -18,7 +18,7 @@ class CTC(torch.nn.Module):
     """
 
     def __init__(self, odim, eprojs, dropout_rate, ctc_type='warpctc', reduce=True):
-        super(CTC, self).__init__()
+        super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
@@ -78,9 +78,16 @@ class CTC(torch.nn.Module):
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
+        dtype = ys_hat.dtype
         ys_hat = ys_hat.transpose(0, 1)
-        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
+        if self.ctc_type == "warpctc":
+            # warpctc only supports float32
+            ys_hat = ys_hat.to(dtype=torch.float32)
+        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(dtype=dtype)
         if self.reduce:
+            # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
+            # but builtin return as tensor w/o shape (scalar).
+            self.loss = self.loss.sum()
             logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
@@ -112,19 +119,20 @@ def ctc_for(args, odim, reduce=True):
     :param bool reduce : return the CTC loss in a scalar
     :return: the corresponding CTC module
     """
-    if args.num_encs == 1:
+    num_encs = getattr(args, "num_encs", 1)
+    if num_encs == 1:
         # compatible with single encoder asr mode
         return CTC(odim, args.eprojs, args.dropout_rate, ctc_type=args.ctc_type, reduce=reduce)
-    elif args.num_encs >= 1:
+    elif num_encs >= 1:
         ctcs_list = torch.nn.ModuleList()
         if args.share_ctc:
             # use dropout_rate of the first encoder
             ctc = CTC(odim, args.eprojs, args.dropout_rate[0], ctc_type=args.ctc_type, reduce=reduce)
             ctcs_list.append(ctc)
         else:
-            for idx in range(args.num_encs):
+            for idx in range(num_encs):
                 ctc = CTC(odim, args.eprojs, args.dropout_rate[idx], ctc_type=args.ctc_type, reduce=reduce)
                 ctcs_list.append(ctc)
         return ctcs_list
     else:
-        raise ValueError("Number of encoders needs to be more than one. {}".format(args.num_encs))
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))

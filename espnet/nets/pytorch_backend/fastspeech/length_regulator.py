@@ -4,6 +4,10 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Length regulator related modules."""
+
+import logging
+
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -16,15 +20,18 @@ class LengthRegulator(torch.nn.Module):
     The length regulator expands char or phoneme-level embedding features to frame-level by repeating each
     feature based on the corresponding predicted durations.
 
-    Args:
-        pad_value (float, optional): Value used for padding.
-
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
     """
 
     def __init__(self, pad_value=0.0):
+        """Initilize length regulator module.
+
+        Args:
+            pad_value (float, optional): Value used for padding.
+
+        """
         super(LengthRegulator, self).__init__()
         self.pad_value = pad_value
 
@@ -69,4 +76,7 @@ class LengthRegulator(torch.nn.Module):
                     [3]])
 
         """
+        if d.sum() == 0:
+            logging.warn("all of the predicted durations are 0. fill 0 with 1.")
+            d = d.fill_(1)
         return torch.cat([x_.repeat(int(d_), 1) for x_, d_ in zip(x, d) if d_ != 0], dim=0)

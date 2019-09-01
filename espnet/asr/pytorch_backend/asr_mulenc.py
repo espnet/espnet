@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2019 Johns Hopkins University (Ruizhi Li)
@@ -19,9 +19,11 @@ from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
+from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
+from torch.nn.parallel import data_parallel
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
@@ -31,28 +33,29 @@ from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_load_trained
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules_mulenc
 from espnet.asr.asr_utils import mtlalpha_exp_decay
 from espnet.asr.asr_utils import sampling_probability_exp_decay
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
-from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -68,20 +71,20 @@ if sys.version_info[0] == 2:
 else:
     from itertools import zip_longest as zip_longest
 
-REPORT_INTERVAL = 100
-
 
 class CustomConverterMulEnc(object):
     """Custom batch converter for Pytorch.
 
     Args:
         subsampling_factors (list): List of subsampling factors for each encoder.
+        dtype (torch.dtype): Data type to convert.
 
     """
 
-    def __init__(self, subsamping_factors=[1,1]):
+    def __init__(self, subsamping_factors=[1,1], dtype=torch.float32):
         self.subsamping_factors = subsamping_factors
         self.ignore_id = -1
+        self.dtype = dtype
         self.num_encs = len(subsamping_factors)
 
     def __call__(self, batch, device):
@@ -109,7 +112,7 @@ class CustomConverterMulEnc(object):
 
         # perform padding and convert to tensor
         # currently only support real number
-        xs_list_pad = [pad_list([torch.from_numpy(x).float() for x in xs_list[i]], 0).to(device) for i in range(self.num_encs)]
+        xs_list_pad = [pad_list([torch.from_numpy(x).float() for x in xs_list[i]], 0).to(device, dtype=self.dtype) for i in range(self.num_encs)]
 
         ilens_list = [torch.from_numpy(ilens_list[i]).to(device) for i in range(self.num_encs)]
         # NOTE: this is for multi-task learning (e.g., speech translation)
@@ -127,6 +130,34 @@ def train(args):
 
     """
     set_deterministic_pytorch(args)
+
+    # convert None to [default_value] * num_encs
+    def format_mulenc_args(args):
+        # format args for multi-encoder setup
+        default_dict = {'etype': 'blstmp',
+                        'elayers': 4,
+                        'eunits': 300,
+                        'subsample': '1',
+                        'dropout_rate': 0.0,
+                        'atype': 'dot',
+                        'adim': 320,
+                        'awin': 5,
+                        'aheads': 4,
+                        'aconv_chans': -1,
+                        'aconv_filts': 100
+                        }
+        for k in default_dict.keys():
+            if isinstance(vars(args)[k], list):
+                assert len(vars(args)[k]) == args.num_encs, (len(vars(args)[k]), )
+                vars(args)[k] = vars(args)[k][:args.num_encs]
+            else:
+                if not vars(args)[k]:
+                    # assign default value if it is None
+                    vars(args)[k] = default_dict[k]
+                # duplicate
+                vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
+        return args
+    args = format_mulenc_args(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -164,7 +195,7 @@ def train(args):
             assert isinstance(pretrain_conf, dict), type(pretrain_conf)
             for idx, process in enumerate(pretrain_conf):
                 assert isinstance(pretrain_conf[process], dict), type(pretrain_conf[process])
-                torch_load_trained(model, pretrain_conf[process])
+                load_trained_modules_mulenc(model, pretrain_conf[process])
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -189,14 +220,18 @@ def train(args):
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+        if args.batch_size != 0:
+            logging.info('batch size is automatically increased (%d -> %d)' % (
+                args.batch_size, args.batch_size * args.ngpu))
+            args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    model = model.to(device)
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
+    else:
+        dtype = torch.float32
+    model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -212,12 +247,28 @@ def train(args):
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+                          "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        if args.opt == 'noam':
+            model, optimizer.optimizer = amp.initialize(model, optimizer.optimizer, opt_level=args.train_dtype)
+        else:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
+
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverterMulEnc([i[0] for i in model.subsample_list])
+    converter = CustomConverterMulEnc([i[0] for i in model.subsample_list], dtype=dtype)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -276,7 +327,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.grad_noise, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer,
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -290,16 +342,16 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
 
     # expoential decay for mtlalpha
-    if 0 < args.mtlalpha < 1 and 0 < args.mtlalpha_exp_decay < 1:
-        trainer.extend(mtlalpha_exp_decay(args.mtlalpha_exp_decay),
+    if 0 < args.mtlalpha < 1 and 0 < getattr(args, "mtlalpha_exp_decay", 1.0) < 1:
+        trainer.extend(mtlalpha_exp_decay(getattr(args, "mtlalpha_exp_decay", 1.0)),
                        trigger=(1, 'epoch'))
 
     # expoential decay for sampling probability
-    if mtl_mode is not 'ctc' and 0 < args.sampling_probability_exp_decay < 1:
-        trainer.extend(sampling_probability_exp_decay(args.sampling_probability_exp_decay),
+    if mtl_mode is not 'ctc' and 0 < getattr(args, "sampling_probability_exp_decay", 1.0) < 1:
+        trainer.extend(sampling_probability_exp_decay(getattr(args, "sampling_probability_exp_decay", 1.0)),
                        trigger=(1, 'epoch'))
 
     # Save attention weight each epoch
@@ -363,31 +415,29 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-
+    trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
                    'elapsed_time'] + report_keys_cer_ctc + report_keys_loss_ctc
-
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(REPORT_INTERVAL, 'iteration'))
+            trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('eps')
     if args.report_cer:
         report_keys.append('validation/main/cer')
     if args.report_wer:
         report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys), trigger=(args.report_interval_iters, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+                       trigger=(args.report_interval_iters, "iteration"))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
@@ -407,6 +457,8 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
@@ -467,11 +519,12 @@ def recog(args):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
 
-        # sort data
+        # sort data if batchsize > 1
         keys = list(js.keys())
-        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-        keys = [keys[i] for i in sorted_index]
+        if args.batchsize > 1:
+            feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+            sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+            keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):

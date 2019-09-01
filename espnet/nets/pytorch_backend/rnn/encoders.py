@@ -273,14 +273,15 @@ def encoder_for(args, idim, subsample):
     :rtype torch.nn.Module
     :return: The encoder module
     """
-    if args.num_encs == 1:
+    num_encs = getattr(args, "num_encs", 1)
+    if num_encs == 1:
         # compatible with single encoder asr mode
         return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
-    elif args.num_encs >= 1:
+    elif num_encs >= 1:
         enc_list = torch.nn.ModuleList()
-        for idx in range(args.num_encs):
+        for idx in range(num_encs):
             enc = Encoder(args.etype[idx], idim[idx], args.elayers[idx], args.eunits[idx], args.eprojs, subsample[idx], args.dropout_rate[idx])
             enc_list.append(enc)
         return enc_list
     else:
-        raise ValueError("Number of encoders needs to be more than one. {}".format(args.num_encs))
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))

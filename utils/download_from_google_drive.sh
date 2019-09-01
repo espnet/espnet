@@ -9,13 +9,13 @@ share_url=$1
 download_dir=${2:-"downloads"}
 file_ext=${3:-"zip"}
 
-if [ $1 == "--help" ] || [ $# -lt 1 ] || [ $# -gt 3 ]; then
+if [ "$1" = "--help" ] || [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "Usage: $0 <share-url> [<download_dir> <file_ext>]";
-   echo "e.g.: $0 https://drive.google.com/open?id=1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg downloads .zip"
+   echo "e.g.: $0 https://drive.google.com/open?id=1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg downloads zip"
    echo "Options:"
    echo "    <download_dir>: directory to save downloaded file. (Default=downloads)"
    echo "    <file_ext>: file extension of the file to be downloaded. (Default=zip)"
-   if [ $1 == "--help" ]; then
+   if [ "$1" = "--help" ]; then
        exit 0;
    fi
    exit 1;
@@ -52,7 +52,7 @@ decompress () {
     # to avoid it, we need to do some tricky processings
     # see https://stackoverflow.com/questions/20665881/direct-download-from-google-drive-using-google-drive-api
     curl -c /tmp/cookies "https://drive.google.com/uc?export=download&id=${file_id}" > /tmp/intermezzo.html
-    postfix=$(grep -Po 'uc-download-link" [^>]* href="\K[^"]*' /tmp/intermezzo.html | sed 's/\&amp;/\&/g')
+    postfix=$(perl -nle 'print $& while m{uc-download-link" [^>]* href="\K[^"]*}g' /tmp/intermezzo.html | sed 's/\&amp;/\&/g')
     curl -L -b /tmp/cookies "https://drive.google.com${postfix}" > "${tmp}"
     decompress "${tmp}" "${download_dir}"
 }

@@ -4,10 +4,54 @@
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""CBHG related modules."""
+
 import torch
+import torch.nn.functional as F
 
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
+
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+
+
+class CBHGLoss(torch.nn.Module):
+    """Loss function module for CBHG."""
+
+    def __init__(self, use_masking=True):
+        """Initialize CBHG loss module.
+
+        Args:
+            use_masking (bool): Whether to mask padded part in loss calculation.
+
+        """
+        super(CBHGLoss, self).__init__()
+        self.use_masking = use_masking
+
+    def forward(self, cbhg_outs, spcs, olens):
+        """Calculate forward propagation.
+
+        Args:
+            cbhg_outs (Tensor): Batch of CBHG outputs (B, Lmax, spc_dim).
+            spcs (Tensor): Batch of groundtruth of spectrogram (B, Lmax, spc_dim).
+            olens (LongTensor): Batch of the lengths of each sequence (B,).
+
+        Returns:
+            Tensor: L1 loss value
+            Tensor: Mean square error loss value.
+
+        """
+        # perform masking for padded values
+        if self.use_masking:
+            mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
+            spcs = spcs.masked_select(mask)
+            cbhg_outs = cbhg_outs.masked_select(mask)
+
+        # calculate loss
+        cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
+        cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
+
+        return cbhg_l1_loss, cbhg_mse_loss
 
 
 class CBHG(torch.nn.Module):
@@ -15,17 +59,6 @@ class CBHG(torch.nn.Module):
 
     This is a module of CBHG introduced in `Tacotron: Towards End-to-End Speech Synthesis`_.
     The CBHG converts the sequence of log Mel-filterbanks into linear spectrogram.
-
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        conv_bank_layers (int, optional): The number of convolution bank layers.
-        conv_bank_chans (int, optional): The number of channels in convolution bank.
-        conv_proj_filts (int, optional): Kernel size of convolutional projection layer.
-        conv_proj_chans (int, optional): The number of channels in convolutional projection layer.
-        highway_layers (int, optional): The number of highway network layers.
-        highway_units (int, optional): The number of highway network units.
-        gru_units (int, optional): The number of GRU units (for both directions).
 
     .. _`Tacotron: Towards End-to-End Speech Synthesis`: https://arxiv.org/abs/1703.10135
 
@@ -41,6 +74,20 @@ class CBHG(torch.nn.Module):
                  highway_layers=4,
                  highway_units=128,
                  gru_units=256):
+        """Initialize CBHG module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            conv_bank_layers (int, optional): The number of convolution bank layers.
+            conv_bank_chans (int, optional): The number of channels in convolution bank.
+            conv_proj_filts (int, optional): Kernel size of convolutional projection layer.
+            conv_proj_chans (int, optional): The number of channels in convolutional projection layer.
+            highway_layers (int, optional): The number of highway network layers.
+            highway_units (int, optional): The number of highway network units.
+            gru_units (int, optional): The number of GRU units (for both directions).
+
+        """
         super(CBHG, self).__init__()
         self.idim = idim
         self.odim = odim
@@ -169,14 +216,17 @@ class HighwayNet(torch.nn.Module):
 
     This is a module of Highway Network introduced in `Highway Networks`_.
 
-    Args:
-        idim (int): Dimension of the inputs.
-
     .. _`Highway Networks`: https://arxiv.org/abs/1505.00387
 
     """
 
     def __init__(self, idim):
+        """Initialize Highway Network module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+
+        """
         super(HighwayNet, self).__init__()
         self.idim = idim
         self.projection = torch.nn.Sequential(

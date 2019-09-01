@@ -6,6 +6,8 @@
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
+"""Language model training script."""
+
 from __future__ import division
 from __future__ import print_function
 
@@ -14,14 +16,16 @@ import logging
 
 import numpy as np
 import os
-import platform
 import random
 import subprocess
 import sys
 
+from espnet.nets.lm_interface import dynamic_import_lm
+
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser."""
     parser = configargparse.ArgumentParser(
         description='Train a new language model on one CPU or one GPU',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -33,8 +37,12 @@ def get_parser():
     parser.add('--config3', is_config_file=True,
                help='third config file path that overwrites the settings in `--config` and `--config2`.')
 
-    parser.add_argument('--ngpu', default=0, type=int,
-                        help='Number of GPUs')
+    parser.add_argument('--ngpu', default=None, type=int,
+                        help='Number of GPUs. If not given, use all visible devices')
+    parser.add_argument('--train-dtype', default="float32",
+                        choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
+                        help='Data type for training (only pytorch backend). '
+                        'O0,O1,.. flags require apex. See https://nvidia.github.io/apex/amp.html#opt-levels')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
@@ -51,6 +59,8 @@ def get_parser():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--report-interval-iters', default=100, type=int,
+                        help="Report interval iterations")
     # task related
     parser.add_argument('--train-label', type=str, required=True,
                         help='Filename of train label data')
@@ -58,7 +68,9 @@ def get_parser():
                         help='Filename of validation label data')
     parser.add_argument('--test-label', type=str,
                         help='Filename of test label data')
-    # LSTMLM training configuration
+    parser.add_argument('--dump-hdf5-path', type=str, default=None,
+                        help='Path to dump a preprocessed dataset as hdf5')
+    # training configuration
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
@@ -76,23 +88,28 @@ def get_parser():
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
-    parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
-                        help="Which type of RNN to use")
-    parser.add_argument('--layer', '-l', type=int, default=2,
-                        help='Number of hidden layers')
-    parser.add_argument('--unit', '-u', type=int, default=650,
-                        help='Number of hidden units')
-    parser.add_argument('--dropout-rate', type=float, default=0.5,
-                        help='dropout probability')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
+    parser.add_argument('--model-module', type=str, default='default',
+                        help='model defined module (default: espnet.nets.xxx_backend.lm.default:DefaultRNNLM)')
     return parser
 
 
-def main(args):
+def main(cmd_args):
+    """Train LM."""
     parser = get_parser()
-    args = parser.parse_args(args)
+    args, _ = parser.parse_known_args(cmd_args)
+    if args.backend == "chainer" and args.train_dtype != "float32":
+        raise NotImplementedError(
+            f"chainer backend does not support --train-dtype {args.train_dtype}."
+            "Use --dtype float32.")
+    if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
+        raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
+    # parse model-specific arguments dynamically
+    model_class = dynamic_import_lm(args.model_module, args.backend)
+    model_class.add_arguments(parser)
+    args = parser.parse_args(cmd_args)
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
@@ -102,26 +119,27 @@ def main(args):
             level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
 
-    # check CUDA_VISIBLE_DEVICES
-    if args.ngpu > 0:
-        # python 2 case
-        if platform.python_version_tuple()[0] == '2':
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-        # python 3 case
-        else:
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+    # If --ngpu is not given,
+    #   1. if CUDA_VISIBLE_DEVICES is set, all visible devices
+    #   2. if nvidia-smi exists, use all devices
+    #   3. else ngpu=0
+    if args.ngpu is None:
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
-        if cvd is None:
+        if cvd is not None:
+            ngpu = len(cvd.split(','))
+        else:
             logging.warning("CUDA_VISIBLE_DEVICES is not set.")
-        elif args.ngpu != len(cvd.split(",")):
-            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
-            sys.exit(1)
+            try:
+                p = subprocess.run(['nvidia-smi', '-L'],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                ngpu = 0
+            else:
+                ngpu = len(p.stderr.decode().split('\n')) - 1
+    else:
+        ngpu = args.ngpu
+    logging.info(f"ngpu: {ngpu}")
 
     # display PYTHONPATH
     logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))

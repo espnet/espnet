@@ -4,6 +4,8 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Tacotron 2 related modules."""
+
 import logging
 
 from distutils.util import strtobool
@@ -17,9 +19,11 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
+from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -28,18 +32,23 @@ class GuidedAttentionLoss(torch.nn.Module):
     This module calculates the guided attention loss described in `Efficiently Trainable Text-to-Speech System Based
     on Deep Convolutional Networks with Guided Attention`_, which forces the attention to be diagonal.
 
-    Args:
-        sigma (float, optional): Standard deviation to control how close attention to a diagonal.
-        reset_always (bool, optional): Whether to always reset masks.
-
     .. _`Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention`:
         https://arxiv.org/abs/1710.08969
 
     """
 
-    def __init__(self, sigma=0.4, reset_always=True):
+    def __init__(self, sigma=0.4, alpha=1.0, reset_always=True):
+        """Initialize guided attention loss module.
+
+        Args:
+            sigma (float, optional): Standard deviation to control how close attention to a diagonal.
+            alpha (float, optional): Scaling coefficient (lambda).
+            reset_always (bool, optional): Whether to always reset masks.
+
+        """
         super(GuidedAttentionLoss, self).__init__()
-        self.sigma = torch.tensor(sigma)
+        self.sigma = sigma
+        self.alpha = alpha
         self.reset_always = reset_always
         self.guided_attn_masks = None
         self.masks = None
@@ -68,7 +77,7 @@ class GuidedAttentionLoss(torch.nn.Module):
         loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
             self._reset_masks()
-        return loss
+        return self.alpha * loss
 
     def _make_guided_attention_masks(self, ilens, olens):
         n_batches = len(ilens)
@@ -124,7 +133,6 @@ class GuidedAttentionLoss(torch.nn.Module):
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1],
                      [1, 1, 1, 1, 1]],
-
                     [[1, 1, 0, 0, 0],
                      [1, 1, 0, 0, 0],
                      [1, 1, 0, 0, 0],
@@ -140,60 +148,20 @@ class GuidedAttentionLoss(torch.nn.Module):
         return out_masks.unsqueeze(-1) & in_masks.unsqueeze(-2)  # (B, T_out, T_in)
 
 
-class CBHGLoss(torch.nn.Module):
-    """Loss function module for CBHG.
+class Tacotron2Loss(torch.nn.Module):
+    """Loss function module for Tacotron2."""
 
-    Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation
-
-    """
-
-    def __init__(self, args):
-        super(CBHGLoss, self).__init__()
-        self.reduction_factor = args.reduction_factor
-        self.use_masking = args.use_masking
-
-    def forward(self, cbhg_outs, spcs, olens):
-        """Calculate forward propagation.
+    def __init__(self, use_masking=True, bce_pos_weight=20.0):
+        """Initialize Tactoron2 loss module.
 
         Args:
-            cbhg_outs (Tensor): Batch of CBHG outputs (B, Lmax, spc_dim).
-            spcs (Tensor): Batch of groundtruth of spectrogram (B, Lmax, spc_dim).
-            olens (LongTensor): Batch of the lengths of each sequence (B,).
-
-        Returns:
-            Tensor: L1 loss value
-            Tensor: Mean square error loss value.
+            use_masking (bool): Whether to mask padded part in loss calculation.
+            bce_pos_weight (float): Weight of positive sample of stop token.
 
         """
-        # perform masking for padded values
-        if self.use_masking:
-            mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
-            spcs = spcs.masked_select(mask)
-            cbhg_outs = cbhg_outs.masked_select(mask)
-
-        # calculate loss
-        cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
-        cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
-
-        return cbhg_l1_loss, cbhg_mse_loss
-
-
-class Tacotron2Loss(torch.nn.Module):
-    """Loss function module for Tacotron2.
-
-    Args:
-        args (Namespace):
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
-
-    """
-
-    def __init__(self, args):
         super(Tacotron2Loss, self).__init__()
-        self.use_masking = args.use_masking
-        self.bce_pos_weight = args.bce_pos_weight
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -237,45 +205,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts the sequence of characters
     into the sequence of Mel-filterbanks.
 
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        args (Namespace):
-            - spk_embed_dim (int): Dimension of the speaker embedding.
-            - embed_dim (int): Dimension of character embedding.
-            - elayers (int): The number of encoder blstm layers.
-            - eunits (int): The number of encoder blstm units.
-            - econv_layers (int): The number of encoder conv layers.
-            - econv_filts (int): The number of encoder conv filter size.
-            - econv_chans (int): The number of encoder conv filter channels.
-            - dlayers (int): The number of decoder lstm layers.
-            - dunits (int): The number of decoder lstm units.
-            - prenet_layers (int): The number of prenet layers.
-            - prenet_units (int): The number of prenet units.
-            - postnet_layers (int): The number of postnet layers.
-            - postnet_filts (int): The number of postnet filter size.
-            - postnet_chans (int): The number of postnet filter channels.
-            - output_activation (int): The name of activation function for outputs.
-            - adim (int): The number of dimension of mlp in attention.
-            - aconv_chans (int): The number of attention conv filter channels.
-            - aconv_filts (int): The number of attention conv filter size.
-            - cumulate_att_w (bool): Whether to cumulate previous attention weight.
-            - use_batch_norm (bool): Whether to use batch normalization.
-            - use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
-            - dropout_rate (float): Dropout rate.
-            - zoneout_rate (float): Zoneout rate.
-            - reduction_factor (int): Reduction factor.
-            - use_cbhg (bool): Whether to use CBHG module.
-            - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
-            - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
-            - cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
-            - cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
-            - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
-            - cbhg_highway_units (int): The number of units of highway network in CBHG.
-            - cbhg_gru_units (int): The number of units of GRU in CBHG.
-            - use_masking (bool): Whether to mask padded part in loss calculation.
-            - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
-
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
 
@@ -284,93 +213,150 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         """Add model-specific arguments to the parser."""
+        group = parser.add_argument_group("tacotron 2 model setting")
         # encoder
-        parser.add_argument('--embed-dim', default=512, type=int,
-                            help='Number of dimension of embedding')
-        parser.add_argument('--elayers', default=1, type=int,
-                            help='Number of encoder layers')
-        parser.add_argument('--eunits', '-u', default=512, type=int,
-                            help='Number of encoder hidden units')
-        parser.add_argument('--econv-layers', default=3, type=int,
-                            help='Number of encoder convolution layers')
-        parser.add_argument('--econv-chans', default=512, type=int,
-                            help='Number of encoder convolution channels')
-        parser.add_argument('--econv-filts', default=5, type=int,
-                            help='Filter size of encoder convolution')
+        group.add_argument('--embed-dim', default=512, type=int,
+                           help='Number of dimension of embedding')
+        group.add_argument('--elayers', default=1, type=int,
+                           help='Number of encoder layers')
+        group.add_argument('--eunits', '-u', default=512, type=int,
+                           help='Number of encoder hidden units')
+        group.add_argument('--econv-layers', default=3, type=int,
+                           help='Number of encoder convolution layers')
+        group.add_argument('--econv-chans', default=512, type=int,
+                           help='Number of encoder convolution channels')
+        group.add_argument('--econv-filts', default=5, type=int,
+                           help='Filter size of encoder convolution')
         # attention
-        parser.add_argument('--atype', default="location", type=str,
-                            choices=["forward_ta", "forward", "location"],
-                            help='Type of attention mechanism')
-        parser.add_argument('--adim', default=512, type=int,
-                            help='Number of attention transformation dimensions')
-        parser.add_argument('--aconv-chans', default=32, type=int,
-                            help='Number of attention convolution channels')
-        parser.add_argument('--aconv-filts', default=15, type=int,
-                            help='Filter size of attention convolution')
-        parser.add_argument('--cumulate-att-w', default=True, type=strtobool,
-                            help="Whether or not to cumulate attention weights")
+        group.add_argument('--atype', default="location", type=str,
+                           choices=["forward_ta", "forward", "location"],
+                           help='Type of attention mechanism')
+        group.add_argument('--adim', default=512, type=int,
+                           help='Number of attention transformation dimensions')
+        group.add_argument('--aconv-chans', default=32, type=int,
+                           help='Number of attention convolution channels')
+        group.add_argument('--aconv-filts', default=15, type=int,
+                           help='Filter size of attention convolution')
+        group.add_argument('--cumulate-att-w', default=True, type=strtobool,
+                           help="Whether or not to cumulate attention weights")
         # decoder
-        parser.add_argument('--dlayers', default=2, type=int,
-                            help='Number of decoder layers')
-        parser.add_argument('--dunits', default=1024, type=int,
-                            help='Number of decoder hidden units')
-        parser.add_argument('--prenet-layers', default=2, type=int,
-                            help='Number of prenet layers')
-        parser.add_argument('--prenet-units', default=256, type=int,
-                            help='Number of prenet hidden units')
-        parser.add_argument('--postnet-layers', default=5, type=int,
-                            help='Number of postnet layers')
-        parser.add_argument('--postnet-chans', default=512, type=int,
-                            help='Number of postnet channels')
-        parser.add_argument('--postnet-filts', default=5, type=int,
-                            help='Filter size of postnet')
-        parser.add_argument('--output-activation', default=None, type=str, nargs='?',
-                            help='Output activation function')
+        group.add_argument('--dlayers', default=2, type=int,
+                           help='Number of decoder layers')
+        group.add_argument('--dunits', default=1024, type=int,
+                           help='Number of decoder hidden units')
+        group.add_argument('--prenet-layers', default=2, type=int,
+                           help='Number of prenet layers')
+        group.add_argument('--prenet-units', default=256, type=int,
+                           help='Number of prenet hidden units')
+        group.add_argument('--postnet-layers', default=5, type=int,
+                           help='Number of postnet layers')
+        group.add_argument('--postnet-chans', default=512, type=int,
+                           help='Number of postnet channels')
+        group.add_argument('--postnet-filts', default=5, type=int,
+                           help='Filter size of postnet')
+        group.add_argument('--output-activation', default=None, type=str, nargs='?',
+                           help='Output activation function')
         # cbhg
-        parser.add_argument('--use-cbhg', default=False, type=strtobool,
-                            help='Whether to use CBHG module')
-        parser.add_argument('--cbhg-conv-bank-layers', default=8, type=int,
-                            help='Number of convoluional bank layers in CBHG')
-        parser.add_argument('--cbhg-conv-bank-chans', default=128, type=int,
-                            help='Number of convoluional bank channles in CBHG')
-        parser.add_argument('--cbhg-conv-proj-filts', default=3, type=int,
-                            help='Filter size of convoluional projection layer in CBHG')
-        parser.add_argument('--cbhg-conv-proj-chans', default=256, type=int,
-                            help='Number of convoluional projection channels in CBHG')
-        parser.add_argument('--cbhg-highway-layers', default=4, type=int,
-                            help='Number of highway layers in CBHG')
-        parser.add_argument('--cbhg-highway-units', default=128, type=int,
-                            help='Number of highway units in CBHG')
-        parser.add_argument('--cbhg-gru-units', default=256, type=int,
-                            help='Number of GRU units in CBHG')
+        group.add_argument('--use-cbhg', default=False, type=strtobool,
+                           help='Whether to use CBHG module')
+        group.add_argument('--cbhg-conv-bank-layers', default=8, type=int,
+                           help='Number of convoluional bank layers in CBHG')
+        group.add_argument('--cbhg-conv-bank-chans', default=128, type=int,
+                           help='Number of convoluional bank channles in CBHG')
+        group.add_argument('--cbhg-conv-proj-filts', default=3, type=int,
+                           help='Filter size of convoluional projection layer in CBHG')
+        group.add_argument('--cbhg-conv-proj-chans', default=256, type=int,
+                           help='Number of convoluional projection channels in CBHG')
+        group.add_argument('--cbhg-highway-layers', default=4, type=int,
+                           help='Number of highway layers in CBHG')
+        group.add_argument('--cbhg-highway-units', default=128, type=int,
+                           help='Number of highway units in CBHG')
+        group.add_argument('--cbhg-gru-units', default=256, type=int,
+                           help='Number of GRU units in CBHG')
         # model (parameter) related
-        parser.add_argument('--use-batch-norm', default=True, type=strtobool,
-                            help='Whether to use batch normalization')
-        parser.add_argument('--use-concate', default=True, type=strtobool,
-                            help='Whether to concatenate encoder embedding with decoder outputs')
-        parser.add_argument('--use-residual', default=True, type=strtobool,
-                            help='Whether to use residual connection in conv layer')
-        parser.add_argument('--dropout-rate', default=0.5, type=float,
-                            help='Dropout rate')
-        parser.add_argument('--zoneout-rate', default=0.1, type=float,
-                            help='Zoneout rate')
-        parser.add_argument('--reduction-factor', default=1, type=int,
-                            help='Reduction factor')
+        group.add_argument('--use-batch-norm', default=True, type=strtobool,
+                           help='Whether to use batch normalization')
+        group.add_argument('--use-concate', default=True, type=strtobool,
+                           help='Whether to concatenate encoder embedding with decoder outputs')
+        group.add_argument('--use-residual', default=True, type=strtobool,
+                           help='Whether to use residual connection in conv layer')
+        group.add_argument('--dropout-rate', default=0.5, type=float,
+                           help='Dropout rate')
+        group.add_argument('--zoneout-rate', default=0.1, type=float,
+                           help='Zoneout rate')
+        group.add_argument('--reduction-factor', default=1, type=int,
+                           help='Reduction factor')
+        group.add_argument("--spk-embed-dim", default=None, type=int,
+                           help="Number of speaker embedding dimensions")
+        group.add_argument("--spc-dim", default=None, type=int,
+                           help="Number of spectrogram dimensions")
         # loss related
-        parser.add_argument('--use-masking', default=False, type=strtobool,
-                            help='Whether to use masking in calculation of loss')
-        parser.add_argument('--bce-pos-weight', default=20.0, type=float,
-                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
-        parser.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
-                            help="Whether to use guided attention loss")
-        parser.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
-                            help="Sigma in guided attention loss")
-        return
+        group.add_argument('--use-masking', default=False, type=strtobool,
+                           help='Whether to use masking in calculation of loss')
+        group.add_argument('--bce-pos-weight', default=20.0, type=float,
+                           help='Positive sample weight in BCE calculation (only for use-masking=True)')
+        group.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+                           help="Whether to use guided attention loss")
+        group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+                           help="Sigma in guided attention loss")
+        group.add_argument("--guided-attn-loss-lambda", default=1.0, type=float,
+                           help="Lambda in guided attention loss")
+        return parser
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args=None):
+        """Initialize Tacotron2 module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            args (Namespace, optional):
+                - spk_embed_dim (int): Dimension of the speaker embedding.
+                - embed_dim (int): Dimension of character embedding.
+                - elayers (int): The number of encoder blstm layers.
+                - eunits (int): The number of encoder blstm units.
+                - econv_layers (int): The number of encoder conv layers.
+                - econv_filts (int): The number of encoder conv filter size.
+                - econv_chans (int): The number of encoder conv filter channels.
+                - dlayers (int): The number of decoder lstm layers.
+                - dunits (int): The number of decoder lstm units.
+                - prenet_layers (int): The number of prenet layers.
+                - prenet_units (int): The number of prenet units.
+                - postnet_layers (int): The number of postnet layers.
+                - postnet_filts (int): The number of postnet filter size.
+                - postnet_chans (int): The number of postnet filter channels.
+                - output_activation (int): The name of activation function for outputs.
+                - adim (int): The number of dimension of mlp in attention.
+                - aconv_chans (int): The number of attention conv filter channels.
+                - aconv_filts (int): The number of attention conv filter size.
+                - cumulate_att_w (bool): Whether to cumulate previous attention weight.
+                - use_batch_norm (bool): Whether to use batch normalization.
+                - use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
+                - dropout_rate (float): Dropout rate.
+                - zoneout_rate (float): Zoneout rate.
+                - reduction_factor (int): Reduction factor.
+                - spk_embed_dim (int): Number of speaker embedding dimenstions.
+                - spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
+                - use_cbhg (bool): Whether to use CBHG module.
+                - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
+                - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
+                - cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
+                - cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
+                - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
+                - cbhg_highway_units (int): The number of units of highway network in CBHG.
+                - cbhg_gru_units (int): The number of units of GRU in CBHG.
+                - use_masking (bool): Whether to mask padded part in loss calculation.
+                - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+                - use-guided-attn-loss (bool): Whether to use guided attention loss.
+                - guided-attn-loss-sigma (float) Sigma in guided attention loss.
+                - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
+
+        """
         # initialize base classes
         TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments
+        args = fill_missing_args(args, self.add_arguments)
 
         # store hyperparameters
         self.idim = idim
@@ -379,7 +365,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.reduction_factor = args.reduction_factor
         self.use_cbhg = args.use_cbhg
-        self.use_guided_attn_loss = getattr(args, "use_guided_attn_loss", False)
+        self.use_guided_attn_loss = args.use_guided_attn_loss
 
         # define activation function for the final output
         if args.output_activation is None:
@@ -401,6 +387,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            econv_chans=args.econv_chans,
                            econv_filts=args.econv_filts,
                            use_batch_norm=args.use_batch_norm,
+                           use_residual=args.use_residual,
                            dropout_rate=args.dropout_rate,
                            padding_idx=padding_idx)
         dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
@@ -448,9 +435,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            dropout_rate=args.dropout_rate,
                            zoneout_rate=args.zoneout_rate,
                            reduction_factor=args.reduction_factor)
-        self.taco2_loss = Tacotron2Loss(args)
+        self.taco2_loss = Tacotron2Loss(use_masking=args.use_masking,
+                                        bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
-            self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
+            self.attn_loss = GuidedAttentionLoss(
+                sigma=args.guided_attn_loss_sigma,
+                alpha=args.guided_attn_loss_lambda,
+            )
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
                              odim=args.spc_dim,
@@ -461,7 +452,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                              highway_layers=args.cbhg_highway_layers,
                              highway_units=args.cbhg_highway_units,
                              gru_units=args.cbhg_gru_units)
-            self.cbhg_loss = CBHGLoss(args)
+            self.cbhg_loss = CBHGLoss(use_masking=args.use_masking)
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
         """Calculate forward propagation.
@@ -514,7 +505,12 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         # caluculate attention loss
         if self.use_guided_attn_loss:
-            attn_loss = self.attn_loss(att_ws, ilens, olens)
+            # NOTE(kan-bayashi): length of output for auto-regressive input will be changed when r > 1
+            if self.reduction_factor > 1:
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                olens_in = olens
+            attn_loss = self.attn_loss(att_ws, ilens, olens_in)
             loss = loss + attn_loss
             report_keys += [
                 {'attn_loss': attn_loss.item()},

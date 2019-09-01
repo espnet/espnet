@@ -29,7 +29,7 @@ def batchfy_by_seq(
 
     # check #utts is more than min_batch_size
     if len(sorted_data) < min_batch_size:
-        raise ValueError("#utts is less than min_batch_size.")
+        raise ValueError(f"#utts({len(sorted_data)}) is less than min_batch_size({min_batch_size}).")
 
     # make list of minibatches
     minibatches = []
@@ -279,7 +279,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     :param int batch_bins: maximum number of bins (frames x dim) in a minibatch.
     :param int batch_frames_in:  maximum number of input frames in a minibatch.
     :param int batch_frames_out: maximum number of output frames in a minibatch.
-    :param int batch_frames_inout: maximum number of input+output frames in a minibatch.
+    :param int batch_frames_out: maximum number of input+output frames in a minibatch.
     :param str count: strategy to count maximum size of batch.
         For choices, see espnet.asr.batchfy.BATCH_COUNT_CHOICES
 
