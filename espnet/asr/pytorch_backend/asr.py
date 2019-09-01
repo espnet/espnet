@@ -259,7 +259,7 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = to_func(pad_list([torch.from_numpy(x).float() for x in xs], 0)).to(device, dtype=self.dtype)
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
         # NOTE: this is for multi-task learning (e.g., speech translation)
