@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+This script is used to construct End-to-End models of multi-speaker ASR.
 
+Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+ Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
 
 from __future__ import division
 
@@ -40,9 +43,10 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
+    """A chainer reporter wrapper."""
 
     def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
+        """Define reporter."""
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
@@ -53,12 +57,13 @@ class Reporter(chainer.Chain):
 
 
 class PIT(object):
-    """Permutation Invariant Training (PIT) module
+    """Permutation Invariant Training (PIT) module.
 
     :parameter int num_spkrs: number of speakers for PIT process (2 or 3)
     """
 
     def __init__(self, num_spkrs):
+        """Initialize PIT module."""
         self.num_spkrs = num_spkrs
         if self.num_spkrs == 2:
             self.perm_choices = [[0, 1], [1, 0]]
@@ -76,8 +81,8 @@ class PIT(object):
         :rtype torch.Tensor (1)
         :return the best permutation
         :rtype List: len=2
-        """
 
+        """
         if self.num_spkrs == 2:
             score_perms = torch.stack([loss[0] + loss[3],
                                        loss[1] + loss[2]]) / self.num_spkrs
@@ -102,8 +107,8 @@ class PIT(object):
         :rtype torch.Tensor (B)
         :return the best permutation
         :rtype torch.LongTensor (B, 1|2|3)
-        """
 
+        """
         bs = losses.size(0)
         ret = [self.min_pit_sample(losses[i]) for i in range(bs)]
 
@@ -114,14 +119,16 @@ class PIT(object):
 
 
 class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
-    """E2E module
+    """E2E module.
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
     """
+
     @staticmethod
     def add_arguments(parser):
+        """Add arguments."""
         E2E.encoder_add_arguments(parser)
         E2E.encoder_mix_add_arguments(parser)
         E2E.attention_add_arguments(parser)
@@ -130,6 +137,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_mix_add_arguments(parser):
+        """Add arguments for multi-speaker encoder."""
         group = parser.add_argument_group("E2E encoder setting for multi-speaker")
         # asr-mix encoder
         group.add_argument('--spa', action='store_true',
@@ -140,6 +148,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args):
+        """Initialize multi-speaker E2E module."""
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -225,7 +234,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         self.acc = None
 
     def init_like_chainer(self):
-        """Initialize weight like chainer
+        """Initialize weight like chainer.
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
@@ -234,7 +243,6 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
-
         def lecun_normal_init_parameters(module):
             for p in module.parameters():
                 data = p.data
@@ -271,7 +279,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """E2E forward
+        """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -404,7 +412,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
         :param Namespace recog_args: argument Namespace containing options
@@ -456,7 +464,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param ndarray xs: input acoustic feature (T, D)
         :param Namespace recog_args: argument Namespace containing options
@@ -509,11 +517,10 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         return y
 
     def enhance(self, xs):
-        """Forwarding only the frontend stage
+        """Forward only the frontend stage.
 
         :param ndarray xs: input acoustic feature (T, C, F)
         """
-
         if self.frontend is None:
             raise RuntimeError('Frontend doesn\'t exist')
         prev = self.training
@@ -538,7 +545,7 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
-        """E2E attention calculation
+        """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -601,6 +608,7 @@ class EncoderMix(torch.nn.Module):
 
     def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs,
                  subsample, dropout, num_spkrs=2, in_channel=1):
+        """Initialize the encoder of single-channel multi-speaker ASR."""
         super(EncoderMix, self).__init__()
         typ = etype.lstrip("vgg").rstrip("p")
         if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
@@ -629,7 +637,7 @@ class EncoderMix(torch.nn.Module):
         self.num_spkrs = num_spkrs
 
     def forward(self, xs_pad, ilens):
-        """EncoderMix forward
+        """Encodermix forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -658,8 +666,7 @@ class EncoderMix(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
-    """
-    """
+    """Construct the encoder."""
     if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
         # with frontend, the mixed speech are separated as streams for each speaker
         return encoder_for_single(args, idim, subsample)
