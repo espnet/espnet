@@ -1,7 +1,16 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+This script is used to provide utility functions designed for multi-speaker ASR.
+
+Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+ Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+Most functions can be directly used as in asr_utils.py:
+    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,
+    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf.
+
+"""
 
 import copy
 import logging
@@ -11,11 +20,6 @@ from chainer.training import extension
 
 import matplotlib
 
-"""
-Utility functions for ASR mix recipes. Reuse following modules in asr_utils:
-    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,
-    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf
-"""
 from espnet.asr.asr_utils import parse_hypothesis
 
 
@@ -37,6 +41,7 @@ class PlotAttentionReport(extension.Extension):
     """
 
     def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+        """Initialize PlotAttentionReport."""
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir

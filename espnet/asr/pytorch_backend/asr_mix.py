@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+This script is used for multi-speaker speech recognition.
 
-
+Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+ Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
 import json
 import logging
 import os
@@ -58,12 +60,13 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32):
+        """Initialize the converter."""
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list(tuple(str, dict[str, dict[str, Any]]))): The batch to transform.
@@ -389,6 +392,7 @@ def recog(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
