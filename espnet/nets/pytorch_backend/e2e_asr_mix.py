@@ -25,6 +25,7 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
+from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_ASR
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -67,13 +68,13 @@ class PIT(object):
             raise ValueError
 
     def min_pit_sample(self, loss):
-        """PIT min_pit_sample
+        """Compute the PIT loss for each sample.
 
         :param 1-D torch.Tensor loss: list of losses for one sample,
             including [h1r1, h1r2, h2r1, h2r2] or [h1r1, h1r2, h1r3, h2r1, h2r2, h2r3, h3r1, h3r2, h3r3]
-        :return min_loss
+        :return minimum loss of best permutation
         :rtype torch.Tensor (1)
-        :return permutation
+        :return the best permutation
         :rtype List: len=2
         """
 
@@ -94,12 +95,12 @@ class PIT(object):
         return perm_loss, permutation
 
     def pit_process(self, losses):
-        """PIT pit_process
+        """Compute the PIT loss for a batch.
 
         :param torch.Tensor losses: losses (B, 1|4|9)
-        :return pit_loss
+        :return minimum losses of a batch with best permutation
         :rtype torch.Tensor (B)
-        :return permutation
+        :return the best permutation
         :rtype torch.LongTensor (B, 1|2|3)
         """
 
@@ -112,13 +113,31 @@ class PIT(object):
         return torch.mean(loss_perm), permutation
 
 
-class E2E(ASRInterface, torch.nn.Module):
+class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
     """
+    @staticmethod
+    def add_arguments(parser):
+        E2E.encoder_add_arguments(parser)
+        E2E.encoder_mix_add_arguments(parser)
+        E2E.attention_add_arguments(parser)
+        E2E.decoder_add_arguments(parser)
+        return parser
+
+    @staticmethod
+    def encoder_mix_add_arguments(parser):
+        group = parser.add_argument_group("E2E encoder setting for multi-speaker")
+        # asr-mix encoder
+        group.add_argument('--spa', action='store_true',
+                           help='Enable speaker parallel attention for multi-speaker speech recognition task.')
+        group.add_argument('--elayers-sd', default=4, type=int,
+                           help='Number of speaker differentiate encoder layers'
+                                'for multi-speaker speech recognition task.')
+        return parser
 
     def __init__(self, idim, odim, args):
         torch.nn.Module.__init__(self)
@@ -566,7 +585,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
 
 class EncoderMix(torch.nn.Module):
-    """Encoder module
+    """Encoder module for the case of multi-speaker mixture speech.
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
@@ -598,15 +617,19 @@ class EncoderMix(torch.nn.Module):
                 self.enc_rec = torch.nn.ModuleList([RNNP(eprojs, elayers_rec, eunits, eprojs,
                                                          subsample[elayers_sd:], dropout, typ=typ)])
                 logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
+            else:
+                logging.error(
+                    f"Error: need to specify an appropriate encoder architecture. Illegal name {etype}")
+                sys.exit()
         else:
             logging.error(
-                "Error: need to specify an appropriate encoder architecture")
+                f"Error: need to specify an appropriate encoder architecture. Illegal name {etype}")
             sys.exit()
 
         self.num_spkrs = num_spkrs
 
     def forward(self, xs_pad, ilens):
-        """Encoder forward
+        """EncoderMix forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -635,6 +658,8 @@ class EncoderMix(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
+    """
+    """
     if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
         # with frontend, the mixed speech are separated as streams for each speaker
         return encoder_for_single(args, idim, subsample)

@@ -14,6 +14,14 @@
     echo "==== ASR (backend=chainer) ==="
     ./run.sh --stage 3 --backend chainer
 )
+# test asr_mix recipe
+(
+    set -euo pipefail
+
+    cd ./egs/mini_an4/asr_mix1 || exit 1
+    echo "==== ASR Mix (backend=pytorch) ==="
+    ./run.sh
+)
 # test tts recipe
 (
     set -euo pipefail
@@ -23,4 +31,4 @@
     ./run.sh
 )
 
-# TODO(karita): test asr_mix, mt, st?
+# TODO(karita): test mt, st?

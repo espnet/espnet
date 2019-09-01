@@ -69,7 +69,7 @@ if [ -n "${feat}" ]; then
         --preprocess-conf "${preprocess_conf}" \
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 
-    input_strs=${input_strs}"--input-scps feat:${tmpdir}/input/feat.scp filetype:${tmpdir}/input/filetype.scp \
+    input_strs=${input_strs}"--input-scps feat:${tmpdir}/input/feat.scp ${filetype:+filetype:${tmpdir}/input/filetype.scp} \
                              shape:${tmpdir}/input/shape.scp:shape "
 fi
 

@@ -161,12 +161,7 @@ def get_parser(parser=None, required=True):
     # asr_mix related
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
-                        help='Number of speakers in the speech.')
-    parser.add_argument('--spa', action='store_true',
-                        help='Enable speaker parallel attention.')
-    parser.add_argument('--elayers-sd', default=4, type=int,
-                        help='Number of encoder layers for speaker '
-                             'differentiate part. (multi-speaker asr mode only)')
+                        help='Maximum number of speakers in the speech for multi-speaker speech recognition task.')
     # speech translation related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
