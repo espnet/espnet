@@ -25,7 +25,6 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
-import torch.utils.data
 matplotlib.use('Agg')
 
 
@@ -577,4 +576,3 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
                     labelbottom=labelbottom, labelleft=labelleft,
                     labelright=labelright, labeltop=labeltop)
     plt.axis('auto')
-
