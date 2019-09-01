@@ -1,8 +1,20 @@
+#!/usr/bin/env python
+
+# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import torch
 
+
 class TransformDataset(torch.utils.data.Dataset):
-    ''' Transform Dataset
-    '''
+    """Transform Dataset for pytorch backend.
+
+    Args:
+        data: list object from make_batchset
+        transfrom: transform function
+
+    """
+
     def __init__(self, data, transform):
         super(TransformDataset).__init__()
         self.data = data
@@ -16,6 +28,13 @@ class TransformDataset(torch.utils.data.Dataset):
 
 
 class ChainerDataLoader(object):
+    """Pytorch dataloader in chainer style.
+
+    Args:
+        all args for torch.utils.data.dataloader.Dataloader
+
+    """
+
     def __init__(self, **kwargs):
         self.loader = torch.utils.data.dataloader.DataLoader(**kwargs)
         self.len = len(kwargs['dataset'])
