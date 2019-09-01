@@ -374,13 +374,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ ${use_pretrain} = true ]; 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
-        #### use CPU for decoding
-        ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --config ${pretrain_decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu 0 \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \

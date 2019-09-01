@@ -53,9 +53,9 @@ trap 'rm -rf ${tmpdir}' EXIT
 input=
 if [ -n "${feat}" ]; then
     feats_arr=($(echo "${feat}" | tr ',' ' ' ))
-    num_feats=$(echo ${#feats_arr[@]})
+    num_feats=${#feats_arr[@]}
 
-    for (( i=1; i<=${num_feats}; i++ )); do
+    for (( i=1; i<=num_feats; i++ )); do
         feat=${feats_arr[$((i-1))]}
         mkdir -p ${tmpdir}/input_${i}
         input+="input_${i} "
