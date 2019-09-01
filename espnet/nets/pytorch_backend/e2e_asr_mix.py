@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 This script is used to construct End-to-End models of multi-speaker ASR.
