@@ -20,7 +20,6 @@ from espnet.asr.asr_mix_utils import add_results_to_json
 from espnet.asr.asr_mix_utils import make_batchset
 from espnet.asr.asr_mix_utils import PlotAttentionReport
 from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import ChainerDataLoader
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
@@ -28,12 +27,13 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.asr_utils import TransformDataset
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
 from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
 from espnet.transform.transformation import using_transform_config
+from espnet.utils.dataset import ChainerDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 # rnnlm
@@ -228,7 +228,7 @@ def train(args):
         shuffle=True, collate_fn=lambda x: x[0])}
     valid_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(valid, lambda data: converter([converter.transform(data)])),
-        batch_size=1, shuffle=False, collate_fn=lambda x: x,
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
         num_workers=args.n_iter_processes)}
 
     # Set up a trainer

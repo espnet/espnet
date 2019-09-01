@@ -22,7 +22,6 @@ from torch.nn.parallel import data_parallel
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import ChainerDataLoader
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import plot_spectrogram
@@ -31,7 +30,6 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.asr_utils import TransformDataset
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -43,6 +41,8 @@ from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
+from espnet.utils.dataset import ChainDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -224,7 +224,7 @@ class CustomConverter(object):
         self.ignore_id = -1
         self.dtype = dtype
 
-    def __call__(self, batch, device=None):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transforms a batch and send it to a device for visualization.
 
         Args:
@@ -248,24 +248,23 @@ class CustomConverter(object):
 
         # perform padding and convert to tensor
         # currently only support real number
-        to_func = (lambda data: data) if device is None else (lambda data: data.to(device))
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
-                [torch.from_numpy(x.real).float() for x in xs], 0).to(dtype=self.dtype)
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
             xs_pad_imag = pad_list(
-                [torch.from_numpy(x.imag).float() for x in xs], 0).to(dtype=self.dtype)
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
             # Note(kamo):
             # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
-            xs_pad = {'real': to_func(xs_pad_real), 'imag': to_func(xs_pad_imag)}
+            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = to_func(pad_list([torch.from_numpy(x).float() for x in xs], 0)).to(dtype=self.dtype)
+            xs_pad = to_func(pad_list([torch.from_numpy(x).float() for x in xs], 0)).to(device, dtype=self.dtype)
 
-        ilens = to_func(torch.from_numpy(ilens))
+        ilens = torch.from_numpy(ilens).to(device)
         # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = to_func(pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
-                                   for y in ys], self.ignore_id))
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+                                   for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
