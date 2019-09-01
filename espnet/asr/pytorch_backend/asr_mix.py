@@ -83,7 +83,7 @@ class CustomConverter(object):
         """
         return self.load_inputs_and_targets(item)
 
-    def __call__(self, batch, device=None):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transforms a batch and send it to a device.
 
         Args:
@@ -99,8 +99,6 @@ class CustomConverter(object):
         xs, ys = batch[0]
         ys = list(ys)  # Convert zip object to list in python 3.x
 
-        to_func = (lambda data: data) if device is None else (lambda data: data.to(device))
-
         # perform subsampling
         if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
@@ -115,7 +113,7 @@ class CustomConverter(object):
         ys_pad = pad_list(ys_pad, self.ignore_id)
         ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1).to(device)  # (num_spkrs, B, Tmax)
 
-        return to_func(xs_pad), to_func(ilens), to_func(ys_pad)
+        return xs_pad, ilens, ys_pad
 
 
 def train(args):
