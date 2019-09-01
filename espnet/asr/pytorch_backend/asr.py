@@ -411,7 +411,8 @@ def train(args):
                           batch_bins=args.batch_bins,
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=0)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1,
@@ -419,7 +420,8 @@ def train(args):
                           batch_bins=args.batch_bins,
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=0)
 
     load_tr = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
