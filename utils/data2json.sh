@@ -53,8 +53,7 @@ trap 'rm -rf ${tmpdir}' EXIT
 input=
 if [ -n "${feat}" ]; then
     _feats_arr=$(echo "${feat}" | tr ',' ' ' )
-    declare -a feats_arr
-    feats_arr=($_feats_arr)
+    read -a feats_arr <<< $_feats_arr
     num_feats=${#feats_arr[@]}
 
     for (( i=1; i<=num_feats; i++ )); do
