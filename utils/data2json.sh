@@ -52,7 +52,9 @@ trap 'rm -rf ${tmpdir}' EXIT
 #   These are not necessary for decoding mode, and make it as an option
 input=
 if [ -n "${feat}" ]; then
-    feats_arr=($(echo "${feat}" | tr ',' ' ' ))
+    _feats_arr=$(echo "${feat}" | tr ',' ' ' )
+    declare -a feats_arr
+    feats_arr=(_fears_arr)
     num_feats=${#feats_arr[@]}
 
     for (( i=1; i<=num_feats; i++ )); do
