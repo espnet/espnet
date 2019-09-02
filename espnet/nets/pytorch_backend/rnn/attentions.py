@@ -1407,10 +1407,16 @@ def att_for(args, num_att=1, han_mode=False):
     """
     att_list = torch.nn.ModuleList()
     num_encs = getattr(args, "num_encs", 1)
+
+    aheads = getattr(args, 'aheads', 4)
+    awin = getattr(args, 'awin', 5)
+    aconv_chans = getattr(args, 'aconv_chans', -1)
+    aconv_filts = getattr(args, 'aconv_filts', 100)
+
     if num_encs == 1:
         for i in range(num_att):
-            att = initial_att(args.atype, args.eprojs, args.dunits, args.aheads, args.adim, args.awin, args.aconv_chans,
-                              args.aconv_filts)
+            att = initial_att(args.atype, args.eprojs, args.dunits, aheads, args.adim, awin, aconv_chans,
+                              aconv_filts)
             att_list.append(att)
     elif num_encs > 1:  # no multi-speaker mode
         if han_mode:
@@ -1420,8 +1426,8 @@ def att_for(args, num_att=1, han_mode=False):
         else:
             att_list = torch.nn.ModuleList()
             for idx in range(num_encs):
-                att = initial_att(args.atype[idx], args.eprojs, args.dunits, args.aheads[idx], args.adim[idx],
-                                  args.awin[idx], args.aconv_chans[idx], args.aconv_filts[idx])
+                att = initial_att(args.atype[idx], args.eprojs, args.dunits, aheads[idx], args.adim[idx],
+                                  awin[idx], aconv_chans[idx], aconv_filts[idx])
                 att_list.append(att)
     else:
         raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))
