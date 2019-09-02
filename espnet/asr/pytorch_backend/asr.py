@@ -25,16 +25,16 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import mtlalpha_exp_decay
 from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import sampling_probability_exp_decay
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
-from espnet.asr.asr_utils import mtlalpha_exp_decay
-from espnet.asr.asr_utils import sampling_probability_exp_decay
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -476,7 +476,7 @@ def train(args):
                        trigger=(1, 'epoch'))
 
     # expoential decay for sampling probability
-    if mtl_mode is not 'ctc' and 0 < getattr(args, "sampling_probability_exp_decay", 1.0) < 1:
+    if mtl_mode != 'ctc' and 0 < getattr(args, "sampling_probability_exp_decay", 1.0) < 1:
         trainer.extend(sampling_probability_exp_decay(getattr(args, "sampling_probability_exp_decay", 1.0)),
                        trigger=(1, 'epoch'))
 
@@ -862,7 +862,7 @@ def enhance(args):
                         enh = enh[:len(org_feats[idx])]
                     elif len(org_feats) > len(enh):
                         padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
-                                   + [(0, 0)] * (enh.ndim - 1)
+                            + [(0, 0)] * (enh.ndim - 1)
                         enh = np.pad(enh, padwidth, mode='constant')
 
                 if args.enh_filetype in ('sound', 'sound.hdf5'):

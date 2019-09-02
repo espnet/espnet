@@ -117,7 +117,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
-                                    [in multi-encoder case, list of torch.Tensor, [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
+                                    [in multi-encoder case,
+                                    list of torch.Tensor, [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
                                     [in multi-encoder case, list of torch.Tensor, [(B), (B), ..., ]
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
@@ -160,9 +161,10 @@ class Decoder(torch.nn.Module, ScorerInterface):
         # get dim, length info
         batch = ys_out_pad.size(0)
         olength = ys_out_pad.size(1)
-        for idx in range(self.num_encs): logging.info(
-            self.__class__.__name__ + 'Number of Encoder:{}; enc{}: input lengths: {}.'.format(self.num_encs, idx + 1,
-                                                                                               hlens[idx]))
+        for idx in range(self.num_encs):
+            logging.info(
+                self.__class__.__name__ + 'Number of Encoder:{}; enc{}: input lengths: {}.'.format(self.num_encs,
+                                                                                                   idx + 1, hlens[idx]))
         logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
@@ -178,7 +180,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
         else:
             att_w_list = [None] * (self.num_encs + 1)  # atts + han
             att_c_list = [None] * (self.num_encs)  # atts
-            for idx in range(self.num_encs + 1): self.att[idx].reset()  # reset pre-computation of h in atts and han
+            for idx in range(self.num_encs + 1):
+                self.att[idx].reset()  # reset pre-computation of h in atts and han
 
         # pre-computation of embedding
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
@@ -256,8 +259,10 @@ class Decoder(torch.nn.Module, ScorerInterface):
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None, strm_idx=0):
         """beam search implementation
 
-        :param torch.Tensor h: encoder hidden state (T, eprojs) [in multi-encoder case, list of torch.Tensor, [(T1, eprojs), (T2, eprojs), ...] ]
-        :param torch.Tensor lpz: ctc log softmax output (T, odim) [in multi-encoder case, list of torch.Tensor, [(T1, odim), (T2, odim), ...] ]
+        :param torch.Tensor h: encoder hidden state (T, eprojs)
+                                [in multi-encoder case, list of torch.Tensor, [(T1, eprojs), (T2, eprojs), ...] ]
+        :param torch.Tensor lpz: ctc log softmax output (T, odim)
+                                [in multi-encoder case, list of torch.Tensor, [(T1, odim), (T2, odim), ...] ]
         :param Namespace recog_args: argument Namespace containing options
         :param char_list: list of character strings
         :param torch.nn.Module rnnlm: language module
@@ -269,10 +274,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
         if self.num_encs == 1:
             h = [h]
             lpz = [lpz]
-        if self.num_encs > 1 and lpz is None: lpz = [lpz] * self.num_encs
+        if self.num_encs > 1 and lpz is None:
+            lpz = [lpz] * self.num_encs
 
-        for idx in range(self.num_encs): logging.info(
-            'Number of Encoder:{}; enc{}: input lengths: {}.'.format(self.num_encs, idx + 1, h[0].size(0)))
+        for idx in range(self.num_encs):
+            logging.info('Number of Encoder:{}; enc{}: input lengths: {}.'.format(self.num_encs, idx + 1, h[0].size(0)))
         att_idx = min(strm_idx, len(self.att) - 1)
         # initialization
         c_list = [self.zero_state(h[0].unsqueeze(0))]
@@ -287,7 +293,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
             a = [None] * (self.num_encs + 1)  # atts + han
             att_w_list = [None] * (self.num_encs + 1)  # atts + han
             att_c_list = [None] * (self.num_encs)  # atts
-            for idx in range(self.num_encs + 1): self.att[idx].reset()  # reset pre-computation of h in atts and han
+            for idx in range(self.num_encs + 1):
+                self.att[idx].reset()  # reset pre-computation of h in atts and han
 
         # search parms
         beam = recog_args.beam_size
@@ -494,7 +501,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
             h = [h]
             hlens = [hlens]
             lpz = [lpz]
-        if self.num_encs > 1 and lpz is None: lpz = [lpz] * self.num_encs
+        if self.num_encs > 1 and lpz is None:
+            lpz = [lpz] * self.num_encs
 
         att_idx = min(strm_idx, len(self.att) - 1)
         for idx in range(self.num_encs):
@@ -545,7 +553,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
             att_w_list = [None] * (self.num_encs + 1)  # atts + han
             att_c_list = [None] * (self.num_encs)  # atts
             ctc_scorer, ctc_state = [None] * (self.num_encs), [None] * (self.num_encs)
-            for idx in range(self.num_encs + 1): self.att[idx].reset()  # reset pre-computation of h in atts and han
+            for idx in range(self.num_encs + 1):
+                self.att[idx].reset()  # reset pre-computation of h in atts and han
 
         if self.replace_sos and recog_args.tgt_lang:
             logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
@@ -705,7 +714,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
         """Calculate all of attentions
 
             :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
-                                        [in multi-encoder case, list of torch.Tensor, [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
+                                        [in multi-encoder case,
+                                        list of torch.Tensor, [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
             :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
                                         [in multi-encoder case, list of torch.Tensor, [(B), (B), ..., ]
             :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
@@ -760,7 +770,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
         else:
             att_w_list = [None] * (self.num_encs + 1)  # atts + han
             att_c_list = [None] * (self.num_encs)  # atts
-            for idx in range(self.num_encs + 1): self.att[idx].reset()  # reset pre-computation of h in atts and han
+            for idx in range(self.num_encs + 1):
+                self.att[idx].reset()  # reset pre-computation of h in atts and han
 
         # pre-computation of embedding
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim

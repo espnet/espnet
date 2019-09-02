@@ -1430,6 +1430,17 @@ def att_for(args, num_att=1, han_mode=False):
 
 def initial_att(atype, eprojs, dunits, aheads, adim, awin, aconv_chans, aconv_filts, han_mode=False):
     """Instantiates a single attention module
+
+    :param str atype: attention type
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int adim: attention dimension
+    :param int awin: attention window size
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention
+    :return: The attention module
     """
 
     if atype == 'noatt':

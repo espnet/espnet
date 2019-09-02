@@ -46,12 +46,12 @@ class Reporter(chainer.Chain):
         num_encs = len(loss_ctc_list) - 1
         reporter.report({'loss_ctc': loss_ctc_list[0]}, self)
         for i in range(num_encs):
-            reporter.report({'loss_ctc{}'.format(i+1): loss_ctc_list[i+1]}, self)
+            reporter.report({'loss_ctc{}'.format(i + 1): loss_ctc_list[i + 1]}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
         reporter.report({'cer_ctc': cer_ctc_list[0]}, self)
         for i in range(num_encs):
-            reporter.report({'cer_ctc{}'.format(i+1): cer_ctc_list[i+1]}, self)
+            reporter.report({'cer_ctc{}'.format(i + 1): cer_ctc_list[i + 1]}, self)
         reporter.report({'cer': cer}, self)
         reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
@@ -66,6 +66,7 @@ class E2E(ASRInterface, torch.nn.Module):
     :param Namespace args: argument Namespace containing options
 
     """
+
     @staticmethod
     def add_arguments(parser):
         E2E.encoder_add_arguments(parser)
@@ -159,7 +160,8 @@ class E2E(ASRInterface, torch.nn.Module):
     def ctc_add_arguments(parser):
         group = parser.add_argument_group("E2E multi-ctc setting")
         group.add_argument('--share-ctc', type=strtobool, default=False,
-                           help='The flag to switch to share ctc across multiple encoders (multi-encoder asr mode only).')
+                           help='The flag to switch to share ctc across multiple encoders '
+                                '(multi-encoder asr mode only).')
         group.add_argument('--weights-ctc-train', type=float, action='append',
                            help='ctc weight assigned to each encoder during training.')
         group.add_argument('--weights-ctc-dec', type=float, action='append',
@@ -207,7 +209,8 @@ class E2E(ASRInterface, torch.nn.Module):
                     subsample[j] = int(ss[j])
             else:
                 logging.warning(
-                    'Encoder {}: Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.'.format(idx+1))
+                    'Encoder {}: Subsampling is not performed for vgg*. '
+                    'It is performed in max pooling layers at CNN.'.format(idx + 1))
             logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
             self.subsample_list.append(subsample)
 
@@ -235,16 +238,16 @@ class E2E(ASRInterface, torch.nn.Module):
         # decoder
         self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist)
 
-        if args.mtlalpha > 0 is not None and self.num_encs > 1:
+        if args.mtlalpha > 0 and self.num_encs > 1:
             # weights-ctc, e.g. ctc_loss = w_1*ctc_1_loss + w_2 * ctc_2_loss + w_N * ctc_N_loss
-            self.weights_ctc_train = args.weights_ctc_train / np.sum(args.weights_ctc_train) # normalize
-            self.weights_ctc_dec = args.weights_ctc_dec / np.sum(args.weights_ctc_dec) # normalize
-            logging.info('ctc weights (training during training): ' + ' '.join([str(x) for x in self.weights_ctc_train]))
+            self.weights_ctc_train = args.weights_ctc_train / np.sum(args.weights_ctc_train)  # normalize
+            self.weights_ctc_dec = args.weights_ctc_dec / np.sum(args.weights_ctc_dec)  # normalize
+            logging.info(
+                'ctc weights (training during training): ' + ' '.join([str(x) for x in self.weights_ctc_train]))
             logging.info('ctc weights (decoding during training): ' + ' '.join([str(x) for x in self.weights_ctc_dec]))
         else:
             self.weights_ctc_dec = [1.0]
             self.weights_ctc_train = [1.0]
-
 
         # weight initialization
         self.init_like_chainer()
@@ -319,7 +322,8 @@ class E2E(ASRInterface, torch.nn.Module):
     def forward(self, xs_pad_list, ilens_list, ys_pad):
         """E2E forward
 
-        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
+        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences
+                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
         :param List ilens_list: list of batch (torch.Tensor) of lengths of input sequences [(B), (B), ..]
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: loss value
@@ -379,7 +383,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
                 cer_ctc = sum(cers) / len(cers) if cers else None
                 cer_ctc_list.append(cer_ctc)
-            cer_ctc_weighted =  np.sum([item * self.weights_ctc_train[i] for i, item in enumerate(cer_ctc_list)])
+            cer_ctc_weighted = np.sum([item * self.weights_ctc_train[i] for i, item in enumerate(cer_ctc_list)])
             cer_ctc_list = [float(cer_ctc_weighted)] + [float(item) for item in cer_ctc_list]
 
         # 5. compute cer/wer
@@ -431,11 +435,13 @@ class E2E(ASRInterface, torch.nn.Module):
             loss_att_data = float(self.loss_att)
             loss_ctc_data_list = [None] * (self.num_encs + 1)
         elif alpha == 1:
-            self.loss = torch.sum(torch.cat([(item * self.weights_ctc_train[i]).unsqueeze(0) for i, item in enumerate(self.loss_ctc_list)]))
+            self.loss = torch.sum(torch.cat(
+                [(item * self.weights_ctc_train[i]).unsqueeze(0) for i, item in enumerate(self.loss_ctc_list)]))
             loss_att_data = None
             loss_ctc_data_list = [float(self.loss)] + [float(item) for item in self.loss_ctc_list]
         else:
-            self.loss_ctc = torch.sum(torch.cat([(item * self.weights_ctc_train[i]).unsqueeze(0) for i, item in enumerate(self.loss_ctc_list)]))
+            self.loss_ctc = torch.sum(torch.cat(
+                [(item * self.weights_ctc_train[i]).unsqueeze(0) for i, item in enumerate(self.loss_ctc_list)]))
             self.loss = alpha * self.loss_ctc + (1 - alpha) * self.loss_att
             loss_att_data = float(self.loss_att)
             loss_ctc_data_list = [float(self.loss_ctc)] + [float(item) for item in self.loss_ctc_list]
@@ -496,7 +502,8 @@ class E2E(ASRInterface, torch.nn.Module):
     def recognize_batch(self, xs_list, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
-        :param list xs_list: list of list of input acoustic feature arrays [[(T1_1, D), (T1_2, D), ...],[(T2_1, D), (T2_2, D), ...], ...]
+        :param list xs_list: list of list of input acoustic feature arrays
+                [[(T1_1, D), (T1_2, D), ...],[(T2_1, D), (T2_2, D), ...], ...]
         :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -510,7 +517,8 @@ class E2E(ASRInterface, torch.nn.Module):
         # subsample frame
         xs_list = [[xx[::self.subsample_list[idx][0], :] for xx in xs_list[idx]] for idx in range(self.num_encs)]
 
-        xs_list = [[to_device(self, to_torch_tensor(xx).float()) for xx in xs_list[idx]] for idx in range(self.num_encs)]
+        xs_list = [[to_device(self, to_torch_tensor(xx).float()) for xx in xs_list[idx]] for idx in
+                   range(self.num_encs)]
         xs_pad_list = [pad_list(xs_list[idx], 0.0) for idx in range(self.num_encs)]
 
         # 1. Encoder
@@ -532,7 +540,8 @@ class E2E(ASRInterface, torch.nn.Module):
             normalize_score = True
 
         # 2. Decoder
-        hlens_list = [torch.tensor(list(map(int, hlens_list[idx]))) for idx in range(self.num_encs)]  # make sure hlens is tensor
+        hlens_list = [torch.tensor(list(map(int, hlens_list[idx]))) for idx in
+                      range(self.num_encs)]  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(hs_pad_list, hlens_list, lpz_list, recog_args, char_list,
                                           rnnlm, normalize_score=normalize_score)
 
@@ -543,7 +552,8 @@ class E2E(ASRInterface, torch.nn.Module):
     def calculate_all_attentions(self, xs_pad_list, ilens_list, ys_pad):
         """E2E attention calculation
 
-        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
+        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences
+                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
         :param List ilens_list: list of batch (torch.Tensor) of lengths of input sequences [(B), (B), ..]
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,

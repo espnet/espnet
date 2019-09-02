@@ -77,7 +77,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
     parser.add_argument('--mtlalpha-exp-decay', default=1.0, type=float,
-                        help='Multitask learning exponential decay coefficient, mtlalpha *= mtlalphga-exp-decay every epoch [pytorch only]')
+                        help='Multitask learning exponential decay coefficient, '
+                             'mtlalpha *= mtlalphga-exp-decay every epoch [pytorch only]')
     parser.add_argument('--sampling-probability-exp-decay', default=1.0, type=float,
                         help='Exponential deacay of Ratio of predicted labels fed back to decoder, '
                              'sampling-probability *= samp-prob-exp-decay [pytorch only]')

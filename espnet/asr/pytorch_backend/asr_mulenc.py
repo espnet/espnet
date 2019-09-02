@@ -6,56 +6,43 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import copy
 import json
 import logging
-import math
 import os
 import sys
 import io
 import yaml
 
 from chainer.datasets import TransformDataset
-from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
-from chainer.training.updater import StandardUpdater
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch
-from torch.nn.parallel import data_parallel
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import plot_spectrogram
+from espnet.asr.asr_utils import mtlalpha_exp_decay
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import sampling_probability_exp_decay
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules_mulenc
-from espnet.asr.asr_utils import mtlalpha_exp_decay
-from espnet.asr.asr_utils import sampling_probability_exp_decay
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
-from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
-from espnet.transform.spectrogram import IStft
-from espnet.transform.transformation import Transformation
-from espnet.utils.cli_writers import file_writer_helper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
-from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -64,6 +51,7 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 import matplotlib
+
 matplotlib.use('Agg')
 
 if sys.version_info[0] == 2:
@@ -81,7 +69,7 @@ class CustomConverterMulEnc(object):
 
     """
 
-    def __init__(self, subsamping_factors=[1,1], dtype=torch.float32):
+    def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
         self.subsamping_factors = subsamping_factors
         self.ignore_id = -1
         self.dtype = dtype
@@ -112,7 +100,8 @@ class CustomConverterMulEnc(object):
 
         # perform padding and convert to tensor
         # currently only support real number
-        xs_list_pad = [pad_list([torch.from_numpy(x).float() for x in xs_list[i]], 0).to(device, dtype=self.dtype) for i in range(self.num_encs)]
+        xs_list_pad = [pad_list([torch.from_numpy(x).float() for x in xs_list[i]], 0).to(device, dtype=self.dtype) for i
+                       in range(self.num_encs)]
 
         ilens_list = [torch.from_numpy(ilens_list[i]).to(device) for i in range(self.num_encs)]
         # NOTE: this is for multi-task learning (e.g., speech translation)
@@ -148,7 +137,7 @@ def train(args):
                         }
         for k in default_dict.keys():
             if isinstance(vars(args)[k], list):
-                assert len(vars(args)[k]) == args.num_encs, (len(vars(args)[k]), )
+                assert len(vars(args)[k]) == args.num_encs, (len(vars(args)[k]),)
                 vars(args)[k] = vars(args)[k][:args.num_encs]
             else:
                 if not vars(args)[k]:
@@ -157,6 +146,7 @@ def train(args):
                 # duplicate
                 vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
         return args
+
     args = format_mulenc_args(args)
 
     # check cuda availability
@@ -169,7 +159,8 @@ def train(args):
     utts = list(valid_json.keys())
     idims = [int(valid_json[utts[0]]['input'][i]['shape'][-1]) for i in range(args.num_encs)]
     odim = int(valid_json[utts[0]]['output'][0]['shape'][-1])
-    for i in range(args.num_encs): logging.info('stream{}: input dims : {}'.format(i+1, idims[i]))
+    for i in range(args.num_encs):
+        logging.info('stream{}: input dims : {}'.format(i + 1, idims[i]))
     logging.info('#output dims: ' + str(odim))
 
     # specify attention, CTC, hybrid mode
@@ -350,7 +341,7 @@ def train(args):
                        trigger=(1, 'epoch'))
 
     # expoential decay for sampling probability
-    if mtl_mode is not 'ctc' and 0 < getattr(args, "sampling_probability_exp_decay", 1.0) < 1:
+    if mtl_mode != 'ctc' and 0 < getattr(args, "sampling_probability_exp_decay", 1.0) < 1:
         trainer.extend(sampling_probability_exp_decay(getattr(args, "sampling_probability_exp_decay", 1.0)),
                        trigger=(1, 'epoch'))
 
@@ -372,8 +363,10 @@ def train(args):
         att_reporter = None
 
     # Make a plot for training and validation values
-    report_keys_loss_ctc = ['main/loss_ctc{}'.format(i+1) for i in range(model.num_encs)] + ['validation/main/loss_ctc{}'.format(i+1) for i in range(model.num_encs)]
-    report_keys_cer_ctc = ['main/cer_ctc{}'.format(i+1) for i in range(model.num_encs)] + ['validation/main/cer_ctc{}'.format(i+1) for i in range(model.num_encs)]
+    report_keys_loss_ctc = ['main/loss_ctc{}'.format(i + 1) for i in range(model.num_encs)] + [
+        'validation/main/loss_ctc{}'.format(i + 1) for i in range(model.num_encs)]
+    report_keys_cer_ctc = ['main/cer_ctc{}'.format(i + 1) for i in range(model.num_encs)] + [
+        'validation/main/cer_ctc{}'.format(i + 1) for i in range(model.num_encs)]
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
                                           'main/loss_att', 'validation/main/loss_att'] + report_keys_loss_ctc,

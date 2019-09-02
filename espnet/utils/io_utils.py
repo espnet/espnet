@@ -56,7 +56,7 @@ class LoadInputsAndTargets(object):
             logging.warning(
                 '[Experimental feature] Some preprocessing will be done '
                 'for the mini-batch creation using {}'
-                    .format(self.preprocessing))
+                .format(self.preprocessing))
         else:
             # If conf doesn't exist, this function don't touch anything.
             self.preprocessing = None
@@ -219,7 +219,7 @@ class LoadInputsAndTargets(object):
         if len(nonzero_sorted_idx) != len(xs[0]):
             logging.warning(
                 'Target sequences include empty tokenid (batch {} -> {}).'
-                    .format(len(xs[0]), len(nonzero_sorted_idx)))
+                .format(len(xs[0]), len(nonzero_sorted_idx)))
 
         # remove zero-length samples
         xs = [[x[i] for i in nonzero_sorted_idx] for x in xs]
@@ -269,7 +269,7 @@ class LoadInputsAndTargets(object):
         if len(nonzero_sorted_idx) != len(xs):
             logging.warning(
                 'Target sequences include empty tokenid (batch {} -> {}).'
-                    .format(len(xs), len(nonzero_sorted_idx)))
+                .format(len(xs), len(nonzero_sorted_idx)))
 
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
