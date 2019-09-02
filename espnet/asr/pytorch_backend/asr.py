@@ -57,6 +57,7 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 import matplotlib
+
 matplotlib.use('Agg')
 
 if sys.version_info[0] == 2:
@@ -861,7 +862,7 @@ def enhance(args):
                         enh = enh[:len(org_feats[idx])]
                     elif len(org_feats) > len(enh):
                         padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
-                            + [(0, 0)] * (enh.ndim - 1)
+                                   + [(0, 0)] * (enh.ndim - 1)
                         enh = np.pad(enh, padwidth, mode='constant')
 
                 if args.enh_filetype in ('sound', 'sound.hdf5'):

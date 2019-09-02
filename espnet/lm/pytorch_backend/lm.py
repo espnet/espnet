@@ -243,7 +243,7 @@ def train(args):
 
     # Set up an optimizer
     if args.opt == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=getattr(args,"lr", 1.0))
+        optimizer = torch.optim.SGD(model.parameters(), lr=getattr(args, "lr", 1.0))
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
 

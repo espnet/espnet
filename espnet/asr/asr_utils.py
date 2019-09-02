@@ -25,6 +25,7 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
+
 matplotlib.use('Agg')
 
 
@@ -113,16 +114,16 @@ class PlotAttentionReport(extension.Extension):
     def __call__(self, trainer):
         """Plot and save image file of att_ws matrix."""
         att_ws = self.get_attention_weights()
-        if isinstance(att_ws, list): # multi-encoder case
+        if isinstance(att_ws, list):  # multi-encoder case
             num_encs = len(att_ws) - 1
             # atts
             for i in range(num_encs):
                 for idx, att_w in enumerate(att_ws[i]):
                     filename = "%s/%s.ep.{.updater.epoch}.att%d.png" % (
-                        self.outdir, self.data[idx][0], i+1)
+                        self.outdir, self.data[idx][0], i + 1)
                     att_w = self.get_attention_weight(idx, att_w)
                     np_filename = "%s/%s.ep.{.updater.epoch}.att%d.npy" % (
-                        self.outdir, self.data[idx][0], i+1)
+                        self.outdir, self.data[idx][0], i + 1)
                     np.save(np_filename.format(trainer), att_w)
                     self._plot_and_save_attention(att_w, filename.format(trainer))
             # han
@@ -147,14 +148,14 @@ class PlotAttentionReport(extension.Extension):
     def log_attentions(self, logger, step):
         """Add image files of att_ws matrix to the tensorboard."""
         att_ws = self.get_attention_weights()
-        if isinstance(att_ws, list): # multi-encoder case
+        if isinstance(att_ws, list):  # multi-encoder case
             num_encs = len(att_ws) - 1
             # atts
             for i in range(num_encs):
                 for idx, att_w in enumerate(att_ws[i]):
                     att_w = self.get_attention_weight(idx, att_w)
                     plot = self.draw_attention_plot(att_w)
-                    logger.add_figure("%s_att%d" % (self.data[idx][0], i+1), plot.gcf(), step)
+                    logger.add_figure("%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step)
                     plot.clf()
             # han
             for idx, att_w in enumerate(att_ws[num_encs]):
@@ -246,10 +247,10 @@ class PlotAttentionReport(extension.Extension):
         else:
             legends = []
             for i in range(att_w.shape[1]):
-                plt.plot(att_w[:,i])
+                plt.plot(att_w[:, i])
                 legends.append('Att{}'.format(i))
-            plt.ylim([0,1.0])
-            plt.xlim([0,att_w.shape[0]])
+            plt.ylim([0, 1.0])
+            plt.xlim([0, att_w.shape[0]])
             plt.grid(True)
             plt.ylabel("Attention Weight")
             plt.xlabel("Decoder Index")
@@ -273,6 +274,7 @@ def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
         An extension function.
 
     """
+
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)
@@ -295,6 +297,7 @@ def adadelta_eps_decay(eps_decay):
         An extension function.
 
     """
+
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -318,19 +321,23 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 def mtlalpha_exp_decay(exp_decay):
     '''Extension to perform mtlalpha expoential decay'''
+
     @training.make_extension(trigger=(1, 'iteration'))
     def mtlalpha_exp_decay(trainer):
         trainer.updater.model.mtlalpha *= exp_decay
         logging.warning('mtlalpha decayed to {}'.format(trainer.updater.model.mtlalpha))
+
     return mtlalpha_exp_decay
 
 
 def sampling_probability_exp_decay(exp_decay):
     '''Extension to perform sampling probability expoential decay'''
+
     @training.make_extension(trigger=(1, 'iteration'))
     def sampling_probability_exp_decay(trainer):
         trainer.updater.model.dec.sampling_probability *= exp_decay
         logging.warning('sampling probability decayed to {}'.format(trainer.updater.model.dec.sampling_probability))
+
     return sampling_probability_exp_decay
 
 
@@ -342,6 +349,7 @@ def torch_snapshot(savefun=torch.save,
         An extension function.
 
     """
+
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
         _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
@@ -477,6 +485,7 @@ def snapshot_object(target, filename):
         An extension function.
 
     """
+
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def snapshot_object(trainer):
         torch_save(os.path.join(trainer.out, filename.format(trainer)), target)

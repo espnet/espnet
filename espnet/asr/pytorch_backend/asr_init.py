@@ -83,12 +83,12 @@ def get_partial_lm_state_dict(model_state_dict, modules):
 
     for key, value in list(model_state_dict.items()):
         if key == "predictor.embed.weight" \
-           and "predictor.embed." in modules:
+                and "predictor.embed." in modules:
             new_key = "dec.embed.weight"
             new_state_dict[new_key] = value
             new_modules += [new_key]
         elif "predictor.rnn." in key \
-             and "predictor.rnn." in modules:
+                and "predictor.rnn." in modules:
             new_key = "dec.decoder." + key.split("predictor.rnn.", 1)[1]
             new_state_dict[new_key] = value
             new_modules += [new_key]
@@ -258,7 +258,8 @@ def load_trained_modules_mulenc(model, process):
     prefix_src = process['prefix_src']
     prefix_tgt = process['prefix_tgt']
     trained_model = process['trained_model']
-    freeze_params = process['freeze_params'] if 'freeze_params' in process and process['freeze_params'] is True else False
+    freeze_params = process['freeze_params'] if 'freeze_params' in process and process[
+        'freeze_params'] is True else False
 
     if 'snapshot' in trained_model:
         model_state_dict = torch.load(trained_model, map_location=lambda storage, loc: storage)['model']
@@ -277,7 +278,8 @@ def load_trained_modules_mulenc(model, process):
 
     # filter
     param_dict = dict(model.named_parameters())
-    model_state_dict_filtered = {k: v for k, v in model_state_dict.items() if k in param_dict.keys() and v.size() == model.state_dict()[k].size()}
+    model_state_dict_filtered = {k: v for k, v in model_state_dict.items() if
+                                 k in param_dict.keys() and v.size() == model.state_dict()[k].size()}
 
     logging.warning("Loading pretrained modules. prefix_src:{}; prefix_tgt:{}".format(prefix_src, prefix_tgt))
     for key in model_state_dict_filtered.keys():

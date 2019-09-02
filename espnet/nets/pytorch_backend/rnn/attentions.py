@@ -1409,9 +1409,10 @@ def att_for(args, num_att=1, han_mode=False):
     num_encs = getattr(args, "num_encs", 1)
     if num_encs == 1:
         for i in range(num_att):
-            att = initial_att(args.atype, args.eprojs, args.dunits, args.aheads, args.adim, args.awin, args.aconv_chans, args.aconv_filts)
+            att = initial_att(args.atype, args.eprojs, args.dunits, args.aheads, args.adim, args.awin, args.aconv_chans,
+                              args.aconv_filts)
             att_list.append(att)
-    elif num_encs > 1: # no multi-speaker mode
+    elif num_encs > 1:  # no multi-speaker mode
         if han_mode:
             att = initial_att(args.han_type, args.eprojs, args.dunits, args.han_heads, args.han_dim,
                               args.han_win, args.han_conv_chans, args.han_conv_filts, han_mode=True)
@@ -1419,11 +1420,13 @@ def att_for(args, num_att=1, han_mode=False):
         else:
             att_list = torch.nn.ModuleList()
             for idx in range(num_encs):
-                att = initial_att(args.atype[idx], args.eprojs, args.dunits, args.aheads[idx], args.adim[idx], args.awin[idx], args.aconv_chans[idx], args.aconv_filts[idx])
+                att = initial_att(args.atype[idx], args.eprojs, args.dunits, args.aheads[idx], args.adim[idx],
+                                  args.awin[idx], args.aconv_chans[idx], args.aconv_filts[idx])
                 att_list.append(att)
     else:
         raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))
     return att_list
+
 
 def initial_att(atype, eprojs, dunits, aheads, adim, awin, aconv_chans, aconv_filts, han_mode=False):
     """Instantiates a single attention module

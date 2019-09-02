@@ -365,7 +365,7 @@ def train(args):
 
     # Set up an optimizer
     if args.opt == 'sgd':
-        optimizer = chainer.optimizers.SGD(lr=getattr(args,"lr", 1.0))
+        optimizer = chainer.optimizers.SGD(lr=getattr(args, "lr", 1.0))
     elif args.opt == 'adam':
         optimizer = chainer.optimizers.Adam()
 

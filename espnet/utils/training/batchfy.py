@@ -298,13 +298,14 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     problem_utts_dict = {}
     if problem_utts_file:
         with open(problem_utts_file, 'r') as f:
-            fs=f.readlines()
-        prob_utts=[i.strip() for i in fs]
+            fs = f.readlines()
+        prob_utts = [i.strip() for i in fs]
         for key in prob_utts:
             if key in data.keys():
                 problem_utts_dict[key] = data[key]
                 del data[key]
-                lens = [problem_utts_dict[key]['input'][idx]['shape'][0] for idx in range(len(problem_utts_dict[key]['input']))]
+                lens = [problem_utts_dict[key]['input'][idx]['shape'][0] for idx in
+                        range(len(problem_utts_dict[key]['input']))]
                 logging.warning("Problem Utts: {}; len: {}".format(key, lens))
 
     # check args
