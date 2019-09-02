@@ -154,15 +154,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' > data/lang_1spm/input.txt
-    grep sp1.0 data/${train_set}.en/text.${case} | cut -f 2- -d' ' >> data/lang_1spm/input.txt
-    grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ' >> data/lang_1spm/input.txt
-    grep how2 data/${train_set}.en/text.${case} | cut -f 2- -d' ' >> data/lang_1spm/input.txt
+    { grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ';
+      grep sp1.0 data/${train_set}.en/text.${case} | cut -f 2- -d' ';
+      grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ';
+      grep how2 data/${train_set}.en/text.${case} | cut -f 2- -d' ';
+    } > data/lang_1spm/input.txt
     # NOTE: speed perturbation is not applied in how2
     grep -o -P '&[^;]*;' data/lang_1spm/input.txt | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a joint source/target dictionary"
+    echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
     grep -v -e '^\s*$' data/lang_1spm/input.txt > data/lang_1spm/input.txt.tmp
