@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
+"""
+Define asr module for multi-encoder network
+
+"""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2019 Johns Hopkins University (Ruizhi Li)
-
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
 import json
 import logging
+import io
 import os
 import sys
-import io
 import yaml
 
 from chainer.datasets import TransformDataset
@@ -31,10 +34,10 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules_mulenc
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules_mulenc
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -441,6 +444,7 @@ def recog(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
+"""
+Define e2e module for multi-encoder network
+
+"""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
@@ -38,8 +43,9 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
+    """A chainer reporter wrapper.
 
+    """
     def report(self, loss_ctc_list, loss_att, acc, cer_ctc_list, cer, wer, mtl_loss):
         # loss_ctc_list = [weighted CTC, CTC1, CTC2, ... CTCN]
         # cer_ctc_list = [weighted cer_ctc, cer_ctc_1, cer_ctc_2, ... cer_ctc_N]
@@ -59,7 +65,7 @@ class Reporter(chainer.Chain):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-    """E2E module
+    """E2E module.
 
     :param List idims: List of dimensions of inputs
     :param int odim: dimension of outputs
@@ -69,6 +75,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def add_arguments(parser):
+        """add arguments for multi-encoder setting.
+
+        """
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
@@ -78,8 +87,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_add_arguments(parser):
+        """arguments for encoders in multi-encoder setting.
+
+        """
         group = parser.add_argument_group("E2E encoder setting")
-        # encoder
         group.add_argument('--etype', action='append', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
                                     'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
@@ -97,6 +108,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def attention_add_arguments(parser):
+        """arguments for attentions in multi-encoder setting.
+
+        """
         group = parser.add_argument_group("E2E attention setting")
         # attention
         group.add_argument('--atype', type=str, action='append',
@@ -142,6 +156,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def decoder_add_arguments(parser):
+        """arguments for decoder in multi-encoder setting.
+
+        """
         group = parser.add_argument_group("E2E decoder setting")
         group.add_argument('--dtype', default='lstm', type=str,
                            choices=['lstm', 'gru'],
@@ -158,6 +175,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def ctc_add_arguments(parser):
+        """arguments for ctc in multi-encoder setting.
+
+        """
         group = parser.add_argument_group("E2E multi-ctc setting")
         group.add_argument('--share-ctc', type=strtobool, default=False,
                            help='The flag to switch to share ctc across multiple encoders '
@@ -170,6 +190,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def mulenc_add_arguments(parser):
+        """arguments for multi-encoder setting.
+
+        """
         group = parser.add_argument_group("E2E multi-encoder setting")
         group.add_argument('--problem-utts-file', default=None, type=str,
                            help='File of list of problematic utterances to exclude from training and decoding.')
@@ -178,6 +201,14 @@ class E2E(ASRInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idims, odim, args):
+        """Initialize this class with python-level args.
+
+        Args:
+            idims (list): list of the number of an input feature dim.
+            odim (int): The number of output vocab.
+            args (Namespace): arguments
+
+        """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
@@ -274,7 +305,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.acc = None
 
     def init_like_chainer(self):
-        """Initialize weight like chainer
+        """Initialize weight like chainer.
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
@@ -283,7 +314,6 @@ class E2E(ASRInterface, torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
-
         def lecun_normal_init_parameters(module):
             for p in module.parameters():
                 data = p.data
@@ -320,7 +350,7 @@ class E2E(ASRInterface, torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     def forward(self, xs_pad_list, ilens_list, ys_pad):
-        """E2E forward
+        """E2E forward.
 
         :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences
                                 [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
@@ -454,9 +484,24 @@ class E2E(ASRInterface, torch.nn.Module):
         return self.loss
 
     def scorers(self):
+        """Get scorers for `beam_search` (optional).
+
+        Returns:
+            dict[str, ScorerInterface]: dict of `ScorerInterface` objects
+
+        """
         return dict(decoder=self.dec, ctc=CTCPrefixScorer(self.ctc, self.eos))
 
     def encode(self, x_list):
+        """Encode feature.
+
+        Args:
+            x_list (list): input feature [(T1, D), (T2, D), ... ]
+        Returns:
+            list
+                encoded feature [(T1, D), (T2, D), ... ]
+
+        """
         self.eval()
         ilens_list = [[x_list[idx].shape[0]] for idx in range(self.num_encs)]
 
@@ -475,7 +520,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return hs_list
 
     def recognize(self, x_list, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param list of ndarray x: list of input acoustic feature [(T1, D), (T2,D),...]
         :param Namespace recog_args: argument Namespace containing options
@@ -500,7 +545,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return y
 
     def recognize_batch(self, xs_list, recog_args, char_list, rnnlm=None):
-        """E2E beam search
+        """E2E beam search.
 
         :param list xs_list: list of list of input acoustic feature arrays
                 [[(T1_1, D), (T1_2, D), ...],[(T2_1, D), (T2_2, D), ...], ...]
@@ -550,7 +595,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return y
 
     def calculate_all_attentions(self, xs_pad_list, ilens_list, ys_pad):
-        """E2E attention calculation
+        """E2E attention calculation.
 
         :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences
                                 [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
