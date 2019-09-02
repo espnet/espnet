@@ -186,11 +186,33 @@ def test_model_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
     batch = prepare_inputs("pytorch")
 
+    # test trainable
     m = importlib.import_module(module)
     model = m.E2E([40, 40], 5, args)
     loss = model(*batch)
     loss.backward()  # trainable
 
+    # test attention plot
+    dummy_json = make_dummy_json(2, [10, 20], [10, 20], idim=40, odim=5, num_inputs=2)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    print (batchset[0])
+    print (dummy_json)
+
+    att_ws = model.calculate_all_attentions(*convert_batch(batchset[0], "pytorch", idim=40, odim=5, num_inputs=2))
+    from espnet.asr.asr_utils import PlotAttentionReport
+    tmpdir = tempfile.mkdtemp()
+    plot = PlotAttentionReport(model.calculate_all_attentions, batchset[0], tmpdir, None, None, None)
+    # att-encoder0
+    att_w = plot.get_attention_weight(0, att_ws[0][0])
+    plot._plot_and_save_attention(att_w, '{}/att0.png'.format(tmpdir))
+    # att-encoder1
+    att_w = plot.get_attention_weight(0, att_ws[1][0])
+    plot._plot_and_save_attention(att_w, '{}/att1.png'.format(tmpdir))
+    # han
+    att_w = plot.get_attention_weight(0, att_ws[2][0])
+    plot._plot_and_save_attention(att_w, '{}/han.png'.format(tmpdir), han_mode=True)
+
+    # test decodable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(10, 40), np.random.randn(9, 40)]
         model.recognize(in_data, args, args.char_list)  # decodable
@@ -226,13 +248,19 @@ def test_gradient_noise_injection(module):
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(4, [10, 20], [10, 20], idim=20, odim=5, num_inputs=2)
+    dummy_json = make_dummy_json(6, [10, 20], [10, 20], idim=20, odim=5, num_inputs=2)
+    tmppath = tempfile.mktemp()
+    with open(tmppath, 'w') as f:
+        f.write("utt_3\n")
     import espnet.nets.pytorch_backend.e2e_asr_mulenc as m
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, problem_utts_file=tmppath)
     model = m.E2E([20, 20], 5, args)
+    num_utts = 0
     for batch in batchset:
+        num_utts += len(batch)
         loss = model(*convert_batch(batch, module, idim=20, odim=5, num_inputs=2))
         loss.backward()  # trainable
+    assert num_utts == 5
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(50, 20), np.random.randn(49, 20)]
         model.recognize(in_data, args, args.char_list)

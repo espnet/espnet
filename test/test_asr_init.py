@@ -159,7 +159,8 @@ def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
 def pytorch_prepare_inputs_mulenc(idim_list, odim, ilens_list, olens, is_cuda=False):
     np.random.seed(1)
 
-    xs_list = [[np.random.randn(ilen, idim_list[idx]).astype(np.float32) for ilen in ilens] for idx, ilens in enumerate(ilens_list)]
+    xs_list = [[np.random.randn(ilen, idim_list[idx]).astype(np.float32) for ilen in ilens]
+               for idx, ilens in enumerate(ilens_list)]
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     ilens_list = [np.array([x.shape[0] for x in xs], dtype=np.int32) for xs in xs_list]
 
@@ -309,7 +310,8 @@ def test_pytorch_trainable_transferable_and_decodable_mulenc(prefix_src, prefix_
 
     batch = pytorch_prepare_inputs_mulenc(idim_list, odim, ilens_list, olens)
 
-    pretrain_conf_dict = {"prefix_src": prefix_src, "prefix_tgt": prefix_tgt, "trained_model": tmppath, "freeze_params": freeze_params}
+    pretrain_conf_dict = \
+        {"prefix_src": prefix_src, "prefix_tgt": prefix_tgt, "trained_model": tmppath, "freeze_params": freeze_params}
 
     transfer = importlib.import_module('espnet.asr.pytorch_backend.asr_init')
     transfer.load_trained_modules_mulenc(model, pretrain_conf_dict)
