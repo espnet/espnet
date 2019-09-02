@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=4         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -20,6 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -30,10 +31,15 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+lang_model=rnnlm.model.best # set a language model to be used for decoding
 
+# model average realted (only for transformer)
+n_average=10                 # the number of ASR models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/resources/asr-data/ru_open_stt_mp3
+datadir=/resources/asr-data/ru_open_stt_mp3_v05
 
 # bpemode (unigram or bpe)
 nbpe=100
@@ -54,16 +60,7 @@ set -o pipefail
 
 train_set=train
 train_dev=dev
-recog_set="
-test
-test_private_buriy_audiobooks_2
-test_public_series_1
-test_ru_RU
-test_voxforge_ru
-test_public_lecture_1
-test_public_youtube700
-test_russian_single
-"
+recog_set="asr_calls_2_val buriy_audiobooks_2_val public_youtube700_val"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -123,7 +120,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
-    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} \
+	--model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -146,7 +144,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${expname}_$(basename ${preprocess_config%.*})
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -188,6 +186,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         asr_train.py \
         --ngpu ${ngpu} \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
@@ -203,9 +202,25 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        # Average ASR models
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+        average_checkpoints.py \
+            ${opt} \
+            --backend ${backend} \
+            --snapshots ${expdir}/results/snapshot.ep.* \
+            --out ${expdir}/results/${recog_model} \
+            --num ${n_average}
+    fi
 
     for rtask in ${recog_set}; do
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        decode_dir=decode_${rtask}_${recog_model}_$(basename ${decode_config%.*})_${lang_model}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -220,12 +235,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --debugmode ${debugmode} \
-            --verbose ${verbose} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
+            --rnnlm ${lmexpdir}/${lang_model}
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
     done
