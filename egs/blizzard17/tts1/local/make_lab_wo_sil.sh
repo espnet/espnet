@@ -6,6 +6,9 @@
 TMP=./local/tmp
 LAB=lab
 mkdir -p ${TMP}
+
+set -euo pipefail
+
 find $1/fls/*/${LAB} -name "*.lab" | xargs dirname | xargs dirname | sort | uniq > ${TMP}/dir_list.txt
 cat ${TMP}/dir_list.txt | while read -r dir;do
     

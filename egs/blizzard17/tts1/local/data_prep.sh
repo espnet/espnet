@@ -8,6 +8,8 @@ data_dir=$2
 fs=44100
 LAB=new_lab_wo_sil
 
+set -euo pipefail
+
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
 
