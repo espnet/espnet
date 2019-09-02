@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
-"""
-Define asr module for multi-encoder network
-
-"""
+"""Define asr module for multi-encoder network."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2019 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
 import json
-import logging
 import io
+import logging
 import os
 import sys
 import yaml
@@ -73,13 +70,14 @@ class CustomConverterMulEnc(object):
     """
 
     def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
+        """Initialization"""
         self.subsamping_factors = subsamping_factors
         self.ignore_id = -1
         self.dtype = dtype
         self.num_encs = len(subsamping_factors)
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list): The batch to transform.

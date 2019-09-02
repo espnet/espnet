@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-"""
-Define e2e module for multi-encoder network
-
-"""
+"""Define e2e module for multi-encoder network."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -43,9 +40,7 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper.
-
-    """
+    """Define a chainer reporter wrapper."""
     def report(self, loss_ctc_list, loss_att, acc, cer_ctc_list, cer, wer, mtl_loss):
         # loss_ctc_list = [weighted CTC, CTC1, CTC2, ... CTCN]
         # cer_ctc_list = [weighted cer_ctc, cer_ctc_1, cer_ctc_2, ... cer_ctc_N]
@@ -75,9 +70,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def add_arguments(parser):
-        """add arguments for multi-encoder setting.
-
-        """
+        """Add arguments for multi-encoder setting."""
         E2E.encoder_add_arguments(parser)
         E2E.attention_add_arguments(parser)
         E2E.decoder_add_arguments(parser)
@@ -87,9 +80,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def encoder_add_arguments(parser):
-        """arguments for encoders in multi-encoder setting.
-
-        """
+        """Add arguments for encoders in multi-encoder setting."""
         group = parser.add_argument_group("E2E encoder setting")
         group.add_argument('--etype', action='append', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
@@ -108,9 +99,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def attention_add_arguments(parser):
-        """arguments for attentions in multi-encoder setting.
-
-        """
+        """Add arguments for attentions in multi-encoder setting."""
         group = parser.add_argument_group("E2E attention setting")
         # attention
         group.add_argument('--atype', type=str, action='append',
@@ -156,9 +145,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def decoder_add_arguments(parser):
-        """arguments for decoder in multi-encoder setting.
-
-        """
+        """Add arguments for decoder in multi-encoder setting."""
         group = parser.add_argument_group("E2E decoder setting")
         group.add_argument('--dtype', default='lstm', type=str,
                            choices=['lstm', 'gru'],
@@ -175,9 +162,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def ctc_add_arguments(parser):
-        """arguments for ctc in multi-encoder setting.
-
-        """
+        """Add arguments for ctc in multi-encoder setting."""
         group = parser.add_argument_group("E2E multi-ctc setting")
         group.add_argument('--share-ctc', type=strtobool, default=False,
                            help='The flag to switch to share ctc across multiple encoders '
@@ -190,9 +175,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def mulenc_add_arguments(parser):
-        """arguments for multi-encoder setting.
-
-        """
+        """Add arguments for multi-encoder setting. """
         group = parser.add_argument_group("E2E multi-encoder setting")
         group.add_argument('--problem-utts-file', default=None, type=str,
                            help='File of list of problematic utterances to exclude from training and decoding.')
