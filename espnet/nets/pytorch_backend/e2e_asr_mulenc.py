@@ -41,7 +41,9 @@ CTC_LOSS_THRESHOLD = 10000
 
 class Reporter(chainer.Chain):
     """Define a chainer reporter wrapper."""
+
     def report(self, loss_ctc_list, loss_att, acc, cer_ctc_list, cer, wer, mtl_loss):
+        """Define a chainer reporter function."""
         # loss_ctc_list = [weighted CTC, CTC1, CTC2, ... CTCN]
         # cer_ctc_list = [weighted cer_ctc, cer_ctc_1, cer_ctc_2, ... cer_ctc_N]
         num_encs = len(loss_ctc_list) - 1
@@ -175,7 +177,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def mulenc_add_arguments(parser):
-        """Add arguments for multi-encoder setting. """
+        """Add arguments for multi-encoder setting."""
         group = parser.add_argument_group("E2E multi-encoder setting")
         group.add_argument('--problem-utts-file', default=None, type=str,
                            help='File of list of problematic utterances to exclude from training and decoding.')

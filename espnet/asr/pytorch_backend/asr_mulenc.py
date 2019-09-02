@@ -6,8 +6,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import json
 import io
+import json
 import logging
 import os
 import sys
@@ -70,7 +70,7 @@ class CustomConverterMulEnc(object):
     """
 
     def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
-        """Initialization"""
+        """Initialize the converter."""
         self.subsamping_factors = subsamping_factors
         self.ignore_id = -1
         self.dtype = dtype
