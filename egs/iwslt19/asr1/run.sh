@@ -20,6 +20,7 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
+preprocess_config=
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -118,14 +119,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-
     fbankdir=fbank
     # Generate the fbank features; by 40-dimensional fbanks with pitch on each frame
     # to unify the fbank feature setup with how2
     # This is different from the other ESPnet recipe (80-dimensional fbanks)
     for x in tr_must_c tr_tedlium2 dt_must_c dt_tedlium2 $(echo ${recog_set} | tr ' ' '\n' | grep -v how2); do
-	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-				  data/${x} exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
     rm data/*/segments
@@ -146,7 +146,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
           /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt19/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
-
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -169,15 +168,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' >> data/lang_1spm/input.txt
+    grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' > data/lang_1spm/input.txt
+    grep how2 data/${train_set}/text.${case} | cut -f 2- -d' ' >> data/lang_1spm/input.txt
     # NOTE: speed perturbation is not applied in how2
-    sort data/lang_1spm/input.txt | grep -o -P '&[^;]*;' | uniq > ${nlsyms}
+    grep -o -P '&[^;]*;' data/lang_1spm/input.txt | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
+    grep -v -e '^\s*$' data/lang_1spm/input.txt > data/lang_1spm/input.txt.tmp
+    mv data/lang_1spm/input.txt.tmp data/lang_1spm/input.txt
     spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
@@ -215,7 +216,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         >> ${lmdatadir}/train_${case}.txt
     cut -f 2- -d " " data/${train_dev}/text.${case} | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/valid_${case}.txt
-
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
@@ -235,6 +235,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
 fi
@@ -247,6 +250,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
