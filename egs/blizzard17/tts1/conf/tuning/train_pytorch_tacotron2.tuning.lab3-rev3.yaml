@@ -1,5 +1,5 @@
-# Furthermore, to accelerate the learning of diaogonal attention, we additionaly
-# use guided attention loss. This leads super fast and robust attention learning.
+# To make the attention wight diagonal in decoding, we use forward attention.
+# Futhermore, we use reduction-fucter :3 to generate clear speech.
 
 # encoder related
 embed-dim: 512
