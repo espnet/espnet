@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Class Declaration of Transformer's Positional Encoding."""
 
 import chainer
 import chainer.functions as F
@@ -7,14 +8,16 @@ import numpy as np
 
 
 class PositionalEncoding(chainer.Chain):
-    """Positional encoding module
+    """Positional encoding module.
 
     :param int n_units: embedding dim
     :param float dropout: dropout rate
     :param int length: maximum input length
+
     """
 
     def __init__(self, n_units, dropout=0.1, length=5000):
+        """Initialize Positional Encoding."""
         # Implementation described in the paper
         super(PositionalEncoding, self).__init__()
         self.dropout = dropout
@@ -27,7 +30,8 @@ class PositionalEncoding(chainer.Chain):
         self.pe[:, 1::2] = np.cos(posi_block * unit_block)
         self.scale = np.sqrt(n_units)
 
-    def __call__(self, e):
+    def forward(self, e):
+        """Forward Positional Encoding."""
         length = e.shape[1]
         e = e * self.scale + self.xp.array(self.pe[:length])
         return F.dropout(e, self.dropout)

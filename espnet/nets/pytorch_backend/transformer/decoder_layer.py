@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Decoder self-attention layer definition."""
+
 import torch
 
 from torch import nn
@@ -6,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class DecoderLayer(nn.Module):
-    """Single decoder layer module
+    """Single decoder layer module.
 
     :param int size: input dim
     :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention self_attn: self attention module
@@ -18,10 +26,12 @@ class DecoderLayer(nn.Module):
     :param bool concat_after: whether to concat attention layer's input and output
         if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
+
     """
 
     def __init__(self, size, self_attn, src_attn, feed_forward, dropout_rate,
                  normalize_before=True, concat_after=False):
+        """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
         self.size = size
         self.self_attn = self_attn
@@ -38,7 +48,7 @@ class DecoderLayer(nn.Module):
             self.concat_linear2 = nn.Linear(size + size, size)
 
     def forward(self, tgt, tgt_mask, memory, memory_mask):
-        """Compute decoded features
+        """Compute decoded features.
 
         :param torch.Tensor tgt: decoded previous target features (batch, max_time_out, size)
         :param torch.Tensor tgt_mask: mask for x (batch, max_time_out)

@@ -140,7 +140,7 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
         maxlenratio=0,
         lm_weight=lm_weight,
         minlenratio=0,
-        nbest=2
+        nbest=5
     )
 
     feat = x[0, :ilens[0]].numpy()

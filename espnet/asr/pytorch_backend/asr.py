@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Training/decoding definition for the speech recognition task."""
 
 import copy
 import json
@@ -75,6 +77,7 @@ class CustomEvaluator(BaseEvaluator):
 
         device (torch.device): The device used.
         ngpu (int): The number of GPUs.
+
     """
 
     def __init__(self, model, iterator, target, device, ngpu=None):
@@ -220,6 +223,7 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32):
+        """Construct a CustomConverter object."""
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype

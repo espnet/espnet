@@ -4,6 +4,8 @@
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""End-to-end speech recognition model training script."""
+
 import configargparse
 import logging
 import os
@@ -19,6 +21,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser(parser=None, required=True):
+    """Get default arguments."""
     if parser is None:
         parser = configargparse.ArgumentParser(
             description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
@@ -167,7 +170,7 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--elayers-sd', default=4, type=int,
                         help='Number of encoder layers for speaker '
                              'differentiate part. (multi-speaker asr mode only)')
-    # speech translation related
+    # decoder related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
     parser.add_argument('--replace-sos', default=False, nargs='?',
@@ -258,6 +261,7 @@ def get_parser(parser=None, required=True):
 
 
 def main(cmd_args):
+    """Run the main training function."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     if args.backend == "chainer" and args.train_dtype != "float32":
