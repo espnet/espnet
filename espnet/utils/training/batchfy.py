@@ -322,6 +322,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
         batch_sort_key = "output"
         batch_sort_axis = 1
         assert iaxis == 1
+        assert oaxis == 0
         # NOTE: input is json['output'][1] and output is json['output'][0]
     else:
         ikey = "input"
