@@ -378,12 +378,12 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(train_batchset, lambda data: converter([load_tr(data)])),
-        batch_size=1, num_workers=args.n_iter_processes,
+        batch_size=1, num_workers=args.num_iter_processes,
         shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
     valid_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(valid_batchset, lambda data: converter([load_cv(data)])),
         batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
-        num_workers=args.n_iter_processes)}
+        num_workers=args.num_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, device, args.accum_grad)

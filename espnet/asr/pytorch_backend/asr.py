@@ -229,7 +229,7 @@ class CustomConverter(object):
         self.dtype = dtype
 
     def __call__(self, batch, device=torch.device('cpu')):
-        """Transforms a batch and send it to a device.
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list): The batch to transform.
