@@ -13,7 +13,6 @@ espnet/asr/asr_mix_utils.py
 espnet/asr/asr_utils.py
 espnet/asr/chainer_backend/asr.py
 espnet/asr/pytorch_backend/asr.py
-espnet/asr/pytorch_backend/asr_init.py
 espnet/asr/pytorch_backend/asr_mix.py
 espnet/bin/asr_enhance.py
 espnet/bin/asr_train.py
@@ -53,7 +52,6 @@ espnet/nets/mt_interface.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/e2e_asr.py
 espnet/nets/pytorch_backend/e2e_asr_mix.py
-espnet/nets/pytorch_backend/e2e_asr_transducer.py
 espnet/nets/pytorch_backend/e2e_asr_transformer.py
 espnet/nets/pytorch_backend/e2e_mt.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
