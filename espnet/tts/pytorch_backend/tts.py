@@ -18,7 +18,6 @@ import kaldiio
 import numpy as np
 import torch
 
-from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 
@@ -29,6 +28,8 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.dataset import ChainerDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
@@ -39,8 +40,6 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
 import matplotlib
 
@@ -53,20 +52,18 @@ matplotlib.use('Agg')
 class CustomEvaluator(BaseEvaluator):
     """Custom evaluator."""
 
-    def __init__(self, model, iterator, target, converter, device):
+    def __init__(self, model, iterator, target, device):
         """Initilize module.
 
         Args:
             model (torch.nn.Module): Pytorch model instance.
             iterator (chainer.dataset.Iterator): Iterator for validation.
             target (chainer.Chain): Dummy chain instance.
-            converter (CustomConverter): The batch converter.
             device (torch.device): The device to be used in evaluation.
 
         """
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
-        self.converter = converter
         self.device = device
 
     # The core part of the update routine can be customized by overriding.
@@ -88,10 +85,10 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
+                x = tuple(arr.to(self.device) for arr in batch)
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
-                    x = self.converter(batch, self.device)
                     if isinstance(x, tuple):
                         self.model(*x)
                     else:
@@ -105,7 +102,7 @@ class CustomEvaluator(BaseEvaluator):
 class CustomUpdater(training.StandardUpdater):
     """Custom updater."""
 
-    def __init__(self, model, grad_clip, iterator, optimizer, converter, device, accum_grad=1):
+    def __init__(self, model, grad_clip, iterator, optimizer, device, accum_grad=1):
         """Initilize module.
 
         Args:
@@ -113,14 +110,12 @@ class CustomUpdater(training.StandardUpdater):
             grad_clip (float) grad_clip : The gradient clipping value.
             iterator (chainer.dataset.Iterator): Iterator for training.
             optimizer (torch.optim.Optimizer) : Pytorch optimizer instance.
-            converter (CustomConverter) : The batch converter.
             device (torch.device): The device to be used in training.
 
         """
         super(CustomUpdater, self).__init__(iterator, optimizer)
         self.model = model
         self.grad_clip = grad_clip
-        self.converter = converter
         self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
         self.accum_grad = accum_grad
@@ -136,7 +131,7 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch (a list of json files)
         batch = train_iter.next()
-        x = self.converter(batch, self.device)
+        x = tuple(arr.to(self.device) for arr in batch)
 
         # compute loss and gradient
         if isinstance(x, tuple):
@@ -175,7 +170,7 @@ class CustomConverter(object):
         # NOTE: keep as class for future development
         pass
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Convert a given batch.
 
         Args:
@@ -378,28 +373,20 @@ def train(args):
         keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
+    converter = CustomConverter()
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.num_iter_processes > 0:
-        train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train_batchset, load_tr),
-            batch_size=1, n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid_batchset, load_cv),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train_batchset, load_tr),
-            batch_size=1, shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid_batchset, load_cv),
-            batch_size=1, repeat=False, shuffle=False)
+    train_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(train_batchset, lambda data: converter([load_tr(data)])),
+        batch_size=1, num_workers=args.n_iter_processes,
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
+    valid_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(valid_batchset, lambda data: converter([load_cv(data)])),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
+        num_workers=args.n_iter_processes)}
 
     # Set up a trainer
-    converter = CustomConverter()
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device, args.accum_grad)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, device, args.accum_grad)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -408,7 +395,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device))
 
     # set intervals
     save_interval = (args.save_interval_epochs, 'epoch')
