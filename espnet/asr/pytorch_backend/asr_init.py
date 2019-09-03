@@ -1,3 +1,5 @@
+"""Finetuning methods."""
+
 import logging
 import os
 import torch
@@ -23,8 +25,8 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
 
     Return:
         (boolean): allow transfer
-    """
 
+    """
     modules_model = []
     partial_modules = []
 
@@ -53,8 +55,8 @@ def get_partial_asr_mt_state_dict(model_state_dict, modules):
 
     Return:
         new_state_dict (odict): the updated state_dict
-    """
 
+    """
     new_state_dict = OrderedDict()
 
     for key, value in model_state_dict.items():
@@ -76,8 +78,8 @@ def get_partial_lm_state_dict(model_state_dict, modules):
     Return:
         new_state_dict (odict): the updated state_dict
         new_mods (list): the updated module list
-    """
 
+    """
     new_state_dict = OrderedDict()
     new_modules = []
 
@@ -97,7 +99,7 @@ def get_partial_lm_state_dict(model_state_dict, modules):
 
 
 def filter_modules(model_state_dict, modules):
-    """Filter non-matched modules in module_state_dict
+    """Filter non-matched modules in module_state_dict.
 
     Args:
         model_state_dict (odict): trained model state_dict
@@ -105,8 +107,8 @@ def filter_modules(model_state_dict, modules):
 
     Return:
         new_mods (list): the update module list
-    """
 
+    """
     new_mods = []
     incorrect_mods = []
 
@@ -131,8 +133,8 @@ def load_trained_model(model_path):
 
     Args:
         model_path(str): Path to model.***.best
-    """
 
+    """
     idim, odim, train_args = get_model_conf(
         model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
 
@@ -158,8 +160,8 @@ def get_trained_model_state_dict(model_path):
     Return:
         model.state_dict() (odict): the loaded model state_dict
         (str): Type of model. Either ASR/MT or LM.
-    """
 
+    """
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
     if 'rnnlm' in model_path:
         logging.info('reading model parameters from %s', model_path)
@@ -193,8 +195,8 @@ def load_trained_modules(idim, odim, args):
 
     Return:
         model (torch.nn.Module): The model with pretrained modules.
-    """
 
+    """
     enc_model_path = args.enc_init
     dec_model_path = args.dec_init
     enc_modules = args.enc_init_mods
@@ -219,16 +221,16 @@ def load_trained_modules(idim, odim, args):
                 else:
                     partial_state_dict = get_partial_asr_mt_state_dict(model_state_dict, modules)
 
-                    if partial_state_dict:
-                        if transfer_verification(main_state_dict, partial_state_dict,
-                                                 modules):
-                            logging.info('loading %s from model: %s', modules, model_path)
-                            main_state_dict.update(partial_state_dict)
-                        else:
-                            logging.info('modules %s in model %s don\'t match your training config',
-                                         modules, model_path)
-            else:
-                logging.info('model was not found : %s', model_path)
+                if partial_state_dict:
+                    if transfer_verification(main_state_dict, partial_state_dict,
+                                             modules):
+                        logging.info('loading %s from model: %s', modules, model_path)
+                        main_state_dict.update(partial_state_dict)
+                    else:
+                        logging.info('modules %s in model %s don\'t match your training config',
+                                     modules, model_path)
+                else:
+                    logging.info('model was not found : %s', model_path)
 
     main_model.load_state_dict(main_state_dict)
 
