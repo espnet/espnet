@@ -27,7 +27,7 @@ dunits: 256
 dropout-rate-decoder: 0.2
 dropout-rate-embed-decoder: 0.2
 ## attention related
-atype: location2d
+atype: location
 adim: 256
 aheads: 1
 awin: 5
@@ -40,7 +40,7 @@ joint-dim: 256
 ## mtlalpha should be set to 1.0 (CTC) to use transducer
 mtlalpha: 1.0
 ## switch to 'rnnt-att' to use transducer with attention
-rnnt-mode: 'rnnt-att'
+rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 
 # finetuning related
