@@ -1,0 +1,35 @@
+# network architecture
+# encoder related
+etype: vggblstm
+elayers: 4
+eunits: 256
+eprojs: 256
+subsample: "1_1_1_1_1"
+# decoder related
+dtype: lstm
+dlayers: 1
+dunits: 256
+# attention related
+atype: location
+adim: 256
+aheads: 1
+awin: 5
+aconv-chans: 10
+aconv-filts: 100
+
+# hybrid CTC/attention
+mtlalpha: 0.0
+
+# minibatch related
+batch-size: 30
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+sortagrad: 0
+opt: adadelta
+epochs: 20
+patience: 3
+
+# scheduled sampling option
+sampling-probability: 0.0
