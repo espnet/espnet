@@ -39,19 +39,15 @@ class DecoderRNNT(torch.nn.Module):
         self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
 
         if dtype == "lstm":
-            dec_net = torch.nn.LSTM
+            dec_net = torch.nn.LSTMCell
         else:
-            dec_net = torch.nn.GRU
+            dec_net = torch.nn.GRUCell
 
-        self.decoder = torch.nn.ModuleList([dec_net(embed_dim, dunits, 1,
-                                                    bias=True, batch_first=True,
-                                                    bidirectional=False)])
+        self.decoder = torch.nn.ModuleList([dec_net(embed_dim, dunits)])
         self.dropout_dec = torch.nn.ModuleList([torch.nn.Dropout(p=dropout)])
 
         for _ in six.moves.range(1, dlayers):
-            self.decoder += [dec_net(dunits, dunits, 1,
-                                     bias=True, batch_first=True,
-                                     bidirectional=False)]
+            self.decoder += [dec_net(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
 
         if rnnt_type == 'warp-transducer':
@@ -81,18 +77,18 @@ class DecoderRNNT(torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
+            ey (torch.Tensor): batch of input features (B, Emb_dim)
 
         Returns:
-            (list): list of L zero-init hidden and cell state (1, B, Hdec)
+            (list): list of L zero-init hidden and cell state (B, Hdec)
 
         """
-        z_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
-        c_list = [ey.new_zeros(1, ey.size(0), self.dunits)]
+        z_list = [ey.new_zeros(ey.size(0), self.dunits)]
+        c_list = [ey.new_zeros(ey.size(0), self.dunits)]
 
         for _ in six.moves.range(1, self.dlayers):
-            z_list.append(ey.new_zeros(1, ey.size(0), self.dunits))
-            c_list.append(ey.new_zeros(1, ey.size(0), self.dunits))
+            z_list.append(ey.new_zeros(ey.size(0), self.dunits))
+            c_list.append(ey.new_zeros(ey.size(0), self.dunits))
 
         return (z_list, c_list)
 
@@ -100,12 +96,12 @@ class DecoderRNNT(torch.nn.Module):
         """RNN forward.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, Lmax, Emb_dim)
-            dstate (list): list of L input hidden and cell state (1, B, Hdec)
+            ey (torch.Tensor): batch of input features (B, Emb_dim)
+            dstate (list): list of L input hidden and cell state (B, Hdec)
 
         Returns:
-            output (torch.Tensor): batch of output features (B, Lmax, Hdec)
-            dstate (list): list of L output hidden and cell state (1, B, Hdec)
+            output (torch.Tensor): batch of output features (B, Hdec)
+            dstate (list): list of L output hidden and cell state (B, Hdec)
 
         """
         if dstate is None:
@@ -114,16 +110,20 @@ class DecoderRNNT(torch.nn.Module):
             z_prev, c_prev = dstate
 
         z_list, c_list = self.zero_state(ey)
+
         if self.dtype == "lstm":
-            y, (z_list[0], c_list[0]) = self.decoder[0](ey, (z_prev[0], c_prev[0]))
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
 
             for l in six.moves.range(1, self.dlayers):
-                y, (z_list[l], c_list[l]) = self.decoder[l](y, (z_prev[l], c_prev[l]))
+                z_list[l], c_list[l] = self.decoder[l](
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]))
         else:
-            y, z_list[0] = self.decoder[0](ey, z_prev[0])
+            z_list[0] = self.decoder[0](ey, z_prev[0])
 
             for l in six.moves.range(1, self.dlayers):
-                y, z_list[l] = self.decoder[l](y, z_prev[l])
+                z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]),
+                                            z_prev[l])
+        y = self.dropout_dec[-1](z_list[-1])
 
         return y, (z_list, c_list)
 
@@ -164,9 +164,16 @@ class DecoderRNNT(torch.nn.Module):
         ys_in = [torch.cat([blank, y], dim=0) for y in ys]
         ys_in_pad = pad_list(ys_in, self.blank)
 
+        olength = ys_in_pad.size(1)
+
+        z_list, c_list = self.zero_state(hs_pad)
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
-        h_dec, _ = self.rnn_forward(eys, None)
+        z_all = []
+        for i in six.moves.range(olength):
+            y, (z_list, c_list) = self.rnn_forward(eys[:, i, :], (z_list, c_list))
+            z_all.append(y)
+        h_dec = torch.stack(z_all, dim=1)
 
         h_enc = hs_pad.unsqueeze(2)
         h_dec = h_dec.unsqueeze(1)
@@ -192,13 +199,15 @@ class DecoderRNNT(torch.nn.Module):
             hyp (list of dicts): 1-best decoding results
 
         """
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+        ey = torch.zeros((1, self.embed_dim))
+
         hyp = {'score': 0.0, 'yseq': [self.blank]}
 
-        ey = torch.zeros((1, 1, self.embed_dim))
-        y, (z_list, c_list) = self.rnn_forward(ey, None)
+        y, (z_list, c_list) = self.rnn_forward(ey, (z_list, c_list))
 
         for hi in h:
-            ytu = F.log_softmax(self.joint(hi, y[0][0]), dim=0)
+            ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
             logp, pred = torch.max(ytu, dim=0)
 
             if pred != self.blank:
@@ -208,7 +217,7 @@ class DecoderRNNT(torch.nn.Module):
                 eys = torch.full((1, 1), hyp['yseq'][-1], dtype=torch.long)
                 ey = self.dropout_embed(self.embed(eys))
 
-                y, (z_list, c_list) = self.rnn_forward(ey, (z_list, c_list))
+                y, (z_list, c_list) = self.rnn_forward(ey[0], (z_list, c_list))
 
         return [hyp]
 
@@ -229,13 +238,17 @@ class DecoderRNNT(torch.nn.Module):
         nbest = recog_args.nbest
         normscore = recog_args.score_norm_transducer
 
-        ey = torch.zeros((1, 1, self.embed_dim))
-        y, dstate = self.rnn_forward(ey, None)
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+        eys = torch.zeros((1, self.embed_dim))
+
+        _, (z_list, c_list) = self.rnn_forward(eys, None)
 
         if rnnlm:
-            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'dstate': dstate, 'lm_state': None}]
+            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'z_prev': z_list,
+                          'c_prev': c_list, 'lm_state': None}]
         else:
-            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'dstate': dstate}]
+            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'z_prev': z_list,
+                          'c_prev': c_list}]
 
         for i, hi in enumerate(h):
             hyps = kept_hyps
@@ -248,9 +261,10 @@ class DecoderRNNT(torch.nn.Module):
                 vy = to_device(self, torch.full((1, 1), new_hyp['yseq'][-1], dtype=torch.long))
                 ey = self.dropout_embed(self.embed(vy))
 
-                y, dstate = self.rnn_forward(ey, new_hyp['dstate'])
+                y, (z_list, c_list) = self.rnn_forward(ey[0], (new_hyp['z_prev'],
+                                                               new_hyp['c_prev']))
 
-                ytu = F.log_softmax(self.joint(hi, y[0][0]), dim=0)
+                ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
 
                 if rnnlm:
                     rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], vy[0])
@@ -258,14 +272,16 @@ class DecoderRNNT(torch.nn.Module):
                 for k in six.moves.range(self.odim):
                     beam_hyp = {'score': new_hyp['score'] + float(ytu[k]),
                                 'yseq': new_hyp['yseq'][:],
-                                'dstate': new_hyp['dstate']}
+                                'z_prev': new_hyp['z_prev'],
+                                'c_prev': new_hyp['c_prev']}
                     if rnnlm:
                         beam_hyp['lm_state'] = new_hyp['lm_state']
 
                     if k == self.blank:
                         kept_hyps.append(beam_hyp)
                     else:
-                        beam_hyp['dstate'] = dstate
+                        beam_hyp['z_prev'] = z_list[:]
+                        beam_hyp['c_prev'] = c_list[:]
                         beam_hyp['yseq'].append(int(k))
 
                         if rnnlm:
