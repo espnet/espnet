@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Transducer related modules."""
+
 import argparse
 import logging
 import math
@@ -26,9 +28,10 @@ from espnet.utils.cli_utils import strtobool
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
+    """A chainer reporter wrapper."""
 
     def report(self, loss, cer, wer):
+        """Instantiate reporter attributes."""
         reporter.report({'cer': cer}, self)
         reporter.report({'wer': wer}, self)
         logging.info('loss:' + str(loss))
@@ -36,16 +39,18 @@ class Reporter(chainer.Chain):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-    """E2E module
+    """E2E module.
 
     Args:
         idim (int): dimension of inputs
         odim (int): dimension of outputs
         args (namespace): argument Namespace containing options
+
     """
 
     @staticmethod
     def add_arguments(parser):
+        """Extend arguments for transducer."""
         group = parser.add_argument_group("transducer model setting")
         # encoder
         group.add_argument('--etype', default='blstmp', type=str,
@@ -111,6 +116,14 @@ class E2E(ASRInterface, torch.nn.Module):
                             help='Normalize transducer scores by length')
 
     def __init__(self, idim, odim, args):
+        """Initialize transducer modules.
+
+        Args:
+            idim (int): dimension of inputs
+            odim (int): dimension of outputs
+            args (Namespace): argument Namespace containing options
+
+        """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.rnnt_mode = args.rnnt_mode
@@ -184,7 +197,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.loss = None
 
     def init_like_chainer(self):
-        """Initialize weight like chainer
+        """Initialize weight like chainer.
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
@@ -192,8 +205,8 @@ class E2E(ASRInterface, torch.nn.Module):
         however, there are two exceptions as far as I know.
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
-        """
 
+        """
         def lecun_normal_init_parameters(module):
             for p in module.parameters():
                 data = p.data
@@ -233,7 +246,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.dec.embed.weight.data.normal_(0, 1)
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """E2E forward
+        """E2E forward.
 
         Args:
             xs_pad (torch.Tensor): batch of padded input sequences (B, Tmax, idim)
@@ -242,8 +255,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
                loss (torch.Tensor): transducer loss value
-        """
 
+        """
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
@@ -305,7 +318,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """E2E recognize
+        """E2E recognize.
 
         Args:
             x (ndarray): input acoustic feature (T, D)
@@ -315,8 +328,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
            y (list): n-best decoding results
-        """
 
+        """
         prev = self.training
         self.eval()
         ilens = [x.shape[0]]
@@ -349,7 +362,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return y
 
     def enhance(self, xs):
-        """Forwarding only the frontend stage
+        """Forward only the frontend stage.
 
         Args:
             xs (ndarray): input acoustic feature (T, C, F)
@@ -358,8 +371,8 @@ class E2E(ASRInterface, torch.nn.Module):
             enhanced (ndarray):
             mask (torch.Tensor):
             ilens (torch.Tensor): batch of lengths of input sequences (B)
-        """
 
+        """
         if self.frontend is None:
             raise RuntimeError('Frontend does\'t exist')
         prev = self.training
@@ -378,7 +391,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
-        """E2E attention calculation
+        """E2E attention calculation.
 
         Args:
             xs_pad (torch.Tensor): batch of padded input sequences (B, Tmax, idim)
@@ -389,8 +402,8 @@ class E2E(ASRInterface, torch.nn.Module):
             att_ws (ndarray): attention weights with the following shape,
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                 2) other case => attention weights (B, Lmax, Tmax).
-        """
 
+        """
         if self.rnnt_mode == 'rnnt':
             return []
 
@@ -411,7 +424,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return att_ws
 
     def subsample_frames(self, x):
-        # subsample frame
+        """Subsample frames."""
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
         h = to_device(self, torch.from_numpy(
