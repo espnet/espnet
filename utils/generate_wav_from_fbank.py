@@ -43,6 +43,7 @@ class TimeInvariantMLSAFilter(object):
     """
 
     def __init__(self, coef, alpha, n_shift):
+        self.coef = coef
         self.n_shift = n_shift
         self.mlsa_filter = pysptk.synthesis.Synthesizer(
             pysptk.synthesis.MLSADF(

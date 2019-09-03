@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
+from glob import glob
 import importlib
-import logging
 import os
-import pkgutil
 
 import configargparse
 
@@ -19,35 +18,19 @@ parser.add_argument('dst', type=str,
 parser.add_argument('--exclude', nargs='*', default=[],
                     help='exclude module name')
 args = parser.parse_args()
+print(args)
 
 
-root_name = args.root
-root = importlib.import_module(root_name)
-root_list = root.__path__
-assert len(root_list) == 1
-root_path = root_list[0]
+def to_module(path_name):
+    ret = path_name.replace(".py", "").replace("/", ".")
+    if ret.endswith("."):
+        return ret[:-1]
+    return ret
 
 
-def to_path(module_name):
-    assert module_name.startswith(root_name)
-    return module_name.replace(".", "/").replace(root_name, root_path)
-
-
-def children(parent, recursive=False):
-    pname = parent.__name__
-    for info in pkgutil.iter_modules([to_path(pname)]):
-        cname = f"{pname}.{info.name}"
-        try:
-            child = importlib.import_module(cname)
-            yield child
-            if recursive:
-                yield from children(child)
-        except ImportError:
-            logging.warning(f"[warning] import error at {cname}")
-
-
-def gen_rst(module, f):
-    name = module.__name__
+def gen_rst(module_path, f):
+    name = to_module(module_path)
+    module = importlib.import_module(name)
     title = name + " package"
     sep = "=" * len(title)
     doc = module.__doc__
@@ -60,9 +43,13 @@ def gen_rst(module, f):
 
 """)
 
-    cs = children(module, recursive=True)
-    for c in cs:
-        cname = c.__name__
+    for cpath in glob(module_path + "/**/*.py", recursive=True):
+        print(cpath)
+        if not os.path.exists(cpath):
+            continue
+        if "__pycache__" in cpath:
+            continue
+        cname = to_module(cpath)
         csep = "-" * len(cname)
         f.write(f"""
 .. _{cname}:
@@ -87,14 +74,19 @@ modules_rst = """
 """
 gendir = args.dst + "/_gen"
 os.makedirs(gendir, exist_ok=True)
-for c in children(root, recursive=False):
-    if c.__name__ in args.exclude:
+for p in glob(args.root + "/**", recursive=False):
+    if p in args.exclude:
         continue
-    fname = c.__name__.replace(".", "-") + ".rst"
+    if "__pycache__" in p:
+        continue
+    if "__init__" in p:
+        continue
+    fname = to_module(p) + ".rst"
     dst = f"{gendir}/{fname}"
     modules_rst += f"   ./_gen/{fname}\n"
+    print(f"[INFO] generating {dst}")
     with open(dst, "w") as f:
-        gen_rst(c, f)
+        gen_rst(p, f)
 
 
 with open(gendir + "/modules.rst", "w") as f:
