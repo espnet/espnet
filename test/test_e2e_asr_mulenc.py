@@ -195,9 +195,6 @@ def test_model_trainable_and_decodable(module, model_dict):
     # test attention plot
     dummy_json = make_dummy_json(2, [10, 20], [10, 20], idim=40, odim=5, num_inputs=2)
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
-    print (batchset[0])
-    print (dummy_json)
-
     att_ws = model.calculate_all_attentions(*convert_batch(batchset[0], "pytorch", idim=40, odim=5, num_inputs=2))
     from espnet.asr.asr_utils import PlotAttentionReport
     tmpdir = tempfile.mkdtemp()
