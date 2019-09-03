@@ -4,6 +4,7 @@
 \#*\#
 .\#*
 *DS_Store
+out.txt
 espnet.egg-info/
 doc/_build
 slurm-*.out
@@ -21,6 +22,7 @@ shellcheck*
 check_shellcheck*
 test_spm.vocab
 test_spm.model
+.vscode*
 
 # recipe related
 egs/*/*/data*

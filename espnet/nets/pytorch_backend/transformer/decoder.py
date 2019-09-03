@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Decoder definition."""
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -11,7 +19,7 @@ from espnet.nets.scorer_interface import ScorerInterface
 
 
 class Decoder(ScorerInterface, torch.nn.Module):
-    """Transfomer decoder module
+    """Transfomer decoder module.
 
     :param int odim: output dim
     :param int attention_dim: dimention of attention
@@ -43,6 +51,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                  pos_enc_class=PositionalEncoding,
                  normalize_before=True,
                  concat_after=False):
+        """Construct an Decoder object."""
         torch.nn.Module.__init__(self)
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
@@ -85,7 +94,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
             self.output_layer = None
 
     def forward(self, tgt, tgt_mask, memory, memory_mask):
-        """forward decoder
+        """Forward decoder.
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out) if input_layer == "embed"
                                  input tensor (batch, maxlen_out, #mels) in the other cases
@@ -107,7 +116,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
         return x, tgt_mask
 
     def recognize(self, tgt, tgt_mask, memory):
-        """recognize one step
+        """Recognize one step.
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
@@ -128,6 +137,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
 
     # beam search API (see ScorerInterface)
     def score(self, ys, state, x):
+        """Score."""
         # TODO(karita) cache previous attentions in state
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         logp = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0))
