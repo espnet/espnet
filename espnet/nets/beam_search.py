@@ -310,11 +310,11 @@ class BeamSearch(torch.nn.Module):
                 logging.info('no hypothesis. Finish decoding.')
                 break
 
-        nbest_hyps = self.top_beam_hyps(ended_hyps)
+        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check number of hypotheis
         if len(nbest_hyps) == 0:
             logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
-            return self.forward(x=x, maxlenratio=maxlenratio, minlenratio=max(0.0, minlenratio - 0.1))
+            return [] if minlenratio < 0.1 else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
 
         # report the best result
         best = nbest_hyps[0]
