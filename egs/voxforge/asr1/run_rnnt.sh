@@ -245,7 +245,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     training_run "$exp_config"
 fi
 
-main_expdir=${train_set}_${backend}_$(basename ${exp_config%.*})
+main_expdir=exp/${train_set}_${backend}_$(basename ${exp_config%.*})
 if ${do_delta}; then
     main_expname=${main_expname}_delta
 fi
