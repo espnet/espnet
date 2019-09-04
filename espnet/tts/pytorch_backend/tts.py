@@ -85,7 +85,11 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) for arr in batch)
+                if isinstance(x, tuple):
+                    x = tuple(arr.to(self.device) for arr in batch)
+                else:
+                    for key in x.keys():
+                        x[key] = x[key].to(self.device)
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
@@ -131,7 +135,11 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch (a list of json files)
         batch = train_iter.next()
-        x = tuple(arr.to(self.device) for arr in batch)
+        if isinstance(x, tuple):
+            x = tuple(arr.to(self.device) for arr in batch)
+        else:
+            for key in x.keys():
+                x[key] = x[key].to(self.device)
 
         # compute loss and gradient
         if isinstance(x, tuple):
