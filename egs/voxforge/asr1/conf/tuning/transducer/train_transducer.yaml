@@ -42,15 +42,3 @@ mtlalpha: 1.0
 ## switch to 'rnnt-att' to use transducer with attention
 rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
-
-# finetuning related
-## pre-trained model for encoder pre-init correspond to conf/tuning/transducer/train_ctc.yaml
-#enc-init: "exp/tr_it_pytorch_train_ctc/results/model.loss.best"
-
-## pre-trained model for decoder pre-init (AM) correspond to conf/tuning/transducer/train_att.yaml
-#dec-init: "exp/tr_it_pytorch_train_att/results/model.acc.best"
-#dec-init-mods: 'dec.decoder.,dec.att.,att.'
-
-## pre-trained model for decoder pre-init (LM) correspond to conf/tuning/transducer/lm_transducer.yaml
-#dec-init: "exp/train_rnnlm_pytorch_lm_transducer/rnnlm.model.best"
-#dec-init-mods: "predictor.rnn."
