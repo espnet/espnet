@@ -28,7 +28,7 @@ recog_set="dt_${lang} et_${lang}"
 do_delta=false
 
 # transducer configuration
-rnnt_mode='rnnt' # define transducer mode. Can be either 'rnnt' or 'rnnt-att'
+rnnt_mode='rnnt-att' # define transducer mode. Can be either 'rnnt' or 'rnnt-att'
 use_transfer=true # use transfer learning
 type_transfer='both' # define module to transfer. Can be either 'enc', 'dec' or 'both'
 
@@ -175,7 +175,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         expdir=exp/${expname}
 
-        [ -f $expdir/results/model.loss.best ] && return 0
+        [ -f $expdir/results/model.loss.best ] && \
+            [[ $expname != *"train_transducer"* ]] && return 0
         mkdir -p ${expdir}
 
         ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
