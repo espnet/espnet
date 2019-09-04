@@ -229,8 +229,8 @@ def load_trained_modules(idim, odim, args):
                     else:
                         logging.info('modules %s in model %s don\'t match your training config',
                                      modules, model_path)
-                else:
-                    logging.info('model was not found : %s', model_path)
+            else:
+                logging.info('model was not found : %s', model_path)
 
     main_model.load_state_dict(main_state_dict)
 
