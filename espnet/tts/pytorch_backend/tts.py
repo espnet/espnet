@@ -85,9 +85,10 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                if isinstance(x, tuple):
+                if isinstance(batch, tuple):
                     x = tuple(arr.to(self.device) for arr in batch)
                 else:
+                    x = batch
                     for key in x.keys():
                         x[key] = x[key].to(self.device)
                 observation = {}
@@ -135,9 +136,10 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch (a list of json files)
         batch = train_iter.next()
-        if isinstance(x, tuple):
+        if isinstance(batch, tuple):
             x = tuple(arr.to(self.device) for arr in batch)
         else:
+            x = batch
             for key in x.keys():
                 x[key] = x[key].to(self.device)
 
