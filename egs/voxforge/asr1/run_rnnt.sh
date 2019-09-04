@@ -241,6 +241,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             training_run "$att_config"
         fi
     fi
+    echo "Main network: Training transducer model using $exp_config"
     training_run "$exp_config"
 fi
 
