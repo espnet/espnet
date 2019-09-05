@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 
-from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 import numpy as np
@@ -31,13 +30,13 @@ from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.utils.dataset import ChainerDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
@@ -66,7 +65,7 @@ class CustomConverter(object):
         # in ASR. However, blank labels are not used in NMT. To keep the vocabulary size,
         # we use index:0 for padding instead of adding one more class.
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transform a batch and send it to a device.
 
         Args:
@@ -225,27 +224,18 @@ def train(args):
     load_cv = LoadInputsAndTargets(mode='mt', load_output=True)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
-        train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train, load_tr),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid, load_cv),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train, load_tr),
-            batch_size=1, shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid, load_cv),
-            batch_size=1, repeat=False, shuffle=False)
+    train_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
+        batch_size=1, num_workers=args.n_iter_processes,
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
+    valid_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
+        num_workers=args.n_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer,
-        converter, device, args.ngpu, False, args.accum_grad, use_apex=use_apex)
+        model, args.grad_clip, train_iter, optimizer, device, args.ngpu, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -259,7 +249,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
