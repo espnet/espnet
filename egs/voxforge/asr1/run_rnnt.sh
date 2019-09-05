@@ -28,8 +28,8 @@ recog_set="dt_${lang} et_${lang}"
 do_delta=false
 
 # transducer configuration
-rnnt_mode='rnnt-att' # define transducer mode. Can be either 'rnnt' or 'rnnt-att'
-use_transfer=true # use transfer learning
+rnnt_mode='rnnt' # define transducer mode. Can be either 'rnnt' or 'rnnt-att'
+use_transfer=false # use transfer learning
 type_transfer='both' # define module to transfer. Can be either 'enc', 'dec' or 'both'
 
 ## main configs
@@ -60,7 +60,7 @@ if [ ${use_transfer} == true ]; then
                     ;;
                 rnnt-att)
                     readarray  CONF <<'                    EOM'
-                    dec-init: 'exp/tr_it_pytorch_train_att/model.acc.best'
+                    dec-init: 'exp/tr_it_pytorch_train_att/results/model.acc.best'
                     dec-init-mods: 'dec.decoder.,dec.att.,att.'
                     EOM
                     printf '%s' "${CONF[@]#                    }" >> ${exp_config}
@@ -70,6 +70,7 @@ if [ ${use_transfer} == true ]; then
 else
     exp_config=train_config
 fi
+sed -i "s/\(^rnnt-mode:\) \('[a-z-]*'\)/\1 '${rnnt_mode}'/g" ${exp_config}
 
 # experiment tag
 tag="" # tag for managing experiments.
