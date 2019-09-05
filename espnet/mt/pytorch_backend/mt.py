@@ -235,7 +235,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, device, args.ngpu, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer, device, args.ngpu, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
