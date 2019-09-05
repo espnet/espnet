@@ -49,7 +49,7 @@ class ChainerDataLoader(object):
         self.kwargs = kwargs
 
     def next(self):
-        """Next function."""
+        """Implement next function."""
         if self.iter is None:
             self.iter = iter(self.loader)
         try:
@@ -64,7 +64,7 @@ class ChainerDataLoader(object):
         return ret
 
     def __iter__(self):
-        """Iter function."""
+        """Implement iter function."""
         for batch in self.loader:
             yield batch
 
@@ -74,7 +74,7 @@ class ChainerDataLoader(object):
         return self.epoch + self.current_position / self.len
 
     def serialize(self, serializer):
-        """Serialize and deserialize function"""
+        """Serialize and deserialize function."""
         epoch = serializer('epoch', self.epoch)
         current_position = serializer('current_position', self.current_position)
         self.epoch = epoch
@@ -86,5 +86,5 @@ class ChainerDataLoader(object):
         self.loader = torch.utils.data.dataloader.DataLoader(**self.kwargs)
 
     def finalize(self):
-        """Finalize function."""
+        """Implement finalize function."""
         del self.loader
