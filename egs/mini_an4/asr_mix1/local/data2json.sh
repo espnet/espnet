@@ -1,0 +1,1 @@
+../../../wsj_mix/asr1/local/data2json.sh
