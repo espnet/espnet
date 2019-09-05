@@ -8,8 +8,8 @@ import torch.utils.data
 
 
 class TransformDataset(torch.utils.data.Dataset):
-    """Transform Dataset for pytorch backend."""
-    """
+    """Transform Dataset for pytorch backend.
+
     Args:
         data: list object from make_batchset
         transfrom: transform function
@@ -17,13 +17,13 @@ class TransformDataset(torch.utils.data.Dataset):
     """
 
     def __init__(self, data, transform):
-        """init function."""
+        """Init function."""
         super(TransformDataset).__init__()
         self.data = data
         self.transform = transform
 
     def __len__(self):
-        """len function."""
+        """Len function."""
         return len(self.data)
 
     def __getitem__(self, idx):
@@ -40,7 +40,7 @@ class ChainerDataLoader(object):
     """
 
     def __init__(self, **kwargs):
-        """init function."""
+        """Init function."""
         self.loader = torch.utils.data.dataloader.DataLoader(**kwargs)
         self.len = len(kwargs['dataset'])
         self.current_position = 0
@@ -49,7 +49,7 @@ class ChainerDataLoader(object):
         self.kwargs = kwargs
 
     def next(self):
-        """next function."""
+        """Next function."""
         if self.iter is None:
             self.iter = iter(self.loader)
         try:
@@ -64,27 +64,27 @@ class ChainerDataLoader(object):
         return ret
 
     def __iter__(self):
-        "iter function."""
+        """Iter function."""
         for batch in self.loader:
             yield batch
 
     @property
     def epoch_detail(self):
-        """epoch_detail required by chainer."""
+        """Epoch_detail required by chainer."""
         return self.epoch + self.current_position / self.len
 
     def serialize(self, serializer):
-        """serialize and deserialize function"""
+        """Serialize and deserialize function"""
         epoch = serializer('epoch', self.epoch)
         current_position = serializer('current_position', self.current_position)
         self.epoch = epoch
         self.current_position = current_position
 
     def start_shuffle(self):
-        """shuffle function for sortagrad."""
+        """Shuffle function for sortagrad."""
         self.kwargs['shuffle'] = True
         self.loader = torch.utils.data.dataloader.DataLoader(**self.kwargs)
 
     def finalize(self):
-        """finalize function."""
+        """Finalize function."""
         del self.loader
