@@ -165,8 +165,7 @@ class LoadInputsAndTargets(object):
 
         if self.preprocessing is not None:
             # Apply pre-processing all input features
-            x_names = [i for i in return_batch.keys() if i.startswith("input")]
-            for x_name in x_names:
+            for x_name in [i for i in return_batch.keys() if i.startswith("input")]:
                 return_batch[x_name] = \
                     self.preprocessing(return_batch[x_name], uttid_list,
                                        **self.preprocess_args)
