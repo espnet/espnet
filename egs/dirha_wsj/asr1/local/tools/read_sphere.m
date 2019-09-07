@@ -1,8 +1,9 @@
-function [y]=read_sphere(x)
-cmd=strcat('./w_decode -f -o short_01$',  x , '$tmp.wav');
+%%%%%%%%%%%%%%%%%%%%%%
+% todo (ruizhili) copyright
+% Author: Mirco Ravanelli (mravanelli@fbk.eu)
+%%%%%%%%%%%%%%%%%%%%%%
+function [y]=read_sphere(path_reader,x)
+cmd=strcat(path_reader,'$ -f wav$',  x , '$>tmp.wav');
 cmd=strrep(cmd,'$',' ');
 system(cmd);
-fp=fopen('tmp.wav','r');
-[y,n]=fread(fp,Inf,'short');
-fclose(fp);
-y=y(513:end);
+y=audioread('tmp.wav');

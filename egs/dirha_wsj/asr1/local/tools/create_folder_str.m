@@ -1,4 +1,11 @@
-% This script generate a folder (folder_new) with the same strcuture of the input folder (folder_old) 
+%%%%%%%%%%%%%%%%%%%%%%
+% todo (ruizhili) copyright
+% Author: Mirco Ravanelli (mravanelli@fbk.eu)
+%
+% Description:
+% This script generate a folder (folder_new) with the same strcuture of the input folder (folder_old)
+%
+%%%%%%%%%%%%%%%%%%%%%%
 function create_folder_str(folder_old,folder_new)
 
 paths=dir(folder_old);

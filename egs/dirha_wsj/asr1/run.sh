@@ -40,8 +40,12 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 
 # data
 mic="Beam_Circular_Array"  # Beam_Circular_Array Beam_Linear_Array KA6 L1C
-dirha_wsj_folder=/export/b08/ruizhili/data/Data_processed
 wsj1=/export/corpora5/LDC/LDC94S13B
+wsj0=/export/corpora5/LDC/LDC93S6B
+dirha_folder=/export/b18/xwang/data/dirha_english_wsj_audio
+dirha_wsj_folder=/export/b18/ruizhili/data/Data_processed # output folder for augmented wsj data and dirha data
+IR_folder=/export/b18/xwang/data/DIRHA_English_phrich_released_june2016_realonly_last/Data/Training_IRs # folders for Impulse responses for WSJ contamination
+sph_reader=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -64,24 +68,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
 
-    # If YOU DON'T HAVE AUGMENTED DATA, FOLLOW THE FOLLOWING TWO STEPS BEFORE YOU RUN THE SCRIPT
-    # FIRST: RUN THE FOLLOWING MATLAB FILE in ./local/tools/ TO PREPARE AUDIO FILES [chang your data directories accordingly]
-    # Data_Contamination_dirha.m;
-    # Data_Contamination_wsj0.m;
-    # Data_Contamination_wsj1.m;
-
-    # SECOND: RUN THE FOLLOWING TO COPY METADATA (prevous step doesnt copy meta data) [chang your data directories accordingly]
-    # WSJ1_metadata was created using
-    #     rsync -arv --exclude='*/*/*/*/*.wv1' --exclude='*/*/*/*/*.wv2' --exclude '*/*/*/*/*.wav' /export/b06/xwang/data/Data_processed/WSJ1_contaminated_mic_sum WSJ1_metadata
-    # WSJ0_metadata was created using
-    #     rsync -arv --exclude='*/*/*/*/*.wv1' --exclude='*/*/*/*/*.wv2' --exclude '*/*/*/*/*.wav' /export/b06/xwang/espnet_e2e/espnet/egs/dirha_wsj/Tools/LDC93S6B WSJ0_metadata
-    # merge metadata with the created audio files
-    #     rsync --recursive WSJ1_metadata/ WSJ1_contaminated_mic_Beam_Circular_Array/
-    #     rsync --recursive WSJ0_metadata/ WSJ0_contaminated_mic_Beam_Circular_Array/
+    expdir=exp/prepare_dirha_wsj_data_${mic}
+    $train_cmd $expdir/Data.log \
+    matlab -nodisplay -nosplash -r "addpath('./local/tools'); Data('$mic','$wsj1', '$wsj0', '$dirha_folder', '$dirha_wsj_folder', '$IR_folder', '$sph_reader');exit"
 
     # augmented train
     wsj0_contaminated_folder=WSJ0_contaminated_mic_$mic # path of the wsj0 training data
-    wsj1_contaminated_folder=WSJ1_contaminated_mic_$mic # path of the wsj0 training data
+    wsj1_contaminated_folder=WSJ1_contaminated_mic_$mic # path of the wsj1 training data
     local/wsj_data_prep.sh ${dirha_wsj_folder}/$wsj0_contaminated_folder/??-{?,??}.? ${dirha_wsj_folder}/$wsj1_contaminated_folder/??-{?,??}.? || exit 1;
     local/wsj_format_data.sh $mic || exit 1;
 

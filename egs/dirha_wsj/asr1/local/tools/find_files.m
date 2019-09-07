@@ -1,3 +1,11 @@
+%%%%%%%%%%%%%%%%%%%%%%
+% todo (ruizhili) copyright
+% Author: Mirco Ravanelli (mravanelli@fbk.eu)
+%
+% Modified from the script for dirha_wsj in Espnet
+% Ruizhi Li 09/07/2019
+%
+%%%%%%%%%%%%%%%%%%%%%%
 function fileList = find_files(dirName,ext)
 
   dirData = dir(dirName);      %# Get the data for the current directory
@@ -18,7 +26,7 @@ function fileList = find_files(dirName,ext)
    fileListOut=[]; 
    count=0;
    for i=1:length(fileList)
-     if length(strfind(fileList{i},ext))>0
+     if length(strfind(fileList{i},ext))>0 && length(strfind(fileList{i},strcat(ext, '.')))==0
      count=count+1;
      fileListOut{count}=fileList{i};
      end
