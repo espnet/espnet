@@ -3,6 +3,8 @@
 # Copyright 2009-2012  Microsoft Corporation  Johns Hopkins University (Author: Daniel Povey)
 # Apache 2.0.
 
+# Modified from the script for dirha_wsj
+# Xiaofei Wang 06/01/2019
 
 if [ $# -le 3 ]; then
    echo "Arguments should be a list of WSJ directories, see ../run.sh for example."

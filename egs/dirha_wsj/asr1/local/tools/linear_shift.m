@@ -1,3 +1,7 @@
+%%%%%%%%%%%%%%%%%%%%%%
+% todo (ruizhili) copyright
+% Author: Mirco Ravanelli (mravanelli@fbk.eu)
+%%%%%%%%%%%%%%%%%%%%%%
 function [ x_shift ] = linear_shift(x,p)
 
 

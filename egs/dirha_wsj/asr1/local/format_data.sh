@@ -11,6 +11,9 @@
 # in data/local/) because it's just the first 7138 utterances in train_si284.
 # We'll create train_si84 after doing the feature extraction.
 
+# Modified from the script for dirha_wsj
+# Xiaofei Wang 06/01/2019
+
 mic=$1
 
 echo "$0 $@"  # Print the command line for logging
