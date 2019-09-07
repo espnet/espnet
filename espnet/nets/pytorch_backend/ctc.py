@@ -119,5 +119,20 @@ def ctc_for(args, odim, reduce=True):
     :param bool reduce : return the CTC loss in a scalar
     :return: the corresponding CTC module
     """
-    return CTC(odim, args.eprojs, args.dropout_rate,
-               ctc_type=args.ctc_type, reduce=reduce)
+    num_encs = getattr(args, "num_encs", 1)  # use getattr to keep compatibility
+    if num_encs == 1:
+        # compatible with single encoder asr mode
+        return CTC(odim, args.eprojs, args.dropout_rate, ctc_type=args.ctc_type, reduce=reduce)
+    elif num_encs >= 1:
+        ctcs_list = torch.nn.ModuleList()
+        if args.share_ctc:
+            # use dropout_rate of the first encoder
+            ctc = CTC(odim, args.eprojs, args.dropout_rate[0], ctc_type=args.ctc_type, reduce=reduce)
+            ctcs_list.append(ctc)
+        else:
+            for idx in range(num_encs):
+                ctc = CTC(odim, args.eprojs, args.dropout_rate[idx], ctc_type=args.ctc_type, reduce=reduce)
+                ctcs_list.append(ctc)
+        return ctcs_list
+    else:
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))

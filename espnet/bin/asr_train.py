@@ -67,6 +67,9 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # encoder
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
@@ -339,8 +342,12 @@ def main(cmd_args):
             from espnet.asr.chainer_backend.asr import train
             train(args)
         elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
-            train(args)
+            if args.num_encs == 1:
+                from espnet.asr.pytorch_backend.asr import train
+                train(args)
+            else:
+                from espnet.asr.pytorch_backend.asr_mulenc import train
+                train(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     else:

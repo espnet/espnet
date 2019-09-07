@@ -113,20 +113,61 @@ class PlotAttentionReport(extension.Extension):
     def __call__(self, trainer):
         """Plot and save image file of att_ws matrix."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            filename = "%s/%s.ep.{.updater.epoch}.png" % (
-                self.outdir, self.data[idx][0])
-            att_w = self.get_attention_weight(idx, att_w)
-            self._plot_and_save_attention(att_w, filename.format(trainer))
+        if isinstance(att_ws, list):  # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    filename = "%s/%s.ep.{.updater.epoch}.att%d.png" % (
+                        self.outdir, self.data[idx][0], i + 1)
+                    att_w = self.get_attention_weight(idx, att_w)
+                    np_filename = "%s/%s.ep.{.updater.epoch}.att%d.npy" % (
+                        self.outdir, self.data[idx][0], i + 1)
+                    np.save(np_filename.format(trainer), att_w)
+                    self._plot_and_save_attention(att_w, filename.format(trainer))
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                filename = "%s/%s.ep.{.updater.epoch}.han.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.han.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer), han_mode=True)
+        else:
+            for idx, att_w in enumerate(att_ws):
+                filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def log_attentions(self, logger, step):
         """Add image files of att_ws matrix to the tensorboard."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-            plot.clf()
+        if isinstance(att_ws, list):  # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    att_w = self.get_attention_weight(idx, att_w)
+                    plot = self.draw_attention_plot(att_w)
+                    logger.add_figure("%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step)
+                    plot.clf()
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_han_plot(att_w)
+                logger.add_figure("%s_han" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
+        else:
+            for idx, att_w in enumerate(att_ws):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_attention_plot(att_w)
+                logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
 
     def get_attention_weights(self):
         """Return attention weights.
@@ -181,8 +222,46 @@ class PlotAttentionReport(extension.Extension):
         plt.tight_layout()
         return plt
 
-    def _plot_and_save_attention(self, att_w, filename):
-        plt = self.draw_attention_plot(att_w)
+    def draw_han_plot(self, att_w):
+        """Plot the att_w matrix for hierarchical attention.
+
+        Returns:
+            matplotlib.pyplot: pyplot object with attention matrix image.
+
+        """
+        import matplotlib.pyplot as plt
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                legends = []
+                plt.subplot(1, len(att_w), h)
+                for i in range(aw.shape[1]):
+                    plt.plot(aw[:, i])
+                    legends.append('Att{}'.format(i))
+                plt.ylim([0, 1.0])
+                plt.xlim([0, aw.shape[0]])
+                plt.grid(True)
+                plt.ylabel("Attention Weight")
+                plt.xlabel("Decoder Index")
+                plt.legend(legends)
+        else:
+            legends = []
+            for i in range(att_w.shape[1]):
+                plt.plot(att_w[:, i])
+                legends.append('Att{}'.format(i))
+            plt.ylim([0, 1.0])
+            plt.xlim([0, att_w.shape[0]])
+            plt.grid(True)
+            plt.ylabel("Attention Weight")
+            plt.xlabel("Decoder Index")
+            plt.legend(legends)
+        plt.tight_layout()
+        return plt
+
+    def _plot_and_save_attention(self, att_w, filename, han_mode=False):
+        if han_mode:
+            plt = self.draw_han_plot(att_w)
+        else:
+            plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
@@ -576,3 +655,37 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
                     labelbottom=labelbottom, labelleft=labelleft,
                     labelright=labelright, labeltop=labeltop)
     plt.axis('auto')
+
+
+# * ------------------ recognition related ------------------ *
+def format_mulenc_args(args):
+    """Format args for multi-encoder setup.
+    It deals with following situations:  (when args.num_encs=2)
+    1. args.elayers = None -> args.elayers = [4, 4]
+    2. args.elayers = 4 -> args.elayers = [4, 4]
+    3. args.elayers = [4, 4, 4] -> args.elayers = [4, 4]
+    """
+    # default values when None is assigned.
+    default_dict = {'etype': 'blstmp',
+                    'elayers': 4,
+                    'eunits': 300,
+                    'subsample': '1',
+                    'dropout_rate': 0.0,
+                    'atype': 'dot',
+                    'adim': 320,
+                    'awin': 5,
+                    'aheads': 4,
+                    'aconv_chans': -1,
+                    'aconv_filts': 100
+                    }
+    for k in default_dict.keys():
+        if isinstance(vars(args)[k], list):
+            assert len(vars(args)[k]) == args.num_encs, (len(vars(args)[k]),)
+            vars(args)[k] = vars(args)[k][:args.num_encs]
+        else:
+            if not vars(args)[k]:
+                # assign default value if it is None
+                vars(args)[k] = default_dict[k]
+            # duplicate
+            vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
+    return args
