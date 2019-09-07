@@ -64,6 +64,8 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
     parser.add_argument('--num-spkrs', type=int, default=1,
                         choices=[1, 2],
                         help='Number of speakers in the speech')
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -79,6 +81,8 @@ v2: Experimental API. It supports any models that implements ScorerInterface.'''
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
+    parser.add_argument('--weights-ctc-dec', type=float, action='append',
+                        help='ctc weight assigned to each encoder during decoding.[in multi-encoder mode only]')
     parser.add_argument('--ctc-window-margin', type=int, default=0,
                         help="""Use CTC window with margin parameter to accelerate
                         CTC/attention decoding especially on GPU. Smaller magin
@@ -173,14 +177,18 @@ def main(args):
             from espnet.asr.chainer_backend.asr import recog
             recog(args)
         elif args.backend == "pytorch":
-            # Experimental API that supports custom LMs
-            if args.api == "v2":
-                from espnet.asr.pytorch_backend.recog import recog_v2
-                recog_v2(args)
+            if args.num_encs == 1:
+                # Experimental API that supports custom LMs
+                if args.api == "v2":
+                    from espnet.asr.pytorch_backend.recog import recog_v2
+                    recog_v2(args)
+                else:
+                    from espnet.asr.pytorch_backend.asr import recog
+                    if args.dtype != "float32":
+                        raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
+                    recog(args)
             else:
-                from espnet.asr.pytorch_backend.asr import recog
-                if args.dtype != "float32":
-                    raise NotImplementedError(f"`--dtype {args.dtype}` is only available with `--api v2`")
+                from espnet.asr.pytorch_backend.asr_mulenc import recog
                 recog(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
