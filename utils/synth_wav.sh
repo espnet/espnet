@@ -77,6 +77,7 @@ Available models:
 Available vocoder models:
     - ljspeech.wavenet.ns.v1.100k_iters
     - ljspeech.wavenet.ns.v1.1000k_iters
+    - ljspeech.wavenet.mol.v1
 EOF
 )
 
@@ -120,6 +121,7 @@ function download_vocoder_models () {
     case "${vocoder_models}" in
         "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
         "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd";;
+        "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -289,16 +291,39 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         exit 1
     fi
     download_vocoder_models
-    checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
-    generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
-        --fs ${fs} \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        ${checkpoint} \
-        ${outdir}_denorm \
-        ${decode_dir}/log \
-        ${decode_dir}/wav_wnv
+    dst_dir=${decode_dir}/wav_wnv
 
+    # This is hardcoded for now.
+    if [ ${vocoder_models} == "ljspeech.wavenet.mol.v1" ]; then
+      # Needs to use https://github.com/r9y9/wavenet_vocoder
+      # that supports mixture of logistics/gaussians
+      MDN_WAVENET_VOC_DIR=./local/r9y9_wavenet_vocoder
+      if [ ! -d ${MDN_WAVENET_VOC_DIR} ]; then
+        git clone https://github.com/r9y9/wavenet_vocoder ${MDN_WAVENET_VOC_DIR}
+        cd ${MDN_WAVENET_VOC_DIR}
+        # TODO: to be removed once https://github.com/r9y9/wavenet_vocoder/pull/164 is merged
+        git checkout -b refactor origin/refactor
+        pip install .
+        cd -
+      fi
+      checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pth" | head -n 1)
+      feats2npy.py ${outdir}/feats.scp ${outdir}_npy
+      python ${MDN_WAVENET_VOC_DIR}/evaluate.py ${outdir}_npy $checkpoint $dst_dir \
+        --hparams "batch_size=1" \
+        --verbose ${verbose}
+      rm -rf ${outdir}_npy
+    else
+      checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
+      generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
+          --fs ${fs} \
+          --n_fft ${n_fft} \
+          --n_shift ${n_shift} \
+          ${checkpoint} \
+          ${outdir}_denorm \
+          ${decode_dir}/log \
+          ${decode_dir}/wav_wnv
+          $dst_dir
+    fi
     echo ""
     echo "Synthesized wav: ${decode_dir}/wav_wnv/${base}.wav"
     echo ""
