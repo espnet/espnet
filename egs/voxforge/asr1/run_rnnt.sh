@@ -27,50 +27,16 @@ recog_set="dt_${lang} et_${lang}"
 # feature configuration
 do_delta=false
 
-# transducer configuration
+# transducer related
 rnnt_mode='rnnt' # define transducer mode. Can be either 'rnnt' or 'rnnt-att'
-use_transfer=false # use transfer learning
-type_transfer='both' # define module to transfer. Can be either 'enc', 'dec' or 'both'
 
-## main configs
+# transducer config
 train_config=conf/tuning/transducer/train_transducer.yaml
 decode_config=conf/tuning/transducer/decode_transducer.yaml
-## transfer learning configs
-ctc_config=conf/tuning/transducer/train_ctc.yaml
-att_config=conf/tuning/transducer/train_att.yaml
-lm_config=conf/tuning/transducer/lm_transducer.yaml
 
-if [ ${use_transfer} == true ]; then
-    exp_config=conf/tuning/transducer/train_transducer_${type_transfer}_init.yaml
-
-    sed '$a\' ${train_config} > ${exp_config}
-
-    case "${type_transfer}" in
-        enc|both)
-            echo "enc-init: 'exp/tr_it_pytorch_train_ctc/results/model.loss.best'" >> ${exp_config}
-            ;&
-        dec|both)
-            case "${rnnt_mode}" in
-                rnnt)
-                    readarray  CONF <<'                    EOM'
-                    dec-init: 'exp/train_rnnlm_pytorch_lm_transducer/rnnlm.model.best'
-                    dec-init-mods: 'predictor.rnn.'
-                    EOM
-                    printf '%s' "${CONF[@]#                    }" >> ${exp_config}
-                    ;;
-                rnnt-att)
-                    readarray  CONF <<'                    EOM'
-                    dec-init: 'exp/tr_it_pytorch_train_att/results/model.acc.best'
-                    dec-init-mods: 'dec.decoder.,dec.att.,att.'
-                    EOM
-                    printf '%s' "${CONF[@]#                    }" >> ${exp_config}
-                    ;;
-            esac
-    esac
-else
-    exp_config=train_config
-fi
-sed -i "s/\(^rnnt-mode:\) \('[a-z-]*'\)/\1 '${rnnt_mode}'/g" ${exp_config}
+# finetuning related
+use_transfer=true # use transfer learning
+type_transfer='both' # define type of transfer lr. Can be either 'enc', 'dec' or 'both'
 
 # experiment tag
 tag="" # tag for managing experiments.
@@ -82,6 +48,22 @@ tag="" # tag for managing experiments.
 set -e
 set -u
 set -o pipefail
+
+if [ ${use_transfer} == true ]; then
+    finetuning_conf=$(dirname ${train_config})/finetuning.yaml
+    
+    local/prep_transducer_finetuning.sh ${train_config}         \
+                                        ${type_transfer}        \
+                                        ${rnnt_mode}            \
+                                        ${backend}              \
+                                        --output ${finetuning_conf}
+
+    exp_config=$(grep -e 'exp-conf' ${finetuning_conf} | cut -d' ' -f2)
+    enc_config=$(grep -e "enc-conf" ${finetuning_conf} | cut -d' ' -f2 || echo "none")
+    dec_config=$(grep -e "dec-conf" ${finetuning_conf} | cut -d' ' -f2 || echo "none")
+else
+    exp_config=train_config
+fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -168,7 +150,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    # If transfer learning is used, pre-training steps will be performed such as:
+    ## 'enc' will add CTC model pre-training,
+    ## 'dec' will add either LM ('rnnt') or attention-model ('rnnt-att') pre-training,
+    ## 'both' will add both 'enc' and 'dec' pre-training steps.
+
     training_run() {
+        # Given a transducer, CTC or attention config file as input,
+        # run one network training step
         expname=${train_set}_${backend}_$(basename ${1%.*})
         if ${do_delta}; then
             expname=${expname}_delta
@@ -199,15 +188,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     if [ $use_transfer == true ]; then
         if [ $type_transfer == 'enc' ] || [ $type_transfer == 'both' ]; then
-            echo "Finetuning: Training CTC model using $ctc_config"
-            training_run "$ctc_config"
+            echo "Finetuning: Training CTC model using $enc_config"
+            training_run "$enc_config"
         fi
 
         if [[ $rnnt_mode == 'rnnt' && \
                     ($type_transfer == 'dec' || $type_transfer == 'both') ]]; then
-            echo "Finetuning: Training LM using $lm_config"
+            echo "Finetuning: Training LM using $dec_config"
 
-            lmexpname=train_rnnlm_${backend}_$(basename ${lm_config%.*})
+            lmexpname=train_rnnlm_${backend}_$(basename ${dec_config%.*})
             lmexpdir=exp/${lmexpname}
 
             if [ ! -f $lmexpdir/rnnlm.model.best ]; then
@@ -225,7 +214,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
                 ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
                             lm_train.py \
-                            --config ${lm_config} \
+                            --config ${dec_config} \
                             --ngpu ${ngpu} \
                             --backend ${backend} \
                             --verbose 1 \
@@ -239,17 +228,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             fi
         elif [[ $rnnt_mode == 'rnnt-att' && \
                       ($type_transfer == 'dec' || $type_transfer == 'both') ]]; then
-            echo "Finetuning: Training attention model using $att_config"
-            training_run "$att_config"
+            echo "Finetuning: Training attention model using $dec_config"
+            training_run "$dec_config"
         fi
     fi
-    echo "Main network: Training transducer model using $exp_config"
-    training_run "$exp_config"
+    echo "Main network: Training transducer model using ${exp_config}"
+    training_run "${exp_config}"
 fi
 
 main_expdir=exp/${train_set}_${backend}_$(basename ${exp_config%.*})
 if ${do_delta}; then
-    main_expname=${main_expname}_delta
+    main_expdir=${main_expdir}_delta
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
