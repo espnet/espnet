@@ -35,8 +35,8 @@ train_config=conf/tuning/transducer/train_transducer.yaml
 decode_config=conf/tuning/transducer/decode_transducer.yaml
 
 # finetuning related
-use_transfer=true # use transfer learning
-type_transfer='both' # define type of transfer lr. Can be either 'enc', 'dec' or 'both'
+use_transfer=false # use transfer learning
+type_transfer='enc' # define type of transfer lr. Can be either 'enc', 'dec' or 'both'
 
 # experiment tag
 tag="" # tag for managing experiments.
@@ -62,7 +62,7 @@ if [ ${use_transfer} == true ]; then
     enc_config=$(grep -e "enc-conf" ${finetuning_conf} | cut -d' ' -f2 || echo "none")
     dec_config=$(grep -e "dec-conf" ${finetuning_conf} | cut -d' ' -f2 || echo "none")
 else
-    exp_config=train_config
+    exp_config=${train_config}
 fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
