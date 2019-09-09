@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -348,7 +348,7 @@ def train(args):
                                    batch_frames_in=args.batch_frames_in,
                                    batch_frames_out=args.batch_frames_out,
                                    batch_frames_inout=args.batch_frames_inout,
-                                   swap_io=True)
+                                   swap_io=True, iaxis=0, oaxis=0)
     valid_batchset = make_batchset(valid_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out, args.minibatches,
                                    batch_sort_key=args.batch_sort_key,
@@ -358,7 +358,7 @@ def train(args):
                                    batch_frames_in=args.batch_frames_in,
                                    batch_frames_out=args.batch_frames_out,
                                    batch_frames_inout=args.batch_frames_inout,
-                                   swap_io=True)
+                                   swap_io=True, iaxis=0, oaxis=0)
 
     load_tr = LoadInputsAndTargets(
         mode='tts',

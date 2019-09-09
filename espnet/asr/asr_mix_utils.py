@@ -1,7 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+This script is used to provide utility functions designed for multi-speaker ASR.
+
+Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+ Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+Most functions can be directly used as in asr_utils.py:
+    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,
+    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf.
+
+"""
 
 import copy
 import logging
@@ -10,83 +19,11 @@ import os
 from chainer.training import extension
 
 import matplotlib
-import numpy as np
 
-"""
-Utility functions for ASR mix recipes. Reuse following modules in asr_utils:
-    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,
-    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf
-"""
 from espnet.asr.asr_utils import parse_hypothesis
 
 
 matplotlib.use('Agg')
-
-
-# * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1):
-    """Make batch set from json dictionary.
-
-    Args:
-        data (Dict[str, List[Any]]): Dictionary loaded from data.json.
-        batch_size (int): Batch size.
-        max_length_in (int): Maximum length of input to decide adaptive batch size.
-        max_length_out (int): Maximum length of output to decide adaptive batch size.
-        num_batches (int): Number of batches to use (for debug).
-        min_batch_size (int): Mininum batch size (for multi-gpu).
-
-    Returns:
-        List[Tuple(str, Dict[str, List[dict[str, Any]]])]: List of batches.
-
-    """
-    # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=True)
-    logging.info('# utts: ' + str(len(sorted_data)))
-
-    # check #utts is more than min_batch_size
-    if len(sorted_data) < min_batch_size:
-        raise ValueError("#utts is less than min_batch_size.")
-
-    # make list of minibatches
-    minibatches = []
-    start = 0
-    while True:
-        _, info = sorted_data[start]
-        ilen = int(info['input'][0]['shape'][0])
-        olen = max(map(lambda x: int(x['shape'][0]), info['output']))
-        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-        # change batchsize depending on the input and output length
-        # if ilen = 1000 and max_length_in = 800
-        # then b = batchsize / 2
-        # and max(min_batches, .) avoids batchsize = 0
-        bs = max(min_batch_size, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + bs)
-        minibatch = sorted_data[start:end]
-
-        # check each batch is more than minimum batchsize
-        if len(minibatch) < min_batch_size:
-            mod = min_batch_size - len(minibatch) % min_batch_size
-            additional_minibatch = [sorted_data[i]
-                                    for i in np.random.randint(0, start, mod)]
-            minibatch.extend(additional_minibatch)
-        minibatches.append(minibatch)
-
-        if end == len(sorted_data):
-            break
-        start = end
-
-    # for debugging
-    if num_batches > 0:
-        minibatches = minibatches[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatches)))
-
-    # such like: [('uttid1',
-    #              {'input': [{'shape': ...}],
-    #               'output': [{'shape': ...}]}),
-    #             ...]
-    return minibatches
 
 
 # * -------------------- chainer extension related -------------------- *
@@ -104,6 +41,7 @@ class PlotAttentionReport(extension.Extension):
     """
 
     def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+        """Initialize PlotAttentionReport."""
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
