@@ -8,8 +8,8 @@
 
 # general configuration
 backend=pytorch
-stage=-1
-stop_stage=100
+stage=6
+stop_stage=6
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -28,18 +28,21 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
+train_config=tuning/train_pytorch_tacotron2.v1.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
 # decoding related
-model=model.loss.best
-n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+model=model.last1.avg.best #model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
+# objective evaluation related
+asr_model="librispeech.transformer.ngpu4"
+
 # root directory of db
-db_root=downloads
+db_root=/work/abelab/DB #downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -52,6 +55,7 @@ set -e
 set -u
 set -o pipefail
 
+# Name sub-sets
 train_set="train_no_dev"
 dev_set="dev"
 eval_set="eval"
@@ -224,3 +228,71 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
 fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Objective Evaluation"
+
+    # ASR model selection for CER objective evaluation 
+    asr_model_dir=exp/${asr_model}_asr
+    case "${asr_model}" in
+        "librispeech.transformer.ngpu1") asr_url="https://drive.google.com/open?id=1bOaOEIZBveERti0x6mnBYiNsn6MSRd2E" \
+          asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
+          asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer.yaml" \ 
+          recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer_lr5.0_ag8.v2/results/model.last10.avg.best" \
+          lang_model="${asr_model_dir}/exp/train_rnnlm_pytorch_lm_unigram5000/rnnlm.model.best" ;;
+    
+        "librispeech.transformer.ngpu4") asr_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" \
+          asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
+          asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer_large.yaml" \
+          recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best" \
+          lang_model="${asr_model_dir}/exp/irielm.ep11.last5.avg/rnnlm.model.best" ;;        
+        
+        *) echo "No such models: ${asr_model}"; exit 1 ;;
+    esac
+
+    # Download asr model (librispeech)
+    if [ ! -e ${asr_model_dir}/.complete ]; then
+        mkdir -p ${asr_model_dir}
+        download_from_google_drive.sh ${asr_url} ${asr_model_dir} ".tar.gz"
+        touch ${asr_model_dir}/.complete
+    fi
+    echo "ASR model: ${asr_model_dir} exits."
+
+    # Prepare data
+    for name in ${dev_set} ${eval_set}; do
+        local/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${outdir}_denorm.data/${name}
+        cp data/${name}/text ${outdir}_denorm.data/${name}/text
+        utils/validate_data_dir.sh --no-feats ${outdir}_denorm.data/${name}
+    done
+    
+    # Feature extraction for ASR
+    for name in ${dev_set} ${eval_set}; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} \
+          --write_utt2num_frames true \
+          ${outdir}_denorm.data/${name} \
+          ${outdir}_denorm.make_fbank/${name} \
+          ${outdir}_denorm.fbank/${name}
+        utils/fix_data_dir.sh ${outdir}_denorm.data/${name}
+
+        asr_feat_dir=${outdir}_denorm.dump/${name}; mkdir -p ${asr_feat_dir}
+        dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
+          ${outdir}_denorm.data/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.dump_feats/${name} \
+          ${asr_feat_dir}
+    done
+
+
+    # for name in ${dev_set} ${eval_set}; do
+    #     asr_feat_dir=${dumpdir}/asr/${x}
+
+    #     echo "<unk> 1" > ${asr_dict}
+    #     data2json.sh --feat ${asr_feat_dir}/feats.scp \
+    #       ${outdir}_denorm.data/${name} ${asr_dict} > ${asr_feat_dir}/data.json
+    # done
+    
+    #asr decoding
+
+	#for name in ${dev_set} ${eval_set}; do
+        
+    #done
+fi
+
