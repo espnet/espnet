@@ -70,7 +70,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     expdir=exp/prepare_dirha_wsj_data_${mic}
     $train_cmd $expdir/Data.log \
-    matlab -nodisplay -nosplash -r "addpath('./local/tools'); Data('$mic','$wsj1', '$wsj0', '$dirha_folder', '$dirha_wsj_folder', '$IR_folder', '$sph_reader');exit"
+    matlab -nodisplay -nosplash -r "addpath('./local/tools'); Data_Contamination('$mic','$wsj1', '$wsj0', '$dirha_folder', '$dirha_wsj_folder', '$IR_folder', '$sph_reader');exit"
 
     # augmented train
     wsj0_contaminated_folder=WSJ0_contaminated_mic_$mic # path of the wsj0 training data

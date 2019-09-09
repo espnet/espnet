@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# todo (ruizhili) copyright
 # DIRHA DATA PREPARATION   (Author: Mirco Ravanelli)
 
 DATA_FOLDER=$1
