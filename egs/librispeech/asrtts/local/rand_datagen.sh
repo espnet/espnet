@@ -55,10 +55,10 @@ paste $tgt/feats.ids $tgt/feats.ids > $tgt/utt2spk
 cp $tgt/utt2spk $tgt/spk2utt
 
 # json creation
-data2json_asrtts.sh --feat $tgt/feats.scp \
+data2json.sh --feat $tgt/feats.scp \
     --nlsyms $nlsyms \
     $tgt $dict > $tgt/data_rnd.json
 cp $tgt/data_rnd.json $jsonout
 
 # update json with xvectors
-bash local/update_json_asrtts.sh $jsonout $xvec/xvector.scp "none"
+bash local/update_json.sh $jsonout $xvec/xvector.scp
