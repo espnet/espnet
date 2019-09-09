@@ -458,24 +458,24 @@ Available pretrained models are listed as follows:
 | [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
 | [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2 |
 
-Waveform synthesis is performed with Griffin-Lim algorithm as default, but we also support a pretrained WaveNet vocoder based on [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder).  
+Waveform synthesis is performed with Griffin-Lim algorithm as default, but we also support a pretrained WaveNet vocoder.  
 You can try it by extending the `stop_stage` as follows:
 ```
 ../../../utils/synth_wav.sh --stop_stage 4 example.txt
 ```
 You can change the pretrained vocoder model as follows:
 ```
-../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.ns.v1.1000k_iters example.txt
+../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.softmax.ns.v1 example.txt
 ```
 
 Available pretrained vocoder models are listed as follows:
 
 | Model | Notes |
 |:------|:------|
-| [ljspeech.wavenet.ns.v1.100k_iters](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | WaveNet vocoder with noise shaping @ 100k iters |
-| [ljspeech.wavenet.ns.v1.1000k_iters](https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd) | WaveNet vocoder with noise shaping @ 1000k iters |
+| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | 8 bit Softmax WaveNet w/ noise shapining trained by [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
+| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 
-If you want to build your own WaveNet vocoder, please check [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder).
+If you want to build your own WaveNet vocoder, please check [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) or [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder).
 
 
 ## Chainer and Pytorch backends
