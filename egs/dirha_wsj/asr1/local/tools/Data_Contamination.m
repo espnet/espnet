@@ -1,5 +1,4 @@
 %%%%%%%%%%%%%%%%%%%%%%
-% todo (ruizhili) copyright
 % Author: Mirco Ravanelli (mravanelli@fbk.eu)
 %
 % NOV 2015

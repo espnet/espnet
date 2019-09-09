@@ -1,5 +1,4 @@
 %%%%%%%%%%%%%%%%%%%%%%
-% todo (ruizhili) copyright
 % Author: Mirco Ravanelli (mravanelli@fbk.eu)
 %%%%%%%%%%%%%%%%%%%%%%
 function [y]=read_sphere(path_reader,x)

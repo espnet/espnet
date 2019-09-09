@@ -1,5 +1,4 @@
 %%%%%%%%%%%%%%%%%%%%%%
-% todo (ruizhili) copyright
 % Author: Mirco Ravanelli (mravanelli@fbk.eu)
 %
 % Modified from the script for dirha_wsj in Espnet
