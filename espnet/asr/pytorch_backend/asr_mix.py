@@ -1,28 +1,26 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+This script is used for multi-speaker speech recognition.
 
-
+Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+ Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
 import json
 import logging
 import os
 
-# chainer related
-import chainer
-
 from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
-
-# torch related
+from itertools import zip_longest as zip_longest
+import numpy as np
+from tensorboardX import SummaryWriter
 import torch
 
-# espnet related
 from espnet.asr.asr_mix_utils import add_results_to_json
-from espnet.asr.asr_mix_utils import make_batchset
-from espnet.asr.asr_mix_utils import PlotAttentionReport
 from espnet.asr.asr_utils import adadelta_eps_decay
+
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
@@ -32,26 +30,23 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
-from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
-from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
-from espnet.transform.transformation import using_transform_config
-from espnet.utils.io_utils import LoadInputsAndTargets
-
-# rnnlm
+from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
-
-# matplotlib related
-import matplotlib
-import numpy as np
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
+from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+import matplotlib
 matplotlib.use('Agg')
 
 
@@ -60,32 +55,18 @@ class CustomConverter(object):
 
     Args:
         subsampling_factor (int): The subsampling factor.
+        dtype (torch.dtype): Data type to convert.
 
     """
 
-    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+    def __init__(self, subsampling_factor=1, dtype=torch.float32):
+        """Initialize the converter."""
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
         self.ignore_id = -1
-
-    def transform(self, item):
-        """Create a mini-batch.
-
-        Args:
-            item (list(tuple(str, dict[str, dict[str, Any]]))): List of batch.
-
-        Returns:
-            tuple(list, list, list): Tuple of the following.
-                * List of input token id sentences (numpy.ndarray, float)
-                * List of input feature sequences (numpy.ndarray, float)
-                * List of target token id sequences (numpy.ndarray, int)
-
-        """
-        return self.load_inputs_and_targets(item)
+        self.dtype = dtype
 
     def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list(tuple(str, dict[str, dict[str, Any]]))): The batch to transform.
@@ -98,7 +79,8 @@ class CustomConverter(object):
         # batch should be located in list
         assert len(batch) == 1
         xs, ys = batch[0]
-        ys = list(ys)  # Convert zip object to list in python 3.x
+        # Convert zip object to list in python 3.x
+        ys = list(ys)
 
         # perform subsampling
         if self.subsampling_factor > 1:
@@ -108,11 +90,28 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        # currently only support real number
+        if xs[0].dtype.kind == 'c':
+            xs_pad_real = pad_list(
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device, dtype=self.dtype)
+            xs_pad_imag = pad_list(
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device, dtype=self.dtype)
+            # Note(kamo):
+            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
+            # Don't create ComplexTensor and give it to E2E here
+            # because torch.nn.DataParallel can't handle it.
+            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
+        else:
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
+
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = [torch.from_numpy(y[0]).long() for y in ys] + [torch.from_numpy(y[1]).long() for y in ys]
-        ys_pad = pad_list(ys_pad, self.ignore_id)
-        ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1).to(device)  # (num_spkrs, B, Tmax)
+        # TODO(Xuankai): try to make this neat
+        if not isinstance(ys[0], np.ndarray):
+            ys_pad = [torch.from_numpy(y[0]).long() for y in ys] + [torch.from_numpy(y[1]).long() for y in ys]
+            ys_pad = pad_list(ys_pad, self.ignore_id)
+            ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1).to(device)  # (num_spkrs, B, Tmax)
+        else:
+            ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -134,8 +133,8 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][-1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][-1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -177,7 +176,6 @@ def train(args):
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
             logging.info('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
@@ -185,7 +183,11 @@ def train(args):
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    model = model.to(device)
+    if args.train_dtype in ("float16", "float32", "float64"):
+        dtype = getattr(torch, args.train_dtype)
+    else:
+        dtype = torch.float32
+    model = model.to(device=device, dtype=dtype)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -195,14 +197,34 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
+    elif args.opt == 'noam':
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
+    else:
+        raise NotImplementedError("unknown optimizer: " + args.opt)
+
+    # setup apex.amp
+    if args.train_dtype in ("O0", "O1", "O2", "O3"):
+        try:
+            from apex import amp
+        except ImportError as e:
+            logging.error(f"You need to install apex for --train-dtype {args.train_dtype}. "
+                          "See https://github.com/NVIDIA/apex#linux")
+            raise e
+        if args.opt == 'noam':
+            model, optimizer.optimizer = amp.initialize(model, optimizer.optimizer, opt_level=args.train_dtype)
+        else:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        use_apex = True
+    else:
+        use_apex = False
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor,
-                                preprocess_conf=args.preprocess_conf)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -210,36 +232,65 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          shortest_first=use_sortagrad,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=-1)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=-1)
+
+    load_tr = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+        train_iter = ToggleableShufflingMultiprocessIterator(
+            TransformDataset(train, load_tr),
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
+        train_iter = ToggleableShufflingSerialIterator(
+            TransformDataset(train, load_tr),
+            batch_size=1, shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer,
+        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:
@@ -247,7 +298,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -255,11 +306,13 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
+            plot_class = model.attention_plot_class
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device)
+            converter=converter, transform=load_cv, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -271,6 +324,8 @@ def train(args):
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
+    trainer.extend(extensions.PlotReport(['main/cer_ctc', 'validation/main/cer_ctc'],
+                                         'epoch', file_name='cer.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
@@ -307,7 +362,8 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=(args.report_interval_iters, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
-                   'main/acc', 'validation/main/acc', 'elapsed_time']
+                   'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
+                   'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
@@ -324,9 +380,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter),
-                       trigger=(args.report_interval_iters, 'iteration'))
+        trainer.extend(TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+                       trigger=(args.report_interval_iters, "iteration"))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
@@ -340,18 +395,15 @@ def recog(args):
 
     """
     set_deterministic_pytorch(args)
-    # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
-    torch_load(args.model, model)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
     model.recog_args = args
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
@@ -380,7 +432,7 @@ def recog(args):
 
     # gpu
     if args.ngpu == 1:
-        gpu_id = range(args.ngpu)
+        gpu_id = list(range(args.ngpu))
         logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
         if rnnlm:
@@ -394,23 +446,19 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False})
 
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
-                with using_transform_config({'train': True}):
-                    feat = load_inputs_and_targets(batch)[0][0]
+                feat = load_inputs_and_targets(batch)[0][0]
                 nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
-    else:
-        try:
-            from itertools import zip_longest as zip_longest
-        except Exception:
-            from itertools import izip_longest as zip_longest
 
+    else:
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
@@ -426,9 +474,9 @@ def recog(args):
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
-                with using_transform_config({'train': False}):
-                    feats = load_inputs_and_targets(batch)[0]
+                feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+
                 for i, name in enumerate(names):
                     nbest_hyp = [hyp[i] for hyp in nbest_hyps]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)

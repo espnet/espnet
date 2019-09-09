@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -175,7 +175,7 @@ class CustomUpdater(StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-        self.iteration += 1
+        # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
@@ -411,7 +411,8 @@ def train(args):
                           batch_bins=args.batch_bins,
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=0)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1,
@@ -419,7 +420,8 @@ def train(args):
                           batch_bins=args.batch_bins,
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=0)
 
     load_tr = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,

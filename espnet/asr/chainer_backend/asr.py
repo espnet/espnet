@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -179,7 +179,8 @@ def train(args):
                               batch_bins=args.batch_bins,
                               batch_frames_in=args.batch_frames_in,
                               batch_frames_out=args.batch_frames_out,
-                              batch_frames_inout=args.batch_frames_inout)
+                              batch_frames_inout=args.batch_frames_inout,
+                              iaxis=0, oaxis=0)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
@@ -256,7 +257,8 @@ def train(args):
                           batch_bins=args.batch_bins,
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                          batch_frames_inout=args.batch_frames_inout,
+                          iaxis=0, oaxis=0)
 
     if args.n_iter_processes > 0:
         valid_iter = chainer.iterators.MultiprocessIterator(
