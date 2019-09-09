@@ -296,11 +296,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # Needs to use https://github.com/r9y9/wavenet_vocoder
         # that supports mixture of logistics/gaussians
         MDN_WAVENET_VOC_DIR=./local/r9y9_wavenet_vocoder
-        if [ ! -d ${MDN_WAVENET_VOC_DIR}/.done ]; then
+        if [ ! -d ${MDN_WAVENET_VOC_DIR} ]; then
             # TODO(r9y9): to be removed once https://github.com/r9y9/wavenet_vocoder/pull/164 is merged
             git clone -b refactor https://github.com/r9y9/wavenet_vocoder ${MDN_WAVENET_VOC_DIR}
             cd ${MDN_WAVENET_VOC_DIR} && pip install . && cd -
-            touch ${MDN_WAVENET_VOC_DIR}/.done
         fi
         checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pth" | head -n 1)
         feats2npy.py ${outdir}/feats.scp ${outdir}_npy
