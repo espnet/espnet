@@ -553,7 +553,7 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
                                           'main/loss_att',
-                                          'validation/main/loss_att'] + \
+                                          'validation/main/loss_att'] +
                                          [] if args.num_encs == 1 else report_keys_loss_ctc,
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],

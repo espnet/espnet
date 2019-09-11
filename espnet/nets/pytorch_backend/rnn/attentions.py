@@ -1406,7 +1406,7 @@ def att_for(args, num_att=1, han_mode=False):
     :return: The attention module
     """
     att_list = torch.nn.ModuleList()
-    num_encs = getattr(args, "num_encs", None)  # use getattr to keep compatibility
+    num_encs = getattr(args, "num_encs", 1)  # use getattr to keep compatibility
     aheads = getattr(args, 'aheads', None)
     awin = getattr(args, 'awin', None)
     aconv_chans = getattr(args, 'aconv_chans', None)

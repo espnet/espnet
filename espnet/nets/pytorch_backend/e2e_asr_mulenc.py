@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Define e2e module for multi-encoder network."""
+"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf"""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -173,7 +173,6 @@ class E2E(ASRInterface, torch.nn.Module):
         group.add_argument('--weights-ctc-dec', type=float, action='append',
                            help='ctc weight assigned to each encoder during decoding.')
         return parser
-
 
     def __init__(self, idims, odim, args):
         """Initialize this class with python-level args.
