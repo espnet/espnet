@@ -660,10 +660,12 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
 # * ------------------ recognition related ------------------ *
 def format_mulenc_args(args):
     """Format args for multi-encoder setup.
-    It deals with following situations:  (when args.num_encs=2)
-    1. args.elayers = None -> args.elayers = [4, 4]
-    2. args.elayers = 4 -> args.elayers = [4, 4]
-    3. args.elayers = [4, 4, 4] -> args.elayers = [4, 4]
+
+    It deals with following situations:  (when args.num_encs=2):
+    1. args.elayers = None -> args.elayers = [4, 4];
+    2. args.elayers = 4 -> args.elayers = [4, 4];
+    3. args.elayers = [4, 4, 4] -> args.elayers = [4, 4].
+
     """
     # default values when None is assigned.
     default_dict = {'etype': 'blstmp',
