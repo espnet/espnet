@@ -77,11 +77,11 @@ if [[ "$transfer_type" =~ ^(dec|both)$ ]] && [ -z "${dec_conf}" ]; then
     create_dec=true
 
     if [ "${rnnt_mode}" == "rnnt" ]; then
-        [ -z "${dec_conf}" ] && dec_conf=conf/tuning/transducer/pretrain_lm.yaml
+        dec_conf=conf/tuning/transducer/pretrain_lm.yaml
         [ -z "${dec_mods}" ] && dec_mods="'predictor.rnn.'"
         [ -z "${dec_crit}" ] && dec_crit=loss
     else
-        [[ "$transfer_type" =~ ^(enc|both)$ ]] && [ -z "${dec_conf}" ] && dec_conf=conf/tuning/transducer/pretrain_att.yaml
+        dec_conf=conf/tuning/transducer/pretrain_att.yaml
         [ -z "${dec_mods}" ] && dec_mods="'dec.decoder.,dec.att.,att.'"
         [ -z "${dec_crit}" ] && dec_crit=acc
     fi
@@ -129,7 +129,7 @@ fi
 
 if [ "${create_dec}" == "true" ]; then
     rm -rf ${dec_conf}
-    
+
     if [ ${rnnt_mode} == "rnnt-att" ]; then
         sed "${gen_section}" ${exp_conf} | \
             sed '/early-stop-criterion/d' | \
