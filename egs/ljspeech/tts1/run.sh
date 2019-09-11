@@ -27,6 +27,9 @@ n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
 
+# feature configuration
+do_delta=false
+
 # config files
 train_config=tuning/train_pytorch_tacotron2.v1.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
@@ -42,7 +45,7 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 asr_model="librispeech.transformer.ngpu4"
 
 # root directory of db
-db_root=/work/abelab/DB #downloads
+db_root=/abelab/DB4 #downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -233,7 +236,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Objective Evaluation"
 
     # ASR model selection for CER objective evaluation 
-    asr_model_dir=exp/${asr_model}_asr
+    asr_model_dir="exp/${asr_model}_asr"
     case "${asr_model}" in
         "librispeech.transformer.ngpu1") asr_url="https://drive.google.com/open?id=1bOaOEIZBveERti0x6mnBYiNsn6MSRd2E" \
           asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
@@ -250,7 +253,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         *) echo "No such models: ${asr_model}"; exit 1 ;;
     esac
 
-    # Download asr model (librispeech)
+    asr_data_dir="${outdir}_denorm.data"
+    asr_feat_dir="${outdir}_denorm.dump"
+    asr_result_dir="${outdir}_denorm.result"
+
+    # ASR model download (librispeech)
     if [ ! -e ${asr_model_dir}/.complete ]; then
         mkdir -p ${asr_model_dir}
         download_from_google_drive.sh ${asr_url} ${asr_model_dir} ".tar.gz"
@@ -258,38 +265,63 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
     echo "ASR model: ${asr_model_dir} exits."
 
-    # Prepare data
+    # Data preparation for ASR
     for name in ${dev_set} ${eval_set}; do
-        local/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${outdir}_denorm.data/${name}
-        cp data/${name}/text ${outdir}_denorm.data/${name}/text
-        utils/validate_data_dir.sh --no-feats ${outdir}_denorm.data/${name}
+        local/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${asr_data_dir}/${name}
+        cp data/${name}/text ${asr_data_dir}/${name}/text
+        utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
     done
     
     # Feature extraction for ASR
     for name in ${dev_set} ${eval_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} \
           --write_utt2num_frames true \
-          ${outdir}_denorm.data/${name} \
+          --write_utt2dur false \
+          ${asr_data_dir}/${name} \
           ${outdir}_denorm.make_fbank/${name} \
           ${outdir}_denorm.fbank/${name}
-        utils/fix_data_dir.sh ${outdir}_denorm.data/${name}
+        utils/fix_data_dir.sh ${asr_data_dir}/${name}
 
-        asr_feat_dir=${outdir}_denorm.dump/${name}; mkdir -p ${asr_feat_dir}
         dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
-          ${outdir}_denorm.data/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.dump_feats/${name} \
-          ${asr_feat_dir}
+          ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.dump_feats/${name} \
+          ${asr_feat_dir}/${name}
     done
 
-
-    # for name in ${dev_set} ${eval_set}; do
-    #     asr_feat_dir=${dumpdir}/asr/${x}
-
-    #     echo "<unk> 1" > ${asr_dict}
-    #     data2json.sh --feat ${asr_feat_dir}/feats.scp \
-    #       ${outdir}_denorm.data/${name} ${asr_dict} > ${asr_feat_dir}/data.json
-    # done
+    # Dictionary and Json Data Preparation
+    asr_dict="data/decode_dict/X.txt"; mkdir -p ${asr_dict%/*}
+    echo "<unk> 1" > ${asr_dict}
+    for name in ${dev_set} ${eval_set}; do
+        data2json.sh --feat ${asr_feat_dir}/${name}/feats.scp \
+          ${asr_data_dir}/${name} ${asr_dict} > ${asr_feat_dir}/${name}/data.json
+    done
     
-    #asr decoding
+    # ASR decoding
+    asr_decode_config="conf/tuning/decode_asr.yaml"
+    cat ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
+    for name in ${dev_set} ${eval_set}; do
+
+        # split data
+        splitjson.py --parts ${nj} ${asr_feat_dir}/${name}/data.json
+    
+        # set batchsize 0 to disable batch decoding    
+        ${decode_cmd} JOB=1:${nj} ${asr_result_dir}/${name}/log/decode.JOB.log \
+            asr_recog.py \
+              --config ${asr_decode_config} \
+              --ngpu 0 \
+              --backend ${backend} \
+              --batchsize 0 \
+              --recog-json ${asr_feat_dir}/${name}/split${nj}utt/data.JOB.json \
+              --result-label ${asr_result_dir}/${name}/result.JOB.json \
+              --model ${recog_model} \
+              --api v2 \
+              --rnnlm ${lang_model}
+
+        # bpemode (unigram or bpe)
+        nbpe=5000
+        bpemode=unigram
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${asr_result_dir}/${name} ${asr_dict}
+
+    done
 
 	#for name in ${dev_set} ${eval_set}; do
         

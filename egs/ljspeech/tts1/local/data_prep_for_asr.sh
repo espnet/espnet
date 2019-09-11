@@ -22,8 +22,8 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 find ${db} -name "*.wav" | sort | while read -r filename;do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
-    # echo "${id} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
-    echo "${id} ${filename} | sox -t wav - -c 1 -b 16 -t wav - rate 16000 |" >> ${scp}
+    echo "${id} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
+    # echo "${id} ${filename} | sox -t wav - -c 1 -b 16 -t wav - rate 16000 |" >> ${scp}
     echo "${id} LJ" >> ${utt2spk}
 done
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
