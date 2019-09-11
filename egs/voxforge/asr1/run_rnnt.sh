@@ -63,6 +63,7 @@ if [ ${use_transfer} == true ]; then
     dec_config=$(grep -e "dec-conf" ${finetuning_conf} | cut -d' ' -f2 || echo "none")
 else
     exp_config=${train_config}
+    sed -i -r "s/(^rnnt-mode:) ('[a-z-]*')/\1 '${rnnt_mode}'/g" ${exp_config}
 fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
