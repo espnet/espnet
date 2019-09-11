@@ -1,5 +1,5 @@
 # minibatch related
-batch-size: 20
+batch-size: 24
 maxlen-in: 800
 maxlen-out: 150
 
@@ -15,10 +15,10 @@ patience: 3
 ## encoder related
 etype: vggblstm
 elayers: 4
-eunits: 256
-eprojs: 256
+eunits: 320
+eprojs: 320
 subsample: "1_1_1_1_1"
-dropout-rate: 0.5
+dropout-rate: 0.4
 ## decoder related
 dtype: lstm
 dlayers: 1
