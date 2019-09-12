@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
+#           2019 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -253,10 +254,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         *) echo "No such models: ${asr_model}"; exit 1 ;;
     esac
 
-    asr_data_dir="${outdir}_denorm.data"
-    asr_feat_dir="${outdir}_denorm.dump"
-    asr_result_dir="${outdir}_denorm.result"
-
     # ASR model download (librispeech)
     if [ ! -e ${asr_model_dir}/.complete ]; then
         mkdir -p ${asr_model_dir}
@@ -264,6 +261,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         touch ${asr_model_dir}/.complete
     fi
     echo "ASR model: ${asr_model_dir} exits."
+
+    asr_data_dir="${outdir}_denorm.${asr_model_dir}.data"
+    asr_fbank_dir="${outdir}_denorm.${asr_model_dir}.fbank"
+    asr_feat_dir="${outdir}_denorm.${asr_model_dir}.dump"
+    asr_result_dir="${outdir}_denorm.${asr_model_dir}.result"
 
     # Data preparation for ASR
     for name in ${dev_set} ${eval_set}; do
@@ -278,12 +280,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
           --write_utt2num_frames true \
           --write_utt2dur false \
           ${asr_data_dir}/${name} \
-          ${outdir}_denorm.make_fbank/${name} \
-          ${outdir}_denorm.fbank/${name}
+          ${outdir}_denorm.${asr_model_dir}.make_fbank/${name} \
+          ${asr_fbank_dir}/${name}
         utils/fix_data_dir.sh ${asr_data_dir}/${name}
 
         dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
-          ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.dump_feats/${name} \
+          ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.${asr_model_dir}.dump_feats/${name} \
           ${asr_feat_dir}/${name}
     done
 
@@ -311,20 +313,14 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
               --backend ${backend} \
               --batchsize 0 \
               --recog-json ${asr_feat_dir}/${name}/split${nj}utt/data.JOB.json \
-              --result-label ${asr_result_dir}/${name}/result.JOB.json \
+              --result-label ${asr_result_dir}/${name}/data.JOB.json \
               --model ${recog_model} \
               --api v2 \
               --rnnlm ${lang_model}
 
-        # bpemode (unigram or bpe)
-        nbpe=5000
-        bpemode=unigram
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${asr_result_dir}/${name} ${asr_dict}
+        score_sclite_wo_dict.sh --wer true ${asr_result_dir}/${name}
 
     done
 
-	#for name in ${dev_set} ${eval_set}; do
-        
-    #done
 fi
 
