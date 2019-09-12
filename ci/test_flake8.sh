@@ -50,6 +50,7 @@ espnet/nets/e2e_asr_common.py
 espnet/nets/mt_interface.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/e2e_asr.py
+espnet/nets/pytorch_backend/e2e_asr_mulenc.py
 espnet/nets/pytorch_backend/e2e_asr_transducer.py
 espnet/nets/pytorch_backend/e2e_asr_transformer.py
 espnet/nets/pytorch_backend/e2e_mt.py

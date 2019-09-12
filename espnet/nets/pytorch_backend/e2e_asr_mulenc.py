@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf"""
+"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -288,6 +288,7 @@ class E2E(ASRInterface, torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
+
         def lecun_normal_init_parameters(module):
             for p in module.parameters():
                 data = p.data
