@@ -1,26 +1,48 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 """Positonal Encoding Module."""
+
 import math
 
 import torch
 
 
+def _pre_hook(state_dict, prefix, local_metadata, strict,
+              missing_keys, unexpected_keys, error_msgs):
+    """Perform pre-hook in load_state_dict for backward compatibility.
+
+    Note:
+        We saved self.pe until v.0.5.2 but we have omitted it later.
+        Therefore, we remove the item "pe" from `state_dict` for backward compatibility.
+
+    """
+    k = prefix + "pe"
+    if k in state_dict:
+        state_dict.pop(k)
+
+
 class PositionalEncoding(torch.nn.Module):
-    """Positional encoding."""
+    """Positional encoding.
+
+    :param int d_model: embedding dim
+    :param float dropout_rate: dropout rate
+    :param int max_len: maximum input length
+
+    """
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
-        """Initialize class.
-
-        :param int d_model: embedding dim
-        :param float dropout_rate: dropout rate
-        :param int max_len: maximum input length
-
-        """
+        """Construct an PositionalEncoding object."""
         super(PositionalEncoding, self).__init__()
         self.d_model = d_model
         self.xscale = math.sqrt(self.d_model)
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         self.pe = None
         self.extend_pe(torch.tensor(0.0).expand(1, max_len))
+        self._register_load_state_dict_pre_hook(_pre_hook)
 
     def extend_pe(self, x):
         """Reset the positional encodings."""

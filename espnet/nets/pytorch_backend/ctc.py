@@ -78,8 +78,12 @@ class CTC(torch.nn.Module):
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
+        dtype = ys_hat.dtype
         ys_hat = ys_hat.transpose(0, 1)
-        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
+        if self.ctc_type == "warpctc":
+            # warpctc only supports float32
+            ys_hat = ys_hat.to(dtype=torch.float32)
+        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(dtype=dtype)
         if self.reduce:
             # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
             # but builtin return as tensor w/o shape (scalar).
