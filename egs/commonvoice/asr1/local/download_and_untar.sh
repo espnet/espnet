@@ -38,8 +38,11 @@ if [ -f $data/cv_corpus_v1/.complete ]; then
   exit 0;
 fi
 
-filepath="$data/cv_corpus_v1.tar.gz"
+
+filename="cv_corpus_v1.tar.gz"
+filepath="$data/$filename"
 filesize="12852160484"
+workplace=$PWD
 
 if [ -f $filepath ]; then
   size=$(/bin/ls -l $filepath | awk '{print $5}')
@@ -70,10 +73,12 @@ fi
 
 cd $data
 
-if ! tar -xzf $filepath; then
+if ! tar -xzf $filename; then
   echo "$0: error un-tarring archive $filepath"
   exit 1;
 fi
+
+cd $workspace
 
 touch $data/cv_corpus_v1/.complete
 

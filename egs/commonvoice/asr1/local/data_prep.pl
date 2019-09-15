@@ -46,7 +46,7 @@ while(<CSV>) {
   $text =~ tr/a-z/A-Z/;
   print TEXT "$uttId"," ","$text","\n";
   print GNDR "$uttId"," ","$gender","\n";
-  print WAV "$uttId"," sox $db_base/$filepath -t wav -r 16k -b 16 -e signed - |\n";
+  print WAV "$uttId"," ffmpeg -i $db_base/$filepath -f wav -ar 16000 -ab 16 - |\n";
   print SPKR "$uttId"," $spkr","\n";
 }
 close(SPKR) || die;
