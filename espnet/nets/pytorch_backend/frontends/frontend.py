@@ -32,6 +32,7 @@ class Frontend(nn.Module):
                  blayers: int = 3,
                  bunits: int = 300,
                  bprojs: int = 320,
+                 bnmask: int = 2,
                  badim: int = 320,
                  ref_channel: int = -1,
                  bdropout_rate=0.0):
@@ -40,6 +41,8 @@ class Frontend(nn.Module):
         self.use_beamformer = use_beamformer
         self.use_wpe = use_wpe
         self.use_dnn_mask_for_wpe = use_dnn_mask_for_wpe
+        # use frontend for all the data, e.g. in the case of multi-speaker speech separation
+        self.use_frontend_for_all = bnmask > 2
 
         if self.use_wpe:
             if self.use_dnn_mask_for_wpe:
@@ -69,6 +72,7 @@ class Frontend(nn.Module):
                                              bunits=bunits,
                                              bprojs=bprojs,
                                              blayers=blayers,
+                                             bnmask=bnmask,
                                              dropout_rate=bdropout_rate,
                                              badim=badim,
                                              ref_channel=ref_channel)
@@ -89,7 +93,7 @@ class Frontend(nn.Module):
         h = x
         if h.dim() == 4:
             if self.training:
-                choices = [(False, False)]
+                choices = [(False, False)] if not self.use_frontend_for_all else []
                 if self.use_wpe:
                     choices.append((True, False))
 
@@ -136,6 +140,7 @@ def frontend_for(args, idim):
         blayers=args.blayers,
         bunits=args.bunits,
         bprojs=args.bprojs,
+        bnmask=args.bnmask,
         badim=args.badim,
         ref_channel=args.ref_channel,
         bdropout_rate=args.bdropout_rate)
