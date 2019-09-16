@@ -9,8 +9,8 @@
 
 # general configuration
 backend=pytorch
-stage=6
-stop_stage=6
+stage=-1
+stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -32,21 +32,21 @@ win_length="" # window length
 do_delta=false
 
 # config files
-train_config=$1 # you can select from conf or conf/tuning.
+train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
 # decoding related
-model=model.last1.avg.best #model.loss.best
-n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+model=model.loss.best
+n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # objective evaluation related
 asr_model="librispeech.transformer.ngpu4"
 
 # root directory of db
-db_root=/abelab/DB4 #downloads
+db_root=downloads
 
 # exp tag
 tag="" # tag for managing experiments.
