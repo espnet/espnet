@@ -32,7 +32,7 @@ win_length="" # window length
 do_delta=false
 
 # config files
-train_config=tuning/train_pytorch_tacotron2.v1.yaml # you can select from conf or conf/tuning.
+train_config=$1 # you can select from conf or conf/tuning.
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
@@ -262,34 +262,47 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
     echo "ASR model: ${asr_model_dir} exits."
 
-    asr_data_dir="${outdir}_denorm.${asr_model_dir}.data"
-    asr_fbank_dir="${outdir}_denorm.${asr_model_dir}.fbank"
-    asr_feat_dir="${outdir}_denorm.${asr_model_dir}.dump"
-    asr_result_dir="${outdir}_denorm.${asr_model_dir}.result"
+    # Select decoder
+    voc="GL"
+    if [ ${voc} == "GL" ]; then
+        dir_tail=""
+    elif [ ${voc} == "WNV_softmax" ]; then
+        dir_tail="_wnv_nsf"
+    elif [ ${voc} == "WNV_mol" ]; then
+        dir_tail="_wnv_mol"
+    fi
+
+    asr_data_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.data${dir_tail}"
+    asr_fbank_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.fbank${dir_tail}"
+    asr_feat_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.dump${dir_tail}"
+    asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result${dir_tail}"
 
     # Data preparation for ASR
+    echo "6.1 Data preparation for ASR"
     for name in ${dev_set} ${eval_set}; do
-        local/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${asr_data_dir}/${name}
+        local/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav${dir_tail} ${asr_data_dir}/${name}
         cp data/${name}/text ${asr_data_dir}/${name}/text
         utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
     done
     
     # Feature extraction for ASR
+    echo "6.2 Feature extraction for ASR"
     for name in ${dev_set} ${eval_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} \
           --write_utt2num_frames true \
           --write_utt2dur false \
           ${asr_data_dir}/${name} \
-          ${outdir}_denorm.${asr_model_dir}.make_fbank/${name} \
+          ${outdir}_denorm.ob_eval/${asr_model}_asr.make_fbank${dir_tail}/${name} \
           ${asr_fbank_dir}/${name}
         utils/fix_data_dir.sh ${asr_data_dir}/${name}
 
         dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
-          ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.${asr_model_dir}.dump_feats/${name} \
+          ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.ob_eval/${asr_model}_asr.dump_feats${dir_tail}/${name} \
           ${asr_feat_dir}/${name}
     done
 
     # Dictionary and Json Data Preparation
+    echo "6.3 Dictionary and Json Data Preparation"
     asr_dict="data/decode_dict/X.txt"; mkdir -p ${asr_dict%/*}
     echo "<unk> 1" > ${asr_dict}
     for name in ${dev_set} ${eval_set}; do
@@ -298,6 +311,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     done
     
     # ASR decoding
+    echo "6.4 ASR decoding"
     asr_decode_config="conf/tuning/decode_asr.yaml"
     cat ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
     for name in ${dev_set} ${eval_set}; do
