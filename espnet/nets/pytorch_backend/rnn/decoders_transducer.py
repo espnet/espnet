@@ -286,7 +286,7 @@ class DecoderRNNT(torch.nn.Module):
 
                         if rnnlm:
                             beam_hyp['lm_state'] = rnnlm_state
-                            beam_hyp['score'] += recog_args.lm_weight * rnnlm_scores[0][ytu[k]]
+                            beam_hyp['score'] += recog_args.lm_weight * rnnlm_scores[0][k]
 
                         hyps.append(beam_hyp)
 
@@ -609,7 +609,7 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                         if rnnlm:
                             beam_hyp['lm_state'] = rnnlm_state
-                            beam_hyp['score'] += recog_args.lm_weight * rnnlm_scores[0][ytu[k]]
+                            beam_hyp['score'] += recog_args.lm_weight * rnnlm_scores[0][k]
 
                         hyps.append(beam_hyp)
 
