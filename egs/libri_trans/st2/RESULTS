@@ -1,0 +1,17 @@
+# baseline (character unit)
+dev
+BLEU = 16.67, 46.9/21.6/11.7/6.5 (BP=1.000, ratio=1.009, hyp_len=22668, ref_len=22462)
+test
+BLEU = 15.71, 45.9/20.8/10.9/5.9 (BP=1.000, ratio=1.010, hyp_len=44533, ref_len=44080)
+
+# ASR pre-training (encoder)
+dev
+BLEU = 17.79, 48.4/22.8/12.6/7.3 (BP=0.995, ratio=0.995, hyp_len=22357, ref_len=22462)
+test
+BLEU = 16.30, 47.3/21.6/11.4/6.2 (BP=0.993, ratio=0.993, hyp_len=43772, ref_len=44080)
+
+# ASR pre-training (encoder) + NMT pre-training (decoder)
+dev
+BLEU = 17.59, 48.6/23.0/12.5/7.1 (BP=0.992, ratio=0.992, hyp_len=22273, ref_len=22462)
+test
+BLEU = 16.68, 48.1/22.0/11.9/6.6 (BP=0.984, ratio=0.984, hyp_len=43389, ref_len=44080)
