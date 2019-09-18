@@ -217,7 +217,7 @@ class E2E(STInterface, torch.nn.Module):
             param_dict = dict(mt_model.named_parameters())
             for n, p in self.named_parameters():
                 mt_n = n.replace('tenc', 'enc')
-                if 'enc.enc' in mt_n or 'embed' in mt_n or 'dec' in mt_n:
+                if 'enc.enc' in mt_n or 'embed' in mt_n or 'dec' in mt_n or 'att' in mt_n:
                     if mt_n in param_dict.keys() and p.size() == param_dict[mt_n].size():
                         p.data = param_dict[mt_n].data
                         logging.warning('Overwrite %s from mt model' % n) 
