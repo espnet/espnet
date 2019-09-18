@@ -55,7 +55,7 @@ paste $tgt/feats.ids $tgt/feats.ids > $tgt/utt2spk
 cp $tgt/utt2spk $tgt/spk2utt
 
 # json creation
-data2json.sh --feat $tgt/feats.scp \
+data2json.sh --feat $tgt/feats.scp.gen \
     --nlsyms $nlsyms \
     $tgt $dict > $tgt/data_rnd.json
 cp $tgt/data_rnd.json $jsonout
