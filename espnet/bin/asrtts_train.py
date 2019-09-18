@@ -340,6 +340,13 @@ def get_parser():
     parser.add_argument('--lm-loss-weight', default=1.0, type=float,
                         help='LM loss weight')
 
+    # speech translation related ( for running )
+    parser.add_argument('--mt-model', default=None, type=str, nargs='?',
+                        help='Pre-trained MT model')
+    parser.add_argument('--replace-sos', default=False, nargs='?',
+                        help='Replace <sos> in the decoder with a target language ID \
+                              (the first token in the target sequence)')
+
     return parser
 
 
