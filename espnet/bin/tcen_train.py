@@ -191,6 +191,10 @@ def get_parser(parser=None, required=True):
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
+    # multitask related 
+    parser.add_argument('--share-weight', default=False, type=strtobool,
+                        help='Whether to share the weights between ASR ctc layer and MT source \
+                              word embedding layer.')
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='The stats file for the feature normalization')

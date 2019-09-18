@@ -138,7 +138,7 @@ class E2E(STInterface, torch.nn.Module):
                            help='Ratio of predicted labels fed back to decoder')
         return parser
 
-    def __init__(self, idim, odim, mdim, args, asr_model=None, mt_model=None, share_weight=True):
+    def __init__(self, idim, odim, mdim, args, asr_model=None, mt_model=None):
         """Construct an E2E object."""
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
@@ -223,7 +223,7 @@ class E2E(STInterface, torch.nn.Module):
                         logging.warning('Overwrite %s from mt model' % n) 
 
         # share weights between ctc layer and source embedding layer
-        if share_weight:
+        if args.share_weight:
             self.ctc.ctc_lo.weight = self.embed.weight
         # options for beam search
         if args.report_cer or args.report_wer:
