@@ -264,7 +264,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            st_trans.py \
+            tcen_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
