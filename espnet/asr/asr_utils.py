@@ -297,6 +297,21 @@ def torch_snapshot_iter(savefun=torch.save,
 
     return torch_snapshot
 
+def torch_snapshot_iter(savefun=torch.save,
+                   filename='snapshot.iter.{.updater.iteration}'):
+    """Extension to take snapshot of the trainer for pytorch.
+
+    Returns:
+        An extension function.
+
+    """
+    @extension.make_extension(trigger=(1000, 'iteration'), priority=-100)
+    def torch_snapshot(trainer):
+        _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
+
+    return torch_snapshot
+
+
 def _torch_snapshot_object(trainer, target, filename, savefun):
     # make snapshot_dict dictionary
     s = DictionarySerializer()
