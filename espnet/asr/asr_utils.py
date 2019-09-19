@@ -285,7 +285,7 @@ def torch_snapshot(savefun=torch.save,
 
 
 def torch_snapshot_iter(savefun=torch.save,
-                   filename='snapshot.iter.{.updater.iteration}'):
+                        filename='snapshot.iter.{.updater.iteration}'):
     """Extension to take snapshot of the trainer for pytorch.
 
     Returns:
