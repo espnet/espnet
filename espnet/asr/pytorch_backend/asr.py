@@ -452,7 +452,9 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu), trigger=(args.save_interval_iters, 'iteration'))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+    if args.save_interval_iters > 0:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu), trigger=(args.save_interval_iters, 'iteration'))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -490,7 +492,8 @@ def train(args):
 
     # save snapshot which contains model and optimizer states
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
-    trainer.extend(torch_snapshot_iter(), trigger=(args.save_interval_iters, 'iteration'))
+    if args.save_interval_iters > 0:
+        trainer.extend(torch_snapshot_iter(), trigger=(args.save_interval_iters, 'iteration'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
