@@ -31,7 +31,8 @@ from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_snapshot, torch_snapshot_iter
+from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.asr_utils import torch_snapshot_iter
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -454,7 +455,8 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
     if args.save_interval_iters > 0:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu), trigger=(args.save_interval_iters, 'iteration'))
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+                       trigger=(args.save_interval_iters, 'iteration'))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
