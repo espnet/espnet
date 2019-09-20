@@ -262,6 +262,25 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
     echo "ASR model: ${asr_model_dir} exits."
 
+    # Select TTS model
+    eval_tts_model=1
+    if [ ${eval_tts_model} == 1 ]; then
+        echo "Evaluate: $(basename ${train_config%.*})"
+    else
+        echo "Evaluate: ground truth"
+        expdir=exp/ground_truth
+        outdir=${expdir}/sym_link
+        for name in ${dev_set} ${eval_set}; do
+            mkdir -p ${outdir}_denorm/${name}/wav
+            cat data/${name}/wav.scp | awk '{print $1}' | while read line; do
+                if [ -L ${outdir}_denorm/${name}/wav/${line}.wav ]; then
+                    unlink ${outdir}_denorm/${name}/wav/${line}.wav
+                fi
+                ln -s ${db_root}/LJSpeech-1.1/wavs/${line}.wav ${outdir}_denorm/${name}/wav/${line}.wav
+            done
+        done
+    fi
+
     # Select decoder
     voc="GL"
     if [ ${voc} == "GL" ]; then
@@ -309,7 +328,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         data2json.sh --feat ${asr_feat_dir}/${name}/feats.scp \
           ${asr_data_dir}/${name} ${asr_dict} > ${asr_feat_dir}/${name}/data.json
     done
-    
+
     # ASR decoding
     echo "6.4 ASR decoding"
     asr_decode_config="conf/tuning/decode_asr.yaml"
