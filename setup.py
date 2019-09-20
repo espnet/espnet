@@ -28,7 +28,7 @@ requirements = {
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
-        'h5py>=2.9.0',
+        'h5py==2.9.0',
         'tensorboardX>=1.8',
         'pillow>=6.1.0',
         'nara_wpe>=0.0.5',

@@ -167,7 +167,7 @@ def test_sortagrad_trainable(module):
         import espnet.nets.pytorch_backend.e2e_mt as m
     else:
         import espnet.nets.chainer_backend.e2e_mt as m
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True, iaxis=1, oaxis=0)
     model = m.E2E(6, 5, args)
     for batch in batchset:
         attn_loss = model(*convert_batch(batch, module, idim=6, odim=5))
@@ -190,7 +190,7 @@ def test_sortagrad_trainable_with_batch_bins(module):
     else:
         import espnet.nets.chainer_backend.e2e_mt as m
     batch_elems = 2000
-    batchset = make_batchset(dummy_json, batch_bins=batch_elems, shortest_first=True, mt=True)
+    batchset = make_batchset(dummy_json, batch_bins=batch_elems, shortest_first=True, mt=True, iaxis=1, oaxis=0)
     for batch in batchset:
         n = 0
         for uttid, info in batch:
@@ -226,7 +226,7 @@ def test_sortagrad_trainable_with_batch_frames(module):
                              batch_frames_in=batch_frames_in,
                              batch_frames_out=batch_frames_out,
                              shortest_first=True,
-                             mt=True)
+                             mt=True, iaxis=1, oaxis=0)
     for batch in batchset:
         i = 0
         o = 0
