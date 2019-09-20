@@ -27,7 +27,7 @@ decode_config=conf/decode.yaml
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # pre-training related
-asr_model=
+asr_model=exp/train_sp.en_lc.rm_pytorch_train/results/model.acc.best
 mt_model=
 
 # preprocessing related
