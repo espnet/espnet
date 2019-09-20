@@ -153,7 +153,7 @@ class E2E(STInterface, torch.nn.Module):
         self.blank = args.sym_blank
         self.reporter = Reporter()
 
-        # below means the last number becomes eos/sos ID
+        # below means the last number becomes eos/os ID
         # note that sos/eos IDs are identical
         self.sos = odim - 1
         self.eos = odim - 1
@@ -193,6 +193,7 @@ class E2E(STInterface, torch.nn.Module):
         self.dropout = torch.nn.Dropout(p=args.dropout_rate)
         # ctc
         self.ctc = ctc_for(args, mdim)
+        self.ctc.ctc_lo = torch.nn.Linear(args.eprojs, mdim, bias=False)
 
         # attention (st)
         self.att = att_for(args)
@@ -455,7 +456,8 @@ class E2E(STInterface, torch.nn.Module):
         xs_pad = pad_list(xs, 0.0)
 
         # 1. Encoder
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.senc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.tenc(hs_pad, hlens)
         lpz = None
 
         # 2. Decoder
@@ -466,7 +468,7 @@ class E2E(STInterface, torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_asr):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -484,7 +486,8 @@ class E2E(STInterface, torch.nn.Module):
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
             else:
                 tgt_lang_ids = None
-            hpad, hlens, _ = self.enc(xs_pad, ilens)
+            hpad, hlens, _ = self.senc(xs_pad, ilens)
+            hpad, hlens, _ = self.tenc(hpad, hlens)
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)

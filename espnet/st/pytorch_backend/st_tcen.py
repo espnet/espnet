@@ -12,6 +12,8 @@ import os
 import sys
 import random
 import math
+import argparse
+import pdb
 
 from chainer import training
 from chainer.training import extensions
@@ -53,6 +55,7 @@ from espnet.utils.training.train_utils import set_early_stop
 from espnet.asr.pytorch_backend.asr import CustomConverter as ASRCustomConverter
 from espnet.mt.pytorch_backend.mt import CustomConverter as MTCustomConverter
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
+from espnet.nets.pytorch_backend.e2e_tcen import E2E
 
 import matplotlib
 matplotlib.use('Agg')
@@ -196,7 +199,6 @@ def train(args):
     if args.mt_model:
         mt_model, _ = load_trained_model(args.mt_model)
 
-    from espnet.nets.pytorch_backend.e2e_tcen import E2E
     model = E2E(idim, odim, mdim, args, asr_model=asr_model, mt_model=mt_model)
     del asr_model
     del mt_model
@@ -217,7 +219,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)),
+        f.write(json.dumps((idim, odim, mdim, vars(args)),
                            indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -482,6 +484,28 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
 
+def load_trained_tcen(model_path):
+    """Load the trained model for recognition.
+
+    Args:
+        model_path(str): Path to model.***.best
+    """
+
+    model_conf = os.path.dirname(model_path) + '/model.json'
+    with open(model_conf, "rb") as f:
+        confs = json.load(f)
+    
+    idim, mdim, odim, train_args = confs
+    train_args = argparse.Namespace(**train_args)
+
+    logging.warning('reading model parameters from ' + model_path)
+
+    model = E2E(idim, odim, mdim, train_args)
+
+    torch_load(model_path, model)
+
+    return model, train_args
+
 def trans(args):
     """Decode with the given args.
 
@@ -490,7 +514,7 @@ def trans(args):
 
     """
     set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
+    model, train_args = load_trained_tcen(args.model)
     # assert isinstance(model, STInterface)
     # TODO(hirofumi0810) fix this for after supporting Transformer
     args.ctc_weight = 0.0
