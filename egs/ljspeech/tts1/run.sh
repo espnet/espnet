@@ -241,7 +241,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     case "${asr_model}" in
         "librispeech.transformer.ngpu1") asr_url="https://drive.google.com/open?id=1bOaOEIZBveERti0x6mnBYiNsn6MSRd2E" \
           asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
-          asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer.yaml" \ 
+          asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer.yaml" \
           recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer_lr5.0_ag8.v2/results/model.last10.avg.best" \
           lang_model="${asr_model_dir}/exp/train_rnnlm_pytorch_lm_unigram5000/rnnlm.model.best" ;;
     
@@ -249,7 +249,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
           asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
           asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer_large.yaml" \
           recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best" \
-          lang_model="${asr_model_dir}/exp/irielm.ep11.last5.avg/rnnlm.model.best" ;;        
+          lang_model="${asr_model_dir}/exp/irielm.ep11.last5.avg/rnnlm.model.best" ;;
         
         *) echo "No such models: ${asr_model}"; exit 1 ;;
     esac
@@ -313,7 +313,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # ASR decoding
     echo "6.4 ASR decoding"
     asr_decode_config="conf/tuning/decode_asr.yaml"
-    cat ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
+    cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
     for name in ${dev_set} ${eval_set}; do
 
         # split data
