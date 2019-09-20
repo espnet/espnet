@@ -63,7 +63,7 @@ def convert(jsonf, refs, hyps, num_spkrs=1):
             if num_spkrs == 1:
                 seq = j['utts'][x]['output'][0]['text']
             else:
-                 seq = j['utts'][x]['output'][ns][0]['text']
+                seq = j['utts'][x]['output'][ns][0]['text']
             # Unlike the recognition hypothesis, the reference is directly generated from a token without dictionary
             # to avoid to include <unk> symbols in the reference to make scoring normal.
             # The detailed discussion can be found at https://github.com/espnet/espnet/issues/993
