@@ -272,7 +272,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         outdir=${expdir}/sym_link
         for name in ${dev_set} ${eval_set}; do
             mkdir -p ${outdir}_denorm/${name}/wav
-            cat data/${name}/wav.scp | awk '{print $1}' | while read line; do
+            cat < data/${name}/wav.scp | awk '{print $1}' | while read line; do
                 if [ -L ${outdir}_denorm/${name}/wav/${line}.wav ]; then
                     unlink ${outdir}_denorm/${name}/wav/${line}.wav
                 fi
