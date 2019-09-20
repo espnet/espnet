@@ -74,7 +74,7 @@ class CustomConverter(ASRCustomConverter):
         super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
         self.asr_task = asr_task
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cuda')):
         """Transform a batch and send it to a device.
 
         Args:
