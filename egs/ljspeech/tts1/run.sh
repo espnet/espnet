@@ -59,7 +59,6 @@ set -e
 set -u
 set -o pipefail
 
-# Name sub-sets
 train_set="train_no_dev"
 dev_set="dev"
 eval_set="eval"
