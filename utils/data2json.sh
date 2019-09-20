@@ -26,7 +26,7 @@ e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
   --nj <nj>                                        # number of parallel jobs
   --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
-  --feat <feat-scp>                                # feat.scp
+  --feat <feat-scp>                                # feat.scp or feat1.scp,feat2.scp,...
   --oov <oov-word>                                 # Default: <unk>
   --out <outputfile>                               # If omitted, write in stdout
   --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
@@ -50,20 +50,29 @@ trap 'rm -rf ${tmpdir}' EXIT
 
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
-mkdir -p ${tmpdir}/input
+input=
 if [ -n "${feat}" ]; then
-    cat ${feat} > ${tmpdir}/input/feat.scp
+    _feat_scps=$(echo "${feat}" | tr ',' ' ' )
+    read -r -a feat_scps <<< $_feat_scps
+    num_feats=${#feat_scps[@]}
 
-    # Dump in the "legacy" style JSON format
-    if [ -n "${filetype}" ]; then
-        awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
-            > ${tmpdir}/input/filetype.scp
-    fi
+    for (( i=1; i<=num_feats; i++ )); do
+        feat=${feat_scps[$((i-1))]}
+        mkdir -p ${tmpdir}/input_${i}
+        input+="input_${i} "
+        cat ${feat} > ${tmpdir}/input_${i}/feat.scp
 
-    feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
-        --filetype "${filetype}" \
-        --preprocess-conf "${preprocess_conf}" \
-        --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
+        # Dump in the "legacy" style JSON format
+        if [ -n "${filetype}" ]; then
+            awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
+                > ${tmpdir}/input_${i}/filetype.scp
+        fi
+
+        feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
+            --filetype "${filetype}" \
+            --preprocess-conf "${preprocess_conf}" \
+            --verbose ${verbose} ${feat} ${tmpdir}/input_${i}/shape.scp
+    done
 fi
 
 # 2. Create scp files for outputs
@@ -100,13 +109,13 @@ cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
 # 4. Merge scp files into a JSON file
 opts=""
-for intype in input output other; do
+for intype in ${input} output other; do
     if [ -z "$(find "${tmpdir}/${intype}" -name "*.scp")" ]; then
         continue
     fi
 
     if [ ${intype} != other ]; then
-        opts+="--${intype}-scps "
+        opts+="--${intype%_*}-scps "
     else
         opts+="--scps "
     fi
