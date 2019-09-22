@@ -191,7 +191,7 @@ def get_parser(parser=None, required=True):
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
 
-    # multitask related 
+    # multitask related
     parser.add_argument('--share-weight', default=False, type=strtobool,
                         help='Whether to share the weights between ASR ctc layer and MT source \
                               word embedding layer.')
@@ -232,12 +232,12 @@ def main(cmd_args):
     if args.model_module is None:
         model_module = "espnet.nets." + args.backend + "_backend.e2e_tcen:E2E"
     else:
-        model_module = args.model_module
+        raise ValueError("Only support for e2e_tcen")
+
     model_class = dynamic_import(model_module)
     model_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
-
 
     # logging info
     if args.verbose > 0:

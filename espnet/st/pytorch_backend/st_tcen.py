@@ -6,19 +6,17 @@
 
 """Training/decoding definition for the speech translation task."""
 
+import argparse
 import json
 import logging
-import os
-import sys
-import random
 import math
-import argparse
-import pdb
+import os
+import random
+import sys
 
 from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
-import numpy as np
 from tensorboardX import SummaryWriter
 import torch
 from torch.nn.parallel import data_parallel
@@ -33,18 +31,17 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr import CustomConverter as ASRCustomConverter
+from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.mt.pytorch_backend.mt import CustomConverter as MTCustomConverter
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_tcen import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.nets.st_interface import ASRInterface
-from espnet.nets.st_interface import STInterface
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -52,10 +49,6 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-from espnet.asr.pytorch_backend.asr import CustomConverter as ASRCustomConverter
-from espnet.mt.pytorch_backend.mt import CustomConverter as MTCustomConverter
-from espnet.asr.pytorch_backend.asr import CustomEvaluator
-from espnet.nets.pytorch_backend.e2e_tcen import E2E
 
 import matplotlib
 matplotlib.use('Agg')
@@ -83,6 +76,7 @@ class CustomUpdater(StandardUpdater):
 
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
+        """Initialize of ST updater."""
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -96,7 +90,7 @@ class CustomUpdater(StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        """Main update routine of the CustomUpdater."""
+        """Update the model."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         optimizer = self.get_optimizer('main')
@@ -109,14 +103,13 @@ class CustomUpdater(StandardUpdater):
             task = 'mt'
             task_iter = 'mt'
         else:
-            task = 'asr' 
+            task = 'asr'
             task_iter = 'asr'
         # Get iterator for the task
         train_iter = self.get_iterator(task_iter)
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-
         batch = list(batch)
         batch = [arr.to(self.device) for arr in batch]
         batch.append(task)
@@ -158,11 +151,13 @@ class CustomUpdater(StandardUpdater):
         optimizer.zero_grad()
 
     def update(self):
+        """Update the model."""
         self.update_core()
         # #iterations with accum_grad > 1
         # Ref.: https://github.com/espnet/espnet/issues/777
         if self.forward_count == 0:
             self.iteration += 1
+
 
 def train(args):
     """Train with the given args.
@@ -278,7 +273,6 @@ def train(args):
 
     # Setup a converter for ASR data and ST data
     converter = ASRCustomConverter(subsampling_factor=subsampling_factor, dtype=dtype)
-                               
     # Setup a converter for MT data
     mt_converter = MTCustomConverter()
 
@@ -287,38 +281,37 @@ def train(args):
         st_train_json = json.load(f)['utts']
     with open(args.asr_train_json, 'rb') as f:
         asr_train_json = json.load(f)['utts']
-    
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     st_train = make_batchset(st_train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
-                          shortest_first=use_sortagrad,
-                          count=args.batch_count,
-                          batch_bins=args.batch_bins,
-                          batch_frames_in=args.batch_frames_in,
-                          batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                             args.maxlen_in, args.maxlen_out, args.minibatches,
+                             min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                             shortest_first=use_sortagrad,
+                             count=args.batch_count,
+                             batch_bins=args.batch_bins,
+                             batch_frames_in=args.batch_frames_in,
+                             batch_frames_out=args.batch_frames_out,
+                             batch_frames_inout=args.batch_frames_inout)
     asr_train = make_batchset(asr_train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
-                          shortest_first=use_sortagrad,
-                          count=args.batch_count,
-                          batch_bins=args.batch_bins,
-                          batch_frames_in=args.batch_frames_in,
-                          batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout)
+                              args.maxlen_in, args.maxlen_out, args.minibatches,
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                              shortest_first=use_sortagrad,
+                              count=args.batch_count,
+                              batch_bins=args.batch_bins,
+                              batch_frames_in=args.batch_frames_in,
+                              batch_frames_out=args.batch_frames_out,
+                              batch_frames_inout=args.batch_frames_inout)
     mt_train = make_batchset(mt_train_json, args.mt_batch_size,
-                          args.mt_maxlen_in, args.mt_maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
-                          shortest_first=use_sortagrad,
-                          count=args.batch_count,
-                          batch_bins=args.batch_bins,
-                          batch_frames_in=args.batch_frames_in,
-                          batch_frames_out=args.batch_frames_out,
-                          batch_frames_inout=args.batch_frames_inout,
-                          mt=True)
+                             args.mt_maxlen_in, args.mt_maxlen_out, args.minibatches,
+                             min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                             shortest_first=use_sortagrad,
+                             count=args.batch_count,
+                             batch_bins=args.batch_bins,
+                             batch_frames_in=args.batch_frames_in,
+                             batch_frames_out=args.batch_frames_out,
+                             batch_frames_inout=args.batch_frames_inout,
+                             mt=True)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1,
@@ -489,12 +482,11 @@ def load_trained_tcen(model_path):
 
     Args:
         model_path(str): Path to model.***.best
-    """
 
+    """
     model_conf = os.path.dirname(model_path) + '/model.json'
     with open(model_conf, "rb") as f:
         confs = json.load(f)
-    
     idim, mdim, odim, train_args = confs
     train_args = argparse.Namespace(**train_args)
 
@@ -505,6 +497,7 @@ def load_trained_tcen(model_path):
     torch_load(model_path, model)
 
     return model, train_args
+
 
 def trans(args):
     """Decode with the given args.

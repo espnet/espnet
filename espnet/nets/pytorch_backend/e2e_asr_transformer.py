@@ -120,6 +120,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.ignore_id = ignore_id
         self.subsample = [1]
         self.reporter = Reporter()
+        self.acc = torch.zeros(1)
 
         # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(self.odim, self.ignore_id, args.lsm_weight,
@@ -132,6 +133,8 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = CTC(odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
         else:
             self.ctc = None
+        args.report_cer = False
+        args.report_wer = False
 
         if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
@@ -173,8 +176,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 3. compute attention loss
         loss_att = self.criterion(pred_pad, ys_out_pad)
-        self.acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
-                               ignore_label=self.ignore_id)
+        acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
+                          ignore_label=self.ignore_id)
+        self.acc[0] = acc.detach()
 
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats

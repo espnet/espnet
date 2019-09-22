@@ -9,12 +9,10 @@
 from __future__ import division
 
 import argparse
-import copy
 import logging
 import math
 import os
 
-import editdistance
 import nltk
 
 import chainer
@@ -24,6 +22,7 @@ import torch
 
 from chainer import reporter
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
 from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -32,10 +31,10 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import Encoder
-from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.st_interface import STInterface
 
 CTC_LOSS_THRESHOLD = 10000
+
 
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper."""
@@ -78,11 +77,11 @@ class E2E(STInterface, torch.nn.Module):
                                     'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                            help='Type of speech encoder network architecture')
         group.add_argument('--selayers', default=4, type=int,
-                           help='Number of speech encoder layers (for shared recognition part in multi-speaker asr mode)')
+                           help='Number of speech encoder layers')
         group.add_argument('--tetype', default='blstm', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
                                     'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                            help='Type of text encoder network architecture')
+                           help='Type of text encoder network architecture')
         group.add_argument('--telayers', default=2, type=int,
                            help='Number of text encoder layers')
         group.add_argument('--eunits', '-u', default=300, type=int,
@@ -183,13 +182,19 @@ class E2E(STInterface, torch.nn.Module):
         self.replace_sos = args.replace_sos
 
         # speech encoder
-        self.senc = Encoder(args.setype, idim, args.selayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+        self.senc = Encoder(args.setype, idim,
+                            args.selayers, args.eunits,
+                            args.eprojs, subsample,
+                            args.dropout_rate)
 
         # text encoder
-        self.tenc = Encoder(args.tetype, args.eprojs, args.telayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+        self.tenc = Encoder(args.tetype, args.eprojs,
+                            args.telayers, args.eunits,
+                            args.eprojs, subsample,
+                            args.dropout_rate)
 
         # source embedding
-        self.embed = torch.nn.Embedding(mdim, args.eprojs, padding_idx=mdim-1)
+        self.embed = torch.nn.Embedding(mdim, args.eprojs, padding_idx=mdim - 1)
         self.dropout = torch.nn.Dropout(p=args.dropout_rate)
         # ctc
         self.ctc = ctc_for(args, mdim)
@@ -221,7 +226,7 @@ class E2E(STInterface, torch.nn.Module):
                 if 'enc.enc' in mt_n or 'embed' in mt_n or 'dec' in mt_n or 'att' in mt_n:
                     if mt_n in param_dict.keys() and p.size() == param_dict[mt_n].size():
                         p.data = param_dict[mt_n].data
-                        logging.warning('Overwrite %s from mt model' % n) 
+                        logging.warning('Overwrite %s from mt model' % n)
 
         # share weights between ctc layer and source embedding layer
         if args.share_weight:
@@ -304,7 +309,6 @@ class E2E(STInterface, torch.nn.Module):
             xs_pad = torch.cat([tgt_lang_ids, xs_pad], dim=1)
         return xs_pad, ys_pad
 
-
     def forward(self, xs_pad, ilens, ys_pad, task='st'):
         """E2E forward.
 
@@ -321,7 +325,6 @@ class E2E(STInterface, torch.nn.Module):
         else:
             tgt_lang_ids = None
 
-
         # ST task
         if task == "st":
             hs_pad, hlens, _ = self.senc(xs_pad, ilens)
@@ -337,7 +340,6 @@ class E2E(STInterface, torch.nn.Module):
             self.loss_mt, acc, _ = self.dec(hs_pad, hlens, ys_pad)
         else:
             raise ValueError('Task must be one of asr, st or mt, got %s instead' % task)
-        
 
         # 5. compute bleu
         if self.training or not self.report_bleu:
@@ -367,7 +369,6 @@ class E2E(STInterface, torch.nn.Module):
 
             bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
 
-
         if task == "st":
             self.loss = self.loss_st
             loss_st_data = float(self.loss_st)
@@ -382,8 +383,7 @@ class E2E(STInterface, torch.nn.Module):
             self.loss = self.loss_mt
             loss_st_data = None
             loss_ctc_data = None
-            loss_mt_data = float(self.loss_mt) 
-
+            loss_mt_data = float(self.loss_mt)
 
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
@@ -415,7 +415,7 @@ class E2E(STInterface, torch.nn.Module):
 
         # 1. encoder
         hs, hlens, _ = self.senc(hs, ilens)
-        hs, _, _ = self.tenc(hs, hlens) 
+        hs, _, _ = self.tenc(hs, hlens)
         return hs.squeeze(0)
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
