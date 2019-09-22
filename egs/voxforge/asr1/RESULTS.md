@@ -127,6 +127,7 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 ```
 
 # Below are preliminaries results for transducer and transducer-attention.
+# Note that current recipes can demonstrate slightly different results compared to the ones reported here.
 
 # Default transducer ('rnnt')
 ```bash
