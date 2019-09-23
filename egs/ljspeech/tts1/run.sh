@@ -39,11 +39,13 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=64  # the number of iterations of Griffin-Lim
+n_average=1             # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+griffin_lim_iters=64    # the number of iterations of Griffin-Lim
 
 # objective evaluation related
 asr_model="librispeech.transformer.ngpu4"
+eval_tts_model=1                               # 1:evaluate tts model, 0:evaluate ground truth
+voc="GL"                                       # the selection of vocoder
 
 # root directory of db
 db_root=downloads
@@ -238,12 +240,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # ASR model selection for CER objective evaluation 
     asr_model_dir="exp/${asr_model}_asr"
     case "${asr_model}" in
-        "librispeech.transformer.ngpu1") asr_url="https://drive.google.com/open?id=1bOaOEIZBveERti0x6mnBYiNsn6MSRd2E" \
-          asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
-          asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer.yaml" \
-          recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer_lr5.0_ag8.v2/results/model.last10.avg.best" \
-          lang_model="${asr_model_dir}/exp/train_rnnlm_pytorch_lm_unigram5000/rnnlm.model.best" ;;
-    
         "librispeech.transformer.ngpu4") asr_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" \
           asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark" \
           asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer_large.yaml" \
@@ -262,7 +258,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "ASR model: ${asr_model_dir} exits."
 
     # Select TTS model
-    eval_tts_model=1
     if [ ${eval_tts_model} == 1 ]; then
         echo "Evaluate: $(basename ${train_config%.*})"
     else
@@ -281,7 +276,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
 
     # Select decoder
-    voc="GL"
     if [ ${voc} == "GL" ]; then
         dir_tail=""
     elif [ ${voc} == "WNV_softmax" ]; then
@@ -320,7 +314,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     done
 
     # Dictionary and Json Data Preparation
-    echo "6.3 Dictionary and Json Data Preparation"
+    echo "6.3 Dictionary and Json Data Preparation for ASR"
     asr_dict="data/decode_dict/X.txt"; mkdir -p ${asr_dict%/*}
     echo "<unk> 1" > ${asr_dict}
     for name in ${dev_set} ${eval_set}; do
