@@ -32,7 +32,6 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.asr_utils import torch_snapshot_iter
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -429,11 +428,11 @@ def train(args):
     # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
-        batch_size=1, num_workers=args.n_iter_processes, pin_memory=True,
+        batch_size=1, num_workers=args.n_iter_processes,
         shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
     valid_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
-        batch_size=1, pin_memory=True, shuffle=False, collate_fn=lambda x: x[0],
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
         num_workers=args.n_iter_processes)}
 
     # Set up a trainer
@@ -495,7 +494,8 @@ def train(args):
     # save snapshot which contains model and optimizer states
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
     if args.save_interval_iters > 0:
-        trainer.extend(torch_snapshot_iter(), trigger=(args.save_interval_iters, 'iteration'))
+        trainer.extend(torch_snapshot(filename='snapshot.iter.{.updater.iteration}'),
+                       trigger=(args.save_interval_iters, 'iteration'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
