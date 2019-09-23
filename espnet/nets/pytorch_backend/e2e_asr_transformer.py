@@ -178,7 +178,7 @@ class E2E(ASRInterface, torch.nn.Module):
         loss_att = self.criterion(pred_pad, ys_out_pad)
         acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
                           ignore_label=self.ignore_id)
-        self.acc[0] = acc.detach()
+        self.acc[0] = acc
 
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
