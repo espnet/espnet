@@ -254,7 +254,7 @@ def test_sortagrad_trainable(module):
         num_utts += len(batch)
         loss = model(*convert_batch(batch, module, idim=20, odim=5, num_inputs=2))
         loss.backward()  # trainable
-    assert num_utts == 5
+    assert num_utts == 6
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(50, 20), np.random.randn(49, 20)]
         model.recognize(in_data, args, args.char_list)
