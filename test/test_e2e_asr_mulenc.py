@@ -246,11 +246,8 @@ def test_gradient_noise_injection(module):
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
     dummy_json = make_dummy_json(6, [10, 20], [10, 20], idim=20, odim=5, num_inputs=2)
-    tmppath = tempfile.mktemp()
-    with open(tmppath, 'w') as f:
-        f.write("utt_3\n")
     import espnet.nets.pytorch_backend.e2e_asr_mulenc as m
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, problem_utts_file=tmppath)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E([20, 20], 5, args)
     num_utts = 0
     for batch in batchset:
