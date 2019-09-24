@@ -4,9 +4,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 
 import argparse
 import importlib
