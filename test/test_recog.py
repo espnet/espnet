@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
 
@@ -42,7 +43,8 @@ def make_arg(**kwargs):
         ctc_weight=0.2,
         ctc_window_margin=0,
         verbose=2,
-        char_list=["a", "i", "u", "e", "o"],
+        char_list=["a", "i", "u", "e", "o", "<space>"],
+        char_list_dict={"<blank>":0, "<unk>":1, "ai":2, "aoao":3, "ouou":4, "eieio":5, "<eos>":6},
         outdir=None,
         ctc_type="warpctc",
         report_cer=False,
@@ -197,8 +199,13 @@ def test_batch_beam_search(etype, dtype, m_str):
         model = m.E2E(40, 5, args)
 
         if "pytorch" in m_str:
+            word_dict = args.char_list_dict
+            char_dict = {x: i for i, x in enumerate(args.char_list)}
+            word_rnnlm = lm_pytorch.ClassifierWithState(
+                lm_pytorch.RNNLM(len(args.word_dict), 1, 10))
             rnnlm = lm_pytorch.ClassifierWithState(
-                lm_pytorch.RNNLM(len(args.char_list), 2, 10))
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
             init_torch_weight_const(model, const)
             init_torch_weight_const(rnnlm, const)
         else:
