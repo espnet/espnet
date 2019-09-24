@@ -44,7 +44,7 @@ def make_arg(**kwargs):
         ctc_window_margin=0,
         verbose=2,
         char_list=["a", "i", "u", "e", "o", "<space>"],
-        char_list_dict={"<blank>":0, "<unk>":1, "ai":2, "aoao":3, "ouou":4, "eieio":5, "<eos>":6},
+        char_list_dict={"<blank>": 0, "<unk>": 1, "ai": 2, "aoao": 3, "ouou": 4, "eieio": 5, "<eos>": 6},
         outdir=None,
         ctc_type="warpctc",
         report_cer=False,
