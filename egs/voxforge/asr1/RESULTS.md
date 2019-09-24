@@ -126,3 +126,65 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR     
 exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg               | 1050   77586 | 86.3    5.6    8.1    2.8   16.5   98.3 |
 ```
 
+# Below are preliminaries results for transducer and transducer-attention.
+# Note that current recipes can demonstrate slightly different results compared to the ones reported here.
+
+# Default transducer ('rnnt')
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1082   79133 | 89.9    5.1    5.0    2.8   12.8   97.1 |
+$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1055   77966 | 90.0    5.0    4.9    2.5   12.4   97.3 |
+```
+
+# Transducer with encoder pre-initialization
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+| Sum/Avg               | 1082   79133  | 91.2    4.6    4.3    2.3    11.2   97.8 |
+$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+| Sum/Avg               | 1055   77966  | 91.3    4.5    4.2    2.2    11.0   97.2 |
+```
+
+# Transducer with enc + dec (LM) pre-initialization
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+| Sum/Avg               | 1082    79133 | 91.0    4.7     4.3    2.4   11.5    97.5 |
+$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+| Sum/Avg               | 1055    77966 | 90.8    4.8     4.4    2.4   11.5    97.6 |
+```
+
+# Default transducer-attention ('rnnt-att')
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1082   79133 | 89.9    5.0    5.1    2.7   12.8   97.3 |
+$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1055   77966 | 89.9    5.1    5.0    2.5   12.6   96.3 |
+```
+
+# Transducer-attention with encoder pre-initialization
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+| Sum/Avg               | 1082   79133  | 90.8    4.7    4.5    2.3    11.6   96.9 |
+$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
+| Sum/Avg               | 1055   77966  | 90.8    4.8    4.4    2.3    11.5   97.4 |
+```
+
+# Transducer-attention with enc + dec (att AM) pre-initialization
+```bash
+$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
+| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+| Sum/Avg               | 1082    79133 | 90.8    4.6     4.5    2.3   11.4    96.9 |
+$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
+| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
+| Sum/Avg               | 1055    77966 | 91.0    4.6     4.4    2.2   11.2    98.2 |
+```
