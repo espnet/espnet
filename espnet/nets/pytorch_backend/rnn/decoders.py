@@ -843,24 +843,50 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
     # scorer interface methods
     def init_state(self, x):
-        c_list = [self.zero_state(x.unsqueeze(0))]
-        z_list = [self.zero_state(x.unsqueeze(0))]
+        # to support mutiple encoder asr mode, in single encoder mode, convert torch.Tensor to List of torch.Tensor
+        if self.num_encs == 1:
+            x = [x]
+
+        c_list = [self.zero_state(x[0].unsqueeze(0))]
+        z_list = [self.zero_state(x[0].unsqueeze(0))]
         for _ in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(x.unsqueeze(0)))
-            z_list.append(self.zero_state(x.unsqueeze(0)))
+            c_list.append(self.zero_state(x[0].unsqueeze(0)))
+            z_list.append(self.zero_state(x[0].unsqueeze(0)))
         # TODO(karita): support strm_index for `asr_mix`
         strm_index = 0
         att_idx = min(strm_index, len(self.att) - 1)
-        self.att[att_idx].reset()  # reset pre-computation of h
-        return dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=None, workspace=(att_idx, z_list, c_list))
+        if self.num_encs == 1:
+            a = None
+            self.att[att_idx].reset()  # reset pre-computation of h
+        else:
+            a = [None] * (self.num_encs + 1)  # atts + han
+            for idx in range(self.num_encs + 1):
+                self.att[idx].reset()  # reset pre-computation of h in atts and han
+        return dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=a, workspace=(att_idx, z_list, c_list))
 
     def score(self, yseq, state, x):
+        # to support mutiple encoder asr mode, in single encoder mode, convert torch.Tensor to List of torch.Tensor
+        if self.num_encs == 1:
+            x = [x]
+
         att_idx, z_list, c_list = state["workspace"]
         vy = yseq[-1].unsqueeze(0)
         ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
-        att_c, att_w = self.att[att_idx](
-            x.unsqueeze(0), [x.size(0)],
-            self.dropout_dec[0](state['z_prev'][0]), state['a_prev'])
+        if self.num_encs == 1:
+            att_c, att_w = self.att[att_idx](
+                x[0].unsqueeze(0), [x[0].size(0)],
+                self.dropout_dec[0](state['z_prev'][0]), state['a_prev'])
+        else:
+            att_w = [None] * (self.num_encs + 1)  # atts + han
+            att_c_list = [None] * (self.num_encs)  # atts
+            for idx in range(self.num_encs):
+                att_c_list[idx], att_w[idx] = self.att[idx](x[idx].unsqueeze(0), [x[idx].size(0)],
+                                                            self.dropout_dec[0](state['z_prev'][0]),
+                                                            state['a_prev'][idx])
+            h_han = torch.stack(att_c_list, dim=1)
+            att_c, att_w[self.num_encs] = self.att[self.num_encs](h_han, [self.num_encs],
+                                                                  self.dropout_dec[0](state['z_prev'][0]),
+                                                                  state['a_prev'][self.num_encs])
         ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
         z_list, c_list = self.rnn_forward(ey, z_list, c_list, state['z_prev'], state['c_prev'])
         if self.context_residual:
