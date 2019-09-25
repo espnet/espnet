@@ -70,7 +70,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases 
     for part in valid-train valid-dev valid-test; do
         # use underscore-separated names in data directories.
-        local/data_prep.pl ${datadir}/ cv-${part} data/"$(echo ${part} | tr - _)"
+        local/data_prep.pl ${datadir}/cv_corpus_v1 cv-${part} data/"$(echo ${part} | tr - _)"
     done
 fi
 
