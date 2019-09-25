@@ -207,7 +207,7 @@ class ClassifierWithState(nn.Module):
 
         return new_state, torch.cat(new_log_y)
 
-    def final(self, state):
+    def final(self, state, index=None):
         """Predict final log probabilities for given state using the predictor.
 
         :param state: The state
@@ -215,7 +215,10 @@ class ClassifierWithState(nn.Module):
         :rtype torch.Tensor
         """
         if hasattr(self.predictor, 'final'):
-            return self.predictor.final(state)
+            if index is not None:
+                return self.predictor.final(state[index])
+            else:
+                return self.predictor.final(state)
         else:
             return 0.
 
