@@ -21,7 +21,7 @@ resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
 fs=24000    # sampling frequency
 fmax=7600   # maximum frequency
-fmin=70     # minimum frequency
+fmin=80     # minimum frequency
 n_mels=80   # number of mel basis
 n_fft=2048  # number of fft points
 n_shift=300 # number of shift points
@@ -69,13 +69,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${input_type}
     utils/validate_data_dir.sh --no-feats data/train
-
-    # make a dev set
-    utils/subset_data_dir.sh --first data/train 500 data/deveval
-    utils/subset_data_dir.sh --first data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --last data/deveval 250 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -99,6 +92,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/train \
         exp/make_fbank/train \
         ${fbankdir}
+
+    # make a dev set
+    utils/subset_data_dir.sh --first data/train 500 data/deveval
+    utils/subset_data_dir.sh --first data/deveval 250 data/${eval_set}
+    utils/subset_data_dir.sh --last data/deveval 250 data/${train_dev}
+    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
