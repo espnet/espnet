@@ -27,6 +27,10 @@ n_fft=2048  # number of fft points
 n_shift=300 # number of shift points
 win_length=1200 # window length
 
+# Input type: kana or phoneme
+# note: phoneme is not well tested at the moment.
+input_type="kana"
+
 # config files
 train_config=conf/train_pytorch_transformer.yaml
 decode_config=conf/decode.yaml
@@ -63,7 +67,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train "phoneme"
+    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${input_type}
     utils/validate_data_dir.sh --no-feats data/train
 
     # make a dev set
