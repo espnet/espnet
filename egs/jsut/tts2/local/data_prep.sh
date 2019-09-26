@@ -39,3 +39,6 @@ PYTHONIOENCODING=utf-8 PYTHONPATH=local/text python local/clean_text.py \
     ${rawtext} ${input_type} > ${text}
 rm ${rawtext}
 echo "finished making text."
+
+python local/prep_segments.py $scp > ${data_dir}/segments
+echo "finished making segments."
