@@ -5,6 +5,7 @@
 
 import argparse
 from distutils.util import strtobool
+import librosa
 import logging
 
 import kaldiio
@@ -83,8 +84,10 @@ def main():
                                compression_method=args.compression_method
                                ) as writer:
         for utt_id, (rate, array) in reader:
-            assert rate == args.fs
             array = array.astype(numpy.float32)
+            if rate != args.fs:
+                array = librosa.resample(array, rate, args.fs)
+
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
 
