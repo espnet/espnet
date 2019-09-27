@@ -141,7 +141,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})_${trans_type}
 else
     expname=${train_set}_${backend}_${tag}
 fi
