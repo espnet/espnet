@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Takenori Yoshimura)
+# Copyright 2018 Nagoya University (Takenori Yoshimura), Ryuichi Yamamoto
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+# NOTE:
+# To run the script, you will need to manually installl pyopenjtalk.
+# Please see https://github.com/r9y9/pyopenjtalk for how to install the package.
+# Also, you need to install other dependences as follows:
+# pip install nnmnkwii jaconv
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -19,16 +25,24 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=48000    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
+fs=24000    # sampling frequency
+fmax=7600   # maximum frequency
+fmin=80     # minimum frequency
 n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=512 # number of shift points
-win_length="" # window length
+n_fft=2048  # number of fft points
+n_shift=300 # number of shift points
+win_length=1200 # window length
+
+# Input transcription type: char or phn
+# Example
+#  char: ミズヲマレーシアカラカワナクテワナラナイノデス。
+#  phn: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
+# NOTE: original transcription is provided by 漢字仮名交じり文. We convert the input to
+# kana or phoneme using OpenJTalk's NLP frontend at the data prep. stage.
+trans_type="phn"
 
 # config files
-train_config=conf/train_pytorch_tacotron2.yaml
+train_config=conf/train_pytorch_transformer.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -63,7 +77,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train
+    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${trans_type}
+
+    # Downsample to fs from 48k
+    utils/data/resample_data_dir.sh $fs data/train
+
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
@@ -115,21 +133,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 --trans_type ${trans_type} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+    data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})_${trans_type}
 else
     expname=${train_set}_${backend}_${tag}
 fi
