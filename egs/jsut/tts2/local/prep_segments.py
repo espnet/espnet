@@ -3,6 +3,7 @@ import os
 from nnmnkwii.io import hts
 import sys
 
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description='Prepare segments from HTS-style alignment files',
@@ -16,7 +17,7 @@ if __name__ == "__main__":
 
     with open(args.wav_scp) as f:
         for l in f:
-            utt_id, path = l.split()
+            recording_id, path = l.split()
             lab_path = path.replace("wav/", "lab/").replace(".wav", ".lab")
             assert os.path.exists(lab_path)
 
@@ -25,6 +26,10 @@ if __name__ == "__main__":
             assert "sil" in labels[-1][-1]
             segment_begin = "{:.3f}".format(labels[0][1] * 1e-7)
             segment_end = "{:.3f}".format(labels[-1][0] * 1e-7)
-            # TODO: make sure this is correct
+
             # recording_id = "{}_{}_{}".format(utt_id, segment_begin, segment_end)
-            sys.stdout.write("{} {} {} {}\n".format(utt_id, utt_id, segment_begin, segment_end))
+            # As we assume that there's only a single utterance per recording,
+            # utt_id is same as recording_id.
+            # https://kaldi-asr.org/doc/data_prep.html
+            utt_id = recording_id
+            sys.stdout.write("{} {} {} {}\n".format(utt_id, recording_id, segment_begin, segment_end))
