@@ -27,9 +27,13 @@ n_fft=2048  # number of fft points
 n_shift=300 # number of shift points
 win_length=1200 # window length
 
-# Input type: kana or phoneme
-# note: phoneme is not well tested at the moment.
-input_type="kana"
+# Input transcription type: char or phn
+# Example
+#  char: ミズヲマレーシアカラカワナクテワナラナイノデス。
+#  phn: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
+# NOTE: original transcription is provided by 漢字仮名交じり文. We convert the input to
+# kana or phoneme using OpenJTalk's NLP frontend at the data prep. stage.
+trans_type="phn"
 
 # config files
 train_config=conf/train_pytorch_transformer.yaml
@@ -67,7 +71,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${input_type}
+    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${trans_type}
 
     # Downsample to fs from 48k
     utils/data/resample_data_dir.sh $fs data/train
@@ -123,16 +127,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 --trans_type ${trans_type} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+    data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
