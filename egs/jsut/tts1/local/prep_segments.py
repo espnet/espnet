@@ -27,7 +27,6 @@ if __name__ == "__main__":
             segment_begin = "{:.3f}".format(labels[0][1] * 1e-7)
             segment_end = "{:.3f}".format(labels[-1][0] * 1e-7)
 
-            # recording_id = "{}_{}_{}".format(utt_id, segment_begin, segment_end)
             # As we assume that there's only a single utterance per recording,
             # utt_id is same as recording_id.
             # https://kaldi-asr.org/doc/data_prep.html
