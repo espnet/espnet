@@ -23,7 +23,7 @@ text=${data_dir}/text
 [ -e ${rawtext} ] && rm ${rawtext}
 
 # make scp, utt2spk, and spk2utt
-find ${db} -name "*.wav" | sort | while read -r filename; do
+find ${db} -follow -name "*.wav" | sort | while read -r filename; do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
     echo "${id} ${filename}" >> ${scp}
     echo "${id} JS" >> ${utt2spk}
@@ -32,7 +32,7 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-find ${db} -name "transcript_utf8.txt" | sort | while read -r filename; do
+find ${db} -follow -name "transcript_utf8.txt" | sort | while read -r filename; do
     cat ${filename} >> ${rawtext}
 done
 PYTHONIOENCODING=utf-8 PYTHONPATH=local/text python local/clean_text.py \
