@@ -3,10 +3,6 @@
 # Copyright 2018 Nagoya University (Takenori Yoshimura), Ryuichi Yamamoto
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# NOTE:
-# Also, you need to install other dependences as follows:
-# pip install nnmnkwii jaconv
-
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
