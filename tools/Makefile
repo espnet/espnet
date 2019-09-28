@@ -118,6 +118,25 @@ nkf.done:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
+hts_engine_API.done: espnet.done
+	rm -rf hts_engine_API
+	git clone https://github.com/r9y9/hts_engine_API.git
+	cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
+	touch hts_engine_API.done
+
+open_jtalk.done: hts_engine_API.done
+	rm -rf open_jtalk
+	git clone https://github.com/r9y9/open_jtalk.git
+	mkdir -p open_jtalk/src/build
+	cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ .. && make install
+	touch open_jtalk.done
+
+pyopenjtalk.done: open_jtalk.done
+	rm -rf pyopenjtalk
+	git clone https://github.com/r9y9/pyopenjtalk.git
+	. venv/bin/activate; cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(PWD) pip install -e .
+	touch pyopenjtalk.done
+
 mecab.done: espnet.done
 	rm -rf mecab
 	git clone https://github.com/taku910/mecab.git
@@ -190,5 +209,6 @@ clean_python:
 
 clean_extra:
 	rm -rf nkf.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip
