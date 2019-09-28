@@ -71,7 +71,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train ${trans_type}
+    local/data_prep.sh ${db_root}/jsut_ver1.1/ data/train ${trans_type}
 
     # Downsample to fs from 48k
     utils/data/resample_data_dir.sh $fs data/train
