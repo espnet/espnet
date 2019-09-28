@@ -4,8 +4,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # NOTE:
-# To run the script, you will need to manually installl pyopenjtalk.
-# Please see https://github.com/r9y9/pyopenjtalk for how to install the package.
 # Also, you need to install other dependences as follows:
 # pip install nnmnkwii jaconv
 
