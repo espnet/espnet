@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019 Ryuichi Yamamoto
+# Copyright 2018 Nagoya University (Takenori Yoshimura), Ryuichi Yamamoto
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
