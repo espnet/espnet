@@ -1,3 +1,45 @@
+# v0.5.3: phoneme input / 1200 pt window / 300 pt shift + Small Transformer + GL 64 iters
+
+## Environments
+
+- date: `Sat Sep 28 21:33:52 JST 2019`
+- python version: `3.6.7 | packaged by conda-forge | (default, Jul  2 2019, 02:18:42)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.3`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `fb4237a4c077c889cfc3cedf68b9f25cdfc65e5e`
+  - Commit date: `Sat Sep 28 16:18:14 2019 +0900`
+
+## Samples
+
+https://drive.google.com/open?id=1_aTRb5JIw_JWzf0urV0veC5uwhF1abBa
+
+## Models
+
+- model link: https://drive.google.com/open?id=154kcrZdpt0Q7huwh2oeGqUR6NjZViTHd
+- training config file: `conf/train_pytorch_transformer.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/train_no_dev/cmvn.ark`
+- e2e file: `exp/train_no_dev_pytorch_train_pytorch_transformer_phn/results/model.last1.avg.best`
+- e2e JSON file: `exp/train_no_dev_pytorch_train_pytorch_transformer_phn/results/model.json`
+- trans_type: phn
+
+# v0.5.3: phoneme input / 1200 pt window / 300 pt shift + Tacotron 2 + GL 64 iters
+
+## Models
+
+- model link: https://drive.google.com/open?id=1VdoUr5LOaV53QkBByc9CUZ8uoLj2R_SA
+- training config file: `conf/train_pytorch_tacotron2.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/train_no_dev/cmvn.ark`
+- e2e file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2_phn/results/model.last1.avg.best`
+- e2e JSON file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2_phn/results/model.json`
+- trans_type: phn
+
+## Samples
+
+https://drive.google.com/open?id=1TZ9MUlzJpxnxgjiAbOe9EHe9PtU2hw4H
+
 # v.0.4.2: 1024 pt window / 512 pt shift + Small Transformer + GL 1000 iters
 
 ## Environments
