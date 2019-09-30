@@ -662,12 +662,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
-            if rnnlm:
-                rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
-            if ctc_scorer[0]:
-                for idx in range(self.num_encs):
-                    ctc_state[idx] = ctc_scorer[idx].index_select_state(ctc_state[idx], accum_best_ids)
-
             # pick ended hyps
             if i > minlen:
                 k = 0
@@ -683,6 +677,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
                             yk.append(self.eos)
                             if len(yk) < min(hlens[idx][samp_i] for idx in range(self.num_encs)):
                                 _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                                if rnnlm:
+                                    _vscore += recog_args.lm_weight * rnnlm.final(rnnlm_state, index=k)
                                 _score = _vscore.data.cpu().numpy()
                                 ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
@@ -693,6 +689,12 @@ class Decoder(torch.nn.Module, ScorerInterface):
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
+
+            if rnnlm:
+                rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
+            if ctc_scorer[0]:
+                for idx in range(self.num_encs):
+                    ctc_state[idx] = ctc_scorer[idx].index_select_state(ctc_state[idx], accum_best_ids)
 
         torch.cuda.empty_cache()
 

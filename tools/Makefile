@@ -33,7 +33,7 @@ all: kaldi.done python check_install
 
 python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done
 
-extra: nkf.done mecab.done moses.done mwerSegmenter.done pesq
+extra: nkf.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -118,32 +118,24 @@ nkf.done:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
-mecab.done: espnet.done
-	rm -rf mecab
-	git clone https://github.com/taku910/mecab.git
-	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
-	cd mecab/mecab-ipadic && ./configure --with-charset=utf8 --with-mecab-config=$(PWD)/mecab/bin/mecab-config --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) install
-	cd mecab && git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
-	cd mecab/mecab-ipadic-neologd && export PATH=$(PWD)/mecab/bin:$(PATH) && ./bin/install-mecab-ipadic-neologd -n -y -p $(PWD)/mecab/mecab-ipadic-neologd
-	. venv/bin/activate; pip install mojimoji pykakasi
-	. venv/bin/activate; if [ `python --version | cut -c 8` -eq 3 ]; then \
-		if [ ! -e swig.done ]; then \
-			rm -rf swig; \
-			mkdir -p swig; \
-			cd swig; \
-			$(WGET) https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/swig-3.0.12.tar.gz; \
-			tar zxvf swig-3.0.12.tar.gz; \
-			cd swig-3.0.12 && ./configure prefix=$(PWD)/swig && $(MAKE) && $(MAKE) install; \
-			touch $(PWD)/swig.done; \
-		fi; \
-		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
-		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
-		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
-	else \
-		pip install mecab-python; \
-	fi
-	touch mecab.done
+hts_engine_API.done: espnet.done
+	rm -rf hts_engine_API
+	git clone https://github.com/r9y9/hts_engine_API.git
+	cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
+	touch hts_engine_API.done
+
+open_jtalk.done: hts_engine_API.done
+	rm -rf open_jtalk
+	git clone https://github.com/r9y9/open_jtalk.git
+	mkdir -p open_jtalk/src/build
+	cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ .. && make install
+	touch open_jtalk.done
+
+pyopenjtalk.done: open_jtalk.done
+	rm -rf pyopenjtalk
+	git clone https://github.com/r9y9/pyopenjtalk.git
+	. venv/bin/activate; cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(PWD) pip install -e .
+	touch pyopenjtalk.done
 
 moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
@@ -189,6 +181,7 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf.done swig.done moses.done mwerSegmenter.done
+	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip
