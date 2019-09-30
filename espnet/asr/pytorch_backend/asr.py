@@ -390,9 +390,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        if args.num_encs == 1:
-            f.write(json.dumps((idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
-                               indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -554,12 +553,12 @@ def train(args):
                                           'main/loss_ctc', 'validation/main/loss_ctc',
                                           'main/loss_att',
                                           'validation/main/loss_att'] +
-                                         [] if args.num_encs == 1 else report_keys_loss_ctc,
+                                         ([] if args.num_encs == 1 else report_keys_loss_ctc),
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
     trainer.extend(extensions.PlotReport(
-        ['main/cer_ctc', 'validation/main/cer_ctc'] + [] if args.num_encs == 1 else report_keys_loss_ctc,
+        ['main/cer_ctc', 'validation/main/cer_ctc'] + ([] if args.num_encs == 1 else report_keys_loss_ctc),
         'epoch', file_name='cer.png'))
 
     # Save best models
@@ -598,7 +597,7 @@ def train(args):
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
-                   'elapsed_time'] + [] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc
+                   'elapsed_time'] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),

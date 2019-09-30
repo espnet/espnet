@@ -342,12 +342,8 @@ def main(cmd_args):
             from espnet.asr.chainer_backend.asr import train
             train(args)
         elif args.backend == "pytorch":
-            if args.num_encs == 1:
-                from espnet.asr.pytorch_backend.asr import train
-                train(args)
-            else:
-                from espnet.asr.pytorch_backend.asr_mulenc import train
-                train(args)
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
     else:

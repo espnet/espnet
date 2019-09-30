@@ -191,7 +191,7 @@ def main(args):
                 if args.api == "v2":
                     raise NotImplementedError(f"--num-encs {args.num_encs} > 1 is not supported in --api v2")
                 else:
-                    from espnet.asr.pytorch_backend.asr_mulenc import recog
+                    from espnet.asr.pytorch_backend.asr import recog
                     recog(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")
