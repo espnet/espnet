@@ -288,7 +288,6 @@ class E2E(ASRInterface, torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
-
         def lecun_normal_init_parameters(module):
             for p in module.parameters():
                 data = p.data
