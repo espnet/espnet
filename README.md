@@ -367,6 +367,9 @@ go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/maste
 
 ## Results and demo
 
+### Pretrained models
+
+
 ### ASR results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
@@ -393,6 +396,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
+
+If you want to check the results of the other recipes, please check `egs/<name_of_recipe>/asr1/RESULTS.md`.
 
 ### ASR demo
 
@@ -429,6 +434,11 @@ You can access the samples of TTS recipes from following links:
 - [Multi English speaker Tranformer (New!)](https://drive.google.com/open?id=1_vrdqjM43DdN1Qz7HJkvMQ6lCMmWLeGp)
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
+If you want to check more samples, please access and browse [our google drive](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX).
+
+All of the pretrained models which generate the above samples are also available in [our google drive](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF).
+
 
 ### TTS demo
 
