@@ -367,9 +367,6 @@ go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/maste
 
 ## Results and demo
 
-### Pretrained models
-
-
 ### ASR results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
