@@ -285,7 +285,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${trans_model} \
             --num ${n_average}
-        decode_config=conf/tuning/decode_pytorch_transformer.yaml
     fi
     nj=16
 
