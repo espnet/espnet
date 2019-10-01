@@ -30,7 +30,7 @@ utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}
 if [ -f data/${set}.en/feats.scp ]; then
     utils/validate_data_dir.sh data/${set}.en || exit 1;
 else
-    utils/validate_data_dir.sh --no-feats data/${set}.en || exit 1;
+    utils/validate_data_dir.sh --no-feats --no-wav data/${set}.en || exit 1;
 fi
 
 # for target language
@@ -48,5 +48,5 @@ utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}
 if [ -f data/${set}.${lang}/feats.scp ]; then
     utils/validate_data_dir.sh data/${set}.${lang} || exit 1;
 else
-    utils/validate_data_dir.sh --no-feats data/${set}.${lang} || exit 1;
+    utils/validate_data_dir.sh --no-feats --no-wav data/${set}.${lang} || exit 1;
 fi
