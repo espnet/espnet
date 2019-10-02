@@ -127,7 +127,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --trans_type ${trans_type} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
