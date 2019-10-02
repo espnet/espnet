@@ -432,7 +432,7 @@ You can access the samples of TTS recipes from following links:
 
 Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
-If you want to check more samples, please access and browse [our google drive](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX).
+If you want to check more samples, please access [our google drive](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX).
 
 All of the pretrained models which generate the above samples are also available in [our google drive](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF).
 
