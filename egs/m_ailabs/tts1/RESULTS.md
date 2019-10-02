@@ -128,6 +128,34 @@ https://drive.google.com/open?id=1o_mJqeQEUaI4Nqva6za-4HELzPKAvWLX
 
 https://drive.google.com/open?id=1p1T-85pUxiJBRQRV76XkApky_2TQmK_6
 
+## Models (es_ES, male)
+
+- model link: https://drive.google.com/open?id=1988NUx2z6n6otFxiGyvDysuhPSqXroKd
+- training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/es_ES_tux_train_trim/cmvn.ark`
+- e2e file: `exp/es_ES_tux_train_trim_pytorch_train_pytorch_tacotron2.v3/results/model.last1.avg.best`
+- e2e JSON file: `exp/es_ES_tux_train_trim_pytorch_train_pytorch_tacotron2.v3/results/model.json`
+- dict file: `data/lang_1char/es_ES_tux_train_trim_units.txt`
+
+## Samples (es_ES, male)
+
+https://drive.google.com/open?id=1eKiNCTnhtrU7ZvDKlIZjWDRBp8fdub0J
+
+## Models (de_DE, male)
+
+- model link: https://drive.google.com/open?id=1E3kGfR2P-P4jf3rByLoA2UtFZoXBEdza
+- training config file: `conf/tuning/train_pytorch_tacotron2.v3_batch-bins1834560.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/de_DE_karlsson_train_trim/cmvn.ark`
+- e2e file: `exp/de_DE_karlsson_train_trim_pytorch_train_pytorch_tacotron2.v3_batch-bins1834560/results/model.loss.best`
+- e2e JSON file: `exp/de_DE_karlsson_train_trim_pytorch_train_pytorch_tacotron2.v3_batch-bins1834560/results/model.json`
+- dict file: `data/lang_1char/de_DE_karlsson_train_trim_units.txt`
+
+## Samples (de_DE, male)
+
+https://drive.google.com/open?id=1-4hK-5d1Mf6tv0BTrokE8CnkDdYJbdnC
+
 # v.0.3.0 trimming + 1024/256 + reduction_factor=1 + forward_ta attention
 
 ## Samples
