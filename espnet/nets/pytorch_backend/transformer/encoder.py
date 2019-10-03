@@ -4,7 +4,8 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear, MultiLayeredConv1d
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
