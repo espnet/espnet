@@ -1437,7 +1437,7 @@ def att_to_numpy(att_ws, att):
         att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).cpu().numpy()
     elif isinstance(att, (AttCov, AttCovLoc)):
         # att_ws => list of list of previous attentions
-        att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).cpu().numpy()
+        att_ws = torch.stack([aw[idx] for idx,aw in enumerate(att_ws)], dim=1).cpu().numpy()
     elif isinstance(att, AttLocRec):
         # att_ws => list of tuple of attention and hidden states
         att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).cpu().numpy()
