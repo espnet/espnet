@@ -9,9 +9,9 @@ dprenet-units: 256
 adim: 512
 aheads: 4
 elayers: 3
-eunits: 1024
+eunits: 512
 dlayers: 3
-dunits: 1024
+dunits: 512
 positionwise-layer-type: conv1d
 positionwise-conv-kernel-size: 1
 postnet-layers: 5
