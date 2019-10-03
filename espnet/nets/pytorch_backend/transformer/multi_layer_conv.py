@@ -59,7 +59,7 @@ class Conv1dLinear(torch.nn.Module):
     """
 
     def __init__(self, in_chans, hidden_chans, kernel_size, dropout_rate):
-        super(MultiLayeredConv1d, self).__init__()
+        super(Conv1dLinear, self).__init__()
         self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
                                    stride=1, padding=(kernel_size - 1) // 2)
         self.w_2 = nn.Linear(hidden_chans, in_chans)
