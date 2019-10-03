@@ -43,5 +43,4 @@ class MultiLayeredConv1d(torch.nn.Module):
 
         """
         x = torch.relu(self.w_1(x.transpose(-1, 1))).transpose(-1, 1)
-        x = torch.relu(self.w_2(x.transpose(-1, 1))).transpose(-1, 1)
-        return self.dropout(x)
+        return self.w_2(self.dropout(x).transpose(-1, 1)).transpose(-1, 1)
