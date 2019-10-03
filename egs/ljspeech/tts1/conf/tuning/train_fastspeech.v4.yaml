@@ -17,7 +17,7 @@ dunits: 768
 duration-predictor-layers: 2
 duration-predictor-chans: 256
 duration-predictor-kernel-size: 3
-positionwise-layer-type: conv1d
+positionwise-layer-type: conv1d-linear
 positionwise-conv-kernel-size: 3
 use-scaled-pos-enc: True
 encoder-normalize-before: False

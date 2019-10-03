@@ -14,7 +14,7 @@ elayers: 3
 eunits: 512
 dlayers: 3
 dunits: 512
-positionwise-layer-type: conv1d
+positionwise-layer-type: conv1d-linear
 positionwise-conv-kernel-size: 1
 postnet-layers: 5
 postnet-filts: 5
