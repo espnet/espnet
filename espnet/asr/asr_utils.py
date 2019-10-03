@@ -682,12 +682,17 @@ def format_mulenc_args(args):
                     }
     for k in default_dict.keys():
         if isinstance(vars(args)[k], list):
-            assert len(vars(args)[k]) == args.num_encs, (len(vars(args)[k]),)
+            if len(vars(args)[k]) != args.num_encs:
+                logging.warning("Length mismatch {}: Convert {} to {}.".format(
+                    k, vars(args)[k], vars(args)[k][:args.num_encs]))
             vars(args)[k] = vars(args)[k][:args.num_encs]
         else:
             if not vars(args)[k]:
                 # assign default value if it is None
                 vars(args)[k] = default_dict[k]
+                logging.warning("{} is not specified, use default value {}.".format(k, default_dict[k]))
             # duplicate
+            logging.warning("Type mismatch {}: Convert {} to {}.".format(
+                k, vars(args)[k], [vars(args)[k] for _ in range(args.num_encs)]))
             vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
     return args

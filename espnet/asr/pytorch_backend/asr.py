@@ -403,6 +403,9 @@ def train(args):
             logging.info('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
+        if args.num_encs > 1:
+            # TODO(ruizhili): implement data parallel for multi-encoder setup.
+            raise NotImplementedError("Data parallel is not supported for multi-encoder setup.")
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -759,7 +762,7 @@ def enhance(args):
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
-    # todo (ruizhili) implement enhance for multi-encoder model
+    # TODO(ruizhili): implement enhance for multi-encoder model
     assert args.num_encs == 1, "number of encoder should be 1 ({} is given)".format(args.num_encs)
 
     # load trained model parameters
