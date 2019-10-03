@@ -61,7 +61,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
         group.add_argument("--positionwise-layer-type", default="linear", type=str,
-                           choices=["linear", "conv1d"],
+                           choices=["linear", "conv1d", "conv1d-linear"],
                            help="Positionwise layer type.")
         group.add_argument("--positionwise-conv-kernel-size", default=3, type=int,
                            help="Kernel size of positionwise conv1d layer")
