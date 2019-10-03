@@ -233,6 +233,78 @@ class NoAtt(chainer.Chain):
         return self.c, att_prev
 
 
+class AttAdd(chainer.Chain):
+    '''Additive attention
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttAdd, self).__init__()
+        with self.init_scope():
+            self.mlp_enc = L.Linear(eprojs, att_dim)
+            self.mlp_dec = L.Linear(dunits, att_dim, nobias=True)
+            self.gvec = L.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
+        '''AttLoc forward
+        :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy
+        :param float scaling: scaling parameter before applying softmax
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is previous attention weights (B x T_max)
+        :rtype: tuple of (~chainer.Variable)
+        '''
+        batch = len(enc_hs)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = F.reshape(dec_z, (batch, self.dunits))
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = F.broadcast_to(
+            F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = F.squeeze(linear_tensor(self.gvec, F.tanh(
+            self.pre_compute_enc_h + dec_z_tiled)), axis=2)
+        w = F.softmax(scaling * e)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
+
+        return c, w
+
+
 def att_for(args):
     """Returns an attention layer given the program arguments.
 
@@ -245,6 +317,8 @@ def att_for(args):
     """
     if args.atype == 'dot':
         att = AttDot(args.eprojs, args.dunits, args.adim)
+    elif args.atype == 'add':
+        att = AttAdd(args.eprojs, args.dunits, args.adim)
     elif args.atype == 'location':
         att = AttLoc(args.eprojs, args.dunits,
                      args.adim, args.aconv_chans, args.aconv_filts)

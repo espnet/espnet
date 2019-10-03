@@ -271,8 +271,8 @@ def main(cmd_args):
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        raise NotImplementedError("chainer is not supported for MT now.")
-        # TODO(hirofumi): support chainer backend
+        from espnet.mt.chainer_backend.mt import train
+        train(args)
     elif args.backend == "pytorch":
         from espnet.mt.pytorch_backend.mt import train
         train(args)
