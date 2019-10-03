@@ -11,9 +11,9 @@ model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransfor
 adim: 384
 aheads: 2
 elayers: 3
-eunits: 1536
+eunits: 768
 dlayers: 3
-dunits: 1536
+dunits: 768
 duration-predictor-layers: 2
 duration-predictor-chans: 256
 duration-predictor-kernel-size: 3
