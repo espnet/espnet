@@ -65,7 +65,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     for x in train eval2000 rt03; do
 	    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
     done
-    # normalize eval2000 ant rt03 texts by
+    # normalize eval2000 and rt03 texts by
     # 1) convert upper to lower
     # 2) remove tags (%AH) (%HESITATION) (%UH)
     # 3) remove <B_ASIDE> <E_ASIDE>
