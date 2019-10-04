@@ -692,11 +692,8 @@ def recog(args):
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
                 # plot prob and att_ws
-                # if probs is not None:
-                    # _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
                 if att_ws is not None:
                     _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.result_label) + "/att_ws/%s_att_ws.png" % name)
-
 
     else:
         def grouper(n, iterable, fillvalue=None):
