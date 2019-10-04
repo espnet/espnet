@@ -694,7 +694,7 @@ def recog(args):
                 # plot prob and att_ws
                 if att_ws is not None:
                     _plot_and_save(att_ws.cpu().numpy(),
-                    os.path.dirname(args.result_label) + "/att_ws/%s_att_ws.png" % name)
+                                   os.path.dirname(args.result_label) + "/att_ws/%s_att_ws.png" % name)
 
     else:
         def grouper(n, iterable, fillvalue=None):
