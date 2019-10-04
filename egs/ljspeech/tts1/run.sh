@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
-#           2019 Okayama University (Katsuki Inoue)
+# [stage 6] 2019 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -9,10 +9,10 @@
 
 # general configuration
 backend=pytorch
-stage=-1
+stage=0
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=16        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -46,6 +46,7 @@ griffin_lim_iters=64    # the number of iterations of Griffin-Lim
 asr_model="librispeech.transformer.ngpu4"
 eval_tts_model=1                               # 1:evaluate tts model, 0:evaluate ground truth
 voc="GL"                                       # the selection of vocoder
+api="v1"                                       # v1: w/ att_ws generation, v2: w/o att_ws generation
 
 # root directory of db
 db_root=downloads
@@ -245,7 +246,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
           asr_pre_decode_config="${asr_model_dir}/conf/tuning/decode_pytorch_transformer_large.yaml" \
           recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best" \
           lang_model="${asr_model_dir}/exp/irielm.ep11.last5.avg/rnnlm.model.best" ;;
-        
+
         *) echo "No such models: ${asr_model}"; exit 1 ;;
     esac
 
@@ -256,6 +257,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         touch ${asr_model_dir}/.complete
     fi
     echo "ASR model: ${asr_model_dir} exits."
+
 
     # Select TTS model
     if [ ${eval_tts_model} == 1 ]; then
@@ -332,21 +334,19 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         splitjson.py --parts ${nj} ${asr_feat_dir}/${name}/data.json
     
         # set batchsize 0 to disable batch decoding    
-        ${decode_cmd} JOB=1:${nj} ${asr_result_dir}/${name}/log/decode.JOB.log \
+        ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${name}/log/decode.JOB.log \
             asr_recog.py \
               --config ${asr_decode_config} \
               --ngpu 0 \
               --backend ${backend} \
               --batchsize 0 \
               --recog-json ${asr_feat_dir}/${name}/split${nj}utt/data.JOB.json \
-              --result-label ${asr_result_dir}/${name}/data.JOB.json \
+              --result-label ${asr_result_dir}.${api}/${name}/data.JOB.json \
               --model ${recog_model} \
-              --api v2 \
+              --api ${api} \
               --rnnlm ${lang_model}
 
-        score_sclite_wo_dict.sh --wer true ${asr_result_dir}/${name}
+        score_sclite_wo_dict.sh --wer true ${asr_result_dir}.${api}/${name}
 
     done
-
 fi
-

@@ -617,6 +617,41 @@ def recog(args):
         if args.preprocess_conf is None else args.preprocess_conf,
         preprocess_args={'train': False})
 
+    # define function for plot prob and att_ws
+    def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
+        import matplotlib.pyplot as plt
+        shape = array.shape
+        if len(shape) == 1:
+            # for eos probability
+            plt.figure(figsize=figsize, dpi=dpi)
+            plt.plot(array)
+            plt.xlabel("Frame")
+            plt.ylabel("Probability")
+            plt.ylim([0, 1])
+        elif len(shape) == 2:
+            # for tacotron 2 attention weights, whose shape is (out_length, in_length)
+            plt.figure(figsize=figsize, dpi=dpi)
+            plt.imshow(array, aspect="auto")
+            plt.xlabel("Input")
+            plt.ylabel("Output")
+        elif len(shape) == 4:
+            # for transformer attention weights, whose shape is (#leyers, #heads, out_length, in_length)
+            plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
+            for idx1, xs in enumerate(array):
+                for idx2, x in enumerate(xs, 1):
+                    plt.subplot(shape[0], shape[1], idx1 * shape[1] + idx2)
+                    plt.imshow(x, aspect="auto")
+                    plt.xlabel("Input")
+                    plt.ylabel("Output")
+        else:
+            raise NotImplementedError("Support only from 1D to 4D array.")
+        plt.tight_layout()
+        if not os.path.exists(os.path.dirname(figname)):
+            # NOTE: exist_ok = True is needed for parallel process decoding
+            os.makedirs(os.path.dirname(figname), exist_ok=True)
+        plt.savefig(figname)
+        plt.close()
+
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
@@ -653,8 +688,15 @@ def recog(args):
                                 nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
                                 nbest_hyps[n]['score'] += hyps[n]['score']
                 else:
-                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                    nbest_hyps, att_ws = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+
+                # plot prob and att_ws
+                # if probs is not None:
+                    # _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
+                if att_ws is not None:
+                    _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.result_label) + "/att_ws/%s_att_ws.png" % name)
+
 
     else:
         def grouper(n, iterable, fillvalue=None):
