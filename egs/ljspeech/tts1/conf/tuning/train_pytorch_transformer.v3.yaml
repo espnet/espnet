@@ -32,10 +32,10 @@ decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
-batch-sort-key: input # shuffle or input or output
-batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+batch-sort-key: output # shuffle or input or output
+batch-bins: 1624061   # 32 * (566.506 * 80 + 70.538 * 77)
+                      # avg batch-size * (mean_out * dim_out + mean_in * dim_in)
+                      # 402 batches containing from 20 to 121 samples (avg 31 samples)
 
 # training related
 transformer-init: pytorch
@@ -64,7 +64,7 @@ accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
+epochs: 800  # 800 epochs * 402 batches / 2 accum-grad = 160,800 iters
 
 # other
 save-interval-epoch: 50
