@@ -21,6 +21,9 @@ class MultiHeadedAttention(nn.Module):
         super(MultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
+        # md note:
+        # d_k is  dimension of per attention head  in multiple attention case
+        # in self.linear_out , n_feat is multiple attention final dimension,it is dimension  of w^o 
         self.d_k = n_feat // n_head
         self.h = n_head
         self.linear_q = nn.Linear(n_feat, n_feat)
