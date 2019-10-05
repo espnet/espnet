@@ -46,7 +46,7 @@ transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 duration-predictor-dropout-rate: 0.1
-transfer-encoder-from-teacher: True
+transfer-encoder-from-teacher: False
 transferred-encoder-module: embed
 
 # optimization related
