@@ -56,7 +56,7 @@ grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
 epochs: 800  # 800 epochs * 402 batches / 2 accum-grad = 160,800 iters
-teacher-model: exp/train_no_dev_pytorch_train_transformer.v3/results/model.last1.avg.best
+teacher-model: exp/train_no_dev_pytorch_train_pytorch_transformer.v3/results/model.last1.avg.best
                # you can download pretrained teacher model from google drive
                # https://drive.google.com/open?id=1arZAxZOLep-1W5ByQMD1lCX2tEASnw7p
 
