@@ -150,6 +150,7 @@ def make_feedforward_transformer_args(**kwargs):
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
+        ({"positionwise_layer_type": "conv1d-linear", "positionwise_conv_kernel_size": 3}),
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
