@@ -62,6 +62,8 @@ def make_transformer_args(**kwargs):
         eunits=32,
         dlayers=2,
         dunits=32,
+        positionwise_layer_type="linear",
+        positionwise_conv_kernel_size=1,
         postnet_layers=2,
         postnet_filts=5,
         postnet_chans=32,
