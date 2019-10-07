@@ -145,7 +145,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
             return y, new_cache
 
     # beam search API (see ScorerInterface)
-    def init_state(self, x):
+    def init_state(self, x=None):
         """Get an initial state for decoding."""
         return [None for i in range(len(self.decoders))]
 

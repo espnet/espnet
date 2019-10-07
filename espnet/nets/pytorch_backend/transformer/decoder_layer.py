@@ -62,7 +62,8 @@ class DecoderLayer(nn.Module):
             tgt_q_mask = tgt_mask
         else:
             # compute only the last frame query keeping dim: max_time_out -> 1
-            assert cache.shape == (tgt.shape[0], tgt.shape[1] - 1, self.size)
+            assert cache.shape == (tgt.shape[0], tgt.shape[1] - 1, self.size), \
+                f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
             tgt_q = tgt[:, -1:, :]
             tgt_q_mask = None
             if tgt_mask is not None:
