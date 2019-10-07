@@ -20,9 +20,8 @@ def test_decoder_cache():
     x = torch.randn(2, 5, adim)
     mask = subsequent_mask(x.shape[1]).unsqueeze(0)
     prev_mask = mask[:, :-1, :-1]
+    decoder.eval()
     with torch.no_grad():
-        torch.manual_seed(0)
-        numpy.random.seed(0)
         # layer-level test
         y = dlayer(x, mask, memory, None)[0]
         cache = dlayer(x[:, :-1], prev_mask, memory, None)[0]
@@ -32,6 +31,54 @@ def test_decoder_cache():
         # decoder-level test
         x = torch.randint(0, odim, x.shape[:2])
         y = decoder.recognize(x, mask, memory)
-        y_, cache = decoder.recognize(x[:, :-1], prev_mask, memory, cache=decoder.init_cache())
-        y_fast = decoder.recognize(x, mask, memory, cache=None)
-        numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=0.1)
+        y_, cache = decoder.recognize(x[:, :-1], prev_mask, memory, cache=decoder.init_state())
+        y_fast, _ = decoder.recognize(x, mask, memory, cache=cache)
+        numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=1e-5)
+
+
+if __name__ == "__main__":
+    # benchmark with synth dataset
+    from time import time
+
+    import matplotlib.pyplot as plt
+
+    adim = 4
+    odim = 5
+    decoder = Decoder(
+        odim=odim,
+        attention_dim=adim,
+        linear_units=3,
+        num_blocks=2,
+        dropout_rate=0.0)
+    dlayer = decoder.decoders[0]
+    xlen = 100
+    xs = torch.randint(0, odim, (1, xlen))
+    memory = torch.randn(2, 500, adim)
+    mask = subsequent_mask(xlen).unsqueeze(0)
+
+    result = {"cached": [], "baseline": []}
+    n_avg = 10
+    decoder.eval()
+    for key, value in result.items():
+        cache = decoder.init_state()
+        print(key)
+        for i in range(xlen):
+            x = xs[:, :i + 1]
+            m = mask[:, :i + 1, :i + 1]
+            start = time()
+            for _ in range(n_avg):
+                with torch.no_grad():
+                    if key == "baseline":
+                        y = decoder.recognize(x, m, memory)
+                    if key == "cached":
+                        y, new_cache = decoder.recognize(x, m, memory, cache=cache)
+            if key == "cached":
+                cache = new_cache
+            dur = (time() - start) / n_avg
+            value.append(dur)
+        plt.plot(range(xlen), value, label=key)
+    plt.xlabel("hypothesis length")
+    plt.ylabel("average time [sec]")
+    plt.grid()
+    plt.legend()
+    plt.savefig("benchmark.png")
