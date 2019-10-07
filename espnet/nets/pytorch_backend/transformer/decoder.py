@@ -115,30 +115,42 @@ class Decoder(ScorerInterface, torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def recognize(self, tgt, tgt_mask, memory):
+    def recognize(self, tgt, tgt_mask, memory, cache=None):
         """Recognize one step.
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
+        :param List[torch.Tensor] cache: cached output list of (batch, max_time_out-1, size)
         :return x: decoded token score before softmax (batch, maxlen_out, token)
         :rtype: torch.Tensor
         """
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
+        new_cache = []
+        for i, decoder in enumerate(self.decoders):
+            c = cache[i] if cache is not None else cache
+            x, tgt_mask, memory, memory_mask = decoder(x, tgt_mask, memory, None, cache=c)
+            new_cache.append(x)
+
         if self.normalize_before:
-            x_ = self.after_norm(x[:, -1])
+            y = self.after_norm(x[:, -1])
         else:
-            x_ = x[:, -1]
+            y = x[:, -1]
         if self.output_layer is not None:
-            return torch.log_softmax(self.output_layer(x_), dim=-1)
+            y = torch.log_softmax(self.output_layer(y), dim=-1)
+
+        if cache is None:
+            return y
         else:
-            return x_
+            return y, new_cache
 
     # beam search API (see ScorerInterface)
+    def init_state(self, x):
+        """Get an initial state for decoding."""
+        return [None for i in range(len(self.decoders))]
+
     def score(self, ys, state, x):
         """Score."""
-        # TODO(karita) cache previous attentions in state
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        logp = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0))
-        return logp.squeeze(0), None
+        logp, state = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
+        return logp.squeeze(0), state
