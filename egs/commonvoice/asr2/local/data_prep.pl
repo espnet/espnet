@@ -12,7 +12,6 @@ if (@ARGV != 3) {
 }
 
 ($db_base, $dataset, $out_dir) = @ARGV;
-print "$db_base$dataset.csv \n";
 mkdir data unless -d data;
 mkdir $out_dir unless -d $out_dir;
 
