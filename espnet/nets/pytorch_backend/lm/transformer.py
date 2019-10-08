@@ -48,8 +48,6 @@ class TransformerLM(nn.Module, LMInterface):
             n_vocab, args.att_unit, args.head, args.unit, args.layer,
             args.dropout_rate, args.dropout_rate, args.dropout_rate,
             input_layer="embed")
-        # reset posenc
-        self.encoder.embed[1] = PositionalEncoding(args.att_unit, args.dropout_rate, args.posenc_len)
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
     def _target_mask(self, ys_in_pad):
