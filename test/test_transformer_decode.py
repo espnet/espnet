@@ -30,9 +30,9 @@ def test_decoder_cache():
 
         # decoder-level test
         x = torch.randint(0, odim, x.shape[:2])
-        y = decoder.recognize(x, mask, memory)
-        y_, cache = decoder.recognize(x[:, :-1], prev_mask, memory, cache=decoder.init_state())
-        y_fast, _ = decoder.recognize(x, mask, memory, cache=cache)
+        y, _ = decoder.forward_one_step(x, mask, memory)
+        y_, cache = decoder.forward_one_step(x[:, :-1], prev_mask, memory, cache=decoder.init_state())
+        y_fast, _ = decoder.forward_one_step(x, mask, memory, cache=cache)
         numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=1e-5)
 
 
@@ -69,9 +69,8 @@ if __name__ == "__main__":
             for _ in range(n_avg):
                 with torch.no_grad():
                     if key == "baseline":
-                        y = decoder.recognize(x, m, memory)
-                    if key == "cached":
-                        y, new_cache = decoder.recognize(x, m, memory, cache=cache)
+                        cache = None
+                    y, new_cache = decoder.forward_one_step(x, m, memory, cache=cache)
             if key == "cached":
                 cache = new_cache
             dur = (time() - start) / n_avg
