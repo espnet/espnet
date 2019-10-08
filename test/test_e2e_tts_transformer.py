@@ -387,7 +387,7 @@ def test_forward_and_inference_are_equal(model_dict):
         while True:
             idx += 1
             y_masks = subsequent_mask(idx).unsqueeze(0)
-            z = model.decoder.recognize(ys_in_, y_masks, hs_ir)  # (B, idx, adim)
+            z = model.decoder.forward_one_step(ys_in_, y_masks, hs_ir)[0]  # (B, idx, adim)
             outs += [model.feat_out(z).view(1, -1, model.odim)]  # [(1, r, odim), ...]
             probs += [torch.sigmoid(model.prob_out(z))[0]]  # [(r), ...]
             if idx >= maxlen:

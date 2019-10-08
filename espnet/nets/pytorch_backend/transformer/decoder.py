@@ -115,20 +115,22 @@ class Decoder(ScorerInterface, torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def recognize(self, tgt, tgt_mask, memory, cache=None):
-        """Recognize one step.
+    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+        """Forward one step.
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
         :param List[torch.Tensor] cache: cached output list of (batch, max_time_out-1, size)
-        :return x: decoded token score before softmax (batch, maxlen_out, token)
-        :rtype: torch.Tensor
+        :return y, cache: NN output value and cache per `self.decoders`.
+            `y.shape` is (batch, maxlen_out, token)
+        :rtype: Tuple[torch.Tensor, List[torch.Tensor]]
         """
         x = self.embed(tgt)
+        if cache is None:
+            cache = self.init_state()
         new_cache = []
-        for i, decoder in enumerate(self.decoders):
-            c = cache[i] if cache is not None else cache
+        for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(x, tgt_mask, memory, None, cache=c)
             new_cache.append(x)
 
@@ -139,10 +141,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
 
-        if cache is None:
-            return y
-        else:
-            return y, new_cache
+        return y, new_cache
 
     # beam search API (see ScorerInterface)
     def init_state(self, x=None):
@@ -152,5 +151,5 @@ class Decoder(ScorerInterface, torch.nn.Module):
     def score(self, ys, state, x):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        logp, state = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
+        logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
         return logp.squeeze(0), state
