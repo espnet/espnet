@@ -1,11 +1,12 @@
 import numpy
+import pytest
 import torch
 
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
-
-def test_decoder_cache():
+@pytest.mark.parametrize("normalize_before", [True, False])
+def test_decoder_cache(normalize_before):
     adim = 4
     odim = 5
     decoder = Decoder(
@@ -13,11 +14,12 @@ def test_decoder_cache():
         attention_dim=adim,
         linear_units=3,
         num_blocks=2,
+        normalize_before=normalize_before,
         dropout_rate=0.0)
     dlayer = decoder.decoders[0]
     memory = torch.randn(2, 5, adim)
 
-    x = torch.randn(2, 5, adim)
+    x = torch.randn(2, 5, adim) * 100
     mask = subsequent_mask(x.shape[1]).unsqueeze(0)
     prev_mask = mask[:, :-1, :-1]
     decoder.eval()
