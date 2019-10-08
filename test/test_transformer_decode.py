@@ -5,6 +5,7 @@ import torch
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
+
 @pytest.mark.parametrize("normalize_before", [True, False])
 def test_decoder_cache(normalize_before):
     adim = 4
