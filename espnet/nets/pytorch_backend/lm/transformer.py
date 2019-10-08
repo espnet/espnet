@@ -13,6 +13,15 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
+class Identity(nn.Module):
+    """Identity module for skip positional encoding."""
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x
+
+
 class TransformerLM(nn.Module, LMInterface):
     """Transformer language model."""
 
@@ -29,8 +38,8 @@ class TransformerLM(nn.Module, LMInterface):
                             help='Number of multi head attention')
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
-        parser.add_argument('--posenc-len', type=int, default=10000,
-                            help='Predefined length of positional encoding cache')
+        parser.add_argument('--pos-enc', default="sinusoid", choices=["sinusoid", "none"],
+                            help='dropout probability')
         return parser
 
     def __init__(self, n_vocab, args):
@@ -44,10 +53,17 @@ class TransformerLM(nn.Module, LMInterface):
         nn.Module.__init__(self)
         self.model_type = 'Transformer'
         self.src_mask = None
+        if args.pos_enc == "sinusoid":
+            pos_enc_class = PositionalEncoding
+        elif args.pos_enc == "none":
+            pos_enc_class = Identity
+        else:
+            raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
+
         self.encoder = Encoder(
             n_vocab, args.att_unit, args.head, args.unit, args.layer,
             args.dropout_rate, args.dropout_rate, args.dropout_rate,
-            input_layer="embed")
+            input_layer="embed", pos_enc_class=pos_enc_class)
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
     def _target_mask(self, ys_in_pad):
@@ -97,7 +113,7 @@ class TransformerLM(nn.Module, LMInterface):
 
         """
         y = y.unsqueeze(0)
-        h, _ = self.encoder(y, self._target_mask(y))
-        h = self.decoder(h)[:, -1]
+        h, _, cache = self.encoder.forward_one_step(y, self._target_mask(y), cache=state)
+        h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
-        return logp, None
+        return logp, cache

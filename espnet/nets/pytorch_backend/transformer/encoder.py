@@ -138,10 +138,10 @@ class Encoder(torch.nn.Module):
         else:
             xs = self.embed(xs)
         if cache is None:
-            cache = [None for _ in len(self.encoders)]
+            cache = [None for _ in range(len(self.encoders))]
         new_cache = []
         for c, e in zip(cache, self.encoders):
-            xs, masks = self.encoders(xs, masks, cache=c)
+            xs, masks = e(xs, masks, cache=c)
             new_cache.append(xs)
         if self.normalize_before:
             xs = self.after_norm(xs)
