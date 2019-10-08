@@ -657,8 +657,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            # z, cache = self.decoder.recognize(ys, y_masks, hs, cache=cache)  # (B, adim)
-            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            z, cache = self.decoder.recognize(ys, y_masks, hs, cache=cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
