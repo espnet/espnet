@@ -40,7 +40,8 @@ def test_decoder_cache(normalize_before):
         numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=1e-5)
 
 
-def test_encoder_cache():
+@pytest.mark.parametrize("normalize_before", [True, False])
+def test_encoder_cache(normalize_before):
     adim = 4
     idim = 5
     encoder = Encoder(
@@ -48,6 +49,7 @@ def test_encoder_cache():
         attention_dim=adim,
         linear_units=3,
         num_blocks=2,
+        normalize_before=normalize_before,
         dropout_rate=0.0,
         input_layer="embed")
     elayer = encoder.encoders[0]
@@ -80,7 +82,7 @@ if __name__ == "__main__":
 
     adim = 4
     odim = 5
-    model = "encoder"
+    model = "decoder"
     if model == "decoder":
         decoder = Decoder(
             odim=odim,
