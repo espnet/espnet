@@ -15,13 +15,16 @@ if [ "$1" == --remove-archive ]; then
 fi
 
 if [ $# -ne 2 ]; then
-  echo "Usage: $0 [--remove-archive] <data-base> <url>"
-  echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz"
+  echo "Usage: $0 [--remove-archive] <data-base> <url> <filename>"
+  echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz cv_corpus_v1.tar.gz"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
 fi
 
 data=$1
 url=$2
+filename=$3
+filepath="$data/$filename"
+workspace=$PWD
 
 if [ ! -d "$data" ]; then
   echo "$0: no such directory $data"
@@ -33,16 +36,11 @@ if [ -z "$url" ]; then
   exit 1;
 fi
 
-if [ -f $data/cv_corpus_v1/.complete ]; then
+if [ -f $data/$filename.complete ]; then
   echo "$0: data was already successfully extracted, nothing to do."
   exit 0;
 fi
 
-
-filename="cv_corpus_v1.tar.gz"
-filepath="$data/$filename"
-filesize="12852160484"
-workplace=$PWD
 
 if [ -f $filepath ]; then
   size=$(/bin/ls -l $filepath | awk '{print $5}')
@@ -69,6 +67,7 @@ if [ ! -f $filepath ]; then
     echo "$0: error executing wget $url"
     exit 1;
   fi
+  cd $workspace
 fi
 
 cd $data
@@ -80,7 +79,7 @@ fi
 
 cd $workspace
 
-touch $data/cv_corpus_v1/.complete
+touch $data/$filename.complete
 
 echo "$0: Successfully downloaded and un-tarred $filepath"
 
