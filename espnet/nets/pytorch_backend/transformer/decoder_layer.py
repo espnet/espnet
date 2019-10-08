@@ -57,6 +57,7 @@ class DecoderLayer(nn.Module):
             cache (torch.Tensor): cached output (batch, max_time_out-1, size)
 
         """
+        residual = tgt
         if self.normalize_before:
             tgt = self.norm1(tgt)
 
@@ -68,11 +69,11 @@ class DecoderLayer(nn.Module):
             assert cache.shape == (tgt.shape[0], tgt.shape[1] - 1, self.size), \
                 f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
             tgt_q = tgt[:, -1:, :]
+            residual = residual[:, -1:, :]
             tgt_q_mask = None
             if tgt_mask is not None:
                 tgt_q_mask = tgt_mask[:, -1:, :]
 
-        residual = tgt_q
         if self.concat_after:
             tgt_concat = torch.cat((tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_q_mask)), dim=-1)
             x = residual + self.concat_linear1(tgt_concat)
