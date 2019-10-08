@@ -221,14 +221,13 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
                     partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
                 else:
                     partial_state_dict = get_partial_asr_mt_state_dict(model_state_dict, modules)
-                    if partial_state_dict:
-                        if transfer_verification(main_state_dict, partial_state_dict,
-                                                 modules):
-                            logging.warning('loading %s from model: %s', modules, model_path)
-                            main_state_dict.update(partial_state_dict)
-                        else:
-                            logging.warning('modules %s in model %s don\'t match your training config',
-                                            modules, model_path)
+                if partial_state_dict:
+                    if transfer_verification(main_state_dict, partial_state_dict, modules):
+                        logging.warning('loading %s from model: %s', modules, model_path)
+                        main_state_dict.update(partial_state_dict)
+                    else:
+                        logging.warning('modules %s in model %s don\'t match your training config',
+                                        modules, model_path)
             else:
                 logging.warning('model was not found : %s', model_path)
 
