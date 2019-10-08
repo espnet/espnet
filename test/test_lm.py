@@ -72,7 +72,8 @@ def test_lm():
             ("default", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", Namespace(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
-            ("transformer", Namespace(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, posenc_len=10))
+            ("transformer", Namespace(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="sinusoid")),
+            ("transformer", Namespace(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="none"))
         )
         for device in ("cpu", "cuda")
         for dtype in ("float16", "float32", "float64")
