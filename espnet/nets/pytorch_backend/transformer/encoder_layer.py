@@ -43,16 +43,24 @@ class EncoderLayer(nn.Module):
         if self.concat_after:
             self.concat_linear = nn.Linear(size + size, size)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, cache=None):
         """Compute encoded features.
 
         :param torch.Tensor x: encoded source features (batch, max_time_in, size)
         :param torch.Tensor mask: mask for x (batch, max_time_in)
+        :param torch.Tensor cache: cache for x (batch, max_time_in - 1, size)
         :rtype: Tuple[torch.Tensor, torch.Tensor]
         """
-        residual = x
+        if cache is None:
+            x_q = x
+        else:
+            assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
+            x_q = x[:, -1:, :]
+            mask = None if mask is None else mask[:, -1:, :]
+
+        residual = x_q
         if self.normalize_before:
-            x = self.norm1(x)
+            x_q = self.norm1(x_q)
         if self.concat_after:
             x_concat = torch.cat((x, self.self_attn(x, x, x, mask)), dim=-1)
             x = residual + self.concat_linear(x_concat)
