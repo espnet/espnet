@@ -234,6 +234,9 @@ def get_parser(parser=None, required=True):
                         help='')
     parser.add_argument('--badim', type=int, default=320,
                         help='')
+    parser.add_argument('--bnmask', type=int, default=2,
+                        help='Number of beamforming masks, '
+                             'default is 2 for [speech, noise].')
     parser.add_argument('--ref-channel', type=int, default=-1,
                         help='The reference channel used for beamformer. '
                              'By default, the channel is estimated by DNN.')
