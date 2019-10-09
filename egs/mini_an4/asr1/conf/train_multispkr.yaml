@@ -1,0 +1,4 @@
+model-module: espnet.nets.pytorch_backend.e2e_asr_mix:E2E
+# encoder related
+num-spkrs: 2
+elayers-sd: 1
