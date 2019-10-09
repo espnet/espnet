@@ -307,10 +307,11 @@ class E2E(ASRInterface, torch.nn.Module):
                 # FIXME: jit does not match non-jit result
                 if use_jit:
                     if traced_decoder is None:
-                        traced_decoder = torch.jit.trace(self.decoder.recognize, (ys, ys_mask, enc_output))
-                    local_att_scores = traced_decoder(ys, ys_mask, enc_output)
+                        traced_decoder = torch.jit.trace(self.decoder.forward_one_step,
+                                                         (ys, ys_mask, enc_output))
+                    local_att_scores = traced_decoder(ys, ys_mask, enc_output)[0]
                 else:
-                    local_att_scores = self.decoder.recognize(ys, ys_mask, enc_output)
+                    local_att_scores = self.decoder.forward_one_step(ys, ys_mask, enc_output)[0]
 
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)

@@ -650,13 +650,14 @@ class Transformer(TTSInterface, torch.nn.Module):
         outs, probs = [], []
 
         # forward decoder step-by-step
+        z_cache = self.decoder.init_state(x)
         while True:
             # update index
             idx += 1
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, cache=z_cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
