@@ -33,10 +33,6 @@ tgt_case=lc.rm
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
-# bpemode (unigram or bpe)
-nbpe=5000
-bpemode=bpe
-
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -49,7 +45,6 @@ set -u
 set -o pipefail
 
 train_set=train.en
-train_set_prefix=train
 train_dev=dev.en
 recog_set=test.jp
 
@@ -99,10 +94,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm.prev
 
             # Fill empty spaces
-            cat ${dst}/${lang}.norm.lc.rm.prev | awk '{if(length($0)==0) {print "<NOISE>"} else print $0 }' > ${dst}/${lang}.norm.lc.rm.org
+            < ${dst}/${lang}.norm.lc.rm.prev awk '{if(length($0)==0) {print "<NOISE>"} else print $0 }' > ${dst}/${lang}.norm.lc.rm.org
 
             # apply name
-            cat ${dst}/${lang}.norm.lc.rm.org | awk '{print toupper("'${x}'-")NR " " $0}' >  ${dst}/${lang}.norm.lc.rm
+            < ${dst}/${lang}.norm.lc.rm.org awk '{print toupper("'${x}'-")NR " " $0}' >  ${dst}/${lang}.norm.lc.rm
 
             mkdir -p data/${x}.${lang}
             cp ${dst}/${lang}.norm.lc.rm data/${x}.${lang}/text.lc.rm
@@ -129,13 +124,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make a target dictionary"
     echo "<unk> 1" > ${dict_tgt} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set}.jp/text.${tgt_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}.jp/text.${tgt_case} | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_tgt}
     wc -l ${dict_tgt}
 
     echo "make a source dictionary"
     echo "<unk> 1" > ${dict_src} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set}.en/text.${src_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}.en/text.${src_case} | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_src}
     wc -l ${dict_src}
 
