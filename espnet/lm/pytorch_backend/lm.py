@@ -28,6 +28,8 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
+from espnet.nets.pytorch_backend.scheduler import PyTorchScheduler
+from espnet.nets.scheduler_interface import dynamic_import_scheduler
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -84,13 +86,14 @@ def concat_examples(batch, device=None, padding=None):
 class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM."""
 
-    def __init__(self, train_iter, model, optimizer, device, gradclip=None, use_apex=False):
+    def __init__(self, train_iter, model, optimizer, scheduler, device, gradclip=None, use_apex=False):
         """Initialize class.
 
         Args:
             train_iter (chainer.dataset.Iterator): The train iterator
             model (LMInterface) : The model to update
             optimizer (torch.optim.Optimizer): The optimizer for training
+            scheduler (espnet.nets.pytorch_backend.scheduler.SchedulerInterface): The learning rate scheduler
             device (int): The device id
             gradclip (float): The gradient clipping value to use
             use_apex (bool): The flag to use Apex in backprop.
@@ -101,6 +104,7 @@ class BPTTUpdater(training.StandardUpdater):
         self.device = device
         self.gradclip = gradclip
         self.use_apex = use_apex
+        self.scheduler = PyTorchScheduler(scheduler, optimizer)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -134,6 +138,7 @@ class BPTTUpdater(training.StandardUpdater):
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
+        self.scheduler.step(n_iter=self.iteration)
 
 
 class LMEvaluator(BaseEvaluator):
@@ -246,6 +251,8 @@ def train(args):
         optimizer = torch.optim.SGD(model.parameters(), lr=1.0 if args.lr is None else args.lr)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3 if args.lr is None else args.lr)
+    scheduler_class = dynamic_import_scheduler(args.scheduler)
+    scheduler = scheduler_class(args)
 
     # setup apex.amp
     if args.train_dtype in ("O0", "O1", "O2", "O3"):
@@ -266,7 +273,7 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
-    updater = BPTTUpdater(train_iter, model, optimizer, gpu_id,
+    updater = BPTTUpdater(train_iter, model, optimizer, scheduler, gpu_id,
                           gradclip=args.gradclip, use_apex=use_apex)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))

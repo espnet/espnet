@@ -21,6 +21,7 @@ import subprocess
 import sys
 
 from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.nets.scheduler_interface import dynamic_import_scheduler
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -75,6 +76,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
+    parser.add_argument('--scheduler', default='none', type=str,
+                        help='Learning rate scheduler.')
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batchsize', '-b', type=int, default=300,
@@ -110,7 +113,12 @@ def main(cmd_args):
     # parse model-specific arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
+    # parse scheduler-specific arguments dynamically
+    scheduler_class = dynamic_import_scheduler(args.scheduler)
+    scheduler_class.add_arguments(parser)
+
     args = parser.parse_args(cmd_args)
+
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
