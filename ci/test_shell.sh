@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [ ! -e tools/kaldi ]; then
+    git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
+fi
+
 PATH=$(pwd)/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
