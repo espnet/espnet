@@ -24,12 +24,13 @@ from espnet.nets.lm_interface import dynamic_import_lm
 
 
 # NOTE: you need this func to generate our sphinx doc
-def get_parser():
+def get_parser(parser=None, required=True):
     """Get parser."""
-    parser = configargparse.ArgumentParser(
-        description='Train a new language model on one CPU or one GPU',
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    if parser is None:
+        parser = configargparse.ArgumentParser(
+            description='Train a new language model on one CPU or one GPU',
+            config_file_parser_class=configargparse.YAMLConfigFileParser,
+            formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,
@@ -46,11 +47,11 @@ def get_parser():
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
+    parser.add_argument('--outdir', type=str, required=required,
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', type=str, required=True,
+    parser.add_argument('--dict', type=str, required=required,
                         help='Dictionary')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
@@ -62,9 +63,9 @@ def get_parser():
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
     # task related
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--train-label', type=str, required=required,
                         help='Filename of train label data')
-    parser.add_argument('--valid-label', type=str, required=True,
+    parser.add_argument('--valid-label', type=str, required=required,
                         help='Filename of validation label data')
     parser.add_argument('--test-label', type=str,
                         help='Filename of test label data')
@@ -84,6 +85,8 @@ def get_parser():
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
+    parser.add_argument('--lr', type=float, default=None,
+                        help='Learning rate')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,

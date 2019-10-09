@@ -243,9 +243,9 @@ def train(args):
 
     # Set up an optimizer
     if args.opt == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+        optimizer = torch.optim.SGD(model.parameters(), lr=1.0 if args.lr is None else args.lr)
     elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3 if args.lr is None else args.lr)
 
     # setup apex.amp
     if args.train_dtype in ("O0", "O1", "O2", "O3"):

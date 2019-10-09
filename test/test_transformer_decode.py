@@ -53,8 +53,6 @@ def test_encoder_cache(normalize_before):
         dropout_rate=0.0,
         input_layer="embed")
     elayer = encoder.encoders[0]
-    memory = torch.randn(2, 5, adim)
-
     x = torch.randn(2, 5, adim)
     mask = subsequent_mask(x.shape[1]).unsqueeze(0)
     prev_mask = mask[:, :-1, :-1]
