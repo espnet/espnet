@@ -13,14 +13,6 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
-class _Identity(nn.Module):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x
-
-
 class TransformerLM(nn.Module, LMInterface):
     """Transformer language model."""
 
@@ -55,19 +47,20 @@ class TransformerLM(nn.Module, LMInterface):
         if args.pos_enc == "sinusoidal":
             pos_enc_class = PositionalEncoding
         elif args.pos_enc == "none":
-            pos_enc_class = _Identity
+            def pos_enc_class(*args, **kwargs):
+                return nn.Sequential()
         else:
             raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
 
-        # self.embed = nn.Embedding(n_vocab, args.embed_unit)
+        self.embed = nn.Embedding(n_vocab, args.embed_unit)
         self.encoder = Encoder(
-            idim=n_vocab,       # args.embed_unit,
+            idim=args.embed_unit,
             attention_dim=args.att_unit,
             attention_heads=args.head,
             linear_units=args.unit,
             num_blocks=args.layer,
             dropout_rate=args.dropout_rate,
-            input_layer="embed",
+            input_layer="linear",
             pos_enc_class=pos_enc_class)
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
@@ -93,9 +86,9 @@ class TransformerLM(nn.Module, LMInterface):
             The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
 
         """
+        assert x.dtype == torch.int64
         xm = (x != 0)
-        # x = self.embed(x)
-        h, _ = self.encoder(x, self._target_mask(x))
+        h, _ = self.encoder(self.embed(x), self._target_mask(x))
         y = self.decoder(h)
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         mask = xm.to(dtype=loss.dtype)
@@ -119,8 +112,7 @@ class TransformerLM(nn.Module, LMInterface):
 
         """
         y = y.unsqueeze(0)
-        # y = self.embed(y)
-        h, _, cache = self.encoder.forward_one_step(y, self._target_mask(y), cache=state)
+        h, _, cache = self.encoder.forward_one_step(self.embed(y), self._target_mask(y), cache=state)
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
         return logp, cache

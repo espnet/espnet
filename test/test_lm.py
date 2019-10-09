@@ -70,8 +70,8 @@ def test_lm():
             ("default", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
-            ("transformer", dict(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, embed_unit=3)),
-            ("transformer", dict(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="none", embed_unit=3))
+            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, embed_unit=3)),
+            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="none", embed_unit=3))
         )
         for device in ("cpu", "cuda")
         for dtype in ("float16", "float32", "float64")
