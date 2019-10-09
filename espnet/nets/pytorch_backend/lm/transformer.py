@@ -48,7 +48,7 @@ class TransformerLM(nn.Module, LMInterface):
             pos_enc_class = PositionalEncoding
         elif args.pos_enc == "none":
             def pos_enc_class(*args, **kwargs):
-                return nn.Sequential()
+                return nn.Sequential()  # indentity
         else:
             raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
 
@@ -86,7 +86,6 @@ class TransformerLM(nn.Module, LMInterface):
             The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
 
         """
-        assert x.dtype == torch.int64
         xm = (x != 0)
         h, _ = self.encoder(self.embed(x), self._target_mask(x))
         y = self.decoder(h)
