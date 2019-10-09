@@ -164,24 +164,26 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=$(basename ${lm_config%.*})
 fi
-lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}_ngpu${ngpu}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
-    mkdir -p ${lmdatadir}
     # use external data
     if [ ! -e data/local/lm_train/librispeech-lm-norm.txt.gz ]; then
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/lm_train/
     fi
-    cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
-    # combine external text and transcriptions and shuffle them with seed 777
-    zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
-        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
-    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
+    if [ ! -e ${lmdatadir} ]; then
+        mkdir -p ${lmdatadir}
+        cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
+        # combine external text and transcriptions and shuffle them with seed 777
+        zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
+            spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+                                                            > ${lmdatadir}/valid.txt
+    fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --config ${lm_config} \
