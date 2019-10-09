@@ -116,6 +116,9 @@ def make_feedforward_transformer_args(**kwargs):
         duration_predictor_dropout_rate=0.1,
         positionwise_layer_type="linear",
         positionwise_conv_kernel_size=1,
+        postnet_layers=0,
+        postnet_filts=5,
+        postnet_chans=32,
         transformer_enc_dropout_rate=0.1,
         transformer_enc_positional_dropout_rate=0.1,
         transformer_enc_attn_dropout_rate=0.0,
@@ -159,6 +162,7 @@ def make_feedforward_transformer_args(**kwargs):
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
         ({"transfer_encoder_from_teacher": True}),
         ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ({"postnet_layers": 2}),
     ])
 def test_fastspeech_trainable_and_decodable(model_dict):
     # make args
