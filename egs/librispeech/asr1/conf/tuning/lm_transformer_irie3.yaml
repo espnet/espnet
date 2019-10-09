@@ -1,0 +1,16 @@
+# https://arxiv.org/pdf/1905.04226.pdf
+layer: 12
+pos-enc: none
+head: 8
+dropout-rate: 0.0
+embed-unit: 128
+att-unit: 512
+unit: 2048
+opt: sgd
+lr: 0.1
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+batchsize: 32
+epoch: 100
+patience: 0
+maxlen: 40
+model-module: transformer
