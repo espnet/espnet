@@ -15,6 +15,7 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictorLoss
@@ -65,6 +66,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Positionwise layer type.")
         group.add_argument("--positionwise-conv-kernel-size", default=3, type=int,
                            help="Kernel size of positionwise conv1d layer")
+        group.add_argument("--postnet-layers", default=0, type=int,
+                           help="Number of postnet layers")
+        group.add_argument("--postnet-chans", default=256, type=int,
+                           help="Number of postnet channels")
+        group.add_argument("--postnet-filts", default=5, type=int,
+                           help="Filter size of postnet")
+        group.add_argument("--use-batch-norm", default=True, type=strtobool,
+                           help="Whether to use batch normalization")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
                            help="Use trainable scaled positional encoding instead of the fixed scale one")
         group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
@@ -119,6 +128,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate for transformer encoder-decoder attention")
         group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for duration predictor")
+        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
+                           help="Dropout rate in postnet")
         group.add_argument("--transfer-encoder-from-teacher", default=True, type=strtobool,
                            help="Whether to transfer teacher's parameters")
         group.add_argument("--transferred-encoder-module", default="all", type=str,
@@ -260,6 +271,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
+        # define postnet
+        self.postnet = None if args.postnet_layers == 0 else Postnet(
+            idim=idim,
+            odim=odim,
+            n_layers=args.postnet_layers,
+            n_chans=args.postnet_chans,
+            n_filts=args.postnet_filts,
+            use_batch_norm=args.use_batch_norm,
+            dropout_rate=args.postnet_dropout_rate
+        )
+
         # initialize parameters
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
@@ -284,7 +306,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
         # TODO(kan-bayashi): support knowledge distillation loss
-        self.criterion = torch.nn.L1Loss()
+        # self.criterion = torch.nn.L1Loss()
 
     def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
         # forward encoder
@@ -312,12 +334,18 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        # postnet -> (B, Lmax//r * r, odim)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         if is_inference:
-            return outs
+            return before_outs, after_outs
         else:
-            return outs, ds, d_outs
+            return before_outs, after_outs, ds, d_outs
 
     def forward(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
@@ -338,7 +366,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         ys = ys[:, :max(olens)]
 
         # forward propagation
-        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+        before_outs, after_outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
 
         # apply mask to remove padded part
         if self.use_masking:
@@ -346,11 +374,12 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             d_outs = d_outs.masked_select(in_masks)
             ds = ds.masked_select(in_masks)
             out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            outs = outs.masked_select(out_masks)
+            before_outs = before_outs.masked_select(out_masks)
+            after_outs = after_outs.masked_select(out_masks)
             ys = ys.masked_select(out_masks)
 
         # calculate loss
-        l1_loss = self.criterion(outs, ys)
+        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         duration_loss = self.duration_criterion(d_outs, ds)
         loss = l1_loss + duration_loss
         report_keys = [
@@ -434,7 +463,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spembs = None
 
         # inference
-        outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)[0]  # (L, odim)
+        _, outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (L, odim)
 
         return outs, None, None
 
