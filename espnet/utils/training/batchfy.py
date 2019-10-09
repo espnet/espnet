@@ -20,7 +20,8 @@ def batchfy_by_seq(
     :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
     :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
     :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
-    :param int oaxis: dimension to access input (for ASR, TTS, MT iaxis=0, reserved for future research.)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
+                      -1 means all axis.)
 
     :return: List[List[Tuple[str, dict]]] list of batches
     """
@@ -37,7 +38,7 @@ def batchfy_by_seq(
     while True:
         _, info = sorted_data[start]
         ilen = int(info[ikey][iaxis]['shape'][0])
-        olen = int(info[okey][oaxis]['shape'][0])
+        olen = int(info[okey][oaxis]['shape'][0]) if oaxis >= 0 else max(map(lambda x: int(x['shape'][0]), info[okey]))
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -259,7 +260,8 @@ BATCH_SORT_KEY_CHOICES = ["input", "output", "shuffle"]
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
                   num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input",
                   swap_io=False, mt=False, count="auto",
-                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
+                  batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0,
+                  iaxis=0, oaxis=0):
     """Make batch set from json dictionary
 
     if utts have "category" value,
@@ -292,6 +294,9 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
     :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
     :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
     :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
+                      -1 means all axis.)
     """
 
     # check args
@@ -302,7 +307,6 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
 
     # TODO(karita): remove this by creating converter from ASR to TTS json format
     batch_sort_axis = 0
-    iaxis, oaxis = 0, 0
     if swap_io:
         # for TTS
         ikey = "output"
@@ -317,7 +321,8 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
         okey = "output"
         batch_sort_key = "output"
         batch_sort_axis = 1
-        iaxis = 1
+        assert iaxis == 1
+        assert oaxis == 0
         # NOTE: input is json['output'][1] and output is json['output'][0]
     else:
         ikey = "input"

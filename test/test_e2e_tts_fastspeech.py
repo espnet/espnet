@@ -24,10 +24,10 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
                    device=torch.device('cpu')):
-    ilens = torch.LongTensor(ilens).to(device)
-    olens = torch.LongTensor(olens).to(device)
     xs = [np.random.randint(0, idim, l) for l in ilens]
     ys = [np.random.randn(l, odim) for l in olens]
+    ilens = torch.LongTensor(ilens).to(device)
+    olens = torch.LongTensor(olens).to(device)
     xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
     ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
     labels = ys.new_zeros(ys.size(0), ys.size(1))

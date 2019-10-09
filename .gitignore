@@ -38,10 +38,12 @@ egs/*/*/tensorboard
 egs/*/*/wav*
 
 # tools related
+tools/bin
+tools/include
+tools/lib
 tools/bats-core
 tools/chainer_ctc/
 tools/kaldi*
-tools/mecab/
 tools/miniconda.sh
 tools/moses/
 tools/mwerSegmenter/
@@ -53,3 +55,6 @@ tools/warp-ctc/
 tools/warp-transducer/
 tools/*.done
 tools/PESQ*
+tools/hts_engine_API*
+tools/open_jtalk*
+tools/pyopenjtalk*
