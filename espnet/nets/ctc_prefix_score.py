@@ -45,12 +45,15 @@ class CTCPrefixScoreTH(object):
             if l < self.input_length:
                 x[i, l:, :] = self.logzero
                 x[i, l:, blank] = 0
-        # Expand input posteriors for fast computation
+        # Set the number of scoring hypotheses (scoring_num=0 means all)
         self.scoring_num = int(beam * scoring_ratio)
-        if self.scoring_num > 0 and self.scoring_num < self.odim:
-            xn = x.transpose(0, 1)
-        else:
+        if self.scoring_num >= self.odim:
+            self.scoring_num = 0
+        # Expand input posteriors for fast computation
+        if self.scoring_num == 0:
             xn = x.transpose(0, 1).unsqueeze(2).repeat(1, 1, beam, 1).view(-1, self.n_bb, self.odim)
+        else:
+            xn = x.transpose(0, 1)
         xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
         self.x = torch.stack([xn, xb])  # (2, T, B, O) or (2, T, BW, O)
         # Setup CTC windowing
