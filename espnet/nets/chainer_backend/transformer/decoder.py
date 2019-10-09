@@ -9,6 +9,7 @@ import chainer.links as L
 from espnet.nets.chainer_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.chainer_backend.transformer.mask import make_history_mask
 
 import numpy as np
 
@@ -67,22 +68,6 @@ class Decoder(chainer.Chain):
         # (batch, source_length, target_length)
         return mask
 
-    def make_history_mask(self, block):
-        """Prepare the history mask.
-
-        Args:
-            block (ndarray): Block with dimensions: (B x S).
-        Returns:
-            ndarray, np.ndarray: History mask with dimensions (B, S, S).
-
-        """
-        batch, length = block.shape
-        arange = self.xp.arange(length)
-        history_mask = (arange[None, ] <= arange[:, None])[None, ]
-        history_mask = self.xp.broadcast_to(
-            history_mask, (batch, length, length))
-        return history_mask
-
     def forward(self, ys_pad, source, x_mask):
         """Forward decoder.
 
@@ -101,7 +86,7 @@ class Decoder(chainer.Chain):
         # mask preparation
         xy_mask = self.make_attention_mask(e, xp.array(x_mask))
         yy_mask = self.make_attention_mask(e, e)
-        yy_mask *= self.make_history_mask(e)
+        yy_mask *= make_history_mask(xp, e)
 
         e = self.pe(self.embed(e))
         batch, length, dims = e.shape
