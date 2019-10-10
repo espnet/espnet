@@ -1,6 +1,6 @@
 """PyTorch LR schdulers."""
 
-from typing import Dict
+from typing import List
 
 from torch.optim import Optimizer
 
@@ -10,16 +10,16 @@ from espnet.scheduler.scaler import ScalerInterface
 class PyTorchScheduler:
     """PyTorch lr scheduler."""
 
-    def __init__(self, scaler_dict: Dict[str, ScalerInterface], optimizer: Optimizer):
+    def __init__(self, scalers: List[ScalerInterface], optimizer: Optimizer):
         """Initialize class."""
-        self.scaler_dict = scaler_dict
+        self.scalers = scalers
         self.optimizer = optimizer
-        for k in self.scaler_dict.keys():
+        for s in self.scalers:
             for group in optimizer.param_groups:
-                group.setdefault("initial_" + k, group[k])
+                group.setdefault("initial_" + s.key, group[s.key])
 
     def step(self, n_iter: int):
         """Update optimizer by scheduling."""
-        for k, scaler in self.scaler_dict.items():
+        for s in self.scalers:
             for group in self.optimizer.param_groups:
-                group[k] = group["initial_" + k] * scaler.scale(n_iter)
+                group[s.key] = group["initial_" + s.key] * s.scale(n_iter)
