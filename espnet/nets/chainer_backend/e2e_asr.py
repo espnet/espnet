@@ -13,7 +13,7 @@ import chainer
 from chainer import reporter
 import numpy as np
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
 from espnet.nets.chainer_backend.ctc import ctc_for
 from espnet.nets.chainer_backend.rnn.attentions import att_for
 from espnet.nets.chainer_backend.rnn.decoders import decoder_for
@@ -24,7 +24,7 @@ from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
 CTC_LOSS_THRESHOLD = 10000
 
 
-class E2E(ASRInterface, chainer.Chain):
+class E2E(ChainerASRInterface, chainer.Chain):
     """E2E module for chainer backend.
 
     Args:
