@@ -22,6 +22,7 @@ import sys
 
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.scheduler.scaler import dynamic_import_scaler
+from espnet.optimizer.adaptor import dynamic_import_optimizer
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -74,7 +75,6 @@ def get_parser(parser=None, required=True):
                         help='Path to dump a preprocessed dataset as hdf5')
     # training configuration
     parser.add_argument('--opt', default='sgd', type=str,
-                        choices=['sgd', 'adam'],
                         help='Optimizer')
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
@@ -88,12 +88,8 @@ def get_parser(parser=None, required=True):
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
-    parser.add_argument('--lr', type=float, default=None,
-                        help='Learning rate')
     parser.add_argument('--scalers', default=None, action="append", type=lambda kv: kv.split("="),
                         help='optimizer schedulers, e.g., "--scalers lr=noam --lr-noam-warmup 1000".')
-    parser.add_argument('--weight-decay', type=float, default=0.0,
-                        help='Weight decay.')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
@@ -114,20 +110,27 @@ def main(cmd_args):
     if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
         raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
-    # parse model-specific arguments dynamically
+    # parse arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
     if args.backend == "chainer":
+        # TODO(karita): implement these features
         if args.scalers is not None:
-            raise NotImplementedError("chainer does not support --scalers option.")
-        if args.accum_grad > 1:
-            raise NotImplementedError("chainer does not support --accum-grad x > 1 option.")
+            raise NotImplementedError(f"chainer does not support --scalers {args.scalers}.")
+        if args.accum_grad != 1:
+            raise NotImplementedError(f"chainer does not support --accum-grad {args.accum_grad}.")
+        if args.opt not in ("adam", "sgd"):
+            raise NotImplementedError(f"chainer does not support --opt {args.opt}.")
 
     if args.scalers is not None:
-        # parse scheduler-specific arguments dynamically
         for k, v in args.scalers:
             scaler_class = dynamic_import_scaler(v)
             scaler_class.add_arguments(k, parser)
+
+    # TODO(karita): support chainer
+    if args.backend != "chainer":
+        opt_class = dynamic_import_optimizer(args.opt, args.backend)
+        opt_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
 
