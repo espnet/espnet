@@ -175,8 +175,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
-        --dict-src ${dict_src} \
-        --dict-tgt ${dict_tgt} \
+        --dict ${dict_tgt} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --seed ${seed} \
