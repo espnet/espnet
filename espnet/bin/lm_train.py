@@ -117,10 +117,14 @@ def main(cmd_args):
     # parse model-specific arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
-    # parse scheduler-specific arguments dynamically
-    if args.scalers is not None:
-        if args.backend == "chainer":
+    if args.backend == "chainer":
+        if args.scalers is not None:
             raise NotImplementedError("chainer does not support --scalers option.")
+        if args.accum_grad > 1:
+            raise NotImplementedError("chainer does not support --accum-grad x > 1 option.")
+
+    if args.scalers is not None:
+        # parse scheduler-specific arguments dynamically
         for k, v in args.scalers:
             scaler_class = dynamic_import_scaler(v)
             scaler_class.add_arguments(k, parser)
