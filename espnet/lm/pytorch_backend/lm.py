@@ -28,9 +28,9 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
+from espnet.optimizer.dynamic_import import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler.scaler import dynamic_import_scaler
-from espnet.optimizer.adaptor import dynamic_import_optimizer
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load

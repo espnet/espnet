@@ -21,8 +21,8 @@ import subprocess
 import sys
 
 from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.optimizer.dynamic_import import dynamic_import_optimizer
 from espnet.scheduler.scaler import dynamic_import_scaler
-from espnet.optimizer.adaptor import dynamic_import_optimizer
 
 
 # NOTE: you need this func to generate our sphinx doc

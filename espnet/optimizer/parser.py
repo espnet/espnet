@@ -5,6 +5,7 @@ OPTIMIZER_PARSER_DICT = {}
 
 
 def register_parser(func):
+    """Register arg parser."""
     OPTIMIZER_PARSER_DICT[func.__name__] = func
     return func
 
