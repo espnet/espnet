@@ -246,6 +246,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
         count = 0
         sum_loss = 0
+        optimizer.target.cleargrads()  # Clear the parameter gradients
         for _ in range(self.accum_grad):
             # Progress the dataset iterator for sentences at each iteration.
             batch = train_iter.__next__()
@@ -264,16 +265,15 @@ class BPTTUpdater(training.updaters.StandardUpdater):
                 non_zeros = xp.count_nonzero(x[:, i])
                 loss += loss_batch * non_zeros
                 count += int(non_zeros)
-
-            # update
+            # backward
             loss /= batch_size * self.accum_grad  # normalized by batch size
             sum_loss += float(loss.data)
-            optimizer.target.cleargrads()  # Clear the parameter gradients
             loss.backward()  # Backprop
             loss.unchain_backward()  # Truncate the graph
 
         reporter.report({'loss': sum_loss}, optimizer.target)
         reporter.report({'count': count}, optimizer.target)
+        # update
         optimizer.update()  # Update the parameters
         self.scheduler.step(self.iteration)
 
@@ -355,8 +355,9 @@ def train(args):
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    epoch_iters = int(len(train_iter.batch_indices) / args.accum_grad)
+    logging.info('#iterations per epoch = %d' % epoch_iters)
+    logging.info('#total iterations = ' + str(args.epoch * epoch_iters))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
