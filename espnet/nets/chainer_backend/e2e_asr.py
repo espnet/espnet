@@ -201,3 +201,23 @@ class E2E(ASRInterface, chainer.Chain):
         att_ws = self.dec.calculate_all_attentions(hs, ys)
 
         return att_ws
+
+    @staticmethod
+    def custom_converter(subsampling_factor=0):
+        """Get customconverter of the model."""
+        from espnet.nets.chainer_backend.rnn.training import CustomConverter
+        return CustomConverter(subsampling_factor=subsampling_factor)
+
+    @staticmethod
+    def custom_updater(iters, optimizer, converter, device=-1, accum_grad=1):
+        """Get custom_updater of the model."""
+        from espnet.nets.chainer_backend.rnn.training import CustomUpdater
+        return CustomUpdater(
+            iters, optimizer, converter=converter, device=device, accum_grad=accum_grad)
+
+    @staticmethod
+    def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
+        """Get custom_parallel_updater of the model."""
+        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+        return CustomParallelUpdater(
+            iters, optimizer, converter=converter, devices=devices, accum_grad=accum_grad)

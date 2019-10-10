@@ -506,3 +506,23 @@ class E2E(ASRInterface, chainer.Chain):
 
         """
         return PlotAttentionReport
+
+    @staticmethod
+    def custom_converter(subsampling_factor=0):
+        """Get customconverter of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomConverter
+        return CustomConverter()
+
+    @staticmethod
+    def custom_updater(iters, optimizer, converter, device=-1, accum_grad=1):
+        """Get custom_updater of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomUpdater
+        return CustomUpdater(
+            iters, optimizer, converter=converter, device=device, accum_grad=accum_grad)
+
+    @staticmethod
+    def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
+        """Get custom_parallel_updater of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomParallelUpdater
+        return CustomParallelUpdater(
+            iters, optimizer, converter=converter, devices=devices, accum_grad=accum_grad)
