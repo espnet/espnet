@@ -30,6 +30,7 @@ from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler.scaler import dynamic_import_scaler
+from espnet.optimizer.adaptor import dynamic_import_optimizer
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -95,7 +96,6 @@ class BPTTUpdater(training.StandardUpdater):
             model (LMInterface) : The model to update
             optimizer (torch.optim.Optimizer): The optimizer for training
             scalers (espnet.scheduler.scaler.ScalerInterface): The scalers of `optimizer`
-            scheduler (espnet.nets.pytorch_backend.scheduler.SchedulerInterface): The learning rate scheduler
             device (int): The device id
             gradclip (float): The gradient clipping value to use
             use_apex (bool): The flag to use Apex in backprop.
@@ -140,7 +140,7 @@ class BPTTUpdater(training.StandardUpdater):
                     scaled_loss.backward()
             else:
                 loss.backward()  # Backprop
-            # accum
+            # accumulate stats
             accum["loss"] += float(loss)
             accum["nll"] += float(nll.sum())
             accum["count"] += int(count.sum())
@@ -259,12 +259,8 @@ def train(args):
         f.write(json.dumps(vars(args), indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
-    if args.opt == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=1.0 if args.lr is None else args.lr,
-                                    weight_decay=args.weight_decay)
-    elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3 if args.lr is None else args.lr,
-                                     weight_decay=args.weight_decay)
+    opt_class = dynamic_import_optimizer(args.opt, args.backend)
+    optimizer = opt_class(args, parameters=model.parameters())
     if args.scalers is None:
         scalers = []
     else:
