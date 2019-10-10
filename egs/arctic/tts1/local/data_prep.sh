@@ -3,8 +3,6 @@
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. utils/parse_options.sh || exit 1
-
 db=$1
 spk=$2
 data_dir=$3
@@ -64,19 +62,19 @@ echo "Successfully finished making text."
 find ${db}/cmu_us_${spk}_arctic/lab -name "*.lab" -follow | sort | while read -r filename; do
     # get start time
     while read line; do
-        start=$(echo ${line} | cut -d " " -f 1)
         phn=$(echo ${line} | cut -d " " -f 3)
         if [ ${phn} != "pau" ]; then
             break
         fi
+        start=$(echo ${line} | cut -d " " -f 1)
     done < <(tail -n +2 $filename)
     # get end time
     while read line; do
-        end=$(echo ${line} | cut -d " " -f 1)
         phn=$(echo ${line} | cut -d " " -f 3)
         if [ ${phn} != "pau" ]; then
             break
         fi
+        end=$(echo ${line} | cut -d " " -f 1)
     done < <(tail -n +2 $filename | tac)
     echo "${spk}_$(basename ${filename} .lab) ${spk}_$(basename ${filename} .lab) ${start} ${end}" >> ${segments}
 done
