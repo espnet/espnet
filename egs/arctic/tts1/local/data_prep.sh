@@ -70,11 +70,11 @@ find ${db}/cmu_us_${spk}_arctic/lab -name "*.lab" -follow | sort | while read -r
     done < <(tail -n +2 $filename)
     # get end time
     while read line; do
+        end=$(echo ${line} | cut -d " " -f 1)
         phn=$(echo ${line} | cut -d " " -f 3)
         if [ ${phn} != "pau" ]; then
             break
         fi
-        end=$(echo ${line} | cut -d " " -f 1)
     done < <(tail -n +2 $filename | tac)
     echo "${spk}_$(basename ${filename} .lab) ${spk}_$(basename ${filename} .lab) ${start} ${end}" >> ${segments}
 done
