@@ -11,6 +11,13 @@ if (@ARGV != 3) {
   exit(1);
 }
 
+# use ffmpeg for mp3 to wav
+if (length(`which ffmpeg`) == 0) {
+  print "Please install 'ffmpeg' on All worker nodes!\n";
+  exit 1;
+}
+
+
 ($db_base, $dataset, $out_dir) = @ARGV;
 mkdir data unless -d data;
 mkdir $out_dir unless -d $out_dir;
