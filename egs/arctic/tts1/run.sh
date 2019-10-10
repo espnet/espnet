@@ -134,8 +134,8 @@ fi
 
 # add pretrained model info in config
 pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "model*.best" | head -n 1)
-train_config=$(change_yaml.py -a pretrained-model=${pretrained_model_path} \
-    -o conf/$(basename ${train_config} .yaml).${pretrained_model}.yaml ${train_config})
+train_config="$(change_yaml.py -a pretrained-model="${pretrained_model_path}" \
+    -o "conf/$(basename "${train_config}" .yaml).${pretrained_model}.yaml" "${train_config}")"
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
