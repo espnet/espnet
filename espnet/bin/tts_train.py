@@ -3,16 +3,16 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""TTS training script."""
+"""Text-to-speech model training script."""
 
-
-import configargparse
 import logging
+import multiprocessing as mp
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.nets.tts_interface import TTSInterface
@@ -180,4 +180,5 @@ def main(cmd_args):
 
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn')
     main(sys.argv[1:])
