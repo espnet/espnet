@@ -1,6 +1,8 @@
+from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler import scaler
 
+import chainer
 import numpy
 import pytest
 import torch
@@ -26,4 +28,18 @@ def test_pytorch_scheduler():
 
     scheduler.step(warmup)
     for g in o.param_groups:
-        numpy.testing.assert_allclose(g["initial_lr"], g["lr"], rtol=1e-4)
+        numpy.testing.assert_allclose(g["lr"], 1.0, rtol=1e-4)
+
+
+def test_chainer_scheduler():
+    warmup = 30000
+    s = scaler.NoamScaler.build("lr", warmup=warmup)
+    net = chainer.links.Linear(2, 1)
+    o = chainer.optimizers.SGD(lr=1.0)
+    o.setup(net)
+    scheduler = ChainerScheduler([s], o)
+    scheduler.step(0)
+    assert o.lr == s.scale(0)
+
+    scheduler.step(warmup)
+    numpy.testing.assert_allclose(o.lr, 1.0, rtol=1e-4)
