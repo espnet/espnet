@@ -6,13 +6,14 @@
 
 """End-to-end speech recognition model training script."""
 
-import configargparse
 import logging
+import multiprocessing as mp
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
@@ -359,4 +360,5 @@ def main(cmd_args):
 
 
 if __name__ == '__main__':
+    mp.set_start_method('spawn')
     main(sys.argv[1:])
