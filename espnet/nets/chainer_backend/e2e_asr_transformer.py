@@ -13,7 +13,7 @@ from chainer import reporter
 
 import chainer.functions as F
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
 from espnet.nets.chainer_backend.transformer import ctc
 
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
@@ -27,7 +27,7 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
-class E2E(ASRInterface, chainer.Chain):
+class E2E(ChainerASRInterface, chainer.Chain):
     """E2E module.
 
     Args:
