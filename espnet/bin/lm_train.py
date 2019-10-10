@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.optimizer.dynamic_import import dynamic_import_optimizer
+from espnet.optimizer.adaptor import dynamic_import_optimizer
 from espnet.scheduler.scaler import dynamic_import_scaler
 
 
@@ -113,24 +113,13 @@ def main(cmd_args):
     # parse arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
-    if args.backend == "chainer":
-        # TODO(karita): implement these features
-        if args.scalers is not None:
-            raise NotImplementedError(f"chainer does not support --scalers {args.scalers}.")
-        if args.accum_grad != 1:
-            raise NotImplementedError(f"chainer does not support --accum-grad {args.accum_grad}.")
-        if args.opt not in ("adam", "sgd"):
-            raise NotImplementedError(f"chainer does not support --opt {args.opt}.")
-
     if args.scalers is not None:
         for k, v in args.scalers:
             scaler_class = dynamic_import_scaler(v)
             scaler_class.add_arguments(k, parser)
 
-    # TODO(karita): support chainer
-    if args.backend != "chainer":
-        opt_class = dynamic_import_optimizer(args.opt, args.backend)
-        opt_class.add_arguments(parser)
+    opt_class = dynamic_import_optimizer(args.opt, args.backend)
+    opt_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
 

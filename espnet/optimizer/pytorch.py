@@ -13,7 +13,7 @@ def register_builder(func):
 
 
 @register_builder
-def sgd(args, parameters):
+def sgd(parameters, args):
     """Build SGD."""
     return torch.optim.SGD(
         parameters,
@@ -23,11 +23,22 @@ def sgd(args, parameters):
 
 
 @register_builder
-def adam(args, parameters):
+def adam(parameters, args):
     """Build adam."""
     return torch.optim.Adam(
         parameters,
         lr=args.lr,
         weight_decay=args.weight_decay,
         betas=(args.beta1, args.beta2),
+    )
+
+
+@register_builder
+def adadelta(parameters, args):
+    """Build adadelta."""
+    return torch.optim.Adadelta(
+        parameters,
+        rho=args.rho,
+        eps=args.eps,
+        weight_decay=args.weight_decay,
     )

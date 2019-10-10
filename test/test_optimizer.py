@@ -7,9 +7,10 @@
 import chainer
 import numpy
 import pytest
+import torch
 
-pytest.importorskip('torch')
-import torch  # NOQA
+from espnet.optimizer.dynamic_import import dynamic_import_optimizer
+from espnet.optimizer.parser import OPTIMIZER_PARSER_DICT
 
 
 class ChModel(chainer.Chain):
@@ -31,14 +32,9 @@ class ThModel(torch.nn.Module):
         return self.a(x).sum()
 
 
-@pytest.mark.parametrize("ch_opt_t,th_opt_t", [
-    (chainer.optimizers.SGD, lambda ps: torch.optim.SGD(ps, lr=0.01)),
-    (chainer.optimizers.Adam, torch.optim.Adam),
-    (chainer.optimizers.AdaDelta, lambda ps: torch.optim.Adadelta(ps, rho=0.95))
-])
-def test_optimizer(ch_opt_t, th_opt_t):
-    if not torch.__version__.startswith("0.3."):
-        torch.set_grad_enabled(True)
+@pytest.mark.parametrize("name", OPTIMIZER_PARSER_DICT.keys())
+def test_optimizer(name):
+    torch.set_grad_enabled(True)
     # model construction
     ch_model = ChModel()
     th_model = ThModel()
@@ -48,9 +44,9 @@ def test_optimizer(ch_opt_t, th_opt_t):
     th_model.a.bias.data = torch.from_numpy(numpy.copy(ch_model.a.b.data))
 
     # optimizer setup
-    ch_opt = ch_opt_t()
+    th_opt = dynamic_import_optimizer(name, "pytorch").build(th_model.parameters())
+    ch_opt = dynamic_import_optimizer(name, "chainer").build(ch_model.params())
     ch_opt.setup(ch_model)
-    th_opt = th_opt_t(th_model.parameters())
 
     # forward
     ch_model.cleargrads()
