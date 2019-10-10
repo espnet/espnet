@@ -32,7 +32,7 @@ class TransformerLM(nn.Module, LMInterface):
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
         parser.add_argument('--pos-enc', default="sinusoidal", choices=["sinusoidal", "none"],
-                            help='dropout probability')
+                            help='positional encoding')
         return parser
 
     def __init__(self, n_vocab, args):

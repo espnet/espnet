@@ -232,7 +232,7 @@ def train(args):
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
     batch_size = args.batchsize * max(args.ngpu, 1)
-    if batch_size > args.batchsize:
+    if batch_size * args.accum_grad > args.batchsize:
         logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size * args.accum_grad})')
     train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
