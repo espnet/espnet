@@ -238,8 +238,9 @@ def train(args):
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = %d' % int(len(train_iter.batch_indices) / args.accum_grad))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    epoch_iters = int(len(train_iter.batch_indices) / args.accum_grad)
+    logging.info('#iterations per epoch = %d' % epoch_iters)
+    logging.info('#total iterations = ' + str(args.epoch * epoch_iters))
     # Prepare an RNNLM model
     if args.train_dtype in ("float16", "float32", "float64"):
         dtype = getattr(torch, args.train_dtype)
