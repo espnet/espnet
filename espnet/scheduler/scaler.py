@@ -6,13 +6,43 @@ from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.fill_missing_args import fill_missing_args
 
 
+class _PrefixParser:
+    def __init__(self, parser, prefix):
+        self.parser = parser
+        self.prefix = prefix
+
+    def add_argument(self, name, **kwargs):
+        assert name.startswith("--")
+        self.parser.add_argument(self.prefix + name[2:], **kwargs)
+
+
 class ScalerInterface:
     """Scaler interface."""
 
-    @staticmethod
-    def add_arguments(key: str, parser: argparse.ArgumentParser):
+    alias = ""
+
+    def __init__(self, key: str, args: argparse.Namespace):
+        """Initialize class."""
+        self.key = key
+        prefix = key + "_" + self.alias + "_"
+        for k, v in vars(args).items():
+            if k.startswith(prefix):
+                setattr(self, k[len(prefix):], v)
+
+    def get_arg(self, name):
+        """Get argument without prefix."""
+        return getattr(self.args, f"{self.key}_{self.alias}_{name}")
+
+    @classmethod
+    def add_arguments(cls, key: str, parser: argparse.ArgumentParser):
         """Add arguments for CLI."""
+        group = parser.add_argument_group(f"{cls.alias} scaler")
+        cls._add_arguments(_PrefixParser(parser=group, prefix=f"--{key}-{cls.alias}-"))
         return parser
+
+    @staticmethod
+    def _add_arguments(parser: _PrefixParser):
+        pass
 
     @classmethod
     def build(cls, key: str, **kwargs):
@@ -25,8 +55,12 @@ class ScalerInterface:
             LMinterface: A new instance of LMInterface.
 
         """
+        def add(parser):
+            return cls.add_arguments(key, parser)
+
+        kwargs = {f"{key}_{cls.alias}_" + k: v for k, v in kwargs.items()}
         args = argparse.Namespace(**kwargs)
-        args = fill_missing_args(args, cls.add_arguments)
+        args = fill_missing_args(args, add)
         return cls(key, args)
 
     def scale(self, n_iter: int) -> float:
@@ -42,16 +76,13 @@ class ScalerInterface:
         raise NotImplementedError()
 
 
-
 SCALER_DICT = {}
 
 
-def register_scaler(name):
+def register_scaler(cls):
     """Register scaler."""
-    def impl(cls):
-        SCALER_DICT[name] = cls.__module__ + ":" + cls.__name__
-        return cls
-    return impl
+    SCALER_DICT[cls.alias] = cls.__module__ + ":" + cls.__name__
+    return cls
 
 
 def dynamic_import_scaler(module):
@@ -69,16 +100,18 @@ def dynamic_import_scaler(module):
     return model_class
 
 
-@register_scaler("none")
+@register_scaler
 class NoScaler(ScalerInterface):
     """Scaler which does nothing."""
+
+    alias = "none"
 
     def scale(self, n_iter):
         """Scale of lr."""
         return 1.0
 
 
-@register_scaler("noam")
+@register_scaler
 class NoamScaler(ScalerInterface):
     """Warmup + InverseSqrt decay scaler.
 
@@ -87,17 +120,17 @@ class NoamScaler(ScalerInterface):
 
     """
 
+    alias = "noam"
+
     @staticmethod
-    def add_arguments(key, parser):
+    def _add_arguments(parser: _PrefixParser):
         """Add scaler args."""
-        group = parser.add_argument_group("Noam scaler")
-        group.add_argument(f"--{key}-noam-warmup", type=int, default=1000,
-                           help="Number of warmup iterations.")
-        return parser
+        parser.add_argument("--warmup", type=int, default=1000,
+                            help="Number of warmup iterations.")
 
     def __init__(self, key, args):
         """Initialize class."""
-        self.warmup = getattr(args, key + "_noam_warmup")
+        super().__init__(key, args)
         self.normalize = 1 / (self.warmup * self.warmup ** -1.5)
 
     def scale(self, step):
@@ -106,7 +139,7 @@ class NoamScaler(ScalerInterface):
         return self.normalize * min(step ** -0.5, step * self.warmup ** -1.5)
 
 
-@register_scaler("cosine")
+@register_scaler
 class CyclicCosineScaler(ScalerInterface):
     """Cyclic cosine annealing.
 
@@ -121,22 +154,17 @@ class CyclicCosineScaler(ScalerInterface):
 
     """
 
+    alias = "cosine"
+
     @staticmethod
-    def add_arguments(key, parser):
+    def _add_arguments(parser: _PrefixParser):
         """Add scaler args."""
-        group = parser.add_argument_group("cyclic cosine scaler")
-        group.add_argument(f"--{key}-cosine-warmup", type=int, default=1000,
-                           help="Number of warmup iterations.")
-        group.add_argument(f"--{key}-cosine-total", type=int, default=100000,
-                           help="Number of total annealing iterations.")
-        return parser
+        parser.add_argument("--warmup", type=int, default=1000,
+                            help="Number of warmup iterations.")
+        parser.add_argument("--total", type=int, default=100000,
+                            help="Number of total annealing iterations.")
 
     def scale(self, n_iter):
         """Scale of lr."""
         import math
         return 0.5 * (math.cos(math.pi * (n_iter - self.warmup) / self.total) + 1)
-
-    def __init__(self, key, args):
-        """Initialize class."""
-        self.warmup = getattr(args, key + "_cosine_warmup")
-        self.total = getattr(args, key + "_cosine_total")

@@ -90,8 +90,8 @@ def get_parser(parser=None, required=True):
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--lr', type=float, default=None,
                         help='Learning rate')
-    parser.add_argument('--lr-scaler', default='none', type=str,
-                        help='Learning rate scaler.')
+    parser.add_argument('--scalers', default=None, action="append", type=lambda kv: kv.split("="),
+                        help='optimizer schedulers, e.g., "--scalers lr=noam --lr-noam-warmup 1000".')
     parser.add_argument('--weight-decay', type=float, default=0.0,
                         help='Weight decay.')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
@@ -118,8 +118,12 @@ def main(cmd_args):
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
     # parse scheduler-specific arguments dynamically
-    lr_scaler_class = dynamic_import_scaler(args.lr_scaler)
-    lr_scaler_class.add_arguments("lr", parser)
+    if args.scalers is not None:
+        if args.backend == "chainer":
+            raise NotImplementedError("chainer does not support --scalers option.")
+        for k, v in args.scalers:
+            scaler_class = dynamic_import_scaler(v)
+            scaler_class.add_arguments(k, parser)
 
     args = parser.parse_args(cmd_args)
 
