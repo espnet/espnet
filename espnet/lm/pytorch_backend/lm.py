@@ -108,6 +108,7 @@ class BPTTUpdater(training.StandardUpdater):
         self.gradclip = gradclip
         self.use_apex = use_apex
         self.scheduler = PyTorchScheduler(scalers, optimizer)
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -117,27 +118,35 @@ class BPTTUpdater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
         # Progress the dataset iterator for sentences at each iteration.
-        batch = train_iter.__next__()
-        # Concatenate the token IDs to matrices and send them to the device
-        # self.converter does this job
-        # (it is chainer.dataset.concat_examples by default)
-        x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
-        if self.device[0] == -1:
-            loss, nll, count = self.model(x, t)
-        else:
-            # apex does not support torch.nn.DataParallel
-            loss, nll, count = data_parallel(self.model, (x, t), self.device)
-        reporter.report({'loss': float(loss.mean())}, optimizer.target)
-        reporter.report({'nll': float(nll.sum())}, optimizer.target)
-        reporter.report({'count': int(count.sum())}, optimizer.target)
-        # update
         self.model.zero_grad()  # Clear the parameter gradients
-        if self.use_apex:
-            from apex import amp
-            with amp.scale_loss(loss.mean(), optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.mean().backward()  # Backprop
+        accum = {"loss": 0.0, "nll": 0.0, "count": 0}
+        for _ in range(self.accum_grad):
+            batch = train_iter.__next__()
+            # Concatenate the token IDs to matrices and send them to the device
+            # self.converter does this job
+            # (it is chainer.dataset.concat_examples by default)
+            x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
+            if self.device[0] == -1:
+                loss, nll, count = self.model(x, t)
+            else:
+                # apex does not support torch.nn.DataParallel
+                loss, nll, count = data_parallel(self.model, (x, t), self.device)
+
+            # backward
+            loss = loss.mean() / self.accum_grad
+            if self.use_apex:
+                from apex import amp
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()  # Backprop
+            # accum
+            accum["loss"] += float(loss)
+            accum["nll"] += float(nll.sum())
+            accum["count"] += int(count.sum())
+
+        for k, v in accum.items():
+            reporter.report({k: v}, optimizer.target)
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
@@ -224,12 +233,12 @@ def train(args):
     # Create the dataset iterators
     batch_size = args.batchsize * max(args.ngpu, 1)
     if batch_size > args.batchsize:
-        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size})')
+        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size * args.accum_grad})')
     train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
+    logging.info('#iterations per epoch = %d' % int(len(train_iter.batch_indices) / args.accum_grad))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     if args.train_dtype in ("float16", "float32", "float64"):
@@ -281,7 +290,9 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     updater = BPTTUpdater(train_iter, model, optimizer, scalers, gpu_id,
-                          gradclip=args.gradclip, use_apex=use_apex)
+                          gradclip=args.gradclip,
+                          use_apex=use_apex,
+                          accum_grad=args.accum_grad)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
