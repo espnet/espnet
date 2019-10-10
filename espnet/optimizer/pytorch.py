@@ -7,6 +7,7 @@ OPTIMIZER_BUILDER_DICT = {}
 
 
 def register_builder(func):
+    """Register optimizer builder."""
     OPTIMIZER_BUILDER_DICT[func.__name__] = func
     return func
 
