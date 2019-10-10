@@ -12,11 +12,8 @@ from io import open
 import sys
 
 
-PY2 = sys.version_info[0] == 2
-sys.stdin = codecs.getreader('utf-8')(
-    sys.stdin if PY2 else sys.stdin.buffer)
-sys.stdout = codecs.getwriter('utf-8')(
-    sys.stdout if PY2 else sys.stdout.buffer)
+sys.stdin = codecs.getreader('utf-8')(sys.stdin.buffer)
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
 
 
 if __name__ == '__main__':

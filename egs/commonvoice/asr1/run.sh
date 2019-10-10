@@ -77,7 +77,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # ./utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 data/valid_test_dev data/valid_test data/valid_dev
 
     # ESPNet Version
-    # consider duplicated sentences
+    # consider duplicated sentences (does not consider speaker split)
+    # same way is used in voxforge recipe
     echo data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
     local/split_tr_dt_et.sh data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
 fi
