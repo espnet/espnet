@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scheduler_interface import dynamic_import_scheduler
+from espnet.scheduler.scaler import dynamic_import_scaler
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -76,12 +76,12 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
-    parser.add_argument('--scheduler', default='none', type=str,
-                        help='Learning rate scheduler.')
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
+    parser.add_argument('--accum-grad', type=int, default=1,
+                        help='Number of gradient accumueration')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
@@ -90,6 +90,10 @@ def get_parser(parser=None, required=True):
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--lr', type=float, default=None,
                         help='Learning rate')
+    parser.add_argument('--lr-scaler', default='none', type=str,
+                        help='Learning rate scaler.')
+    parser.add_argument('--weight-decay', type=float, default=0.0,
+                        help='Weight decay.')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
@@ -114,8 +118,8 @@ def main(cmd_args):
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
     # parse scheduler-specific arguments dynamically
-    scheduler_class = dynamic_import_scheduler(args.scheduler)
-    scheduler_class.add_arguments(parser)
+    lr_scaler_class = dynamic_import_scaler(args.lr_scaler)
+    lr_scaler_class.add_arguments("lr", parser)
 
     args = parser.parse_args(cmd_args)
 
