@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=8         # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -92,33 +92,35 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        data/train \
-        exp/make_fbank/train \
-        ${fbankdir}
+    for name in ${org_set}_{parallel100,nonpara30}; do
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${name} \
+            exp/make_fbank/${name} \
+            ${fbankdir}
+    done
 
     # make a dev set
     utils/copy_data_dir.sh data/${org_set}_parallel100 data/${train_set}
-    utils/subset_data_dir.sh --first data/${org_set}_nonpara30 15 data/${dev}
-    utils/subset_data_dir.sh --last data/${org_set}_nonpara30 15 data/${eval}
+    utils/subset_data_dir.sh --first data/${org_set}_nonpara30 15 data/${train_dev}
+    utils/subset_data_dir.sh --last data/${org_set}_nonpara30 15 data/${eval_set}
 
     # use pretrained model cmvn
     cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp ${cmvn} exp/dump_feats/train ${feat_tr_dir}
+        data/${train_set}/feats.scp ${cmvn} exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp ${cmvn} exp/dump_feats/dev ${feat_dt_dir}
+        data/${train_dev}/feats.scp ${cmvn} exp/dump_feats/${train_dev} ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp ${cmvn} exp/dump_feats/eval ${feat_ev_dir}
+        data/${eval_set}/feats.scp ${cmvn} exp/dump_feats/${eval_set} ${feat_ev_dir}
 fi
 
 dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
