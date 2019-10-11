@@ -70,6 +70,9 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # encoder
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
