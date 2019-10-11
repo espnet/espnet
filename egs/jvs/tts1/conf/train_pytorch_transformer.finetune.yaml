@@ -60,7 +60,7 @@ accum-grad: 1
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 2000
+epochs: 1000
 
 # other
-save-interval-epoch: 100
+save-interval-epoch: 20

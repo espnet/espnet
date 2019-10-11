@@ -46,8 +46,8 @@ eps: 1e-6
 weight-decay: 0.0
 dropout-rate: 0.5
 zoneout-rate: 0.1
-epochs: 300
+epochs: 200
 patience: 0
 
 # other
-save-interval-epoch: 5
+save-interval-epoch: 10
