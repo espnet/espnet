@@ -279,7 +279,7 @@ class CustomConverter(object):
 
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self):
         """Initialize subsampling."""
         pass
 
