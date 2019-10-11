@@ -24,7 +24,7 @@ from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
 CTC_LOSS_THRESHOLD = 10000
 
 
-class E2E(ChainerASRInterface, chainer.Chain):
+class E2E(ChainerASRInterface):
     """E2E module for chainer backend.
 
     Args:
