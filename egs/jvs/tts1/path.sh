@@ -12,6 +12,7 @@ else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
+export LD_LIBRARY_PATH=$MAIN_ROOT/tools/open_jtalk/src/build:$LD_LIBRARY_PATH
 
 export OMP_NUM_THREADS=1
 
