@@ -9,12 +9,12 @@ from espnet.utils.fill_missing_args import fill_missing_args
 class OptimizerAdaptorInterface:
     """Optimizer adaptor."""
 
-    def __init__(self, parameters, args: argparse.Namespace):
+    def __init__(self, target, args: argparse.Namespace):
         """Initialize optimizer.
 
         Args:
-            parameters: for pytorch `model.parameters()`,
-                for chainer `model.params()`
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
             args (argparse.Namespace): parsed command-line args
 
         """
@@ -25,12 +25,12 @@ class OptimizerAdaptorInterface:
         """Register args."""
         return parser
 
-    def build(cls, parameters, **kwargs):
+    def build(cls, target, **kwargs):
         """Initialize optimizer with python-level args.
 
         Args:
-            parameters: for pytorch `model.parameters()`,
-                for chainer `model.params()`
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
 
         Returns:
             new Optimizer
@@ -38,7 +38,7 @@ class OptimizerAdaptorInterface:
         """
         args = argparse.Namespace(**kwargs)
         args = fill_missing_args(args, cls.add_arguments)
-        return cls(parameters, args)
+        return cls(target, args)
 
 
 class FunctionalOptimizerAdaptor:
@@ -49,26 +49,26 @@ class FunctionalOptimizerAdaptor:
         self.builder = builder
         self.add_arguments = parser
 
-    def __call__(self, parameters, args):
+    def __call__(self, target, args):
         """Initialize optimizer with parsed cmd args.
 
         Args:
-            parameters: for pytorch `model.parameters()`,
-                for chainer `model.params()`
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
             args (argparse.Namespace): parsed command-line args
 
         Returns:
             new Optimizer
 
         """
-        return self.builder(parameters, args)
+        return self.builder(target, args)
 
-    def build(self, parameters, **kwargs):
+    def build(self, target, **kwargs):
         """Initialize optimizer with python-level args.
 
         Args:
             parameters: for pytorch `model.parameters()`,
-                for chainer `model.params()`
+                for chainer `model`
 
         Returns:
             new Optimizer
@@ -76,7 +76,7 @@ class FunctionalOptimizerAdaptor:
         """
         args = argparse.Namespace(**kwargs)
         args = fill_missing_args(args, self.add_arguments)
-        return self.builder(parameters, args)
+        return self.builder(target, args)
 
 
 def dynamic_import_optimizer(name: str, backend: str) -> type:

@@ -379,7 +379,7 @@ def train(args):
 
     # Set up an optimizer
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
-    optimizer = opt_class(model.params(), args)
+    optimizer = opt_class(model, args)
     if args.scalers is None:
         scalers = []
     else:
