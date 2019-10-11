@@ -65,4 +65,8 @@ for name in parallel100 nonpara30; do
         echo "${id} ${id} ${start} ${end}" >> ${segments}
     done
     echo "finished making segments."
+
+    # check
+    utils/fix_data_dir.sh ${data_dir}
 done
+echo "Successfully finished data preparation."
