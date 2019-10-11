@@ -1,9 +1,10 @@
 """ASR Interface module."""
+import chainer
 
 from espnet.nets.asr_interface import ASRInterface
 
 
-class ChainerASRInterface(ASRInterface):
+class ChainerASRInterface(ASRInterface, chainer.Chain):
     """ASR Interface for ESPnet model implementation."""
 
     @staticmethod

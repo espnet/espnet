@@ -27,7 +27,7 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
-class E2E(ChainerASRInterface, chainer.Chain):
+class E2E(ChainerASRInterface):
     """E2E module.
 
     Args:
