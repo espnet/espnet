@@ -23,13 +23,14 @@ def g2p(text, trans_type="char"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('text', type=str, help='text to be cleaned')
+    parser.add_argument('in_text', type=str, help='text to be cleaned')
+    parser.add_argument('out_text', type=str, help='text to be cleaned')
     parser.add_argument("trans_type", type=str, default="kana",
                         choices=["char", "phn"],
                         help="Input transcription type")
     args = parser.parse_args()
-    with codecs.open(args.text, 'r', 'utf-8') as fid:
-        for line in fid.readlines():
+    with codecs.open(args.in_text, 'r', 'utf-8') as f_in, codecs.open(args.out_text, 'w', 'utf-8') as f_out:
+        for line in f_in.readlines():
             id, content = line.split(":")
             clean_content = g2p(content, args.trans_type)
-            print("%s %s" % (id, clean_content))
+            f_out.write("%s %s\n" % (id, clean_content))
