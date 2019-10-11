@@ -3,6 +3,7 @@
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 
 import chainer
 import numpy
@@ -32,8 +33,19 @@ class ThModel(torch.nn.Module):
         return self.a(x).sum()
 
 
+def test_optimizer_parser():
+    parser = argparse.ArgumentParser()
+    opt_class = dynamic_import_optimizer("sgd", "pytorch")
+    opt_class.add_arguments(parser)
+    args = parser.parse_args(["--lr", "1.0"])
+    assert args.lr == 1.0
+    model = ThModel()
+    opt = opt_class(model.parameters(), args)
+    assert opt.param_groups[0]["lr"] == 1.0
+
+
 @pytest.mark.parametrize("name", OPTIMIZER_PARSER_DICT.keys())
-def test_optimizer(name):
+def test_optimizer_backend_compatible(name):
     torch.set_grad_enabled(True)
     # model construction
     ch_model = ChModel()
@@ -45,8 +57,7 @@ def test_optimizer(name):
 
     # optimizer setup
     th_opt = dynamic_import_optimizer(name, "pytorch").build(th_model.parameters())
-    ch_opt = dynamic_import_optimizer(name, "chainer").build(ch_model.params())
-    ch_opt.setup(ch_model)
+    ch_opt = dynamic_import_optimizer(name, "chainer").build(ch_model)
 
     # forward
     ch_model.cleargrads()
