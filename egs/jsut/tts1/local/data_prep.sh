@@ -36,7 +36,7 @@ find ${db} -follow -name "transcript_utf8.txt" | sort | while read -r filename; 
     cat ${filename} >> ${rawtext}
 done
 local/clean_text.py \
-    ${rawtext} ${input_type} > ${text}
+    ${rawtext} ${text} ${input_type}
 rm ${rawtext}
 echo "finished making text."
 
