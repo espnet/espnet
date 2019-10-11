@@ -28,5 +28,5 @@ if __name__ == '__main__':
     for x in sys.stdin:
         # extract text parts
         text = ' '.join(x.rstrip().split()[1:])
-        if text in fil:
+        if text not in fil:
             print(x.split()[0], text)
