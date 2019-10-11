@@ -8,7 +8,7 @@
 db=$1
 
 cwd=`pwd`
-if [ ! -e ${db}/jsut_ver1.1 ]; then
+if [ ! -e ${db}/jvs_ver1 ]; then
     mkdir -p ${db}
     download_from_google_drive.sh https://drive.google.com/open?id=19oAw8wWn3Y7z6CKChRdAyGOB9yupL_Xt ${db} zip
     echo "Successfully finished download of corpus."
