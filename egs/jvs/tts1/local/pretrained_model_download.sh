@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Copyright 2019 Nagoya University (Tomoki Hayashi)
+# Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 download_dir=$1
