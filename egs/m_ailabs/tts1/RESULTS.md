@@ -3,7 +3,7 @@
 - Silence trimming
 - FTT in points: 1024
 - Shift in points: 256
-- F0 limit: 80-7600
+- Frequency limit: 80-7600
 - Fast-GL 64 iters
 
 ## Environments
@@ -175,7 +175,7 @@ https://drive.google.com/open?id=1J5_EZX54LUwuTVkwmNZ56E4oWdyB8MKF
 - Silence trimming
 - FTT in points: 1024
 - Shift in points: 256
-- F0 limit: 80-7600
+- Frequency limit: 80-7600
 - Fast-GL 64 iters
 
 ## Environments
