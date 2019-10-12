@@ -6,7 +6,7 @@
 import argparse
 import codecs
 
-from cleaners import english_cleaners
+from cleaners import custom_english_cleaners
 
 
 if __name__ == "__main__":
@@ -16,5 +16,5 @@ if __name__ == "__main__":
     with codecs.open(args.text, 'r', 'utf-8') as fid:
         for line in fid.readlines():
             id, _, content = line.split("|")
-            clean_content = english_cleaners(content.rstrip())
+            clean_content = custom_english_cleaners(content.rstrip())
             print("%s %s" % (id, clean_content))

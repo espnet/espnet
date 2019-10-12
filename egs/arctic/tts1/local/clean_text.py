@@ -6,7 +6,7 @@
 import argparse
 import codecs
 
-from cleaners import english_cleaners
+from cleaners import custom_english_cleaners
 
 
 if __name__ == "__main__":
@@ -18,5 +18,5 @@ if __name__ == "__main__":
             line = line.split(" ")
             id = line[0]
             content = " ".join(line[1:])
-            clean_content = english_cleaners(content.rstrip())
+            clean_content = custom_english_cleaners(content.rstrip())
             print("%s %s" % (id, clean_content))

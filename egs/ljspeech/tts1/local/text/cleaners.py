@@ -67,26 +67,6 @@ def convert_to_ascii(text):
     return unidecode(text)
 
 
-def remove_unnecessary_symbols(text):
-    # added
-    text = re.sub(r'[\(\)\[\]\"]+', '', text)
-    return text
-
-
-def expand_symbols(text):
-    # added
-    text = re.sub("\;", ",", text)
-    text = re.sub("\:", ",", text)
-    text = re.sub("\-", " ", text)
-    text = re.sub("\&", "and", text)
-    return text
-
-
-def uppercase(text):
-    # added
-    return text.upper()
-
-
 def basic_cleaners(text):
     '''Basic pipeline that lowercases and collapses whitespace without transliteration.'''
     text = lowercase(text)
@@ -104,6 +84,37 @@ def transliteration_cleaners(text):
 
 def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
+    text = convert_to_ascii(text)
+    text = lowercase(text)
+    text = expand_numbers(text)
+    text = expand_abbreviations(text)
+    text = collapse_whitespace(text)
+    return text
+
+
+# NOTE (kan-bayashi): Following functions additionally defined, not inclueded in original codes.
+def remove_unnecessary_symbols(text):
+    # added
+    text = re.sub(r'[\(\)\[\]\<\>\"]+', '', text)
+    return text
+
+
+def expand_symbols(text):
+    # added
+    text = re.sub("\;", ",", text)
+    text = re.sub("\:", ",", text)
+    text = re.sub("\-", " ", text)
+    text = re.sub("\&", "and", text)
+    return text
+
+
+def uppercase(text):
+    # added
+    return text.upper()
+
+
+def custom_english_cleaners(text):
+    '''Custom pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
     text = lowercase(text)
     text = expand_numbers(text)
