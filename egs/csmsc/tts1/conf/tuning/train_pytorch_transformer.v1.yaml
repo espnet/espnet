@@ -1,4 +1,4 @@
-# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB, and it takes 3~4 days.
+# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB, and it takes 1 days.
 # If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
 # This model should be able to genearate speeech from around 40k iterations.
 
@@ -31,9 +31,7 @@ reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+batch-bins: 3036000   # 119 batches containing from 47 to 199 samples (avg 82 samples).
 
 # training related
 transformer-init: pytorch
@@ -58,11 +56,11 @@ modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 2
+accum-grad: 1
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
+epochs: 1000  # 1,000 epochs * 119 batches / 1 accum-grad = 119,000 iters
 
 # other
 save-interval-epoch: 10
