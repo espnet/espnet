@@ -38,7 +38,7 @@ sox=`which sox` || { echo "Could not find sox in PATH"; exit 1; }
 
 # make scp, utt2spk, and spk2utt
 find ${db} -maxdepth 2 -name "*.wav" -follow | sort | while read -r filename;do
-    id="$(basename ${filename} .wav)"
+    id="$(echo $(basename ${filename} .wav) | tr '()' '__')"
     echo "${id} $sox \"${filename}\" -c 1 -b 16 -t wav - |" >> ${scp}
     echo "${id} tweb" >> ${utt2spk}
 done
