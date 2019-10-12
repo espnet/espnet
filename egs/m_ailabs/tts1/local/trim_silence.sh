@@ -48,19 +48,6 @@ for n in $(seq ${nj}); do
 done > ${data}/segments || exit 1
 rm -rf ${tmpdir}
 
-# update utt2spk, spk2utt, and text
-[ ! -e ${data}/.backup ] &&  mkdir ${data}/.backup
-cp ${data}/{utt2spk,spk2utt,text} ${data}/.backup
-paste -d " " \
-    <(cut -d " " -f 1 ${data}/segments) \
-    <(cut -d " " -f 2 ${data}/.backup/utt2spk) \
-    > ${data}/utt2spk
-paste -d " " \
-    <(cut -d " " -f 1 ${data}/segments) \
-    <(cut -d " " -f 2- ${data}/.backup/text) \
-    > ${data}/text
-utils/utt2spk_to_spk2utt.pl ${data}/utt2spk > ${data}/spk2utt
-
 # check
 utils/validate_data_dir.sh --no-feats ${data}
 echo "Successfully trimed silence part."

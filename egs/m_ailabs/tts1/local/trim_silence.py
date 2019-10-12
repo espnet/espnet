@@ -73,9 +73,8 @@ def main():
             end = min(len(array) / args.fs, end + args.min_silence)
 
             # write to segments file
-            segment = "%s_%s_%s %s %f %f\n" % (
-                utt_id, _time_to_str(start), _time_to_str(end),
-                utt_id, start, end
+            segment = "%s %s %f %f\n" % (
+                utt_id, utt_id, start, end
             )
             f.write(segment)
 
