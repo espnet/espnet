@@ -1,3 +1,36 @@
+# v.0.5.3 / FastSpeech
+
+- Silence trimming
+- FTT in points: 1024
+- Shift in points: 256
+- Frequency limit: 80-7600
+- Fast-GL 64 iters
+
+## Environments
+
+- date: `Sat Oct 12 21:36:17 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.3`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `36321a262b8dbb6c13297d20e050192624366517`
+  - Commit date: `Sat Oct 12 13:24:10 2019 +0900`
+
+## Models (it_IT, female)
+
+- model link: https://drive.google.com/open?id=1EJpluSMxRh4muJnGdwehXdUUWjIxWvNZ
+- training config file: `conf/tuning/train_fastspeech.v2.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/it_IT_lisa_train_trim/cmvn.ark`
+- e2e file: `exp/it_IT_lisa_train_trim_pytorch_train_fastspeech.v2/results/model.last1.avg.best`
+- e2e JSON file: `exp/it_IT_lisa_train_trim_pytorch_train_fastspeech.v2/results/model.json`
+- dict file: `data/lang_1char/it_IT_lisa_train_trim_units.txt`
+
+## Sample (it_IT, female)
+
+https://drive.google.com/open?id=13I5V2w7deYFX4DlVk1-0JfaXmUR2rNOv
+
+
 # v.0.5.3 / Transformer
 
 - Silence trimming
