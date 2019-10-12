@@ -31,6 +31,7 @@ cmvn=
 
 # dictionary related
 dict=
+trans_type="char"
 
 # embedding related
 input_wav=
@@ -105,6 +106,8 @@ function download_models () {
         "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
         "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
         "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
+        "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
+        "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -120,6 +123,8 @@ function download_vocoder_models () {
     case "${vocoder_models}" in
         "ljspeech.wavenet.softmax.ns.v1") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
         "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
+        "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
+        "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -202,7 +207,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     cat $txt >> ${decode_dir}/data/text
 
     mkdir -p ${decode_dir}/dump
-    data2json.sh ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
+    data2json.sh --trans_type ${trans_type} ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
@@ -292,7 +297,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     dst_dir=${decode_dir}/wav_wnv
 
     # This is hardcoded for now.
-    if [ ${vocoder_models} == "ljspeech.wavenet.mol.v1" ]; then
+    if [[ ${vocoder_models} == *".mol."* ]]; then
         # Needs to use https://github.com/r9y9/wavenet_vocoder
         # that supports mixture of logistics/gaussians
         MDN_WAVENET_VOC_DIR=./local/r9y9_wavenet_vocoder
