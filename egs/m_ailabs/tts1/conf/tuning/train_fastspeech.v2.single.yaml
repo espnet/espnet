@@ -28,8 +28,7 @@ reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 1000000   # 35 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
+batch-bins: 1000000   # batch-size * (max or mean out * dim_out + max or mean in * dim_in)
 
 # training related
 transformer-init: pytorch
