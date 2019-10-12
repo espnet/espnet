@@ -94,9 +94,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 200 data/deveval
-    utils/subset_data_dir.sh --first data/deveval 100 data/${eval_set}
-    utils/subset_data_dir.sh --last data/deveval 100 data/${train_dev}
+    utils/subset_data_dir.sh --last data/train 200 data/deveval
+    utils/subset_data_dir.sh --first data/deveval 100 data/${train_dev}
+    utils/subset_data_dir.sh --last data/deveval 100 data/${eval_set}
     n=$(( $(wc -l < data/train/wav.scp) - 200 ))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
