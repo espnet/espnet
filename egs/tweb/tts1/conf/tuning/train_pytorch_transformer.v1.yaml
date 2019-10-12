@@ -31,9 +31,7 @@ reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+batch-bins: 1800000   # 776 batches containing from 7 to 110 samples (avg 39 samples).
 
 # training related
 transformer-init: pytorch
@@ -62,7 +60,7 @@ accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
+epochs: 300  # 250 epochs * 776 batches / 2 accum-grad = 116,400 iters
 
 # other
 save-interval-epoch: 10
