@@ -2,9 +2,9 @@
 
 - Initial model: `jsut.24k.phn.transformer`
 - Target speaker: `jvs010`
-- FTT in points: 2048
+- FFT in points: 2048
 - Shift in points: 300
-- Window length in points: 1024
+- Window length in points: 1200
 - Frequency limit: 80-7600
 - Fast-GL 64 iters
 
