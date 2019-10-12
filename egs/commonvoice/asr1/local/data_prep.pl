@@ -42,8 +42,8 @@ while(<CSV>) {
   $uttId = $filepath;
   $uttId =~ s/\.mp3//g;
   $uttId =~ tr/\//-/;
-  # No speaker information is provided, so we treat each utterance as coming from a different speaker
-  $spkr = $uttId;
+  # speaker information should be suffix of the utterance Id
+  $uttId = "$spkr-$uttId";
   $text =~ tr/a-z/A-Z/;
   print TEXT "$uttId"," ","$text","\n";
   print GNDR "$uttId"," ","$gender","\n";
