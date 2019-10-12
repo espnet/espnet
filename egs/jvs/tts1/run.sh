@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Takenori Yoshimura), Ryuichi Yamamoto
+# Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=8         # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -36,7 +36,7 @@ win_length=1200 # window length
 trans_type="phn"
 
 # config files
-train_config=conf/train_pytorch_transformer.yaml
+train_config=conf/train_pytorch_transformer.finetune.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -44,8 +44,12 @@ model=model.loss.best
 n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
-# root directory of db
-db_root=downloads
+# pretrained model related
+download_dir=downloads
+pretrained_model="jsut.24k.phn.transformer"  # see model info in local/pretrained_model_download.sh
+
+# database related
+spk=jvs010  # you can select from jvs{001..100}
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -58,25 +62,24 @@ set -e
 set -u
 set -o pipefail
 
-train_set="${trans_type}_train_no_dev"
-train_dev="${trans_type}_dev"
-eval_set="${trans_type}_eval"
+org_set=${spk}_${trans_type}
+train_set="${org_set}_train_no_dev"
+train_dev="${org_set}_dev"
+eval_set="${org_set}_eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    local/data_download.sh ${download_dir}
+    local/pretrained_model_download.sh ${download_dir} ${pretrained_model}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1/ data/${trans_type}_train ${trans_type}
-
-    # Downsample to fs from 48k
-    utils/data/resample_data_dir.sh $fs data/${trans_type}_train
-
-    utils/validate_data_dir.sh --no-feats data/${trans_type}_train
+    local/data_prep.sh ${download_dir}/jvs_ver1 ${spk} data/${org_set} ${trans_type}
+    utils/validate_data_dir.sh --no-feats data/${org_set}_parallel100
+    utils/validate_data_dir.sh --no-feats data/${org_set}_nonpara30
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -89,47 +92,42 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        data/${trans_type}_train \
-        exp/make_fbank/train \
-        ${fbankdir}
+    for name in ${org_set}_{parallel100,nonpara30}; do
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${name} \
+            exp/make_fbank/${name} \
+            ${fbankdir}
+    done
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/${trans_type}_train 500 data/${trans_type}_deveval
-    utils/subset_data_dir.sh --first data/${trans_type}_deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${train_dev}
-    n=$(( $(wc -l < data/${trans_type}_train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/${trans_type}_train ${n} data/${train_set}
+    utils/copy_data_dir.sh data/${org_set}_parallel100 data/${train_set}
+    utils/subset_data_dir.sh --first data/${org_set}_nonpara30 15 data/${train_dev}
+    utils/subset_data_dir.sh --last data/${org_set}_nonpara30 15 data/${eval_set}
 
-    # compute statistics for global mean-variance normalization
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+    # use pretrained model cmvn
+    cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
+        data/${train_set}/feats.scp ${cmvn} exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_dev ${feat_dt_dir}
+        data/${train_dev}/feats.scp ${cmvn} exp/dump_feats/${train_dev} ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_eval ${feat_ev_dir}
+        data/${eval_set}/feats.scp ${cmvn} exp/dump_feats/${eval_set} ${feat_ev_dir}
 fi
 
-dict=data/lang_${trans_type}/${train_set}_units.txt
+dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_${trans_type}/
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 --trans_type ${trans_type} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
@@ -139,6 +137,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
+
+# add pretrained model info in config
+pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "model*.best" | head -n 1)
+train_config="$(change_yaml.py -a pretrained-model="${pretrained_model_path}" \
+    -o "conf/$(basename "${train_config}" .yaml).${pretrained_model}.yaml" "${train_config}")"
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
@@ -211,7 +214,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for sets in ${train_dev} ${eval_set}; do
     (
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
-        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
+        # use pretrained model cmvn
+        cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
+        apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \

@@ -1,7 +1,6 @@
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes 3~4 days.
-# If you want to accelerate the training with multi-gpus, please use train_pytorch_transformer.v1.yaml config.
-# Or you can manually increase batch-bins and decrease accum-grad.
-# Note that transoformer requires a large batchsize > 64 in average according to the original paper.
+# This configuration requires only 1 gpus in the case of each gpu memory = 12GB.
+# It takes only 2 days to finish training.
+# I recommend to use this config for the first challenge.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
@@ -13,9 +12,9 @@ dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-ce
 dprenet-units: 256
 adim: 384
 aheads: 4
-elayers: 6
+elayers: 3
 eunits: 1536
-dlayers: 6
+dlayers: 3
 dunits: 1536
 postnet-layers: 5
 postnet-filts: 5
@@ -28,13 +27,11 @@ encoder-normalize-before: False
 decoder-normalize-before: False
 encoder-concat-after: False
 decoder-concat-after: False
-reduction-factor: 1
+reduction-factor: 3
 
 # minibatch related
-batch-sort-key: input # shuffle or input or output
-batch-bins: 759000    # 10 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 10 ~ 24 samples (avg 13 samples) in batch (969 batches per epochs) for ljspeech
+batch-sort-key: output # shuffle or input or output
+batch-bins: 4554000   # batch-size * (max_out * dim_out + max_in * dim_in)
 
 # training related
 transformer-init: pytorch
@@ -59,7 +56,7 @@ modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 6
+accum-grad: 1
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0

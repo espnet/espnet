@@ -1,6 +1,4 @@
-# This configuration uses reduction factor = 1 and location-sensitive attention.
-# Furthermore, to accelerate the learning of diaogonal attention, we additionaly
-# use guided attention loss. This leads super fast and robust attention learning.
+# This is the basic tactron2 training settting
 
 # encoder related
 embed-dim: 512
@@ -30,15 +28,13 @@ use-concate: true    # whether to concatenate encoder embedding with decoder lst
 use-residual: false  # whether to use residual connection in encoder convolution
 use-masking: true    # whether to mask the padded part in loss calculation
 bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
-use-guided-attn-loss: true
-guided-attn-loss-sigma: 0.4
-reduction-factor: 1
+reduction-factor: 2
 
 # minibatch related
-batch-sort-key: input # shuffle or input or output
-batch-bins: 2428800   # 32 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+batch-size: 32
+batch-sort-key: shuffle # shuffle or input or output
+maxlen-in: 150     # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
+maxlen-out: 400    # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
 
 # optimization related
 lr: 1e-4

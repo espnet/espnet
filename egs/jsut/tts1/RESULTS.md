@@ -25,7 +25,7 @@
 
 https://drive.google.com/open?id=1_aTRb5JIw_JWzf0urV0veC5uwhF1abBa
 
-# v0.5.3: phoneme input / 120M pt window / 300 pt shift + Tacotron 2 + GL 64 iters
+# v0.5.3: phoneme input / 1200 pt window / 300 pt shift + Tacotron 2 + GL 64 iters
 
 ## Environments
 
