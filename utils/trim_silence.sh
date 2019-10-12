@@ -32,7 +32,7 @@ utils/split_scp.pl ${data}/wav.scp ${split_scps} || exit 1;
 
 # make segments file describing start and end time
 ${cmd} JOB=1:${nj} ${logdir}.JOB.log \
-    local/trim_silence.py \
+    trim_silence.py \
         --fs ${fs} \
         --win_length ${win_length} \
         --shift_length ${shift_length} \
