@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+
+# Copyright 2019 Ryuichi Yamamoto
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import argparse
 import os
-from nnmnkwii.io import hts
 import sys
+
+from nnmnkwii.io import hts
 
 
 def get_parser():

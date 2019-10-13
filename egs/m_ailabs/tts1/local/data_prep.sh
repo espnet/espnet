@@ -35,6 +35,8 @@ elif [ ${lang} = "uk_UK" ]; then
     available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
 elif [ ${lang} = "ru_RU" ]; then
     available_spks=("hajdurova" "minaev" "nikolaev")
+elif [ ${lang} = "pl_PL" ]; then
+    available_spks=("nina" "piotr")
 else
     echo "${lang} is not supported."
     exit 1
