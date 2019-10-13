@@ -28,10 +28,10 @@ win_length="" # window length
 
 # silence part trimming related
 do_trimming=true
-trim_threshold=50 # (in decibels)
+trim_threshold=20 # (in decibels)
 trim_win_length=1024
 trim_shift_length=256
-trim_min_silence=0.01
+trim_min_silence=0.1
 
 # config files
 train_config=conf/train_pytorch_transformer+spkemb.yaml
