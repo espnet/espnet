@@ -79,8 +79,11 @@ class SegmentStreamingE2E(object):
                         -1, self._encoder_states[0].size(0))
                     lpz = torch.cat(self._ctc_posteriors[:seg_len], dim=0).view(
                         -1, self._ctc_posteriors[0].size(0))
-                    hyp = self._e2e.dec.recognize_beam(
-                        h, lpz, self._recog_args, self._char_list, self._rnnlm)
+
+                    hlens = torch.tensor([h.shape[0]])
+                    hyp = self._e2e.dec.recognize_beam_batch(
+                        h.unsqueeze(0), hlens, lpz.unsqueeze(0), self._recog_args,
+                        self._char_list, self._rnnlm, normalize_score=False)[0]
 
                     self._activates = 0
                     self._blank_dur = 0
