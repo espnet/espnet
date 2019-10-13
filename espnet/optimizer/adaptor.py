@@ -67,7 +67,7 @@ class FunctionalOptimizerAdaptor:
         """Initialize optimizer with python-level args.
 
         Args:
-            parameters: for pytorch `model.parameters()`,
+            target: for pytorch `model.parameters()`,
                 for chainer `model`
 
         Returns:
