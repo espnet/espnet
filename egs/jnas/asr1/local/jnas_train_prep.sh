@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Nagoya University (Someki Masao)
+# Copyright 2019 Nagoya University (Someki Masao) and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Prepare JNAS dataset
