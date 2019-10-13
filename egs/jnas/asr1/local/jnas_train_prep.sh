@@ -5,7 +5,7 @@
 
 # Prepare JNAS dataset
 
-. ./path.sh
+. ./path.sh || exit 1;
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
     echo "Usage: $0 <data-directory> <speaker_text> [<trans_type>]";
