@@ -31,7 +31,7 @@ def main():
             with codecs.open(filename, "r", encoding="utf-8") as f:
                 js = json.load(f)
             for key in sorted(js.keys()):
-                uid = args.spk_tag + "_" + key[:-4]
+                uid = args.spk_tag + "_" + key.replace(".wav", "")
                 text = js[key]["clean"].upper()
                 if args.lang_tag is None:
                     line = "%s %s\n" % (uid, text)

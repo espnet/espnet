@@ -1,0 +1,62 @@
+# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB.
+# To use this configuration, you need the model trained with `conf/tuning/train_transformer.v1*`.
+# First, you should train the above model or download from google drive and put it in exp dirctory.
+# Make sure the `teacher-model` path is valid and the encoder structure is the same as teacher
+# when `init-encoder-from-teacher = True`.
+# This configuration uses Conv1d in Transformer blocks and aheads = 2 compared to v1.
+# It takes 3~4 days, and it can generate speech from around 170 epochs (around 30k iters).
+
+# network architecture related
+model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
+adim: 384
+aheads: 2
+elayers: 6
+eunits: 1536
+dlayers: 6
+dunits: 1536
+duration-predictor-layers: 2
+duration-predictor-chans: 384
+duration-predictor-kernel-size: 3
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 3
+use-scaled-pos-enc: True
+encoder-normalize-before: False
+decoder-normalize-before: False
+encoder-concat-after: False
+decoder-concat-after: False
+reduction-factor: 1
+
+# minibatch related
+batch-sort-key: input # shuffle or input or output
+batch-bins: 1000000   # batch-size * (max or mean out * dim_out + max or mean in * dim_in)
+
+# training related
+transformer-init: pytorch
+transformer-warmup-steps: 4000
+transformer-lr: 1.0
+initial-encoder-alpha: 1.0
+initial-decoder-alpha: 1.0
+transformer-enc-dropout-rate: 0.1
+transformer-enc-positional-dropout-rate: 0.1
+transformer-enc-attn-dropout-rate: 0.1
+transformer-dec-dropout-rate: 0.1
+transformer-dec-positional-dropout-rate: 0.1
+transformer-dec-attn-dropout-rate: 0.1
+transformer-enc-dec-attn-dropout-rate: 0.1
+duration-predictor-dropout-rate: 0.1
+transfer-encoder-from-teacher: True
+transferred-encoder-module: embed
+
+# optimization related
+opt: noam
+accum-grad: 3
+grad-clip: 1.0
+weight-decay: 0.0
+patience: 0
+epochs: 1000
+teacher-model: exp/it_IT_lisa_train_trim_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best
+               # you can download pretrained teacher model from google drive
+               # see RESULTS.md to get the download URL
+
+# other
+save-interval-epoch: 10
