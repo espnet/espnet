@@ -1,5 +1,6 @@
 from distutils.version import LooseVersion
 import logging
+import math
 import random
 import six
 
@@ -223,13 +224,12 @@ class Decoder(torch.nn.Module, ScorerInterface):
         self.loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
                                     ignore_index=self.ignore_id,
                                     reduction=reduction_str)
+        # compute perplexity
+        ppl = math.exp(self.loss.item())
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
-
-        # compute perplexity
-        ppl = np.exp(self.loss.item() * np.mean([len(x) for x in ys_in]) / np.sum([len(x) for x in ys_in]))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
@@ -299,7 +299,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
-        ctc_weight = recog_args.ctc_weight
+        ctc_weight = getattr(recog_args, "ctc_weight", False)  # for NMT
 
         if lpz[0] is not None and self.num_encs > 1:
             # weights-ctc, e.g. ctc_loss = w_1*ctc_1_loss + w_2 * ctc_2_loss + w_N * ctc_N_loss
@@ -514,7 +514,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         batch = len(hlens[0])
         beam = recog_args.beam_size
         penalty = recog_args.penalty
-        ctc_weight = recog_args.ctc_weight
+        ctc_weight = getattr(recog_args, "ctc_weight", 0)  # for NMT
         att_weight = 1.0 - ctc_weight
         ctc_margin = getattr(recog_args, "ctc_window_margin", 0)  # use getattr to keep compatibility
         # weights-ctc, e.g. ctc_loss = w_1*ctc_1_loss + w_2 * ctc_2_loss + w_N * ctc_N_loss
