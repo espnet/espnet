@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Multi-layered conv1d for Transformer block."""
+
 import torch
 
 
@@ -25,6 +27,7 @@ class MultiLayeredConv1d(torch.nn.Module):
     """
 
     def __init__(self, in_chans, hidden_chans, kernel_size, dropout_rate):
+        """Construct an MultiLayeredConv1d object."""
         super(MultiLayeredConv1d, self).__init__()
         self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
                                    stride=1, padding=(kernel_size - 1) // 2)

@@ -1,9 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Label smoothing module."""
+
 import torch
 from torch import nn
 
 
 class LabelSmoothingLoss(nn.Module):
-    """Label-smoothing loss
+    """Label-smoothing loss.
 
     :param int size: the number of class
     :param int padding_idx: ignored class id
@@ -13,6 +21,7 @@ class LabelSmoothingLoss(nn.Module):
     """
 
     def __init__(self, size, padding_idx, smoothing, normalize_length=False, criterion=nn.KLDivLoss(reduce=False)):
+        """Construct an LabelSmoothingLoss object."""
         super(LabelSmoothingLoss, self).__init__()
         self.criterion = criterion
         self.padding_idx = padding_idx
@@ -23,7 +32,7 @@ class LabelSmoothingLoss(nn.Module):
         self.normalize_length = normalize_length
 
     def forward(self, x, target):
-        """Compute loss between x and target
+        """Compute loss between x and target.
 
         :param torch.Tensor x: prediction (batch, seqlen, class)
         :param torch.Tensor target: target signal masked with self.padding_id (batch, seqlen)

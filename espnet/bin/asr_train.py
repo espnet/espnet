@@ -4,7 +4,7 @@
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Automatic speech recognition model training script."""
+"""End-to-end speech recognition model training script."""
 
 import logging
 import multiprocessing as mp
@@ -22,6 +22,7 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser(parser=None, required=True):
+    """Get default arguments."""
     if parser is None:
         parser = configargparse.ArgumentParser(
             description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
@@ -62,6 +63,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
+    parser.add_argument('--save-interval-iters', default=0, type=int,
+                        help="Save snapshot interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -167,8 +170,8 @@ def get_parser(parser=None, required=True):
     # asr_mix related
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
-                        help='Maximum number of speakers in the speech for multi-speaker speech recognition task.')
-    # speech translation related
+                        help='Number of speakers in the speech.')
+    # decoder related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
     parser.add_argument('--replace-sos', default=False, nargs='?',
@@ -262,6 +265,7 @@ def get_parser(parser=None, required=True):
 
 
 def main(cmd_args):
+    """Run the main training function."""
     parser = get_parser()
     args, _ = parser.parse_known_args(cmd_args)
     if args.backend == "chainer" and args.train_dtype != "float32":

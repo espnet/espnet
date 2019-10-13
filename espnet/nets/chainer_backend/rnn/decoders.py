@@ -143,8 +143,7 @@ class Decoder(chainer.Chain):
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(z_list[-1])
 
-        z_all = F.reshape(F.stack(z_all, axis=1),
-                          (batch * olength, self.dunits))
+        z_all = F.stack(z_all, axis=1).reshape(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
         self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
@@ -155,7 +154,7 @@ class Decoder(chainer.Chain):
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
-            y_hat = F.reshape(y_all, (batch, olength, -1))
+            y_hat = y_all.reshape(batch, olength, -1)
             y_true = pad_ys_out
             for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data), y_true.data):
                 if i == MAX_DECODER_OUTPUT:
