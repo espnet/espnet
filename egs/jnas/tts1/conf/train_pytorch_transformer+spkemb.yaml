@@ -32,7 +32,7 @@ spk-embed-integration-type: add
 
 # minibatch related
 batch-sort-key: output # shuffle or input or output
-batch-bins: 1500000    # 637 batches containing from 7 to 145 samples (avg 39 samples).
+batch-bins: 1400000    # 612 batches containing from 7 to 173 samples (avg 40 samples)
 
 # training related
 transformer-init: pytorch
@@ -59,7 +59,7 @@ accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 500  # 600 epochs * 637 batches / 2 accum grad = 159,250 iters
+epochs: 500  # 500 epochs * 612 batches / 2 accum grad = 153,000 iters
 
 # other
 save-interval-epoch: 10
