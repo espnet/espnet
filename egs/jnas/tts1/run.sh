@@ -34,7 +34,7 @@ trim_shift_length=256
 trim_min_silence=0.01
 
 # config files
-train_config=conf/train_pytorch_tacotron2+spkemb.yaml
+train_config=conf/train_pytorch_transformer+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # Input transcription type: char or phn
