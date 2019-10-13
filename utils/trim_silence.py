@@ -24,7 +24,7 @@ def _time_to_str(time_idx):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        descpription='Trim slience with simple power thresholding and make segments file.',
+        description='Trim slience with simple power thresholding and make segments file.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
