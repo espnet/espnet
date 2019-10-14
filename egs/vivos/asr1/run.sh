@@ -68,7 +68,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   echo "stage 0: Data preparation"
   mkdir -p data/{train,test} exp
 
-  if [ ! ${vivos_root}/README ]; then
+  if [ ! -f ${vivos_root}/README ]; then
     echo "Cannot find vivos root! Exiting..."
     exit 1;
   fi
