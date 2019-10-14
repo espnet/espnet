@@ -7,7 +7,7 @@ db=$1
 lang=$2
 
 available_langs=(
-    "de_DE" "en_UK" "it_IT" "es_ES" "en_US" "fr_FR" "uk_UK" "ru_RU"
+    "de_DE" "en_UK" "it_IT" "es_ES" "en_US" "fr_FR" "uk_UK" "ru_RU" "pl_PL"
 )
 
 # check arguments
