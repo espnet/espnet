@@ -1,6 +1,6 @@
 # This configuration reuqires 3 gpus in the case of each gpu memory = 12GB, and it takes 1 days.
 # If you cannot use 3 gpus, please use train_pytorch_transformer.v1.single.
-# # Note that transoformer requires a large batchsize > 64 in average according to the original paper.
+# Note that transoformer requires a large batchsize > 64 in average according to the original paper.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
