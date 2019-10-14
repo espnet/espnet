@@ -4,13 +4,16 @@
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import configargparse
+"""Automatic speech recognition model training script."""
+
 import logging
+import multiprocessing as mp
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
@@ -67,6 +70,9 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # encoder
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
@@ -353,4 +359,10 @@ def main(cmd_args):
 
 
 if __name__ == '__main__':
+    # NOTE(kan-bayashi): setting multiple times causes RuntimeError
+    #   See also https://github.com/pytorch/pytorch/issues/3492
+    try:
+        mp.set_start_method('spawn')
+    except RuntimeError:
+        pass
     main(sys.argv[1:])
