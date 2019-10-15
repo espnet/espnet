@@ -5,9 +5,10 @@ import numpy
 import pytest
 import torch
 
-import espnet.nets.chainer_backend.lm.default as lm_chainer
 from espnet.nets.beam_search import beam_search
 from espnet.nets.lm_interface import dynamic_import_lm
+
+import espnet.nets.chainer_backend.lm.default as lm_chainer
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.scorers.length_bonus import LengthBonus
 
@@ -140,25 +141,27 @@ def test_chainer_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     if device == 0 and not chainer.cuda.available:
         pytest.skip("no cuda device is available")
 
-    dtype = getattr(numpy, dtype)
-    chainer.global_config.dtype = dtype
+    ftype = getattr(numpy, dtype)
+    itype = getattr(numpy, dtype.replace("float", "int"))
+    chainer.global_config.dtype = ftype
     model, x, ilens, y, data, train_args = prepare("rnn", rnn_args, backend="chainer")
     char_list = train_args.char_list
     n_vocab = len(char_list)
-    lm = dynamic_import_lm(lm_name, backend="pytorch")(n_vocab, lm_args)
-    lm.to(device=device, dtype=dtype)
-
+    lm = dynamic_import_lm(lm_name, backend="chainer")(n_vocab, lm_args)
+    if device > -1:
+        chainer.cuda.get_device_from_id(device).use()
+        lm.to_gpu()
+    xp = lm.xp
     # test trainable
-    a = numpy.random.randint(1, n_vocab, (3, 2))
-    b = numpy.random.randint(1, n_vocab, (3, 2))
-    loss, logp, count = lm(a, b)
+    a = xp.random.randint(1, n_vocab, (3, 2)).astype(itype)
+    b = xp.random.randint(1, n_vocab, (3, 2)).astype(itype)
+    loss = lm(a, b)
     loss.backward()
-    for p in lm.parameters():
+    for p in lm.params():
         assert p.grad is not None
 
     # test decodable
     if device > -1:
-        chainer.cuda.get_device_from_id(device).use()
         model.to_gpu()
     xp = model.xp
 
@@ -167,7 +170,7 @@ def test_chainer_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0, lm=1.0, length_bonus=1.0)
     with chainer.no_backprop_mode():
-        feat = xp.array(x[0, :ilens[0]]).astype(dtype)
+        feat = xp.array(x[0, :ilens[0]]).astype(ftype)
         enc = model.encode(feat)
         beam_size = 3
         result = beam_search(

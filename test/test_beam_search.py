@@ -89,13 +89,13 @@ def prepare(E2E, args, mtlalpha=0.0, backend="pytorch"):
     else:
         x = numpy.random.randn(batchsize, 40, idim)
     ilens = [40, 30, 20, 15, 10]
-    
+
     n_token = odim - 1
     # avoid 0 for eps in ctc
     if backend == "pytorch":
         y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
     else:
-        y = (numpy.random.rand(batchsize, 10) * n_token % (n_token - 1)).asdtype(numpy.int64) + 1
+        y = (numpy.random.rand(batchsize, 10) * n_token % (n_token - 1)).astype(numpy.int64) + 1
     olens = [3, 9, 10, 2, 3]
     for i in range(batchsize):
         x[i, ilens[i]:] = -1

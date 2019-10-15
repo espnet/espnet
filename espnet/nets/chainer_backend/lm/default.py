@@ -8,7 +8,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import logging
 import numpy as np
 import six
 
@@ -16,17 +15,12 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-from chainer.dataset import convert
-
 # for classifier link
 from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
-from chainer import training
-from chainer import reporter
-
-import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from espnet.nets.lm_interface import LMInterface
+
 
 class DefaultRNNLM(LMInterface, chainer.Chain):
     """Default RNNLM wrapper to compute reduce framewise loss values.
@@ -257,7 +251,7 @@ class RNNLM(chainer.Chain):
         """
         super(RNNLM, self).__init__()
         with self.init_scope():
-            self.embed = DL.EmbedID(n_vocab, n_units)
+            self.embed = L.EmbedID(n_vocab, n_units)
             self.rnn = chainer.ChainList(
                 *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)]) if typ == "lstm" \
                 else chainer.ChainList(*[L.StatelessGRU(n_units, n_units) for _ in range(n_layers)])

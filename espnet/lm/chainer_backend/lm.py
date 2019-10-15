@@ -137,14 +137,14 @@ def train(args):
 
     if ngpu > 1:
         train_iters = [ParallelSentenceIterator(
-            i, args.batchsize, max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad) for i in 
+            i, args.batchsize, max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad) for i in
             chainer.datasets.split_dataset_n_random(train, len(devices))]
         n_iters = len(train_iters[0].batch_indices)
     else:
         train_iter = ParallelSentenceIterator(train, args.batchsize,
                                               max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
-        n_iters = len(train_iter.batch_indices)                                            
-        
+        n_iters = len(train_iter.batch_indices)
+
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(n_iters))

@@ -1,16 +1,12 @@
+"""Class Declaration of LM's Training Subprocess."""
 from __future__ import division
 
-import collections
 import logging
-import math
-import six
 
 # chainer related
 from chainer import cuda
 from chainer import reporter
 from chainer import training
-
-from chainer import functions as F
 
 from chainer.dataset import convert
 
@@ -18,13 +14,9 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
-from chainer.training import extension
-
-import numpy as np
-
 
 class SingleUpdater(training.updaters.StandardUpdater):
-    """An updater for a chainer LM
+    """An updater for a chainer LM.
 
     :param chainer.dataset.Iterator train_iter : The train iterator
     :param optimizer:
@@ -32,11 +24,13 @@ class SingleUpdater(training.updaters.StandardUpdater):
     """
 
     def __init__(self, train_iter, optimizer, device):
+        """Initialize Custom Updater."""
         super(SingleUpdater, self).__init__(
             train_iter, optimizer, device=device)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Process main update routine for Custom Updater."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
@@ -62,6 +56,7 @@ class SingleUpdater(training.updaters.StandardUpdater):
 
 
 def concat(batch, device):
+    """Concatenate and pad batch items."""
     return convert.concat_examples(batch, device=device, padding=(0, -1))
 
 

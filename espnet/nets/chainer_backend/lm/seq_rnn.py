@@ -13,9 +13,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-# for classifier link
-from chainer import link
-
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from espnet.nets.lm_interface import LMInterface

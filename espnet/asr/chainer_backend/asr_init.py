@@ -10,8 +10,10 @@ from espnet.utils.dynamic_import import dynamic_import
 
 def load_trained_model(model_path):
     """Load the trained model.
+
     Args:
         model_path(str): Path to model.***.best
+
     """
     # read training config
     idim, odim, train_args = get_model_conf(
