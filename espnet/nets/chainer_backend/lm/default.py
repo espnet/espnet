@@ -26,48 +26,9 @@ from chainer import reporter
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
-from espnet.nets.chainer_backend.lm_interface import ChainerLMInterface
+from espnet.nets.lm_interface import LMInterface
 
-
-class BPTTUpdater(training.updaters.StandardUpdater):
-    """An updater for a chainer LM
-
-    :param chainer.dataset.Iterator train_iter : The train iterator
-    :param optimizer:
-    :param int device : The device id
-    """
-
-    def __init__(self, train_iter, optimizer, device):
-        super(BPTTUpdater, self).__init__(
-            train_iter, optimizer, device=device)
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-        # Progress the dataset iterator for sentences at each iteration.
-        batch = train_iter.__next__()
-        # Concatenate the token IDs to matrices and send them to the device
-        # self.converter does this job
-        # (it is chainer.dataset.concat_examples by default)
-        x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
-        loss, nll, count = optimizer.target(x, t)
-        loss_data = float(loss.data)
-        nll_data = float(nll.data)
-        reporter.report({'loss': loss_data}, optimizer.target)
-        reporter.report({'nll': nll_data}, optimizer.target)
-        reporter.report({'count': count}, optimizer.target)
-        logging.info('loss {:.04f}, nll {:.04f}, counts {}'.format(loss_data, nll_data, count))
-        # update
-        optimizer.target.cleargrads()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
-        optimizer.update()  # Update the parameters
-
-
-class DefaultRNNLM(ChainerLMInterface):
+class DefaultRNNLM(LMInterface, chainer.Chain):
     """Default RNNLM wrapper to compute reduce framewise loss values.
 
     Args:
@@ -101,7 +62,7 @@ class DefaultRNNLM(ChainerLMInterface):
         with self.init_scope():
             self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, args.dropout_rate))
 
-    def forward(self, x, t):
+    def forward(self, x, t, return_flag=False):
         """Compute LM loss value from buffer sequences.
 
         Args:
@@ -130,7 +91,9 @@ class DefaultRNNLM(ChainerLMInterface):
             non_zeros = xp.count_nonzero(x[:, i])
             loss += loss_batch * non_zeros
             count += int(non_zeros)
-        return loss / batch_size, loss, count
+        if return_flag:
+            return loss / batch_size, loss, count
+        return loss / batch_size
 
     def score(self, y, state, x):
         """Score new token.

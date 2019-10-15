@@ -13,6 +13,7 @@ import copy
 import json
 import logging
 import numpy as np
+import six
 
 import chainer
 from chainer.dataset import convert
@@ -61,7 +62,7 @@ class LMEvaluator(BaseEvaluator):
         count = 0
         for batch in copy.copy(val_iter):
             x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
-            l, n, c = target(x, t)
+            l, n, c = target(x, t, return_flag=True)
             loss += float(l.data)
             nll += float(n.data)
             count += int(c)
@@ -112,24 +113,42 @@ def train(args):
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
 
-    # Create the dataset iterators
-    train_iter = ParallelSentenceIterator(train, args.batchsize,
-                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
-    val_iter = ParallelSentenceIterator(val, args.batchsize,
-                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    # set GPU
     # Prepare an RNNLM model
     model = model_class(args.n_vocab, args)
-    if args.ngpu > 1:
-        logging.warning("currently, multi-gpu is not supported. use single gpu.")
-    if args.ngpu > 0:
+    ngpu = args.ngpu
+    if ngpu == 1:
         # Make the specified GPU current
         gpu_id = 0
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()
+        logging.info('single gpu calculation.')
+    elif ngpu > 1:
+        gpu_id = 0
+        devices = {'main': gpu_id}
+        for gid in six.moves.xrange(1, ngpu):
+            devices['sub_%d' % gid] = gid
+        logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batchsize, args.batchsize * ngpu))
     else:
         gpu_id = -1
+        logging.info('cpu calculation')
+
+    if ngpu > 1:
+        train_iters = [ParallelSentenceIterator(
+            i, args.batchsize, max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad) for i in 
+            chainer.datasets.split_dataset_n_random(train, len(devices))]
+        n_iters = len(train_iters[0].batch_indices)
+    else:
+        train_iter = ParallelSentenceIterator(train, args.batchsize,
+                                              max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
+        n_iters = len(train_iter.batch_indices)                                            
+        
+    val_iter = ParallelSentenceIterator(val, args.batchsize,
+                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+    logging.info('#iterations per epoch = ' + str(n_iters))
+    logging.info('#total iterations = ' + str(args.epoch * n_iters))
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
@@ -146,7 +165,12 @@ def train(args):
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
-    updater = model.custom_updater(train_iter, optimizer, gpu_id)
+    if ngpu > 1:
+        from espnet.lm.chainer_backend.training import ParallelUpdater
+        updater = ParallelUpdater(train_iters, optimizer, devices)
+    else:
+        from espnet.lm.chainer_backend.training import SingleUpdater
+        updater = SingleUpdater(train_iter, optimizer, gpu_id)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,

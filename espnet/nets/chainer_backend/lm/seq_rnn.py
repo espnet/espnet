@@ -18,10 +18,10 @@ from chainer import link
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
-from espnet.nets.chainer_backend.lm_interface import ChainerLMInterface
+from espnet.nets.lm_interface import LMInterface
 
 
-class SequentialRNNLM(ChainerLMInterface):
+class SequentialRNNLM(LMInterface, chainer.Chain):
     """Sequential RNNLM.
 
     See also:
@@ -100,7 +100,7 @@ class SequentialRNNLM(ChainerLMInterface):
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
-    def forward(self, x, t):
+    def forward(self, x, t, return_flag=False):
         """Compute LM loss value from buffer sequences.
 
         Args:
@@ -123,7 +123,9 @@ class SequentialRNNLM(ChainerLMInterface):
         logp = loss * mask.reshape(-1)
         logp = F.sum(logp)
         count = mask.sum()
-        return logp / count, logp, count
+        if return_flag:
+            return logp / count, logp, count
+        return logp / count
 
     def _before_loss(self, input, hidden):
         emb = self.encoder(input)

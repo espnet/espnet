@@ -13,13 +13,14 @@ import chainer.links as L
 
 from chainer import link
 
-from espnet.nets.chainer_backend.lm_interface import ChainerLMInterface
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
 
+from espnet.nets.lm_interface import LMInterface
+
 
 # TODO(karita): reimplement RNNLM with new interface
-class TransformerLM(ChainerLMInterface):
+class TransformerLM(LMInterface, link.Chain):
     """Transformer language model."""
 
     @staticmethod
@@ -59,7 +60,7 @@ class TransformerLM(ChainerLMInterface):
             self.encoder.input_layer[1] = PositionalEncoding(args.att_unit, args.dropout_rate, args.posenc_len)
             self.decoder = L.Linear(args.att_unit, n_vocab)
 
-    def forward(self, x, t):
+    def forward(self, x, t, return_flag=False):
         """Compute LM loss value from buffer sequences.
 
         Args:
@@ -87,7 +88,9 @@ class TransformerLM(ChainerLMInterface):
         logp = loss * mask.reshape(-1)
         logp = F.sum(logp)
         count = mask.sum()
-        return logp / count, logp, count
+        if return_flag:
+            return logp / count, logp, count
+        return logp / count
 
     def score(self, y, state, x):
         """Score new token.
