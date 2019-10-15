@@ -77,7 +77,7 @@ class MultiHeadAttention(chainer.Chain):
         scores = F.matmul(F.swapaxes(Q, 1, 2), K.transpose(0, 2, 3, 1)) / np.sqrt(self.d_k)
         if mask is not None:
             mask = xp.stack([mask] * self.h, axis=1)
-            scores = F.where(mask, scores, xp.full(scores.shape, MIN_VALUE, 'f'))
+            scores = F.where(mask, scores, xp.full(scores.shape, MIN_VALUE, scores.dtype))
         self.attn = F.softmax(scores, axis=-1)
         p_attn = F.dropout(self.attn, self.dropout)
         x = F.matmul(p_attn, F.swapaxes(V, 1, 2))

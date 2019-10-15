@@ -13,8 +13,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-import espnet.nets.chainer_backend.deterministic_embed_id as DL
-
 from espnet.nets.lm_interface import LMInterface
 
 
@@ -48,6 +46,8 @@ class SequentialRNNLM(LMInterface, chainer.Chain):
 
         """
         chainer.Chain.__init__(self)
+        if args.train_dtype != "float32" and args.ngpu > 0:
+            raise Exception("CUDNN_RNN only supports float32")
         self._setup(
             rnn_type=args.type.upper(),
             ntoken=n_vocab,
@@ -58,7 +58,7 @@ class SequentialRNNLM(LMInterface, chainer.Chain):
 
     def _setup(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, tie_weights=False):
         with self.init_scope():
-            self.encoder = DL.EmbedID(ntoken, ninp)
+            self.encoder = L.EmbedID(ntoken, ninp)
             if rnn_type in ['LSTM', 'GRU']:
                 rnn = L.NStepLSTM if rnn_type == "lstm" else L.NStepGRU
             else:
