@@ -79,7 +79,7 @@ class DNN_WPE(torch.nn.Module):
                 taps=self.taps, delay=self.delay,
                 inverse_power=self.inverse_power)
 
-            enhanced.masked_fill(make_pad_mask(ilens, enhanced.real), 0)
+            enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
 
         # (B, F, C, T) -> (B, T, C, F)
         enhanced = enhanced.permute(0, 3, 2, 1)
