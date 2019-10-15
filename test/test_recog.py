@@ -5,9 +5,9 @@
 
 import torch
 
+import espnet.nets.chainer_backend.lm.default as lm_chainer
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
-import espnet.lm.chainer_backend.lm as lm_chainer
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 
 import argparse

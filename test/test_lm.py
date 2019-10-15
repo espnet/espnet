@@ -146,23 +146,22 @@ def test_chainer_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     lm_args.train_dtype = dtype
     lm_args.ngpu = device + 1
     dtype = getattr(numpy, dtype)
-    chainer.global_config.dtype = dtype
-
-    model, x, ilens, y, data, train_args = prepare("rnn", rnn_args, backend="chainer")
-    char_list = train_args.char_list
-    n_vocab = len(char_list)
-    lm = dynamic_import_lm(lm_name, backend="chainer")(n_vocab, lm_args)
-    if device > -1:
-        chainer.cuda.get_device_from_id(device).use()
-        lm.to_gpu()
-    xp = lm.xp
-    # test trainable
-    a = xp.random.randint(1, n_vocab, (3, 2))
-    b = xp.random.randint(1, n_vocab, (3, 2))
-    loss = lm(a, b)
-    loss.backward()
-    for p in lm.params():
-        assert p.grad is not None
+    with chainer.using_config('dtype', dtype):
+        model, x, ilens, y, data, train_args = prepare("rnn", rnn_args, backend="chainer")
+        char_list = train_args.char_list
+        n_vocab = len(char_list)
+        lm = dynamic_import_lm(lm_name, backend="chainer")(n_vocab, lm_args)
+        if device > -1:
+            chainer.cuda.get_device_from_id(device).use()
+            lm.to_gpu()
+        xp = lm.xp
+        # test trainable
+        a = xp.random.randint(1, n_vocab, (3, 2))
+        b = xp.random.randint(1, n_vocab, (3, 2))
+        loss = lm(a, b)
+        loss.backward()
+        for p in lm.params():
+            assert p.grad is not None
 
     # test decodable
     # TODO(nelson): implement scorers in chainer

@@ -91,7 +91,6 @@ class ParallelUpdater(training.updaters.MultiprocessParallelUpdater):
         super(ParallelUpdater, self).__init__(
             train_iters, optimizer, converter=concat, devices=devices)
         self.nccl = nccl
-        logging.debug('using custom parallel updater for transformer')
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
