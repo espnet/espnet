@@ -25,6 +25,7 @@ from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.chainer_backend.asr_init import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
@@ -39,7 +40,7 @@ from espnet.utils.training.train_utils import set_early_stop
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
-import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.nets.chainer_backend.lm.default as lm_chainer
 
 # numpy related
 import matplotlib
@@ -360,26 +361,18 @@ def recog(args):
     set_deterministic_chainer(args)
 
     # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    model.recog_args = args
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # specify model architecture
-    logging.info('reading model parameters from ' + args.model)
-    # To be compatible with v.0.3.0 models
-    if hasattr(train_args, "model_module"):
-        model_module = train_args.model_module
-    else:
-        model_module = "espnet.nets.chainer_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
-    assert isinstance(model, ASRInterface)
-    chainer_load(args.model, model)
-
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
             len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         chainer_load(args.rnnlm, rnnlm)
@@ -388,6 +381,8 @@ def recog(args):
 
     if args.word_rnnlm:
         rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError("use '--api v2' option to decode with non-default language model")
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
@@ -416,13 +411,22 @@ def recog(args):
 
     # decode each utterance
     new_js = {}
-    with chainer.no_backprop_mode():
-        for idx, name in enumerate(js.keys(), 1):
-            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            batch = [(name, js[name])]
-            feat = load_inputs_and_targets(batch)[0][0]
-            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    if args.batchsize > 1:
+        # Batch Decoding
+        raise NotImplementedError('WIP')
+    else:
+        with chainer.no_backprop_mode():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                feat = load_inputs_and_targets(batch)[0][0]
+                if args.streaming_mode == 'window':
+                    raise NotImplementedError('WIP')
+                elif args.streaming_mode == 'segment':
+                    raise NotImplementedError('WIP')
+                else:
+                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))

@@ -77,18 +77,25 @@ transformer_args = Namespace(
 
 
 # from test.test_e2e_asr_transformer import prepare
-def prepare(E2E, args, mtlalpha=0.0):
+def prepare(E2E, args, mtlalpha=0.0, backend="pytorch"):
     args.mtlalpha = mtlalpha
     args.char_list = ['a', 'e', 'i', 'o', 'u']
     idim = 40
     odim = 5
-    model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
+    model = dynamic_import_asr(E2E, backend)(idim, odim, args)
     batchsize = 5
-    x = torch.randn(batchsize, 40, idim)
+    if backend == "pytorch":
+        x = torch.randn(batchsize, 40, idim)
+    else:
+        x = numpy.random.randn(batchsize, 40, idim)
     ilens = [40, 30, 20, 15, 10]
+    
     n_token = odim - 1
     # avoid 0 for eps in ctc
-    y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
+    if backend == "pytorch":
+        y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
+    else:
+        y = (numpy.random.rand(batchsize, 10) * n_token % (n_token - 1)).asdtype(numpy.int64) + 1
     olens = [3, 9, 10, 2, 3]
     for i in range(batchsize):
         x[i, ilens[i]:] = -1
@@ -100,7 +107,9 @@ def prepare(E2E, args, mtlalpha=0.0):
             "input": [{"shape": [ilens[i], idim]}],
             "output": [{"shape": [olens[i]]}]
         }))
-    return model, x, torch.tensor(ilens), y, data, args
+    if backend == "pytorch":
+        ilens = torch.tensor(ilens)
+    return model, x, ilens, y, data, args
 
 
 @pytest.mark.parametrize(

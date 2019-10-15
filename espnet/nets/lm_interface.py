@@ -39,7 +39,9 @@ predefined_lms = {
         "transformer": "espnet.nets.pytorch_backend.lm.transformer:TransformerLM",
     },
     "chainer": {
-        "default": "espnet.lm.chainer_backend.lm:DefaultRNNLM"
+        "default": "espnet.nets.chainer_backend.lm.default:DefaultRNNLM",
+        "seq_rnn": "espnet.nets.chainer_backend.lm.seq_rnn:SequentialRNNLM",
+        "transformer": "espnet.nets.chainer_backend.lm.transformer:TransformerLM",
     }
 }
 
