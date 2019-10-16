@@ -433,6 +433,7 @@ Here we list some notable ones:
 - [Single English speaker FastSpeech](https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5)
 - [Multi English speaker Tranformer](https://drive.google.com/open?id=1_vrdqjM43DdN1Qz7HJkvMQ6lCMmWLeGp)
 - [Single Italian speaker FastSpeech](https://drive.google.com/open?id=13I5V2w7deYFX4DlVk1-0JfaXmUR2rNOv)
+- [Single Mandarin speaker Transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 
 > Note that all of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.  
 > You can listen to WaveNet vocoder samples in our demo HP.
