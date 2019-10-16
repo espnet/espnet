@@ -14,6 +14,7 @@ if ${USE_CONDA}; then
     . tools/venv/etc/profile.d/conda.sh
     conda config --set always_yes yes
     conda activate
+    conda install -c anaconda setuptools
     conda update -y conda
     if [[ ${TH_VERSION} == nightly ]]; then
         conda install -q -y pytorch-nightly-cpu -c pytorch
