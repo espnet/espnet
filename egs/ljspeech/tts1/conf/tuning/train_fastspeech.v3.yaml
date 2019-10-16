@@ -1,4 +1,4 @@
-# Config based on tran_fastspeech.v1 + postnet.
+# Config based on train_fastspeech.v2 + postnet.
 # This configuration reuqires 2 gpus in the case of each gpu memory = 24GB.
 # To use this configuration, you need the model trained with `conf/tuning/train_transformer.v3`.
 
