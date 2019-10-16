@@ -61,6 +61,7 @@ miniconda.sh:
 	test -f miniconda.sh || $(WGET) $(CONDA_URL) -O miniconda.sh
 venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
+	. venv/bin/activate && conda install -y setuptools -c anaconda
 	. venv/bin/activate && conda update -y conda
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
