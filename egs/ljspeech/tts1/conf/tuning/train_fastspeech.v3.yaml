@@ -27,6 +27,9 @@ decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
+# NOTE: the batch bins are carefully selected so that the average batch size will
+# be 32 and it asummes the number of vocabularies is 77 (in phoneme case)
+# If you want to use char input instead, you will need to tweak the batch-bin.
 batch-sort-key: output # shuffle or input or output
 batch-bins: 1624061   # 32 * (566.506 * 80 + 70.538 * 77)
                       # avg batch-size * (mean_out * dim_out + mean_in * dim_in)
