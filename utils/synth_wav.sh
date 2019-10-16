@@ -70,8 +70,10 @@ Available models:
     - ljspeech.tacotron2.v3
     - ljspeech.transformer.v1
     - ljspeech.transformer.v2
+    - ljspeech.transformer.v3
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
+    - ljspeech.fastspeech.v3
     - libritts.transformer.v1
 
 Available vocoder models:
@@ -102,8 +104,10 @@ function download_models () {
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
         "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
+        "ljspeech.transformer.v3") share_url="https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP" ;;
         "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
         "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
+        "ljspeech.fastspeech.v3") share_url="https://drive.google.com/open?id=1zbSprxJ_iiv3DJq-S7Qt6O0EVPmbl7YF";;
         "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
