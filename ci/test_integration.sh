@@ -13,6 +13,8 @@
     ./run.sh --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
     echo "==== ASR (backend=chainer) ==="
     ./run.sh --stage 3 --backend chainer
+    echo "==== ASR (backend=pytorch num-encs 2) ==="
+    ./run.sh --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
 )
 # test asr_mix recipe
 (

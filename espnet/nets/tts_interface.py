@@ -7,6 +7,8 @@
 
 import chainer
 
+from espnet.asr.asr_utils import torch_load
+
 
 class Reporter(chainer.Chain):
     """Reporter module."""
@@ -57,6 +59,10 @@ class TTSInterface(object):
 
         """
         raise NotImplementedError("calculate_all_attentions method is not implemented")
+
+    def load_pretrained_model(self, model_path):
+        """Load pretrained model parameters."""
+        torch_load(model_path, self)
 
     @property
     def attention_plot_class(self):
