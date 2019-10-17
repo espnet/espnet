@@ -3,12 +3,14 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+# edited by enamoria: add vietnamese cleaner
+
 import argparse
 import codecs
 import os
 import pdb
 
-from cleaners import english_cleaners
+from vietnamese_cleaners import vietnamese_naive_cleaner
 
 
 if __name__ == "__main__":
@@ -21,10 +23,10 @@ if __name__ == "__main__":
         for line in fid.readlines():
             id, _, content = line.split("|")
             
-            clean_content = content.strip()
+            clean_content = vietnamese_naive_cleaner(content)
             lines[id] = clean_content
 
-        # This below hack is for sorting the text. Since python sorting and the bash sorting (seems? to be) different, so I write the text to a temporary text file, then sort it using bash. This is ugly I know, but I'm not quite familiar with kaldi and their stuff, so I try to fit their pipeline
+        # TODO This below hack is for sorting the text. Since python sorting and the bash sorting is different (is it???), so I write the text to a temporary text file, then sort it using bash. This is ugly I know, but I'm not quite familiar with kaldi and their stuff, so I simply try to fit their pipeline
 
         with codecs.open("text_temp", "w", "utf8") as f:
             for id in sorted(lines.keys()):
