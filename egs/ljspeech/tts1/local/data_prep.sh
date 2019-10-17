@@ -5,6 +5,7 @@
 
 db=$1
 data_dir=$2
+trans_type=$3
 
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
@@ -29,5 +30,5 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-PYTHONPATH=local/text python local/clean_text.py ${db}/metadata.csv > ${text}
+python local/clean_text.py ${db}/metadata.csv $trans_type > ${text}
 echo "finished making text."
