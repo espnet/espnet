@@ -48,6 +48,6 @@ echo "Successfully finished making spk2utt."
 
 # make text
 cat ${db}/transcript.txt | cut -d "/" -f 2- | sed -e "s/\t/ /g" > ${rawtext}
-PYTHONPATH=local/text local/clean_text.py ${rawtext} > ${text}
+local/clean_text.py ${rawtext} > ${text}
 rm ${rawtext}
 echo "Successfully finished making text."

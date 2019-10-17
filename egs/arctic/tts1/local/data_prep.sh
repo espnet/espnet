@@ -54,7 +54,7 @@ raw_text=${db}/cmu_us_${spk}_arctic/etc/arctic.data
 ids=$(sed < ${raw_text} -e "s/^( /${spk}_/g" -e "s/ )$//g" | cut -d " " -f 1)
 sentences=$(sed < ${raw_text} -e "s/^( //g" -e "s/ )$//g" -e "s/\"//g" | tr '[:lower:]' '[:upper:]' | cut -d " " -f 2-)
 paste -d " " <(echo "${ids}") <(echo "${sentences}") > ${text}.tmp
-PYTHONPATH=local/text local/clean_text.py ${text}.tmp > ${text}
+local/clean_text.py ${text}.tmp > ${text}
 rm ${text}.tmp
 echo "Successfully finished making text."
 

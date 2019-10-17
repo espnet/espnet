@@ -38,7 +38,3 @@ echo "finished making wav.scp, utt2spk, spk2utt."
 # make text
 local/clean_text.py ${db}/metadata.csv $trans_type > ${text}
 echo "finished making text."
-
-# check
-utils/validate_data_dir.sh --no-feats ${data_dir}
-echo "Successfully finished making text."
