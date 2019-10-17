@@ -43,6 +43,7 @@ requirements = {
         'pysptk>=0.1.17',
         'nnmnkwii',
         'jaconv',
+        'g2p_en',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
