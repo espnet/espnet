@@ -13,9 +13,9 @@ hyperparameter. Some cleaners are English-specific. You'll typically want to use
 
 import re
 
-from numbers import normalize_numbers
 from unidecode import unidecode
 
+from text.numbers import normalize_numbers
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
