@@ -9,7 +9,7 @@ data_dir=$3
 
 # check arguments
 if [ $# != 3 ]; then
-    echo "Usage: $0 <download_dir> <spk> <data_dir>"
+    echo "Usage: $0 <db> <spk> <data_dir>"
     exit 1
 fi
 
@@ -39,7 +39,7 @@ segments=${data_dir}/segments
 [ -e ${segments} ] && rm ${segments}
 
 # make scp, utt2spk, and spk2utt
-find ${db}/cmu_us_${spk}_arctic -name "*.wav" -follow | sort | while read -r filename;do
+find ${db} -name "*.wav" -follow | sort | while read -r filename;do
     id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
     echo "${id} ${filename}" >> ${scp}
     echo "${id} ${spk}" >> ${utt2spk}
@@ -50,16 +50,16 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "Successfully finished making spk2utt."
 
 # make text
-raw_text=${db}/cmu_us_${spk}_arctic/etc/arctic.data
+raw_text=${db}/etc/arctic.data
 ids=$(sed < ${raw_text} -e "s/^( /${spk}_/g" -e "s/ )$//g" | cut -d " " -f 1)
 sentences=$(sed < ${raw_text} -e "s/^( //g" -e "s/ )$//g" -e "s/\"//g" | tr '[:lower:]' '[:upper:]' | cut -d " " -f 2-)
 paste -d " " <(echo "${ids}") <(echo "${sentences}") > ${text}.tmp
-PYTHONPATH=local/text local/clean_text.py ${text}.tmp > ${text}
+local/clean_text.py ${text}.tmp > ${text}
 rm ${text}.tmp
 echo "Successfully finished making text."
 
 # make segments
-find ${db}/cmu_us_${spk}_arctic/lab -name "*.lab" -follow | sort | while read -r filename; do
+find ${db}/lab -name "*.lab" -follow | sort | while read -r filename; do
     # get start time
     while read line; do
         phn=$(echo ${line} | cut -d " " -f 3)
