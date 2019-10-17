@@ -5,15 +5,24 @@
 
 import argparse
 import codecs
+import nltk
 
-from cleaners import custom_english_cleaners
+from text.cleaners import custom_english_cleaners
 
-# https://github.com/Kyubyong/g2p
-from g2p_en import G2p
-f_g2p = G2p()
+try:
+    # For phoneme conversion, use https://github.com/Kyubyong/g2p.
+    from g2p_en import G2p
+    f_g2p = G2p()
+    f_g2p("")
+except ImportError:
+    raise ImportError("g2p_en is not installed. please run `. ./path.sh && pip install g2p_en`.")
+except LookupError:
+    # NOTE: we need to download dict in initial running
+    nltk.download("punkt")
 
 
 def g2p(text):
+    """Convert grapheme to phoneme."""
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
 
