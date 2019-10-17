@@ -187,6 +187,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d", "conv1d-linear"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=1, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
         group.add_argument("--postnet-chans", default=256, type=int,
@@ -400,7 +405,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define projection layer

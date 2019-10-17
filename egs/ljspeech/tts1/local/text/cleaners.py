@@ -15,7 +15,7 @@ the symbols in symbols.py to match your data).
 import sys
 import re
 
-from numbers import normalize_numbers
+from .numbers import normalize_numbers
 from unidecode import unidecode
 
 
