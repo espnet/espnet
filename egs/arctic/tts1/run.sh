@@ -71,7 +71,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${download_dir} ${spk} data/${org_set}
+    local/data_prep.sh ${download_dir}/cmu_us_${spk}_arctic ${spk} data/${org_set}
     utils/fix_data_dir.sh data/${org_set}
     utils/validate_data_dir.sh --no-feats data/${org_set}
 fi
