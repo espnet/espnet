@@ -420,7 +420,7 @@ Available pretrained models are listed as below.
 
 ### TTS results
 
-You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).  
+You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
 If you want to check more and more samples, please access our google drive from [our google drive](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX).
 
 Here we list some notable ones:
@@ -435,7 +435,7 @@ Here we list some notable ones:
 - [Single Italian speaker FastSpeech](https://drive.google.com/open?id=13I5V2w7deYFX4DlVk1-0JfaXmUR2rNOv)
 - [Single Mandarin speaker Transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 
-> Note that all of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.  
+> Note that all of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 > You can listen to WaveNet vocoder samples in our demo HP.
 
 All of the pretrained models which generate the above samples are also available in [our google drive](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF).
@@ -465,8 +465,10 @@ Available pretrained models are listed as follows:
 | [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Tacotron 2 with guided attention loss |
 | [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep Transformer |
 | [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow Transformer with reduction factor = 3 |
+| [ljspeech.transformer.v3 (New!)](https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP) | Deep Transformer (phoneme input) |
 | [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
 | [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
+| [ljspeech.fastspeech.v3 (New!)](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet (phoneme input)|
 | [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2 |
 | [jsut.tacotron2 (New!)](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t) | Tacotron 2 ith reduction factor = 2, phoneme input |
 | [jsut.transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD) | Transformer with reduction factor = 3, phoneme input |
