@@ -315,11 +315,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
 
         if is_inference:
-            return outs
+            return outs, d_outs
         else:
             return outs, ds, d_outs
 
-    def forward(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, olens, spembs=None, spcs=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -328,6 +328,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spcs (Tensor, optional): Batch of precalculated durations (B, Tmax).
 
         Returns:
             Tensor: Loss value.
@@ -338,7 +339,12 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         ys = ys[:, :max(olens)]
 
         # forward propagation
-        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+        if spcs is None:
+            outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+        else:
+            # NOTE: Use is_inference = True to skip teacher calculation
+            outs, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=True)
+            ds = spcs  # use precalculated durations
 
         # apply mask to remove padded part
         if self.use_masking:
