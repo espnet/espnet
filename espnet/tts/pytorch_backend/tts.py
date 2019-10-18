@@ -14,7 +14,6 @@ import os
 import time
 
 import chainer
-import kaldiio
 import numpy as np
 import torch
 
@@ -565,7 +564,7 @@ def decode(args):
     if args.save_durations:
         f2 = KaldiWriter(
             'ark,scp:{o}.ark,{o}.scp'.format(o=args.out.replace("feats", "durations")),
-            write_num_frames='ark,t:{o}'.format(o=os.path.dirname(args.out) + "/utt2num_frames")
+            write_num_frames='ark,t:{o}'.format(o=args.out.replace("feats", "utt2num_frames")),
         )
 
     with torch.no_grad(), KaldiWriter('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
