@@ -589,6 +589,9 @@ def decode(args):
             #     (time.time() - start_time) / (int(outs.size(0))) * 1000, x.size(0), outs.size(0)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
+                # Skip saving not to use for knowdistillation
+                if args.save_durations:
+                    continue
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
             f[utt_id] = outs.cpu().numpy()
