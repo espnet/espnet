@@ -403,7 +403,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, spcs=None, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -412,6 +412,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spcs (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
             dict: Dict of attention weights and outputs.
@@ -421,9 +422,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             # remove unnecessary padded part (for multi-gpus)
             xs = xs[:, :max(ilens)]
             ys = ys[:, :max(olens)]
+            if spcs is not None:
+                spcs = spcs[:, :max(ilens)].squeeze(-1)
 
             # forward propagation
-            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)[0]
+            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, ds=spcs, is_inference=False)[1]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
