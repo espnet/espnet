@@ -562,10 +562,8 @@ def decode(args):
 
     # FIXME: dirty hard coding
     if args.save_durations:
-        f2 = KaldiWriter(
-            'ark,scp:{o}.ark,{o}.scp'.format(o=args.out.replace("feats", "durations")),
-            write_num_frames='ark,t:{o}'.format(o=args.out.replace("feats", "utt2num_frames")),
-        )
+        f2 = KaldiWriter('ark,scp:{o}.ark,{o}.scp'.format(
+            o=args.out.replace("feats", "durations")))
 
     with torch.no_grad(), KaldiWriter('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
