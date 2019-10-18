@@ -29,6 +29,7 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.cli_writers import KaldiWriter
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
 from espnet.utils.dynamic_import import dynamic_import
@@ -562,14 +563,12 @@ def decode(args):
 
     # FIXME: dirty hard coding
     if args.save_durations:
-        f2 = kaldiio.WriteHelper(
+        f2 = KaldiWriter(
             'ark,scp:{o}.ark,{o}.scp'.format(o=args.out.replace("feats", "durations")),
-            write_num_frames=True
+            write_num_frames='ark,t:{o}'.format(o=os.path.dirname(args.out) + "/utt2num_frames")
         )
 
-    with torch.no_grad(), \
-            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
-
+    with torch.no_grad(), KaldiWriter('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]
             data = load_inputs_and_targets(batch)
