@@ -9,7 +9,7 @@ import argparse
 import codecs
 import os
 
-from vietnamese_cleaners import vietnamese_naive_cleaner
+from vietnamese_cleaners import vietnamese_cleaner
 
 
 if __name__ == "__main__":
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         for line in fid.readlines():
             id, _, content = line.split("|")
             
-            clean_content = vietnamese_naive_cleaner(content)
+            clean_content = vietnamese_cleaner(content)
             lines[id] = clean_content
 
         for id in sorted(lines.keys()):
