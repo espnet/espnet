@@ -1,3 +1,57 @@
+# v.0.5.3: fastspeech.v3 1024 pt window / 256 pt shift / GL 1000 iters
+
+## Environments
+
+- date: `Wed Oct 16 20:55:50 JST 2019`
+- python version: `3.6.9 |Anaconda, Inc.| (default, Jul 30 2019, 19:07:31)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.3`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1`
+- Git hash: `f686d0b1e1e6b0e99215cbb8068df2b33066bdc1`
+  - Commit date: `Wed Oct 16 20:45:37 2019 +0900`
+
+# Model files
+
+- model link: https://drive.google.com/open?id=1zbSprxJ_iiv3DJq-S7Qt6O0EVPmbl7YF
+- training config file: `conf/tuning/train_fastspeech.v3.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_fastspeech.v3/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_fastspeech.v3/results/model.json`
+- dict file: `data/lang_1phn/train_no_dev_units.txt`
+- trans type: phn
+
+## Samples
+
+https://drive.google.com/open?id=1EHuIHmmb0ft563P-rNaMvsEjRjlR3Jv5
+
+# v.0.5.3: transformer.v3 1024 pt window / 256 pt shift / GL 1000 iters
+
+## Environments
+
+- date: `Wed Oct 16 20:55:50 JST 2019`
+- python version: `3.6.9 |Anaconda, Inc.| (default, Jul 30 2019, 19:07:31)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.3`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1`
+- Git hash: `f686d0b1e1e6b0e99215cbb8068df2b33066bdc1`
+  - Commit date: `Wed Oct 16 20:45:37 2019 +0900`
+
+## Model files
+
+- model link: https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP
+- training config file: `conf/tuning/train_pytorch_transformer.v3.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3/results/model.json`
+- dict file: `data/lang_1phn/train_no_dev_units.txt`
+- trans type: phn
+
+## Samples
+
+https://drive.google.com/open?id=1UMv2CVfZPlE3o8gOHSflZgGqhS48UsJQ
+
 # v.0.5.0: fastspeech.v2 1024 pt window / 256 pt shift / GL 1000 iters
 
 ## Environments

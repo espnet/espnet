@@ -22,8 +22,9 @@ def _time_to_str(time_idx):
     return "%06d" % time_idx
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='Trim slience with simple power thresholding and make segments file.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
@@ -43,6 +44,12 @@ def main():
                              'then normalizes data to scale in [-1,1]')
     parser.add_argument('rspecifier', type=str, help='WAV scp file')
     parser.add_argument('wspecifier', type=str, help='Segments file')
+
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # set logger
@@ -73,9 +80,8 @@ def main():
             end = min(len(array) / args.fs, end + args.min_silence)
 
             # write to segments file
-            segment = "%s_%s_%s %s %f %f\n" % (
-                utt_id, _time_to_str(start), _time_to_str(end),
-                utt_id, start, end
+            segment = "%s %s %f %f\n" % (
+                utt_id, utt_id, start, end
             )
             f.write(segment)
 
