@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# This code inspired from underthesea package, edited by kinhph
-# What changed: PSG. consider to be abbreviation, but not with the dot.
+# This code inspired from underthesea package, edited by enamoria
+# What changed from the original version: PSG. consider to be abbreviation, but not with the dot.
 # Just add a boundary for word at     r"[A-ZĐ]+\s"
 
 import re
