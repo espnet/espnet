@@ -12,6 +12,8 @@ import platform
 import subprocess
 import sys
 
+from espnet.utils.cli_utils import strtobool
+
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
@@ -56,6 +58,8 @@ def get_parser():
                         help='Minimum length ratio in decoding')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='Threshold value in decoding')
+    parser.add_argument('--save-durations', default=False, type=strtobool,
+                        help='Whether to save attentions as durations')
     return parser
 
 

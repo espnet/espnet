@@ -20,6 +20,7 @@ import torch
 
 from chainer import training
 from chainer.training import extensions
+from librosa.core import frames_to_time
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import snapshot_object
@@ -546,6 +547,24 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
+    # define function to convert att_ws to durations
+    def _convert_att_ws_to_durations(att_ws):
+        # get the most diagonal attention among the all of the sournce attentions for transformer
+        if len(att_ws.shape) == 4:
+            att_ws = torch.cat([att_w for att_w in att_ws], axis=0)  # (#heads * #layers, L, T)
+            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (#heads * #layers,)
+            diagonal_head_idx = diagonal_scores.argmax()
+            att_ws = att_ws[diagonal_head_idx]  # (L, T)
+        elif len(att_ws.shape != 2):
+            raise ValueError("att_ws should be 4 or 2 dimensional tensor.")
+        # convert att_ws into duration
+        return torch.stack([att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])]).view(-1, 1).float()
+
+    # FIXME: dirty hard coding
+    if args.save_durations:
+        f2 = kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(
+            o=args.out.replace("feats", "durations")))
+
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
 
@@ -563,8 +582,11 @@ def decode(args):
             # decode and write
             start_time = time.time()
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
-            logging.info("inference speed = %s msec / frame." % (
-                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
+            processed_time = float(time.time() - start_time)
+            duration_time = frames_to_time([int(outs.size(0))], 22050, 256, 1024)[0]
+            logging.info("RTF = %05f" % ((processed_time / duration_time)))
+            # logging.info("inference speed = %s msec / frame. (in: %d -> out: %d)" % (
+            #     (time.time() - start_time) / (int(outs.size(0))) * 1000, x.size(0), outs.size(0)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
@@ -576,3 +598,12 @@ def decode(args):
                 _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
             if att_ws is not None:
                 _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)
+
+            # save duration
+            if args.save_durations:
+                ds = _convert_att_ws_to_durations(att_ws)
+                f2[utt_id] = ds.cpu().numpy()
+
+    # close file object
+    if args.save_durations:
+        f2.close()
