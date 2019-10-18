@@ -4,7 +4,7 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Multi-layered conv1d for Transformer block."""
+"""Layer modules for FFT block in FastSpeech (Feed-forward Transformer)."""
 
 import torch
 
@@ -15,19 +15,21 @@ class MultiLayeredConv1d(torch.nn.Module):
     This is a module of multi-leyered conv1d designed to replace positionwise feed-forward network
     in Transforner block, which is introduced in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
 
-    Args:
-        in_chans (int): Number of input channels.
-        hidden_chans (int): Number of hidden channels.
-        kernel_size (int): Kernel size of conv1d.
-        dropout_rate (float): Dropout rate.
-
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
     """
 
     def __init__(self, in_chans, hidden_chans, kernel_size, dropout_rate):
-        """Construct an MultiLayeredConv1d object."""
+        """Initialize MultiLayeredConv1d module.
+
+        Args:
+            in_chans (int): Number of input channels.
+            hidden_chans (int): Number of hidden channels.
+            kernel_size (int): Kernel size of conv1d.
+            dropout_rate (float): Dropout rate.
+
+        """
         super(MultiLayeredConv1d, self).__init__()
         self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
                                    stride=1, padding=(kernel_size - 1) // 2)
@@ -54,14 +56,18 @@ class Conv1dLinear(torch.nn.Module):
 
     A variant of MultiLayeredConv1d, which replaces second conv-layer to linear.
 
-    Args:
-        in_chans (int): Number of input channels.
-        hidden_chans (int): Number of hidden channels.
-        kernel_size (int): Kernel size of conv1d.
-        dropout_rate (float): Dropout rate.
     """
 
     def __init__(self, in_chans, hidden_chans, kernel_size, dropout_rate):
+        """Initialize Conv1dLinear module.
+
+        Args:
+            in_chans (int): Number of input channels.
+            hidden_chans (int): Number of hidden channels.
+            kernel_size (int): Kernel size of conv1d.
+            dropout_rate (float): Dropout rate.
+
+        """
         super(Conv1dLinear, self).__init__()
         self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
                                    stride=1, padding=(kernel_size - 1) // 2)
