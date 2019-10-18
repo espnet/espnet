@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Author: enamoria
+# Brief : Download VAIS1000 dataset
 
 db=$1
 ./path.sh || exit 1
