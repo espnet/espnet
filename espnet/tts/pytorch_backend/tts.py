@@ -562,8 +562,10 @@ def decode(args):
 
     # FIXME: dirty hard coding
     if args.save_durations:
-        f2 = kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(
-            o=args.out.replace("feats", "durations")))
+        f2 = kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(o=args.out.replace("feats", "durations")),
+            write_num_frames=True
+        )
 
     with torch.no_grad(), \
             kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
