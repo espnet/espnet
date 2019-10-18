@@ -244,13 +244,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                                --num ${n_average}
     fi
     pids=() # initialize pids
-    for name in ${dev_set}; do #${train_set}; do
+    for name in ${dev_set} ${train_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
+        ${train_cmd} --num-threads 2 JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -297,6 +297,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
+train_config=conf/tuning/train_fastspeech.v4.yaml
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 8: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
