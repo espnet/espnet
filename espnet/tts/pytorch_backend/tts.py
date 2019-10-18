@@ -552,8 +552,9 @@ def decode(args):
         # get the most diagonal attention among the all of the sournce attentions for transformer
         if len(att_ws.shape) == 4:
             att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
-            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (#heads * #layers,)
+            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
             diagonal_head_idx = diagonal_scores.argmax()
+            logging.info("diagonal head = %d" % int(diagonal_head_idx))
             att_ws = att_ws[diagonal_head_idx]  # (L, T)
         elif len(att_ws.shape != 2):
             raise ValueError("att_ws should be 4 or 2 dimensional tensor.")
