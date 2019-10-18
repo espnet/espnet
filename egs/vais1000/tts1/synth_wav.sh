@@ -1,1 +1,0 @@
-../../../utils/synth_wav.sh
