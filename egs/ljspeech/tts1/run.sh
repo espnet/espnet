@@ -228,3 +228,90 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
 fi
+
+feat_tr_dir=${dumpdir}/${train_set}_kd; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${dev_set}_kd; mkdir -p ${feat_dt_dir}
+if [ ${n_average} -gt 0 ]; then
+    model=model.last${n_average}.avg.best
+fi
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Decoding"
+    if [ ${n_average} -gt 0 ]; then
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${model} \
+                               --num ${n_average}
+    fi
+    pids=() # initialize pids
+    for name in ${dev_set}; do #${train_set}; do
+    (
+        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
+        # decode in parallel
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
+            tts_decode.py \
+                --backend ${backend} \
+                --ngpu 0 \
+                --verbose ${verbose} \
+                --out ${outdir}/${name}/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
+                --model ${expdir}/results/${model} \
+                --save-durations true \
+                --config ${decode_config}
+        # concatenate scp files
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/feats.scp
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/durations.$n.scp" || exit 1;
+        done > ${outdir}/${name}/durations.scp
+
+        # make new json for knowledge distillation training
+        teacher_feats=${outdir}/${name}/feats.scp
+        teacher_durations=${outdir}/${name}/durations.scp
+
+        utils/copy_data_dir.sh data/${name} data/${name}_kd
+        cp ${teacher_feats} data/${name}_kd/feats.scp
+        cp ${teacher_durations} data/${name}_kd/durations.scp
+        utils/fix_data_dir.sh data/${name}_kd
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
+    data2json.sh --feat data/${train_set}_kd/feats.scp --trans_type ${trans_type} \
+         data/${train_set}_kd ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat data/${dev_set}_kd/feats.scp --trans_type ${trans_type} \
+         data/${dev_set}_kd ${dict} > ${feat_dt_dir}/data.json
+    local/update_json.sh ${feat_tr_dir}/data.json ${outdir}/${train_set}/durations.scp
+    local/update_json.sh ${feat_dt_dir}/data.json ${outdir}/${dev_set}/durations.scp
+fi
+
+if [ -z ${tag} ]; then
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+else
+    expname=${train_set}_${backend}_${tag}
+fi
+expdir=exp/${expname}
+mkdir -p ${expdir}
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 8: Text-to-speech model training"
+    tr_json=${feat_tr_dir}/data.json
+    dt_json=${feat_dt_dir}/data.json
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+        tts_train.py \
+           --backend ${backend} \
+           --ngpu ${ngpu} \
+           --minibatches ${N} \
+           --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
+           --verbose ${verbose} \
+           --seed ${seed} \
+           --resume ${resume} \
+           --train-json ${tr_json} \
+           --valid-json ${dt_json} \
+           --config ${train_config}
+fi
