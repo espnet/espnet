@@ -308,7 +308,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # TODO(kan-bayashi): support knowledge distillation loss
         # self.criterion = torch.nn.L1Loss()
 
-    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
+    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, ds=None, is_inference=False):
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
@@ -323,8 +323,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
         else:
-            with torch.no_grad():
-                ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
+            if ds is None:
+                with torch.no_grad():
+                    ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
@@ -356,7 +357,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs (Tensor, optional): Batch of precalculated durations (B, Tmax).
+            spcs (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
             Tensor: Loss value.
@@ -365,14 +366,12 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # remove unnecessary padded part (for multi-gpus)
         xs = xs[:, :max(ilens)]
         ys = ys[:, :max(olens)]
+        if spcs is not None:
+            spcs = spcs[:, :max(ilens)].squeeze(-1)
 
         # forward propagation
-        if spcs is None:
-            before_outs, after_outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
-        else:
-            # NOTE: Use is_inference = True to skip teacher calculation
-            outs, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=True)
-            ds = spcs  # use precalculated durations
+        before_outs, after_outs, ds, d_outs = self._forward(
+            xs, ilens, ys, olens, spembs=spembs, ds=spcs, is_inference=False)
 
         # apply mask to remove padded part
         if self.use_masking:
