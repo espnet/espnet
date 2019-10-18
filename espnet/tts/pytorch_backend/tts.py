@@ -551,7 +551,7 @@ def decode(args):
     def _convert_att_ws_to_durations(att_ws):
         # get the most diagonal attention among the all of the sournce attentions for transformer
         if len(att_ws.shape) == 4:
-            att_ws = torch.cat([att_w for att_w in att_ws], axis=0)  # (#heads * #layers, L, T)
+            att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
             diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (#heads * #layers,)
             diagonal_head_idx = diagonal_scores.argmax()
             att_ws = att_ws[diagonal_head_idx]  # (L, T)
