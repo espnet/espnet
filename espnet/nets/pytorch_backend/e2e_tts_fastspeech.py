@@ -305,8 +305,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
-        # TODO(kan-bayashi): support knowledge distillation loss
-        # self.criterion = torch.nn.L1Loss()
 
     def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
         # forward encoder
@@ -379,7 +377,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys = ys.masked_select(out_masks)
 
         # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
+        if self.postnet is None:
+            l1_loss = F.l1_loss(after_outs, ys)  # after_outs is the same as before_outs if postnet is None
+        else:
+            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         duration_loss = self.duration_criterion(d_outs, ds)
         loss = l1_loss + duration_loss
         report_keys = [
