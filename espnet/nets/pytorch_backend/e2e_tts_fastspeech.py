@@ -449,7 +449,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
-            Tensor: Output sequence of features (1, L, odim).
+            Tensor: Output sequence of features (L, odim).
             None: Dummy for compatibility.
             None: Dummy for compatibility.
 
@@ -465,7 +465,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # inference
         _, outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (L, odim)
 
-        return outs, None, None
+        return outs[0], None, None
 
     def _integrate_with_spk_embed(self, hs, spembs):
         """Integrate speaker embedding with hidden states.
