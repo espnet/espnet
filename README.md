@@ -492,7 +492,7 @@ Available pretrained vocoder models are listed as follows:
 | [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
-| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1hbiFsBWja7znqnCxGJeV0iJnyUiIK6zc) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) (Thanks, @lingjzhu!)|
+| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) (Thanks, @lingjzhu!)|
 
 If you want to build your own WaveNet vocoder, please check [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) or [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder).
 
