@@ -435,8 +435,11 @@ Here we list some notable ones:
 - [Single Italian speaker FastSpeech](https://drive.google.com/open?id=13I5V2w7deYFX4DlVk1-0JfaXmUR2rNOv)
 - [Single Mandarin speaker Transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 - [Multi Japanese speaker Transformer (New!)](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
+- [Single Mandarin speaker Transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
+- [Single Mandarin speaker FastSpeech (New!)](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
 
-> Note that all of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
+> Note that the most of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav.
 > You can listen to WaveNet vocoder samples in our demo HP.
 
 All of the pretrained models which generate the above samples are also available in [our google drive](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF).
@@ -474,6 +477,7 @@ Available pretrained models are listed as follows:
 | [jsut.tacotron2 (New!)](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t) | Tacotron 2 ith reduction factor = 2, phoneme input |
 | [jsut.transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD) | Transformer with reduction factor = 3, phoneme input |
 | [csmsc.transformer.v1 (New!)](https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ) | Transformer with reduction factor = 1, pinyin input |
+| [csmsc.fastspeech.v3 (New!)](https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet  (pinyin input )|
 
 Waveform synthesis is performed with Griffin-Lim algorithm as default, but we also support a pretrained WaveNet vocoder.
 You can try it by extending the `stop_stage` as follows:
@@ -493,7 +497,7 @@ Available pretrained vocoder models are listed as follows:
 | [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
-| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1hbiFsBWja7znqnCxGJeV0iJnyUiIK6zc) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) (Thanks, @lingjzhu!)|
+| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) (Thanks, @lingjzhu!)|
 
 If you want to build your own WaveNet vocoder, please check [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) or [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder).
 
