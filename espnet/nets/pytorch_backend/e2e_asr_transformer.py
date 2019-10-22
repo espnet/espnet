@@ -402,16 +402,9 @@ class E2E(ASRInterface, torch.nn.Module):
             recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
             return self.recognize(feat, recog_args, char_list, rnnlm)
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
-
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
-        return nbest_hyps, att_ws
+        return nbest_hyps
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         '''E2E attention calculation
