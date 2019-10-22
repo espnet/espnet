@@ -12,11 +12,26 @@ normalize=16
 cmd=run.pl
 nj=32
 
+help_message=$(cat <<EOF
+Usage: $0 [options] <data-dir> <log-dir>
+e.g.: $0 data/train exp/trim_silence/train
+Options:
+  --fs <fs>                      # sampling frequency (default=16000)
+  --win_length <win_length>      # window length in point (default=1024)
+  --shift_length <shift_length>  # shift length in point (default=256)
+  --threshold <threshold>        # power threshold in db (default=60)
+  --min_silence <sec>            # minimum silence lenght in sec (default=0.01)
+  --normalize <bit>              # audio bit (default=16)
+  --cmd <cmd>                    # how to run jobs (default=run.pl)
+  --nj <nj>                      # number of parallel jobs (default=32)
+EOF
+)
+
 . utils/parse_options.sh || exit 1;
 
 if [ ! $# -eq 2 ]; then
-   echo "Usage: $0 [options] <data-dir> <log-dir>";
-   echo "e.g.: $0 data/train exp/trim_silence/train"
+    echo "${help_message}"
+    exit 1;
 fi
 
 set -euo pipefail
@@ -32,7 +47,7 @@ utils/split_scp.pl ${data}/wav.scp ${split_scps} || exit 1;
 
 # make segments file describing start and end time
 ${cmd} JOB=1:${nj} ${logdir}.JOB.log \
-    local/trim_silence.py \
+    trim_silence.py \
         --fs ${fs} \
         --win_length ${win_length} \
         --shift_length ${shift_length} \
@@ -47,19 +62,6 @@ for n in $(seq ${nj}); do
     cat ${tmpdir}/segments.${n} || exit 1;
 done > ${data}/segments || exit 1
 rm -rf ${tmpdir}
-
-# update utt2spk, spk2utt, and text
-[ ! -e ${data}/.backup ] &&  mkdir ${data}/.backup
-cp ${data}/{utt2spk,spk2utt,text} ${data}/.backup
-paste -d " " \
-    <(cut -d " " -f 1 ${data}/segments) \
-    <(cut -d " " -f 2 ${data}/.backup/utt2spk) \
-    > ${data}/utt2spk
-paste -d " " \
-    <(cut -d " " -f 1 ${data}/segments) \
-    <(cut -d " " -f 2- ${data}/.backup/text) \
-    > ${data}/text
-utils/utt2spk_to_spk2utt.pl ${data}/utt2spk > ${data}/spk2utt
 
 # check
 utils/validate_data_dir.sh --no-feats ${data}

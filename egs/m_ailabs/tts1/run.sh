@@ -96,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     # Trim silence parts at the begining and the end of audio
     if ${do_trimming}; then
-        local/trim_silence.sh --cmd "${train_cmd}" \
+        trim_silence.sh --cmd "${train_cmd}" \
             --fs ${fs} \
             --win_length ${trim_win_length} \
             --shift_length ${trim_shift_length} \
