@@ -54,8 +54,8 @@ set -u
 set -o pipefail
 
 train_set=valid_train_${lang}
-train_dev=dev_${lang}
-test_set=test_${lang}
+train_dev=valid_dev_${lang}
+test_set=valid_test_${lang}
 recog_set="dev_${lang} test_${lang}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
@@ -67,7 +67,7 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases 
-    for part in "validated" "test" "dev"; do
+    for part in "validated"; do
         # use underscore-separated names in data directories.
         local/data_prep.pl ${datadir} ${part} data/"$(echo "${part}_${lang}" | tr - _)"
     done
@@ -76,11 +76,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # ./utils/subset_data_dir_tr_cv.sh data/validated data/valid_train data/valid_test_dev
     # ./utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 data/valid_test_dev data/valid_test data/valid_dev
 
-    # ESPNet Version
+    # ESPNet Version (same as voxforge)
     # consider duplicated sentences (does not consider speaker split)
     # filter out the same sentences (also same text) of test&dev set from validated set
     echo data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
-    local/split_tr_dt_et.sh data/validated_${lang} data/${train_dev} data/${test_set} data/${train_set}
+    local/split_tr_dt_et.sh data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}

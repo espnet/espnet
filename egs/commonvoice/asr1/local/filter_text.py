@@ -12,8 +12,11 @@ from io import open
 import sys
 
 
-sys.stdin = codecs.getreader('utf-8')(sys.stdin.buffer)
-sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+PY2 = sys.version_info[0] == 2
+sys.stdin = codecs.getreader('utf-8')(
+    sys.stdin if PY2 else sys.stdin.buffer)
+sys.stdout = codecs.getwriter('utf-8')(
+    sys.stdout if PY2 else sys.stdout.buffer)
 
 
 if __name__ == '__main__':
@@ -28,5 +31,5 @@ if __name__ == '__main__':
     for x in sys.stdin:
         # extract text parts
         text = ' '.join(x.rstrip().split()[1:])
-        if text not in fil:
+        if text in fil:
             print(x.split()[0], text)
