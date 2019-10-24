@@ -1,4 +1,4 @@
-# This is the basic tactron2 training settting with speaker embdding
+# This is the basic tactron2 training setting with speaker embedding
 # This configuration requires only a single gpu and will finish ~2 days.
 
 # encoder related
