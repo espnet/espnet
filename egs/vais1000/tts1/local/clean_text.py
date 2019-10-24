@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2018 Nagoya University (Tomoki Hayashi) and Kính Phan (@enamoria)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-# edited by enamoria: add vietnamese cleaner
 
 import argparse
 import codecs
@@ -21,10 +19,9 @@ if __name__ == "__main__":
     with codecs.open(args.text, 'r', 'utf-8') as fid:
         for line in fid.readlines():
             id, _, content = line.split("|")
-            
+
             clean_content = vietnamese_cleaner(content)
             lines[id] = clean_content
 
         for id in sorted(lines.keys()):
             print(f"{id} {lines[id]}")
-
