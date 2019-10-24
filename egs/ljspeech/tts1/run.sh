@@ -40,14 +40,14 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-n_average=1             # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
-griffin_lim_iters=64    # the number of iterations of Griffin-Lim
+n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # objective evaluation related
 asr_model="librispeech.transformer.ngpu4"
 eval_tts_model=1                               # 1:evaluate tts model, 0:evaluate ground truth
 voc="GL"                                       # the selection of vocoder
-api="v1"                                       # v1: w/ att_ws generation, v2: w/o att_ws generation
+api="v2"                                       # v1, v2
 
 # root directory of db
 db_root=downloads
