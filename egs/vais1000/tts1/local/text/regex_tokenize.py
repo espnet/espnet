@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# This code inspired from underthesea package, edited by enamoria
-# What changed from the original version: PSG. consider to be abbreviation, but not with the dot.
-# Just add a boundary for word at     r"[A-ZĐ]+\s"
+r"""This code inspired from underthesea package, edited by enamoria.
+
+What changed from the original version: PSG. consider to be abbreviation, but not with the dot.
+Just add a boundary for word at r"[A-ZĐ]+\s"
+"""
 
 import re
 import sys
@@ -86,8 +88,8 @@ patterns = re.compile(patterns, re.VERBOSE | re.UNICODE)
 
 
 def tokenize(text, format=None):
-    """
-    tokenize text for word segmentation
+    """Tokenize text for word segmentation.
+
     :param text: raw text input
     :return: tokenize text
     """
