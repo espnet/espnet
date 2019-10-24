@@ -32,8 +32,7 @@ spk-embed-integration-type: add
 
 # minibatch related
 batch-sort-key: output # shuffle or input or output
-batch-bins: 1500000   # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # 5203 batches containing from 5 to 354 samples (avg 28 samples).
+batch-bins: 1400000    # 612 batches containing from 7 to 173 samples (avg 40 samples)
 
 # training related
 transformer-init: pytorch
@@ -56,11 +55,11 @@ bce-pos-weight: 10.0
 
 # optimization related
 opt: noam
-accum-grad: 4
+accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 100 # 100 * 5,203 / 4 = 130,075 iters
+epochs: 500  # 500 epochs * 612 batches / 2 accum grad = 153,000 iters
 
 # other
-save-interval-epoch: 1
+save-interval-epoch: 10
