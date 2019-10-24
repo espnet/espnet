@@ -17,3 +17,11 @@ export OMP_NUM_THREADS=1
 
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
 export PYTHONIOENCODING=UTF-8
+
+# check extra module installation
+if ! python -c "import underthesea" > /dev/null; then
+    echo "Error: underthesea is not installed." >&2
+    echo "Error: please install underthesea:" >&2
+    echo "Error: . ./path.sh && pip install underthesea" >&2
+    return 1
+fi
