@@ -1,10 +1,9 @@
-# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
+# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB.
 # To use this configuration, you need the model trained with `conf/tuning/train_transformer.v1`.
 # First, you should train the above model or download from google drive and put it in exp dirctory.
 # Make sure the `teacher-model` path is valid and the encoder structure is the same as teacher
 # when `init-encoder-from-teacher = True`.
 # This configuration uses Conv1d in Transformer blocks and aheads = 2 compared to v1.
-# It takes 3~4 days, and it can generate speech from around 170 epochs (around 30k iters).
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
@@ -28,9 +27,7 @@ reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 607200   # 30 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+batch-bins: 607200   # 47 batches containing from 16 to 23 samples (avg 20 samples).
 
 # training related
 transformer-init: pytorch
@@ -47,7 +44,6 @@ transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 duration-predictor-dropout-rate: 0.1
 transfer-encoder-from-teacher: True
-# transfer-encoder-from-teacher: False
 transferred-encoder-module: embed
 
 # optimization related
@@ -56,11 +52,8 @@ accum-grad: 8
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
-# teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.last1.avg.best
-teacher-model: /data/data/giaitri/FastSpeech-master/interspeech/espnet/egs/doanngocle/tts1/exp/train_nodev_pytorch_train_pytorch_transformer/results/model.loss.best
-               # you can download pretrained teacher model from google drive
-               # https://drive.google.com/open?id=1arZAxZOLep-1W5ByQMD1lCX2tEASnw7p
+epochs: 1000  # 47 batches * 1000 epochs / 8 accum_grad = 5,875 iters
+teacher-model: exp/train_no_dev_pytorch_train_transformer/results/model.last1.avg.best
 
 # other
 save-interval-epoch: 10
