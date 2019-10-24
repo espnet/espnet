@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=8         # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -28,6 +28,13 @@ n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
+
+# silence part trimming related
+do_trimming=true
+trim_threshold=20 # (in decibels)
+trim_win_length=1024
+trim_shift_length=256
+trim_min_silence=0.05
 
 # config files
 train_config=conf/train_transformer.yaml # you can select from conf or conf/tuning.
@@ -52,9 +59,17 @@ set -e
 set -u
 set -o pipefail
 
+org_set="train"
 train_set="train_nodev"
 dev_set="dev"
 eval_set="eval"
+
+if ${do_trimming}; then
+    org_set=${org_set}_trim
+    train_set=${train_set}_trim
+    dev_set=${dev_set}_trim
+    eval_set=${eval_set}_trim
+fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -66,8 +81,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     pwd
-    local/data_prep.sh ${db_root}/vais1000 data/train
-    utils/validate_data_dir.sh --no-feats data/train
+    local/data_prep.sh ${db_root}/vais1000 data/${org_set}
+    utils/validate_data_dir.sh --no-feats data/${org_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -77,6 +92,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
+    # Trim silence parts at the begining and the end of audio
+    if ${do_trimming}; then
+        trim_silence.sh --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --win_length ${trim_win_length} \
+            --shift_length ${trim_shift_length} \
+            --threshold ${trim_threshold} \
+            --min_silence ${trim_min_silence} \
+            data/${org_set} \
+            exp/trim_silence/${org_set}
+    fi
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
@@ -88,16 +114,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --n_shift ${n_shift} \
         --win_length "${win_length}" \
         --n_mels ${n_mels} \
-        data/train \
+        data/${org_set} \
         exp/make_fbank/train \
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/train 50 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 25 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 25 data/${dev_set}
-    n=$(( $(wc -l < data/train/wav.scp) - 50 ))
-    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --last data/${org_set} 50 data/${org_set}_tmp
+    utils/subset_data_dir.sh --last data/${org_set}_tmp 25 data/${eval_set}
+    utils/subset_data_dir.sh --first data/${org_set}_tmp 25 data/${dev_set}
+    n=$(( $(wc -l < data/${org_set}/wav.scp) - 50 ))
+    utils/subset_data_dir.sh --first data/${org_set} ${n} data/${train_set}
+    rm -rf data/${org_set}_tmp
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -141,8 +168,6 @@ expdir=exp/${expname}
 mkdir -p ${expdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
-    echo "Finetuning from ${resume}"
-
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
 
