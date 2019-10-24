@@ -1,5 +1,4 @@
-# This is the basic transformer training setting with speaker embedding.
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes 2~3 days.
+# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes several hours.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
@@ -26,18 +25,15 @@ encoder-normalize-before: False
 decoder-normalize-before: False
 encoder-concat-after: False
 decoder-concat-after: False
-reduction-factor: 2
-use-speaker-embedding: true
-spk-embed-integration-type: add
+reduction-factor: 1
 
 # minibatch related
-batch-sort-key: output # shuffle or input or output
-batch-bins: 1500000   # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # 5203 batches containing from 5 to 354 samples (avg 28 samples).
+batch-sort-key: input # shuffle or input or output
+batch-bins: 607200  # 47 batches containing from 16 to 23 samples (avg 20 samples).
 
 # training related
 transformer-init: pytorch
-transformer-warmup-steps: 10000
+transformer-warmup-steps: 4000
 transformer-lr: 1.0
 initial-encoder-alpha: 1.0
 initial-decoder-alpha: 1.0
@@ -51,16 +47,18 @@ transformer-dec-dropout-rate: 0.1
 transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
-use-guided-attn-loss: false
-bce-pos-weight: 10.0
+use-guided-attn-loss: true
+num-heads-applied-guided-attn: 2
+num-layers-applied-guided-attn: 2
+modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 4
+accum-grad: 8
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 100 # 100 * 5,203 / 4 = 130,075 iters
+epochs: 1000  # 47 batches * 1000 epochs / 8 accum_grad = 5,875 iters
 
 # other
-save-interval-epoch: 1
+save-interval-epoch: 10

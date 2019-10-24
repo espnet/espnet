@@ -435,6 +435,7 @@ Here we list some notable ones:
 - [Single Italian speaker FastSpeech](https://drive.google.com/open?id=13I5V2w7deYFX4DlVk1-0JfaXmUR2rNOv)
 - [Single Mandarin speaker Transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 - [Single Mandarin speaker FastSpeech (New!)](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
+- [Multi Japanese speaker Transformer (New!)](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
 
 > Note that the most of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav.
 > You can listen to WaveNet vocoder samples in our demo HP.
@@ -513,6 +514,7 @@ If you want to build your own WaveNet vocoder, please check [kan-bayashi/Pytorch
 | TTS recipe support | no support | supported |
 
 ## References
+
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
 
 [2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
