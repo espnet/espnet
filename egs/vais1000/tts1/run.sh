@@ -30,9 +30,7 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_pytorch_transformer.v1.yaml # you can select from conf or conf/tuning.
-                                               # now we support tacotron2, transformer, and fastspeech
-                                               # see more info in the header of each config.
+train_config=conf/train_transformer.yaml # you can select from conf or conf/tuning.
 decode_config=conf/decode.yaml
 
 # decoding related
