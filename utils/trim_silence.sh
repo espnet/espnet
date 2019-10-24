@@ -46,14 +46,15 @@ done
 utils/split_scp.pl ${data}/wav.scp ${split_scps} || exit 1;
 
 # make segments file describing start and end time
-${cmd} JOB=1:${nj} ${logdir}.JOB.log \
-    trim_silence.py \
+${cmd} JOB=1:${nj} ${logdir}/trim_silence.JOB.log \
+    MPLBACKEND=Agg trim_silence.py \
         --fs ${fs} \
         --win_length ${win_length} \
         --shift_length ${shift_length} \
         --threshold ${threshold} \
         --min_silence ${min_silence} \
         --normalize ${normalize} \
+        --figdir ${logdir}/figs \
         scp:${tmpdir}/wav.JOB.scp \
         ${tmpdir}/segments.JOB
 
