@@ -1,4 +1,4 @@
-# This is the basic transformer training settting with speaker embdding.
+# This is the basic transformer training setting with speaker embedding.
 # This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes 2~3 days.
 
 # network architecture related
