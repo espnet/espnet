@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2019 Kính Phan (@enamoria)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -18,8 +18,6 @@ N=0          # number of minibatches to be used (mainly for debugging). "0" uses
 seed=1       # random seed number
 
 # the snapshot path to resume (if set empty, no effect)
-# resume="/data/data/giaitri/FastSpeech-master/interspeech/espnet/egs/doanngocle/tts1/exp/train_nodev_pytorch_train_fastspeech.v2/results/snapshot.ep.100"
-# resume="/data/data/giaitri/FastSpeech-master/interspeech/espnet/egs/doanngocle/ljspeech.fastspeech.v2/exp/train_no_dev_pytorch_train_fastspeech.v2/results/model.last1.avg.best" # Resume from fastspeech for ljspeech
 resume=""
 
 # feature extraction related
