@@ -437,7 +437,6 @@ Here we list some notable ones:
 - [Single Mandarin speaker FastSpeech (New!)](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
 - [Multi Japanese speaker Transformer (New!)](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
 
-
 > Note that the most of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav.
 > You can listen to WaveNet vocoder samples in our demo HP.
 
