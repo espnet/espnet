@@ -56,4 +56,5 @@ epochs: 1000  # 47 batches * 1000 epochs / 8 accum_grad = 5,875 iters
 teacher-model: exp/train_no_dev_pytorch_train_transformer/results/model.last1.avg.best
 
 # other
-save-interval-epoch: 10
+save-interval-epoch: 100
+eval-interval-epoch: 100
