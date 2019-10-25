@@ -55,6 +55,8 @@ def get_parser():
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
                         help="Tensorboard log directory path")
+    parser.add_argument('--eval-interval-epochs', default=1, type=int,
+                        help="Evaluation interval epochs")
     parser.add_argument('--save-interval-epochs', default=1, type=int,
                         help="Save interval epochs")
     parser.add_argument('--report-interval-iters', default=100, type=int,
