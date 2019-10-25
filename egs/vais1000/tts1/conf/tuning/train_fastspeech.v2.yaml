@@ -57,4 +57,5 @@ teacher-model: exp/train_nodev_trim_pytorch_train_transformer/results/model.last
                # you can download pretrained transformer model. see RESULTS.md.
 
 # other
-save-interval-epoch: 10
+save-interval-epoch: 100
+eval-interval-epoch: 100
