@@ -64,16 +64,19 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 ## Requirements
 
 - Python 3.6.1+
-- protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
-
-- PyTorch 0.4.1, 1.0.0, 1.0.1
 - gcc 4.9+ for PyTorch1.0.0+
-- Chainer 6.0.0
+- protocol buffer
+    - For the sentencepiece, you need to install via package manager e.g.  
+      `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`.  
+      See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md
+- libsndfile
+    - For the soundfile, you need to install via package manager e.g.  
+      `sudo apt-get install libsndfile1-dev`.
 
 Optionally, GPU environment requires the following libraries:
 
 - Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
-- Cudnn 6+
+- Cudnn 6+, 7+
 - NCCL 2.0+ (for the use of multi-GPUs)
 
 ## Installation
