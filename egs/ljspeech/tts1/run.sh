@@ -20,8 +20,8 @@ resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
 fs=22050      # sampling frequency
-fmax=""       # maximum frequency
-fmin=""       # minimum frequency
+fmax=80       # maximum frequency
+fmin=7600     # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
