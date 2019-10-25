@@ -41,6 +41,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 * [Citation](#citation)
 
 ## Key Features
+
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
@@ -235,6 +236,7 @@ and connecting to the given address (default : localhost:6006). This will provid
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
 ### Use of GPU
+
 - Training:
   If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
   ```bash
@@ -265,6 +267,7 @@ Note that we would not include the installation of Tensorboard to simplify our i
 - Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
 ### Changing the configuration
+
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
 
 ```bash
@@ -338,6 +341,7 @@ The CTC training mode does not output the validation accuracy, and the optimum m
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
 ## Known issues
+
 ### Error due to ACS (Multiple GPUs)
 
 When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
@@ -345,6 +349,7 @@ Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/t
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
 
 ### Error due to matplotlib
+
 If you have the following error (or other numpy related errors),
 ```
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
@@ -524,7 +529,7 @@ If you want to build your own WaveNet vocoder, please check [kan-bayashi/Pytorch
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
-## Citation
+## Citations
 
 ```
 @inproceedings{watanabe2018espnet,
@@ -535,5 +540,13 @@ If you want to build your own WaveNet vocoder, please check [kan-bayashi/Pytorch
   pages={2207--2211},
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
+@misc{hayashi2019espnettts,
+    title={ESPnet-TTS: Unified, Reproducible, and Integratable Open Source End-to-End Text-to-Speech Toolkit},
+    author={Tomoki Hayashi and Ryuichi Yamamoto and Katsuki Inoue and Takenori Yoshimura and Shinji Watanabe and Tomoki Toda and Kazuya Takeda and Yu Zhang and Xu Tan},
+    year={2019},
+    eprint={1910.10909},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
 }
 ```
