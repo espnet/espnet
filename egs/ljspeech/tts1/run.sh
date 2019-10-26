@@ -45,9 +45,8 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # objective evaluation related
 asr_model="librispeech.transformer.ngpu4"
-eval_tts_model=1                               # 1:evaluate tts model, 0:evaluate ground truth
-voc="GL"                                       # the selection of vocoder
-api="v2"                                       # v1, v2
+eval_tts_model=true                            # true: evaluate tts model, false: evaluate ground truth
+wer=true                                       # true: evaluate CER & WER, false: evaluate only CER
 
 # root directory of db
 db_root=downloads
@@ -244,9 +243,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --do_delta false \
             --eval_tts_model ${eval_tts_model} \
             --db_root ${db_root} \
-            --voc ${voc} \
             --backend pytorch \
-            --api ${api} \
+            --wer ${wer} \
+            --api v2 \
             ${asr_model} \
             ${outdir} \
             ${name}
