@@ -8,11 +8,11 @@ echo "$0 $*"  # Print the command line for logging
 
 nj=1
 do_delta=false
-eval_tts_model=1
+eval_tts_model=true
 db_root=""
-voc="GL"
 backend=pytorch
-api=v1
+wer=false
+api=v2
 help_message="Usage: $0 <asr_model> <outdir> <subset>"
 
 . utils/parse_options.sh
@@ -28,7 +28,7 @@ fi
 
 set -euo pipefail
 
-echo "stage 6.0: Model preparation"
+echo "step 0: Model preparation"
 # ASR model selection for CER objective evaluation 
 # Please add new model if you want to use your ASR model.
 asr_model_dir="exp/${asr_model}_asr"
@@ -51,7 +51,7 @@ fi
 echo "ASR model: ${asr_model_dir} exits."
 
 # Select TTS model
-if [ ${eval_tts_model} == 1 ]; then
+if [ ${eval_tts_model} == true ]; then
     echo "Evaluate: TTS model"
 else
     echo "Evaluate: ground truth"
@@ -70,46 +70,38 @@ else
     done
 fi
 
-# Select decoder
-if [ ${voc} == "GL" ]; then
-    dir_tail=""
-elif [ ${voc} == "WNV_softmax" ]; then
-    dir_tail="_wnv_nsf"
-elif [ ${voc} == "WNV_mol" ]; then
-    dir_tail="_wnv_mol"
-fi
 
 # setting dir
-asr_data_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.data${dir_tail}"
-asr_fbank_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.fbank${dir_tail}"
-asr_feat_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.dump${dir_tail}"
-asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result${dir_tail}"
+asr_data_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.data"
+asr_fbank_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.fbank"
+asr_feat_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.dump"
+asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 
-echo "stage 6.1: Data preparation for ASR"
+echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-local/ob_eval/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav${dir_tail} ${asr_data_dir}/${name}
+local/ob_eval/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${asr_data_dir}/${name}
 cp data/${name}/text ${asr_data_dir}/${name}/text
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
 
 
-echo "stage 6.2: Feature extraction for ASR"
+echo "step 2: Feature extraction for ASR"
 # Feature extraction for ASR
 steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} \
   --write_utt2num_frames true \
   --write_utt2dur false \
   ${asr_data_dir}/${name} \
-  ${outdir}_denorm.ob_eval/${asr_model}_asr.make_fbank${dir_tail}/${name} \
+  ${outdir}_denorm.ob_eval/${asr_model}_asr.make_fbank/${name} \
   ${asr_fbank_dir}/${name}
 
 utils/fix_data_dir.sh ${asr_data_dir}/${name}
 
 dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
-  ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.ob_eval/${asr_model}_asr.dump_feats${dir_tail}/${name} \
+  ${asr_data_dir}/${name}/feats.scp ${asr_cmvn} ${outdir}_denorm.ob_eval/${asr_model}_asr.dump_feats/${name} \
   ${asr_feat_dir}/${name}
 
 
-echo "stage 6.3: Dictionary and Json Data Preparation for ASR"
+echo "step 3: Dictionary and Json Data Preparation for ASR"
 # Dictionary and Json Data Preparation for ASR
 asr_dict="data/decode_dict/X.txt"; mkdir -p ${asr_dict%/*}
 echo "<unk> 1" > ${asr_dict}
@@ -118,7 +110,7 @@ data2json.sh --feat ${asr_feat_dir}/${name}/feats.scp \
   ${asr_data_dir}/${name} ${asr_dict} > ${asr_feat_dir}/${name}/data.json
 
 
-echo "stage 6.4: ASR decoding"
+echo "step 4: ASR decoding"
 # ASR decoding
 asr_decode_config="conf/ob_eval/decode_asr.yaml"
 cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
@@ -140,4 +132,4 @@ ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${name}/log/decode.JOB.log \
       --rnnlm ${lang_model}
 
 # calculate CER
-score_sclite_wo_dict.sh --wer true ${asr_result_dir}.${api}/${name}
+score_sclite_wo_dict.sh --wer ${wer} ${asr_result_dir}.${api}/${name}
