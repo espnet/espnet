@@ -1,4 +1,4 @@
-recode by Aryo
+
 # ESPnet: end-to-end speech processing toolkit
 
 
