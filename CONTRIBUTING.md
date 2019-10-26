@@ -158,7 +158,3 @@ The model name is arbitrary for now.
 3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
 4. try anything you can to pass the CI
 
-### Codecov
-
-1. write more tests to increase coverage
-2. explain to reviewers why you can't increase coverage
