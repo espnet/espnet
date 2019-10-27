@@ -6,16 +6,16 @@ import torch
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding module
 
-    :param int d_model: embedding dim
+    :param int attention_dim: embedding dim,in other words, attention_dim is dim of the positional encoding. 
     :param float dropout_rate: dropout rate
     :param int max_len: maximum input length
     """
 
-    def __init__(self, d_model, dropout_rate, max_len=5000):
+    def __init__(self, attention_dim, dropout_rate, max_len=5000):
         super(PositionalEncoding, self).__init__()
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model)
+        pe = torch.zeros(max_len, attention_dim)
         # refrece name:Attention Is All You Need
         # refrence:https://arxiv.org/pdf/1706.03762.pdf
         # note: position is per element(e.g.it is model unit,
@@ -23,14 +23,15 @@ class PositionalEncoding(torch.nn.Module):
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
         # note :use formula a^(mn)=(a^m)^n
         # note: e^(-2i(ln10000)/d_model)=(e^(ln10000))^(-2i/d_model)=10000^(-2i/d_model)=1/10000^(2i/d_model)
-        div_term = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32) *
-                             -(math.log(10000.0) / d_model))
+        # "i" is the dimension,each dimension of the positional encoding corresponds to a sinusoid. 
+        div_term = torch.exp(torch.arange(0, attention_dim, 2, dtype=torch.float32) *
+                             -(math.log(10000.0) / attention_dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
         self.max_len = max_len
-        self.xscale = math.sqrt(d_model)
-        self.register_buffer('pe', pe)
+        self.xscale = math.sqrt(attention_dim)
+        self.register_buffer('pe', pe) # pe isn't learnabel parameter of model. so it doesn't need to backward.
 
     def forward(self, x):
         x = x * self.xscale + self.pe[:, :x.size(1)]
