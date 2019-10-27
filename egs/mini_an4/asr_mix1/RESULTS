@@ -1,0 +1,15 @@
+#!/bin/bash
+awk '(FNR>1 && FNR<5)' exp/train_*/decode_t*/min*.json
+
+Total Scores: (#C #S #D #I) 8 82 0 36
+Error Rate:   131.11
+Total Utts:  2
+Total Scores: (#C #S #D #I) 0 0 20 0
+Error Rate:   100.00
+Total Utts:  2
+Total Scores: (#C #S #D #I) 4 10 0 30
+Error Rate:   285.71
+Total Utts:  2
+Total Scores: (#C #S #D #I) 0 0 4 0
+Error Rate:   100.00
+Total Utts:  2

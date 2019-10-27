@@ -31,6 +31,7 @@ cmvn=
 
 # dictionary related
 dict=
+trans_type="char"
 
 # embedding related
 input_wav=
@@ -43,7 +44,7 @@ griffin_lim_iters=64
 
 # download related
 models=ljspeech.fastspeech.v1
-vocoder_models=ljspeech.wavenet.ns.v1.100k_iters
+vocoder_models=ljspeech.wavenet.mol.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -61,7 +62,7 @@ Example:
     $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
 
     # also you can specify vocoder model
-    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.ns.v1.1000k_iters --stop_stage 4 example.txt
+    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.softmax.ns.v1 --stop_stage 4 example.txt
 
 Available models:
     - libritts.tacotron2.v1
@@ -70,13 +71,15 @@ Available models:
     - ljspeech.tacotron2.v3
     - ljspeech.transformer.v1
     - ljspeech.transformer.v2
+    - ljspeech.transformer.v3
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
+    - ljspeech.fastspeech.v3
     - libritts.transformer.v1
 
 Available vocoder models:
-    - ljspeech.wavenet.ns.v1.100k_iters
-    - ljspeech.wavenet.ns.v1.1000k_iters
+    - ljspeech.wavenet.softmax.ns.v1
+    - ljspeech.wavenet.mol.v1
 EOF
 )
 
@@ -102,9 +105,13 @@ function download_models () {
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
         "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
+        "ljspeech.transformer.v3") share_url="https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP" ;;
         "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
         "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
+        "ljspeech.fastspeech.v3") share_url="https://drive.google.com/open?id=1zbSprxJ_iiv3DJq-S7Qt6O0EVPmbl7YF";;
         "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
+        "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
+        "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -118,8 +125,10 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.ns.v1.100k_iters") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
-        "ljspeech.wavenet.ns.v1.1000k_iters") share_url="https://drive.google.com/open?id=1NlG47iTVsBhIDklJALXgRtZPI8ST1Tzd";;
+        "ljspeech.wavenet.softmax.ns.v1") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
+        "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
+        "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
+        "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -202,7 +211,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     cat $txt >> ${decode_dir}/data/text
 
     mkdir -p ${decode_dir}/dump
-    data2json.sh ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
+    data2json.sh --trans_type ${trans_type} ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
@@ -289,16 +298,34 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         exit 1
     fi
     download_vocoder_models
-    checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
-    generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
-        --fs ${fs} \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        ${checkpoint} \
-        ${outdir}_denorm \
-        ${decode_dir}/log \
-        ${decode_dir}/wav_wnv
+    dst_dir=${decode_dir}/wav_wnv
 
+    # This is hardcoded for now.
+    if [[ ${vocoder_models} == *".mol."* ]]; then
+        # Needs to use https://github.com/r9y9/wavenet_vocoder
+        # that supports mixture of logistics/gaussians
+        MDN_WAVENET_VOC_DIR=./local/r9y9_wavenet_vocoder
+        if [ ! -d ${MDN_WAVENET_VOC_DIR} ]; then
+            git clone https://github.com/r9y9/wavenet_vocoder ${MDN_WAVENET_VOC_DIR}
+            cd ${MDN_WAVENET_VOC_DIR} && pip install . && cd -
+        fi
+        checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pth" | head -n 1)
+        feats2npy.py ${outdir}/feats.scp ${outdir}_npy
+        python ${MDN_WAVENET_VOC_DIR}/evaluate.py ${outdir}_npy $checkpoint $dst_dir \
+            --hparams "batch_size=1" \
+            --verbose ${verbose}
+        rm -rf ${outdir}_npy
+    else
+        checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
+        generate_wav.sh --nj 1 --cmd "${decode_cmd}" \
+            --fs ${fs} \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            ${checkpoint} \
+            ${outdir}_denorm \
+            ${decode_dir}/log \
+            $dst_dir
+    fi
     echo ""
     echo "Synthesized wav: ${decode_dir}/wav_wnv/${base}.wav"
     echo ""

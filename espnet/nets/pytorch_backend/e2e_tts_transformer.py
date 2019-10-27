@@ -187,6 +187,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d", "conv1d-linear"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=1, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
         group.add_argument("--postnet-chans", default=256, type=int,
@@ -245,6 +250,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate in decoder prenet")
         group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in postnet")
+        group.add_argument("--pretrained-model", default=None, type=str,
+                           help="Pretrained model path")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -398,7 +405,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define projection layer
@@ -467,6 +476,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
                                init_dec_alpha=args.initial_decoder_alpha)
+
+        # load pretrained model
+        if args.pretrained_model is not None:
+            self.load_pretrained_model(args.pretrained_model)
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
@@ -650,13 +663,14 @@ class Transformer(TTSInterface, torch.nn.Module):
         outs, probs = [], []
 
         # forward decoder step-by-step
+        z_cache = self.decoder.init_state(x)
         while True:
             # update index
             idx += 1
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, cache=z_cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 

@@ -6,13 +6,14 @@
 
 """Neural machine translation model training script."""
 
-import configargparse
 import logging
+import multiprocessing as mp
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
@@ -259,4 +260,10 @@ def main(cmd_args):
 
 
 if __name__ == '__main__':
+    # NOTE(kan-bayashi): setting multiple times causes RuntimeError
+    #   See also https://github.com/pytorch/pytorch/issues/3492
+    try:
+        mp.set_start_method('spawn')
+    except RuntimeError:
+        pass
     main(sys.argv[1:])

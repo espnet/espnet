@@ -24,10 +24,10 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
                    device=torch.device('cpu')):
-    ilens = torch.LongTensor(ilens).to(device)
-    olens = torch.LongTensor(olens).to(device)
     xs = [np.random.randint(0, idim, l) for l in ilens]
     ys = [np.random.randn(l, odim) for l in olens]
+    ilens = torch.LongTensor(ilens).to(device)
+    olens = torch.LongTensor(olens).to(device)
     xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
     ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
     labels = ys.new_zeros(ys.size(0), ys.size(1))
@@ -62,6 +62,8 @@ def make_transformer_args(**kwargs):
         eunits=32,
         dlayers=2,
         dunits=32,
+        positionwise_layer_type="linear",
+        positionwise_conv_kernel_size=1,
         postnet_layers=2,
         postnet_filts=5,
         postnet_chans=32,
@@ -114,6 +116,9 @@ def make_feedforward_transformer_args(**kwargs):
         duration_predictor_dropout_rate=0.1,
         positionwise_layer_type="linear",
         positionwise_conv_kernel_size=1,
+        postnet_layers=0,
+        postnet_filts=5,
+        postnet_chans=32,
         transformer_enc_dropout_rate=0.1,
         transformer_enc_positional_dropout_rate=0.1,
         transformer_enc_attn_dropout_rate=0.0,
@@ -148,6 +153,7 @@ def make_feedforward_transformer_args(**kwargs):
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
+        ({"positionwise_layer_type": "conv1d-linear", "positionwise_conv_kernel_size": 3}),
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
@@ -156,6 +162,7 @@ def make_feedforward_transformer_args(**kwargs):
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
         ({"transfer_encoder_from_teacher": True}),
         ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ({"postnet_layers": 2}),
     ])
 def test_fastspeech_trainable_and_decodable(model_dict):
     # make args
