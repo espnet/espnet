@@ -28,7 +28,7 @@ requirements = {
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
-        'h5py>=2.9.0',
+        'h5py==2.9.0',
         'tensorboardX>=1.8',
         'pillow>=6.1.0',
         'nara_wpe>=0.0.5',
@@ -42,6 +42,9 @@ requirements = {
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
         'nltk>=3.4.5',
+        'nnmnkwii',
+        'jaconv',
+        'g2p_en',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
@@ -77,7 +80,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.5.2',
+      version='0.5.3',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

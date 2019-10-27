@@ -13,7 +13,7 @@ from chainer import reporter
 
 import chainer.functions as F
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
 from espnet.nets.chainer_backend.transformer import ctc
 
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
@@ -27,7 +27,7 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
-class E2E(ASRInterface, chainer.Chain):
+class E2E(ChainerASRInterface):
     """E2E module.
 
     Args:
@@ -88,9 +88,7 @@ class E2E(ASRInterface, chainer.Chain):
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
         if args.transformer_attn_dropout_rate is None:
-            self.dropout = args.dropout_rate
-        else:
-            self.dropout = args.transformer_attn_dropout_rate
+            args.transformer_attn_dropout_rate = args.dropout_rate
         self.use_label_smoothing = False
         self.char_list = args.char_list
         self.space = args.sym_space
@@ -102,7 +100,17 @@ class E2E(ASRInterface, chainer.Chain):
         self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
-            self.encoder = Encoder(idim, args, initialW=self.initialW, initial_bias=self.initialB)
+            self.encoder = Encoder(
+                idim=idim,
+                attention_dim=args.adim,
+                attention_heads=args.aheads,
+                linear_units=args.eunits,
+                input_layer=args.transformer_input_layer,
+                dropout_rate=args.dropout_rate,
+                positional_dropout_rate=args.dropout_rate,
+                attention_dropout_rate=args.transformer_attn_dropout_rate,
+                initialW=self.initialW,
+                initial_bias=self.initialB)
             self.decoder = Decoder(odim, args, initialW=self.initialW, initial_bias=self.initialB)
             self.criterion = LabelSmoothingLoss(args.lsm_weight, len(args.char_list),
                                                 args.transformer_length_normalized_loss)
@@ -498,3 +506,23 @@ class E2E(ASRInterface, chainer.Chain):
 
         """
         return PlotAttentionReport
+
+    @staticmethod
+    def custom_converter(subsampling_factor=0):
+        """Get customconverter of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomConverter
+        return CustomConverter()
+
+    @staticmethod
+    def custom_updater(iters, optimizer, converter, device=-1, accum_grad=1):
+        """Get custom_updater of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomUpdater
+        return CustomUpdater(
+            iters, optimizer, converter=converter, device=device, accum_grad=accum_grad)
+
+    @staticmethod
+    def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
+        """Get custom_parallel_updater of the model."""
+        from espnet.nets.chainer_backend.transformer.training import CustomParallelUpdater
+        return CustomParallelUpdater(
+            iters, optimizer, converter=converter, devices=devices, accum_grad=accum_grad)

@@ -6,13 +6,14 @@
 
 """End-to-end speech recognition model training script."""
 
-import configargparse
 import logging
+import multiprocessing as mp
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
@@ -72,6 +73,9 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # encoder
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
@@ -167,11 +171,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
                         help='Number of speakers in the speech.')
-    parser.add_argument('--spa', action='store_true',
-                        help='Enable speaker parallel attention.')
-    parser.add_argument('--elayers-sd', default=4, type=int,
-                        help='Number of encoder layers for speaker '
-                             'differentiate part. (multi-speaker asr mode only)')
     # decoder related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
@@ -234,6 +233,9 @@ def get_parser(parser=None, required=True):
                         help='')
     parser.add_argument('--badim', type=int, default=320,
                         help='')
+    parser.add_argument('--bnmask', type=int, default=2,
+                        help='Number of beamforming masks, '
+                             'default is 2 for [speech, noise].')
     parser.add_argument('--ref-channel', type=int, default=-1,
                         help='The reference channel used for beamformer. '
                              'By default, the channel is estimated by DNN.')
@@ -361,4 +363,10 @@ def main(cmd_args):
 
 
 if __name__ == '__main__':
+    # NOTE(kan-bayashi): setting multiple times causes RuntimeError
+    #   See also https://github.com/pytorch/pytorch/issues/3492
+    try:
+        mp.set_start_method('spawn')
+    except RuntimeError:
+        pass
     main(sys.argv[1:])

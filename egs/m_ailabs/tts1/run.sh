@@ -19,12 +19,12 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=16000    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+fs=16000      # sampling frequency
+fmax=7600     # maximum frequency
+fmin=80       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=256   # number of shift points
 win_length="" # window length
 
 # silence part trimming related
@@ -36,7 +36,7 @@ trim_min_silence=0.01
 
 # config files
 train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
-                                               # now we support tacotron2 and transformer for TTS.
+                                               # now we support tacotron2, transformer, and fastspeech.
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
@@ -48,7 +48,7 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 # dataset configuration
 db_root=downloads
 lang=it_IT  # en_UK, de_DE, es_ES, it_IT
-spk=riccardo  # see local/data_prep.sh to check available speakers
+spk=lisa    # see local/data_prep.sh to check available speakers
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -96,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     # Trim silence parts at the begining and the end of audio
     if ${do_trimming}; then
-        local/trim_silence.sh --cmd "${train_cmd}" \
+        trim_silence.sh --cmd "${train_cmd}" \
             --fs ${fs} \
             --win_length ${trim_win_length} \
             --shift_length ${trim_shift_length} \
@@ -132,11 +132,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${dev_set} ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
+        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${eval_set} ${feat_ev_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt

@@ -80,10 +80,10 @@ def make_inference_args(**kwargs):
 
 def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
                    device=torch.device('cpu')):
-    ilens = torch.LongTensor(ilens).to(device)
-    olens = torch.LongTensor(olens).to(device)
     xs = [np.random.randint(0, idim, l) for l in ilens]
     ys = [np.random.randn(l, odim) for l in olens]
+    ilens = torch.LongTensor(ilens).to(device)
+    olens = torch.LongTensor(olens).to(device)
     xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
     ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
     labels = ys.new_zeros(ys.size(0), ys.size(1))
@@ -387,7 +387,7 @@ def test_forward_and_inference_are_equal(model_dict):
         while True:
             idx += 1
             y_masks = subsequent_mask(idx).unsqueeze(0)
-            z = model.decoder.recognize(ys_in_, y_masks, hs_ir)  # (B, idx, adim)
+            z = model.decoder.forward_one_step(ys_in_, y_masks, hs_ir)[0]  # (B, idx, adim)
             outs += [model.feat_out(z).view(1, -1, model.odim)]  # [(1, r, odim), ...]
             probs += [torch.sigmoid(model.prob_out(z))[0]]  # [(r), ...]
             if idx >= maxlen:
