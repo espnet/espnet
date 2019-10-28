@@ -200,7 +200,7 @@ class DecoderRNNT(torch.nn.Module):
 
         """
         z_list, c_list = self.zero_state(h.unsqueeze(0))
-        ey = torch.zeros((1, self.embed_dim))
+        ey = to_device(self, torch.zeros((1, self.embed_dim)))
 
         hyp = {'score': 0.0, 'yseq': [self.blank]}
 
@@ -214,7 +214,7 @@ class DecoderRNNT(torch.nn.Module):
                 hyp['yseq'].append(int(pred))
                 hyp['score'] += float(logp)
 
-                eys = torch.full((1, 1), hyp['yseq'][-1], dtype=torch.long)
+                eys = to_device(self, torch.full((1, 1), hyp['yseq'][-1], dtype=torch.long))
                 ey = self.dropout_embed(self.embed(eys))
 
                 y, (z_list, c_list) = self.rnn_forward(ey[0], (z_list, c_list))
@@ -239,7 +239,7 @@ class DecoderRNNT(torch.nn.Module):
         normscore = recog_args.score_norm_transducer
 
         z_list, c_list = self.zero_state(h.unsqueeze(0))
-        eys = torch.zeros((1, self.embed_dim))
+        eys = to_device(self, torch.zeros((1, self.embed_dim)))
 
         _, (z_list, c_list) = self.rnn_forward(eys, None)
 
