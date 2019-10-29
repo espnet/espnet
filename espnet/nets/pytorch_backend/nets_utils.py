@@ -24,7 +24,9 @@ def to_device(m, x):
 
 def pad_list(xs, pad_value):
     """Perform padding for the list of tensors.
-
+    note : network input tensor shape (B,Tmax,dim),here this function(e.g.pad_list()) is operating on Tmax.
+    Pad the sentence length of a batch to the maximum sentence length, 
+    remember that it is operating on the sentence length of the second dimension
     Args:
         xs (List): List of Tensors [(T_1, `*`), (T_2, `*`), ..., (T_B, `*`)].
         pad_value (float): Value for padding.
@@ -54,6 +56,7 @@ def pad_list(xs, pad_value):
 
 def make_pad_mask(lengths, xs=None, length_dim=-1):
     """Make mask tensor containing indices of padded part.
+    The mask here operates at batch level.
 
     Args:
         lengths (LongTensor or List): Batch of lengths (B,).
@@ -67,7 +70,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
         With only lengths.
 
         >>> lengths = [5, 3, 2]
-        >>> make_non_pad_mask(lengths)
+        >>> make_pad_mask(lengths)
         masks = [[0, 0, 0, 0 ,0],
                  [0, 0, 0, 1, 1],
                  [0, 0, 1, 1, 1]]
