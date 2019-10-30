@@ -56,7 +56,7 @@ set -o pipefail
 train_set=valid_train_${lang}
 train_dev=valid_dev_${lang}
 test_set=valid_test_${lang}
-recog_set="dev_${lang} test_${lang}"
+recog_set="valid_dev_${lang} valid_test_${lang}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
     echo "stage -1: Data Download"
