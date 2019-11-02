@@ -1,7 +1,6 @@
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes 3~4 days.
-# If you want to accelerate the training with multi-gpus, please use train_pytorch_transformer.v1.yaml config.
-# Or you can manually increase batch-bins and decrease accum-grad.
-# Note that transoformer requires a large batchsize > 64 in average according to the original paper.
+# This configuration uses larger adim, more heads, and conv1d for position-wise layer compared to v1.
+# If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
+# This model should be able to genearate speeech from around 40k iterations.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
@@ -11,12 +10,14 @@ eprenet-conv-filts: 0
 eprenet-conv-chans: 0
 dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
 dprenet-units: 256
-adim: 384
-aheads: 4
+adim: 512
+aheads: 8
 elayers: 6
-eunits: 1536
+eunits: 1024
 dlayers: 6
-dunits: 1536
+dunits: 1024
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 1
 postnet-layers: 5
 postnet-filts: 5
 postnet-chans: 256
@@ -31,11 +32,11 @@ decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
-batch-sort-key: input # shuffle or input or output
-batch-bins: 910800    # 12 * (870 * 80 + 180 * 35)
-                      # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # (phn) 840 batches containing from 7 to 63 samples (avg 15 samples).
-                      # (char) 809 batches containing from 11 to 66 samples (avg 15 samples).
+batch-sort-key: output # shuffle or input or output
+batch-bins: 541353  # (char) 1197 batches containing from 6 to 51 samples (avg 10 samples).
+                    # (phn) 1246 batches containing from 6 to 48 samples (avg 10 samples).
+
+
 
 # training related
 transformer-init: pytorch
@@ -60,11 +61,11 @@ modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 5
+accum-grad: 6
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * ~800 batches / 5 accum-grad = 160,000 iters
+epochs: 800  # 1000 epochs * ~1200 batches / 6 accum-grad = 160,000 iters
 
 # other
-save-interval-epoch: 10
+save-interval-epoch: 50
