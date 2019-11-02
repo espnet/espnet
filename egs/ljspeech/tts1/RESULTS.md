@@ -1,3 +1,133 @@
+# v.0.6.0 with frequency limit
+
+- FTT in points: 1024
+- Shift in points: 256
+- Frequency limit: 80-7600
+- Fast-GL 64 iters
+
+## Environments
+
+- date: `Sat Nov  2 21:25:27 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `0ad99d180e71e03db9b71c04762a31c0025bab51`
+  - Commit date: `Sat Nov 2 21:25:02 2019 +0900`
+
+## Models
+
+- model link: https://drive.google.com/open?id=1o_wHmRcspunZUaPV5Q3mQMi-EYG4j6S3
+- training config file: `conf/tuning/train_pytorch_tacotron2.v2.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1q9Ln5tFb0qNeU65MD3aUShqnKcLGLloo
+
+## Models
+
+- model link: https://drive.google.com/open?id=1Jo06IbVlq79lMA5wM9OMuZ-ByH1eRPkC
+- training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1Ao_tEZ9f9EQVe9F4r8wcqplFwip1PlWs
+
+## Models
+
+- model link: https://drive.google.com/open?id=17ilwWxjwaHkuXPgYEx1DxuHzpGRfyF4u
+- training config file: `conf/tuning/train_pytorch_transformer.v1.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1FRjlVrfv-IoYvRweX0AOEVYtJnpA7vjp
+
+## Models
+
+- model link: https://drive.google.com/open?id=1Igiu5AZNz2YL6w8FweiamBK6Tp41nmRK
+- training config file: `conf/tuning/train_pytorch_transformer.v3.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=12O4txCOx1guowz6MSH7iEYjB7ALfcSB0
+
+## Models
+
+- model link: https://drive.google.com/open?id=1pATAby_aO8RY-rLBw22OrBtIal3G49B2
+- training config file: `conf/tuning/train_pytorch_tacotron2.v2.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1u_v8kF8YsDPTNVCaDxQ7QSJbD2P6koGx
+
+## Models
+
+- model link: https://drive.google.com/open?id=1lFfeyewyOsxaNO-DEWy9iSz6qB9ZS1UR
+- training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1JFNZapygWsHiP2CXMjTraLzf98h-tEBF
+
+## Models
+
+- model link: https://drive.google.com/open?id=1h-lqoBw0DdOJBlFcPAxyt8cyCcRvwUxO
+- training config file: `conf/tuning/train_pytorch_transformer.v1.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1Ob743unOppZ2JfWDtBn9mR8oPpzFfqF-
+
+## Models
+
+- model link: https://drive.google.com/open?id=1z8KSOWVBjK-_Ws4RxVN4NTx-Buy03-7c
+- training config file: `conf/tuning/train_pytorch_transformer.v3.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1vXcexlhhadvIsZj4ATJYvKbpsIbOuzUU
+
+
 # v.0.5.3: fastspeech.v3 1024 pt window / 256 pt shift / GL 1000 iters
 
 ## Environments
