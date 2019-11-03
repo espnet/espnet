@@ -411,7 +411,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(
-        model, valid_iter, reporter, converter, device), trigger=eval_interval)
+        model, valid_iter, reporter, device), trigger=eval_interval)
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=save_interval)
