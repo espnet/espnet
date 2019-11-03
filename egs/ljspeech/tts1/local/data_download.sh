@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright 2019 Tomoki Hayashi
-#  MIT License (https://opensource.org/licenses/MIT)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 download_dir=$1
 
