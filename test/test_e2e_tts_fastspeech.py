@@ -163,6 +163,10 @@ def make_feedforward_transformer_args(**kwargs):
         ({"transfer_encoder_from_teacher": True}),
         ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
         ({"postnet_layers": 2}),
+        ({"reduction_factor": 2}),
+        ({"reduction_factor": 3}),
+        ({"reduction_factor": 4}),
+        ({"reduction_factor": 5}),
     ])
 def test_fastspeech_trainable_and_decodable(model_dict):
     # make args
