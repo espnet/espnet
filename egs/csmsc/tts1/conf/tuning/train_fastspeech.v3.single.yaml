@@ -1,9 +1,6 @@
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB.
-# To use this configuration, you need the model trained with `conf/tuning/train_transformer.v1`.
-# First, you should train the above model or download from google drive and put it in exp dirctory.
-# Make sure the `teacher-model` path is valid and the encoder structure is the same as teacher
-# when `init-encoder-from-teacher = True`.
-# This configuration uses Conv1d in Transformer blocks and aheads = 2 compared to v1.
+# Config based on train_fastspeech.v2 + postnet.
+# This config requies only a single GPU with 12GB memory.
+# It takes around ~2 days to finish the training.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
@@ -14,10 +11,14 @@ eunits: 1536
 dlayers: 6
 dunits: 1536
 duration-predictor-layers: 2
-duration-predictor-chans: 384
+duration-predictor-chans: 256
 duration-predictor-kernel-size: 3
 positionwise-layer-type: conv1d
 positionwise-conv-kernel-size: 3
+postnet-layers: 5
+postnet-filts: 5
+postnet-chans: 256
+use-batch-norm: True
 use-scaled-pos-enc: True
 encoder-normalize-before: False
 decoder-normalize-before: False
@@ -27,7 +28,7 @@ reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 607200   # 47 batches containing from 16 to 23 samples (avg 20 samples).
+batch-bins: 1012000   # 350 batches containing from 15 to 71 samples (avg 28 samples).
 
 # training related
 transformer-init: pytorch
@@ -42,20 +43,18 @@ transformer-dec-dropout-rate: 0.1
 transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
+postnet-dropout-rate: 0.5
 duration-predictor-dropout-rate: 0.1
-transfer-encoder-from-teacher: True
-transferred-encoder-module: embed
+transfer-encoder-from-teacher: False
 
 # optimization related
 opt: noam
-accum-grad: 8
+accum-grad: 3
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 47 batches * 1000 epochs / 8 accum_grad = 5,875 iters
-teacher-model: exp/train_nodev_trim_pytorch_train_transformer/results/model.last1.avg.best
-               # you can download pretrained transformer model. see RESULTS.md.
+epochs: 700  # 700 epochs * 350 batches / 2 accum-grad = 122,500 iters
+teacher-model: exp/train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best
 
 # other
-save-interval-epoch: 100
-eval-interval-epoch: 100
+save-interval-epoch: 50

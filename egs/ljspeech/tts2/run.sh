@@ -19,12 +19,12 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=22050    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+fs=22050      # sampling frequency
+fmax=7600     # maximum frequency
+fmin=80       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
@@ -56,7 +56,7 @@ eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    local/data_download.sh ${db_root}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
