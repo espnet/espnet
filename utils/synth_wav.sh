@@ -316,6 +316,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --verbose ${verbose}
         rm -rf ${outdir}_npy
     elif [[ ${vocoder_models} == *".parallel_wavegan."* ]]; then
+        checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pkl" | head -n 1)
         if ! command -v parallel-wavegan-decode > /dev/null; then
             pip install parallel-wavegan
         fi
