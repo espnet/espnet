@@ -316,13 +316,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --verbose ${verbose}
         rm -rf ${outdir}_npy
     elif [[ ${vocoder_models} == *".parallel_wavegan."* ]]; then
-        PARALLEL_WAVEGAN_DIR=./local/parallel_wavegan
-        if [ ! -d ${MDN_WAVENET_VOC_DIR} ]; then
-            git clone https://github.com/kan-bayashi/ParallelWaveGAN ${PARALLEL_WAVEGAN_DIR}
-            cd ${PARALLEL_WAVEGAN_DIR} && pip install . && cd -
+        if ! command -v parallel-wavegan-decode > /dev/null; then
+            pip install parallel-wavegan
         fi
-        checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pkl" | head -n 1)
-        python ${PARALLEL_WAVEGAN_DIR}/parallel_wavegan/bin/decode.py \
+        parallel-wavegan-decode \
             --scp "${outdir}/feats.scp" \
             --checkpoint "${checkpoint}" \
             --outdir "${dst_dir}" \
