@@ -1,61 +1,117 @@
-from typing import Union, Dict, Mapping, List
+from typing import Dict, Mapping, List
 
-import torch
+import kaldiio
 import numpy as np
-import yaml
+from pytypes import typechecked
+import torch
+from torch.utils.data import Sampler
+
+from espnet.nets.pytorch_backend.nets_utils import pad_list, make_pad_mask
+from espnet.transform.transformation import Transformation
+from espnet2.utils.fileio import SoundScpReader, scp2dict
 
 
-class BatchSampler:
-    pass
-
-def collate_fn(data: List[Dict[str, np.ndarray]:) -> Dict[str, np.ndarray]:
-    return
-
-
-class Dataset:
-    def __init__(self, config: Union[dict, str]):
+class BatchSampler(Sampler):
+    @typechecked
+    def __init__(self, config: dict, shuffle: bool = False):
         """
 
         config: e.g.
 
-        id_list: /some/where/wav.scp
+        type: seq
+        shape:
+            - utt2shape
+        batch_size: 10
+        """
+        self.shuffle = shuffle
+        self.batch_size = config['batch_size']
+
+        if config['type'] == 'const':
+            path = config['path']
+            utt2length = scp2dict(path)
+            utt2length = {k: int(v) for k, v in utt2length}
+            # Sorted in descending order
+            keys = sorted(utt2length, key=lambda k: -utt2length[k])
+
+            self.batch_list = \
+                [keys[i:i + batchsize]
+                 for i in range(0, len(keys) // 2 + 1, batchsize)]
+
+        # conventional behaviour of batchify()
+        elif config['type'] == 'seq':
+            raise NotImplementedError
+        elif config['type'] == 'batchbin':
+            raise NotImplementedError
+
+        if self.shuffle:
+            np.random.shuffle(self.batch_list)
+
+    def __len__(self):
+        raise len(self.batch_list)
+
+    def __iter__(self):
+        for batch in self.batch_list:
+            yield batch
+
+
+@typechecked
+def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
+    assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
+
+    output = {}
+    for key in data[0]:
+        # tensor: (Batch, Length, ...)
+        tensor = pad_list([d[key] for d in data], 0.)
+        output[key] = tensor
+
+        # FIXME(kamo): I'm not sure which is better, mask or lengths.
+        # mask: (Batch,)
+        mask = make_pad_mask([len(d[key]) for d in data])
+        output[key + '_mask'] = mask
+
+    return output
+
+
+class Dataset:
+    def __init__(self,
+                 config: dict):
+        """
+
+        config: e.g.
+
         data:
-            - key: input1
-              path: /some/where/wav.scp
-              type: sound
-            - key: output1
+            input:
+                  path: /some/where/wav.scp
+                  type: sound
+            output:
               path: /some/where/utt2tokenid
               type: text_int
+        preprocess:
+            input:
+                - type: fbank
+                  nfft: 512
+                  window_length: 400
+                  window_shift: 160
 
         """
-        if isinstance(config, str):
-            with open(config) as f:
-                config = yaml.load(f, Loader=yaml.Loader)
-
         self.loader_dict = {}
-        for data in config['data']:
-            key = data['key']
+        assert isinstance(config['data'], dict), config['data']
+        assert isinstance(config['preprocess'], dict), config['preprocess']
+        for key, data in config['data'].items():
             path = data['path']
             type = data['type']
             loader = Dataset.create_loader(path, type)
             self.loader_dict[key] = loader
 
-        with open(config['id_list']) as f:
-            seen_keys = set()
-            keys = []
-            for line in f:
-                # Refer the first column
-                uid = line.split()[0]
-                if uid in seen_keys:
-                    raise RuntimeError(f'{uid} is duplicated')
-                keys.append(uid)
-                seen_keys.add(uid)
-            self.keys = keys
+        self.preprocess_dict = {}
+        for key, data in config['preprocess'].items():
+            proceess = Transformation(data)
+            self.preprocess_dict[key] = proceess
 
-        # Check whether these ids existing
-        for key, loader in self.loader_dict.items():
-            if not seen_keys.issubset(set(loader)):
-                raise RuntimeError(f'The ids mismatching is found between id_list and {key}: {config}')
+    def __len__(self):
+        raise RuntimeError(
+            'Not necessary to be used because '
+            'we are using custom batch sampler')
 
     @staticmethod
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
@@ -64,28 +120,21 @@ class Dataset:
         elif loader_type == 'ark-scp':
             return kaldiio.load_scp(path)
         elif loader_type == 'text_int':
-            with open(path) as f:
-                d = {}
-                for line in f:
-                    sps = line.split()
-                    uid = sps[0]
-                    if uid in d:
-                        raise RuntimeError(f'{uid} is duplicated')
-                    integers = np.array([int(v) for v in sps[1:]], dtype=np.long)
-                    d[uid] = integers
+            return {k: np.loadtxt(v, ndmin=1, dtype=np.long)
+                    for k, v in scp2dict(path)}
+
         else:
-            raise NotImplementedError(f'Not supported: loader_type={loader_type}')
+            raise NotImplementedError(
+                f'Not supported: loader_type={loader_type}')
 
-    def __len__(self):
-        return len(self.keys)
-
-    def __getitem__(self, uid: Union[int, str]) -> Dict[str, np.ndarray]:
-        if isinstance(uid, int):
-            uid = self.keys[uid]
-
+    @typechecked
+    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
         data = {}
         for name, loader in self.loader_dict.items():
             value = loader[uid]
+            if name in self.preprocess_dict:
+                process = self.preprocess_dict[name]
+                value = process(value)
             data[name] = value
 
         return data

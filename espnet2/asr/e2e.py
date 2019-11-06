@@ -100,7 +100,8 @@ class E2E(torch.nn.Module):
 
         # Compute attention loss
         loss_att = self.label_smoothing_loss(decoder_out, decoder_out_mask)
-        acc_att = th_accuracy(decoder_out.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id)
+        acc_att = th_accuracy(decoder_out.view(-1, self.odim), ys_out_pad,
+                              ignore_label=self.ignore_id)
 
         # Compute cer/wer using attention-decoder
         if self.training or self.error_calculator is None:
@@ -119,7 +120,8 @@ class E2E(torch.nn.Module):
         batch_size = encoder_out_mask.size(0)
         hs_len = encoder_out_mask.view(batch_size, -1).sum(1)
         # Calc CTC loss
-        loss_ctc = self.ctc(encoder_out.view(batch_size, -1, self.adim), hs_len, ys_pad)
+        loss_ctc = self.ctc(encoder_out.view(batch_size, -1, self.adim),
+                            hs_len, ys_pad)
 
         # Calc CER using CTC
         cer_ctc = None
