@@ -742,7 +742,32 @@ def recog(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0] if args.num_encs == 1 else load_inputs_and_targets(batch)
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                if args.streaming_mode == 'window' and args.num_encs == 1:
+                    raise NotImplementedError
+                elif args.streaming_mode == 'segment' and args.num_encs == 1:
+                    if args.batchsize > 1:
+                        raise NotImplementedError
+                    feat = feats[0]
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
+                    nbest_hyps = [nbest_hyps]
+                else:
+                    nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
