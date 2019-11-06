@@ -100,20 +100,22 @@ class E2E(ASRInterface, torch.nn.Module):
         # prediction
         group.add_argument('--dec-embed-dim', default=320, type=int,
                            help='Number of decoder embeddings dimensions')
-        parser.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
+        group.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
                             help='Dropout rate for the decoder embeddings')
         # general
         group.add_argument('--rnnt_type', default='warp-transducer', type=str,
                            choices=['warp-transducer'],
                            help='Type of transducer implementation to calculate loss.')
-        parser.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
+        group.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
                             help='RNN-Transducing mode')
-        parser.add_argument('--joint-dim', default=320, type=int,
+        group.add_argument('--joint-dim', default=320, type=int,
                             help='Number of dimensions in joint space')
         # decoding
-        parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
+        group.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
                             default=True,
                             help='Normalize transducer scores by length')
+
+        return parser
 
     def __init__(self, idim, odim, args):
         """Initialize transducer modules.
