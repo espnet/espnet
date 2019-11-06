@@ -24,7 +24,8 @@ class BatchSampler(Sampler):
         batch_size: 10
         """
         self.shuffle = shuffle
-        self.batch_size = config['batch_size']
+        batch_size = config['batch_size']
+        self.batch_size = batch_size
 
         if config['type'] == 'const':
             path = config['path']
@@ -34,8 +35,8 @@ class BatchSampler(Sampler):
             keys = sorted(utt2length, key=lambda k: -utt2length[k])
 
             self.batch_list = \
-                [keys[i:i + batchsize]
-                 for i in range(0, len(keys) // 2 + 1, batchsize)]
+                [keys[i:i + batch_size]
+                 for i in range(0, len(keys) // 2 + 1, batch_size)]
 
         # conventional behaviour of batchify()
         elif config['type'] == 'seq':
@@ -60,8 +61,14 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
     output = {}
     for key in data[0]:
+        if data[0][key].dtype.kind == 'f':
+            pad_value = 0.
+        else:
+            # -1 is reserved for ignore-id
+            pad_value = -1
+
         # tensor: (Batch, Length, ...)
-        tensor = pad_list([d[key] for d in data], 0.)
+        tensor = pad_list([d[key] for d in data], pad_value)
         output[key] = tensor
 
         # FIXME(kamo): I'm not sure which is better, mask or lengths.
@@ -111,7 +118,7 @@ class Dataset:
     def __len__(self):
         raise RuntimeError(
             'Not necessary to be used because '
-            'we are using custom batch sampler')
+            'we are using custom batchーsampler')
 
     @staticmethod
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:

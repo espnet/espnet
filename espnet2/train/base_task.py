@@ -28,17 +28,22 @@ class BaseTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
 
+    def __init__(self):
+        raise RuntimeError("This class can't be instantiated.")
+
     @typechecked
     @classmethod
-    def get_parser(cls, parser: argparse.ArgumentParser=None) \
-            -> argparse.ArgumentParser:
-        if parser is not None:
+    def add_arguments(cls, parser: argparse.ArgumentParser = None) -> argparse.ArgumentParser:
+        if parser is None:
             parser = configargparse.ArgumentParser(description='base parser')
 
         def dummy(arg):
             raise TypeError
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
+
+        parser.add_argument('--log_level', type=str, default='INFO',
+                            choices=['INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
         parser.add_argument('--output_dir', type=str, required=True)
         parser.add_argument('--ngpu', type=int)
@@ -100,9 +105,9 @@ class BaseTask(ABC):
             optimizer=optimizer, scheduler=args.bscheduler,
             kwargs=args.bscheduler_arg)
 
-    @abstractmethod
     @typechecked
     @classmethod
+    @abstractmethod
     def build_model(cls, idim: int, odim: int, args: argparse.Namespace):
         raise NotImplementedError
 
@@ -110,24 +115,25 @@ class BaseTask(ABC):
     @classmethod
     def main(cls, cmd=None) -> None:
 
-        parser = cls.get_parser()
+        parser = cls.add_arguments()
         args = parser.parse_args(cmd)
+
+        logging.basicConfig(
+            level=args.log_level, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
 
         train_dataset = Dataset(args.train_dataset_config)
-        train_batch_sampler = BatchSampler(batchsize=args.batchsize,
-                                           config=args.train_batch_config,
+        train_batch_sampler = BatchSampler(config=args.train_batch_config,
                                            shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
                                 collate_fn=collate_fn)
 
         eval_dataset = Dataset(args.eval_dataset_config)
-        eval_batch_sampler = BatchSampler(batchsize=args.batchsize,
-                                          config=args.eval_batch_config,
+        eval_batch_sampler = BatchSampler(config=args.eval_batch_config,
                                           shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
@@ -347,7 +353,7 @@ class BaseTask(ABC):
     def train(cls,
               model: torch.nn.Module,
               iterator,
-              optimizer: torch.nn.Optimizer,
+              optimizer: torch.optim.Optimizer,
               reporter: Reporter,
               scheduler: AbsBatchScheduler = None,
               ngpu: int = 1,
