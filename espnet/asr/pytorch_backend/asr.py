@@ -400,7 +400,7 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
         if args.num_encs > 1:
