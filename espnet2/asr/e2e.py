@@ -6,7 +6,6 @@ from pytypes import typechecked
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
@@ -51,26 +50,33 @@ class E2E(torch.nn.Module):
             self.error_calculator = None
 
     def forward(self,
-                xs_pad: torch.Tensor,
-                ilens: torch.Tensor,
-                ys_pad: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
-        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
+                input: torch.Tensor,
+                input_mask: torch.Tensor,
+                output: torch.Tensor,
+                output_mask: torch.Tensor,
+                ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
 
+        Args:
+            input: (Batch, Length, Dim)
+            input_mask: (Batch,)
+            output: (Batch, Length)
+            output_mask: (Batch,)
+        """
         # 1. Forward encoder
-        encoder_out, encoder_out_mask = self.encoder(xs_pad, src_mask)
+        encoder_out, encoder_out_mask = self.encoder(input, input_mask)
 
         # 2a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
-            loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(ys_pad, encoder_out, encoder_out_mask)
+            loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(output, encoder_out, encoder_out_mask)
 
         # 2b. CTC branch
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:
-            loss_ctc, cer_ctc = self.calc_ctc_loss(ys_pad, encoder_out, encoder_out_mask)
+            loss_ctc, cer_ctc = self.calc_ctc_loss(output, encoder_out, encoder_out_mask)
 
         if self.ctc_weight == 0.:
             loss = loss_att

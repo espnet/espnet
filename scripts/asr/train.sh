@@ -44,26 +44,27 @@ traindir=$1
 devdir=$2
 
 
-if [ "${task}" = transformer ]; then
-    base_config=conf/train_transformer.yaml
-    command_name=espnet2.asrbin.train_transformer
 
-elif [ "${task}" = rnn ]; then
-    log "Error: not yet"
-    exit 1
-
-else
-    log "Error: Not supported task: --task ${task}"
-    exit 1
-fi
 
 for dset in ${traindir} ${devdir}; do
     if [ -f ${dset}/feat_shape ]; then
-        steps/feat2shape.sh --nj ${nj} --preprocess-config "${preprocess_config}" ${dset}/wav.scp ${dset}/feat_shape
+        steps/feat2shape.sh --nj "${nj}" --preprocess-config "${preprocess_config}" ${dset}/wav.scp ${dset}/feat_shape
     fi
 done
 
 if [ -n "${train_config}" ]; then
+
+    if [ "${task}" = transformer ]; then
+        base_config=conf/train_transformer.yaml
+
+    elif [ "${task}" = rnn ]; then
+        log "Error: not yet"
+        exit 1
+
+    else
+        log "Error: Not supported task: --task ${task}"
+        exit 1
+    fi
     train_config=$(change_yaml.py ${base_config} ${train_args} -o ${expdir})
     [ -f "${train_config}" ] && { log "Error: ${train_config} is not found, so maybe change_yaml.py was failed."; exit 1; }
 
@@ -109,7 +110,7 @@ EOF
 fi
 
 ${cmd} --gpu "${ngpu}" ${expdir}/train.log \
-    python -m ${command_name} \
+    python -m espnet2.bin.train "ark-${task}" \
         --ngpu "${ngpu}" \
         --config "${train_config}" \
         --outdir ${expdir}/results

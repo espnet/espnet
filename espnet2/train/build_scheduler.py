@@ -55,7 +55,7 @@ class AbsValEpochScheduler(AbsBatchScheduler):
 
 # Create alias type to check the type
 # Note(kamo): Currently PyTorch doesn't provide the base class
-# to distinguish these classes.
+# to judge these classes.
 AbsValEpochScheduler.register(ReduceLROnPlateau)
 AbsEpochScheduler.register(LambdaLR)
 AbsEpochScheduler.register(StepLR)

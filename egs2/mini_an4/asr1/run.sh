@@ -37,7 +37,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: "
-    steps/asr/prepare_token.sh \
+    scripts/asr/prepare_token.sh \
         --nbpe "${nbpe}" --bpemode "${bpemode}" \
         data/train_nodev data/train_dev
 
@@ -48,13 +48,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: LM Preparation"
     log "Not yet"
 
-    steps/lm/train.sh
+    scripts/lm/train.sh
 fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Network Training"
-    steps/asr/train.sh --cmd "${cuda_cmd}" data/train_nodev data/train_dev
+    scripts/asr/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" data/train_nodev data/train_dev
 
 fi
 
@@ -73,9 +73,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     for dset in ${eval_sets}; do
-        steps/asr/decode.sh --cmd "${_cmd} --gpu ${ngpu}" --nj "${decode_nj}" --ngpu "${ngpu}" ${expdir}/results data/${dset}
+        scripts/asr/decode.sh --cmd "${_cmd} --gpu ${ngpu}" --nj "${decode_nj}" --ngpu "${ngpu}" ${expdir}/results data/${dset}
     done
 
-    steps/asr/show_result.sh ${expdir}
+    scripts/asr/show_result.sh ${expdir}
 
 fi
