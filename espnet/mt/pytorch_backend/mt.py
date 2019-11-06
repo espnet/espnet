@@ -137,7 +137,7 @@ def train(args):
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
 
