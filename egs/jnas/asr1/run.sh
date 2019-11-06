@@ -65,6 +65,24 @@ samp_prob=0.0
 jnas_train_root=/database/JNAS                # root directory including original data
 jnas_eval_root=/database/JNAS/DOCS/Test_set   # root directory including test data
 
+# /database/JNAS
+# ├── DOCS/
+# ├── OriginalText/
+# ├── readme_en.txt
+# ├── readme_jp.txt
+# ├── reference_en.pdf
+# ├── reference_jp.pdf
+# ├── Transcription/
+# ├── WAVES_DT/
+# └── WAVES_HS/
+
+# /database/JNAS/DOCS/Test_set
+# ├── ASJ_1998.pdf
+# ├── IPA98_testset_100/
+# ├── JNAS_testset_100/
+# ├── JNAS_testset_500/
+# └── readme.txt
+
 # exp tag
 tag="" # tag for managing experiments.
 

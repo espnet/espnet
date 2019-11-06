@@ -136,6 +136,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.space = args.sym_space
         self.blank = args.sym_blank
         self.reporter = Reporter()
+        self.beam_size = args.beam_size
 
         # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
@@ -284,7 +285,11 @@ class E2E(ASRInterface, torch.nn.Module):
             batch_nbest = []
 
             for b in six.moves.range(batchsize):
-                nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+                if self.beam_size == 1:
+                    nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
+                else:
+                    nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+
                 batch_nbest.append(nbest_hyps)
 
             y_hats = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]

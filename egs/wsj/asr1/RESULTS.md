@@ -105,13 +105,13 @@ Be careful with patience !!!
 ### CER
 |dataset| Snt | Wrd| Corr | Sub | Del | Ins | Err | S.Err|
 |---|---|---|---|---|---|---|---|---|
-|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_dev93_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|503|48634|96.2|1.9|1.9|1.0|4.9|71.4|
-|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_eval92_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|333|33341|97.7|1.1|1.1|0.8|3.1|58.9|
+|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_dev93_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|503|48634|96.7|1.5|1.8|0.7|4.0|65.0 |
+|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_eval92_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|333|33341|98.1|0.9|1.1|0.6|2.5|51.7|
 ### WER
 |dataset| Snt | Wrd| Corr | Sub | Del | Ins | Err | S.Err|
 |---|---|---|---|---|---|---|---|---|
-|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_dev93_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|503|8234|90.4|8.3|1.3|1.4|10.9|67.2|
-|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_eval92_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|333|5643|94.2|5.3|0.5|1.3|7.1|51.4|
+|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_dev93_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|503|8234|92.5|6.5|1.0|1.2|8.7|59.0|
+|exp/train_si284_vggblstmp_e6_*_mtlalpha0.2_adadelta_bs30_mli800_mlo150_lsmunigram0.05/decode_test_eval92_beam30_eacc.best_p0.0_len0.0-0.0_ctcw0.3_wordrnnlm1.0|333|5643|95.5|3.9|0.6|0.9|5.4|44.7|
 
 
 ## change hyperparameters mtlalpha: 0.5 -> 0.2 and beam_size: 20 -> 30
