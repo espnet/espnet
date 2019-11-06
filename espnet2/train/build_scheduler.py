@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Union
+from typing import Union, Optional
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
@@ -14,6 +14,9 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from pytypes import typechecked
 
 from espnet.utils.dynamic_import import dynamic_import
+
+
+# FIXME(kamo): EpochScheduler, BatchScheduler is a confusing name. Please give me an idea.
 
 
 # If you need to define custom scheduler, please inherit these classes
@@ -39,7 +42,7 @@ class AbsEpochScheduler(ABC):
         pass
 
 
-class AbsValEpochScheduler(ABC):
+class AbsValEpochScheduler(AbsBatchScheduler):
     def step(self, val, epoch: int = None):
         pass
 
@@ -51,16 +54,24 @@ class AbsValEpochScheduler(ABC):
 
 
 # Create alias type to check the type
-# Note(kamo): Currently PyTorch doesn't provide the base class to distinguish these classes.
-ValEpochScheduler = Union[AbsEpochScheduler, ReduceLROnPlateau]
-EpochScheduler = Union[AbsEpochScheduler, ValEpochScheduler,
-                       LambdaLR, StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR]
-# FIXME(kamo): BatchScheduler is a confusing name. Please give me an idea.
-BatchScheduler = Union[AbsBatchScheduler, CyclicLR, OneCycleLR, CosineAnnealingWarmRestarts]
+# Note(kamo): Currently PyTorch doesn't provide the base class
+# to distinguish these classes.
+AbsValEpochScheduler.register(ReduceLROnPlateau)
+AbsEpochScheduler.register(LambdaLR)
+AbsEpochScheduler.register(StepLR)
+AbsEpochScheduler.register(MultiStepLR)
+AbsEpochScheduler.register(ExponentialLR)
+AbsEpochScheduler.register(CosineAnnealingLR)
+
+AbsBatchScheduler.register(CyclicLR)
+AbsBatchScheduler.register(OneCycleLR)
+AbsBatchScheduler.register(CosineAnnealingWarmRestarts)
 
 
 @typechecked
-def build_epoch_scheduler(scheduler: str, optimizer: torch.optim.Optimizer, kwargs) -> EpochScheduler:
+def build_epoch_scheduler(optimizer: torch.optim.Optimizer,
+                          scheduler: Optional[str], kwargs) \
+        -> Optional[AbsEpochScheduler]:
     """PyTorch schedulers control optim-parameters at the end of each epochs
 
     EpochScheduler:
@@ -74,19 +85,23 @@ def build_epoch_scheduler(scheduler: str, optimizer: torch.optim.Optimizer, kwar
         >>>     val = validate(...)
         >>>     scheduler.step(val)
     """
-    # Note(kamo): Don't use getattr or dynamic_import for readability and debuggability as possible
+    # Note(kamo): Don't use getattr or dynamic_import
+    # for readability and debuggability as possible
 
-    if scheduler == 'ReduceLROnPlateau':
+    if scheduler is None:
+        return None
+
+    if scheduler.lower() == 'reducelronplateau':
         return ReduceLROnPlateau(optimizer, **kwargs)
-    elif scheduler == 'LambdaLR':
+    elif scheduler.lower() == 'lambdalr':
         return LambdaLR(optimizer, **kwargs)
-    elif scheduler == 'StepLR':
+    elif scheduler.lower() == 'steplr':
         return StepLR(optimizer, **kwargs)
-    elif scheduler == 'MultiStepLR':
+    elif scheduler.lower() == 'multiSteplr':
         return MultiStepLR(optimizer, **kwargs)
-    elif scheduler == 'ExponentialLR':
+    elif scheduler.lower() == 'exponentiallr':
         return ExponentialLR(optimizer, **kwargs)
-    elif scheduler == 'CosineAnnealingLR':
+    elif scheduler.lower() == 'cosineannealinglr':
         return CosineAnnealingLR(optimizer, **kwargs)
     else:
         # To use custom scheduler e.g. your_module.some_file:ClassName
@@ -95,7 +110,9 @@ def build_epoch_scheduler(scheduler: str, optimizer: torch.optim.Optimizer, kwar
 
 
 @typechecked
-def build_batch_scheduler(scheduler: str, optimizer: torch.optim.Optimizer, kwargs: dict) -> BatchScheduler:
+def build_batch_scheduler(optimizer: torch.optim.Optimizer,
+                          scheduler: Optional[str], kwargs: dict) \
+        -> Optional[AbsBatchScheduler]:
     """PyTorch schedulers control optim-parameters after every updating
 
     BatchScheduler:
@@ -104,13 +121,17 @@ def build_batch_scheduler(scheduler: str, optimizer: torch.optim.Optimizer, kwar
         >>>         train_batch(...)
         >>>         scheduler.step()
     """
-    # Note(kamo): Don't use getattr or dynamic_import for readability and debuggability as possible
+    # Note(kamo): Don't use getattr or dynamic_import
+    # for readability and debuggability as possible
 
-    if scheduler == 'CyclicLR':
+    if scheduler is None:
+        return None
+
+    if scheduler.lower() == 'cycliclr':
         return CyclicLR(optimizer, **kwargs)
-    elif scheduler == 'OneCycleLR':
+    elif scheduler.lower() == 'onecyclelr':
         return OneCycleLR(optimizer, **kwargs)
-    elif scheduler == 'CosineAnnealingWarmRestarts':
+    elif scheduler.lower() == 'cosineannealingwarmrestarts':
         return CosineAnnealingWarmRestarts(optimizer, **kwargs)
     else:
         # To use custom scheduler e.g. your_module.some_file:ClassName

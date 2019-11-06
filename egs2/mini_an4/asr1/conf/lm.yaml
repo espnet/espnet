@@ -1,0 +1,8 @@
+layer: 1         # 2 for character LMs
+unit: 10         # 650 for character LMs
+opt: sgd         # adam for character LMs
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+batchsize: 2    # 1024 for character LMs
+epoch: 3        # number of epochs
+patience: 2
+maxlen: 40        # 150 for character LMs

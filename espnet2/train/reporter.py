@@ -46,6 +46,10 @@ class Reporter:
 
     def has_key(self, key: str, key2: str) -> bool:
         return key in self.stats[self.epoch] and key2 in self.stats[self.epoch][key]
+
+    def plot(self):
+        # matplotlib and tensorboard
+        raise NotImplementedError
     
     def report(self, key: str, stats: Dict[str, Union[float, torch.Tensor]]):
         # key: train or eval

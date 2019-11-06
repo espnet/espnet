@@ -1,45 +1,80 @@
-from collections.abc import Mapping
-from typing import Tuple
+import collections.abc
+from pathlib import Path
+from typing import Union, Dict
 
 import soundfile
-from pytypes import typechecked
+import numpy as np
 
 
-class SoundScpReader(Mapping):
+def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
     """
 
-    sound_scp_file:
-        key1 some/where/a.wav
-        key2 some/where/b.wav
-        key3 some/where/c.flac
+    Example:
+        wav.scp:
+            key1 /some/path/a.wav
+            key2 /some/path/b.wav
 
-    >>> reader = SoundScpReader('sound_scp_file')
-    >>> signal, rate = reader['key1']
+        >>> scp2dict('wav.scp')
+        {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
 
     """
-    @typechecked
-    def __init__(self, scpfile: str, always_2d: bool = True):
-        self.scpfile = scpfile
+
+    data = {}
+    with Path(path).open('r') as f:
+        for line in f:
+            sps = line.rstrip().split(maxsplit=1)
+            if len(sps) != 2:
+                raise RuntimeError(f'Must have two column: {line}')
+            k, v = sps
+            if k in data:
+                raise RuntimeError(f'{k} is duplicated')
+            data[k] = v.rstrip()
+    return data
+
+
+class SoundScpReader(collections.abc.Mapping):
+    """
+
+        key1 /some/path/a.wav
+        key2 /some/path/b.wav
+        key3 /some/path/c.wav
+        key4 /some/path/d.wav
+        ...
+
+    >>> reader = SoundScpReader('wav.scp')
+    >>> rate, array = reader['key1']
+
+    """
+    def __init__(self, fname, dtype=np.int16,
+                 always_2d: bool = False, normalize: bool = False):
+        self.fname = fname
+        self.dtype = dtype
         self.always_2d = always_2d
+        self.normalize = normalize
+        self.data = scp2dict(fname)
 
-        self.data = {}
-        with open(scpfile, 'r') as f:
-            for line in f:
-                k, v = line.rstrip()
-                if k in self.data:
-                    raise RuntimeError(f'{scpfile} has duplicated keys: {k}')
+    def __getitem__(self, key):
+        wav = self.data[key]
+        if self.normalize:
+            array, rate = soundfile.read(
+                wav, always_2d=self.always_2d)
+        else:
+            array, rate = soundfile.read(
+                wav, dtype=self.dtype, always_2d=self.always_2d)
 
-                self.data[k] = v
+        return rate, array
 
-    def __getitem__(self, key) -> Tuple[np.ndarray]:
-        v = self.data[key]
-        return soundfile(v, always_2d=self.always_2d)
+    def get_path(self, key):
+        return self.data[key]
+
+    def __contains__(self, item):
+        return item
 
     def __len__(self):
         return len(self.data)
 
-    def keys(self):
-        return self.data.keys()
-
     def __iter__(self):
         return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()
