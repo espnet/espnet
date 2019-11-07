@@ -1,6 +1,4 @@
 import collections.abc
-import inspect
-import io
 import warnings
 from pathlib import Path
 from typing import Union, Dict, Tuple
@@ -8,7 +6,6 @@ from typing import Union, Dict, Tuple
 import soundfile
 import numpy as np
 from pytypes import typechecked
-import yaml
 
 
 def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
@@ -37,53 +34,6 @@ def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
                 raise RuntimeError(f'{k} is duplicated ({path}:{linenum})')
             data[k] = v.rstrip()
     return data
-
-
-@typechecked
-def gen_yaml_from_func(func: callable, path: Union[Path, str, io.TextIOBase]):
-    """
-
-    Examples:
-        >>> def func(a, b=3):  pass
-        >>> gen_yaml_from_func(func, 'output.yaml')
-
-    """
-    def serializable(value):
-        if value is inspect.Parameter.empty or value is None:
-            return None
-        # Maybe named_tuple?
-        elif isinstance(value, tuple) and type(value) is not tuple:
-            return serializable(vars(value))
-        elif isinstance(value, dict):
-            assert all(isinstance(k, str) for k in value), \
-                f'dict keys must be str: {list(value)}'
-            return {k: serializable(v) for k, v in value.items()}
-        elif isinstance(value, tuple):
-            return serializable(list(value))
-        elif isinstance(value, list):
-            return [serializable(v) for v in value]
-        elif isinstance(value, np.ndarray):
-            assert value.ndim == 1, value.shape
-            return serializable(value.tolist())
-        elif isinstance(value, Path):
-            return str(value)
-        elif isinstance(value, (float, int, complex, bool, str, bytes)):
-            return value
-        else:
-            raise TypeError(f'Cannot serialize in yaml: {type(value)}')
-
-    # params: An ordered mapping of inspect.Parameter
-    params = inspect.signature(func).parameters
-    data = {p.name: serializable(p.default) for p in params.values()}
-
-    if not isinstance(path, io.TextIOBase):
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-        with path.open('w') as f:
-            yaml.dump(data, f, dumper=yaml.Dumper)
-    else:
-        f = path
-        yaml.dump(data, f, dumper=yaml.Dumper)
 
 
 class SoundScpReader(collections.abc.Mapping):

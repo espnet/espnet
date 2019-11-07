@@ -1,6 +1,7 @@
 import argparse
 import logging
 import random
+import sys
 from abc import ABC, abstractmethod
 from distutils.util import strtobool
 from pathlib import Path
@@ -11,6 +12,7 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
+import yaml
 from pytypes import typechecked
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
@@ -33,7 +35,7 @@ class BaseTask(ABC):
 
     @typechecked
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser = None) \
+    def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> argparse.ArgumentParser:
         if parser is None:
             parser = configargparse.ArgumentParser(description='base parser')
@@ -43,45 +45,51 @@ class BaseTask(ABC):
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
 
-        parser.add('--config', is_config_file=True, help='config file path')
-        parser.add_argument('--log_level', type=str, default='INFO',
-                            choices=['INFO', 'ERROR', 'WARNING', 'INFO',
-                                     'DEBUG', 'NOTSET'])
+        group = parser.add_argument_group('The common configuration')
 
-        parser.add_argument('--output_dir', type=str, required=True)
-        parser.add_argument('--ngpu', type=int)
-        parser.add_argument('--seed', type=int, default=0)
+        group.add_argument('--config', is_config_file=True,
+                           help='config file path')
+        group.add_argument('--log_level', type=str, default='INFO',
+                           choices=['INFO', 'ERROR', 'WARNING', 'INFO',
+                                    'DEBUG', 'NOTSET'])
 
-        parser.add_argument('--resume_epoch', type=int)
-        parser.add_argument('--resume_path', type=str)
-        parser.add_argument('--preatrain_path', type=int)
-        parser.add_argument('--pretrain_key', type=str)
+        group.add_argument('--gen_yaml', type=str,
+                           help='Generate a default yaml file to '
+                                'the specified path for this task')
+        group.add_argument('--output_dir', type=str, default='output')
+        group.add_argument('--ngpu', type=int)
+        group.add_argument('--seed', type=int, default=0)
 
-        parser.add_argument('--train_dtype', type=str, default='float32')
-        parser.add_argument('--patience', type=int, default=None)
-        parser.add_argument('--batchsize', type=int, default=20)
-        parser.add_argument('--grad_noise', type=strtobool, default=False)
-        parser.add_argument('--accum_grad', type=int, default=1)
-        parser.add_argument('--grad_clip_threshold', type=float, default=1e-4)
+        group.add_argument('--resume_epoch', type=int)
+        group.add_argument('--resume_path', type=str)
+        group.add_argument('--preatrain_path', type=int)
+        group.add_argument('--pretrain_key', type=str)
 
-        parser.add_argument('--train_dataset_config', type=dummy,
-                            default=dict())
-        parser.add_argument('--train_batch_config', type=dummy,
-                            default=dict())
-        parser.add_argument('--eval_dataset_config', type=dummy,
-                            default=dict())
-        parser.add_argument('--eval_batch_config', type=dummy,
-                            default=dict())
+        group.add_argument('--train_dtype', type=str, default='float32')
+        group.add_argument('--patience', type=int, default=None)
+        group.add_argument('--batchsize', type=int, default=20)
+        group.add_argument('--grad_noise', type=strtobool, default=False)
+        group.add_argument('--accum_grad', type=int, default=1)
+        group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
 
-        parser.add_argument('--optimizer', type=str, default='adam')
-        parser.add_argument('--optimizer_arg', type=dummy,
-                            default=dict(lr=1e-3))
-        parser.add_argument('--escheduler', type=str)
-        parser.add_argument('--escheduler_arg', type=dummy,
-                            default=dict())
-        parser.add_argument('--bscheduler', type=str)
-        parser.add_argument('--bscheduler_arg', type=dummy,
-                            default=dict())
+        group.add_argument('--train_dataset_config', type=dummy,
+                           default=dict())
+        group.add_argument('--train_batch_config', type=dummy,
+                           default=dict())
+        group.add_argument('--eval_dataset_config', type=dummy,
+                           default=dict())
+        group.add_argument('--eval_batch_config', type=dummy,
+                           default=dict())
+
+        group.add_argument('--optimizer', type=str, default='adam')
+        group.add_argument('--optimizer_arg', type=dummy,
+                           default=dict(lr=1e-3))
+        group.add_argument('--escheduler', type=str)
+        group.add_argument('--escheduler_arg', type=dummy,
+                           default=dict())
+        group.add_argument('--bscheduler', type=str)
+        group.add_argument('--bscheduler_arg', type=dummy,
+                           default=dict())
 
         return parser
 
@@ -116,15 +124,30 @@ class BaseTask(ABC):
 
     @typechecked
     @classmethod
-    def main(cls, args: argparse.Namespace = None) -> None:
+    @abstractmethod
+    def get_default_config(cls) -> dict:
+        raise NotImplementedError
+
+    @typechecked
+    @classmethod
+    def main(cls, args: argparse.Namespace = None, cmd: str = None) -> None:
         if args is None:
             parser = cls.add_arguments()
-            args = parser.parse_args()
+            args = parser.parse_args(cmd)
 
         logging.basicConfig(
             level=args.log_level,
             format=
             '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+
+        if args.gen_yaml is not None:
+            config = cls.get_default_config()
+            p = Path(args.gen_yaml)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            with p.open('w') as f:
+                yaml.dump(config, f, Dumper=yaml.Dumper)
+            logging.info('Yaml file was generated: {p}')
+            sys.exit(0)
 
         random.seed(args.seed)
         np.random.seed(args.seed)

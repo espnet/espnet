@@ -67,13 +67,13 @@ if [ -n "${train_config}" ]; then
 else
 
     if [ "${task}" = transformer ]; then
-        base_config=conf/train_transformer.yaml
+        default_config=conf/train_transformer.yaml
 
     elif [ "${task}" = rnn ]; then
-        base_config=conf/train_rnn.yaml
+        default_config=conf/train_rnn.yaml
 
     elif [ "${task}" = rnnt ]; then
-        base_config=conf/train_rnnt.yaml
+        default_config=conf/train_rnnt.yaml
 
     else
         log "Error: Not supported task: --task ${task}"
@@ -81,11 +81,12 @@ else
     fi
 
     train_config=${expdir}/train.yaml
-    ./pyscripts/text/change_yaml.py ${base_config} ${train_args} -o ${train_config}
+    ./pyscripts/text/change_yaml.py ${default_config} ${train_args} -o ${train_config}
 
 fi
 
 
+# The configuration about mini-batch-IO for DNN training
 cat << EOF >> ${train_config}
 # For Dataset class
 train_data_config:
@@ -124,6 +125,7 @@ EOF
 
 
 if [ ! -z "${preprocess_config}" ]; then
+    # Embed preprocess_config to train.yaml
     python3 << EOF
 import yaml
 with open('${train_config}', 'r') as f:

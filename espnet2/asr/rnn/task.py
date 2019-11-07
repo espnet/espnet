@@ -12,8 +12,8 @@ from espnet2.train.base_task import BaseTask
 class ASRRNNTask(BaseTask):
     @classmethod
     @typechecked
-    def add_arguments(cls, parser: argparse.ArgumentParser = None) \
-            -> argparse.ArgumentParser:
+    def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
+            -> configargparse.ArgumentParser:
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
         if parser is None:
             parser = configargparse.ArgumentParser(description='')
@@ -40,3 +40,7 @@ class ASRRNNTask(BaseTask):
         initialize(model, args.init)
 
         return model
+
+
+if __name__ == '__main__':
+    ASRRNNTask.main()

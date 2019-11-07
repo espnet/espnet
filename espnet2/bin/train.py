@@ -15,6 +15,17 @@ def not_implemented(args):
 if __name__ == '__main__':
     print(get_commandline_args(), file=sys.stderr)
 
+    """
+    Usage:
+        python train.py <sub-command-name> [-h ] ...
+        python train.py <sub-command-name> --gen_yaml <path>
+    
+    Example:
+        % python train.py asr_rnn --gen_yaml conf/train_asr.yaml
+        % # Modify conf/train_asr.yaml
+        % python train.py asr_rnn --config conf/train_asr.yaml
+    """
+
     parser = configargparse.ArgumentParser(description='Train dnn')
     parser.set_defaults(main=None)
     subparsers = parser.add_subparsers(dest='task')
@@ -34,7 +45,8 @@ if __name__ == '__main__':
     subparser = subparsers.add_parser('lm_rnn', help='LM RNN model')
     subparser.set_defaults(main=not_implemented)
 
-    subparser = subparsers.add_parser('tts_tacotron', help='TTS Tacotron model')
+    subparser = subparsers.add_parser(
+        'tts_tacotron', help='TTS Tacotron model')
     subparser.set_defaults(main=not_implemented)
 
     args = parser.parse_args()
