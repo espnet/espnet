@@ -12,7 +12,7 @@ log() {
 SECONDS=0
 
 # general configuration
-stage=1       # start from -1 if you need to start from data download
+stage=1
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 
@@ -24,7 +24,7 @@ audio_format=flac
 nbpe=30
 bpemode=unigram
 
-. utils/parse_options.sh || exit 1;
+. utils/parse_options.sh
 . ./path.sh
 . ./cmd.sh
 
@@ -64,17 +64,17 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: LM Preparation"
     log "Not yet"
-
     # scripts/lm/train.sh
 fi
 
+expdir=exp/train
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Network Training"
     scripts/asr/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" \
-        data_format/${train_set}_bpe_train_nodev_unigram30 \
-        data_format/${train_set}_bpe_train_nodev_unigram30 \
-        exp
+        data_format/${train_set}_bpe_${train_set}_${bpemode}${nbpe} \
+        data_format/${dev_set}_bpe_${train_set}_${bpemode}${nbpe} \
+        ${expdir}
 
 fi
 
@@ -93,7 +93,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     for dset in ${eval_sets}; do
-        scripts/asr/decode.sh --cmd "${_cmd} --gpu ${ngpu}" --nj "${decode_nj}" --ngpu "${ngpu}" ${expdir}/results data/${dset}
+        scripts/asr/decode.sh --cmd "${_cmd} --gpu ${ngpu}" --nj "${decode_nj}" --ngpu "${ngpu}" \
+            ${expdir}/results data/${dset} ${expdir}/decode_${dset}
     done
 
     scripts/asr/show_result.sh ${expdir}
