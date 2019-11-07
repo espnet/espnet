@@ -5,7 +5,8 @@ from espnet.utils.dynamic_import import dynamic_import
 
 
 @typechecked
-def build_optimizer(model: torch.nn.Module, optim: str, kwarg: dict) -> torch.optim.Optimizer:
+def build_optimizer(model: torch.nn.Module, optim: str, kwarg: dict) \
+        -> torch.optim.Optimizer:
     # Note(kamo): Don't use getattr or dynamic_import
     # for readability and debuggability as possible
 

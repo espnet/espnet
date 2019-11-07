@@ -33,7 +33,8 @@ class BaseTask(ABC):
 
     @typechecked
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser = None) -> argparse.ArgumentParser:
+    def add_arguments(cls, parser: argparse.ArgumentParser = None) \
+            -> argparse.ArgumentParser:
         if parser is None:
             parser = configargparse.ArgumentParser(description='base parser')
 
@@ -43,7 +44,8 @@ class BaseTask(ABC):
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
 
         parser.add_argument('--log_level', type=str, default='INFO',
-                            choices=['INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
+                            choices=['INFO', 'ERROR', 'WARNING', 'INFO',
+                                     'DEBUG', 'NOTSET'])
 
         parser.add_argument('--output_dir', type=str, required=True)
         parser.add_argument('--ngpu', type=int)
@@ -113,13 +115,15 @@ class BaseTask(ABC):
 
     @typechecked
     @classmethod
-    def main(cls, cmd=None) -> None:
-
-        parser = cls.add_arguments()
-        args = parser.parse_args(cmd)
+    def main(cls, args: argparse.Namespace = None) -> None:
+        if args is None:
+            parser = cls.add_arguments()
+            args = parser.parse_args()
 
         logging.basicConfig(
-            level=args.log_level, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+            level=args.log_level,
+            format=
+            '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
         random.seed(args.seed)
         np.random.seed(args.seed)
@@ -144,11 +148,13 @@ class BaseTask(ABC):
 
         # batch_scheduler: invoked after every updating
         # e.g. torch.optim.lr_scheduler.CyclicLR
-        batch_scheduler = cls.build_batch_scheduler(optimizer=optimizer, args=args)
+        batch_scheduler = cls.build_batch_scheduler(
+            optimizer=optimizer, args=args)
 
         # epoch_scheduler: invoked at every epochs
         # e.g. torch.optim.lr_scheduler.StepLR
-        epoch_scheduler = cls.build_epoch_scheduler(optimizer=optimizer, args=args)
+        epoch_scheduler = cls.build_epoch_scheduler(
+            optimizer=optimizer, args=args)
         reporter = Reporter(args.output_dir / 'report')
 
         output_path = Path(args.output_dir)
