@@ -74,7 +74,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     else
         echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-        text2token.py -s 1 -n 1 -l ${nlsyms} ${train_set}/text \
+        pyscripts/text/text2token.py -s 1 -n 1 -l ${nlsyms} ${train_set}/text \
             | cut -f 2- -d" " | tr " " "\n" | sort -u \
             | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
 
@@ -87,8 +87,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for dset in ${train_set} ${train_dev}; do
 
         if [ -n "${bpemode}" ]; then
-            out=${dset}_bpe_${train_set}_${bpemode}${nbpe}
-            utils/copy_data_dir.sh data/${dset} ${out}
+            out=${dset}_bpe_${train_set##*/}_${bpemode}${nbpe}
+            utils/copy_data_dir.sh ${dset} ${out}
+            [ -e ${dset}/utt2num_samples ] && cp ${dset}/utt2num_samples ${out}
             paste -d " " \
                 <(awk '{print $1}' ${out}/text) \
                 <(cut -f 2- -d" " ${out}/text |
@@ -98,11 +99,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         else
             out=${dset}
             if [ -n "${nlsyms}" ]; then
-                text2token.py -s 1 -n 1 -l ${nlsyms} data/${dset}/text \
-                    --trans_type ${trans_type} > data/${dset}/token
+                pyscripts/text/text2token.py -s 1 -n 1 -l ${nlsyms} ${dset}/text \
+                    --trans_type ${trans_type} > ${dset}/token
             else
-                text2token.py -s 1 -n 1 data/${dset}/text \
-                    --trans_type ${trans_type} > data/${dset}/token
+                pyscripts/text/text2token.py -s 1 -n 1 ${dset}/text \
+                    --trans_type ${trans_type} > ${dset}/token
             fi
         fi
 

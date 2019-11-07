@@ -16,6 +16,9 @@ stage=1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 
+nj=50
+
+audio_format=flac
 
 # bpemode (unigram or bpe)
 nbpe=30
@@ -25,22 +28,36 @@ bpemode=unigram
 . ./path.sh
 . ./cmd.sh
 
+train_set=train_nodev
+dev_set=train_dev
+eval_sets=test
+
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation"
 
-    # TODO(kamo): Change Makefile to install spk2pipe
+    # TODO(kamo): Change Makefile to install sph2pipe
     local/data.sh --sph2pipe ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 fi
 
 
-
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: "
+    log "stage 2: Format wav.scp"
+    for dset in ${train_set} ${dev_set} ${eval_sets}; do
+        utils/copy_data_dir.sh data/${dset} data_format/${dset}
+        scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+            --audio-format ${audio_format} \
+            data/${dset}/wav.scp data_format/${dset}
+    done
+
+fi
+
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Generate tokens from text"
     scripts/asr/prepare_token.sh \
         --nbpe "${nbpe}" --bpemode "${bpemode}" \
-        data/train_nodev data/train_dev
-
+            data_format/${train_set} data_format/${dev_set}
 fi
 
 
@@ -48,13 +65,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: LM Preparation"
     log "Not yet"
 
-    scripts/lm/train.sh
+    # scripts/lm/train.sh
 fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Network Training"
-    scripts/asr/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" data/train_nodev data/train_dev
+    scripts/asr/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" \
+        data_format/${train_set}_bpe_train_nodev_unigram30 \
+        data_format/${train_set}_bpe_train_nodev_unigram30 \
+        exp
 
 fi
 
@@ -79,3 +99,5 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     scripts/asr/show_result.sh ${expdir}
 
 fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"

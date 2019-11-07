@@ -8,9 +8,9 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.optim.lr_scheduler import CyclicLR
-from torch.optim.lr_scheduler import OneCycleLR
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+# from torch.optim.lr_scheduler import CyclicLR
+# from torch.optim.lr_scheduler import OneCycleLR
+# from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from pytypes import typechecked
 
 from espnet.utils.dynamic_import import dynamic_import
@@ -63,9 +63,9 @@ AbsEpochScheduler.register(MultiStepLR)
 AbsEpochScheduler.register(ExponentialLR)
 AbsEpochScheduler.register(CosineAnnealingLR)
 
-AbsBatchScheduler.register(CyclicLR)
-AbsBatchScheduler.register(OneCycleLR)
-AbsBatchScheduler.register(CosineAnnealingWarmRestarts)
+# AbsBatchScheduler.register(CyclicLR)
+# AbsBatchScheduler.register(OneCycleLR)
+# AbsBatchScheduler.register(CosineAnnealingWarmRestarts)
 
 
 @typechecked
@@ -97,7 +97,7 @@ def build_epoch_scheduler(optimizer: torch.optim.Optimizer,
         return LambdaLR(optimizer, **kwargs)
     elif scheduler.lower() == 'steplr':
         return StepLR(optimizer, **kwargs)
-    elif scheduler.lower() == 'multiSteplr':
+    elif scheduler.lower() == 'multisteplr':
         return MultiStepLR(optimizer, **kwargs)
     elif scheduler.lower() == 'exponentiallr':
         return ExponentialLR(optimizer, **kwargs)

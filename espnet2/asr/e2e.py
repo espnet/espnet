@@ -8,7 +8,8 @@ from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
+    import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 
@@ -35,6 +36,7 @@ class E2E(torch.nn.Module):
         super().__init__()
         assert 0. < ctc_weight < 1., ctc_weight
         self.odim = odim
+        self.ingore_id = ignore_id
 
         self.encoder = encoder
         self.decoder = decoder
@@ -63,6 +65,10 @@ class E2E(torch.nn.Module):
             output: (Batch, Length)
             output_mask: (Batch,)
         """
+        # 0. Change pad_value
+        input.masked_fill_(input_mask, 0,)
+        output.masked_fill_(output_mask, self.ignore_id)
+
         # 1. Forward encoder
         encoder_out, encoder_out_mask = self.encoder(input, input_mask)
 
@@ -70,23 +76,28 @@ class E2E(torch.nn.Module):
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
-            loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(output, encoder_out, encoder_out_mask)
+            loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(
+                output, encoder_out, encoder_out_mask)
 
         # 2b. CTC branch
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:
-            loss_ctc, cer_ctc = self.calc_ctc_loss(output, encoder_out, encoder_out_mask)
+            loss_ctc, cer_ctc = self.calc_ctc_loss(
+                output, encoder_out, encoder_out_mask)
 
         if self.ctc_weight == 0.:
             loss = loss_att
         elif self.ctc_weight == 1.:
             loss = loss_ctc
         else:
-            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
+            loss = \
+                self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        stats = dict(loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-                     loss_att=loss_att.detach() if loss_att is not None else None,
+        stats = dict(loss_ctc=
+                     loss_ctc.detach() if loss_ctc is not None else None,
+                     loss_att=
+                     loss_att.detach() if loss_att is not None else None,
                      acc=acc_att,
                      cer=cer_att,
                      wer=wer_att,
@@ -98,7 +109,8 @@ class E2E(torch.nn.Module):
                           ys_pad: torch.Tensor,
                           encoder_out: torch.Tensor,
                           encoder_out_mask: torch.Tensor):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            ys_pad, self.sos, self.eos, self.ignore_id)
         ys_mask = target_mask(ys_in_pad, self.ignore_id)
         # Forward decoder
         decoder_out, decoder_out_mask = self.decoder(
@@ -114,7 +126,8 @@ class E2E(torch.nn.Module):
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            cer_att, wer_att = self.error_calculator(
+                ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
 
@@ -132,6 +145,8 @@ class E2E(torch.nn.Module):
         # Calc CER using CTC
         cer_ctc = None
         if self.error_calculator is not None:
-            ys_hat = self.ctc.argmax(encoder_out_mask.view(batch_size, -1, self.adim)).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            ys_hat = self.ctc.argmax(
+                encoder_out_mask.view(batch_size, -1, self.adim)).data
+            cer_ctc = self.error_calculator(
+                ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc

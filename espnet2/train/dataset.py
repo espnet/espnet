@@ -57,15 +57,39 @@ class BatchSampler(Sampler):
 
 @typechecked
 def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
+    """
+
+    Concat ndarray-list and convert to torch.Tensor.
+
+    Examples:
+        Simple data flow from data-creation to DNN-forward
+
+        >>> sampler = BatchSampler(...)
+        >>> dataset = Dataset(...)
+
+        >>> keys = next(iter(sampler)
+        >>> batch = [dataset[key] for key in keys]
+        >>> batch = collate_fn(batch)
+        >>> model(**batch)
+
+        Note that the dict-keys of batch is propagated from
+        that of the dataset,
+        and they can be changed
+
+    """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
 
     output = {}
     for key in data[0]:
+        # Note(kamo):
+        # Eaach models, which accepts these values finally, are responsible
+        # to repaint the pad_value to the desired value for each tasks.
         if data[0][key].dtype.kind == 'f':
-            pad_value = 0.
+            pad_value = -np.inf
+        elif data[0][key].dtype == np.bool:
+            pad_value = 0
         else:
-            # -1 is reserved for ignore-id
-            pad_value = -1
+            pad_value = -32768
 
         # tensor: (Batch, Length, ...)
         tensor = pad_list([d[key] for d in data], pad_value)
@@ -80,8 +104,8 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
 
 class Dataset:
-    def __init__(self,
-                 config: dict):
+    @typechecked
+    def __init__(self, config: dict):
         """
 
         config: e.g.
@@ -91,8 +115,8 @@ class Dataset:
                   path: /some/where/wav.scp
                   type: sound
             output:
-              path: /some/where/utt2tokenid
-              type: text_int
+                  path: /some/where/utt2tokenid
+                  type: text_int
         preprocess:
             input:
                 - type: fbank
