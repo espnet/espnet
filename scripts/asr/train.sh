@@ -10,7 +10,12 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
 }
 help_message=$(cat << EOF
-$0 <train_set_dir> <dev_set_dir>
+$0 <train_set_dir> <dev_set_dir> <expdir>
+
+Options:
+    --task (str): Specify the task type.
+    --preprocess-config (str): The configuration file for preprocessing for mini-batch. default=conf/preprocess.yaml
+    --train-config (str):
 EOF
 )
 SECONDS=0
@@ -18,6 +23,7 @@ SECONDS=0
 
 cmd=utils/run.pl
 ngpu=
+preprocess_config=conf/preprocess.yaml
 
 task=transformer
 
@@ -32,43 +38,55 @@ log "$0 $*"
 
 . ./utils/parse_options.sh || exit 1;
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 3 ]; then
     log "Invalid arguments"
     log "${help_message}"
 fi
 
 . ./path.sh
 
-
 traindir=$1
 devdir=$2
+expdir=$3
 
 
-
-
-for dset in ${traindir} ${devdir}; do
-    if [ -f ${dset}/feat_shape ]; then
-        steps/feat2shape.sh --nj "${nj}" --preprocess-config "${preprocess_config}" ${dset}/wav.scp ${dset}/feat_shape
-    fi
+for d in ${traindir} ${devdir}; do
+    for f in wav.scp utt2num_samples token_int token_shape; do
+        if [ ! -f ${d}/${f} ]; then
+            log "Error: ${d}/${f} is not existing."
+            exit 1
+        fi
+    done
 done
 
+
 if [ -n "${train_config}" ]; then
+    log "Using ${train_config} for training configuration"
+    cp ${train_config} ${expdir}/train.yaml
+    train_config=${expdir}/train.yaml
+else
 
     if [ "${task}" = transformer ]; then
         base_config=conf/train_transformer.yaml
 
     elif [ "${task}" = rnn ]; then
-        log "Error: not yet"
-        exit 1
+        base_config=conf/train_rnn.yaml
+
+    elif [ "${task}" = rnnt ]; then
+        base_config=conf/train_rnnt.yaml
 
     else
         log "Error: Not supported task: --task ${task}"
         exit 1
     fi
-    train_config=$(change_yaml.py ${base_config} ${train_args} -o ${expdir})
-    [ -f "${train_config}" ] && { log "Error: ${train_config} is not found, so maybe change_yaml.py was failed."; exit 1; }
 
-    cat << EOF >> ${train_config}
+    train_config=${expdir}/train.yaml
+    ./pyscripts/text/change_yaml.py ${base_config} ${train_args} -o ${train_config}
+
+fi
+
+
+cat << EOF >> ${train_config}
 # For Dataset class
 train_data_config:
     data:
@@ -78,9 +96,7 @@ train_data_config:
         output:
             path: ${traindir}/token_int
             type: text_int
-    preprocess:
-        input:
-$(<${preprocess_config} awk '{ print "          " $1 }')
+    preprocess: {}
 eval_data_config:
     data:
         input:
@@ -89,30 +105,46 @@ eval_data_config:
         output:
             path: ${devdir}/token_int
             type: text_int
-    preprocess:
-        input:
-$(<${preprocess_config} awk '{ print "          " $1 }')
+    preprocess: {}
 
 # For BatchSampler class
 train_batch_config:
     type: "${batch_type}"
     batch_size: ${batch_size}
     shapes:
-        - ${traindir}/feat_shape
+        - ${traindir}/utt2num_samples
         - ${traindir}/token_shape
 eval_batch_config:
     type: "${batch_type}"
     batch_size: ${batch_size}
     shapes:
-        - ${devdir}/feat_shape
+        - ${devdir}/utt2num_samples
         - ${devdir}/token_shape
+EOF
+
+
+if [ ! -z "${preprocess_config}" ]; then
+    python3 << EOF
+import yaml
+with open('${train_config}', 'r') as f:
+    config = yaml.load(f, Loader=yaml.Loader)
+with open('${preprocess_config}', 'r') as f:
+    preprocess_config = yaml.load(f, Loader=yaml.Loader)
+
+# Embed preprocess_config and overwrite the config
+config['train_data_config']['preprocess']['input'] = preprocess_config
+config['eval_data_config']['preprocess']['input'] = preprocess_config
+with open('${train_config}', 'w') as fout:
+    yaml.dump(config, fout, Dumper=yaml.Dumper)
 EOF
 fi
 
+
+log "Training started... log: ${expdir}/train.log"
 ${cmd} --gpu "${ngpu}" ${expdir}/train.log \
-    python -m espnet2.bin.train "ark-${task}" \
+    python -m espnet2.bin.train "asr_${task}" \
         --ngpu "${ngpu}" \
         --config "${train_config}" \
-        --outdir ${expdir}/results
+        --output_dir ${expdir}/results \
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -43,6 +43,7 @@ class BaseTask(ABC):
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
 
+        parser.add('--config', is_config_file=True, help='config file path')
         parser.add_argument('--log_level', type=str, default='INFO',
                             choices=['INFO', 'ERROR', 'WARNING', 'INFO',
                                      'DEBUG', 'NOTSET'])
@@ -371,6 +372,7 @@ class BaseTask(ABC):
         model.train()
 
         for iiter, batch in enumerate(iterator, 1):
+            assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
                 loss, stats = model(**batch)
@@ -414,6 +416,7 @@ class BaseTask(ABC):
              ngpu: int = 1) -> None:
         model.eval()
         for batch in iterator:
+            assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
                 _, stats = model(**batch)

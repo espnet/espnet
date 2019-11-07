@@ -79,5 +79,3 @@ class Reporter:
     def load_state_dict(self, state_dict: dict):
         self.stats = state_dict['stats']
         self.epoch = state_dict['epoch']
-
-

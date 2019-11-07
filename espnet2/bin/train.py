@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
+import sys
+
 import configargparse
 
+from espnet.utils.cli_utils import get_commandline_args
 from espnet2.asr.rnn.task import ASRRNNTask
 from espnet2.asr.transformer.task import ASRTransformerTask
 
 
-def not_implemented():
+def not_implemented(args):
     raise NotImplementedError('Not yet')
 
 
 if __name__ == '__main__':
+    print(get_commandline_args(), file=sys.stderr)
+
     parser = configargparse.ArgumentParser(description='Train dnn')
     parser.set_defaults(main=None)
     subparsers = parser.add_subparsers(dest='task')
@@ -18,7 +23,8 @@ if __name__ == '__main__':
     ASRRNNTask.add_arguments(subparser)
     subparser.set_defaults(main=ASRRNNTask.main)
 
-    subparser = subparsers.add_parser('asr_transformer', help='ASR Transformer model')
+    subparser = subparsers.add_parser(
+        'asr_transformer', help='ASR Transformer model')
     ASRTransformerTask.add_arguments(subparser)
     subparser.set_defaults(main=ASRTransformerTask.main)
 
@@ -33,6 +39,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.main is not None:
-        args.main()
+        args.main(args)
     else:
         parser.print_help()

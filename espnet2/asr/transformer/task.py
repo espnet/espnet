@@ -14,10 +14,12 @@ from espnet2.train.base_task import BaseTask
 class ASRTransformerTask(BaseTask):
     @classmethod
     @typechecked
-    def add_arguments(cls, parser: argparse.ArgumentParser = None) -> argparse.ArgumentParser:
+    def add_arguments(cls, parser: argparse.ArgumentParser = None) \
+            -> argparse.ArgumentParser:
         # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
         if parser is None:
             parser = configargparse.ArgumentParser(description='')
+
         BaseTask.add_arguments(parser)
         return parser
 
