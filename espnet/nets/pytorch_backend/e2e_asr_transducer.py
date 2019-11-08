@@ -100,20 +100,22 @@ class E2E(ASRInterface, torch.nn.Module):
         # prediction
         group.add_argument('--dec-embed-dim', default=320, type=int,
                            help='Number of decoder embeddings dimensions')
-        parser.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
-                            help='Dropout rate for the decoder embeddings')
+        group.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
+                           help='Dropout rate for the decoder embeddings')
         # general
         group.add_argument('--rnnt_type', default='warp-transducer', type=str,
                            choices=['warp-transducer'],
                            help='Type of transducer implementation to calculate loss.')
-        parser.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
-                            help='RNN-Transducing mode')
-        parser.add_argument('--joint-dim', default=320, type=int,
-                            help='Number of dimensions in joint space')
+        group.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
+                           help='RNN-Transducing mode')
+        group.add_argument('--joint-dim', default=320, type=int,
+                           help='Number of dimensions in joint space')
         # decoding
-        parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
-                            default=True,
-                            help='Normalize transducer scores by length')
+        group.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
+                           default=True,
+                           help='Normalize transducer scores by length')
+
+        return parser
 
     def __init__(self, idim, odim, args):
         """Initialize transducer modules.
@@ -134,6 +136,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.space = args.sym_space
         self.blank = args.sym_blank
         self.reporter = Reporter()
+        self.beam_size = args.beam_size
 
         # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
@@ -282,7 +285,11 @@ class E2E(ASRInterface, torch.nn.Module):
             batch_nbest = []
 
             for b in six.moves.range(batchsize):
-                nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+                if self.beam_size == 1:
+                    nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
+                else:
+                    nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+
                 batch_nbest.append(nbest_hyps)
 
             y_hats = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]

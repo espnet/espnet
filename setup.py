@@ -43,6 +43,7 @@ requirements = {
         'pysptk>=0.1.17',
         'nnmnkwii',
         'jaconv',
+        'g2p_en',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
@@ -78,7 +79,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.5.3',
+      version='0.5.4',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

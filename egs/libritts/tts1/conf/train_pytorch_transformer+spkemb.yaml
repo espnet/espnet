@@ -1,7 +1,5 @@
-# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB, and it takes 2~3 days.
-# If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
-# This model uses speaker emebdding with add integration, leading fast attention learning compared
-# to concat integration wihtout guided attention loss.
+# This is the basic transformer training setting with speaker embedding.
+# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes 2~3 days.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer

@@ -305,7 +305,7 @@ def train(args):
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
 
@@ -407,19 +407,22 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
-
     # set intervals
+    eval_interval = (args.eval_interval_epochs, 'epoch')
     save_interval = (args.save_interval_epochs, 'epoch')
     report_interval = (args.report_interval_iters, 'iteration')
+
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(CustomEvaluator(
+        model, valid_iter, reporter, converter, device), trigger=eval_interval)
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
+                   trigger=training.triggers.MinValueTrigger(
+                       'validation/main/loss', trigger=eval_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
@@ -436,7 +439,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=save_interval)
+        trainer.extend(att_reporter, trigger=eval_interval)
     else:
         att_reporter = None
 
@@ -448,9 +451,11 @@ def train(args):
     plot_keys = []
     for key in base_plot_keys:
         plot_key = ['main/' + key, 'validation/main/' + key]
-        trainer.extend(extensions.PlotReport(plot_key, 'epoch', file_name=key + '.png'))
+        trainer.extend(extensions.PlotReport(
+            plot_key, 'epoch', file_name=key + '.png'), trigger=eval_interval)
         plot_keys += plot_key
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
+    trainer.extend(extensions.PlotReport(
+        plot_keys, 'epoch', file_name='all_loss.png'), trigger=eval_interval)
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=report_interval))
