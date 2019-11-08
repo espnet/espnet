@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from typing import Tuple
 
 import torch
@@ -11,8 +12,6 @@ from espnet.nets.pytorch_backend.frontends.beamformer \
     import get_power_spectral_density_matrix
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 from torch_complex.tensor import ComplexTensor
-
-from distutils.version import LooseVersion
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
