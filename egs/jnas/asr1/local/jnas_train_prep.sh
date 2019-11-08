@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# Copyright 2017 Nagoya University (Someki Masao)
+# Copyright 2019 Nagoya University (Someki Masao) and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Prepare JNAS dataset
 
-. ./path.sh
+. ./path.sh || exit 1;
 
-if [ $# != 2 ]; then
-    echo "Usage: $0 <data-directory> <speaker_text>";
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Usage: $0 <data-directory> <speaker_text> [<trans_type>]";
     exit 1;
 fi
 
 DATA=$1  # database root directory
 speaker_list=$2
+trans_type=${3:-kanji}
 
 echo "=== Starting initial JNAS training_data preparation ..."
 
@@ -23,7 +24,6 @@ type=KANJI  # transcription type
 ifNP=NP
 locdata=${PWD}/data
 loctmp=$locdata/train/tmp
-
 rm -rf $loctmp >/dev/null 2>&1
 mkdir -p ${locdata}/train/tmp
 
@@ -50,7 +50,7 @@ for spkname in $(cat ${speaker_list}); do
         echo "No 'wav' dir in $spkwav_dir - skipping ..."
         continue
     fi
-    
+
     train_wavs=()
     train_utt2spk_entries=()
     for w in ${spkwav_dir}/*${wavtype}; do
@@ -87,7 +87,7 @@ for spkname in $(cat ${speaker_list}); do
         nkf --overwrite -Lu  ${loctmp}/char_tmp/$id.utf8
     fi
 
-    PYTHONIOENCODING=utf-8 local/make_train_trans.py \
+    local/make_train_trans.py \
         ${loctmp}/char_tmp/$id.utf8 \
         ${spkname}_${ifNP} \
         "${train_wavs[@]}" \
@@ -126,4 +126,10 @@ fi
 utils/fix_data_dir.sh ${locdata}/train
 rm -rf ${loctmp}
 
+# convert text type (only for tts)
+if [ ${trans_type} != "kanji" ]; then
+    mv ${locdata}/train/text ${locdata}/train/rawtext
+    local/clean_text.py ${locdata}/train/rawtext ${locdata}/train/text ${trans_type}
+    rm ${locdata}/train/rawtext
+fi
 echo "*** Initial JNAS training_data preparation finished!"
