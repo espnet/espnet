@@ -14,8 +14,6 @@ def build_optimizer(model: torch.nn.Module, optim: str, kwarg: dict) \
         return torch.optim.Adam(model.parameters(), **kwarg)
     elif optim.lower() == 'sgd':
         return torch.optim.SGD(model.parameters(), **kwarg)
-    elif optim.lower() == 'adagrad':
-        return torch.optim.Adagrad(model.parameters(), **kwarg)
     elif optim.lower() == 'adadelta':
         return torch.optim.Adadelta(model.parameters(), **kwarg)
     else:

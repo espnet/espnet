@@ -18,15 +18,16 @@ if __name__ == '__main__':
     """
     Usage:
         python train.py <sub-command-name> [-h ] ...
-        python train.py <sub-command-name> --gen_yaml <path>
+        python train.py <sub-command-name> --write_config <path>
     
     Example:
-        % python train.py asr_rnn --gen_yaml conf/train_asr.yaml
-        % # Modify conf/train_asr.yaml
+        % python train.py asr_rnn --write_config conf/train_asr.yaml
         % python train.py asr_rnn --config conf/train_asr.yaml
     """
 
-    parser = configargparse.ArgumentParser(description='Train dnn')
+    parser = configargparse.ArgumentParser(
+        description='Train dnn',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
     parser.set_defaults(main=None)
     subparsers = parser.add_subparsers(dest='task')
 

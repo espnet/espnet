@@ -1,4 +1,4 @@
-from typing import Dict, Mapping, List
+from typing import Dict, Mapping, List, Tuple, Union
 
 import kaldiio
 import numpy as np
@@ -13,7 +13,11 @@ from espnet2.utils.fileio import SoundScpReader, scp2dict
 
 class BatchSampler(Sampler):
     @typechecked
-    def __init__(self, config: dict, shuffle: bool = False):
+    def __init__(self,
+                 batch_size: int,
+                 type: str,
+                 paths: Union[Tuple[str, ...], List[str]],
+                 shuffle: bool = False):
         """
 
         config: e.g.
@@ -23,13 +27,13 @@ class BatchSampler(Sampler):
             - utt2shape
         batch_size: 10
         """
+        if len(paths) == 0:
+            raise ValueError('1 or more paths must be given')
         self.shuffle = shuffle
-        batch_size = config['batch_size']
         self.batch_size = batch_size
 
-        if config['type'] == 'const':
-            path = config['path']
-            utt2length = scp2dict(path)
+        if type == 'const':
+            utt2length = scp2dict(paths[0])
             utt2length = {k: int(v) for k, v in utt2length}
             # Sorted in descending order
             keys = sorted(utt2length, key=lambda k: -utt2length[k])
@@ -39,9 +43,9 @@ class BatchSampler(Sampler):
                  for i in range(0, len(keys) // 2 + 1, batch_size)]
 
         # conventional behaviour of batchify()
-        elif config['type'] == 'seq':
+        elif type == 'seq':
             raise NotImplementedError
-        elif config['type'] == 'batchbin':
+        elif type == 'batchbin':
             raise NotImplementedError
 
         if self.shuffle:
@@ -142,17 +146,33 @@ class Dataset:
     def __len__(self):
         raise RuntimeError(
             'Not necessary to be used because '
-            'we are using custom batchーsampler')
+            'we are using custom batch-sampler')
 
     @staticmethod
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
         if loader_type == 'sound':
+            # path looks like:
+            #   utta /some/where/a.wav
+            #   uttb /some/where/a.flac
+            #
+            # Note that SoundScpReader doesn't support pipe-fashion
+            # like kaldi e.g. "cat a.wav |".
             return SoundScpReader(path)
         elif loader_type == 'ark-scp':
+            # path looks like:
+            #   utta /some/where/a.ark:123
+            #   uttb /some/where/a.ark:456
             return kaldiio.load_scp(path)
         elif loader_type == 'text_int':
+            # path looks like:
+            #   utta 1 0
+            #   uttb 3 4 5
+            # -> return {'utta': np.ndarray([1, 0]),
+            #            'uttb': np.ndarray([3, 4, 5])}
+
+            d = scp2dict(path)
             return {k: np.loadtxt(v, ndmin=1, dtype=np.long)
-                    for k, v in scp2dict(path)}
+                    for k, v in d}
 
         else:
             raise NotImplementedError(

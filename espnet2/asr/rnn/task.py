@@ -4,7 +4,6 @@ import configargparse
 from pytypes import typechecked
 
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.asr.e2e import E2E
 from espnet2.train.base_task import BaseTask
 
@@ -14,9 +13,11 @@ class ASRRNNTask(BaseTask):
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
+        # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
         if parser is None:
-            parser = configargparse.ArgumentParser(description='')
+            parser = configargparse.ArgumentParser(
+                description='',
+                config_file_parser_class=configargparse.YAMLConfigFileParser)
         BaseTask.add_arguments(parser)
         return parser
 
@@ -26,8 +27,7 @@ class ASRRNNTask(BaseTask):
         # TODO(kamo): Create Encoder and Decoder class to fit the interface.
         raise NotImplementedError
 
-        encoder = Encoder(idim=idim,
-                          **args.encoder_kwargs)
+        encoder = Encoder(idim=idim, **args.encoder_kwargs)
         decoder = Decoder(odim=odim, **args.decoder_kwargs)
         ctc = CTC(odim, **args.ctc_kwargs, reduce=True)
         model = E2E(
@@ -37,7 +37,6 @@ class ASRRNNTask(BaseTask):
             ctc=ctc,
             **args.e2e_kwargs,
         )
-        initialize(model, args.init)
 
         return model
 

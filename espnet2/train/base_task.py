@@ -18,6 +18,7 @@ from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 
 from espnet.asr.asr_utils import add_gradient_noise
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.train.build_optimizer import build_optimizer
 from espnet2.train.build_scheduler import (
     build_batch_scheduler, AbsEpochScheduler, AbsBatchScheduler,
@@ -36,16 +37,15 @@ class BaseTask(ABC):
     @typechecked
     @classmethod
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
-            -> argparse.ArgumentParser:
+            -> configargparse.ArgumentParser:
         if parser is None:
-            parser = configargparse.ArgumentParser(description='base parser')
+            parser = configargparse.ArgumentParser(
+                description='base parser',
+                config_file_parser_class=configargparse.YAMLConfigFileParser)
 
-        def dummy(arg):
-            raise TypeError
+        # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
 
-        # Note(kamo): Use '_' instead of '-' to avoid confusion for separator
-
-        group = parser.add_argument_group('The common configuration')
+        group = parser.add_argument_group('Common configuration')
 
         group.add_argument('--config', is_config_file=True,
                            help='config file path')
@@ -53,11 +53,11 @@ class BaseTask(ABC):
                            choices=['INFO', 'ERROR', 'WARNING', 'INFO',
                                     'DEBUG', 'NOTSET'])
 
-        group.add_argument('--gen_yaml', type=str,
+        group.add_argument('--output_dir', type=str, default='output')
+        group.add_argument('--write_config', type=str,
                            help='Generate a default yaml file to '
                                 'the specified path for this task')
-        group.add_argument('--output_dir', type=str, default='output')
-        group.add_argument('--ngpu', type=int)
+        group.add_argument('--ngpu', type=int, default=0)
         group.add_argument('--seed', type=int, default=0)
 
         group.add_argument('--resume_epoch', type=int)
@@ -65,6 +65,11 @@ class BaseTask(ABC):
         group.add_argument('--preatrain_path', type=int)
         group.add_argument('--pretrain_key', type=str)
 
+        group.add_argument('--init', type=str, default='pytorch',
+                           choices=['xavier_uniform',
+                                    'xavier_normal',
+                                    'kaiming_uniform',
+                                    'kaiming_normal'])
         group.add_argument('--train_dtype', type=str, default='float32')
         group.add_argument('--patience', type=int, default=None)
         group.add_argument('--batchsize', type=int, default=20)
@@ -72,25 +77,36 @@ class BaseTask(ABC):
         group.add_argument('--accum_grad', type=int, default=1)
         group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
 
-        group.add_argument('--train_dataset_config', type=dummy,
+        group.add_argument('--batch_size', type=int, default=10)
+        group.add_argument('--eval_batch_size', type=int, default=None,
+                           help='If not given, '
+                                'the value of --batch_size is used')
+
+        group.add_argument('--train_data_conf', type=yaml.load, default=dict())
+        group.add_argument('--eval_data_conf', type=yaml.load, default=dict())
+        group.add_argument('--train_preprocess', type=yaml.load,
                            default=dict())
-        group.add_argument('--train_batch_config', type=dummy,
-                           default=dict())
-        group.add_argument('--eval_dataset_config', type=dummy,
-                           default=dict())
-        group.add_argument('--eval_batch_config', type=dummy,
+        group.add_argument('--eval_preprocess', type=yaml.load,
                            default=dict())
 
-        group.add_argument('--optimizer', type=str, default='adam')
-        group.add_argument('--optimizer_arg', type=dummy,
+        group.add_argument('--train_batch_files', type=str,
+                           nargs='+', default=[])
+        group.add_argument('--eval_batch_files', type=str,
+                           nargs='+', default=[])
+
+        group.add_argument('--batch_type', type=str, default='const',
+                           choices=['const', 'seq', 'batch_bin'])
+        group.add_argument('--eval_batch_type', type=str, default=None,
+                           help='If not given, '
+                                'the value of --batch_type is used')
+
+        group.add_argument('--optim', type=str, default='adam')
+        group.add_argument('--optim_conf', type=yaml.load,
                            default=dict(lr=1e-3))
         group.add_argument('--escheduler', type=str)
-        group.add_argument('--escheduler_arg', type=dummy,
-                           default=dict())
+        group.add_argument('--escheduler_conf', type=yaml.load, default=dict())
         group.add_argument('--bscheduler', type=str)
-        group.add_argument('--bscheduler_arg', type=dummy,
-                           default=dict())
-
+        group.add_argument('--bscheduler_conf', type=yaml.load, default=dict())
         return parser
 
     @typechecked
@@ -98,7 +114,7 @@ class BaseTask(ABC):
     def build_optimizer(cls, model: torch.nn.Module,
                         args: argparse.Namespace) -> torch.optim.Optimizer:
         return build_optimizer(model=model, optim=args.optim,
-                               kwarg=args.optim_arg)
+                               kwarg=args.optim_conf)
 
     @typechecked
     @classmethod
@@ -106,7 +122,7 @@ class BaseTask(ABC):
             -> Optional[AbsEpochScheduler]:
         return build_epoch_scheduler(
             optimizer=optimizer, scheduler=args.escheduler,
-            kwargs=args.escheduler_arg)
+            kwargs=args.escheduler_conf)
 
     @typechecked
     @classmethod
@@ -114,7 +130,7 @@ class BaseTask(ABC):
             -> Optional[AbsBatchScheduler]:
         return build_batch_scheduler(
             optimizer=optimizer, scheduler=args.bscheduler,
-            kwargs=args.bscheduler_arg)
+            kwargs=args.bscheduler_conf)
 
     @typechecked
     @classmethod
@@ -124,9 +140,39 @@ class BaseTask(ABC):
 
     @typechecked
     @classmethod
-    @abstractmethod
     def get_default_config(cls) -> dict:
-        raise NotImplementedError
+
+        config = dict(
+            seed=0,
+            resume_epoch=None,
+            resume_path=None,
+            preatrain_path=None,
+            pretrain_key=None,
+            init='pytorch',
+            train_dtype='float32',
+            patience=None,
+            grad_noise=False,
+            accum_grad=1,
+            grad_clip_threshold=1e-4,
+            train_dataset_conf=dict(
+                data=dict(),
+                preprocess=dict()),
+            train_batch_conf=dict(
+                data=dict(),
+                preprocess=dict()),
+            eval_dataset_conf=dict(
+                data=dict(),
+                preprocess=dict()),
+            eval_batch_conf=dict(
+                data=dict(),
+                preprocess=dict()),
+            optim='adam',
+            optim_conf=dict(lr=1e-3),
+            escheduler=None,
+            escheduler_conf=dict(),
+            bscheduler=None,
+            bscheduler_conf=dict())
+        return config
 
     @typechecked
     @classmethod
@@ -140,34 +186,47 @@ class BaseTask(ABC):
             format=
             '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
-        if args.gen_yaml is not None:
+        # Generates e.g. python train.py asr_rnn --write_config output.yaml
+        if args.write_config is not None:
             config = cls.get_default_config()
-            p = Path(args.gen_yaml)
+            p = Path(args.write_config)
             p.parent.mkdir(parents=True, exist_ok=True)
             with p.open('w') as f:
-                yaml.dump(config, f, Dumper=yaml.Dumper)
-            logging.info('Yaml file was generated: {p}')
+                yaml.dump(config, f, Dumper=yaml.Dumper, indent=4)
+            logging.info(f'Yaml file was generated: {p}')
             sys.exit(0)
 
+        # Set random-seed
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
 
-        train_dataset = Dataset(args.train_dataset_config)
-        train_batch_sampler = BatchSampler(config=args.train_batch_config,
-                                           shuffle=True)
+        # Creates train-data-iterator
+        train_dataset = Dataset(args.train_data_conf, args.train_preprocess)
+        train_batch_sampler = BatchSampler(
+            type=args.batch_type, key_files=args.train_batch_key_files,
+            batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
                                 collate_fn=collate_fn)
 
-        eval_dataset = Dataset(args.eval_dataset_config)
-        eval_batch_sampler = BatchSampler(config=args.eval_batch_config,
-                                          shuffle=False)
+        # Creates eval-data-iterator
+        eval_dataset = Dataset(args.eval_data_conf, args.eval_preprocess)
+
+        if args.eval_batch_type is None:
+            args.eval_batch_type = args.batch_type
+        if args.eval_batch_size is None:
+            args.eval_batch_size = args.batch_size
+        eval_batch_sampler = BatchSampler(
+            type=args.eval_batch_type, key_files=args.eval_batch_key_files,
+            batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
                                collate_fn=collate_fn)
 
         model = cls.build_model()
+        initialize(model, args.init)
+
         optimizer = cls.build_optimizer(model=model, args=args)
 
         # batch_scheduler: invoked after every updating
