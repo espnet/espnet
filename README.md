@@ -385,18 +385,18 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Aishell test           |  6.7 |  N/A | same as above |
 | Common Voice dev       |  1.7 |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
 | Common Voice test      |  1.8 |  2.3 | same as above |
-| CSJ eval1              |  5.7 |  N/A | N/A |
-| CSJ eval2              |  4.1 |  N/A | N/A |
-| CSJ eval3              |  4.5 |  N/A | N/A |
+| CSJ eval1              |  5.7 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning) |
+| CSJ eval2              |  3.8 |  N/A | same as above |
+| CSJ eval3              |  4.2 |  N/A | same as above |
 | HKUST dev              | 23.5 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
 | Librispeech dev_clean  |  N/A |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm) |
 | Librispeech dev_other  |  N/A |  5.6 | same as above |
 | Librispeech test_clean |  N/A |  2.6 | same as above |
 | Librispeech test_other |  N/A |  5.7 | same as above |
-| TEDLIUM2 dev           |  N/A | 9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
-| TEDLIUM2 test          |  N/A | 8.1 | same as above |
-| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
-| TEDLIUM3 test          |  N/A | 8.0| same as above |
+| TEDLIUM2 dev           |  N/A |  9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
+| TEDLIUM2 test          |  N/A |  8.1 | same as above |
+| TEDLIUM3 dev           |  N/A |  9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
+| TEDLIUM3 test          |  N/A |  8.0 | same as above |
 | WSJ dev93              |  3.2 |  7.0 | N/A |
 | WSJ eval92             |  2.1 |  4.7 | N/A |
 
