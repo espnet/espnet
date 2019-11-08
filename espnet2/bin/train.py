@@ -21,7 +21,7 @@ if __name__ == '__main__':
         python train.py <sub-command-name> --write_config <path>
     
     Example:
-        % python train.py asr_rnn --write_config conf/train_asr.yaml
+        % python train.py asr_rnn --show_config > conf/train_asr.yaml
         % python train.py asr_rnn --config conf/train_asr.yaml
     """
 
@@ -31,23 +31,31 @@ if __name__ == '__main__':
     parser.set_defaults(main=None)
     subparsers = parser.add_subparsers(dest='task')
 
-    subparser = subparsers.add_parser('asr_rnn', help='ASR RNN model')
+    subparser = subparsers.add_parser(
+        'asr_rnn', help='ASR RNN model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
     ASRRNNTask.add_arguments(subparser)
     subparser.set_defaults(main=ASRRNNTask.main)
 
     subparser = subparsers.add_parser(
-        'asr_transformer', help='ASR Transformer model')
+        'asr_transformer', help='ASR Transformer model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
     ASRTransformerTask.add_arguments(subparser)
     subparser.set_defaults(main=ASRTransformerTask.main)
 
-    subparser = subparsers.add_parser('asr_rnnt', help='ASR RNNT model')
-    subparser.set_defaults(main=not_implemented)
-
-    subparser = subparsers.add_parser('lm_rnn', help='LM RNN model')
+    subparser = subparsers.add_parser(
+        'asr_rnnt', help='ASR RNNT model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
     subparser.set_defaults(main=not_implemented)
 
     subparser = subparsers.add_parser(
-        'tts_tacotron', help='TTS Tacotron model')
+        'lm_rnn', help='LM RNN model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
+    subparser.set_defaults(main=not_implemented)
+
+    subparser = subparsers.add_parser(
+        'tts_tacotron', help='TTS Tacotron model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser)
     subparser.set_defaults(main=not_implemented)
 
     args = parser.parse_args()

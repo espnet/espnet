@@ -27,6 +27,18 @@ from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.train.reporter import Reporter
 
 
+def int_or_none(value: str) -> Optional[int]:
+    if value in (None, 'none', 'None', 'NONE', 'null', 'Null', 'NULL'):
+        return None
+    return int(value)
+
+
+def str_or_none(value: str) -> Optional[int]:
+    if value is None:
+        return None
+    return value
+
+
 class BaseTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
@@ -44,41 +56,45 @@ class BaseTask(ABC):
                 config_file_parser_class=configargparse.YAMLConfigFileParser)
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
-
         group = parser.add_argument_group('Common configuration')
 
         group.add_argument('--config', is_config_file=True,
                            help='config file path')
         group.add_argument('--log_level', type=str, default='INFO',
                            choices=['INFO', 'ERROR', 'WARNING', 'INFO',
-                                    'DEBUG', 'NOTSET'])
+                                    'DEBUG', 'NOTSET'],
+                           help='The verbose level of logging')
 
         group.add_argument('--output_dir', type=str, default='output')
-        group.add_argument('--write_config', type=str,
-                           help='Generate a default yaml file to '
-                                'the specified path for this task')
-        group.add_argument('--ngpu', type=int, default=0)
-        group.add_argument('--seed', type=int, default=0)
+        group.add_argument('--show_config', action='store_true',
+                           help='Print the config file and exit')
+        group.add_argument('--ngpu', type=int, default=0,
+                           help='The number of gpus. 0 indicates CPU mode')
+        group.add_argument('--seed', type=int, default=0,
+                           help='Random seed')
 
-        group.add_argument('--resume_epoch', type=int)
-        group.add_argument('--resume_path', type=str)
-        group.add_argument('--preatrain_path', type=int)
-        group.add_argument('--pretrain_key', type=str)
+        group.add_argument('--resume_epoch', type=int_or_none, default=None)
+        group.add_argument('--resume_path', type=str_or_none, default=None)
+        group.add_argument('--preatrain_path', type=str_or_none, default=None)
+        group.add_argument('--pretrain_key', type=str_or_none, default=None)
 
         group.add_argument('--init', type=str, default='pytorch',
-                           choices=['xavier_uniform',
+                           choices=['pytorch',
+                                    'xavier_uniform',
                                     'xavier_normal',
                                     'kaiming_uniform',
-                                    'kaiming_normal'])
+                                    'kaiming_normal'],
+                           help='The initialization method '
+                                'for the model parameters')
         group.add_argument('--train_dtype', type=str, default='float32')
-        group.add_argument('--patience', type=int, default=None)
+        group.add_argument('--patience', type=int_or_none, default=None)
         group.add_argument('--batchsize', type=int, default=20)
         group.add_argument('--grad_noise', type=strtobool, default=False)
         group.add_argument('--accum_grad', type=int, default=1)
         group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
 
         group.add_argument('--batch_size', type=int, default=10)
-        group.add_argument('--eval_batch_size', type=int, default=None,
+        group.add_argument('--eval_batch_size', type=int_or_none, default=None,
                            help='If not given, '
                                 'the value of --batch_size is used')
 
@@ -89,6 +105,8 @@ class BaseTask(ABC):
         group.add_argument('--eval_preprocess', type=yaml.load,
                            default=dict())
 
+        group.add_argument('--train_batch_conf', type=yaml.load, default=dict())
+        group.add_argument('--eval_batch_conf', type=yaml.load, default=dict())
         group.add_argument('--train_batch_files', type=str,
                            nargs='+', default=[])
         group.add_argument('--eval_batch_files', type=str,
@@ -141,37 +159,14 @@ class BaseTask(ABC):
     @typechecked
     @classmethod
     def get_default_config(cls) -> dict:
-
-        config = dict(
-            seed=0,
-            resume_epoch=None,
-            resume_path=None,
-            preatrain_path=None,
-            pretrain_key=None,
-            init='pytorch',
-            train_dtype='float32',
-            patience=None,
-            grad_noise=False,
-            accum_grad=1,
-            grad_clip_threshold=1e-4,
-            train_dataset_conf=dict(
-                data=dict(),
-                preprocess=dict()),
-            train_batch_conf=dict(
-                data=dict(),
-                preprocess=dict()),
-            eval_dataset_conf=dict(
-                data=dict(),
-                preprocess=dict()),
-            eval_batch_conf=dict(
-                data=dict(),
-                preprocess=dict()),
-            optim='adam',
-            optim_conf=dict(lr=1e-3),
-            escheduler=None,
-            escheduler_conf=dict(),
-            bscheduler=None,
-            bscheduler_conf=dict())
+        parser = BaseTask.add_arguments()
+        args = parser.parse_known_args([])[0]
+        config = vars(args)
+        config.pop('show_config')
+        config.pop('config')
+        config.pop('ngpu')
+        config.pop('log_level')
+        config.pop('output_dir')
         return config
 
     @typechecked
@@ -186,14 +181,10 @@ class BaseTask(ABC):
             format=
             '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
-        # Generates e.g. python train.py asr_rnn --write_config output.yaml
-        if args.write_config is not None:
+        # Generates e.g. python train.py asr_rnn --show_config
+        if args.show_config:
             config = cls.get_default_config()
-            p = Path(args.write_config)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            with p.open('w') as f:
-                yaml.dump(config, f, Dumper=yaml.Dumper, indent=4)
-            logging.info(f'Yaml file was generated: {p}')
+            sys.stdout.write(yaml.dump(config, indent=4))
             sys.exit(0)
 
         # Set random-seed
