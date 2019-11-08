@@ -27,7 +27,7 @@ class AbsBatchScheduler(ABC):
     def state_dict(self):
         pass
 
-    def load_state_dict(self):
+    def load_state_dict(self, state):
         pass
 
 
@@ -38,7 +38,7 @@ class AbsEpochScheduler(ABC):
     def state_dict(self):
         pass
 
-    def load_state_dict(self):
+    def load_state_dict(self, state):
         pass
 
 
@@ -49,7 +49,7 @@ class AbsValEpochScheduler(AbsBatchScheduler):
     def state_dict(self):
         pass
 
-    def load_state_dict(self):
+    def load_state_dict(self, state):
         pass
 
 
