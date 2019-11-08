@@ -26,10 +26,14 @@ class ASRTransformerTask(BaseTask):
         BaseTask.add_arguments(parser)
         group = parser.add_argument_group(
             description='Transformer config')
-        group.add_argument('--encoder_conf', type=yaml.load, default=dict())
-        group.add_argument('--decoder_conf', type=yaml.load, default=dict())
-        group.add_argument('--ctc_conf', type=yaml.load, default=dict())
-        group.add_argument('--ete_conf', type=yaml.load, default=dict())
+        group.add_argument('--encoder_conf', type=yaml.load, default=dict(),
+                           help='The keyword arguments for Encoder class.')
+        group.add_argument('--decoder_conf', type=yaml.load, default=dict(),
+                           help='The keyword arguments for Decoder class.')
+        group.add_argument('--ctc_conf', type=yaml.load, default=dict(),
+                           help='The keyword arguments for CTC class.')
+        group.add_argument('--e2e_conf', type=yaml.load, default=dict(),
+                           help='The keyword arguments for ETE class.')
         return parser
 
     @classmethod

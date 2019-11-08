@@ -109,7 +109,7 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
 class Dataset:
     @typechecked
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, preproces: dict):
         """
 
         config: e.g.
@@ -130,18 +130,17 @@ class Dataset:
 
         """
         self.loader_dict = {}
-        assert isinstance(config['data'], dict), config['data']
-        assert isinstance(config['preprocess'], dict), config['preprocess']
-        for key, data in config['data'].items():
+        for key, data in config.items():
             path = data['path']
             type = data['type']
             loader = Dataset.create_loader(path, type)
             self.loader_dict[key] = loader
 
         self.preprocess_dict = {}
-        for key, data in config['preprocess'].items():
-            proceess = Transformation(data)
-            self.preprocess_dict[key] = proceess
+        if preproces is not None:
+            for key, data in preproces.items():
+                proceess = Transformation(data)
+                self.preprocess_dict[key] = proceess
 
     def __len__(self):
         raise RuntimeError(

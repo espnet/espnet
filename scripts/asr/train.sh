@@ -72,7 +72,7 @@ if [ -n "${train_config}" ]; then
     log "Copying ${train_config} to ${expdir}/train.yaml"
     cp ${train_config} ${expdir}/train.yaml
 else
-    python -m espnet2.bin.train "asr_${task}" --gen_yaml ${expdir}/train.yaml
+    python -m espnet2.bin.train "asr_${task}" --show_config > ${expdir}/train.yaml
 fi
 train_config=${expdir}/train.yaml
 
@@ -85,11 +85,11 @@ pyscripts/text/change_yaml.py \
     -a train_data_conf.output.path=${traindir}/token_int \
     -a train_data_conf.output.type=text_int \
     -a train_batch_files="[${traindir}/utt2num_samples, ${traindir}/token_shape]" \
-    -a eval_data_conf.input.path=${evaldir}/wav.scp \
+    -a eval_data_conf.input.path=${devdir}/wav.scp \
     -a eval_data_conf.input.type=sound \
-    -a eval_data_conf.output.path=${evaldir}/token_int \
+    -a eval_data_conf.output.path=${devdir}/token_int \
     -a eval_data_conf.output.type=text_int \
-    -a eval_batch_files="[${evaldir}/utt2num_samples, ${evaldir}/token_shape]" \
+    -a eval_batch_files="[${devdir}/utt2num_samples, ${devdir}/token_shape]" \
     -o ${train_config}  # Overwrite
 
 
