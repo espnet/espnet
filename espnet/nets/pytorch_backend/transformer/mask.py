@@ -1,5 +1,5 @@
-import torch
 from distutils.version import LooseVersion
+import torch
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2.0')
 datatype = torch.bool if is_torch_1_2_plus else torch.uint8
