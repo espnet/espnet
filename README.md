@@ -445,7 +445,7 @@ Here we list some notable ones:
 - [Single Mandarin speaker Transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 - [Single Mandarin speaker FastSpeech](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
 - [Multi Japanese speaker Transformer](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
-- [Single English spaker models with 80-7600 Hz limit and Parallel WaveGAN](https://drive.google.com/open?id=1HvB0_LDf1PVinJdehiuCt5gWmXGguqtx)
+- [Single English speaker models with Parallel WaveGAN](https://drive.google.com/open?id=1HvB0_LDf1PVinJdehiuCt5gWmXGguqtx)
 
 > Note that the most of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav.
 > You can listen to WaveNet vocoder samples in our demo HP.
@@ -466,8 +466,8 @@ You can change the pretrained model as follows:
 ```sh
 ../../../utils/synth_wav.sh --models ljspeech.transformer.v3 example.txt
 ```
+
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
-```
 You can change the pretrained vocoder model as follows:
 ```
 ../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.mol.v2 example.txt
@@ -486,7 +486,6 @@ Available pretrained models are listed as follows:
 | [csmsc.fastspeech.v3](https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet, pinyin input, 80-7600 Hz limit |
 | [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Multi-speaker Tacotron 2 with reduction factor = 2, char input |
 | [libritts.transformer.v1](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2, char input |
-
 
 Available pretrained vocoder models are listed as follows:
 
