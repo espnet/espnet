@@ -18,10 +18,8 @@ def get_defaut_values(func):
 
     """
     def yaml_serializable(value):
-        # Maybe named_tuple?
-        if isinstance(value, tuple) and type(value) is not tuple:
-            return yaml_serializable(vars(value))
-        elif isinstance(value, tuple):
+        # isinstance(x, tuple) includes namedtuple, so type is used here
+        if type(value) is tuple:
             return yaml_serializable(list(value))
         elif isinstance(value, dict):
             assert all(isinstance(k, str) for k in value), \
@@ -40,7 +38,7 @@ def get_defaut_values(func):
             for v in value:
                 v2 = yaml_serializable(v)
                 # If any elements in the list are invalid,
-                # the list alos becomes invalid
+                # the list also becomes invalid
                 if v2 is Invalid:
                     return Invalid
                 else:

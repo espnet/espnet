@@ -1,8 +1,8 @@
-from typing import Dict
+from typing import Dict, List, Union
 from typing import Tuple
 
 import torch
-from pytypes import typechecked
+from typeguard import typechecked
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
@@ -21,7 +21,7 @@ class E2E(torch.nn.Module):
                  odim: int,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
-                 ctc: CTC = None,
+                 ctc: CTC,
                  ctc_weight: float = 0.5,
                  ignore_id: int = -1,
                  lsm_weight: float = 0.,
@@ -29,12 +29,12 @@ class E2E(torch.nn.Module):
 
                  report_cer: bool = False,
                  report_wer: bool = False,
-                 char_list: Tuple[str] = (),
+                 char_list: Union[Tuple[str], List[str]] = (),
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
-        super().__init__()
         assert 0. < ctc_weight < 1., ctc_weight
+        super().__init__()
         self.odim = odim
         self.ingore_id = ignore_id
 

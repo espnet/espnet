@@ -2,8 +2,8 @@ from typing import Dict, Mapping, List, Tuple, Union
 
 import kaldiio
 import numpy as np
-from pytypes import typechecked
 import torch
+from typeguard import typechecked
 from torch.utils.data import Sampler
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list, make_pad_mask
@@ -82,11 +82,13 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
     """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
+    assert all(k + 'mask' not in data[0] for k in data[0]), \
+        '*_mask is reserved: {list(data[0})'
 
     output = {}
     for key in data[0]:
         # Note(kamo):
-        # Eaach models, which accepts these values finally, are responsible
+        # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.
         if data[0][key].dtype.kind == 'f':
             pad_value = -np.inf
@@ -148,6 +150,7 @@ class Dataset:
             'we are using custom batch-sampler')
 
     @staticmethod
+    @typechecked
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
         if loader_type == 'sound':
             # path looks like:
