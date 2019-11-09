@@ -470,7 +470,7 @@ Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (
 ```
 You can change the pretrained vocoder model as follows:
 ```
-../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.mol.v1 example.txt
+../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.mol.v2 example.txt
 ```
 
 Available pretrained models are listed as follows:
