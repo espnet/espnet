@@ -3,11 +3,12 @@ import warnings
 from pathlib import Path
 from typing import Union, Dict, Tuple
 
-import soundfile
 import numpy as np
-from pytypes import typechecked
+import soundfile
+from typeguard import typechecked
 
 
+@typechecked
 def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
     """
 
@@ -100,6 +101,7 @@ class SoundScpWriter:
     >>> writer['bb'] = 16000, numpy_array
 
     """
+    @typechecked
     def __init__(self, basedir, name, format='wav', dtype=None,
                  normalize: bool = False):
         self.dir = Path(basedir) / f'data_{name}'

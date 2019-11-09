@@ -3,9 +3,8 @@ import logging
 import random
 import sys
 from abc import ABC, abstractmethod
-from distutils.util import strtobool
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Union, Any, Dict
 
 import configargparse
 import numpy as np
@@ -13,30 +12,20 @@ import torch
 import torch.nn
 import torch.optim
 import yaml
-from pytypes import typechecked
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
+from typeguard import typechecked
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet2.train.build_optimizer import build_optimizer
-from espnet2.train.build_scheduler import (
-    build_batch_scheduler, AbsEpochScheduler, AbsBatchScheduler,
-    build_epoch_scheduler, AbsValEpochScheduler, )
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
+from espnet2.train.get_optimizer_class import get_optimizer_class
+from espnet2.train.get_scheduler_class import (
+    get_epoch_scheduler_class, get_batch_scheduler_class,
+    AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.reporter import Reporter
-
-
-def int_or_none(value: str) -> Optional[int]:
-    if value in (None, 'none', 'None', 'NONE', 'null', 'Null', 'NULL'):
-        return None
-    return int(value)
-
-
-def str_or_none(value: str) -> Optional[int]:
-    if value is None:
-        return None
-    return value
+from espnet2.utils.get_default_values import get_defaut_values
+from espnet2.utils.types import int_or_none, str_or_none, yaml_load, str2bool
 
 
 class BaseTask(ABC):
@@ -46,8 +35,8 @@ class BaseTask(ABC):
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
 
-    @typechecked
     @classmethod
+    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
         if parser is None:
@@ -56,136 +45,171 @@ class BaseTask(ABC):
                 config_file_parser_class=configargparse.YAMLConfigFileParser)
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
+
+        # Note(kamo): add_arguments(..., required=True) can't be used
+        # to provide --show_config mode. Instead of it, do as
+        parser.set_defaults(requires=['output_dir'])
+
         group = parser.add_argument_group('Common configuration')
 
         group.add_argument('--config', is_config_file=True,
                            help='config file path')
-        group.add_argument('--log_level', type=str, default='INFO',
-                           choices=['INFO', 'ERROR', 'WARNING', 'INFO',
-                                    'DEBUG', 'NOTSET'],
-                           help='The verbose level of logging')
-
-        group.add_argument('--output_dir', type=str, default='output')
         group.add_argument('--show_config', action='store_true',
                            help='Print the config file and exit')
+        group.add_argument(
+            '--log_level', type=str, default='INFO',
+            choices=['INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+            help='The verbose level of logging')
+
+        group.add_argument('--output_dir', type=str)
         group.add_argument('--ngpu', type=int, default=0,
                            help='The number of gpus. 0 indicates CPU mode')
         group.add_argument('--seed', type=int, default=0,
                            help='Random seed')
 
+        group.add_argument(
+            '--init', type=str, default='pytorch',
+            choices=['pytorch', 'xavier_uniform', 'xavier_normal',
+                     'kaiming_uniform', 'kaiming_normal'],
+            help='The initialization method for the model parameters')
+
+        group = parser.add_argument_group('Trainer related')
+        group.add_argument(
+            '--train_dtype', default="float32",
+            choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
+            help='Data type for training. '
+                 'O0,O1,.. flags require apex. '
+                 'See https://nvidia.github.io/apex/amp.html#opt-levels')
+        group.add_argument('--patience', type=int_or_none, default=None)
+        group.add_argument('--grad_noise', type=str2bool, default=False)
+        group.add_argument('--accum_grad', type=int, default=1)
+        group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
+
+        group = parser.add_argument_group('Resuming related')
         group.add_argument('--resume_epoch', type=int_or_none, default=None)
         group.add_argument('--resume_path', type=str_or_none, default=None)
         group.add_argument('--preatrain_path', type=str_or_none, default=None)
         group.add_argument('--pretrain_key', type=str_or_none, default=None)
 
-        group.add_argument('--init', type=str, default='pytorch',
-                           choices=['pytorch',
-                                    'xavier_uniform',
-                                    'xavier_normal',
-                                    'kaiming_uniform',
-                                    'kaiming_normal'],
-                           help='The initialization method '
-                                'for the model parameters')
-        group.add_argument('--train_dtype', type=str, default='float32')
-        group.add_argument('--patience', type=int_or_none, default=None)
-        group.add_argument('--batchsize', type=int, default=20)
-        group.add_argument('--grad_noise', type=strtobool, default=False)
-        group.add_argument('--accum_grad', type=int, default=1)
-        group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
-
-        group.add_argument('--batch_size', type=int, default=10)
+        group = parser.add_argument_group('BatchSampler related')
+        group.add_argument('--batch_size', type=int, default=10,
+                           help='The mini-batch size used for training')
         group.add_argument('--eval_batch_size', type=int_or_none, default=None,
                            help='If not given, '
                                 'the value of --batch_size is used')
+        group.add_argument('--batch_type', type=str, default='const',
+                           choices=['const', 'seq', 'batch_bin'])
+        group.add_argument('--eval_batch_type', type=str_or_none, default=None,
+                           choices=['const', 'seq', 'batch_bin', None],
+                           help='If not given, '
+                                'the value of --batch_type is used')
 
-        group.add_argument('--train_data_conf', type=yaml.load, default=dict())
-        group.add_argument('--eval_data_conf', type=yaml.load, default=dict())
-        group.add_argument('--train_preprocess', type=yaml.load,
-                           default=dict())
-        group.add_argument('--eval_preprocess', type=yaml.load,
-                           default=dict())
-
-        group.add_argument('--train_batch_conf', type=yaml.load, default=dict())
-        group.add_argument('--eval_batch_conf', type=yaml.load, default=dict())
         group.add_argument('--train_batch_files', type=str,
                            nargs='+', default=[])
         group.add_argument('--eval_batch_files', type=str,
                            nargs='+', default=[])
 
-        group.add_argument('--batch_type', type=str, default='const',
-                           choices=['const', 'seq', 'batch_bin'])
-        group.add_argument('--eval_batch_type', type=str, default=None,
-                           help='If not given, '
-                                'the value of --batch_type is used')
+        group = parser.add_argument_group('Dataset related')
+        group.add_argument('--train_data_conf', type=yaml_load, default=dict())
+        group.add_argument('--eval_data_conf', type=yaml_load, default=dict())
+        group.add_argument('--train_preprocess', type=yaml_load,
+                           default=dict())
+        group.add_argument('--eval_preprocess', type=yaml_load,
+                           default=dict())
 
+        group = parser.add_argument_group('Optimizer related')
         group.add_argument('--optim', type=str, default='adam')
-        group.add_argument('--optim_conf', type=yaml.load,
-                           default=dict(lr=1e-3))
-        group.add_argument('--escheduler', type=str)
-        group.add_argument('--escheduler_conf', type=yaml.load, default=dict())
-        group.add_argument('--bscheduler', type=str)
-        group.add_argument('--bscheduler_conf', type=yaml.load, default=dict())
+        group.add_argument('--optim_conf', type=yaml_load,
+                           default=dict())
+        group.add_argument('--escheduler', type=str_or_none)
+        group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
+        group.add_argument('--bscheduler', type=str_or_none)
+        group.add_argument('--bscheduler_conf', type=yaml_load, default=dict())
         return parser
 
-    @typechecked
     @classmethod
-    def build_optimizer(cls, model: torch.nn.Module,
-                        args: argparse.Namespace) -> torch.optim.Optimizer:
-        return build_optimizer(model=model, optim=args.optim,
-                               kwarg=args.optim_conf)
-
     @typechecked
-    @classmethod
-    def build_epoch_scheduler(cls, optimizer, args: argparse.Namespace) \
-            -> Optional[AbsEpochScheduler]:
-        return build_epoch_scheduler(
-            optimizer=optimizer, scheduler=args.escheduler,
-            kwargs=args.escheduler_conf)
-
-    @typechecked
-    @classmethod
-    def build_batch_scheduler(cls, optimizer, args: argparse.Namespace) \
-            -> Optional[AbsBatchScheduler]:
-        return build_batch_scheduler(
-            optimizer=optimizer, scheduler=args.bscheduler,
-            kwargs=args.bscheduler_conf)
-
-    @typechecked
-    @classmethod
-    @abstractmethod
-    def build_model(cls, idim: int, odim: int, args: argparse.Namespace):
-        raise NotImplementedError
-
-    @typechecked
-    @classmethod
-    def get_default_config(cls) -> dict:
+    def get_default_config(cls) -> Dict[str, Any]:
         parser = BaseTask.add_arguments()
-        args = parser.parse_known_args([])[0]
+        args, _ = parser.parse_known_args()
         config = vars(args)
+        config.pop('requires')
         config.pop('show_config')
         config.pop('config')
         config.pop('ngpu')
         config.pop('log_level')
         config.pop('output_dir')
+
+        # Get the default arguments from the specified class
+        # e.g. --show_config --optim adadelta
+        optim_class = cls.get_optimizer_class(args.optim)
+        optim_conf = get_defaut_values(optim_class)
+        config['optim_conf'] = optim_conf
+
+        if args.escheduler is not None:
+            escheduler_class = cls.get_epoch_scheduler_class(args.escheduler)
+            escheduler_conf = get_defaut_values(escheduler_class)
+            config['escheduler_conf'] = escheduler_conf
+        if args.bscheduler is not None:
+            bscheduler_class = cls.get_epoch_scheduler_class(args.bscheduler)
+            bscheduler_conf = get_defaut_values(bscheduler_class)
+            config['bscheduler_conf'] = bscheduler_conf
+
         return config
 
-    @typechecked
     @classmethod
+    @typechecked
+    @abstractmethod
+    def build_model(cls, args: argparse.Namespace):
+        raise NotImplementedError
+
+    @classmethod
+    @typechecked
+    def get_optimizer_class(cls, name: str):
+        return get_optimizer_class(name)
+
+    @classmethod
+    @typechecked
+    def get_epoch_scheduler_class(cls, name: str):
+        return get_epoch_scheduler_class(name)
+
+    @classmethod
+    @typechecked
+    def get_batch_scheduler_class(cls, name: str):
+        return get_batch_scheduler_class(name)
+
+    @classmethod
+    @typechecked
+    def check_required(cls, args: argparse.Namespace):
+        requires = ', '.join(f'--{a}' for a in args.requires
+                             if getattr(args, a) is None)
+        if len(requires) != 0:
+            parser = cls.add_arguments()
+            parser.print_help(file=sys.stderr)
+            p = Path(sys.argv[0]).name
+            print(file=sys.stderr)
+            print(f'{p}: error: the following arguments are required: '
+                  f'{requires}',
+                  file=sys.stderr)
+            sys.exit(2)
+
+    @classmethod
+    @typechecked
     def main(cls, args: argparse.Namespace = None, cmd: str = None) -> None:
         if args is None:
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
+        if args.show_config:
+            config = cls.get_default_config()
+            sys.stdout.write(yaml.dump(config, indent=4, sort_keys=False,
+                                       Dumper=yaml.Dumper))
+            sys.exit(0)
+        cls.check_required(args)
 
         logging.basicConfig(
             level=args.log_level,
             format=
             '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-
-        # Generates e.g. python train.py asr_rnn --show_config
-        if args.show_config:
-            config = cls.get_default_config()
-            sys.stdout.write(yaml.dump(config, indent=4))
-            sys.exit(0)
 
         # Set random-seed
         random.seed(args.seed)
@@ -195,7 +219,7 @@ class BaseTask(ABC):
         # Creates train-data-iterator
         train_dataset = Dataset(args.train_data_conf, args.train_preprocess)
         train_batch_sampler = BatchSampler(
-            type=args.batch_type, key_files=args.train_batch_key_files,
+            type=args.batch_type, paths=args.train_batch_files,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
@@ -209,31 +233,44 @@ class BaseTask(ABC):
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
         eval_batch_sampler = BatchSampler(
-            type=args.eval_batch_type, key_files=args.eval_batch_key_files,
+            type=args.eval_batch_type, paths=args.eval_batch_files,
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
                                collate_fn=collate_fn)
 
-        model = cls.build_model()
+        # Creates model, optimizer, scheduler
+        model = cls.build_model(args=args)
         initialize(model, args.init)
 
-        optimizer = cls.build_optimizer(model=model, args=args)
-
-        # batch_scheduler: invoked after every updating
-        # e.g. torch.optim.lr_scheduler.CyclicLR
-        batch_scheduler = cls.build_batch_scheduler(
-            optimizer=optimizer, args=args)
+        optimizer_class = cls.get_optimizer_class(args.optim)
+        optimizer = optimizer_class(model.parameters(), **args.optim_conf)
 
         # epoch_scheduler: invoked at every epochs
         # e.g. torch.optim.lr_scheduler.StepLR
-        epoch_scheduler = cls.build_epoch_scheduler(
-            optimizer=optimizer, args=args)
+        if args.escheduler is not None:
+            epoch_scheduler_class = \
+                cls.get_epoch_scheduler_class(args.escheduler)
+            epoch_scheduler = epoch_scheduler_class(optimizer,
+                                                    **args.escheduler)
+        else:
+            epoch_scheduler = None
+        # batch_scheduler: invoked after every updating
+        # e.g. torch.optim.lr_scheduler.CyclicLR
+        if args.bscheduler is not None:
+            batch_scheduler_class = \
+                cls.get_batch_scheduler_class(args.bscheduler)
+            batch_scheduler = batch_scheduler_class(optimizer,
+                                                    **args.bscheduler)
+        else:
+            batch_scheduler = None
+        # epoch_scheduler: invoked at every epochs
         reporter = Reporter(args.output_dir / 'report')
 
         output_path = Path(args.output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
+        # Loads states from saved files
         cls.load(model=model,
                  optimizer=optimizer,
                  reporter=reporter,
@@ -262,8 +299,8 @@ class BaseTask(ABC):
                 grad_clip_threshold=args.grad_clip_threshold
                 )
 
-    @typechecked
     @classmethod
+    @typechecked
     def load(cls,
              model: torch.nn.Module,
              optimizer: torch.optim.Optimizer,
@@ -337,8 +374,8 @@ class BaseTask(ABC):
             state_dict.update(pretrained_dict)
             obj.load_state_dict(state_dict)
 
-    @typechecked
     @classmethod
+    @typechecked
     def run(cls,
             model: torch.nn.Module,
             optimizer: torch.optim.Optimizer,
@@ -381,7 +418,7 @@ class BaseTask(ABC):
                       reporter=reporter,
                       scheduler=batch_scheduler,
                       ngpu=ngpu,
-                      use_apex=train_dtype in ('O0','O1','O2','O3'),
+                      use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
                       grad_noise=grad_noise,
                       accum_grad=accum_grad,
                       grad_clip_threshold=grad_clip_threshold
@@ -428,8 +465,8 @@ class BaseTask(ABC):
                 logging.info()
                 break
 
-    @typechecked
     @classmethod
+    @typechecked
     def train(cls,
               model: torch.nn.Module,
               iterator,
@@ -482,9 +519,9 @@ class BaseTask(ABC):
                 if scheduler is not None:
                     scheduler.step()
 
-    @torch.no_grad()
-    @typechecked
     @classmethod
+    @typechecked
+    @torch.no_grad()
     def eval(cls, model: torch.nn.Module, iterator, reporter: Reporter,
              ngpu: int = 1) -> None:
         model.eval()
@@ -504,6 +541,8 @@ class BaseTask(ABC):
 def to_device(data, device):
     if isinstance(data, dict):
         return {k: to_device(v, device) for k, v in data.items()}
+    elif isinstance(data, tuple) and type(data) is not tuple:
+        return type(data)(to_device(v, device) for v in data)
     elif isinstance(data, (list, tuple)):
         return type(data)(to_device(v, device) for v in data)
     elif isinstance(data, torch.Tensor):
