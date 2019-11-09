@@ -491,12 +491,12 @@ Available pretrained vocoder models are listed as follows:
 
 | Model | Notes |
 |:------|:------|
-| [ljspeech.wavenet.mol.v2 (New!)](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit|
-| [ljspeech.parallel_wavegan.v1 (New!)](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit|
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
-| [jsut.parallel_wavegan.v1 (New!)](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit (Thanks, @lingjzhu!)|
-| [csmsc.parallel_wavegan.v1 (New!)](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 
 If you want to build your own neural vocoder, please check following repositories:
