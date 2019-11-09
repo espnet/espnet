@@ -14,15 +14,15 @@ fi
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=3
+stop_stage=4
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
 fs=22050      # sampling frequency
-fmax=""       # maximum frequency
-fmin=""       # minimum frequency
+fmax=80       # maximum frequency
+fmin=7600       # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
@@ -43,8 +43,8 @@ decode_dir=decode
 griffin_lim_iters=64
 
 # download related
-models=ljspeech.fastspeech.v1
-vocoder_models=ljspeech.wavenet.mol.v1
+models=ljspeech.tacotron2.v3.char.80-7600hz
+vocoder_models=ljspeech.parallel_wavegan.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -56,13 +56,10 @@ Example:
     $0 example.txt
 
     # you can specify the pretrained models
-    $0 --models ljspeech.tacotron2.v3 example.txt
-
-    # if you want to try wavenet vocoder, extend stage
-    $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
+    $0 --models ljspeech.transformer.v3.char.80-7600hz example.txt
 
     # also you can specify vocoder model
-    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.softmax.ns.v1 --stop_stage 4 example.txt
+    $0 --vocoder_models ljspeech.wavenet.mol.v2 --stop_stage 4 example.txt
 
 Available models:
     - libritts.tacotron2.v1
@@ -76,10 +73,23 @@ Available models:
     - ljspeech.fastspeech.v2
     - ljspeech.fastspeech.v3
     - libritts.transformer.v1
+    - jsut.transformer.v1
+    - jsut.tacotron2.v1
+    - csmsc.transformer.v1
+    - csmsc.fastspeech.v3
+    - ljspeech.tacotron2.v3.80-7600hz
+    - ljspeech.transformer.v3.80-7600hz
 
 Available vocoder models:
     - ljspeech.wavenet.softmax.ns.v1
     - ljspeech.wavenet.mol.v1
+    - jsut.wavenet.mol.v1
+    - libritts.wavenet.mol.v1
+    - csmsc.wavenet.mol.v1
+    - ljspeech.wavenet.mol.v2
+    - ljspeech.parallel_wavegan.v1
+    - jsut.parallel_wavegan.v1
+    - csmsc.parallel_wavegan.v1
 EOF
 )
 
@@ -112,6 +122,10 @@ function download_models () {
         "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
         "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
         "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
+        "csmsc.transformer.v1") share_url="https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ";;
+        "csmsc.fastspeech.v3") share_url="https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_";;
+        "ljspeech.tacotron2.v3.80-7600hz") share_url="https://drive.google.com/open?id=1Jo06IbVlq79lMA5wM9OMuZ-ByH1eRPkC";;
+        "ljspeech.transformer.v3.80-7600hz") share_url="https://drive.google.com/open?id=1Igiu5AZNz2YL6w8FweiamBK6Tp41nmRK";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -129,6 +143,11 @@ function download_vocoder_models () {
         "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
         "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
         "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
+        "csmsc.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj";;
+        "ljspeech.wavenet.mol.v2") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
+        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm";;
+        "jsut.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF";;
+        "csmsc.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -290,7 +309,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Synthesis with WaveNet"
+    echo "stage 4: Synthesis with Neural Vocoder"
     model_corpus=$(echo ${models} | cut -d. -f 1)
     vocoder_model_corpus=$(echo ${vocoder_models} | cut -d. -f 1)
     if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
