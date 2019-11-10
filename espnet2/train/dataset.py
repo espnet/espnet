@@ -18,15 +18,6 @@ class BatchSampler(Sampler):
                  type: str,
                  paths: Union[Tuple[str, ...], List[str]],
                  shuffle: bool = False):
-        """
-
-        config: e.g.
-
-        type: seq
-        shape:
-            - utt2shape
-        batch_size: 10
-        """
         if len(paths) == 0:
             raise ValueError('1 or more paths must be given')
         self.shuffle = shuffle
@@ -40,7 +31,8 @@ class BatchSampler(Sampler):
 
             self.batch_list = \
                 [keys[i:i + batch_size]
-                 for i in range(0, len(keys) // 2 + 1, batch_size)]
+                 for i in range(0, np.ceil(len(keys) / batch_size),
+                                batch_size)]
 
         # conventional behaviour of batchify()
         elif type == 'seq':
@@ -61,9 +53,7 @@ class BatchSampler(Sampler):
 
 @typechecked
 def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
-    """
-
-    Concat ndarray-list and convert to torch.Tensor.
+    """Concat ndarray-list and convert to torch.Tensor.
 
     Examples:
         Simple data flow from data-creation to DNN-forward
@@ -76,9 +66,8 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
         >>> batch = collate_fn(batch)
         >>> model(**batch)
 
-        Note that the dict-keys of batch is propagated from
-        that of the dataset,
-        and they can be changed
+        Note that the dict-keys of batch are propagated from
+        that of the dataset as they are.
 
     """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
@@ -110,27 +99,18 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
 
 class Dataset:
+    """
+
+    Examples:
+        >>> dataset = Dataset(dict(input=dict(path='wav.scp',
+        ...                                   type='sound'),
+        ...                        output=dict(path='token_int',
+        ...                                    type='text_int')),
+        ...                   dict(input=[dict(type='fbank',
+        ...                                    n_mels=80, fs=16000)]))
+    """
     @typechecked
     def __init__(self, config: dict, preproces: dict):
-        """
-
-        config: e.g.
-
-        data:
-            input:
-                  path: /some/where/wav.scp
-                  type: sound
-            output:
-                  path: /some/where/utt2tokenid
-                  type: text_int
-        preprocess:
-            input:
-                - type: fbank
-                  nfft: 512
-                  window_length: 400
-                  window_shift: 160
-
-        """
         self.loader_dict = {}
         for key, data in config.items():
             path = data['path']
@@ -143,6 +123,13 @@ class Dataset:
             for key, data in preproces.items():
                 proceess = Transformation(data)
                 self.preprocess_dict[key] = proceess
+
+            # The keys of preprocess must be sub-set of the keys of dataset
+            for k in self.preprocess_dict:
+                if k not in self.loader_dict:
+                    raise RuntimeError(
+                        f'The preprocess-key doesn\'t exit in data-keys: '
+                        f'{k} not in {set(self.loader_dict)}')
 
     def __len__(self):
         raise RuntimeError(
@@ -160,7 +147,7 @@ class Dataset:
             # Note that SoundScpReader doesn't support pipe-fashion
             # like kaldi e.g. "cat a.wav |".
             return SoundScpReader(path)
-        elif loader_type == 'ark-scp':
+        elif loader_type == 'ark_scp':
             # path looks like:
             #   utta /some/where/a.ark:123
             #   uttb /some/where/a.ark:456
