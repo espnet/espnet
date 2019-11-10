@@ -45,11 +45,14 @@ def get_parser():
 
 def main(cmd=None):
     """
-    Usage:
-        python train.py <sub-command-name> [-h ] ...
-        python train.py <sub-command-name> --show_config
 
-    Example:
+    Usage:
+        python train.py [-h]
+        python train.py <sub-command-name> [-h]
+        python train.py <sub-command-name> --show_config
+        python train.py <sub-command-name> ...
+
+    Examples:
         % python train.py asr_rnn --show_config
             --optim adadelta > conf/train_asr.yaml
         % python train.py asr_rnn --config conf/train_asr.yaml
@@ -65,4 +68,3 @@ def main(cmd=None):
 
 if __name__ == '__main__':
     main()
-

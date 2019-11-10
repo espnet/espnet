@@ -18,14 +18,13 @@ from typeguard import typechecked
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
+from espnet.utils.dynamic_import import dynamic_import
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.get_optimizer_class import get_optimizer_class
-from espnet2.train.get_scheduler_class import (
-    get_epoch_scheduler_class, get_batch_scheduler_class,
+from espnet2.train.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.reporter import Reporter
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import int_or_none, str_or_none, yaml_load, str2bool
+from espnet2.utils.types import int_or_none, yaml_load, str2bool
 
 
 class BaseTask(ABC):
@@ -90,9 +89,9 @@ class BaseTask(ABC):
 
         group = parser.add_argument_group('Resuming related')
         group.add_argument('--resume_epoch', type=int_or_none, default=None)
-        group.add_argument('--resume_path', type=str_or_none, default=None)
-        group.add_argument('--preatrain_path', type=str_or_none, default=None)
-        group.add_argument('--pretrain_key', type=str_or_none, default=None)
+        group.add_argument('--resume_path', type=str, default=None)
+        group.add_argument('--preatrain_path', type=str, default=None)
+        group.add_argument('--pretrain_key', type=str, default=None)
 
         group = parser.add_argument_group('BatchSampler related')
         group.add_argument('--batch_size', type=int, default=10,
@@ -102,7 +101,7 @@ class BaseTask(ABC):
                                 'the value of --batch_size is used')
         group.add_argument('--batch_type', type=str, default='const',
                            choices=['const', 'seq', 'batch_bin'])
-        group.add_argument('--eval_batch_type', type=str_or_none, default=None,
+        group.add_argument('--eval_batch_type', type=str, default=None,
                            choices=['const', 'seq', 'batch_bin', None],
                            help='If not given, '
                                 'the value of --batch_type is used')
@@ -123,10 +122,10 @@ class BaseTask(ABC):
         group.add_argument('--optim', type=str, default='adam',
                            help='The optimizer type')
         group.add_argument('--optim_conf', type=yaml_load, default=dict())
-        group.add_argument('--escheduler', type=str_or_none,
+        group.add_argument('--escheduler', type=str,
                            help='The epoch-scheduler type')
         group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
-        group.add_argument('--bscheduler', type=str_or_none,
+        group.add_argument('--bscheduler', type=str,
                            help='The batch-scheduler type')
         group.add_argument('--bscheduler_conf', type=yaml_load, default=dict())
         return parser
@@ -184,17 +183,82 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def get_optimizer_class(cls, name: str) -> Type[torch.optim.Optimizer]:
-        return get_optimizer_class(name)
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
+
+        if name.lower() == 'adam':
+            return torch.optim.Adam
+        elif name.lower() == 'sgd':
+            return torch.optim.SGD
+        elif name.lower() == 'adadelta':
+            return torch.optim.Adadelta
+        else:
+            # To use any other built-in optimizer of pytorch, e.g. RMSprop
+            if ':' not in name:
+                optimizer_class = getattr(torch.optim, name)
+            # To use custom optimizer e.g. your_module.some_file:ClassName
+            else:
+                optimizer_class = dynamic_import(name)
+            return optimizer_class
 
     @classmethod
     @typechecked
     def get_epoch_scheduler_class(cls, name: str) -> Type[AbsEpochScheduler]:
-        return get_epoch_scheduler_class(name)
+        """Schedulers control optim-parameters at the end of each epochs
+
+        EpochScheduler:
+            >>> for epoch in range(10):
+            >>>     train(...)
+            >>>     scheduler.step()
+
+        ValEpochScheduler:
+            >>> for epoch in range(10):
+            >>>     train(...)
+            >>>     val = validate(...)
+            >>>     scheduler.step(val)
+        """
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
+        if name.lower() == 'reducelronplateau':
+            return torch.optim.lr_scheduler.ReduceLROnPlateau
+        elif name.lower() == 'lambdalr':
+            return torch.optim.lr_scheduler.LambdaLR
+        elif name.lower() == 'steplr':
+            return torch.optim.lr_scheduler.StepLR
+        elif name.lower() == 'multisteplr':
+            return torch.optim.lr_scheduler.MultiStepLR
+        elif name.lower() == 'exponentiallr':
+            return torch.optim.lr_scheduler.ExponentialLR
+        elif name.lower() == 'cosineannealinglr':
+            return torch.optim.lr_scheduler.CosineAnnealingLR
+        else:
+            # To use custom scheduler e.g. your_module.some_file:ClassName
+            scheduler_class = dynamic_import(name)
+            return scheduler_class
 
     @classmethod
     @typechecked
     def get_batch_scheduler_class(cls, name: str) -> Type[AbsBatchScheduler]:
-        return get_batch_scheduler_class(name)
+        """Schedulers control optim-parameters after every updating
+
+        BatchScheduler:
+            >>> for epoch in range(10):
+            >>>     for batch in data_loader:
+            >>>         train_batch(...)
+            >>>         scheduler.step()
+        """
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
+        if name.lower() == 'cycliclr':
+            return torch.optim.lr_scheduler.CyclicLR
+        elif name.lower() == 'onecyclelr':
+            return torch.optim.lr_scheduler.OneCycleLR
+        elif name.lower() == 'cosineannealingwarmrestarts':
+            return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+        else:
+            # To use custom scheduler e.g. your_module.some_file:ClassName
+            scheduler_class = dynamic_import(name)
+            return scheduler_class
 
     @classmethod
     @typechecked
