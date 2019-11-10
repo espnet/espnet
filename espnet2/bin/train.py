@@ -4,8 +4,8 @@ import sys
 import configargparse
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.asr.rnn.task import ASRRNNTask
-from espnet2.asr.transformer.task import ASRTransformerTask
+from espnet2.tasks.asr_rnn import ASRRNNTask
+from espnet2.tasks.asr_transformer import ASRTransformerTask
 
 
 def not_implemented(args):

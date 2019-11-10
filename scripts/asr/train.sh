@@ -51,7 +51,7 @@ expdir=$3
 
 for d in ${traindir} ${devdir}; do
     for f in wav.scp utt2num_samples token_int token_shape; do
-        if [ ! -f ${d}/${f} ]; then
+        if [ ! -f "${d}/${f}" ]; then
             log "Error: ${d}/${f} is not existing."
             exit 1
         fi
@@ -70,53 +70,54 @@ fi
 
 if [ -n "${train_config}" ]; then
     log "Copying ${train_config} to ${expdir}/train.yaml"
-    cp ${train_config} ${expdir}/train.yaml
+    cp ${train_config} "${expdir}/train.yaml"
 else
-    python -m espnet2.bin.train "asr_${task}" --show_config > ${expdir}/train.yaml
+    python -m espnet2.bin.train "asr_${task}" --show_config > "${expdir}/train.yaml"
 fi
 train_config=${expdir}/train.yaml
 
 
 # The configuration about mini-batch-IO for DNN training
 pyscripts/text/change_yaml.py \
-    ${train_config} \
-    -a train_data_conf.input.path=${traindir}/wav.scp \
+    "${train_config}" \
+    -a train_data_conf.input.path="${traindir}/wav.scp" \
     -a train_data_conf.input.type=sound \
-    -a train_data_conf.output.path=${traindir}/token_int \
+    -a train_data_conf.output.path="${traindir}/token_int" \
     -a train_data_conf.output.type=text_int \
     -a train_batch_files="[${traindir}/utt2num_samples, ${traindir}/token_shape]" \
-    -a eval_data_conf.input.path=${devdir}/wav.scp \
+    -a eval_data_conf.input.path="${devdir}/wav.scp" \
     -a eval_data_conf.input.type=sound \
-    -a eval_data_conf.output.path=${devdir}/token_int \
+    -a eval_data_conf.output.path="${devdir}/token_int" \
     -a eval_data_conf.output.type=text_int \
     -a eval_batch_files="[${devdir}/utt2num_samples, ${devdir}/token_shape]" \
-    -o ${train_config}  # Overwrite
+    -o "${train_config}"  # Overwrite
 
 
-if [ ! -z "${preprocess_config}" ]; then
+if [ -n "${preprocess_config}" ]; then
     log "Embeding ${preprocess_config} in ${train_config}"
     python3 << EOF
 import yaml
+from copy import deepcopy
 with open('${train_config}', 'r') as f:
     config = yaml.load(f, Loader=yaml.Loader)
 with open('${preprocess_config}', 'r') as f:
     preprocess_config = yaml.load(f, Loader=yaml.Loader)
 
 # Embed preprocess_config and overwrite the config
-config['train_preprocess']['input'] = preprocess_config
-config['eval_preprocess']['input'] = preprocess_config
+config['train_preprocess']['input'] = deep_copy(preprocess_config)
+config['eval_preprocess']['input'] = deep_copy(preprocess_config)
 with open('${train_config}', 'w') as fout:
-    yaml.dump(config, fout, Dumper=yaml.Dumper, indent=4)
+    yaml.dump(config, fout, Dumper=yaml.Dumper, indent=4, sort_keys=False)
 EOF
 fi
 
 
 log "Training started... log: ${expdir}/train.log"
-${cmd} --gpu "${ngpu}" ${expdir}/train.log \
+${cmd} --gpu "${ngpu}" "${expdir}/train.log" \
     python -m espnet2.bin.train "asr_${task}" \
         --ngpu "${ngpu}" \
         --config "${train_config}" \
-        --output_dir ${expdir}/results
+        --output_dir "${expdir}/results"
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

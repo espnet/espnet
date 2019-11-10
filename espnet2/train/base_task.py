@@ -4,7 +4,7 @@ import random
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Any, Dict
+from typing import Union, Any, Dict, Type
 
 import configargparse
 import numpy as np
@@ -42,13 +42,16 @@ class BaseTask(ABC):
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='base parser',
-                config_file_parser_class=configargparse.YAMLConfigFileParser)
+                config_file_parser_class=configargparse.YAMLConfigFileParser,
+                formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
 
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --show_config mode. Instead of it, do as
-        parser.set_defaults(requires=['output_dir'])
+        parser.set_defaults(required=['output_dir',
+                                      'train_batch_files',
+                                      'eval_batch_files'])
 
         group = parser.add_argument_group('Common configuration')
 
@@ -105,22 +108,20 @@ class BaseTask(ABC):
                                 'the value of --batch_type is used')
 
         group.add_argument('--train_batch_files', type=str,
-                           nargs='+', default=[])
+                           nargs='+', default=None)
         group.add_argument('--eval_batch_files', type=str,
-                           nargs='+', default=[])
+                           nargs='+', default=None)
 
         group = parser.add_argument_group('Dataset related')
         group.add_argument('--train_data_conf', type=yaml_load, default=dict())
         group.add_argument('--eval_data_conf', type=yaml_load, default=dict())
         group.add_argument('--train_preprocess', type=yaml_load,
                            default=dict())
-        group.add_argument('--eval_preprocess', type=yaml_load,
-                           default=dict())
+        group.add_argument('--eval_preprocess', type=yaml_load, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument('--optim', type=str, default='adam')
-        group.add_argument('--optim_conf', type=yaml_load,
-                           default=dict())
+        group.add_argument('--optim_conf', type=yaml_load, default=dict())
         group.add_argument('--escheduler', type=str_or_none)
         group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
         group.add_argument('--bscheduler', type=str_or_none)
@@ -159,39 +160,39 @@ class BaseTask(ABC):
 
     @classmethod
     @typechecked
-    @abstractmethod
-    def build_model(cls, args: argparse.Namespace):
-        raise NotImplementedError
-
-    @classmethod
-    @typechecked
-    def get_optimizer_class(cls, name: str):
-        return get_optimizer_class(name)
-
-    @classmethod
-    @typechecked
-    def get_epoch_scheduler_class(cls, name: str):
-        return get_epoch_scheduler_class(name)
-
-    @classmethod
-    @typechecked
-    def get_batch_scheduler_class(cls, name: str):
-        return get_batch_scheduler_class(name)
-
-    @classmethod
-    @typechecked
     def check_required(cls, args: argparse.Namespace):
-        requires = ', '.join(f'--{a}' for a in args.requires
+        required = ', '.join(f'--{a}' for a in args.required
                              if getattr(args, a) is None)
-        if len(requires) != 0:
+        if len(required) != 0:
             parser = cls.add_arguments()
             parser.print_help(file=sys.stderr)
             p = Path(sys.argv[0]).name
             print(file=sys.stderr)
             print(f'{p}: error: the following arguments are required: '
-                  f'{requires}',
+                  f'{required}',
                   file=sys.stderr)
             sys.exit(2)
+
+    @classmethod
+    @typechecked
+    @abstractmethod
+    def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+        raise NotImplementedError
+
+    @classmethod
+    @typechecked
+    def get_optimizer_class(cls, name: str) -> Type[torch.optim.Optimizer]:
+        return get_optimizer_class(name)
+
+    @classmethod
+    @typechecked
+    def get_epoch_scheduler_class(cls, name: str) -> Type[AbsEpochScheduler]:
+        return get_epoch_scheduler_class(name)
+
+    @classmethod
+    @typechecked
+    def get_batch_scheduler_class(cls, name: str) -> Type[AbsBatchScheduler]:
+        return get_batch_scheduler_class(name)
 
     @classmethod
     @typechecked

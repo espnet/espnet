@@ -33,8 +33,8 @@ class ASRTransformerTask(BaseTask):
 
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --show_config mode. Instead of it, do as
-        requires = parser.get_default('requires')
-        requires += ['idim', 'odim']
+        required = parser.get_default('required')
+        required += ['idim', 'odim']
 
         group.add_argument('--idim', type=int)
         group.add_argument('--odim', type=int)
@@ -88,5 +88,4 @@ class ASRTransformerTask(BaseTask):
 
 
 if __name__ == '__main__':
-    # task.py can be also executed. e.g. python -m espnet2.asr.rnn.task
     ASRTransformerTask.main()
