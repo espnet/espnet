@@ -12,18 +12,7 @@ def not_implemented(args):
     raise NotImplementedError('Not yet')
 
 
-def main(cmd=None):
-    """
-    Usage:
-        python train.py <sub-command-name> [-h ] ...
-        python train.py <sub-command-name> --write_config <path>
-
-    Example:
-        % python train.py asr_rnn --show_config --optim adadelta > conf/train_asr.yaml
-        % python train.py asr_rnn --config conf/train_asr.yaml
-    """
-    print(get_commandline_args(), file=sys.stderr)
-
+def get_parser():
     parser = configargparse.ArgumentParser(
         description='Train dnn',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -51,6 +40,21 @@ def main(cmd=None):
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     subparser.set_defaults(main=not_implemented)
 
+    return parser
+
+
+def main(cmd=None):
+    """
+    Usage:
+        python train.py <sub-command-name> [-h ] ...
+        python train.py <sub-command-name> --write_config <path>
+
+    Example:
+        % python train.py asr_rnn --show_config --optim adadelta > conf/train_asr.yaml
+        % python train.py asr_rnn --config conf/train_asr.yaml
+    """
+    print(get_commandline_args(), file=sys.stderr)
+    parser = get_parser()
     args = parser.parse_args(cmd)
     if args.main is not None:
         args.main(args)

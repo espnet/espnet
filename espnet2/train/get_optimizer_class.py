@@ -1,6 +1,7 @@
-import torch
-from typeguard import check_argument_types, typechecked
 from typing import Type
+
+import torch
+from typeguard import typechecked
 
 from espnet.utils.dynamic_import import dynamic_import
 
@@ -23,3 +24,4 @@ def get_optimizer_class(optim: str) -> Type[torch.optim.Optimizer]:
         # To use custom optimizer e.g. your_module.some_file:ClassName
         else:
             optimizer_class = dynamic_import(optim)
+        return optimizer_class

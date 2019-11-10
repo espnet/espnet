@@ -113,7 +113,7 @@ class SoundScpWriter:
 
         self.data = {}
 
-    def __setitem__(self, key: str, value: Tuple[int, np.ndarray]):
+    def __setitem__(self, key: str, value):
         rate, signal = value
         assert isinstance(rate, int), type(rate)
         assert isinstance(signal, np.ndarray), type(signal)
