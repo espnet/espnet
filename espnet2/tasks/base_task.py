@@ -4,7 +4,7 @@ import random
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Any, Dict, Type
+from typing import Union, Any, Dict, Type, Tuple, Optional
 
 import configargparse
 import numpy as np
@@ -18,13 +18,12 @@ from typeguard import typechecked
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.utils.dynamic_import import dynamic_import
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.train.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.reporter import Reporter
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import int_or_none, yaml_load, str2bool
+from espnet2.utils.types import int_or_none, yaml_load, str2bool, str_or_none
 
 
 class BaseTask(ABC):
@@ -60,7 +59,8 @@ class BaseTask(ABC):
                            help='Print the config file and exit')
         group.add_argument(
             '--log_level', type=lambda x: str(x).upper(), default='INFO',
-            choices=['INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+            choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET',
+                     'info', 'error', 'warning', 'info', 'debug', 'notset'),
             help='The verbose level of logging')
 
         group.add_argument('--output_dir', type=str)
@@ -96,37 +96,41 @@ class BaseTask(ABC):
         group = parser.add_argument_group('BatchSampler related')
         group.add_argument('--batch_size', type=int, default=10,
                            help='The mini-batch size used for training')
-        group.add_argument('--eval_batch_size', type=int_or_none, default=None,
-                           help='If not given, '
-                                'the value of --batch_size is used')
+        group.add_argument(
+            '--eval_batch_size', type=int_or_none, default=None,
+            help='If not given, the value of --batch_size is used')
         group.add_argument('--batch_type', type=str, default='const',
                            choices=['const', 'seq', 'batch_bin'])
-        group.add_argument('--eval_batch_type', type=str, default=None,
-                           choices=['const', 'seq', 'batch_bin', None],
-                           help='If not given, '
-                                'the value of --batch_type is used')
+        group.add_argument(
+            '--eval_batch_type', type=str, default=None,
+            choices=['const', 'seq', 'batch_bin', None],
+            help='If not given, the value of --batch_type is used')
 
-        group.add_argument('--train_batch_files', type=str,
-                           nargs='+', default=None)
-        group.add_argument('--eval_batch_files', type=str,
-                           nargs='+', default=None)
+        group.add_argument(
+            '--train_batch_files', type=str, nargs='+', default=None)
+        group.add_argument(
+            '--eval_batch_files', type=str, nargs='+', default=None)
 
         group = parser.add_argument_group('Dataset related')
         group.add_argument('--train_data_conf', type=yaml_load, default=dict())
         group.add_argument('--eval_data_conf', type=yaml_load, default=dict())
-        group.add_argument('--train_preprocess', type=yaml_load,
-                           default=dict())
+        group.add_argument(
+            '--train_preprocess', type=yaml_load, default=dict())
         group.add_argument('--eval_preprocess', type=yaml_load, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument('--optim', type=str, default='adam',
+                           choices=cls.optimizer_choices(),
                            help='The optimizer type')
         group.add_argument('--optim_conf', type=yaml_load, default=dict())
-        group.add_argument('--escheduler', type=str,
+
+        group.add_argument('--escheduler', type=str_or_none,
+                           choices=cls.epoch_scheduler_choices(),
                            help='The epoch-scheduler type')
         group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
-        group.add_argument('--bscheduler', type=str,
-                           help='The batch-scheduler type')
+
+        group.add_argument(
+            '--bscheduler', type=str, help='The batch-scheduler type')
         group.add_argument('--bscheduler_conf', type=yaml_load, default=dict())
         return parser
 
@@ -182,10 +186,17 @@ class BaseTask(ABC):
 
     @classmethod
     @typechecked
+    def optimizer_choices(cls) -> Tuple[str, ...]:
+        choices = ('Adam', 'SGD', 'AdaDelta')
+        choices += tuple(x.lower() for x in choices if x != x.lower()) \
+            + tuple(x.upper() for x in choices if x != x.upper())
+        return choices
+
+    @classmethod
+    @typechecked
     def get_optimizer_class(cls, name: str) -> Type[torch.optim.Optimizer]:
         # Note(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
-
         if name.lower() == 'adam':
             return torch.optim.Adam
         elif name.lower() == 'sgd':
@@ -193,13 +204,17 @@ class BaseTask(ABC):
         elif name.lower() == 'adadelta':
             return torch.optim.Adadelta
         else:
-            # To use any other built-in optimizer of pytorch, e.g. RMSprop
-            if ':' not in name:
-                optimizer_class = getattr(torch.optim, name)
-            # To use custom optimizer e.g. your_module.some_file:ClassName
-            else:
-                optimizer_class = dynamic_import(name)
-            return optimizer_class
+            raise RuntimeError(f'Not supported: --optim {name}')
+
+    @classmethod
+    @typechecked
+    def epoch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('ReduceLROnPlateau', 'LambdaLR', 'StepLR', 'MultiStepLR',
+                   'ExponentialLR', 'CosineAnnealingLR')
+        choices += tuple(x.lower() for x in choices if x != x.lower()) \
+            + tuple(x.upper() for x in choices if x != x.upper())
+        choices += (None,)
+        return choices
 
     @classmethod
     @typechecked
@@ -234,9 +249,16 @@ class BaseTask(ABC):
         elif name.lower() == 'cosineannealinglr':
             return torch.optim.lr_scheduler.CosineAnnealingLR
         else:
-            # To use custom scheduler e.g. your_module.some_file:ClassName
-            scheduler_class = dynamic_import(name)
-            return scheduler_class
+            raise RuntimeError(f'Not supported: --escheduler {name}')
+
+    @classmethod
+    @typechecked
+    def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('CyclicLR', 'OneCycleLR', 'CosineAnnealingWarmRestarts')
+        choices += tuple(x.lower() for x in choices if x != x.lower()) \
+            + tuple(x.upper() for x in choices if x != x.upper())
+        choices += (None,)
+        return choices
 
     @classmethod
     @typechecked
@@ -260,9 +282,7 @@ class BaseTask(ABC):
         elif name.lower() == 'cosineannealingwarmrestarts':
             return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
         else:
-            # To use custom scheduler e.g. your_module.some_file:ClassName
-            scheduler_class = dynamic_import(name)
-            return scheduler_class
+            raise RuntimeError(f'Not supported: --bscheduler {name}')
 
     @classmethod
     @typechecked
@@ -327,6 +347,7 @@ class BaseTask(ABC):
                                                     **args.escheduler)
         else:
             epoch_scheduler = None
+
         # batch_scheduler: invoked after every updating
         # e.g. torch.optim.lr_scheduler.CyclicLR
         if args.bscheduler is not None:
@@ -515,15 +536,15 @@ class BaseTask(ABC):
                  'epoch_scheduler': epoch_scheduler.state_dict()
                  if epoch_scheduler is not None else None,
                  'batch_scheduler': batch_scheduler.state_dict()
-                 if batch_scheduler is not None else None,
-                 }, output_path / f'{k}epoch.pt')
+                 if batch_scheduler is not None else None},
+                output_path / f'{iepoch}epoch.pt')
 
             if epoch_scheduler is not None:
                 # Controls opt-params by scheduler e.g. learning rate decay
                 if isinstance(epoch_scheduler, AbsValEpochScheduler):
                     val = reporter.get_value(
-                        'eval', 'acc'
-                        if reporter.has_key('eval', 'acc') else 'loss')
+                        'eval',
+                        'acc' if reporter.has_key('eval', 'acc') else 'loss')
                     epoch_scheduler.step(val)
                 else:
                     epoch_scheduler.step()
@@ -603,8 +624,8 @@ class BaseTask(ABC):
             if ngpu <= 1:
                 _, stats = model(**batch)
             else:
-                _, stats = data_parallel(model, range(ngpu),
-                                         module_kwargs=batch)
+                _, stats = data_parallel(
+                    model, range(ngpu), module_kwargs=batch)
                 stats = {k: v.mean(0).item() for k, v in stats.items()}
 
             reporter.report('eval', stats)
@@ -613,8 +634,6 @@ class BaseTask(ABC):
 def to_device(data, device):
     if isinstance(data, dict):
         return {k: to_device(v, device) for k, v in data.items()}
-    elif isinstance(data, tuple) and type(data) is not tuple:
-        return type(data)(to_device(v, device) for v in data)
     elif isinstance(data, (list, tuple)):
         return type(data)(to_device(v, device) for v in data)
     elif isinstance(data, torch.Tensor):

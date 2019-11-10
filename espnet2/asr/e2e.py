@@ -18,9 +18,9 @@ class E2E(torch.nn.Module):
     @typechecked
     def __init__(self,
                  odim: int,
-                 stft: Optional[torch.nn.Module],
+                 stft: torch.nn.Module,
                  frontend: Optional[torch.nn.Module],
-                 feature_transform: Optional[torch.nn.Module],
+                 feature_transform: torch.nn.Module,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: torch.nn.Module,
@@ -74,18 +74,19 @@ class E2E(torch.nn.Module):
         output.masked_fill_(output_mask, self.ignore_id)
 
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_feats = self.stft(input)
+        ilens = mask2lenths(input_mask)
+        input_stft, feats_lens = self.stft(input, ilens)
 
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
-            input_stft, hlens, mask = self.frontend(input_feats, ilens)
+            input_stft, _, mask = self.frontend(input_stft, feats_lens)
 
         # 3. Feature transform e.g. Stft -> Mel-Fbank
-        if self.feature_transform is not None:
-            input_feats, hlens = self.feature_transform(input_feats, hlens)
+        input_feats, _ = self.feature_transform(input_stft, feats_lens)
 
+        feats_mask = lengths2mask(feats_lens)
         # 4. Forward encoder
-        encoder_out, encoder_out_mask = self.encoder(input_feats, input_mask)
+        encoder_out, encoder_out_mask = self.encoder(input_feats, feats_mask)
 
         # 5a. Attention-decoder branch
         if self.ctc_weight == 1.0:
