@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from typing import Tuple
 
 import torch
@@ -18,9 +18,9 @@ class E2E(torch.nn.Module):
     @typechecked
     def __init__(self,
                  odim: int,
-                 stft: torch.nn.Module,
-                 frontend: torch.nn.Module,
-                 feature_transform: torch.nn.Module,
+                 stft: Optional[torch.nn.Module],
+                 frontend: Optional[torch.nn.Module],
+                 feature_transform: Optional[torch.nn.Module],
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: torch.nn.Module,
@@ -50,9 +50,8 @@ class E2E(torch.nn.Module):
             odim, ignore_id, lsm_weight, length_normalized_loss)
 
         if report_cer or report_wer:
-            self.error_calculator = ErrorCalculator(char_list,
-                                                    sym_space, sym_blank,
-                                                    report_cer, report_wer)
+            self.error_calculator = ErrorCalculator(
+                char_list, sym_space, sym_blank, report_cer, report_wer)
         else:
             self.error_calculator = None
 
@@ -75,14 +74,15 @@ class E2E(torch.nn.Module):
         output.masked_fill_(output_mask, self.ignore_id)
 
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_stft = self.stft(input)
+        input_feats = self.stft(input)
 
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
-            input_stft, hlens, mask = self.frontend(input_stft, ilens)
+            input_stft, hlens, mask = self.frontend(input_feats, ilens)
 
         # 3. Feature transform e.g. Stft -> Mel-Fbank
-        input_feats, hlens = self.feature_transform(input_stft, hlens)
+        if self.feature_transform is not None:
+            input_feats, hlens = self.feature_transform(input_feats, hlens)
 
         # 4. Forward encoder
         encoder_out, encoder_out_mask = self.encoder(input_feats, input_mask)
@@ -94,7 +94,7 @@ class E2E(torch.nn.Module):
             loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(
                 output, encoder_out, encoder_out_mask)
 
-        # 6b. CTC branch
+        # 5b. CTC branch
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:
