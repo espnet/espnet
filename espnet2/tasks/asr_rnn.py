@@ -2,21 +2,17 @@ import argparse
 from typing import Any, Dict
 
 import configargparse
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.train.base_task import BaseTask
 
 
 class ASRRNNTask(BaseTask):
     @classmethod
+    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        assert check_argument_types()
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
-        # Note(kamo): Any required arguments can't be used
-        # to provide --show_config mode.
-        # Instead of it, insert checking if it is given like:
-        #   >>> cls.check_required(args, 'output_dir')
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='',
@@ -26,12 +22,13 @@ class ASRRNNTask(BaseTask):
         return parser
 
     @classmethod
+    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
         raise NotImplementedError
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace):
-        assert check_argument_types()
         # TODO(kamo): Create Encoder and Decoder class to fit the interface.
         raise NotImplementedError
 

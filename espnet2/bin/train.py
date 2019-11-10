@@ -47,10 +47,11 @@ def main(cmd=None):
     """
     Usage:
         python train.py <sub-command-name> [-h ] ...
-        python train.py <sub-command-name> --write_config <path>
+        python train.py <sub-command-name> --show_config
 
     Example:
-        % python train.py asr_rnn --show_config --optim adadelta > conf/train_asr.yaml
+        % python train.py asr_rnn --show_config
+            --optim adadelta > conf/train_asr.yaml
         % python train.py asr_rnn --config conf/train_asr.yaml
     """
     print(get_commandline_args(), file=sys.stderr)
