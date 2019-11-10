@@ -15,7 +15,7 @@ from typing import Type
 from espnet.utils.dynamic_import import dynamic_import
 
 
-# FIXME(kamo): EpochScheduler and BatchScheduler are confusing. Please give me an idea.
+# FIXME(kamo): EpochScheduler and BatchScheduler are confusing names. Please give naming.
 
 
 # If you need to define custom scheduler, please inherit these classes

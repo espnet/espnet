@@ -102,13 +102,15 @@ class Dataset:
     """
 
     Examples:
-        >>> dataset = Dataset(dict(input=dict(path='wav.scp',
-        ...                                   type='sound'),
+        >>> dataset = Dataset(dict(input=dict(path='wav.scp', type='sound'),
         ...                        output=dict(path='token_int',
         ...                                    type='text_int')),
         ...                   dict(input=[dict(type='fbank',
         ...                                    n_mels=80, fs=16000)]))
+        ... data = dataset['uttid']
+        {'input': ndarray, 'output': ndarray}
     """
+
     @typechecked
     def __init__(self, config: dict, preproces: dict):
         self.loader_dict = {}

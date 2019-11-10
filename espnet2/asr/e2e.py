@@ -5,7 +5,6 @@ import torch
 from typeguard import typechecked
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
@@ -19,9 +18,12 @@ class E2E(torch.nn.Module):
     @typechecked
     def __init__(self,
                  odim: int,
+                 stft: torch.nn.Module,
+                 frontend: torch.nn.Module,
+                 feature_transform: torch.nn.Module,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
-                 ctc: CTC,
+                 ctc: torch.nn.Module,
                  ctc_weight: float = 0.5,
                  ignore_id: int = -1,
                  lsm_weight: float = 0.,
@@ -38,6 +40,9 @@ class E2E(torch.nn.Module):
         self.odim = odim
         self.ingore_id = ignore_id
 
+        self.stft = stft
+        self.frontend = frontend
+        self.feature_transform = feature_transform
         self.encoder = encoder
         self.decoder = decoder
         self.ctc = ctc
@@ -69,17 +74,27 @@ class E2E(torch.nn.Module):
         input.masked_fill_(input_mask, 0,)
         output.masked_fill_(output_mask, self.ignore_id)
 
-        # 1. Forward encoder
-        encoder_out, encoder_out_mask = self.encoder(input, input_mask)
+        # 1. Domain-conversion: e.g. Stft: time -> time-freq
+        input_stft = self.stft(input)
 
-        # 2a. Attention-decoder branch
+        # 2. [Option] Speech enhancement
+        if self.frontend is not None:
+            input_stft, hlens, mask = self.frontend(input_stft, ilens)
+
+        # 3. Feature transform e.g. Stft -> Mel-Fbank
+        input_feats, hlens = self.feature_transform(input_stft, hlens)
+
+        # 4. Forward encoder
+        encoder_out, encoder_out_mask = self.encoder(input_feats, input_mask)
+
+        # 5a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
             loss_att, acc_att, cer_att, wer_att = self.calc_decoder_loss(
                 output, encoder_out, encoder_out_mask)
 
-        # 2b. CTC branch
+        # 6b. CTC branch
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:

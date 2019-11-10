@@ -4,7 +4,7 @@ from typing import Any, Dict
 import configargparse
 from typeguard import typechecked
 
-from espnet2.train.base_task import BaseTask
+from espnet2.tasks.base_task import BaseTask
 
 
 class ASRRNNTask(BaseTask):
