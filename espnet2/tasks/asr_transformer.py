@@ -71,17 +71,16 @@ class ASRTransformerTask(BaseTask):
         parser = ASRTransformerTask.add_arguments()
         args, _ = parser.parse_known_args()
 
-        frontend_class = cls.get_frontend_class(args.frontend)
-        if frontend_class is not None:
+        if args.frontend is not None:
+            frontend_class = cls.get_frontend_class(args.frontend)
             frontend_conf = get_defaut_values(frontend_class)
         else:
             frontend_conf = {}
 
-        feature_transform_class = \
-            cls.get_frontend_class(args.feature_transform)
-        if feature_transform_class is not None:
-            feature_transform_conf = get_defaut_values(
-                cls.get_feature_transform_class(args.feature_transform))
+        if args.feature_transform is not None:
+            feature_transform_class = \
+                cls.get_frontend_class(args.feature_transform)
+            feature_transform_conf = get_defaut_values(feature_transform_class)
         else:
             feature_transform_conf = {}
 
@@ -105,11 +104,8 @@ class ASRTransformerTask(BaseTask):
 
     @classmethod
     @typechecked
-    def get_frontend_class(cls, name: Optional[str]) \
-            -> Optional[Type[torch.nn.Module]]:
-        if name is None:
-            return None
-        elif name.lower() in ('none', 'null', 'nil'):
+    def get_frontend_class(cls, name: str) -> Optional[Type[torch.nn.Module]]:
+        if name.lower() in ('none', 'null', 'nil'):
             return None
         elif name.lower() == 'wpe_mvdr':
             return Frontend
@@ -118,11 +114,9 @@ class ASRTransformerTask(BaseTask):
 
     @classmethod
     @typechecked
-    def get_feature_transform_class(cls, name: Optional[str]) \
+    def get_feature_transform_class(cls, name: str) \
             -> Optional[Type[torch.nn.Module]]:
-        if name is None:
-            return None
-        elif name.lower() in ('none', 'null', 'nil'):
+        if name.lower() in ('none', 'null', 'nil'):
             return None
         elif name.lower() == 'fbank_mvn':
             return FeatureTransform
@@ -135,15 +129,15 @@ class ASRTransformerTask(BaseTask):
         stft = Stft(nfft=args.nfft, window_shift=args.window_shift,
                     window_length=args.window_length)
 
-        frontend_class = cls.get_frontend_class(args.frontend)
-        if frontend_class is not None:
+        if args.frontend is not None:
+            frontend_class = cls.get_frontend_class(args.frontend)
             frontend = frontend_class(idim=args.nfft, **args.frontend_conf)
         else:
             frontend = None
 
-        feature_transform_class = cls.get_frontend_class(
-            args.feature_transform)
-        if feature_transform_class is not None:
+        if args.feature_transform is not None:
+            feature_transform_class = cls.get_frontend_class(
+                args.feature_transform)
             feature_transform = feature_transform_class(
                 fs=args.fs, n_fft=args.nfft, **args.feature_transform_conf)
         else:

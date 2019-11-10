@@ -206,6 +206,8 @@ class BaseTask(ABC):
     def get_epoch_scheduler_class(cls, name: str) -> Type[AbsEpochScheduler]:
         """Schedulers control optim-parameters at the end of each epochs
 
+        FIXME(kamo): EpochScheduler is confusing name.
+
         EpochScheduler:
             >>> for epoch in range(10):
             >>>     train(...)
@@ -240,6 +242,8 @@ class BaseTask(ABC):
     @typechecked
     def get_batch_scheduler_class(cls, name: str) -> Type[AbsBatchScheduler]:
         """Schedulers control optim-parameters after every updating
+
+        FIXME(kamo): BatchScheduler is confusing name.
 
         BatchScheduler:
             >>> for epoch in range(10):
@@ -437,8 +441,8 @@ class BaseTask(ABC):
             state_dict = obj.state_dict()
             pretrained_dict = torch.load(pretrain_path)
             # Ignores the parameters not existing in the train-model
-            pretrained_dict = {k: v for k, v in pretrained_dict.items()
-                               if k in state_dict}
+            pretrained_dict = \
+                {k: v for k, v in pretrained_dict.items() if k in state_dict}
             state_dict.update(pretrained_dict)
             obj.load_state_dict(state_dict)
 
