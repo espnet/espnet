@@ -134,7 +134,7 @@ class BaseTask(ABC):
         parser = BaseTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
-        config.pop('requires')
+        config.pop('required')
         config.pop('show_config')
         config.pop('config')
         config.pop('ngpu')
@@ -201,6 +201,7 @@ class BaseTask(ABC):
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
         if args.show_config:
+            # Shows the config: e.g. python train.py asr_rnn --show_config
             config = cls.get_default_config()
             sys.stdout.write(yaml.dump(config, indent=4, sort_keys=False,
                                        Dumper=yaml.Dumper))

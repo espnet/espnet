@@ -115,12 +115,12 @@ def get_batch_scheduler_class(scheduler: str) -> Type[AbsBatchScheduler]:
     # Note(kamo): Don't use getattr or dynamic_import
     # for readability and debuggability as possible
     if scheduler.lower() == 'cycliclr':
-        return CyclicLR(optimizer, **kwargs)
+        return CyclicLR
     elif scheduler.lower() == 'onecyclelr':
-        return OneCycleLR(optimizer, **kwargs)
+        return OneCycleLR
     elif scheduler.lower() == 'cosineannealingwarmrestarts':
-        return CosineAnnealingWarmRestarts(optimizer, **kwargs)
+        return CosineAnnealingWarmRestarts
     else:
         # To use custom scheduler e.g. your_module.some_file:ClassName
         scheduler_class = dynamic_import(scheduler)
-        return scheduler_class(optimizer, **kwargs)
+        return scheduler_class

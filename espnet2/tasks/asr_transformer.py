@@ -57,7 +57,6 @@ class ASRTransformerTask(BaseTask):
         decoder_conf = get_defaut_values(Decoder)
         ctc_conf = get_defaut_values(CTC)
         e2e_conf = get_defaut_values(E2E)
-        ctc_conf.pop('reduce')
 
         config.update(
             encoder_conf=encoder_conf,
@@ -75,7 +74,7 @@ class ASRTransformerTask(BaseTask):
         cls.check_required(args, 'odim')
         encoder = Encoder(idim=args.idim, **args.encoder_conf)
         decoder = Decoder(odim=args.odim, **args.decoder_conf)
-        ctc = CTC(odim=args.odim, **args.ctc_conf, reduce=True)
+        ctc = CTC(odim=args.odim, **args.ctc_conf)
         model = E2E(
             odim=args.odim,
             encoder=encoder,
