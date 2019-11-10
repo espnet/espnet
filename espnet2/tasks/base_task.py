@@ -60,7 +60,7 @@ class BaseTask(ABC):
         group.add_argument('--show_config', action='store_true',
                            help='Print the config file and exit')
         group.add_argument(
-            '--log_level', type=str, default='INFO',
+            '--log_level', type=lambda x: str(x).upper(), default='INFO',
             choices=['INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
             help='The verbose level of logging')
 
@@ -120,11 +120,14 @@ class BaseTask(ABC):
         group.add_argument('--eval_preprocess', type=yaml_load, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
-        group.add_argument('--optim', type=str, default='adam')
+        group.add_argument('--optim', type=str, default='adam',
+                           help='The optimizer type')
         group.add_argument('--optim_conf', type=yaml_load, default=dict())
-        group.add_argument('--escheduler', type=str_or_none)
+        group.add_argument('--escheduler', type=str_or_none,
+                           help='The epoch-scheduler type')
         group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
-        group.add_argument('--bscheduler', type=str_or_none)
+        group.add_argument('--bscheduler', type=str_or_none,
+                           help='The batch-scheduler type')
         group.add_argument('--bscheduler_conf', type=yaml_load, default=dict())
         return parser
 
@@ -152,7 +155,7 @@ class BaseTask(ABC):
             escheduler_conf = get_defaut_values(escheduler_class)
             config['escheduler_conf'] = escheduler_conf
         if args.bscheduler is not None:
-            bscheduler_class = cls.get_epoch_scheduler_class(args.bscheduler)
+            bscheduler_class = cls.get_batch_scheduler_class(args.bscheduler)
             bscheduler_conf = get_defaut_values(bscheduler_class)
             config['bscheduler_conf'] = bscheduler_conf
 
@@ -169,8 +172,7 @@ class BaseTask(ABC):
             p = Path(sys.argv[0]).name
             print(file=sys.stderr)
             print(f'{p}: error: the following arguments are required: '
-                  f'{required}',
-                  file=sys.stderr)
+                  f'{required}', file=sys.stderr)
             sys.exit(2)
 
     @classmethod
