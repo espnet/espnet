@@ -3,6 +3,7 @@ import logging
 import random
 import sys
 from abc import ABC, abstractmethod
+from io import TextIOBase
 from pathlib import Path
 from typing import Union, Any, Dict, Type, Tuple, Optional
 
@@ -46,7 +47,7 @@ class BaseTask(ABC):
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
 
         # Note(kamo): add_arguments(..., required=True) can't be used
-        # to provide --show_config mode. Instead of it, do as
+        # to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=['output_dir',
                                       'train_batch_files',
                                       'eval_batch_files'])
@@ -55,7 +56,7 @@ class BaseTask(ABC):
 
         group.add_argument('--config', is_config_file=True,
                            help='config file path')
-        group.add_argument('--show_config', action='store_true',
+        group.add_argument('--print_config', action='store_true',
                            help='Print the config file and exit')
         group.add_argument(
             '--log_level', type=lambda x: str(x).upper(), default='INFO',
@@ -82,14 +83,36 @@ class BaseTask(ABC):
             help='Data type for training. '
                  'O0,O1,.. flags require apex. '
                  'See https://nvidia.github.io/apex/amp.html#opt-levels')
-        group.add_argument('--patience', type=int_or_none, default=None)
-        group.add_argument('--grad_noise', type=str2bool, default=False)
-        group.add_argument('--accum_grad', type=int, default=1)
-        group.add_argument('--grad_clip_threshold', type=float, default=1e-4)
+        group.add_argument(
+            '--patience', type=int_or_none, default=None,
+            help='Number of epochs to wait without improvement '
+                 'before stopping the training')
+        group.add_argument('--grad_noise', type=str2bool, default=False,
+                           help='The flag to switch to use noise injection to '
+                                'gradients during training')
+        group.add_argument('--accum_grad', type=int, default=1,
+                           help='The number of gradient accumulation')
+        group.add_argument('--grad_clip_threshold', type=float, default=5,
+                           help='Gradient norm threshold to clip')
 
-        group = parser.add_argument_group('Resuming related')
-        group.add_argument('--resume_epoch', type=int_or_none, default=None)
-        group.add_argument('--resume_path', type=str, default=None)
+        group = parser.add_argument_group(
+            'Resuming or transfer learning related')
+
+        def type_epoch(value: str) -> Optional[Union[str, int]]:
+            if value == 'latest':
+                return value
+            elif value.lower() in ('none', 'null', 'nil'):
+                return None
+            else:
+                return int(value)
+
+        egroup = group.add_mutually_exclusive_group()
+        egroup.add_argument(
+            '--resume_epoch', type=type_epoch, default=None,
+            help='The training starts from the specified epoch. '
+                 '"latest" indicates the latest-epoch file found '
+                 'in output_path')
+        egroup.add_argument('--resume_path', type=str, default=None)
         group.add_argument('--preatrain_path', type=str, default=None)
         group.add_argument('--pretrain_key', type=str, default=None)
 
@@ -141,14 +164,14 @@ class BaseTask(ABC):
         args, _ = parser.parse_known_args()
         config = vars(args)
         config.pop('required')
-        config.pop('show_config')
+        config.pop('print_config')
         config.pop('config')
         config.pop('ngpu')
         config.pop('log_level')
         config.pop('output_dir')
 
         # Get the default arguments from the specified class
-        # e.g. --show_config --optim adadelta
+        # e.g. --print_config --optim adadelta
         optim_class = cls.get_optimizer_class(args.optim)
         optim_conf = get_defaut_values(optim_class)
         config['optim_conf'] = optim_conf
@@ -286,15 +309,20 @@ class BaseTask(ABC):
 
     @classmethod
     @typechecked
+    def print_config(cls, file: TextIOBase = sys.stdout):
+        # Shows the config: e.g. python train.py asr --print_config
+        config = cls.get_default_config()
+        file.write(yaml.dump(config, indent=4, sort_keys=False,
+                             Dumper=yaml.Dumper))
+
+    @classmethod
+    @typechecked
     def main(cls, args: argparse.Namespace = None, cmd: str = None) -> None:
         if args is None:
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
-        if args.show_config:
-            # Shows the config: e.g. python train.py asr_rnn --show_config
-            config = cls.get_default_config()
-            sys.stdout.write(yaml.dump(config, indent=4, sort_keys=False,
-                                       Dumper=yaml.Dumper))
+        if args.print_config:
+            cls.print_config()
             sys.exit(0)
         cls.check_required(args)
 
@@ -401,7 +429,7 @@ class BaseTask(ABC):
              output_path: Union[str, Path],
              batch_scheduler: AbsBatchScheduler = None,
              epoch_scheduler: AbsEpochScheduler = None,
-             resume_epoch: int = None,
+             resume_epoch: Union[int, str] = None,
              resume_path: Union[str, Path] = None,
              pretrain_path: Union[str, Path] = None,
              pretrain_key: str = None) -> None:

@@ -23,9 +23,10 @@ SECONDS=0
 
 cmd=utils/run.pl
 ngpu=
-preprocess_config=conf/preprocess.yaml
-
 task=transformer
+
+fs=16k
+preprocess_config=
 
 # mini-batch related
 batch_type=const
@@ -59,27 +60,21 @@ for d in ${traindir} ${devdir}; do
 done
 
 
-if [ "${task}" != transformer ] && \
-   [ "${task}" != rnn ] && \
-   [ "${task}" != rnnt ]; then
-    log "Error: Not supported task: --task ${task}"
-    exit 1
-fi
-
-
-
 if [ -n "${train_config}" ]; then
     log "Copying ${train_config} to ${expdir}/train.yaml"
     cp ${train_config} "${expdir}/train.yaml"
 else
-    python -m espnet2.bin.train "asr_${task}" --show_config > "${expdir}/train.yaml"
+    python3 -m espnet2.bin.train asr --print_config > "${expdir}/train.yaml"
 fi
 train_config=${expdir}/train.yaml
 
 
-# The configuration about mini-batch-IO for DNN training
+# Modify the configuration file
+odim="$(<${traindir}/token_shape awk 'NR==1 {split($2,sp,",");print(sp[2]);}')"
 pyscripts/text/change_yaml.py \
     "${train_config}" \
+    -a odim="${odim}" \
+    -a fs="${fs}" \
     -a train_data_conf.input.path="${traindir}/wav.scp" \
     -a train_data_conf.input.type=sound \
     -a train_data_conf.output.path="${traindir}/token_int" \
@@ -114,7 +109,7 @@ fi
 
 log "Training started... log: ${expdir}/train.log"
 ${cmd} --gpu "${ngpu}" "${expdir}/train.log" \
-    python -m espnet2.bin.train "asr_${task}" \
+    python3 -m espnet2.bin.train asr \
         --ngpu "${ngpu}" \
         --config "${train_config}" \
         --output_dir "${expdir}/results"
