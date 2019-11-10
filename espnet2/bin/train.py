@@ -4,8 +4,7 @@ import sys
 import configargparse
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.tasks.asr_rnn import ASRRNNTask
-from espnet2.tasks.asr_transformer import ASRTransformerTask
+from espnet2.tasks.asr import ASRTask
 
 
 def not_implemented(args):
@@ -21,21 +20,14 @@ def get_parser():
     subparsers = parser.add_subparsers(dest='task')
 
     subparser = subparsers.add_parser(
-        'asr_rnn', help='ASR RNN model',
+        'asr', help='ASR model',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-    ASRRNNTask.add_arguments(subparser)
-    subparser.set_defaults(main=ASRRNNTask.main)
+    ASRTask.add_arguments(subparser)
+    subparser.set_defaults(main=ASRTask.main)
 
     subparser = subparsers.add_parser(
-        'asr_transformer', help='ASR Transformer model',
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-    ASRTransformerTask.add_arguments(subparser)
-    subparser.set_defaults(main=ASRTransformerTask.main)
-
-    subparser = subparsers.add_parser(
-        'tts_tacotron', help='TTS Tacotron model',
+        'tts', help='TTS model',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     subparser.set_defaults(main=not_implemented)
@@ -53,9 +45,11 @@ def main(cmd=None):
         python train.py <sub-command-name> ...
 
     Examples:
-        % python train.py asr_rnn --show_config
-            --optim adadelta > conf/train_asr.yaml
-        % python train.py asr_rnn --config conf/train_asr.yaml
+        % python train.py asr --show_config
+            --optim adadelta
+            --encoder_decoder transformer
+                > conf/train_asr.yaml
+        % python train.py asr --config conf/train_asr.yaml
     """
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()

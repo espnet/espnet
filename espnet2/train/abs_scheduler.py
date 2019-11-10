@@ -1,17 +1,9 @@
 from abc import ABC
 
-# from torch.optim.lr_scheduler import CyclicLR
-# from torch.optim.lr_scheduler import OneCycleLR
-# from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.optim.lr_scheduler import ExponentialLR
-from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.lr_scheduler import MultiStepLR
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.optim.lr_scheduler import StepLR
+import torch
 
 
-# FIXME(kamo): EpochScheduler and BatchScheduler are confusing names. Please give naming.
+# FIXME(kamo): EpochScheduler and BatchScheduler are confusing names.
 
 
 # If you need to define custom scheduler, please inherit these classes
@@ -51,13 +43,17 @@ class AbsValEpochScheduler(AbsBatchScheduler):
 # Create alias type to check the type
 # Note(kamo): Currently PyTorch doesn't provide the base class
 # to judge these classes.
-AbsValEpochScheduler.register(ReduceLROnPlateau)
-AbsEpochScheduler.register(LambdaLR)
-AbsEpochScheduler.register(StepLR)
-AbsEpochScheduler.register(MultiStepLR)
-AbsEpochScheduler.register(ExponentialLR)
-AbsEpochScheduler.register(CosineAnnealingLR)
+AbsValEpochScheduler.register(torch.optim.lr_scheduler.ReduceLROnPlateau)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.LambdaLR)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.StepLR)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.MultiStepLR)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.ExponentialLR)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.CosineAnnealingLR)
 
-# AbsBatchScheduler.register(CyclicLR)
-# AbsBatchScheduler.register(OneCycleLR)
-# AbsBatchScheduler.register(CosineAnnealingWarmRestarts)
+try:
+    AbsBatchScheduler.register(torch.optim.lr_scheduler.CyclicLR)
+    AbsBatchScheduler.register(torch.optim.lr_scheduler.OneCycleLR)
+    AbsBatchScheduler.register(
+        torch.optim.lr_scheduler.CosineAnnealingWarmRestarts)
+except ImportError:
+    pass
