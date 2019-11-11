@@ -112,12 +112,14 @@ class Reporter:
 
     def state_dict(self):
         def to_vanilla_dict(stats: defaultdict) -> dict:
-            if isinstance(stats, defaultdict):
-                return \
-                    {k: to_vanilla_dict(v) if isinstance(v, defaultdict) else v
-                     for k, v in stats.items()}
+            return {k: to_vanilla_dict(v) if isinstance(v, defaultdict) else v
+                    for k, v in stats.items()}
         return {'stats': self.stats, 'epoch': self.epoch}
 
     def load_state_dict(self, state_dict: dict):
-        self.stats = state_dict['stats']
+        def to_default_dict(stats: dict) -> defaultdict:
+            raise NotImplementedError
+
+        stats = state_dict['stats']
+        self.stats = to_default_dict(stats)
         self.epoch = state_dict['epoch']
