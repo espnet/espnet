@@ -1,3 +1,6 @@
+import collections
+import logging
+from io import StringIO
 from typing import Dict, Mapping, List, Tuple, Union
 
 import kaldiio
@@ -25,18 +28,19 @@ class BatchSampler(Sampler):
 
         if type == 'const':
             utt2length = scp2dict(paths[0])
-            utt2length = {k: int(v) for k, v in utt2length}
+            utt2length = {k: int(v) for k, v in utt2length.items()}
             # Sorted in descending order
             keys = sorted(utt2length, key=lambda k: -utt2length[k])
 
             self.batch_list = \
                 [keys[i:i + batch_size]
-                 for i in range(0, np.ceil(len(keys) / batch_size),
+                 for i in range(0, int(np.ceil(len(keys) / batch_size)),
                                 batch_size)]
 
         # conventional behaviour of batchify()
         elif type == 'seq':
             raise NotImplementedError
+
         elif type == 'batchbin':
             raise NotImplementedError
 
@@ -71,8 +75,8 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
     """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
-    assert all(k + 'mask' not in data[0] for k in data[0]), \
-        '*_mask is reserved: {list(data[0})'
+    assert all(k + 'lengths' not in data[0] for k in data[0]), \
+        '*_lengths is reserved: {list(data[0})'
 
     output = {}
     for key in data[0]:
@@ -86,16 +90,43 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
         else:
             pad_value = -32768
 
+        array_list = [d[key] for d in data]
+        tensor_list = [torch.from_numpy(a) for a in array_list]
         # tensor: (Batch, Length, ...)
-        tensor = pad_list([d[key] for d in data], pad_value)
+        tensor = pad_list(tensor_list, pad_value)
         output[key] = tensor
 
-        # FIXME(kamo): I'm not sure which is better, mask or lengths.
-        # mask: (Batch,)
-        mask = make_pad_mask([len(d[key]) for d in data])
-        output[key + '_mask'] = mask
+        assert all(len(d[key]) != 0 for d in data), [len(d[key]) for d in data]
+
+        # lens: (Batch,)
+        lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
+        output[key + '_lengths'] = lens
 
     return output
+
+
+class AdapterForSoundScpReader(collections.abc.Mapping):
+    @typechecked
+    def __init__(self, loader: SoundScpReader):
+        self.loader = loader
+        self.rate = None
+
+    def keys(self):
+        return self.loader.keys()
+
+    def __len__(self):
+        return len(self.loader)
+
+    def __iter__(self):
+        return iter(self.loader)
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        rate, array = self.loader[key]
+        if self.rate is not None and self.rate != rate:
+            raise RuntimeError(
+                f'Sampling rates are mismatched: {self.rate} != {rate}')
+        self.rate = rate
+        return array
 
 
 class Dataset:
@@ -104,7 +135,7 @@ class Dataset:
     Examples:
         >>> dataset = Dataset(dict(input=dict(path='wav.scp', type='sound'),
         ...                        output=dict(path='token_int',
-        ...                                    type='text_int')),
+        ...                                    type='csv_int')),
         ...                   dict(input=[dict(type='fbank',
         ...                                    n_mels=80, fs=16000)]))
         ... data = dataset['uttid']
@@ -112,13 +143,22 @@ class Dataset:
     """
 
     @typechecked
-    def __init__(self, config: dict, preproces: dict):
+    def __init__(self, config: dict, preproces: dict = None,
+                 float_dtype: str = 'float32', int_dtype: str = 'long'):
+        if len(config) == 0:
+            raise ValueError('1 or more elements are required for "config"')
+        self.float_dtype = float_dtype
+        self.int_dtype = int_dtype
+
         self.loader_dict = {}
+        self.debug_info = {}
         for key, data in config.items():
             path = data['path']
-            type = data['type']
-            loader = Dataset.create_loader(path, type)
+            _type = data['type']
+
+            loader = Dataset.create_loader(path, _type)
             self.loader_dict[key] = loader
+            self.debug_info[key] = path, _type
 
         self.preprocess_dict = {}
         if preproces is not None:
@@ -147,36 +187,92 @@ class Dataset:
             #   uttb /some/where/a.flac
             #
             # Note that SoundScpReader doesn't support pipe-fashion
-            # like kaldi e.g. "cat a.wav |".
-            return SoundScpReader(path)
+            # like Kaldi e.g. "cat a.wav |".
+            loader = SoundScpReader(path, normalize=True)
+
+            # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
+            # but ndarray is desired, so Adapter class is inserted here
+            return AdapterForSoundScpReader(loader)
+
         elif loader_type == 'ark_scp':
             # path looks like:
             #   utta /some/where/a.ark:123
             #   uttb /some/where/a.ark:456
             return kaldiio.load_scp(path)
-        elif loader_type == 'text_int':
+
+        elif loader_type == 'npy_scp':
             # path looks like:
-            #   utta 1 0
-            #   uttb 3 4 5
+            #   utta /some/where/a.npy
+            #   uttb /some/where/b.npy
+            raise NotImplementedError
+
+        elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
+            if loader_type == 'text_int':
+                delimiter = ' '
+                dtype = np.long
+            elif loader_type == 'text_float':
+                delimiter = ' '
+                dtype = np.float32
+            elif loader_type == 'csv_int':
+                delimiter = ','
+                dtype = np.long
+            elif loader_type == 'csv_float':
+                delimiter = ','
+                dtype = np.float32
+            else:
+                raise RuntimeError('Can\'t reach')
+
+            # path looks like:
+            #   utta 1,0
+            #   uttb 3,4,5
             # -> return {'utta': np.ndarray([1, 0]),
             #            'uttb': np.ndarray([3, 4, 5])}
-
             d = scp2dict(path)
-            return {k: np.loadtxt(v, ndmin=1, dtype=np.long)
-                    for k, v in d}
+
+            # Using for-loop instead of dict-comprehension for debuggability
+            retval = {}
+            for k, v in d.items():
+                # Note(kamo): Use np.loadtxt instead of np.fromstring
+                # because I dislike the latter's behaviour
+                try:
+                    retval[k] = np.loadtxt(
+                        StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)
+                except Exception:
+                    logging.error(f'Error happened with path="{path}", '
+                                  f'id="{k}", value="{v}"')
+                    raise
+            return retval
 
         else:
-            raise NotImplementedError(
+            raise RuntimeError(
                 f'Not supported: loader_type={loader_type}')
 
     @typechecked
     def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
         data = {}
         for name, loader in self.loader_dict.items():
-            value = loader[uid]
+            try:
+                value = loader[uid]
+                assert isinstance(value, np.ndarray), type(value)
+            except Exception:
+                path, _type = self.debug_info[name]
+                logging.error(
+                    f'Error happened with path={path}, type={_type}, id={uid}')
+                raise
+
             if name in self.preprocess_dict:
                 process = self.preprocess_dict[name]
                 value = process(value)
+
+            # Cast to desired type
+            if value.dtype.kind == 'f':
+                value = value.astype(self.float_dtype)
+            elif value.dtype.kind == 'i':
+                value = value.astype(self.int_dtype)
+            else:
+                raise NotImplementedError(
+                    f'Not supported dtype: {value.kind}')
+
             data[name] = value
 
         return data

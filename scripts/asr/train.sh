@@ -22,17 +22,12 @@ SECONDS=0
 
 
 cmd=utils/run.pl
+
 ngpu=
 task=transformer
-
 fs=16k
-preprocess_config=
-
-# mini-batch related
-batch_type=const
-batch_size=
-
 train_config=
+preprocess_config=
 
 log "$0 $*"
 
@@ -69,8 +64,10 @@ fi
 train_config=${expdir}/train.yaml
 
 
-# Modify the configuration file
+# token_shape: <uttid> <olength>,<odim>: e.g. uttidA 12,27
 odim="$(<${traindir}/token_shape awk 'NR==1 {split($2,sp,",");print(sp[2]);}')"
+
+# Modify the configuration file
 pyscripts/text/change_yaml.py \
     "${train_config}" \
     -a odim="${odim}" \

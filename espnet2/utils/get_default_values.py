@@ -15,6 +15,7 @@ def get_defaut_values(func):
     Examples:
         >>> def func(a, b=3):  pass
         >>> get_defaut_values(func)
+        {'b': 3}
 
     """
     def yaml_serializable(value):
