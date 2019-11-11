@@ -19,12 +19,12 @@ from typeguard import typechecked
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.abs_scheduler import (
+from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
+from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.train.reporter import Reporter
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import int_or_none, yaml_load, str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 
 class BaseTask(ABC):
@@ -58,13 +58,13 @@ class BaseTask(ABC):
                            help='config file path')
         group.add_argument('--print_config', action='store_true',
                            help='Print the config file and exit')
+
         group.add_argument(
             '--log_level', type=lambda x: str(x).upper(), default='INFO',
-            choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET',
-                     'info', 'error', 'warning', 'info', 'debug', 'notset'),
+            choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
             help='The verbose level of logging')
 
-        group.add_argument('--output_dir', type=str)
+        group.add_argument('--output_dir', type=str_or_none, default=None)
         group.add_argument('--ngpu', type=int, default=0,
                            help='The number of gpus. 0 indicates CPU mode')
         group.add_argument('--seed', type=int, default=0,
@@ -87,13 +87,13 @@ class BaseTask(ABC):
             '--patience', type=int_or_none, default=None,
             help='Number of epochs to wait without improvement '
                  'before stopping the training')
+        group.add_argument('--grad_clip_threshold', type=float, default=5.,
+                           help='Gradient norm threshold to clip')
         group.add_argument('--grad_noise', type=str2bool, default=False,
                            help='The flag to switch to use noise injection to '
                                 'gradients during training')
         group.add_argument('--accum_grad', type=int, default=1,
                            help='The number of gradient accumulation')
-        group.add_argument('--grad_clip_threshold', type=float, default=5,
-                           help='Gradient norm threshold to clip')
 
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
@@ -112,9 +112,10 @@ class BaseTask(ABC):
             help='The training starts from the specified epoch. '
                  '"latest" indicates the latest-epoch file found '
                  'in output_path')
-        egroup.add_argument('--resume_path', type=str, default=None)
-        group.add_argument('--preatrain_path', type=str, default=None)
-        group.add_argument('--pretrain_key', type=str, default=None)
+        egroup.add_argument('--resume_path', type=str_or_none, default=None)
+
+        group.add_argument('--pretrain_path', type=str_or_none, default=None)
+        group.add_argument('--pretrain_key', type=str_or_none, default=None)
 
         group = parser.add_argument_group('BatchSampler related')
         group.add_argument('--batch_size', type=int, default=10,
@@ -125,7 +126,7 @@ class BaseTask(ABC):
         group.add_argument('--batch_type', type=str, default='const',
                            choices=['const', 'seq', 'batch_bin'])
         group.add_argument(
-            '--eval_batch_type', type=str, default=None,
+            '--eval_batch_type', type=str_or_none, default=None,
             choices=['const', 'seq', 'batch_bin', None],
             help='If not given, the value of --batch_type is used')
 
@@ -135,26 +136,28 @@ class BaseTask(ABC):
             '--eval_batch_files', type=str, nargs='+', default=None)
 
         group = parser.add_argument_group('Dataset related')
-        group.add_argument('--train_data_conf', type=yaml_load, default=dict())
-        group.add_argument('--eval_data_conf', type=yaml_load, default=dict())
+        group.add_argument('--train_data_conf', type=eval, default=dict())
+        group.add_argument('--eval_data_conf', type=eval, default=dict())
         group.add_argument(
-            '--train_preprocess', type=yaml_load, default=dict())
-        group.add_argument('--eval_preprocess', type=yaml_load, default=dict())
+            '--train_preprocess', type=eval, default=dict())
+        group.add_argument('--eval_preprocess', type=eval, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument('--optim', type=str, default='adam',
                            choices=cls.optimizer_choices(),
                            help='The optimizer type')
-        group.add_argument('--optim_conf', type=yaml_load, default=dict())
+        group.add_argument('--optim_conf', type=eval, default=dict())
 
         group.add_argument('--escheduler', type=str_or_none,
                            choices=cls.epoch_scheduler_choices(),
                            help='The epoch-scheduler type')
-        group.add_argument('--escheduler_conf', type=yaml_load, default=dict())
+        group.add_argument('--escheduler_conf', type=eval, default=dict())
 
         group.add_argument(
-            '--bscheduler', type=str, help='The batch-scheduler type')
-        group.add_argument('--bscheduler_conf', type=yaml_load, default=dict())
+            '--bscheduler', type=str_or_none, default=None,
+            choices=cls.batch_scheduler_choices(),
+            help='The batch-scheduler-type')
+        group.add_argument('--bscheduler_conf', type=eval, default=dict())
         return parser
 
     @classmethod
@@ -190,8 +193,9 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def check_required(cls, args: argparse.Namespace):
-        required = ', '.join(f'--{a}' for a in args.required
-                             if getattr(args, a) is None)
+        required = ', '.join(
+            f'--{a}' for a in args.required if getattr(args, a) is None)
+
         if len(required) != 0:
             parser = cls.add_arguments()
             parser.print_help(file=sys.stderr)
@@ -227,7 +231,9 @@ class BaseTask(ABC):
         elif name.lower() == 'adadelta':
             return torch.optim.Adadelta
         else:
-            raise RuntimeError(f'Not supported: --optim {name}')
+            raise RuntimeError(
+                f'--optim must be one of {cls.optimizer_choices()}: '
+                f'--optim {name}')
 
     @classmethod
     @typechecked
@@ -272,7 +278,9 @@ class BaseTask(ABC):
         elif name.lower() == 'cosineannealinglr':
             return torch.optim.lr_scheduler.CosineAnnealingLR
         else:
-            raise RuntimeError(f'Not supported: --escheduler {name}')
+            raise RuntimeError(
+                f'--escheduler must be one of '
+                f'{cls.epoch_scheduler_choices()}: --escheduler {name}')
 
     @classmethod
     @typechecked
@@ -305,7 +313,9 @@ class BaseTask(ABC):
         elif name.lower() == 'cosineannealingwarmrestarts':
             return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
         else:
-            raise RuntimeError(f'Not supported: --bscheduler {name}')
+            raise RuntimeError(
+                f'--bscheduler must be one of '
+                f'{cls.batch_scheduler_choices()}: --bscheduler {name}')
 
     @classmethod
     @typechecked
@@ -336,17 +346,23 @@ class BaseTask(ABC):
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
 
+        if args.train_dtype in ('float32', 'O0', 'O1', 'O2', 'O3'):
+            dtype = 'float32'
+        else:
+            dtype = args.train_dtype
         # Creates train-data-iterator
-        train_dataset = Dataset(args.train_data_conf, args.train_preprocess)
+        train_dataset = Dataset(
+            args.train_data_conf, args.train_preprocess, float_dtype=dtype)
         train_batch_sampler = BatchSampler(
             type=args.batch_type, paths=args.train_batch_files,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=collate_fn)
+                                collate_fn=collate_fn,)
 
         # Creates eval-data-iterator
-        eval_dataset = Dataset(args.eval_data_conf, args.eval_preprocess)
+        eval_dataset = Dataset(
+            args.eval_data_conf, args.eval_preprocess, float_dtype=dtype)
 
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
@@ -386,9 +402,9 @@ class BaseTask(ABC):
         else:
             batch_scheduler = None
         # epoch_scheduler: invoked at every epochs
-        reporter = Reporter(args.output_dir / 'report')
-
         output_path = Path(args.output_dir)
+        reporter = Reporter(output_path / 'report')
+
         output_path.mkdir(parents=True, exist_ok=True)
 
         # Loads states from saved files
@@ -507,7 +523,7 @@ class BaseTask(ABC):
             batch_scheduler: AbsBatchScheduler = None,
             epoch_scheduler: AbsEpochScheduler = None,
             end_epoch: int = 30,
-            patience: int = np.inf,
+            patience: int = None,
             ngpu: int = 1,
             train_dtype: str = 'float32',
             grad_noise: bool = False,
@@ -631,9 +647,9 @@ class BaseTask(ABC):
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), grad_clip_threshold)
             if iiter % accum_grad == 0:
-                if torch.isnan(grad_norm):
-                    logging.warning(
-                        'The grad norm is nan. Skipping updating the model.')
+                if not np.isfinite(grad_norm):
+                    logging.warning(f'The grad norm is {grad_norm}. '
+                                    f'Skipping updating the model.')
                 else:
                     optimizer.step()
                 optimizer.zero_grad()

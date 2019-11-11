@@ -13,25 +13,47 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.e2e import E2E
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import yaml_load, str_or_none
+from espnet2.utils.types import str_or_none, int_or_none
 
 
 class Stft(torch.nn.Module):
     @typechecked
-    def __init__(self, n_fft: int, fs: int,
-                 win_length_ms: int = 25, hop_length_ms: int = 10):
+    def __init__(self, fs: int,
+                 n_fft: int = 512,
+                 win_length_ms: int = 25,
+                 hop_length_ms: int = 10,
+                 center: bool = True,
+                 pad_mode: str ='reflect',
+                 normalized: bool = False,
+                 onesided: bool = True
+                 ):
         super().__init__()
         self.n_fft = n_fft
 
-        self.win_length = win_length_ms * fs / 1000
-        self.hop_length = hop_length_ms * fs / 1000
+        self.win_length = int(win_length_ms * fs / 1000)
+        self.hop_length = int(hop_length_ms * fs / 1000)
+        self.center = center
+        self.pad_mode = pad_mode
+        self.normalized = normalized
+        self.onesided = onesided
 
-    @torch.no_grad()
-    def forward(self, input, ilens) -> Tuple[torch.Tensor, torch.Tensor]:
-        raise RuntimeError
-        return torch.stft(
-            input, n_fft=self.n, win_length=self.win_length,
-            hop_length=self.hop_length)
+    def forward(self,
+                input: torch.Tensor,
+                ilens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        # output: (Batch, Freq, Frames, 2=real_imag)
+        output = torch.stft(
+            input, n_fft=self.n_fft, win_length=self.win_length,
+            hop_length=self.hop_length, center=self.center,
+            pad_mode=self.pad_mode, normalized=self.normalized,
+            onesided=self.onesided)
+
+        if self.center:
+            pad = self.n_fft // 2
+            ilens = ilens + 2 * pad
+        olens = (ilens - self.win_length) // self.hop_length + 1
+
+        return output, olens
 
 
 class ASRTask(BaseTask):
@@ -54,44 +76,42 @@ class ASRTask(BaseTask):
         required = parser.get_default('required')
         required += ['odim', 'fs']
 
-        group.add_argument('--odim', type=int)
+        group.add_argument('--odim', type=int_or_none, default=None)
         group.add_argument('--fs', type=humanfriendly.parse_size,
+                           default=None,
                            help='The sampling frequency of input wave')
-        group.add_argument('--n_fft', type=int, default=512,
-                           help='The number of FFT')
-        group.add_argument('--feat_dim', type=int, default=80,
-                           help='')
 
         group.add_argument(
             '--stft', type=str, default='stft',
             choices=cls.stft_choices(), help='Specify stft class')
         group.add_argument(
-            '--stft_conf', type=yaml_load, default=dict(),
+            '--stft_conf', type=eval, default=dict(),
             help='The keyword arguments for stft class.')
         group.add_argument(
-            '--frontend', type=str_or_none, choices=cls.frontend_choices(),
-            help='Specify frontend class')
+            '--frontend', type=str_or_none,
+            choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
-            '--frontend_conf', type=yaml_load, default=dict(),
+            '--frontend_conf', type=eval, default=dict(),
             help='The keyword arguments for feature-transform class.')
         group.add_argument('--feature_transform', type=str,
-                           default='fbank_mvn', choices=cls.frontend_choices(),
+                           default='fbank_mvn',
+                           choices=cls.feature_transform_choices(),
                            help='Specify feature-transform class')
         group.add_argument(
-            '--feature_transform_conf', type=yaml_load, default=dict(),
+            '--feature_transform_conf', type=eval, default=dict(),
             help='The keyword arguments for feature-transform class.')
 
-        group.add_argument('--encoder_decoder', type=str,
-                           default='transformer',
-                           choices=cls.encoder_decoder_choices(),
-                           help='Specify Encoder-Decoder type')
-        group.add_argument('--encoder_conf', type=yaml_load, default=dict(),
+        group.add_argument(
+            '--encoder_decoder', type=str, default='transformer',
+            choices=cls.encoder_decoder_choices(),
+            help='Specify Encoder-Decoder type')
+        group.add_argument('--encoder_conf', type=eval, default=dict(),
                            help='The keyword arguments for Encoder class.')
-        group.add_argument('--decoder_conf', type=yaml_load, default=dict(),
+        group.add_argument('--decoder_conf', type=eval, default=dict(),
                            help='The keyword arguments for Decoder class.')
-        group.add_argument('--ctc_conf', type=yaml_load, default=dict(),
+        group.add_argument('--ctc_conf', type=eval, default=dict(),
                            help='The keyword arguments for CTC class.')
-        group.add_argument('--e2e_conf', type=yaml_load, default=dict(),
+        group.add_argument('--e2e_conf', type=eval, default=dict(),
                            help='The keyword arguments for ETE class.')
 
         return parser
@@ -116,8 +136,9 @@ class ASRTask(BaseTask):
         feature_transform_class = \
             cls.get_feature_transform_class(args.feature_transform)
         feature_transform_conf = get_defaut_values(feature_transform_class)
+
         # FIXME(kamo): A little bit dirty way
-        feature_transform_conf.pop('n_mels', None)
+        feature_transform_conf.pop('fs', None)
 
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
@@ -156,7 +177,8 @@ class ASRTask(BaseTask):
         if name.lower() == 'stft':
             return Stft
         else:
-            raise RuntimeError(f'Not supported: --stft {name}')
+            raise RuntimeError(
+                f'--stft must be one of {cls.stft_choices()}: --stft {name}')
 
     @classmethod
     @typechecked
@@ -173,7 +195,9 @@ class ASRTask(BaseTask):
         if name.lower() == 'wpe_mvdr':
             return Frontend
         else:
-            raise RuntimeError(f'Not supported: --frontend {name}')
+            raise RuntimeError(
+                f'--frontend must be one of '
+                f'{cls.frontend_choices()}: --frontend {name}')
 
     @classmethod
     @typechecked
@@ -189,7 +213,10 @@ class ASRTask(BaseTask):
         if name.lower() == 'fbank_mvn':
             return FeatureTransform
         else:
-            raise RuntimeError(f'Not supported: --feature_transform {name}')
+            raise RuntimeError(
+                f'--feature_transform must be one of '
+                f'{cls.feature_transform_choices()}: '
+                f'--feature_transform {name}')
 
     @classmethod
     @typechecked
@@ -207,36 +234,39 @@ class ASRTask(BaseTask):
             from espnet.nets.pytorch_backend.transformer.decoder import Decoder
             from espnet.nets.pytorch_backend.transformer.encoder import Encoder
             return Encoder, Decoder
+
         elif name.lower() == 'rnn':
             raise NotImplementedError
+
         else:
-            raise RuntimeError(f'Not supported: --encoder_decoder {name}')
+            raise RuntimeError(
+                f'--encoder_decoder must be one of '
+                f'{cls.encoder_decoder_choices()}: --encoder_decoder {name}')
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
         # 1. Stft
         stft_class = cls.get_stft_class(args.stft)
-        stft = stft_class(n_fft=args.n_fft, fs=args.fs, **args.stft_conf)
+        stft = stft_class(fs=args.fs, **args.stft_conf)
 
         # 2. [Option] Frontend
         if args.frontend is not None:
             frontend_class = cls.get_frontend_class(args.frontend)
-            frontend = frontend_class(idim=args.n_fft, **args.frontend_conf)
+            frontend = frontend_class(**args.frontend_conf)
         else:
             frontend = None
 
-        # 3. Feature transform
+        # 3. Feature-transform
         feature_transform_class = cls.get_feature_transform_class(
             args.feature_transform)
         feature_transform = feature_transform_class(
-            fs=args.fs, n_fft=args.n_fft, n_mels=args.feat_dim,
-            **args.feature_transform_conf)
+            fs=args.fs, **args.feature_transform_conf)
 
         # 4. Encoder, Decoder
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
-        encoder = encoder_class(idim=args.feat_dim, **args.encoder_conf)
+        encoder = encoder_class(**args.encoder_conf)
         decoder = decoder_class(odim=args.odim, **args.decoder_conf)
 
         # 5. CTC
@@ -251,6 +281,7 @@ class ASRTask(BaseTask):
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
+            rnnt_decoder=None,
             **args.e2e_conf)
 
         return model

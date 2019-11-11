@@ -55,5 +55,5 @@ try:
     AbsBatchScheduler.register(torch.optim.lr_scheduler.OneCycleLR)
     AbsBatchScheduler.register(
         torch.optim.lr_scheduler.CosineAnnealingWarmRestarts)
-except ImportError:
+except AttributeError:
     pass

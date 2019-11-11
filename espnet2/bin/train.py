@@ -41,13 +41,13 @@ def main(cmd=None):
     Usage:
         python train.py [-h]
         python train.py <sub-command-name> [-h]
-        python train.py <sub-command-name> --show_config
+        python train.py <sub-command-name> --print_config
         python train.py <sub-command-name> ...
 
     Examples:
-        % python train.py asr --show_config
-            --optim adadelta
-            --encoder_decoder transformer
+        % python train.py asr --print_config \
+            --optim adadelta \
+            --encoder_decoder transformer \
                 > conf/train_asr.yaml
         % python train.py asr --config conf/train_asr.yaml
     """
@@ -55,6 +55,7 @@ def main(cmd=None):
     parser = get_parser()
     args = parser.parse_args(cmd)
     if args.main is not None:
+        # Jump to BaseTask.main()
         args.main(args)
     else:
         parser.print_help(file=sys.stderr)
