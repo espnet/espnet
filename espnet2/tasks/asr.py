@@ -13,7 +13,7 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.e2e import E2E
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import str_or_none, int_or_none
+from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
 
 
 class Stft(torch.nn.Module):
@@ -23,7 +23,7 @@ class Stft(torch.nn.Module):
                  win_length_ms: int = 25,
                  hop_length_ms: int = 10,
                  center: bool = True,
-                 pad_mode: str ='reflect',
+                 pad_mode: str = 'reflect',
                  normalized: bool = False,
                  onesided: bool = True
                  ):
@@ -41,7 +41,7 @@ class Stft(torch.nn.Module):
                 input: torch.Tensor,
                 ilens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        # output: (Batch, Freq, Frames, 2=real_imag)
+        # output: (Batch, Freq, NFrame, 2=real_imag)
         output = torch.stft(
             input, n_fft=self.n_fft, win_length=self.win_length,
             hop_length=self.hop_length, center=self.center,
@@ -74,56 +74,66 @@ class ASRTask(BaseTask):
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
-        required += ['odim', 'fs']
+        required += ['odim']
 
         group.add_argument('--odim', type=int_or_none, default=None)
-        group.add_argument('--fs', type=humanfriendly.parse_size,
-                           default=None,
-                           help='The sampling frequency of input wave')
+        group.add_argument(
+            '--fs', type=humanfriendly.parse_size,
+            default=16000, help='The sampling frequency of input wave')
 
         group.add_argument(
             '--stft', type=str, default='stft',
             choices=cls.stft_choices(), help='Specify stft class')
         group.add_argument(
-            '--stft_conf', type=eval, default=dict(),
+            '--stft_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for stft class.')
         group.add_argument(
             '--frontend', type=str_or_none,
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
-            '--frontend_conf', type=eval, default=dict(),
+            '--frontend_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for feature-transform class.')
-        group.add_argument('--feature_transform', type=str,
-                           default='fbank_mvn',
-                           choices=cls.feature_transform_choices(),
-                           help='Specify feature-transform class')
         group.add_argument(
-            '--feature_transform_conf', type=eval, default=dict(),
+            '--feature_transform', type=str,
+            default='fbank_mvn', choices=cls.feature_transform_choices(),
+            help='Specify feature-transform class')
+        group.add_argument(
+            '--feature_transform_conf',
+            action=NestedDictAction, default=dict(),
             help='The keyword arguments for feature-transform class.')
 
         group.add_argument(
             '--encoder_decoder', type=str, default='transformer',
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
-        group.add_argument('--encoder_conf', type=eval, default=dict(),
-                           help='The keyword arguments for Encoder class.')
-        group.add_argument('--decoder_conf', type=eval, default=dict(),
-                           help='The keyword arguments for Decoder class.')
-        group.add_argument('--ctc_conf', type=eval, default=dict(),
-                           help='The keyword arguments for CTC class.')
-        group.add_argument('--e2e_conf', type=eval, default=dict(),
-                           help='The keyword arguments for ETE class.')
+        group.add_argument(
+            '--encoder_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for Encoder class.')
+        group.add_argument(
+            '--decoder_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for Decoder class.')
+        group.add_argument(
+            '--ctc_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for CTC class.')
+        group.add_argument(
+            '--e2e_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for ETE class.')
 
         return parser
 
     @classmethod
     @typechecked
-    def get_default_config(cls) -> Dict[str, Any]:
-        config = BaseTask.get_default_config()
+    def exclude_opts(cls) -> Tuple[str, ...]:
+        return ('odim',) + BaseTask.exclude_opts()
 
+    @classmethod
+    @typechecked
+    def get_default_config(cls) -> Dict[str, Any]:
+        # 0. Parse command line arguments
         parser = ASRTask.add_arguments()
         args, _ = parser.parse_known_args()
 
+        # 1. Get the default values from class.__init__
         stft_class = cls.get_stft_class(args.stft)
         stft_conf = get_defaut_values(stft_class)
 
@@ -137,9 +147,6 @@ class ASRTask(BaseTask):
             cls.get_feature_transform_class(args.feature_transform)
         feature_transform_conf = get_defaut_values(feature_transform_class)
 
-        # FIXME(kamo): A little bit dirty way
-        feature_transform_conf.pop('fs', None)
-
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
         encoder_conf = get_defaut_values(encoder_class)
@@ -147,6 +154,28 @@ class ASRTask(BaseTask):
         ctc_conf = get_defaut_values(CTC)
         e2e_conf = get_defaut_values(E2E)
 
+        # 2. Create configuration-dict from command-arguments
+        config = vars(args)
+
+        # 3. Update the dict using the inherited configuration from BaseTask
+        config.update(BaseTask.get_default_config())
+
+        # 4. Excluded the specified options
+        for k in cls.exclude_opts():
+            config.pop(k)
+
+        # 5. Overwrite the default config by the command-arguments
+        stft_conf.update(config['stft_conf'])
+        frontend_conf.update(config['frontend_conf'])
+        feature_transform_conf.update(config['feature_transform_conf'])
+        encoder_conf.update(config['encoder_conf'])
+        decoder_conf.update(config['decoder_conf'])
+        ctc_conf.update(config['ctc_conf'])
+
+        # FIXME(kamo): A little bit dirty way
+        feature_transform_conf.pop('fs', None)
+
+        # 6. Reassign them to the configuration
         config.update(
             stft=args.stft,
             stft_conf=stft_conf,
@@ -158,8 +187,7 @@ class ASRTask(BaseTask):
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
-            e2e_conf=e2e_conf,
-            )
+            e2e_conf=e2e_conf)
 
         return config
 
@@ -258,10 +286,10 @@ class ASRTask(BaseTask):
             frontend = None
 
         # 3. Feature-transform
-        feature_transform_class = cls.get_feature_transform_class(
-            args.feature_transform)
-        feature_transform = feature_transform_class(
-            fs=args.fs, **args.feature_transform_conf)
+        feature_transform_class = \
+            cls.get_feature_transform_class(args.feature_transform)
+        feature_transform = \
+            feature_transform_class(fs=args.fs, **args.feature_transform_conf)
 
         # 4. Encoder, Decoder
         encoder_class, decoder_class = \

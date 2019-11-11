@@ -12,6 +12,7 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet2.tasks.asr import Stft
 
 
 class E2E(torch.nn.Module):
@@ -92,10 +93,12 @@ class E2E(torch.nn.Module):
         output.masked_fill_(make_pad_mask(output_lengths), self.ignore_id)
 
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
+        # input_stft: (Batch, Length, Freq)
         input_stft, feats_lens = self.forward_stft(input, input_lengths)
 
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
+            # input_stft: (Batch, [Channel,] Length, Freq)
             input_stft, _, _ = self.frontend(input_stft, feats_lens)
 
         # 3. Feature transform e.g. Stft -> Mel-Fbank
@@ -146,19 +149,20 @@ class E2E(torch.nn.Module):
         return loss, stats
 
     def forward_stft(self, input: torch.Tensor, input_lengths: torch.Tensor) \
-            -> Tuple[ComplexTensor, torch.Tensor]:
-        # FIXME(kamo): Assuming self.stft is Stft actually.
-        # input_stft, feats_lens: (B, F, T, 2), (B, T)
+            -> Tuple[Union[ComplexTensor, torch.Tensor], torch.Tensor]:
         input_stft, feats_lens = self.stft(input, input_lengths)
 
-        # FIXME(kamo): To be hided in stft()?
-        # input_stft: (B, F, T, 2) -> input_stft_complex: (B, F, T)
-        input_stft_complex = \
-            ComplexTensor(input_stft[..., 0], input_stft[..., 1])
-        # input_stft: (B, F, T) -> (B, T, F)
-        input_stft_complex = input_stft_complex.transpose(1, 2)
+        if isinstance(self.stft, Stft):
+            # FIXME(kamo): To be hided in stft()?
+            # input_stft: (..., F, T, 2) -> (..., F, T)
+            assert input_stft.dim() >= 4, input_stft.shape
+            assert len(input_stft.shape[-1]) == 2, input_stft.shape
+            input_stft = \
+                ComplexTensor(input_stft[..., 0], input_stft[..., 1])
+            # input_stft: (..., F, T) -> (..., T, F)
+            input_stft = input_stft.transpose(-1, -2)
 
-        return input_stft_complex, feats_lens
+        return input_stft, feats_lens
 
     def calc_decoder_loss(self,
                           ys_pad: torch.Tensor,

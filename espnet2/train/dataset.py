@@ -23,6 +23,8 @@ class BatchSampler(Sampler):
                  shuffle: bool = False):
         if len(paths) == 0:
             raise ValueError('1 or more paths must be given')
+        paths = tuple(paths)
+
         self.shuffle = shuffle
         self.batch_size = batch_size
 
@@ -147,6 +149,9 @@ class Dataset:
                  float_dtype: str = 'float32', int_dtype: str = 'long'):
         if len(config) == 0:
             raise ValueError('1 or more elements are required for "config"')
+        config = config.copy()
+        preproces = preproces.copy()
+
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
 
@@ -232,8 +237,6 @@ class Dataset:
             # Using for-loop instead of dict-comprehension for debuggability
             retval = {}
             for k, v in d.items():
-                # Note(kamo): Use np.loadtxt instead of np.fromstring
-                # because I dislike the latter's behaviour
                 try:
                     retval[k] = np.loadtxt(
                         StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)

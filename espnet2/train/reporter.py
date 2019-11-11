@@ -76,6 +76,7 @@ class Reporter:
             epoch = self.epoch
         return key in self.stats[epoch] and key2 in self.stats[epoch][key]
 
+    @typechecked
     def plot(self, key: Sequence[str], key2: Sequence[str]):
         assert not isinstance(key, str), f'Input as [{key}]'
         assert not isinstance(key2, str), f'Input as [{key2}]'
