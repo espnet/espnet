@@ -100,7 +100,7 @@ def main():
 
     outyaml.parent.mkdir(parents=True, exist_ok=True)
     with outyaml.open('w') as f:
-        yaml.dump(indict, f, Dumper=yaml.Dumper)
+        yaml.dump(indict, f, Dumper=yaml.Dumper, indent=4, sort_keys=False)
     print(outyaml)
 
 
