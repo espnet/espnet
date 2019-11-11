@@ -177,13 +177,9 @@ class ASRTask(BaseTask):
 
         # 6. Reassign them to the configuration
         config.update(
-            stft=args.stft,
             stft_conf=stft_conf,
-            frontend=args.frontend,
             frontend_conf=frontend_conf,
-            feature_transform=args.feature_transform,
             feature_transform_conf=feature_transform_conf,
-            encoder_decoder=args.encoder_decoder,
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
