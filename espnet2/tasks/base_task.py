@@ -564,7 +564,7 @@ class BaseTask(ABC):
                      iterator=eval_iter,
                      reporter=reporter,
                      ngpu=ngpu)
-            reporter.plot()
+            reporter.plot(['train', 'eval'], ['loss', 'acc'])
 
             # Saves the best model
             for k, mode in [('loss', 'min'), ('acc', 'max')]:
