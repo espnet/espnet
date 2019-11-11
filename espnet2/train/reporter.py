@@ -1,18 +1,36 @@
+import itertools
 from collections import defaultdict
 from pathlib import Path
-from typing import Union, Dict, Tuple, Optional
+from typing import Union, Dict, Tuple, Optional, Sequence
 
 import numpy as np
 import torch
 from typeguard import typechecked
 
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+
 
 class Reporter:
+    """
+
+    About the structure of Reporter.stats:
+        >>> epoch = 0
+        >>> reporter = Reporter('output')
+        >>> epoch_stats = reporter.stats[epoch]
+        >>> stats = epoch_stats ['train']  # or eval
+        >>> acc_list = stats['acc']
+        >>> mean_value = np.nanmean(acc_list)
+
+    """
     @typechecked
     def __init__(self, output_dir: Union[str, Path]):
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # self.stats: Dict[int, Dict[str, List[float]]]
         self.stats = defaultdict(
             lambda: defaultdict(lambda: defaultdict(list)))
         self.epoch = 0
@@ -23,8 +41,11 @@ class Reporter:
     def get_epoch(self) -> int:
         return self.epoch
 
-    def get_value(self, key: str, key2: str):
-        return np.nanmean(self.stats[self.epoch][key][key2])
+    @typechecked
+    def get_value(self, key: str, key2: str, epoch: int = None):
+        if epoch is None:
+            epoch = self.epoch
+        return np.nanmean(self.stats[epoch][key][key2])
 
     @typechecked
     def best_epoch_and_value(self, key: str, key2: str, mode: str) \
@@ -37,7 +58,9 @@ class Reporter:
         for epoch in sorted(self.stats):
             values = self.stats[epoch][key][key2]
             value = np.nanmean(values)
-            if best_value is not None:
+
+            # If at the first iteration:
+            if best_value is None:
                 best_value = value
                 best_epoch = epoch
             else:
@@ -47,14 +70,24 @@ class Reporter:
                     best_value = value
         return best_epoch, best_value
 
-    def has_key(self, key: str, key2: str) -> bool:
-        return key in self.stats[self.epoch] and \
-            key2 in self.stats[self.epoch][key]
+    @typechecked
+    def has_key(self, key: str, key2: str, epoch: int = None) -> bool:
+        if epoch is None:
+            epoch = self.epoch
+        return key in self.stats[epoch] and key2 in self.stats[epoch][key]
 
-    def plot(self):
-        # matplotlib and tensorboard
-        raise NotImplementedError
-    
+    def plot(self, key: Sequence[str], key2: Sequence[str]):
+        assert not isinstance(key, str), f'Input as [{key}]'
+        assert not isinstance(key2, str), f'Input as [{key2}]'
+        plt.clf()
+        for k, k2 in itertools.product(key, key2):
+            x = np.arange(1, max(self.stats))
+            y = [np.nanmean(self.stats[e][k][k2])
+                 if e in self.stats else np.nan for e in x]
+            plt.plot(x, y, label=f'{k}-{k2}')
+        plt.savefig(self.output_dir / 'plot.png')
+        plt.clf()
+
     def report(self, key: str, stats: Dict[str, Union[float, torch.Tensor]]):
         # key: train or eval
         d = self.stats[self.epoch][key]
@@ -78,6 +111,11 @@ class Reporter:
         return count
 
     def state_dict(self):
+        def to_vanilla_dict(stats: defaultdict) -> dict:
+            if isinstance(stats, defaultdict):
+                return \
+                    {k: to_vanilla_dict(v) if isinstance(v, defaultdict) else v
+                     for k, v in stats.items()}
         return {'stats': self.stats, 'epoch': self.epoch}
 
     def load_state_dict(self, state_dict: dict):
