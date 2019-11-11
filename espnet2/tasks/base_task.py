@@ -189,15 +189,18 @@ class BaseTask(ABC):
         # e.g. --print_config --optim adadelta
         optim_class = cls.get_optimizer_class(args.optim)
         optim_conf = get_defaut_values(optim_class)
+        optim_conf.update(config['optim_conf'])
         config['optim_conf'] = optim_conf
 
         if args.escheduler is not None:
             escheduler_class = cls.get_epoch_scheduler_class(args.escheduler)
             escheduler_conf = get_defaut_values(escheduler_class)
+            escheduler_conf.update(config['escheduler_conf'])
             config['escheduler_conf'] = escheduler_conf
         if args.bscheduler is not None:
             bscheduler_class = cls.get_batch_scheduler_class(args.bscheduler)
             bscheduler_conf = get_defaut_values(bscheduler_class)
+            bscheduler_conf.update(config['bscheduler_conf'])
             config['bscheduler_conf'] = bscheduler_conf
 
         return config
