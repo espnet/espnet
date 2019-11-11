@@ -24,7 +24,9 @@ from espnet2.schedulers.abs_scheduler import (
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.train.reporter import Reporter
 from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.utils.types import (
+    int_or_none, str2bool, str_or_none,
+    NestedDictAction, )
 
 
 class BaseTask(ABC):
@@ -118,8 +120,9 @@ class BaseTask(ABC):
         group.add_argument('--pretrain_key', type=str_or_none, default=None)
 
         group = parser.add_argument_group('BatchSampler related')
-        group.add_argument('--batch_size', type=int, default=10,
-                           help='The mini-batch size used for training')
+        group.add_argument(
+            '--batch_size', type=int, default=10,
+            help='The mini-batch size used for training')
         group.add_argument(
             '--eval_batch_size', type=int_or_none, default=None,
             help='If not given, the value of --batch_size is used')
@@ -136,29 +139,42 @@ class BaseTask(ABC):
             '--eval_batch_files', type=str, nargs='+', default=None)
 
         group = parser.add_argument_group('Dataset related')
-        group.add_argument('--train_data_conf', type=eval, default=dict())
-        group.add_argument('--eval_data_conf', type=eval, default=dict())
         group.add_argument(
-            '--train_preprocess', type=eval, default=dict())
-        group.add_argument('--eval_preprocess', type=eval, default=dict())
+            '--train_data_conf', action=NestedDictAction, default=dict())
+        group.add_argument(
+            '--eval_data_conf', action=NestedDictAction, default=dict())
+        group.add_argument(
+            '--train_preprocess', action=NestedDictAction, default=dict())
+        group.add_argument(
+            '--eval_preprocess', action=NestedDictAction, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
-        group.add_argument('--optim', type=str, default='adam',
-                           choices=cls.optimizer_choices(),
-                           help='The optimizer type')
-        group.add_argument('--optim_conf', type=eval, default=dict())
+        group.add_argument(
+            '--optim', type=str, default='adam',
+            choices=cls.optimizer_choices(), help='The optimizer type')
+        group.add_argument(
+            '--optim_conf', action=NestedDictAction, default=dict())
 
-        group.add_argument('--escheduler', type=str_or_none,
-                           choices=cls.epoch_scheduler_choices(),
-                           help='The epoch-scheduler type')
-        group.add_argument('--escheduler_conf', type=eval, default=dict())
+        group.add_argument(
+            '--escheduler', type=str_or_none,
+            choices=cls.epoch_scheduler_choices(),
+            help='The epoch-scheduler type')
+        group.add_argument(
+            '--escheduler_conf', action=NestedDictAction, default=dict())
 
         group.add_argument(
             '--bscheduler', type=str_or_none, default=None,
             choices=cls.batch_scheduler_choices(),
             help='The batch-scheduler-type')
-        group.add_argument('--bscheduler_conf', type=eval, default=dict())
+        group.add_argument(
+            '--bscheduler_conf', action=NestedDictAction, default=dict())
         return parser
+
+    @classmethod
+    @typechecked
+    def exclude_opts(cls) -> Tuple[str, ...]:
+        return ('required', 'print_config', 'config', 'ngpu',
+                'log_level', 'output_dir')
 
     @classmethod
     @typechecked
@@ -166,12 +182,8 @@ class BaseTask(ABC):
         parser = BaseTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
-        config.pop('required')
-        config.pop('print_config')
-        config.pop('config')
-        config.pop('ngpu')
-        config.pop('log_level')
-        config.pop('output_dir')
+        for k in cls.exclude_opts():
+            config.pop(k)
 
         # Get the default arguments from the specified class
         # e.g. --print_config --optim adadelta
@@ -193,6 +205,12 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def check_required(cls, args: argparse.Namespace):
+        # The key includes "-" is confusing if it is written in a yaml
+        for k in vars(args):
+            if '-' in k:
+                raise RuntimeError(
+                    f'Use "_" instead of "-": parser.add_arguments("{k}")')
+
         required = ', '.join(
             f'--{a}' for a in args.required if getattr(args, a) is None)
 
@@ -387,8 +405,8 @@ class BaseTask(ABC):
         if args.escheduler is not None:
             epoch_scheduler_class = \
                 cls.get_epoch_scheduler_class(args.escheduler)
-            epoch_scheduler = epoch_scheduler_class(optimizer,
-                                                    **args.escheduler)
+            epoch_scheduler = \
+                epoch_scheduler_class(optimizer, **args.escheduler_conf)
         else:
             epoch_scheduler = None
 
@@ -397,8 +415,8 @@ class BaseTask(ABC):
         if args.bscheduler is not None:
             batch_scheduler_class = \
                 cls.get_batch_scheduler_class(args.bscheduler)
-            batch_scheduler = batch_scheduler_class(optimizer,
-                                                    **args.bscheduler)
+            batch_scheduler = \
+                batch_scheduler_class(optimizer, **args.bscheduler_conf)
         else:
             batch_scheduler = None
         # epoch_scheduler: invoked at every epochs
@@ -537,8 +555,8 @@ class BaseTask(ABC):
                 logging.error(f'You need to install apex. '
                               f'See https://github.com/NVIDIA/apex#linux')
                 raise
-            model, optimizer = amp.initialize(model, optimizer,
-                                              opt_level=train_dtype)
+            model, optimizer = \
+                amp.initialize(model, optimizer, opt_level=train_dtype)
         if train_dtype in ('float16', 'float32', 'float64'):
             dtype = getattr(torch, train_dtype)
         else:
@@ -624,8 +642,8 @@ class BaseTask(ABC):
             if ngpu <= 1:
                 loss, stats = model(**batch)
             else:
-                loss, stats = data_parallel(model, range(ngpu),
-                                            module_kwargs=batch)
+                loss, stats = \
+                    data_parallel(model, range(ngpu), module_kwargs=batch)
                 loss = loss.mean(0)
                 stats = {k: v.mean(0) for k, v in stats.items()}
 
@@ -668,8 +686,8 @@ class BaseTask(ABC):
             if ngpu <= 1:
                 _, stats = model(**batch)
             else:
-                _, stats = data_parallel(
-                    model, range(ngpu), module_kwargs=batch)
+                _, stats = \
+                    data_parallel(model, range(ngpu), module_kwargs=batch)
                 stats = {k: v.mean(0).item() for k, v in stats.items()}
 
             reporter.report('eval', stats)
