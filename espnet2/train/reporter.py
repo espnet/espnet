@@ -12,6 +12,15 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
+# Can't use lambda function because it's not picklable
+def ret_defaultdict1():
+    return defaultdict(list)
+
+
+def ret_default_dict2():
+    return defaultdict(ret_defaultdict1)
+
+
 class Reporter:
     """
 
@@ -30,9 +39,8 @@ class Reporter:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # self.stats: Dict[int, Dict[str, List[float]]]
-        self.stats = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(list)))
+        # self.stats: Dict[int, Dict[str, Dict[str, List[float]]]]
+        self.stats = defaultdict(ret_default_dict2)
         self.epoch = 0
 
     def set_epoch(self, epoch: int):
@@ -112,15 +120,8 @@ class Reporter:
         return count
 
     def state_dict(self):
-        def to_vanilla_dict(stats: defaultdict) -> dict:
-            return {k: to_vanilla_dict(v) if isinstance(v, defaultdict) else v
-                    for k, v in stats.items()}
         return {'stats': self.stats, 'epoch': self.epoch}
 
     def load_state_dict(self, state_dict: dict):
-        def to_default_dict(stats: dict) -> defaultdict:
-            raise NotImplementedError
-
-        stats = state_dict['stats']
-        self.stats = to_default_dict(stats)
+        self.stats = state_dict['stats']
         self.epoch = state_dict['epoch']

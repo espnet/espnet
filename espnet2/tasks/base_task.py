@@ -232,7 +232,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def optimizer_choices(cls) -> Tuple[str, ...]:
-        choices = ('Adam', 'SGD', 'AdaDelta')
+        choices = ('Adam', 'SGD', 'Adadelta')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         return choices

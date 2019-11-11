@@ -98,10 +98,13 @@ class E2E(torch.nn.Module):
 
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
+            assert isinstance(input_stft, ComplexTensor), type(input_stft)
             # input_stft: (Batch, [Channel,] Length, Freq)
             input_stft, _, _ = self.frontend(input_stft, feats_lens)
 
         # 3. Feature transform e.g. Stft -> Mel-Fbank
+        # input_stft: (Batch, [Channel,] Length, Freq)
+        #       -> input_feats: (Batch, Length, Dim)
         input_feats, _ = self.feature_transform(input_stft, feats_lens)
 
         # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
@@ -153,10 +156,10 @@ class E2E(torch.nn.Module):
         input_stft, feats_lens = self.stft(input, input_lengths)
 
         if isinstance(self.stft, Stft):
-            # FIXME(kamo): To be hided in stft()?
-            # input_stft: (..., F, T, 2) -> (..., F, T)
+            # FIXME(kamo): To be hidden in stft()?
             assert input_stft.dim() >= 4, input_stft.shape
             assert len(input_stft.shape[-1]) == 2, input_stft.shape
+            # input_stft: (..., F, T, 2) -> (..., F, T)
             input_stft = \
                 ComplexTensor(input_stft[..., 0], input_stft[..., 1])
             # input_stft: (..., F, T) -> (..., T, F)
