@@ -5,7 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from io import TextIOBase
 from pathlib import Path
-from typing import Union, Any, Dict, Type, Tuple, Optional
+from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence
 
 import configargparse
 import numpy as np
@@ -74,11 +74,13 @@ class BaseTask(ABC):
 
         group.add_argument(
             '--init', type=str, default='pytorch',
-            choices=['pytorch', 'xavier_uniform', 'xavier_normal',
-                     'kaiming_uniform', 'kaiming_normal'],
+            choices=('pytorch', 'xavier_uniform', 'xavier_normal',
+                     'kaiming_uniform', 'kaiming_normal'),
             help='The initialization method for the model parameters')
 
         group = parser.add_argument_group('Trainer related')
+        group.add_argument('--max_epoch', type=int, default=30,
+                           help='The maximum number epoch to train')
         group.add_argument(
             '--train_dtype', default="float32",
             choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
@@ -96,6 +98,9 @@ class BaseTask(ABC):
                                 'gradients during training')
         group.add_argument('--accum_grad', type=int, default=1,
                            help='The number of gradient accumulation')
+        group.add_argument('--log_interval', type=int, default=200,
+                           help='Show logs every the number iterations in'
+                                'each epochs of training phase.')
 
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
@@ -182,6 +187,7 @@ class BaseTask(ABC):
         parser = BaseTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
+        # Excludes the specified options
         for k in cls.exclude_opts():
             config.pop(k)
 
@@ -348,7 +354,8 @@ class BaseTask(ABC):
 
     @classmethod
     @typechecked
-    def main(cls, args: argparse.Namespace = None, cmd: str = None) -> None:
+    def main(cls, args: argparse.Namespace = None,
+             cmd: Sequence[str] = None) -> None:
         if args is None:
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
@@ -424,9 +431,11 @@ class BaseTask(ABC):
             batch_scheduler = None
         # epoch_scheduler: invoked at every epochs
         output_path = Path(args.output_dir)
-        reporter = Reporter(output_path / 'report')
+        reporter = Reporter()
 
         output_path.mkdir(parents=True, exist_ok=True)
+
+        # Note(kamo): Don't give "args" load() and run() directly!!!
 
         # Loads states from saved files
         cls.load(model=model,
@@ -450,11 +459,13 @@ class BaseTask(ABC):
                 batch_scheduler=batch_scheduler,
                 epoch_scheduler=epoch_scheduler,
                 ngpu=args.ngpu,
+                max_epoch=args.max_epoch,
                 train_dtype=args.train_dtype,
                 patience=args.patience,
                 grad_noise=args.grad_noise,
                 accum_grad=args.accum_grad,
-                grad_clip_threshold=args.grad_clip_threshold
+                grad_clip_threshold=args.grad_clip_threshold,
+                log_interval=args.log_interval,
                 )
 
     @classmethod
@@ -543,13 +554,15 @@ class BaseTask(ABC):
             output_path: Union[str, Path],
             batch_scheduler: AbsBatchScheduler = None,
             epoch_scheduler: AbsEpochScheduler = None,
-            end_epoch: int = 30,
+            max_epoch: int = 30,
             patience: int = None,
             ngpu: int = 1,
             train_dtype: str = 'float32',
             grad_noise: bool = False,
             accum_grad: int = 1,
-            grad_clip_threshold: float = 0.05) -> None:
+            grad_clip_threshold: float = 0.05,
+            log_interval: int = 200,
+            ) -> None:
         # For apex supporting
         if train_dtype in ('O0', 'O1', 'O2', 'O3'):
             try:
@@ -568,41 +581,26 @@ class BaseTask(ABC):
 
         # Starting training process from here
         start_epoch = reporter.get_epoch()
-        for iepoch in range(start_epoch + 1, end_epoch):
-            reporter.set_epoch(iepoch)
-            cls.train(model=model,
-                      optimizer=optimizer,
-                      iterator=train_iter,
-                      reporter=reporter,
-                      scheduler=batch_scheduler,
-                      ngpu=ngpu,
-                      use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
-                      grad_noise=grad_noise,
-                      accum_grad=accum_grad,
-                      grad_clip_threshold=grad_clip_threshold
-                      )
-            cls.eval(model=model,
-                     iterator=eval_iter,
-                     reporter=reporter,
-                     ngpu=ngpu)
-            reporter.plot(['train', 'eval'], ['loss', 'acc'])
+        for iepoch in range(start_epoch, max_epoch):
+            logging.info(f'{iepoch}epoch started')
 
-            # Saves the best model
-            for k, mode in [('loss', 'min'), ('acc', 'max')]:
-                best_epoch, _ = reporter.best_epoch_and_value('eval', k, mode)
-                if reporter.has_key('eval', k) and best_epoch == iepoch:
-                    torch.save(
-                        model.state_dict(), output_path / f'{k}.best.pt')
-            # Saves snap shot for n-latest epochs
-            torch.save(
-                {'model': model.state_dict(),
-                 'optimizer': optimizer.state_dict(),
-                 'reporter': reporter.state_dict(),
-                 'epoch_scheduler': epoch_scheduler.state_dict()
-                 if epoch_scheduler is not None else None,
-                 'batch_scheduler': batch_scheduler.state_dict()
-                 if batch_scheduler is not None else None},
-                output_path / f'{iepoch}epoch.pt')
+            with reporter.start_epoch():
+                cls.train(model=model,
+                          optimizer=optimizer,
+                          iterator=train_iter,
+                          reporter=reporter,
+                          scheduler=batch_scheduler,
+                          ngpu=ngpu,
+                          use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
+                          grad_noise=grad_noise,
+                          accum_grad=accum_grad,
+                          grad_clip_threshold=grad_clip_threshold,
+                          log_interval=log_interval,
+                          )
+                cls.eval(model=model,
+                         iterator=eval_iter,
+                         reporter=reporter,
+                         ngpu=ngpu)
 
             if epoch_scheduler is not None:
                 # Controls opt-params by scheduler e.g. learning rate decay
@@ -613,15 +611,56 @@ class BaseTask(ABC):
                     epoch_scheduler.step(val)
                 else:
                     epoch_scheduler.step()
+            torch.save(
+                {'model': model.state_dict(),
+                 'optimizer': optimizer.state_dict(),
+                 'reporter': reporter.state_dict(),
+                 'epoch_scheduler': epoch_scheduler.state_dict()
+                 if epoch_scheduler is not None else None,
+                 'batch_scheduler': batch_scheduler.state_dict()
+                 if batch_scheduler is not None else None},
+                output_path / f'{iepoch}epoch.pt')
+
+            # Saves the best model
+            for k, mode in [('loss', 'min'), ('acc', 'max')]:
+                best_epoch, _ = reporter.best_epoch_and_value('eval', k, mode)
+                _saved = None
+                if reporter.has_key('eval', k) and best_epoch == iepoch:
+                    if _saved is not None:
+                        # Creates sym links
+                        p = output_path / f'{k}.best.pt'
+                        p.unlink()
+                        p.symlink_to(_saved.name)
+                    else:
+                        _saved = output_path / f'{k}.best.pt'
+                        _saved.unlink()
+                        torch.save(model.state_dict(), _saved)
+
+            reporter.show_stats()
+
+            # Plot results using Matplotlib
+            for k in reporter.get_keys2():
+                plt = reporter.plot_stats(['train', 'eval'], k)
+                p = output_path / 'images' / f'{k}.png'
+                p.parent.mkdir(parents=True, exist_ok=True)
+                plt.savefig(p)
+                plt.clf()
 
             # Early stopping
-            best_epoch, _ = reporter.best_epoch_and_value(
-                'eval',
-                'acc' if reporter.has_key('eval', 'acc') else 'loss',
-                'max' if reporter.has_key('eval', 'acc') else 'min')
-            if patience is not None and iepoch - best_epoch > patience:
-                logging.info()
-                break
+            if patience is not None:
+                best_epoch, _ = reporter.best_epoch_and_value(
+                    'eval',
+                    'acc' if reporter.has_key('eval', 'acc') else 'loss',
+                    'max' if reporter.has_key('eval', 'acc') else 'min')
+                if iepoch - best_epoch > patience:
+                    logging.info(
+                        f'[Early stopping] The value has not been improved '
+                        f'{iepoch - best_epoch} epochs continuously. '
+                        f'The training stopped at {iepoch}')
+                    break
+
+        else:
+            logging.info(f'The training was finished at {max_epoch} epochs ')
 
     @classmethod
     @typechecked
@@ -636,9 +675,9 @@ class BaseTask(ABC):
               grad_noise: bool = False,
               accum_grad: int = 1,
               grad_clip_threshold: float = 0.05,
+              log_interval: int = 200,
               ) -> None:
         model.train()
-
         for iiter, batch in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
@@ -650,7 +689,7 @@ class BaseTask(ABC):
                 loss = loss.mean(0)
                 stats = {k: v.mean(0) for k, v in stats.items()}
 
-            reporter.report('train', stats)
+            reporter.register('train', stats)
             if use_apex:
                 from apex import amp
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -661,7 +700,7 @@ class BaseTask(ABC):
 
             # gradient noise injection
             if grad_noise:
-                add_gradient_noise(model, reporter.total_count('train'),
+                add_gradient_noise(model, reporter.get_total_count(),
                                    duration=100, eta=1.0, scale_factor=0.55)
 
             # compute the gradient norm to check if it is normal or not
@@ -676,6 +715,9 @@ class BaseTask(ABC):
                 optimizer.zero_grad()
                 if scheduler is not None:
                     scheduler.step()
+
+            if iiter % log_interval == 0:
+                reporter.logging('train', nlatest=log_interval)
 
     @classmethod
     @typechecked
@@ -693,12 +735,15 @@ class BaseTask(ABC):
                     data_parallel(model, range(ngpu), module_kwargs=batch)
                 stats = {k: v.mean(0).item() for k, v in stats.items()}
 
-            reporter.report('eval', stats)
+            reporter.register('eval', stats)
 
 
 def to_device(data, device):
     if isinstance(data, dict):
         return {k: to_device(v, device) for k, v in data.items()}
+    # maybe namedtuple. I don't know the correct way to judge namedtuple.
+    elif isinstance(data, tuple) and type(data) is not tuple:
+        return type(data)(*[to_device(o, device) for o in data])
     elif isinstance(data, (list, tuple)):
         return type(data)(to_device(v, device) for v in data)
     elif isinstance(data, torch.Tensor):

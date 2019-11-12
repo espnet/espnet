@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
-from espnet2.tasks.asr import Stft
+from espnet2.layers.stft import Stft
 
 
 class E2E(torch.nn.Module):
@@ -27,7 +27,7 @@ class E2E(torch.nn.Module):
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: CTC,
-                 rnnt_decoder: torch.nn.Module = None,
+                 rnnt_decoder: torch.nn.Module,
                  ctc_weight: float = 0.5,
                  ignore_id: int = -1,
                  lsm_weight: float = 0.,
@@ -41,6 +41,8 @@ class E2E(torch.nn.Module):
                  ):
         assert 0. < ctc_weight < 1., ctc_weight
         assert rnnt_decoder is None, 'Not implemented'
+
+        char_list = tuple(char_list)
         
         super().__init__()
         self.odim = odim
@@ -142,13 +144,14 @@ class E2E(torch.nn.Module):
                 self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
         stats = dict(
-            loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
+            loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
+            loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
             acc=acc_att,
             cer=cer_att,
             wer=wer_att,
             cer_ctc=cer_ctc,
-            loss=loss.detach())
+        )
         return loss, stats
 
     def forward_stft(self, input: torch.Tensor, input_lengths: torch.Tensor) \
@@ -158,7 +161,9 @@ class E2E(torch.nn.Module):
         if isinstance(self.stft, Stft):
             # FIXME(kamo): To be hidden in stft()?
             assert input_stft.dim() >= 4, input_stft.shape
-            assert len(input_stft.shape[-1]) == 2, input_stft.shape
+            # "2" refers to the real/imag parts of Complex
+            assert input_stft.shape[-1] == 2, input_stft.shape
+
             # input_stft: (..., F, T, 2) -> (..., F, T)
             input_stft = \
                 ComplexTensor(input_stft[..., 0], input_stft[..., 1])
