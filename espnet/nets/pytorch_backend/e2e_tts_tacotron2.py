@@ -124,6 +124,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
         Args:
             ilens (LongTensor or List): Batch of lengths (B,).
+            olens (LongTensor or List): Batch of lengths (B,).
 
         Returns:
             Tensor: Mask tensor indicating non-padded part.
