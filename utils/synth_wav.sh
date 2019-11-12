@@ -43,7 +43,7 @@ decode_dir=decode
 griffin_lim_iters=64
 
 # download related
-models=ljspeech.fastspeech.v1
+models=ljspeech.transformer.v1
 vocoder_models=ljspeech.parallel_wavegan.v1
 
 help_message=$(cat <<EOF
