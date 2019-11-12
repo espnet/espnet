@@ -415,7 +415,7 @@ cd egs/tedlium2/asr1
 where `example.wav` is a WAV file to be recognized.
 The sampling rate must be consistent with that of data used in training.
 
-Available pretrained models are listed as below.
+Available pretrained models in the demo script are listed as below.
 
 | Model | Notes |
 |:------|:------|
@@ -429,9 +429,7 @@ Available pretrained models are listed as below.
 
 ### TTS results
 
-You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
-If you want to check more and more samples, please access our google drive from [our google drive](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX).
-
+You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).  
 Here we list some notable ones:
 
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
@@ -445,64 +443,93 @@ Here we list some notable ones:
 - [Single Mandarin speaker Transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)
 - [Single Mandarin speaker FastSpeech](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
 - [Multi Japanese speaker Transformer](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
-- [Single English speaker models with Parallel WaveGAN](https://drive.google.com/open?id=1HvB0_LDf1PVinJdehiuCt5gWmXGguqtx)
+- [Single English speaker models with Parallel WaveGAN (New!)](https://drive.google.com/open?id=1HvB0_LDf1PVinJdehiuCt5gWmXGguqtx)
 
-> Note that the most of the samples in googlg drive uses Griffin-Lim Algorithm to convert wav.
-> You can listen to WaveNet vocoder samples in our demo HP.
+You can donwload all of the pretrained models and generated samples:
+- [All of the pretrained E2E-TTS models](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF)
+- [All of the generated samples](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX)
 
-All of the pretrained models which generate the above samples are also available in [our google drive](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF).
+Note that in the generated samples we use three vocoders: Griffin-Lim (**GL**), WaveNet vocoder (**WaveNet**), and Parallel WaveGAN (**ParallelWaveGAN**).  
+The neural vocoders are based on following repositories.
+- [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN): Parallel WaveGAN
+- [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder): Mixture of Logistics WaveNet vocoder
+- [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder): 8 bit Softmax WaveNet Vocoder with the noise shaping
+If you want to build your own neural vocoder, please check the above repositories.
+
+Here we list all of the pretrained neural vocoders. Please download and enjoy the generation of high quality speech!
+
+| Model | Notes |
+|:------|:------|
+| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | 8 bit Softmax WaveNet w/ noise shapining trained by [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
+| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN) |
+| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
+| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
+| [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
+| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit (Thanks, @lingjzhu!)|
+| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
 
 
 ### TTS demo
 
 You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
+
 ```sh
 cd egs/ljspeech/tts1
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
 ../../../utils/synth_wav.sh example.txt
 ```
+
 You can change the pretrained model as follows:
+
 ```sh
-../../../utils/synth_wav.sh --models ljspeech.transformer.v3 example.txt
+../../../utils/synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
 ```
 
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
 You can change the pretrained vocoder model as follows:
+
 ```
-../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.mol.v2 example.txt
+../../../utils/synth_wav.sh --stop_stage 4 --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 ```
 
-Available pretrained models are listed as follows:
+Note that WaveNet vocoder provides very high quality speech but it takes time to generate.
+
+Available pretrained models in the demo script are listed as follows:
 
 | Model | Notes |
 |:------|:------|
-| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1Jo06IbVlq79lMA5wM9OMuZ-ByH1eRPkC) | Tacotron 2 with guided attention loss, char input, 80-7600 Hz limit|
-| [ljspeech.transformer.v3](https://drive.google.com/open?id=1Igiu5AZNz2YL6w8FweiamBK6Tp41nmRK) | Deep Transformer, char input, 80-7600 Hz limit|
-| [ljspeech.fastspeech.v3]() | Feed-forward Transformer with CNN instead of position-wise FFN and postnet, char input, 80-7600 Hz limit|
+| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs) | Tactoron 2 with reduction factor = 2|
+| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h) | Tacotron 2 with forward attention |
+| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n) | Tacotron 2 with guided attention loss |
+| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | Deep Transformer |
+| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | Shallow Transformer with reduction factor = 3 |
+| [ljspeech.transformer.v3](https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP) | Deep Transformer (phoneme input) |
+| [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
+| [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
+| [ljspeech.fastspeech.v3](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet (phoneme input)|
+| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Multi-speaker Tacotron 2 with reduction factor = 2, char input |
+| [libritts.transformer.v1](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2, char input |
 | [jsut.tacotron2](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t) | Tacotron 2 ith reduction factor = 2, phoneme input, 80-7600 Hz limit |
 | [jsut.transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD) | Transformer with reduction factor = 3, phoneme input, 80-7600 Hz limit |
 | [csmsc.transformer.v1](https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ) | Transformer with reduction factor = 1, pinyin input, 80-7600 Hz limit |
 | [csmsc.fastspeech.v3](https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet, pinyin input, 80-7600 Hz limit |
-| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3) | Multi-speaker Tacotron 2 with reduction factor = 2, char input |
-| [libritts.transformer.v1](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2, char input |
 
-Available pretrained vocoder models are listed as follows:
+Available pretrained vocoder models in the demo script are listed as follows:
 
 | Model | Notes |
 |:------|:------|
-| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit|
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | 8 bit Softmax WaveNet w/ noise shapining trained by [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
+| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN) |
+| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
 | [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit (Thanks, @lingjzhu!)|
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
-| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
-
-If you want to build your own neural vocoder, please check following repositories:
-- [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN): Parallel WaveGAN
-- [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder): Mixture of Logistics WaveNet vocoder
-- [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder): 8 bit Softmax WaveNet Vocoder with the noise shaping
 
 
 ## Chainer and Pytorch backends
