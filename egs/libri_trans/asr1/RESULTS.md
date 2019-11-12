@@ -55,7 +55,7 @@
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_long_bpe1000_specaug/decode_test.en_decode_rnn_char|2048|36336|94.4|5.1|0.6|0.9|**6.5**|46.4|
 - Model files (archived to train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_long_bpe1000_specaug.tar.gz by `$ pack_model.sh`)
   - model link: https://drive.google.com/open?id=1XENrXkeni_09EoY1auvR-8gPxyn9kMJC
-  - training config file: `conf/tuning/train_pytorch_transformer_bpe.yaml`
+  - training config file: `conf/tuning/train_pytorch_transformer_bpe_long.yaml`
   - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe.yaml`
   - preprocess config file: `conf/specaug.yaml`
   - cmvn file: `data/train_sp.en/cmvn.ark`
