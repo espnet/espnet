@@ -8,8 +8,8 @@ class Stft(torch.nn.Module):
     @typechecked
     def __init__(self, fs: int,
                  n_fft: int = 512,
-                 win_length_ms: int = 25,
-                 hop_length_ms: int = 10,
+                 win_length: int = 512,
+                 hop_length: int = 128,
                  center: bool = True,
                  pad_mode: str ='reflect',
                  normalized: bool = False,
@@ -17,9 +17,8 @@ class Stft(torch.nn.Module):
                  ):
         super().__init__()
         self.n_fft = n_fft
-
-        self.win_length = int(win_length_ms * fs / 1000)
-        self.hop_length = int(hop_length_ms * fs / 1000)
+        self.win_length = win_length
+        self.hop_length = hop_length
         self.center = center
         self.pad_mode = pad_mode
         self.normalized = normalized

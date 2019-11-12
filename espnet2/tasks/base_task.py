@@ -188,7 +188,7 @@ class BaseTask(ABC):
         args, _ = parser.parse_known_args()
         config = vars(args)
         # Excludes the specified options
-        for k in cls.exclude_opts():
+        for k in BaseTask.exclude_opts():
             config.pop(k)
 
         # Get the default arguments from the specified class
@@ -584,7 +584,7 @@ class BaseTask(ABC):
         for iepoch in range(start_epoch, max_epoch):
             logging.info(f'{iepoch}epoch started')
 
-            with reporter.start_epoch():
+            with reporter:
                 cls.train(model=model,
                           optimizer=optimizer,
                           iterator=train_iter,
