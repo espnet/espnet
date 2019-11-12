@@ -27,6 +27,12 @@ def get_parser():
     subparser.set_defaults(main=ASRTask.main)
 
     subparser = subparsers.add_parser(
+        'lm', help='LM model',
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    subparser.set_defaults(main=not_implemented)
+
+    subparser = subparsers.add_parser(
         'tts', help='TTS model',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
