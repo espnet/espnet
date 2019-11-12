@@ -2,7 +2,6 @@ from typing import Dict, List, Union, Optional
 from typing import Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import typechecked
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
@@ -12,7 +11,6 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
-from espnet2.layers.stft import Stft
 
 
 class E2E(torch.nn.Module):
@@ -21,9 +19,7 @@ class E2E(torch.nn.Module):
     @typechecked
     def __init__(self,
                  odim: int,
-                 stft: torch.nn.Module,
-                 frontend: Optional[torch.nn.Module],
-                 feature_transform: torch.nn.Module,
+                 frontend: torch.nn.Module,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: CTC,
@@ -45,16 +41,14 @@ class E2E(torch.nn.Module):
         char_list = tuple(char_list)
         
         super().__init__()
-        self.odim = odim
+        # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
         self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
 
-        self.stft = stft
         self.frontend = frontend
-        self.feature_transform = feature_transform
         self.encoder = encoder
         self.decoder = decoder
         self.ctc = ctc
@@ -94,20 +88,8 @@ class E2E(torch.nn.Module):
         input.masked_fill_(make_pad_mask(input_lengths), 0,)
         output.masked_fill_(make_pad_mask(output_lengths), self.ignore_id)
 
-        # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        # input_stft: (Batch, Length, Freq)
-        input_stft, feats_lens = self.forward_stft(input, input_lengths)
-
-        # 2. [Option] Speech enhancement
-        if self.frontend is not None:
-            assert isinstance(input_stft, ComplexTensor), type(input_stft)
-            # input_stft: (Batch, [Channel,] Length, Freq)
-            input_stft, _, _ = self.frontend(input_stft, feats_lens)
-
-        # 3. Feature transform e.g. Stft -> Mel-Fbank
-        # input_stft: (Batch, [Channel,] Length, Freq)
-        #       -> input_feats: (Batch, Length, Dim)
-        input_feats, _ = self.feature_transform(input_stft, feats_lens)
+        # input (Batch, NSamples) -> input_feats: (Batch, Length, Dim)
+        input_feats, feats_lens = self.frontend(input, input_lengths)
 
         # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
         feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :]
@@ -153,24 +135,6 @@ class E2E(torch.nn.Module):
             cer_ctc=cer_ctc,
         )
         return loss, stats
-
-    def forward_stft(self, input: torch.Tensor, input_lengths: torch.Tensor) \
-            -> Tuple[Union[ComplexTensor, torch.Tensor], torch.Tensor]:
-        input_stft, feats_lens = self.stft(input, input_lengths)
-
-        if isinstance(self.stft, Stft):
-            # FIXME(kamo): To be hidden in stft()?
-            assert input_stft.dim() >= 4, input_stft.shape
-            # "2" refers to the real/imag parts of Complex
-            assert input_stft.shape[-1] == 2, input_stft.shape
-
-            # input_stft: (..., F, T, 2) -> (..., F, T)
-            input_stft = \
-                ComplexTensor(input_stft[..., 0], input_stft[..., 1])
-            # input_stft: (..., F, T) -> (..., T, F)
-            input_stft = input_stft.transpose(-1, -2)
-
-        return input_stft, feats_lens
 
     def calc_decoder_loss(self,
                           ys_pad: torch.Tensor,
