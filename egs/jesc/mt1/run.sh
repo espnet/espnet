@@ -202,23 +202,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_recog.py \
+            mt_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --trans-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        # Fisher has 4 references per utterance
-        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
-            for no in 1 2 3; do
-                cp ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json ${expdir}/${decode_dir}/data_ref${no}.json
-            done
-        fi
-
-        local/score_bleu.sh --case ${tgt_case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict_tgt} ${dict_src}
+        score_bleu.sh --case ${tgt_case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} jp ${dict_tgt} ${dict_src}
 
     ) &
     pids+=($!) # store background pids
