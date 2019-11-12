@@ -55,6 +55,8 @@ def get_parser():
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
                         help="Tensorboard log directory path")
+    parser.add_argument('--eval-interval-epochs', default=1, type=int,
+                        help="Evaluation interval epochs")
     parser.add_argument('--save-interval-epochs', default=1, type=int,
                         help="Save interval epochs")
     parser.add_argument('--report-interval-iters', default=100, type=int,
@@ -180,5 +182,10 @@ def main(cmd_args):
 
 
 if __name__ == "__main__":
-    mp.set_start_method('spawn')
+    # NOTE(kan-bayashi): setting multiple times causes RuntimeError
+    #   See also https://github.com/pytorch/pytorch/issues/3492
+    try:
+        mp.set_start_method('spawn')
+    except RuntimeError:
+        pass
     main(sys.argv[1:])
