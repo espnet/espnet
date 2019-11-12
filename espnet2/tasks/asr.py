@@ -36,7 +36,7 @@ class ASRTask(BaseTask):
         group.add_argument('--odim', type=int_or_none, default=None)
 
         group.add_argument(
-            '--frontend', type=str_or_none,
+            '--frontend', type=str_or_none, default='frontend1',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
             '--frontend_conf', action=NestedDictAction, default=dict(),
@@ -116,7 +116,6 @@ class ASRTask(BaseTask):
         choices = ('frontend1',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
         return choices
 
     @classmethod

@@ -88,34 +88,35 @@ class E2E(torch.nn.Module):
         input.masked_fill_(make_pad_mask(input_lengths), 0,)
         output.masked_fill_(make_pad_mask(output_lengths), self.ignore_id)
 
+        # 1. STFT, Feature transform
         # input (Batch, NSamples) -> input_feats: (Batch, Length, Dim)
         input_feats, feats_lens = self.frontend(input, input_lengths)
 
         # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
         feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :]
 
-        # 4. Forward encoder
+        # 2. Forward encoder
         # input_feats: (Batch, Length, Dim)
         encoder_out, encoder_out_mask = self.encoder(input_feats, feats_mask)
 
-        # 5a. Attention-decoder branch
+        # 3a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
             loss_att, acc_att, cer_att, wer_att = \
-                self.calc_decoder_loss(output, encoder_out, encoder_out_mask)
+                self._calc_decoder_loss(output, encoder_out, encoder_out_mask)
 
-        # 5b. CTC branch
+        # 3b. CTC branch
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:
             loss_ctc, cer_ctc = \
-                self.calc_ctc_loss(output, encoder_out, encoder_out_mask)
+                self._calc_ctc_loss(output, encoder_out, encoder_out_mask)
 
-        # 5c. RNN-T branch (Is it possible?)
+        # 3c. RNN-T branch (Is it possible?)
         if self.rnnt_decoder is not None:
             _ = \
-                self.calc_rnnt_loss(output, encoder_out, encoder_out_mask)
+                self._calc_rnnt_loss(output, encoder_out, encoder_out_mask)
 
         if self.ctc_weight == 0.:
             loss = loss_att
@@ -136,10 +137,10 @@ class E2E(torch.nn.Module):
         )
         return loss, stats
 
-    def calc_decoder_loss(self,
-                          ys_pad: torch.Tensor,
-                          encoder_out: torch.Tensor,
-                          encoder_out_mask: torch.Tensor):
+    def _calc_decoder_loss(self,
+                           ys_pad: torch.Tensor,
+                           encoder_out: torch.Tensor,
+                           encoder_out_mask: torch.Tensor):
         ys_in_pad, ys_out_pad = add_sos_eos(
             ys_pad, self.sos, self.eos, self.ignore_id)
         ys_mask = target_mask(ys_in_pad, self.ignore_id)
@@ -162,11 +163,11 @@ class E2E(torch.nn.Module):
 
         return loss_att, acc_att, cer_att, wer_att
 
-    def calc_ctc_loss(self,
-                      ys_pad: torch.Tensor,
-                      encoder_out: torch.Tensor,
-                      encoder_out_mask: torch.Tensor
-                      ):
+    def _calc_ctc_loss(self,
+                       ys_pad: torch.Tensor,
+                       encoder_out: torch.Tensor,
+                       encoder_out_mask: torch.Tensor
+                       ):
 
         batch_size = encoder_out_mask.size(0)
         hs_len = encoder_out_mask.view(batch_size, -1).sum(1)
@@ -182,7 +183,7 @@ class E2E(torch.nn.Module):
                 self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
 
-    def calc_rnnt_loss(self,
-                       ys_pad: torch.Tensor, encoder_out: torch.Tensor,
-                       encoder_out_mask: torch.Tensor):
+    def _calc_rnnt_loss(self,
+                        ys_pad: torch.Tensor, encoder_out: torch.Tensor,
+                        encoder_out_mask: torch.Tensor):
         raise NotImplementedError

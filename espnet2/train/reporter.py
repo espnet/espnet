@@ -27,15 +27,18 @@ class Reporter:
     def get_total_count(self):
         return self.total_count
 
-    @contextmanager
+    def __enter__(self, epoch: int = None):
+        self.start_epoch(epoch)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.finish_epoch()
+
     def start_epoch(self, epoch: int = None):
         if epoch is not None:
             self.epoch = epoch
         # Refresh the current stat
         self._set_epoch(self.epoch)
-        yield self
-        self.finish_epoch()
-        self.epoch += 1
 
     def finish_epoch(self):
         # Calc mean of current stats and set it for previous epochs stats
@@ -47,6 +50,7 @@ class Reporter:
 
         self.previous_epochs_stats[self.epoch] = stats
         self.current_epoch_stats = None
+        self.epoch += 1
 
     def _set_epoch(self, epoch: int):
         self.epoch = epoch

@@ -14,7 +14,7 @@ from espnet2.utils.get_default_values import get_defaut_values
 class Frontend1(torch.nn.Module):
     """Conventional frontend structure for ASR
 
-    Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Fbank -> CMVN
+    Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
     def __init__(
         self,
@@ -23,7 +23,6 @@ class Frontend1(torch.nn.Module):
         feature_transform_conf: dict = get_defaut_values(FeatureTransform)
     ):
         super().__init__()
-        self.fs = fs
 
         # Deepcopy (In general, dict shouldn't be used as default arg)
         stft_conf = copy.deepcopy(stft_conf)
