@@ -6,10 +6,10 @@ from typing import Dict, Mapping, List, Tuple, Union
 import kaldiio
 import numpy as np
 import torch
-from typeguard import typechecked
 from torch.utils.data import Sampler
+from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.transform.transformation import Transformation
 from espnet2.utils.fileio import SoundScpReader, scp2dict
 
@@ -93,6 +93,7 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
             pad_value = -32768
 
         array_list = [d[key] for d in data]
+        # tensor_list: Batch x (Length, ...)
         tensor_list = [torch.from_numpy(a) for a in array_list]
         # tensor: (Batch, Length, ...)
         tensor = pad_list(tensor_list, pad_value)
@@ -128,6 +129,10 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             raise RuntimeError(
                 f'Sampling rates are mismatched: {self.rate} != {rate}')
         self.rate = rate
+        # Multichannel wave fie
+        if array.ndim == 2:
+            # (NSample, Channel) -> (Channel, NSample)
+            array = array.T
         return array
 
 
@@ -158,6 +163,10 @@ class Dataset:
         self.loader_dict = {}
         self.debug_info = {}
         for key, data in config.items():
+            if set(data) != {'path', 'type'}:
+                raise ValueError(f'"path" and "type" is only allowed '
+                                 f'as dict-key now: {data}')
+
             path = data['path']
             _type = data['type']
 
@@ -193,7 +202,8 @@ class Dataset:
             #
             # Note that SoundScpReader doesn't support pipe-fashion
             # like Kaldi e.g. "cat a.wav |".
-            loader = SoundScpReader(path, normalize=True)
+            loader = SoundScpReader(path, normalize=True,
+                                    always_2d=False)
 
             # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
             # but ndarray is desired, so Adapter class is inserted here

@@ -11,49 +11,10 @@ from espnet.nets.pytorch_backend.frontends.feature_transform import \
     FeatureTransform
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.e2e import E2E
+from espnet2.layers.stft import Stft
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_values import get_defaut_values
 from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
-
-
-class Stft(torch.nn.Module):
-    @typechecked
-    def __init__(self, fs: int,
-                 n_fft: int = 512,
-                 win_length_ms: int = 25,
-                 hop_length_ms: int = 10,
-                 center: bool = True,
-                 pad_mode: str = 'reflect',
-                 normalized: bool = False,
-                 onesided: bool = True
-                 ):
-        super().__init__()
-        self.n_fft = n_fft
-
-        self.win_length = int(win_length_ms * fs / 1000)
-        self.hop_length = int(hop_length_ms * fs / 1000)
-        self.center = center
-        self.pad_mode = pad_mode
-        self.normalized = normalized
-        self.onesided = onesided
-
-    def forward(self,
-                input: torch.Tensor,
-                ilens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-
-        # output: (Batch, Freq, NFrame, 2=real_imag)
-        output = torch.stft(
-            input, n_fft=self.n_fft, win_length=self.win_length,
-            hop_length=self.hop_length, center=self.center,
-            pad_mode=self.pad_mode, normalized=self.normalized,
-            onesided=self.onesided)
-
-        if self.center:
-            pad = self.n_fft // 2
-            ilens = ilens + 2 * pad
-        olens = (ilens - self.win_length) // self.hop_length + 1
-
-        return output, olens
 
 
 class ASRTask(BaseTask):
@@ -160,11 +121,7 @@ class ASRTask(BaseTask):
         # 3. Update the dict using the inherited configuration from BaseTask
         config.update(BaseTask.get_default_config())
 
-        # 4. Excluded the specified options
-        for k in cls.exclude_opts():
-            config.pop(k)
-
-        # 5. Overwrite the default config by the command-arguments
+        # 4. Overwrite the default config by the command-arguments
         stft_conf.update(config['stft_conf'])
         frontend_conf.update(config['frontend_conf'])
         feature_transform_conf.update(config['feature_transform_conf'])
@@ -175,7 +132,7 @@ class ASRTask(BaseTask):
         # FIXME(kamo): A little bit dirty way
         feature_transform_conf.pop('fs', None)
 
-        # 6. Reassign them to the configuration
+        # 5. Reassign them to the configuration
         config.update(
             stft_conf=stft_conf,
             frontend_conf=frontend_conf,
@@ -184,6 +141,10 @@ class ASRTask(BaseTask):
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
             e2e_conf=e2e_conf)
+
+        # 6. Excludes the specified options
+        for k in cls.exclude_opts():
+            config.pop(k)
 
         return config
 

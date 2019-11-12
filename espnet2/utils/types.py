@@ -43,8 +43,8 @@ class NestedDictAction(argparse.Action):
         Namespace(conf={'a': 4, 'c': {'d': 4}})
         >>> parser.parse_args(['--conf', 'c.d=4', '--conf', 'c=2'])
         Namespace(conf={'a': 4, 'c': 2})
-        >>> parser.parse_args(['--conf', '{a: 5, c: 9}'])
-        Namespace(conf={'a': 5, 'c': 9})
+        >>> parser.parse_args(['--conf', '{d: 5, e: 9}'])
+        Namespace(conf={'d': 5, 'e': 9})
         >>> parser.parse_args(['--conf', 'e.f=[0, 1, 2]'])
         Namespace(conf={'a': 4, 'e': {'f': [0, 1, 2]}})
 
@@ -67,7 +67,7 @@ class NestedDictAction(argparse.Action):
             option_strings=option_strings,
             dest=dest,
             nargs=nargs,
-            default=default.copy(),
+            default=copy.deepcopy(default),
             choices=choices,
             required=required,
             help=help,
@@ -90,18 +90,19 @@ class NestedDictAction(argparse.Action):
                 else:
                     v = d.setdefault(k, {})
                     if not isinstance(v, dict):
-                        # Overwrite
+                        # Remove the existing value and recreates as empty dict
                         d[k] = {}
                     d = d[k]
             # Update the value
             setattr(namespace, self.dest, indict)
         else:
             try:
-                # At the first, try eval(), i.e. Python syntax dict,
-                # for internal behaviour of configargparse
+                # At the first, try eval(), i.e. Python syntax dict.
                 # e.g. --{option} "{'a': 3}" -> {'a': 3}
+                # This is workaround for internal behaviour of configargparse.
                 value = eval(values, {}, {})
-                if isinstance(value, dict):
+                # Must be dict
+                if not isinstance(value, dict):
                     raise ValueError
             except Exception:
                 # and the second, try yaml.load
@@ -109,7 +110,7 @@ class NestedDictAction(argparse.Action):
                 # Must be dict
                 if not isinstance(value, dict):
                     raise ValueError
-            # Overwrite
+            # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)
 
 
