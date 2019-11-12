@@ -429,7 +429,7 @@ Available pretrained models in the demo script are listed as below.
 
 ### TTS results
 
-You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).  
+You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
 Here we list some notable ones:
 
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
@@ -449,11 +449,12 @@ You can donwload all of the pretrained models and generated samples:
 - [All of the pretrained E2E-TTS models](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF)
 - [All of the generated samples](https://drive.google.com/open?id=1bQGuqH92xuxOX__reWLP4-cif0cbpMLX)
 
-Note that in the generated samples we use three vocoders: Griffin-Lim (**GL**), WaveNet vocoder (**WaveNet**), and Parallel WaveGAN (**ParallelWaveGAN**).  
+Note that in the generated samples we use three vocoders: Griffin-Lim (**GL**), WaveNet vocoder (**WaveNet**), and Parallel WaveGAN (**ParallelWaveGAN**).
 The neural vocoders are based on following repositories.
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN): Parallel WaveGAN
 - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder): Mixture of Logistics WaveNet vocoder
 - [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder): 8 bit Softmax WaveNet Vocoder with the noise shaping
+
 If you want to build your own neural vocoder, please check the above repositories.
 
 Here we list all of the pretrained neural vocoders. Please download and enjoy the generation of high quality speech!
