@@ -501,6 +501,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     def _source_mask(self, ilens):
         """Make masks for self-attention.
 
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+
         Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)

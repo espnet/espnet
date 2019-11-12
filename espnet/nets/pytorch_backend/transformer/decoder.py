@@ -89,9 +89,13 @@ class Decoder(ScorerInterface, torch.nn.Module):
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out) if input_layer == "embed"
                                  input tensor (batch, maxlen_out, #mels) in the other cases
-        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
+        :param torch.Tensor tgt_mask: input token mask,  (batch, maxlen_out)
+                                      dtype=torch.uint8 in PyTorch 1.2-
+                                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
-        :param torch.Tensor memory_mask: encoded memory mask, uint8  (batch, maxlen_in)
+        :param torch.Tensor memory_mask: encoded memory mask,  (batch, maxlen_in)
+                                         dtype=torch.uint8 in PyTorch 1.2-
+                                         dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :return x: decoded token score before softmax (batch, maxlen_out, token) if use_output_layer is True,
                    final block outputs (batch, maxlen_out, attention_dim) in the other cases
         :rtype: torch.Tensor
@@ -110,7 +114,9 @@ class Decoder(ScorerInterface, torch.nn.Module):
         """recognize one step
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
-        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
+        :param torch.Tensor tgt_mask: input token mask,  (batch, maxlen_out)
+                                      dtype=torch.uint8 in PyTorch 1.2-
+                                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
         :return x: decoded token score before softmax (batch, maxlen_out, token)
         :rtype: torch.Tensor
