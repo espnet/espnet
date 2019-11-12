@@ -187,6 +187,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d", "conv1d-linear"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=1, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
         group.add_argument("--postnet-chans", default=256, type=int,
@@ -245,6 +250,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate in decoder prenet")
         group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in postnet")
+        group.add_argument("--pretrained-model", default=None, type=str,
+                           help="Pretrained model path")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -398,7 +405,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define projection layer
@@ -467,6 +476,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
                                init_dec_alpha=args.initial_decoder_alpha)
+
+        # load pretrained model
+        if args.pretrained_model is not None:
+            self.load_pretrained_model(args.pretrained_model)
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
@@ -664,6 +677,17 @@ class Transformer(TTSInterface, torch.nn.Module):
             # update next inputs
             ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
 
+            # get attention weights
+            att_ws_ = []
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention) and "src" in name:
+                    att_ws_ += [m.attn[0, :, -1].unsqueeze(1)]  # [(#heads, 1, T),...]
+            if idx == 1:
+                att_ws = att_ws_
+            else:
+                # [(#heads, l, T), ...]
+                att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
+
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
                 # check mininum length
@@ -676,12 +700,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
+        # concatenate attention weights
+        att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws
 
