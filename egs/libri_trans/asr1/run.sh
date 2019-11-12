@@ -20,7 +20,7 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-preprocess_config=
+preprocess_config=  # recomend to use conf/tuning/train_***_long.yaml for SpecAugment
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
