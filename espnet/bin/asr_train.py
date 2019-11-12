@@ -5,7 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Automatic speech recognition model training script."""
-
+from distutils.version import LooseVersion
 import logging
 import multiprocessing as mp
 import os
@@ -18,6 +18,8 @@ import numpy as np
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -314,6 +316,9 @@ def main(cmd_args):
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
     else:
+        if is_torch_1_2_plus:
+            assert args.ngpu == 1, "There are some bugs with multi-GPU processing in PyTorch 1.2+" \
+                                   " (see https://github.com/pytorch/pytorch/issues/21108)"
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 
