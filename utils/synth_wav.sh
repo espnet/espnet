@@ -21,8 +21,8 @@ verbose=1      # verbose option
 
 # feature configuration
 fs=22050      # sampling frequency
-fmax=80       # maximum frequency
-fmin=7600       # minimum frequency
+fmax=""       # maximum frequency
+fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
@@ -43,7 +43,7 @@ decode_dir=decode
 griffin_lim_iters=64
 
 # download related
-models=ljspeech.tacotron2.v3
+models=ljspeech.fastspeech.v1
 vocoder_models=ljspeech.parallel_wavegan.v1
 
 help_message=$(cat <<EOF
@@ -56,29 +56,37 @@ Example:
     $0 example.txt
 
     # you can specify the pretrained models
-    $0 --models ljspeech.transformer.v3.char.80-7600hz example.txt
+    $0 --models ljspeech.transformer.v3 example.txt
 
     # also you can specify vocoder model
     $0 --vocoder_models ljspeech.wavenet.mol.v2 --stop_stage 4 example.txt
 
 Available models:
+    - ljspeech.tacotron2.v1
+    - ljspeech.tacotron2.v2
     - ljspeech.tacotron2.v3
+    - ljspeech.transformer.v1
+    - ljspeech.transformer.v2
     - ljspeech.transformer.v3
+    - ljspeech.fastspeech.v1
+    - ljspeech.fastspeech.v2
+    - ljspeech.fastspeech.v3
+    - libritts.tacotron2.v1
+    - libritts.transformer.v1
     - jsut.transformer.v1
     - jsut.tacotron2.v1
     - csmsc.transformer.v1
     - csmsc.fastspeech.v3
-    - libritts.tacotron2.v1
-    - libritts.transformer.v1
 
 Available vocoder models:
-    - ljspeech.wavenet.mol.v2
+    - ljspeech.wavenet.softmax.ns.v1
+    - ljspeech.wavenet.mol.v1
     - ljspeech.parallel_wavegan.v1
+    - libritts.wavenet.mol.v1
     - jsut.wavenet.mol.v1
     - jsut.parallel_wavegan.v1
     - csmsc.wavenet.mol.v1
     - csmsc.parallel_wavegan.v1
-    - libritts.wavenet.mol.v1
 EOF
 )
 
@@ -98,14 +106,21 @@ set -o pipefail
 
 function download_models () {
     case "${models}" in
-        "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1Jo06IbVlq79lMA5wM9OMuZ-ByH1eRPkC";;
-        "ljspeech.transformer.v3") share_url="https://drive.google.com/open?id=1Igiu5AZNz2YL6w8FweiamBK6Tp41nmRK";;
+        "ljspeech.tacotron2.v1") share_url="https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs" ;;
+        "ljspeech.tacotron2.v2") share_url="https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h" ;;
+        "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
+        "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
+        "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
+        "ljspeech.transformer.v3") share_url="https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP" ;;
+        "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
+        "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
+        "ljspeech.fastspeech.v3") share_url="https://drive.google.com/open?id=1zbSprxJ_iiv3DJq-S7Qt6O0EVPmbl7YF";;
+        "libritts.tacotron2.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
+        "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
         "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
         "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
         "csmsc.transformer.v1") share_url="https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ";;
         "csmsc.fastspeech.v3") share_url="https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_";;
-        "libritts.tacotron2.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
-        "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -119,13 +134,14 @@ function download_models () {
 
 function download_vocoder_models () {
     case "${vocoder_models}" in
-        "ljspeech.wavenet.mol.v2") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
-        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm";;
+        "ljspeech.wavenet.softmax.ns.v1") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
+        "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
+        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv";;
+        "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
         "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
         "jsut.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF";;
         "csmsc.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj";;
         "csmsc.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4";;
-        "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
