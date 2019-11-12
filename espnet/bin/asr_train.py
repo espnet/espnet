@@ -15,6 +15,7 @@ import sys
 
 import configargparse
 import numpy as np
+import torch
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
