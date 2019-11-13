@@ -677,6 +677,17 @@ class Transformer(TTSInterface, torch.nn.Module):
             # update next inputs
             ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
 
+            # get attention weights
+            att_ws_ = []
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention) and "src" in name:
+                    att_ws_ += [m.attn[0, :, -1].unsqueeze(1)]  # [(#heads, 1, T),...]
+            if idx == 1:
+                att_ws = att_ws_
+            else:
+                # [(#heads, l, T), ...]
+                att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
+
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
                 # check mininum length
@@ -689,12 +700,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
+        # concatenate attention weights
+        att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws
 

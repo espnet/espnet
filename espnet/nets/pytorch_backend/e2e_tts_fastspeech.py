@@ -197,10 +197,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         if self.spk_embed_dim is not None:
             self.spk_embed_integration_type = args.spk_embed_integration_type
 
-        # TODO(kan-bayashi): support reduction_factor > 1
-        if self.reduction_factor != 1:
-            raise NotImplementedError("Support only reduction_factor = 1.")
-
         # use idx 0 as padding idx
         padding_idx = 0
 
@@ -328,7 +324,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         if olens is not None:
-            h_masks = self._source_mask(olens)
+            if self.reduction_factor > 1:
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                olens_in = olens
+            h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
@@ -365,6 +365,12 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # forward propagation
         before_outs, after_outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
+            max_olen = max(olens)
+            ys = ys[:, :max_olen]
 
         # apply mask to remove padded part
         if self.use_masking:

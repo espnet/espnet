@@ -1,4 +1,6 @@
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB, and it takes several hours.
+# This configuration uses larger adim, more heads, and conv1d for position-wise layer compared to v1.
+# If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
+# This model should be able to genearate speeech from around 40k iterations.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
@@ -8,12 +10,14 @@ eprenet-conv-filts: 0
 eprenet-conv-chans: 0
 dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
 dprenet-units: 256
-adim: 384
-aheads: 4
+adim: 512
+aheads: 8
 elayers: 6
-eunits: 1536
+eunits: 1024
 dlayers: 6
-dunits: 1536
+dunits: 1024
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 1
 postnet-layers: 5
 postnet-filts: 5
 postnet-chans: 256
@@ -28,8 +32,11 @@ decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
-batch-sort-key: input # shuffle or input or output
-batch-bins: 607200  # 47 batches containing from 16 to 23 samples (avg 20 samples).
+batch-sort-key: output # shuffle or input or output
+batch-bins: 541353  # (char) 1197 batches containing from 6 to 51 samples (avg 10 samples).
+                    # (phn) 1246 batches containing from 6 to 48 samples (avg 10 samples).
+
+
 
 # training related
 transformer-init: pytorch
@@ -54,12 +61,11 @@ modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 8
+accum-grad: 6
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 47 batches * 1000 epochs / 8 accum_grad = 5,875 iters
+epochs: 800  # 1000 epochs * ~1200 batches / 6 accum-grad = 160,000 iters
 
 # other
-save-interval-epoch: 100
-eval-interval-epoch: 100
+save-interval-epoch: 50
