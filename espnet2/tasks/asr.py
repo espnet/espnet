@@ -4,6 +4,7 @@ from typing import Any, Dict, Type, Tuple, Optional
 import configargparse
 import torch
 from typeguard import typechecked
+import humanfriendly
 
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet2.asr.e2e import E2E
@@ -33,6 +34,8 @@ class ASRTask(BaseTask):
         required = parser.get_default('required')
         required += ['odim']
 
+        group.add_argument(
+            '--fs', type=humanfriendly.parse_size, default=16000)
         group.add_argument('--odim', type=int_or_none, default=None)
 
         group.add_argument(

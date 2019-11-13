@@ -6,7 +6,7 @@ from typeguard import typechecked
 
 class Stft(torch.nn.Module):
     @typechecked
-    def __init__(self, fs: int,
+    def __init__(self,
                  n_fft: int = 512,
                  win_length: int = 512,
                  hop_length: int = 128,

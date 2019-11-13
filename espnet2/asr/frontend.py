@@ -35,7 +35,6 @@ class Frontend1(torch.nn.Module):
         else:
             self.frontend = None
 
-        feature_transform_conf['fs'] = fs
         self.feature_transform = \
             FeatureTransform(**feature_transform_conf)
 
