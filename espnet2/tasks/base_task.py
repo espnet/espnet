@@ -22,12 +22,11 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.reporter import Reporter, SubReporter, ReportValue
+from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_values import get_defaut_values
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none,
-    NestedDictAction, )
+    int_or_none, str2bool, str_or_none, NestedDictAction, )
 
 
 class BaseTask(ABC):
@@ -406,6 +405,7 @@ class BaseTask(ABC):
 
         # Creates model, optimizer, scheduler
         model = cls.build_model(args=args)
+        # FIXME(kamo): Which is better here or in model for initialization?
         initialize(model, args.init)
 
         optimizer_class = cls.get_optimizer_class(args.optim)
@@ -685,12 +685,13 @@ class BaseTask(ABC):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
-                loss, stats = model(**batch)
+                loss, stats, _ = model(**batch)
             else:
-                loss, stats = \
+                loss, stats, weight = \
                     data_parallel(model, range(ngpu), module_kwargs=batch)
-                loss = loss.mean(0)
-                stats = {k: ReportValue.reduce(v) for k, v in stats.items()}
+                weight = weight.to(dtype=loss.dtype) / weight.sum()
+                loss = (loss * weight).mean(0)
+                stats = {k: (v * weight).mean(0) for k, v in stats.items()}
 
             reporter.register(stats)
             if use_apex:
@@ -732,10 +733,11 @@ class BaseTask(ABC):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
-                _, stats = model(**batch)
+                _, stats, _ = model(**batch)
             else:
-                _, stats = \
+                loss, stats, weight = \
                     data_parallel(model, range(ngpu), module_kwargs=batch)
-                stats = {k: v.mean(0).item() for k, v in stats.items()}
+                weight = weight.to(dtype=loss.dtype) / weight.sum()
+                stats = {k: (v * weight).mean(0) for k, v in stats.items()}
 
             reporter.register(stats)

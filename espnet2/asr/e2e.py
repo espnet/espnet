@@ -11,6 +11,7 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet2.utils.device_funcs import force_gatherable
 
 
 class E2E(torch.nn.Module):
@@ -66,8 +67,8 @@ class E2E(torch.nn.Module):
                 input: torch.Tensor,
                 input_lengths: torch.Tensor,
                 output: torch.Tensor,
-                output_lengths: torch.Tensor,
-                ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+                output_lengths: torch.Tensor)\
+            -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
 
         Args:
@@ -83,6 +84,7 @@ class E2E(torch.nn.Module):
         assert output.dim() == 2, output.shape
         assert input_lengths.dim() == 1, input_lengths.shape
         assert output_lengths.dim() == 1, output_lengths.shape
+        batch_size = input.size(0)
 
         # 0. Change pad_value
         input.masked_fill_(make_pad_mask(input_lengths), 0,)
@@ -135,7 +137,9 @@ class E2E(torch.nn.Module):
             wer=wer_att,
             cer_ctc=cer_ctc,
         )
-        return loss, stats
+        stats = force_gatherable(stats, loss.device)
+        weight = torch.tensor([batch_size], device=loss.device)
+        return loss, stats, weight
 
     def _calc_decoder_loss(self,
                            ys_pad: torch.Tensor,

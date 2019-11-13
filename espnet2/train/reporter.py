@@ -30,18 +30,10 @@ class ReportValue(NamedTuple):
             if v.ndim in (1, 0):
                 raise ValueError(f'must be 1-dim or 0-dim: {v.shape}')
 
-            if v.dtype.kind == 'f':
-                return ReportValue(float(v), ReportType.average)
-            elif v.dtype.kind == 'i':
-                return ReportValue(int(v), ReportType.accumulate)
-            else:
-                raise TypeError(f'Not supported: {v.dtype}')
-        # By default, float value will be averaged
-        elif isinstance(v, float):
             return ReportValue(v, ReportType.average)
-        # By default, int value will be accumulated
-        elif isinstance(v, int):
-            return ReportValue(v, ReportType.accumulate)
+        # By default, float value will be averaged
+        elif isinstance(v, (float, int, complex)):
+            return ReportValue(v, ReportType.average)
         # If you need to customize the behaviour
         elif isinstance(v, ReportValue):
             return v
@@ -62,23 +54,18 @@ class ReportValue(NamedTuple):
                 if v.ndim in (1, 0):
                     raise ValueError(f'must be 1-dim or 0-dim: {v.shape}')
 
-            if values[0].dtype.kind == 'f':
-                v = np.nanmean(values)
-            elif values[0].dtype.kind == 'f':
-                v = np.nansum(values)
+            return np.nanmean(values)
+        elif isinstance(values[0], (float, int, complex)):
+            return np.nanmean([v for v in values])
+        elif isinstance(values[0], ReportType):
+            if values[0].type == ReportType.average:
+                return np.nanmean([v.value for v in values])
+            elif values[0].type == ReportType.accumulate:
+                return np.nansum([v.value for v in values])
             else:
-                raise TypeError(f'Not supported: {values[0].dtype}')
-        elif isinstance(values[0], float):
-            v = np.nanmean([v.value for v in values])
-        elif isinstance(values[0], int):
-            v = np.nansum([v.value for v in values])
-        elif values[0].type == ReportType.average:
-            v = np.nanmean([v.value for v in values])
-        elif values[0].type == ReportType.accumulate:
-            v = np.nansum([v.value for v in values])
+                raise NotImplementedError(f'type={values[0].type}')
         else:
-            raise NotImplementedError(f'type={values[0].type}')
-        return v
+            raise NotImplementedError(f'type={values[0]}')
 
 
 class SubReporter:
@@ -165,9 +152,7 @@ class Reporter:
         ...         stats = dict(
         ...             # If float, the averaged value is reported.
         ...             loss=0.2,
-        ...             # If int, the accumulated value is reported.
-        ...             count=9,
-        ...             # Even if float, you need the summation, then use
+        ...             # You need the summation, then use
         ...             # ReportValue to tell the desired type.
         ...             something=ReportValue(0.4, ReportType.accumulate))
         ...         sub_reporter.register(stats)
