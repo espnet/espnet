@@ -43,7 +43,7 @@ def get_partial_asr_mt_state_dict(model_state_dict, modules):
         modules (list): specified module list for transfer
 
     Return:
-        new_state_dict(OrderedDict): the updated state_dict
+        new_state_dict (OrderedDict): the updated state_dict
 
     """
     new_state_dict = OrderedDict()
@@ -133,6 +133,7 @@ def load_trained_model(model_path):
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
+
     torch_load(model_path, model)
 
     return model, train_args
@@ -178,7 +179,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
     Args:
         idim (int): initial input dimension.
         odim (int): initial output dimension.
-        args (namespace): The initial model arguments.
+        args (Namespace): The initial model arguments.
         interface (Interface): ASRInterface or STInterface
 
     Return:
