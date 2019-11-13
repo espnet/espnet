@@ -19,6 +19,8 @@ def to_device(data, device):
 def force_gatherable(data, device):
     """Change object to gatherable in torch.nn.DataParallel recursively
 
+    The diffrence fron to_device() is changing to torch.Tensor if float or int
+    value is found.
     """
     if isinstance(data, dict):
         return {k: force_gatherable(v, device) for k, v in data.items()}
@@ -34,5 +36,5 @@ def force_gatherable(data, device):
     elif isinstance(data, int):
         return torch.tensor(data, dtype=torch.long, device=device)
     else:
-        raise RuntimeError('Not gatherable')
+        raise None
 
