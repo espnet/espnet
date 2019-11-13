@@ -173,7 +173,7 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of source sequences (B)
         :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
-        :param torch.Tensor ys_pad_asr: batch of padded token sequences (B, Lmax)
+        :param torch.Tensor ys_pad_asr: batch of padded target sequences (B, Lmax)
         :return: ctc loass value
         :rtype: torch.Tensor
         :return: attention loss value
