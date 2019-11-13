@@ -1,7 +1,7 @@
 # v.0.5.3 FastSpeech
 
 - FTT in points: 2048
-- Shift in points: 256
+- Shift in points: 300
 - Window in points: 1200
 - Frequency limit: 80-7600
 - Fast-GL 64 iters
@@ -18,7 +18,7 @@
 
 ## Models
 
-- model link: https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ
+- model link: https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_
 - training config file: `conf/tuning/train_fastspeech.v3.single.yaml`
 - decoding config file: `conf/decode.yaml`
 - cmvn file: `data/train_no_dev/cmvn.ark`
@@ -33,7 +33,7 @@ https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK
 # v.0.5.3 Initial Transformer
 
 - FTT in points: 2048
-- Shift in points: 256
+- Shift in points: 300
 - Window in points: 1200
 - Frequency limit: 80-7600
 - Fast-GL 64 iters
