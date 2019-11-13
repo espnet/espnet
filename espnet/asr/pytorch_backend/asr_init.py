@@ -19,12 +19,13 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
     """Verify tuples (key, shape) for input model modules match specified modules.
 
     Args:
-        model_state_dict (odict): the initial model state_dict
-        partial_state_dict (odict): the trained model state_dict
+        model_state_dict (OrderedDict): the initial model state_dict
+        partial_state_dict (OrderedDict): the trained model state_dict
         modules (list): specified module list for transfer
 
     Return:
         (boolean): allow transfer
+
     """
     partial_modules = []
     for key_p, value_p in partial_state_dict.items():
@@ -38,11 +39,12 @@ def get_partial_asr_mt_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
 
     Args:
-        model_state_dict(odict): trained model state_dict
-        modules(list): specified module list for transfer
+        model_state_dict (OrderedDict): trained model state_dict
+        modules (list): specified module list for transfer
 
     Return:
-        new_state_dict(odict): the updated state_dict
+        new_state_dict(OrderedDict): the updated state_dict
+
     """
     new_state_dict = OrderedDict()
 
@@ -54,17 +56,18 @@ def get_partial_asr_mt_state_dict(model_state_dict, modules):
 
 
 def get_partial_lm_state_dict(model_state_dict, modules):
-    """Create compatible ASR state_dict from model_state_dict(LM).
+    """Create compatible ASR state_dict from model_state_dict (LM).
 
     The keys for specified modules are modified to match ASR decoder modules keys.
 
     Args:
-        model_state_dict(odict): trained model state_dict
-        modules(list): specified module list for transfer
+        model_state_dict (OrderedDict): trained model state_dict
+        modules (list): specified module list for transfer
 
     Return:
-        new_state_dict(odict): the updated state_dict
-        new_mods(list): the updated module list
+        new_state_dict (OrderedDict): the updated state_dict
+        new_mods (list): the updated module list
+
     """
     new_state_dict = OrderedDict()
     new_modules = []
@@ -83,14 +86,15 @@ def get_partial_lm_state_dict(model_state_dict, modules):
 
 
 def filter_modules(model_state_dict, modules):
-    """Filter non - matched modules in module_state_dict.
+    """Filter non-matched modules in module_state_dict.
 
     Args:
-        model_state_dict(odict): trained model state_dict
-        modules(list): specified module list for transfer
+        model_state_dict (OrderedDict): trained model state_dict
+        modules (list): specified module list for transfer
 
     Return:
-        new_mods(list): the update module list
+        new_mods (list): the update module list
+
     """
     new_mods = []
     incorrect_mods = []
@@ -115,7 +119,8 @@ def load_trained_model(model_path):
     """Load the trained model for recognition.
 
     Args:
-        model_path(str): Path to model.***.best
+        model_path (str): Path to model.***.best
+
     """
     idim, odim, train_args = get_model_conf(
         model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
@@ -142,14 +147,15 @@ def load_trained_model(model_path):
 
 
 def get_trained_model_state_dict(model_path):
-    """Extract the trained model state dict for pre - initialization.
+    """Extract the trained model state dict for pre-initialization.
 
     Args:
-        model_path(str): Path to model.***.best
+        model_path (str): Path to model.***.best
 
     Return:
-        model.state_dict()(odict): the loaded model state_dict
+        model.state_dict() (OrderedDict): the loaded model state_dict
         (str): Type of model. Either ASR / MT or LM.
+
     """
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
     if 'rnnlm' in model_path:
@@ -175,16 +181,17 @@ def get_trained_model_state_dict(model_path):
 
 
 def load_trained_modules(idim, odim, args, interface=ASRInterface):
-    """Load model encoder or / and decoder modules with ESPNET pre - trained model(s).
+    """Load model encoder or / and decoder modules with ESPNET pre-trained model(s).
 
     Args:
-        idim(int): initial input dimension.
-        odim(int): initial output dimension.
-        args(namespace): The initial model arguments.
-        interface(Interface): ASRInterface or STInterface
+        idim (int): initial input dimension.
+        odim (int): initial output dimension.
+        args (namespace): The initial model arguments.
+        interface (Interface): ASRInterface or STInterface
 
     Return:
         model(torch.nn.Module): The model with pretrained modules.
+
     """
     enc_model_path = args.enc_init
     dec_model_path = args.dec_init
