@@ -459,18 +459,20 @@ If you want to build your own neural vocoder, please check the above repositorie
 
 Here we list all of the pretrained neural vocoders. Please download and enjoy the generation of high quality speech!
 
-| Model | Notes |
-|:------|:------|
-| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | 8 bit Softmax WaveNet w/ noise shapining trained by [kan-bayashi/PytorchWaveNetVocoder](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
-| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN) |
-| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
-| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
-| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder) |
-| [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit |
-| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
-| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj) | 16 bit MoL WaveNet trained by [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder), 80-7600 Hz limit (Thanks, @lingjzhu!)|
-| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4) | Parallel WaveGAN trained by [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), 80-7600 Hz limit |
+| Lang  | Fs     | Mel range  | FFT / Shift / Win | Model                                                                                                | Trained by                                                                       |
+| :---: | :----: | :--------: | :---------------: | :------                                                                                              | :------                                                                          |
+| EN    | 22.05k | None       | 1024 / 256 / None | [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | [8 bit Softmax NS WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
+| EN    | 22.05k | None       | 1024 / 256 / None | [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | [16 bit MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                    |
+| EN    | 22.05k | None       | 1024 / 256 / None | [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv)   | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)               |
+| EN    | 22.05k | 80-7600    | 1024 / 256 / None | [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | [16 bit MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                    |
+| EN    | 22.05k | 80-7600    | 1024 / 256 / None | [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm)   | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)               |
+| EN    | 24k    | None       | 2048 / 300 / 1200 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | [16 bit MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                    |
+| JP    | 24k    | 80-7600    | 2048 / 300 / 1200 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)            | [16 bit MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                    |
+| JP    | 24k    | 80-7600    | 2048 / 300 / 1200 | [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF)       | [Parallel WaveGA](https://github.com/kan-bayashi/ParallelWaveGAN)                |
+| ZH    | 24k    | 80-7600    | 2048 / 300 / 1200 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | [16 bit MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                    |
+| ZH    | 24k    | 80-7600    | 2048 / 300 / 1200 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4)      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)               |
+
+If you want to use the above pretrained vocoders, please exactly match the feature setting with them.
 
 
 ### TTS demo
