@@ -102,7 +102,6 @@ class E2E(STInterface, torch.nn.Module):
             dropout_rate=args.dropout_rate,
             positional_dropout_rate=args.dropout_rate,
             attention_dropout_rate=args.transformer_attn_dropout_rate,
-            odim=odim,
         )
         self.decoder = Decoder(
             odim=odim,
