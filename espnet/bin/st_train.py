@@ -78,9 +78,11 @@ def get_parser(parser=None, required=True):
                         choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     parser.add_argument('--mtlalpha', default=0.0, type=float,
-                        help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+                        help='Multitask learning coefficient, alpha: \
+                                alpha*ctc_loss + (1-alpha)*att_loss ')
     parser.add_argument('--asr-weight', default=0.0, type=float,
-                        help='Multitask learning coefficient for ASR task, weight: asr_weight*asr_loss + (1-asr_weight)*st_loss')
+                        help='Multitask learning coefficient for ASR task, weight: \
+                                asr_weight*asr_loss + (1-asr_weight)*st_loss')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,

@@ -80,6 +80,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @property
     def attention_plot_class(self):
+        """Return PlotAttentionReport."""
         return PlotAttentionReport
 
     def __init__(self, idim, odim, args, ignore_id=-1, asr_model=None, mt_model=None):
@@ -143,6 +144,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.rnnlm = None
 
     def reset_parameters(self, args):
+        """Initialize parameters."""
         # initialize parameters
         initialize(self, args.transformer_init)
 
@@ -230,7 +232,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def recognize(self, feat, recog_args, char_list=None, rnnlm=None, use_jit=False):
-        """recognize feat.
+        """Recognize feat.
 
         :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
         :param namespace recog_args: argment namespace contraining options
