@@ -379,26 +379,26 @@ go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/maste
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-|           | CER (%) | WER (%)  | Pretrained model |
-|-----------|:----:|:----:|:----:|
-| Aishell dev            |  6.0 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
-| Aishell test           |  6.7 |  N/A | same as above |
-| Common Voice dev       |  1.7 |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
-| Common Voice test      |  1.8 |  2.3 | same as above |
-| CSJ eval1              |  5.7 |  N/A | N/A |
-| CSJ eval2              |  4.1 |  N/A | N/A |
-| CSJ eval3              |  4.5 |  N/A | N/A |
-| HKUST dev              | 23.5 |  N/A | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs) |
-| Librispeech dev_clean  |  N/A |  2.2 | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm) |
-| Librispeech dev_other  |  N/A |  5.6 | same as above |
-| Librispeech test_clean |  N/A |  2.6 | same as above |
-| Librispeech test_other |  N/A |  5.7 | same as above |
-| TEDLIUM2 dev           |  N/A | 9.3 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm) |
-| TEDLIUM2 test          |  N/A | 8.1 | same as above |
-| TEDLIUM3 dev           |  N/A | 9.7 | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm) |
-| TEDLIUM3 test          |  N/A | 8.0| same as above |
-| WSJ dev93              |  3.2 |  7.0 | N/A |
-| WSJ eval92             |  2.1 |  4.7 | N/A |
+| Task                   | CER (%) | WER (%) | Pretrained model                                                                                                                                                      |
+| -----------            | :----:  | :----:  | :----:                                                                                                                                                                |
+| Aishell dev            | 6.0     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
+| Aishell test           | 6.7     | N/A     | same as above                                                                                                                                                         |
+| Common Voice dev       | 1.7     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
+| Common Voice test      | 1.8     | 2.3     | same as above                                                                                                                                                         |
+| CSJ eval1              | 5.7     | N/A     | N/A                                                                                                                                                                   |
+| CSJ eval2              | 4.1     | N/A     | N/A                                                                                                                                                                   |
+| CSJ eval3              | 4.5     | N/A     | N/A                                                                                                                                                                   |
+| HKUST dev              | 23.5    | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs)                                                             |
+| Librispeech dev_clean  | N/A     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm)                          |
+| Librispeech dev_other  | N/A     | 5.6     | same as above                                                                                                                                                         |
+| Librispeech test_clean | N/A     | 2.6     | same as above                                                                                                                                                         |
+| Librispeech test_other | N/A     | 5.7     | same as above                                                                                                                                                         |
+| TEDLIUM2 dev           | N/A     | 9.3     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm)                                          |
+| TEDLIUM2 test          | N/A     | 8.1     | same as above                                                                                                                                                         |
+| TEDLIUM3 dev           | N/A     | 9.7     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm)                   |
+| TEDLIUM3 test          | N/A     | 8.0     | same as above                                                                                                                                                         |
+| WSJ dev93              | 3.2     | 7.0     | N/A                                                                                                                                                                   |
+| WSJ eval92             | 2.1     | 4.7     | N/A                                                                                                                                                                   |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
@@ -417,14 +417,14 @@ The sampling rate must be consistent with that of data used in training.
 
 Available pretrained models in the demo script are listed as below.
 
-| Model | Notes |
-|:------|:------|
-| [tedlium2.rnn.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe) | Streaming decoding based on CTC-based VAD |
-| [tedlium2.rnn.v2](https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf) | Streaming decoding based on CTC-based VAD (batch decoding) |
-| [tedlium2.transformer.v1](https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U) | Joint-CTC attention Transformer trained on Tedlium 2 |
-| [tedlium3.transformer.v1](https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO) | Joint-CTC attention Transformer trained on Tedlium 3 |
-| [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech |
-| [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice |
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [tedlium2.rnn.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe)            | Streaming decoding based on CTC-based VAD                  |
+| [tedlium2.rnn.v2](https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf)            | Streaming decoding based on CTC-based VAD (batch decoding) |
+| [tedlium2.transformer.v1](https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U)    | Joint-CTC attention Transformer trained on Tedlium 2       |
+| [tedlium3.transformer.v1](https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO)    | Joint-CTC attention Transformer trained on Tedlium 3       |
+| [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech     |
+| [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
 
 
 ### TTS results
@@ -537,16 +537,16 @@ Available pretrained vocoder models in the demo script are listed as follows:
 
 ## Chainer and Pytorch backends
 
-|           | Chainer | Pytorch |
-|-----------|:----:|:----:|
-| Performance | ◎ | ◎ |
-| Speed | ○ | ◎ |
-| Multi-GPU | supported | supported |
-| VGG-like encoder | supported | supported |
-| Transformer | supported | supported |
-| RNNLM integration | supported | supported |
-| #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
-| TTS recipe support | no support | supported |
+|                    | Chainer                         | Pytorch                            |
+| -----------        | :----:                          | :----:                             |
+| Performance        | ◎                               | ◎                                  |
+| Speed              | ○                               | ◎                                  |
+| Multi-GPU          | supported                       | supported                          |
+| VGG-like encoder   | supported                       | supported                          |
+| Transformer        | supported                       | supported                          |
+| RNNLM integration  | supported                       | supported                          |
+| #Attention types   | 3 (no attention, dot, location) | 12 including variants of multihead |
+| TTS recipe support | no support                      | supported                          |
 
 ## References
 
