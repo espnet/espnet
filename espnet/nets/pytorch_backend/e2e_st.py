@@ -452,8 +452,7 @@ class E2E(STInterface, torch.nn.Module):
         hs, _, _ = self.enc(hs, ilens)
         return hs.squeeze(0)
 
-    def translate(self, x, trans_args, char_list, rnnlm=None,
-                  ensemble_models=[]):
+    def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
