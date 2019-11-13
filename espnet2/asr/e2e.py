@@ -23,7 +23,7 @@ class E2E(torch.nn.Module):
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: CTC,
-                 rnnt_decoder: torch.nn.Module,
+                 rnnt_decoder: torch.nn.Module = None,
                  ctc_weight: float = 0.5,
                  ignore_id: int = -1,
                  lsm_weight: float = 0.,

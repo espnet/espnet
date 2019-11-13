@@ -54,36 +54,27 @@ for d in ${traindir} ${devdir}; do
     done
 done
 
-
-if [ -n "${train_config}" ]; then
-    log "Copying ${train_config} to ${expdir}/train.yaml"
-    cp ${train_config} "${expdir}/train.yaml"
-else
-    python3 -m espnet2.bin.train asr --print_config > "${expdir}/train.yaml"
-fi
-train_config=${expdir}/train.yaml
-
-
 # token_shape: <uttid> <olength>,<odim>: e.g. uttidA 12,27
 odim="$(<${traindir}/token_shape awk 'NR==1 {split($2,sp,",");print(sp[2]);}')"
 
-# Modify the configuration file
-pyscripts/text/change_yaml.py \
-    "${train_config}" \
-    -a odim="${odim}" \
-    -a fs="${fs}" \
-    -a train_data_conf.input.path="${traindir}/wav.scp" \
-    -a train_data_conf.input.type=sound \
-    -a train_data_conf.output.path="${traindir}/token_int" \
-    -a train_data_conf.output.type=text_int \
-    -a train_batch_files="[${traindir}/utt2num_samples, ${traindir}/token_shape]" \
-    -a eval_data_conf.input.path="${devdir}/wav.scp" \
-    -a eval_data_conf.input.type=sound \
-    -a eval_data_conf.output.path="${devdir}/token_int" \
-    -a eval_data_conf.output.type=text_int \
-    -a eval_batch_files="[${devdir}/utt2num_samples, ${devdir}/token_shape]" \
-    -o "${train_config}"  # Overwrite
+# Dump the configuration into a yaml file
+python3 -m espnet2.bin.train asr \
+    --config="${train_config}" \
+    --odim="${odim}" \
+    --fs="${fs}" \
+    --train_data_conf=input.path="${traindir}/wav.scp" \
+    --train_data_conf=input.type=sound \
+    --train_data_conf=output.path="${traindir}/token_int" \
+    --train_data_conf=output.type=text_int \
+    --train_batch_files="[${traindir}/utt2num_samples, ${traindir}/token_shape]" \
+    --eval_data_conf=input.path="${devdir}/wav.scp" \
+    --eval_data_conf=input.type=sound \
+    --eval_data_conf=output.path="${devdir}/token_int" \
+    --eval_data_conf=output.type=text_int \
+    --eval_batch_files="[${devdir}/utt2num_samples, ${devdir}/token_shape]" \
+    --print_config > "${expdir}/train.yaml"
 
+train_config=${expdir}/train.yaml
 
 if [ -n "${preprocess_config}" ]; then
     log "Embeding ${preprocess_config} in ${train_config}"

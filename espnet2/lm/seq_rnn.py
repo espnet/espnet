@@ -1,13 +1,13 @@
 """Sequential implementation of Recurrent Neural Network Language Model."""
+from typing import Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet2.lm.lm_interface import LMInterface
 
 
-class SequentialRNNLM(ScorerInterface, torch.nn.Module):
+class SequentialRNNLM(LMInterface, torch.nn.Module):
     """Sequential RNNLM.
 
     See also:
@@ -69,33 +69,7 @@ class SequentialRNNLM(ScorerInterface, torch.nn.Module):
         self.nhid = nhid
         self.nlayers = nlayers
 
-    def forward(self, x, t):
-        """Compute LM loss value from buffer sequences.
-
-        Args:
-            x (torch.Tensor): Input ids. (batch, len)
-            t (torch.Tensor): Target ids. (batch, len)
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple of
-                loss to backward (scalar),
-                negative log-likelihood of t: -log p(t) (scalar) and
-                the number of elements in x (scalar)
-
-        Notes:
-            The last two return values are used in perplexity:
-            p(t)^{-n} = exp(-log p(t) / n)
-
-        """
-        y = self._before_loss(x, None)[0]
-        mask = (x != 0).to(y.dtype)
-        loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
-        logp = loss * mask.view(-1)
-        logp = logp.sum()
-        count = mask.sum()
-        return logp / count, logp, count
-
-    def _before_loss(self, input, hidden):
+    def forward(self, input, hidden) -> Tuple[torch.Tensor, torch.Tensor]:
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)

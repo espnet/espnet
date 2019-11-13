@@ -22,7 +22,8 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.reporter import Reporter
+from espnet2.train.reporter import Reporter, SubReporter, ReportValue
+from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_values import get_defaut_values
 from espnet2.utils.types import (
     int_or_none, str2bool, str_or_none,
@@ -435,7 +436,7 @@ class BaseTask(ABC):
 
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Note(kamo): Don't give "args" load() and run() directly!!!
+        # Note(kamo): Don't give "args" to load() and run() directly!!!
 
         # Loads states from saved files
         cls.load(model=model,
@@ -584,11 +585,12 @@ class BaseTask(ABC):
         for iepoch in range(start_epoch, max_epoch):
             logging.info(f'{iepoch}epoch started')
 
-            with reporter:
+            reporter.set_epoch(iepoch)
+            with reporter.start('train') as sub_reporter:
                 cls.train(model=model,
                           optimizer=optimizer,
                           iterator=train_iter,
-                          reporter=reporter,
+                          reporter=sub_reporter,
                           scheduler=batch_scheduler,
                           ngpu=ngpu,
                           use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
@@ -597,9 +599,10 @@ class BaseTask(ABC):
                           grad_clip_threshold=grad_clip_threshold,
                           log_interval=log_interval,
                           )
+            with reporter.start('eval') as sub_reporter:
                 cls.eval(model=model,
                          iterator=eval_iter,
-                         reporter=reporter,
+                         reporter=sub_reporter,
                          ngpu=ngpu)
 
             if epoch_scheduler is not None:
@@ -668,7 +671,7 @@ class BaseTask(ABC):
               model: torch.nn.Module,
               iterator,
               optimizer: torch.optim.Optimizer,
-              reporter: Reporter,
+              reporter: SubReporter,
               scheduler: AbsBatchScheduler = None,
               ngpu: int = 1,
               use_apex: bool = False,
@@ -687,9 +690,9 @@ class BaseTask(ABC):
                 loss, stats = \
                     data_parallel(model, range(ngpu), module_kwargs=batch)
                 loss = loss.mean(0)
-                stats = {k: v.mean(0) for k, v in stats.items()}
+                stats = {k: ReportValue.reduce(v) for k, v in stats.items()}
 
-            reporter.register('train', stats)
+            reporter.register(stats)
             if use_apex:
                 from apex import amp
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -722,7 +725,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     @torch.no_grad()
-    def eval(cls, model: torch.nn.Module, iterator, reporter: Reporter,
+    def eval(cls, model: torch.nn.Module, iterator, reporter: SubReporter,
              ngpu: int = 1) -> None:
         model.eval()
         for batch in iterator:
@@ -735,19 +738,4 @@ class BaseTask(ABC):
                     data_parallel(model, range(ngpu), module_kwargs=batch)
                 stats = {k: v.mean(0).item() for k, v in stats.items()}
 
-            reporter.register('eval', stats)
-
-
-def to_device(data, device):
-    if isinstance(data, dict):
-        return {k: to_device(v, device) for k, v in data.items()}
-    # maybe namedtuple. I don't know the correct way to judge namedtuple.
-    elif isinstance(data, tuple) and type(data) is not tuple:
-        return type(data)(*[to_device(o, device) for o in data])
-    elif isinstance(data, (list, tuple)):
-        return type(data)(to_device(v, device) for v in data)
-    elif isinstance(data, torch.Tensor):
-        return data.to(device)
-    else:
-        return data
-
+            reporter.register(stats)

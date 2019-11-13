@@ -109,7 +109,6 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    @typechecked
     def __init__(self, loader: SoundScpReader):
         self.loader = loader
         self.rate = None
@@ -187,11 +186,6 @@ class Dataset:
                         f'The preprocess-key doesn\'t exit in data-keys: '
                         f'{k} not in {set(self.loader_dict)}')
 
-    def __len__(self):
-        raise RuntimeError(
-            'Not necessary to be used because '
-            'we are using custom batch-sampler')
-
     @staticmethod
     @typechecked
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
@@ -199,14 +193,32 @@ class Dataset:
             # path looks like:
             #   utta /some/where/a.wav
             #   uttb /some/where/a.flac
-            #
-            # Note that SoundScpReader doesn't support pipe-fashion
+
+            # Note(kamo): I recommend "flac" format for audio file
+            # because "flac" is one of lossless compression format and
+            # and it has not bad compression performance and
+            # can be decoded quickly.
+
+            # Note(kamo): SoundScpReader doesn't support pipe-fashion
             # like Kaldi e.g. "cat a.wav |".
-            loader = SoundScpReader(path, normalize=True,
-                                    always_2d=False)
+
+            # Note(kamo): The audio signal is normalized to [-1,1] range.
+
+            loader = SoundScpReader(path, normalize=True, always_2d=False)
 
             # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
             # but ndarray is desired, so Adapter class is inserted here
+            return AdapterForSoundScpReader(loader)
+
+        elif loader_type == 'pipe-wav.scp':
+            # path looks like:
+            #   utta cat a.wav |
+            #   uttb cat b.wav |
+
+            # Note(kamo): I don't think this case is practical
+            # because subprocess takes much times due to fork() system call.
+
+            loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
 
         elif loader_type == 'ark_scp':
@@ -260,6 +272,14 @@ class Dataset:
             raise RuntimeError(
                 f'Not supported: loader_type={loader_type}')
 
+    def __len__(self):
+        raise RuntimeError(
+            'Not necessary to be used because '
+            'we are using custom batch-sampler')
+
+    # Note(kamo):
+    # Typically pytorch's Dataset.__getitem__ accepts an inger index,
+    # however this Dataset required a string, which represents a sample-id.
     @typechecked
     def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
         data = {}
