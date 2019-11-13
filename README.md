@@ -463,14 +463,14 @@ Here we list all of the pretrained neural vocoders. Please download and enjoy th
 | :------                                                                                              | :---: | :----:  | :--------:     | :---------------:      | :------                                                                 |
 | [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | EN    | 22.05k  | None           | 1024 / 256 / None      | [Softmax WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
 | [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | EN    | 22.05k  | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1dy98rPrXAJBZHuR0gQC831uP6_uC2ktm)   | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1es2HuKUeKVtEdq6YDtAsLNpqCy4fhIXr)        | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB)   | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)            | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
 If you want to use the above pretrained vocoders, please exactly match the feature setting with them.
 
@@ -527,12 +527,12 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | :------                                                                                              | :---: | :----:  | :--------:     | :---------------:      | :------                                                                 |
 | [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | EN    | 22.05k  | None           | 1024 / 256 / None      | [Softmax WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
 | [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | EN    | 22.05k  | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | EN    | 24k     | None           | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)            | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
 
 ## Chainer and Pytorch backends
