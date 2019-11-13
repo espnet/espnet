@@ -69,11 +69,11 @@ def prepare(backend, args):
     ilens = [40, 30, 20, 15, 10]
     n_token = odim - 1
     if backend == 'pytorch':
-        y_tgt = (torch.rand(batchsize, 10) * n_token % n_token).long()
         y_src = (torch.rand(batchsize, 10) * n_token % n_token).long()
+        y_tgt = (torch.rand(batchsize, 11) * n_token % n_token).long()
     else:
-        y_tgt = (numpy.random.rand(batchsize, 10) * n_token % n_token).astype(numpy.int32)
         y_src = (numpy.random.rand(batchsize, 10) * n_token % n_token).astype(numpy.int32)
+        y_tgt = (numpy.random.rand(batchsize, 11) * n_token % n_token).astype(numpy.int32)
     olens = [3, 9, 10, 2, 3]
     for i in range(batchsize):
         x[i, ilens[i]:] = -1
