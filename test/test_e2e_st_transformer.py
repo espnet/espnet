@@ -133,7 +133,8 @@ def test_transformer_trainable_and_decodable(module, model_dict):
         maxlenratio=1.0,
         lm_weight=0,
         minlenratio=0,
-        nbest=1
+        nbest=1,
+        tgt_lang=False,
     )
     if module == "pytorch":
         # test trainable
