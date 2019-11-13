@@ -101,7 +101,7 @@ class E2E(STInterface, torch.nn.Module):
             input_layer=args.transformer_input_layer,
             dropout_rate=args.dropout_rate,
             positional_dropout_rate=args.dropout_rate,
-            attention_dropout_rate=args.transformer_attn_dropout_rate,
+            attention_dropout_rate=args.transformer_attn_dropout_rate
         )
         self.decoder = Decoder(
             odim=odim,
@@ -112,7 +112,7 @@ class E2E(STInterface, torch.nn.Module):
             dropout_rate=args.dropout_rate,
             positional_dropout_rate=args.dropout_rate,
             self_attention_dropout_rate=args.transformer_attn_dropout_rate,
-            src_attention_dropout_rate=args.transformer_attn_dropout_rate,
+            src_attention_dropout_rate=args.transformer_attn_dropout_rate
         )
         self.sos = odim - 1
         self.eos = odim - 1
@@ -135,7 +135,6 @@ class E2E(STInterface, torch.nn.Module):
 
         if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculator
-            print(args.char_list)
             self.error_calculator = ErrorCalculator(args.char_list,
                                                     args.sym_space, args.sym_blank,
                                                     args.report_cer, args.report_wer)
@@ -174,7 +173,7 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of source sequences (B)
         :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
-        :param torch.Tensor ys_pad_asr: batch of padded target sequences (B, Lmax)
+        :param torch.Tensor ys_pad_asr: batch of padded token sequences (B, Lmax)
         :return: ctc loass value
         :rtype: torch.Tensor
         :return: attention loss value
@@ -280,25 +279,27 @@ class E2E(STInterface, torch.nn.Module):
         """Scorers."""
         return dict(decoder=self.decoder)
 
-    def encode(self, feat):
-        """Encode acoustic features."""
+    def encode(self, x):
+        """Encode source acoustic features.
+
+        :param ndarray x: source acoustic feature (T, D)
+        :return: encoder outputs
+        :rtype: torch.Tensor
+        """
         self.eval()
-        feat = torch.as_tensor(feat).unsqueeze(0)
-        enc_output, _ = self.encoder(feat, None)
+        x = torch.as_tensor(x).unsqueeze(0)
+        enc_output, _ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
-    def translate(self, feat, trans_args, char_list=None, rnnlm=None,
-                  use_jit=False):
-        """Translate feat.
+    def translate(self, x, trans_args, char_list=None, rnnlm=None, use_jit=False):
+        """Translate input speech.
 
-        :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
-        :param namespace trans_args: argment namespace contraining options
+        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
+        :param Namespace trans_args: argment Namespace contraining options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
         :rtype: list
-
-        TODO(karita): do not recompute previous attention for faster decoding
         """
         # preprate sos
         if getattr(trans_args, "tgt_lang", False):
@@ -309,7 +310,7 @@ class E2E(STInterface, torch.nn.Module):
         logging.info('<sos> index: ' + str(y))
         logging.info('<sos> mark: ' + char_list[y])
 
-        enc_output = self.encode(feat).unsqueeze(0)
+        enc_output = self.encode(x).unsqueeze(0)
         h = enc_output.squeeze(0)
 
         logging.info('input lengths: ' + str(h.size(0)))
@@ -438,7 +439,7 @@ class E2E(STInterface, torch.nn.Module):
             # should copy becasuse Namespace will be overwritten globally
             trans_args = Namespace(**vars(trans_args))
             trans_args.minlenratio = max(0.0, trans_args.minlenratio - 0.1)
-            return self.translate(feat, trans_args, char_list, rnnlm)
+            return self.translate(x, trans_args, char_list, rnnlm)
 
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
@@ -449,8 +450,8 @@ class E2E(STInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :param torch.Tensor ys_pad_asr: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_asr: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
