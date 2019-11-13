@@ -134,13 +134,6 @@ def load_trained_model(model_path):
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
 
-    # knowledge disitillation
-    model.teacher = None
-    if getattr(train_args, 'teacher_mt_model', None) is not None:
-        model.teacher = load_trained_model(train_args.teacher_mt_model)[0]
-        assert isinstance(model.teacher, MTInterface)
-    # TODO(hirofumi): remove later
-
     torch_load(model_path, model)
 
     return model, train_args
@@ -154,7 +147,7 @@ def get_trained_model_state_dict(model_path):
 
     Return:
         model.state_dict() (OrderedDict): the loaded model state_dict
-        (str): Type of model. Either ASR / MT or LM.
+        (str): Type of model. Either ASR/MT or LM.
 
     """
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
@@ -181,7 +174,7 @@ def get_trained_model_state_dict(model_path):
 
 
 def load_trained_modules(idim, odim, args, interface=ASRInterface):
-    """Load model encoder or / and decoder modules with ESPNET pre-trained model(s).
+    """Load model encoder or/and decoder modules with ESPNET pre-trained model(s).
 
     Args:
         idim (int): initial input dimension.
