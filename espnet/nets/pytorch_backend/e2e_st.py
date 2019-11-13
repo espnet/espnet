@@ -151,7 +151,6 @@ class E2E(STInterface, torch.nn.Module):
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.asr_weight = getattr(args, "asr_weight", 0)
-        self.mt_weight = getattr(args, "mt_weight", 0)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -208,7 +207,7 @@ class E2E(STInterface, torch.nn.Module):
         self.dec_asr = None
         if self.asr_weight > 0:
             if self.mtlalpha > 0.0:
-                self.ctc = CTC(odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
+                self.ctc = CTC(odim, args.eprojs, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
             if self.mtlalpha < 1.0:
                 # attention (asr)
                 self.att_asr = att_for(args)
@@ -223,7 +222,7 @@ class E2E(STInterface, torch.nn.Module):
         self.init_like_chainer()
 
         # options for beam search
-        if args.report_cer or args.report_wer:
+        if self.asr_weight > 0 and args.report_cer or args.report_wer:
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
@@ -300,7 +299,7 @@ class E2E(STInterface, torch.nn.Module):
         if self.asr_weight == 0 or self.mtlalpha == 0:
             self.loss_ctc = None
         else:
-            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
+            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_asr)
 
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
@@ -335,7 +334,7 @@ class E2E(STInterface, torch.nn.Module):
             cer_ctc = sum(cers) / len(cers) if cers else None
 
         # 5. compute cer/wer
-        if (self.asr_weight == 0 or self.mtlalpha == 1) and (self.training or not (self.report_cer or self.report_wer)):
+        if self.training or (self.asr_weight == 0 or self.mtlalpha == 1 or not (self.report_cer or self.report_wer)):
             cer, wer = 0.0, 0.0
             # oracle_cer, oracle_wer = 0.0, 0.0
         else:
