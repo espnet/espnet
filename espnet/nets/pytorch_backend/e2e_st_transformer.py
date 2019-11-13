@@ -288,7 +288,7 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def translate(self, feat, trans_args, char_list=None, rnnlm=None,
-                  ensemble_models=[], use_jit=False):
+                  use_jit=False):
         """translate feat.
 
         :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
