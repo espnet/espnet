@@ -136,12 +136,12 @@ function download_vocoder_models () {
     case "${vocoder_models}" in
         "ljspeech.wavenet.softmax.ns.v1") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
         "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
-        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1D-PzbA7NGs3vCCTb8B4pu9qN4OnT7oEv";;
+        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7";;
         "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
         "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
-        "jsut.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13gj1g40dZBddwqoD3c0pC8T2hq427eRF";;
+        "jsut.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM";;
         "csmsc.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj";;
-        "csmsc.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=13h02np4r_m9K-oat_QaFG_Smx8sGBnb4";;
+        "csmsc.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
