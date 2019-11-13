@@ -133,7 +133,6 @@ def load_trained_model(model_path):
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
-
     torch_load(model_path, model)
 
     return model, train_args
@@ -183,7 +182,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
         interface (Interface): ASRInterface or STInterface
 
     Return:
-        model(torch.nn.Module): The model with pretrained modules.
+        model (torch.nn.Module): The model with pretrained modules.
 
     """
     enc_model_path = args.enc_init
