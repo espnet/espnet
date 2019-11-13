@@ -192,7 +192,7 @@ class E2E(STInterface, torch.nn.Module):
         # 1. forward encoder
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
-        hs_pad, hs_mask = self.encoder(xs_pad, src_mask, lang_ids=tgt_lang_ids)
+        hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
@@ -203,8 +203,7 @@ class E2E(STInterface, torch.nn.Module):
         if (self.asr_weight > 0 and self.mtlalpha < 1) or src_lang_ids is not None:
             ys_in_pad_asr, ys_out_pad_asr = add_sos_eos(ys_pad_asr, self.sos, self.eos, self.ignore_id)
         ys_mask = target_mask(ys_in_pad, self.ignore_id)
-        pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask,
-                                           lang_ids=tgt_lang_ids)
+        pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
         pred_pad_asr = None
         if self.asr_weight > 0 and self.mtlalpha < 1.0:
@@ -281,11 +280,11 @@ class E2E(STInterface, torch.nn.Module):
         """Scorers."""
         return dict(decoder=self.decoder)
 
-    def encode(self, feat, lang_ids=None):
+    def encode(self, feat):
         """Encode acoustic features."""
         self.eval()
         feat = torch.as_tensor(feat).unsqueeze(0)
-        enc_output, _ = self.encoder(feat, None, lang_ids=lang_ids)
+        enc_output, _ = self.encoder(feat, None)
         return enc_output.squeeze(0)
 
     def translate(self, feat, trans_args, char_list=None, rnnlm=None,
@@ -305,14 +304,12 @@ class E2E(STInterface, torch.nn.Module):
         if getattr(trans_args, "tgt_lang", False):
             if self.replace_sos:
                 y = char_list.index(trans_args.tgt_lang)
-                tgt_lang_ids = None
         else:
             y = self.sos
-            tgt_lang_ids = None
         logging.info('<sos> index: ' + str(y))
         logging.info('<sos> mark: ' + char_list[y])
 
-        enc_output = self.encode(feat, lang_ids=tgt_lang_ids).unsqueeze(0)
+        enc_output = self.encode(feat).unsqueeze(0)
         h = enc_output.squeeze(0)
 
         logging.info('input lengths: ' + str(h.size(0)))
@@ -359,8 +356,7 @@ class E2E(STInterface, torch.nn.Module):
                                                          (ys, ys_mask, enc_output))
                     local_att_scores = traced_decoder(ys, ys_mask, enc_output)[0]
                 else:
-                    local_att_scores = self.decoder.forward_one_step(ys, ys_mask, enc_output,
-                                                                     lang_ids=tgt_lang_ids)[0]
+                    local_att_scores = self.decoder.forward_one_step(ys, ys_mask, enc_output)[0]
 
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
