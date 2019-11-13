@@ -42,6 +42,7 @@ def make_arg(**kwargs):
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
+        report_bleu=False,
         report_cer=False,
         report_wer=False,
         mtlalpha=0.0,  # for CTC-ASR
