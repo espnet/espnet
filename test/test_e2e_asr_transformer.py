@@ -280,28 +280,28 @@ def run_transformer_copy():
     # assert(False)
 
 
-# def test_transformer_parallel():
-#     if not torch.cuda.is_available():
-#         return
-#
-#     args = make_arg()
-#     model, x, ilens, y, data = prepare("pytorch", args)
-#     model = torch.nn.DataParallel(model).cuda()
-#     logging.debug(ilens)
-#     # test acc is almost 100%
-#     optim = torch.optim.Adam(model.parameters(), 0.02)
-#     max_acc = 0.0
-#     for i in range(40):
-#         loss = model(x, torch.as_tensor(ilens), y)
-#         optim.zero_grad()
-#         acc = float(model.module.acc)
-#         max_acc = max(acc, max_acc)
-#         loss.mean().backward()
-#         optim.step()
-#         print(loss, acc)
-#         # attn_dict = model.calculate_all_attentions(x, ilens, y)
-#         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
-#     assert max_acc > 0.8
+def test_transformer_parallel():
+    if not torch.cuda.is_available():
+        return
+
+    args = make_arg()
+    model, x, ilens, y, data = prepare("pytorch", args)
+    model = torch.nn.DataParallel(model).cuda()
+    logging.debug(ilens)
+    # test acc is almost 100%
+    optim = torch.optim.Adam(model.parameters(), 0.02)
+    max_acc = 0.0
+    for i in range(40):
+        loss = model(x, torch.as_tensor(ilens), y)
+        optim.zero_grad()
+        acc = float(model.module.acc)
+        max_acc = max(acc, max_acc)
+        loss.mean().backward()
+        optim.step()
+        print(loss, acc)
+        # attn_dict = model.calculate_all_attentions(x, ilens, y)
+        # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
+    assert max_acc > 0.8
 
 
 if __name__ == "__main__":
