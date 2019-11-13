@@ -11,7 +11,6 @@ import math
 
 import torch
 
-from espnet.nets.st_interface import STInterface
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
@@ -26,6 +25,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.nets.st_interface import STInterface
 
 
 class E2E(STInterface, torch.nn.Module):
@@ -79,6 +79,7 @@ class E2E(STInterface, torch.nn.Module):
 
     @property
     def attention_plot_class(self):
+        """Return PlotAttentionReport."""
         return PlotAttentionReport
 
     def __init__(self, idim, odim, args, ignore_id=-1, asr_model=None, mt_model=None):
@@ -164,6 +165,7 @@ class E2E(STInterface, torch.nn.Module):
             assert self.replace_sos
 
     def reset_parameters(self, args):
+        """Initialize parameters."""
         # initialize parameters
         initialize(self, args.transformer_init)
 
@@ -289,7 +291,7 @@ class E2E(STInterface, torch.nn.Module):
 
     def translate(self, feat, trans_args, char_list=None, rnnlm=None,
                   use_jit=False):
-        """translate feat.
+        """Translate feat.
 
         :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
         :param namespace trans_args: argment namespace contraining options
@@ -441,7 +443,7 @@ class E2E(STInterface, torch.nn.Module):
             # should copy becasuse Namespace will be overwritten globally
             trans_args = Namespace(**vars(trans_args))
             trans_args.minlenratio = max(0.0, trans_args.minlenratio - 0.1)
-            return self.recognize(feat, trans_args, char_list, rnnlm)
+            return self.translate(feat, trans_args, char_list, rnnlm)
 
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))

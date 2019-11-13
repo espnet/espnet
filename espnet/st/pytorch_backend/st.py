@@ -403,12 +403,12 @@ def trans(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
-    # assert isinstance(model, STInterface)
-    # TODO(hirofumi0810) fix this for after supporting Transformer
-    args.ctc_weight = 0.0
+    assert isinstance(model, STInterface)
+    # args.ctc_weight = 0.0
     model.trans_args = args
 
     # read rnnlm
