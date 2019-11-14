@@ -480,7 +480,7 @@ Available pretrained models are listed as follows:
 | [ljspeech.transformer.v3 (New!)](https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP) | Deep Transformer (phoneme input) |
 | [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i) | Feed-forward Transformer with position-wise FFN |
 | [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B) | Feed-forward Transformer with CNN instead of position-wise FFN |
-| [ljspeech.fastspeech.v3 (New!)](https://drive.google.com/open?id=10EHVqZKrJpY5z-DshnAITpgBEZqSxhsa) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet (phoneme input)|
+| [ljspeech.fastspeech.v3 (New!)](https://drive.google.com/open?id=1W86YEQ6KbuUTIvVURLqKtSNqe_eI2GDN) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet (phoneme input)|
 | [libritts.transformer.v1 (New!)](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | Multi-speaker Transformer with reduction factor = 2 |
 | [jsut.tacotron2 (New!)](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t) | Tacotron 2 ith reduction factor = 2, phoneme input |
 | [jsut.transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD) | Transformer with reduction factor = 3, phoneme input |
