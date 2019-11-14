@@ -11,7 +11,7 @@ from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_values import get_defaut_values
 
 
-class Frontend1(torch.nn.Module):
+class Default(torch.nn.Module):
     """Conventional frontend structure for ASR
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN

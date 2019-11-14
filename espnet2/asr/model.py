@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class E2E(torch.nn.Module):
+class Model(torch.nn.Module):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     @typechecked

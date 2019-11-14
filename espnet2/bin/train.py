@@ -31,6 +31,7 @@ def get_parser():
         'lm', help='LM model',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    LMTask.add_arguments(subparser)
     subparser.set_defaults(main=LMTask.main)
 
     subparser = subparsers.add_parser(

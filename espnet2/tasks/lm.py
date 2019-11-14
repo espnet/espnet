@@ -5,7 +5,7 @@ import configargparse
 import torch
 from typeguard import typechecked
 
-from espnet2.lm.e2e import E2E
+from espnet2.lm.model import Model
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_values import get_defaut_values
@@ -20,7 +20,7 @@ class LMTask(BaseTask):
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
         if parser is None:
             parser = configargparse.ArgumentParser(
-                description='Train ASR Transformer',
+                description='Train launguage model',
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
@@ -39,8 +39,8 @@ class LMTask(BaseTask):
             '--lm_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for lm class.')
         group.add_argument(
-            '--e2e_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for ETE class.')
+            '--model_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for Model class.')
 
         return parser
 
@@ -57,9 +57,9 @@ class LMTask(BaseTask):
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
-        lm_class = cls.get_lm_class(args.frontend)
+        lm_class = cls.get_lm_class(args.lm)
         lm_conf = get_defaut_values(lm_class)
-        e2e_conf = get_defaut_values(E2E)
+        model_conf = get_defaut_values(Model)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -69,10 +69,10 @@ class LMTask(BaseTask):
 
         # 4. Overwrite the default config by the command-arguments
         lm_conf.update(config['lm_conf'])
-        e2e_conf.update(config['e2e_conf'])
+        model_conf.update(config['model_conf'])
 
         # 5. Reassign them to the configuration
-        config.update(lm_conf=lm_conf, e2e_conf=e2e_conf)
+        config.update(lm_conf=lm_conf, model_conf=model_conf)
 
         # 6. Excludes the specified options
         for k in cls.exclude_opts():
@@ -103,7 +103,7 @@ class LMTask(BaseTask):
     def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
         lm_class = cls.get_lm_class()
         lm = lm_class(**args.lm_conf)
-        model = E2E(lm=lm, **args.e2e_conf)
+        model = Model(lm=lm, **args.model_conf)
         return model
 
 
