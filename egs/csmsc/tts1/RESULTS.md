@@ -18,7 +18,7 @@
 
 ## Models
 
-- model link: https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_
+- model link: https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R
 - training config file: `conf/tuning/train_fastspeech.v3.single.yaml`
 - decoding config file: `conf/decode.yaml`
 - cmvn file: `data/train_no_dev/cmvn.ark`
