@@ -43,7 +43,7 @@ class ASRTask(BaseTask):
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
             '--frontend_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for feature-transform class.')
+            help='The keyword arguments for frontend class.')
 
         group.add_argument(
             '--encoder_decoder', type=str, default='transformer',
@@ -186,4 +186,11 @@ class ASRTask(BaseTask):
 
 
 if __name__ == '__main__':
+    # These two are equivalent:
+    #   % python -m espnet2.tasks.asr
+    #   % python -m espnet2.bin.train asr
+
+    import sys
+    from espnet.utils.cli_utils import get_commandline_args
+    print(get_commandline_args(), file=sys.stderr)
     ASRTask.main()

@@ -69,12 +69,15 @@ class SequentialRNNLM(LMInterface, torch.nn.Module):
         self.nhid = nhid
         self.nlayers = nlayers
 
-    def forward(self, input, hidden) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
-        decoded = self.decoder(output.view(output.size(0) * output.size(1), output.size(2)))
-        return decoded.view(output.size(0), output.size(1), decoded.size(1)), hidden
+        decoded = self.decoder(output.view(output.size(0) * output.size(1),
+                                           output.size(2)))
+        return decoded.view(output.size(0), output.size(1),
+                            decoded.size(1)), hidden
 
     def init_state(self, x):
         """Get an initial state for decoding.

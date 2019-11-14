@@ -24,9 +24,8 @@ class Stft(torch.nn.Module):
         self.normalized = normalized
         self.onesided = onesided
 
-    def forward(self,
-                input: torch.Tensor,
-                ilens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
 
         # output: (Batch, Freq, Frames, 2=real_imag)
         output = torch.stft(

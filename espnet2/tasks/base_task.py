@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.reporter import Reporter, SubReporter, aggregate
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_values import get_defaut_values
 from espnet2.utils.types import (
@@ -626,18 +626,18 @@ class BaseTask(ABC):
 
             # Saves the best model
             for k, mode in [('loss', 'min'), ('acc', 'max')]:
-                best_epoch, _ = reporter.best_epoch_and_value('eval', k, mode)
                 _saved = None
-                if reporter.has_key('eval', k) and best_epoch == iepoch:
-                    if _saved is not None:
-                        # Creates sym links
-                        p = output_path / f'{k}.best.pt'
-                        p.unlink()
-                        p.symlink_to(_saved.name)
-                    else:
-                        _saved = output_path / f'{k}.best.pt'
-                        _saved.unlink()
-                        torch.save(model.state_dict(), _saved)
+                if reporter.has_key('eval', k):
+                    best_epoch, _ = \
+                        reporter.best_epoch_and_value('eval', k, mode)
+                    if best_epoch == iepoch:
+                        if _saved is not None:
+                            # Creates sym links
+                            p = output_path / f'{k}.best.pt'
+                            p.symlink_to(_saved.name)
+                        else:
+                            _saved = output_path / f'{k}.best.pt'
+                            torch.save(model.state_dict(), _saved)
 
             reporter.show_stats()
 
@@ -685,22 +685,26 @@ class BaseTask(ABC):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
-                loss, stats, _ = model(**batch)
+                # Note(kamo): data_parallel also should work with ngpu=1,
+                # but for debuggability it's better to keep this block.
+                loss, stats, weight = model(**batch)
             else:
                 loss, stats, weight = \
-                    data_parallel(model, range(ngpu), module_kwargs=batch)
-                weight = weight.to(dtype=loss.dtype) / weight.sum()
-                loss = (loss * weight).mean(0)
-                stats = {k: (v * weight).mean(0) for k, v in stats.items()}
+                    data_parallel(model, (), range(ngpu), module_kwargs=batch)
+                # Weighted averaging of loss from torch-data-parallel
+                loss = (loss * weight.to(loss.dtype) / weight.sum()).mean(0)
+                stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
+                         for k, v in stats.items() if v is not None}
+                weight = weight.sum()
 
-            reporter.register(stats)
+            reporter.register(stats, weight)
+
             if use_apex:
                 from apex import amp
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
-            loss.detach_()
 
             # gradient noise injection
             if grad_noise:
@@ -733,11 +737,15 @@ class BaseTask(ABC):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
-                _, stats, _ = model(**batch)
+                _, stats, weight = model(**batch)
             else:
-                loss, stats, weight = \
-                    data_parallel(model, range(ngpu), module_kwargs=batch)
-                weight = weight.to(dtype=loss.dtype) / weight.sum()
-                stats = {k: (v * weight).mean(0) for k, v in stats.items()}
+                _, stats, weight = \
+                    data_parallel(model, (), range(ngpu), module_kwargs=batch)
+                stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
+                         for k, v in stats.items() if v is not None}
+                weight = weight.sum()
 
-            reporter.register(stats)
+            if 'loss' not in stats and 'acc' not in stats:
+                raise RuntimeError(f'loss or acc must be in stats: {stats}')
+
+            reporter.register(stats, weight)

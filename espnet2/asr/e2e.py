@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union
 from typing import Tuple
 
 import torch
@@ -36,6 +36,7 @@ class E2E(torch.nn.Module):
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
+        # TODO(kamo): Implement Interface class for frontend, encoder-decoder
         assert 0. < ctc_weight < 1., ctc_weight
         assert rnnt_decoder is None, 'Not implemented'
 
@@ -84,18 +85,27 @@ class E2E(torch.nn.Module):
         assert output.dim() == 2, output.shape
         assert input_lengths.dim() == 1, input_lengths.shape
         assert output_lengths.dim() == 1, output_lengths.shape
-        batch_size = input.size(0)
+        assert (input.shape[0] == input_lengths.shape[0] ==
+                output.shape[0] == output_lengths.shape[0]), \
+            (input.shape, input_lengths.shape, output.shape,
+             output_lengths.shape)
+        batch_size = input.shape[0]
 
         # 0. Change pad_value
-        input.masked_fill_(make_pad_mask(input_lengths), 0,)
-        output.masked_fill_(make_pad_mask(output_lengths), self.ignore_id)
+        # For data parallel
+        input = input[:, :input_lengths.max()]
+        output = output[:, :output_lengths.max()]
+        input.masked_fill_(make_pad_mask(input_lengths).to(input.device), 0,)
+        output.masked_fill_(make_pad_mask(output_lengths).to(output.device),
+                            self.ignore_id)
 
         # 1. STFT, Feature transform
         # input (Batch, NSamples) -> input_feats: (Batch, Length, Dim)
         input_feats, feats_lens = self.frontend(input, input_lengths)
 
         # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
-        feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :]
+        feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :].to(
+            feats_lens.device)
 
         # 2. Forward encoder
         # input_feats: (Batch, Length, Dim)
@@ -137,8 +147,10 @@ class E2E(torch.nn.Module):
             wer=wer_att,
             cer_ctc=cer_ctc,
         )
-        stats = force_gatherable(stats, loss.device)
-        weight = torch.tensor([batch_size], device=loss.device)
+
+        # force_gatherable: to-device and to-tensor if scalar for DataParallel
+        loss, stats, weight = \
+            force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def _calc_decoder_loss(self,
