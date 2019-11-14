@@ -120,7 +120,7 @@ function download_models () {
         "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
         "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
         "csmsc.transformer.v1") share_url="https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ";;
-        "csmsc.fastspeech.v3") share_url="https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_";;
+        "csmsc.fastspeech.v3") share_url="https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
