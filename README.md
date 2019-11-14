@@ -519,7 +519,7 @@ Available pretrained models in the demo script are listed as follows:
 | [jsut.tacotron2](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t)          | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | phn    | 2   | Tacotron 2                                  |
 | [jsut.transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)        | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | phn    | 3   | Shallow Transformer                         |
 | [csmsc.transformer.v1](https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ)    | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin | 1   | Deep Transformer                            |
-| [csmsc.fastspeech.v3](https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_)     | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin | 1   | FF-Transformer + CNN in FFT block + postnet |
+| [csmsc.fastspeech.v3](https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R)     | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin | 1   | FF-Transformer + CNN in FFT block + postnet |
 
 Available pretrained vocoder models in the demo script are listed as follows:
 
