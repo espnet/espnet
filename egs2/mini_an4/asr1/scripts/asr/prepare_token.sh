@@ -62,13 +62,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         spm_train \
             --input=${bpedir}/train.txt \
-            --vocab_size=${nbpe} \
-            --model_type=${bpemode} \
-            --model_prefix=${bpemodel} \
+            --vocab_size="${nbpe}" \
+            --model_type="${bpemode}" \
+            --model_prefix="${bpemodel}" \
             --input_sentence_size=100000000
 
-        echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-        spm_encode --model=${bpemodel}.model --output_format=piece \
+        echo "<unk> 1" > "${dict}" # <unk> must be 1, 0 will be used for "blank" in CTC
+        spm_encode --model="${bpemodel}.model" --output_format=piece \
             < ${bpedir}/train.txt | \
             tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
 
@@ -86,6 +86,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     #   token_int: The int-sequences converted from tokens.
     for dset in ${train_set} ${train_dev}; do
 
+        # mode1: BPE
         if [ -n "${bpemode}" ]; then
             out=${dset}_bpe_${train_set##*/}_${bpemode}${nbpe}
             utils/copy_data_dir.sh ${dset} ${out}
@@ -96,6 +97,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 spm_encode --model=${bpemodel}.model --output_format=piece) \
                 > ${out}/token
 
+        # mode2: Char
         else
             out=${dset}
             if [ -n "${nlsyms}" ]; then
@@ -105,6 +107,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 pyscripts/text/text2token.py -s 1 -n 1 ${dset}/text \
                     --trans_type ${trans_type} > ${dset}/token
             fi
+
+        # mode3: Word
         fi
 
         <${out}/token \

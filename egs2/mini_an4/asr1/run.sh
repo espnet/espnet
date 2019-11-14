@@ -28,6 +28,7 @@ bpemode=unigram
 . ./path.sh
 . ./cmd.sh
 
+
 train_set=train_nodev
 dev_set=train_dev
 eval_sets=test
@@ -39,6 +40,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # TODO(kamo): Change Makefile to install sph2pipe
     local/data.sh --sph2pipe ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 fi
+
 
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -63,19 +65,21 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: LM Preparation"
-    log "Not yet"
-    # scripts/lm/train.sh
+    if false; then
+        scripts/lm/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" \
+            data_format/${train_set}_bpe_${train_set}_${bpemode}${nbpe}/text \
+            data_format/${dev_set}_bpe_${train_set}_${bpemode}${nbpe}/text \
+            exp/lm_train
+    fi
 fi
 
-expdir=exp/train
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Network Training"
     scripts/asr/train.sh --cmd "${cuda_cmd} --gpu ${ngpu}" --ngpu "${ngpu}" \
         data_format/${train_set}_bpe_${train_set}_${bpemode}${nbpe} \
         data_format/${dev_set}_bpe_${train_set}_${bpemode}${nbpe} \
-        ${expdir}
-
+        exp/asr_train
 fi
 
 

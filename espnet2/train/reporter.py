@@ -1,71 +1,68 @@
+from __future__ import annotations
+
+import dataclasses
 import datetime
 import logging
 import time
 from collections import defaultdict
 from contextlib import contextmanager
-from enum import Enum
-from typing import Union, Dict, Tuple, Optional, Sequence, Any, List, \
-    NamedTuple
+from typing import Union, Dict, Tuple, Optional, Sequence
 
-import numpy as np
 import humanfriendly
+import numpy as np
 import torch
 from typeguard import typechecked
 
-
-class ReportType(Enum):
-    average = 'average'
-    accumulate = 'accumulate '
+Num = Union[float, int, torch.Tensor, np.ndarray]
 
 
-class ReportValue(NamedTuple):
-    value: Any
-    type: ReportType
+def to_report_value(v: Num, weight: Num = None) -> ReportValue:
+    if isinstance(v, (torch.Tensor, np.ndarray)):
+        v = v.item()
+    if isinstance(weight, (torch.Tensor, np.ndarray)):
+        weight = weight.item()
+    if weight is not None:
+        return WeightedAverage(v, weight)
+    else:
+        return Average(v)
 
-    @staticmethod
-    def to(v) -> 'ReportValue':
-        if isinstance(v, (torch.Tensor, np.ndarray)):
-            if isinstance(v, torch.Tensor):
-                v = v.cpu().detach().numpy()
-            if v.ndim in (1, 0):
-                raise ValueError(f'must be 1-dim or 0-dim: {v.shape}')
 
-            return ReportValue(v, ReportType.average)
-        # By default, float value will be averaged
-        elif isinstance(v, (float, int, complex)):
-            return ReportValue(v, ReportType.average)
-        # If you need to customize the behaviour
-        elif isinstance(v, ReportValue):
-            return v
-        else:
-            raise NotImplementedError(f'Not supported type: {type(v)}')
+@typechecked
+def aggregate(values: Sequence[ReportValue]):
+    if isinstance(values[0], Average):
+        return np.nanmean([v.value for v in values]).item()
 
-    @staticmethod
-    @typechecked
-    def reduce(values: Union[List[float],
-                             List[int],
-                             List[torch.Tensor],
-                             List[np.ndarray],
-                             List['ReportValue']]):
-        if isinstance(values[0], (torch.Tensor, np.ndarray)):
-            if isinstance(values[0], torch.Tensor):
-                values = [v.cpu().detach().numpy() for v in values]
-            for v in values:
-                if v.ndim in (1, 0):
-                    raise ValueError(f'must be 1-dim or 0-dim: {v.shape}')
+    elif isinstance(values[0], WeightedAverage):
+        # Excludes non finite values
+        invalid_indices = set()
+        for i, v in enumerate(values):
+            if not np.isfinite(v.value) or not np.isfinite(v.weight):
+                invalid_indices.add(i)
+        values = [v for i, v in enumerate(values) if i not in invalid_indices]
 
-            return np.nanmean(values)
-        elif isinstance(values[0], (float, int, complex)):
-            return np.nanmean([v for v in values])
-        elif isinstance(values[0], ReportType):
-            if values[0].type == ReportType.average:
-                return np.nanmean([v.value for v in values])
-            elif values[0].type == ReportType.accumulate:
-                return np.nansum([v.value for v in values])
-            else:
-                raise NotImplementedError(f'type={values[0].type}')
-        else:
-            raise NotImplementedError(f'type={values[0]}')
+        # Calc weighed average. Weights are changed to sum-to-1.
+        sum_weights = np.sum(v.weight for i, v in enumerate(values))
+        sum_value = np.sum(v.value * v.weight for i, v in enumerate(values))
+
+        return sum_value / sum_weights
+
+    else:
+        raise NotImplementedError(f'type={type(values[0])}')
+
+
+class ReportValue:
+    pass
+
+
+@dataclasses.dataclass(frozen=True)
+class Average(ReportValue):
+    value: Num
+
+
+@dataclasses.dataclass(frozen=True)
+class WeightedAverage(ReportValue):
+    value: Tuple[Num, Num]
+    weight: Num
 
 
 class SubReporter:
@@ -73,6 +70,7 @@ class SubReporter:
 
     See the docstring of Reporter for the usage.
     """
+    @typechecked
     def __init__(self, key: str, epoch: int, total_count: int):
         self.key = key
         self.epoch = epoch
@@ -85,13 +83,11 @@ class SubReporter:
         return self.total_count
 
     @typechecked
-    def register(self,
-                 stats: Dict[str, Union[float, int,
-                                        torch.Tensor, ReportValue]],
-                 not_increment_count: bool = False):
+    def register(self, stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
+                 weight: Num = None, not_increment_count: bool = False):
         if self._finished:
             raise RuntimeError('Already finished')
-        if not_increment_count:
+        if not not_increment_count:
             self.total_count += 1
 
         # key: train or eval
@@ -103,7 +99,7 @@ class SubReporter:
             # if the input stats has None value, the key is not registered
             if v is None:
                 continue
-            r = ReportValue.to(v)
+            r = to_report_value(v, weight)
             self.stats[key2].append(r)
 
     def logging(self, logger=None, level: str = 'INFO', nlatest: int = None):
@@ -127,12 +123,12 @@ class SubReporter:
             else:
                 message += ', '
 
-            if values[0].type == ReportType.average:
+            if isinstance(values[0], Average):
                 v = np.nanmean([v.value for v in values])
-            elif values[0].type == ReportType.accumulate:
+            elif isinstance(values[0], Average):
                 v = np.nansum([v.value for v in values])
             else:
-                raise NotImplementedError(f'type={values[0].type}')
+                raise NotImplementedError(f'type={type(values[0])}')
 
             message += f'{key2}={v}'
         logger.log(level, message)
@@ -149,12 +145,7 @@ class Reporter:
         >>> reporter = Reporter()
         >>> with reporter.start('train') as sub_reporter:
         ...     for batch in iterator:
-        ...         stats = dict(
-        ...             # If float, the averaged value is reported.
-        ...             loss=0.2,
-        ...             # You need the summation, then use
-        ...             # ReportValue to tell the desired type.
-        ...             something=ReportValue(0.4, ReportType.accumulate))
+        ...         stats = dict(loss=0.2)
         ...         sub_reporter.register(stats)
 
     """
@@ -208,10 +199,10 @@ class Reporter:
     def finish_epoch(self, sub_reporter: SubReporter):
         # Note(k): Reporter and SubReporter is tight coupled due to this method
 
-        # Calc mean of current stats and set it for previous epochs stats
+        # Calc mean of current stats and set it as previous epochs stats
         stats = {}
         for key2, values in sub_reporter.stats.items():
-            v = ReportValue.reduce(values)
+            v = aggregate(values)
             stats[key2] = v
 
         if 'time' in stats:
@@ -329,10 +320,13 @@ class Reporter:
         return plt
 
     def state_dict(self):
-        return {'stats': self.stats,
-                'epoch': self.epoch}
+        return {'stats': self.stats, 'epoch': self.epoch}
 
     def load_state_dict(self, state_dict: dict):
         self.epoch = state_dict['epoch']
         self.stats = state_dict['stats']
 
+
+if __name__ == '__main__':
+    print(WeightedAverage(0.4, weight=0))
+    print(WeightedAverage(0.4, 'a'))

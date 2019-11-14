@@ -5,6 +5,7 @@ import configargparse
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.lm import LMTask
 
 
 def not_implemented(args):
@@ -30,7 +31,7 @@ def get_parser():
         'lm', help='LM model',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-    subparser.set_defaults(main=not_implemented)
+    subparser.set_defaults(main=LMTask.main)
 
     subparser = subparsers.add_parser(
         'tts', help='TTS model',
