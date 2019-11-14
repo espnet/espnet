@@ -7,8 +7,8 @@ from typeguard import typechecked
 import humanfriendly
 
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet2.asr.e2e import E2E
-from espnet2.asr.frontend import Frontend1
+from espnet2.asr.model import Model
+from espnet2.asr.frontend.default import Default
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_values import get_defaut_values
 from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
@@ -22,7 +22,7 @@ class ASRTask(BaseTask):
         # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
         if parser is None:
             parser = configargparse.ArgumentParser(
-                description='Train ASR Transformer',
+                description='Train ASR',
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
@@ -39,7 +39,7 @@ class ASRTask(BaseTask):
         group.add_argument('--odim', type=int_or_none, default=None)
 
         group.add_argument(
-            '--frontend', type=str_or_none, default='frontend1',
+            '--frontend', type=str_or_none, default='default',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
             '--frontend_conf', action=NestedDictAction, default=dict(),
@@ -59,8 +59,8 @@ class ASRTask(BaseTask):
             '--ctc_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for CTC class.')
         group.add_argument(
-            '--e2e_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for ETE class.')
+            '--model_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for Model class.')
 
         return parser
 
@@ -85,7 +85,7 @@ class ASRTask(BaseTask):
         encoder_conf = get_defaut_values(encoder_class)
         decoder_conf = get_defaut_values(decoder_class)
         ctc_conf = get_defaut_values(CTC)
-        e2e_conf = get_defaut_values(E2E)
+        model_conf = get_defaut_values(Model)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -105,7 +105,7 @@ class ASRTask(BaseTask):
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
-            e2e_conf=e2e_conf)
+            model_conf=model_conf)
 
         # 6. Excludes the specified options
         for k in cls.exclude_opts():
@@ -116,7 +116,7 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def frontend_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('frontend1',)
+        choices = ('default',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         return choices
@@ -124,8 +124,8 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def get_frontend_class(cls, name: str) -> Type[torch.nn.Module]:
-        if name.lower() == 'frontend1':
-            return Frontend1
+        if name.lower() == 'default':
+            return Default
         else:
             raise RuntimeError(
                 f'--frontend must be one of '
@@ -173,14 +173,14 @@ class ASRTask(BaseTask):
         ctc = CTC(odim=args.odim, **args.ctc_conf)
 
         # 4. Set them to E2E
-        model = E2E(
+        model = Model(
             odim=args.odim,
             frontend=frontend,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
             rnnt_decoder=None,
-            **args.e2e_conf)
+            **args.model_conf)
 
         return model
 

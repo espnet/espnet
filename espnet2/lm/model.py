@@ -9,7 +9,7 @@ from espnet2.lm.lm_interface import LMInterface
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class E2E(torch.nn.Module):
+class Model(torch.nn.Module):
     @typechecked
     def __init__(self, lm: LMInterface, ignore_id: int = -1):
         super().__init__()
