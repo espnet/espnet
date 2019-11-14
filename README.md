@@ -485,7 +485,7 @@ Available pretrained models are listed as follows:
 | [jsut.tacotron2 (New!)](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t) | Tacotron 2 ith reduction factor = 2, phoneme input |
 | [jsut.transformer (New!)](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD) | Transformer with reduction factor = 3, phoneme input |
 | [csmsc.transformer.v1 (New!)](https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ) | Transformer with reduction factor = 1, pinyin input |
-| [csmsc.fastspeech.v3 (New!)](https://drive.google.com/open?id=1Ig4ghyokVZWs69RMmmkUwL8UJbOOyzv_) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet  (pinyin input )|
+| [csmsc.fastspeech.v3 (New!)](https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R) | Feed-forward Transformer with CNN instead of position-wise FFN and postnet  (pinyin input )|
 
 Waveform synthesis is performed with Griffin-Lim algorithm as default, but we also support a pretrained WaveNet vocoder.
 You can try it by extending the `stop_stage` as follows:
