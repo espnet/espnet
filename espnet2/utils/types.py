@@ -30,12 +30,12 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
     return value
 
 
-class NestedDictAction(argparse.Action):
+class NestedAction(argparse.Action):
     """
 
     Examples:
         >>> parser = argparse.ArgumentParser()
-        >>> _ = parser.add_argument('--conf', action=NestedDictAction,
+        >>> _ = parser.add_argument('--conf', action=NestedAction,
         ...                         default={'a': 4})
         >>> parser.parse_args(['--conf', 'a=3', '--conf', 'c=4'])
         Namespace(conf={'a': 3, 'c': 4})
@@ -47,6 +47,8 @@ class NestedDictAction(argparse.Action):
         Namespace(conf={'d': 5, 'e': 9})
         >>> parser.parse_args(['--conf', 'e.f=[0, 1, 2]'])
         Namespace(conf={'a': 4, 'e': {'f': [0, 1, 2]}})
+        >>> parser.parse_args(['--conf', '[0, 1, 2]'])
+        Namespace(conf=[0, 1, 2])
 
     """
     def __init__(self,
@@ -60,8 +62,13 @@ class NestedDictAction(argparse.Action):
                  metavar=None):
         if default is None:
             default = {}
-        if not isinstance(default, dict):
-            raise TypeError('default must be dict: {}'.format(type(default)))
+
+        # Note(kamo): Not allowing str object because
+        # all string can be interpreted as str even if wrong yaml is given.
+        # e.g. ---conf "{a: 4}}}}}"
+        if isinstance(default, str):
+            raise TypeError('default can not be str object: {}'
+                            .format(type(default)))
 
         super().__init__(
             option_strings=option_strings,
@@ -81,6 +88,8 @@ class NestedDictAction(argparse.Action):
             key, value = values.split('=', maxsplit=1)
             if not value.strip() == '':
                 value = yaml.load(value, Loader=yaml.Loader)
+            if not isinstance(indict, dict):
+                indict = {}
 
             keys = key.split('.')
             d = indict
@@ -93,22 +102,22 @@ class NestedDictAction(argparse.Action):
                         # Remove the existing value and recreates as empty dict
                         d[k] = {}
                     d = d[k]
+
             # Update the value
             setattr(namespace, self.dest, indict)
         else:
+            setattr(namespace, self.dest, values)
             try:
                 # At the first, try eval(), i.e. Python syntax dict.
                 # e.g. --{option} "{'a': 3}" -> {'a': 3}
                 # This is workaround for internal behaviour of configargparse.
                 value = eval(values, {}, {})
-                # Must be dict
-                if not isinstance(value, dict):
+                if isinstance(value, str):
                     raise ValueError
             except Exception:
                 # and the second, try yaml.load
                 value = yaml.load(values, Loader=yaml.Loader)
-                # Must be dict
-                if not isinstance(value, dict):
+                if isinstance(value, str):
                     raise ValueError
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)

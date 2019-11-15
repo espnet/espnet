@@ -1,16 +1,19 @@
 import logging
+from pathlib import Path
 
 import torch
 
-from espnet.asr.asr_mix_utils import add_results_to_json
-from espnet.nets.beam_search import BeamSearch
+from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.lm import LMTask
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.utils.device_funcs import to_device
+from espnet2.utils.fileio import DatadirWriter
 
 
 def recog(
+        outdir: str,
         maxlenratio: float,
         minlenratio: float,
         batch_size: int,
@@ -20,7 +23,8 @@ def recog(
         char_list,
         ctc_weight: float,
         lm_weight: float,
-        penalty: float):
+        penalty: float,
+        nbest: int):
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_rnnlm:
@@ -64,10 +68,13 @@ def recog(
         device = "cuda"
     else:
         device = "cpu"
+
     dtype = getattr(torch, dtype)
+
     logging.info(f"Decoding device={device}, dtype={dtype}")
+
     beam_search.to(device=device, dtype=dtype).eval()
-    for scorer in scorers.items():
+    for scorer in scorers.values():
         if isinstance(scorer, torch.nn.Module):
             model.to(device=device, dtype=dtype).eval()
 
@@ -75,41 +82,50 @@ def recog(
     data_conf = dict(input=input_file)
     dataset = Dataset(data_conf, preprocess, float_dtype=dtype)
 
-    batch_sampler = BatchSampler(type='const', paths=eval_batch_files,
-                                 batch_size=batch_size, shuffle=False)
-    with torch.no_grad():
-        for idx, keys in enumerate(batch_sampler):
-            batch = collate_fn([dataset[k] for k in keys])
-            batch = to_device(batch, device)
-            enc = encoder(batch)
-            nbest_hyps = beam_search(x=enc, maxlenratio=maxlenratio,
-                                     minlenratio=minlenratio)
-            nbest_hyps = [h.asdict() for h in nbest_hyps[:min(len(nbest_hyps), nbest)]]
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, char_list)
+    batch_sampler = BatchSampler(
+        type='const', srcs=[input_file],
+        batch_size=batch_size, shuffle=False)
 
-    with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+    outpath = Path(outdir)
 
+    for idx, keys in enumerate(batch_sampler):
+        assert len(keys) == 1, len(keys)
+        # 1. Create input data
+        batch = collate_fn([dataset[k] for k in keys])
+        batch = to_device(batch, device)
+        key = keys[0]
 
-def parse_hypothesis(hyp, char_list):
-    """Parse hypothesis.
+        with torch.no_grad():
+            # 2. Forward Encoder
+            enc, _ = encoder(**batch)
+            assert len(enc) == 1, len(enc)
+            x = enc[0]
 
-    Args:
-        hyp (list[dict[str, Any]]): Recognition hypothesis.
-        char_list (list[str]): List of characters.
+            # 3. Beam search
+            nbest_hyps = beam_search(
+                x=x, maxlenratio=maxlenratio, minlenratio=minlenratio)
 
-    Returns:
-        tuple(str, str, str, float)
+        nbest_hyps = nbest_hyps[:nbest]
 
-    """
-    # remove sos and get results
-    tokenid_as_list = list(map(int, hyp['yseq'][1:]))
-    token_as_list = [char_list[idx] for idx in tokenid_as_list]
-    score = float(hyp['score'])
+        # FXIME(kamo): The output format should be discussed about
+        with DatadirWriter(outpath) as writer:
+            for n, hyp in enumerate(nbest_hyps, 1):
+                assert isinstance(hyp, Hypothesis), type(hyp)
 
-    # convert to string
-    tokenid = " ".join([str(idx) for idx in tokenid_as_list])
-    token = " ".join(token_as_list)
-    text = "".join(token_as_list).replace('<space>', ' ')
+                # remove sos and get results
+                token_int = hyp.yseq[1:].tolist()
+                # Change integer-ids to tokens
+                token = [char_list[idx] for idx in token_int]
 
-    return text, token, tokenid, score
+                # Create outdir / {n}best_recog{n}
+                ibest_writer = writer[f'{n}best_recog']
+
+                # Write result to each files
+                ibest_writer['token'][key] = ' '.join(token)
+                ibest_writer['token_int'][key] = \
+                    ' '.join(map(str, token_int))
+
+                # Change integer-ids to tokens
+                ibest_writer['text'][key] = \
+                    ''.join(map(lambda x: x.replace('<space>', ' '), token))
+                ibest_writer['score'][key] = str(hyp.score)

@@ -10,123 +10,107 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
 }
 help_message=$(cat << EOF
-$0 <train_set_name> <dev_set_name>
+$0 <text> <dict> <output-dir>
+
+Generate token, token_int and token_shape from text
 
 Options:
-    --stage (int):
-    --stop-stage (int):
-    --bpemode (str):
-    --nbpe (int):
-    --bpdir (str):
+    --mode (str): The tokenize level. Select either one of "bpe", "char" or "word".
+    --bpemodel (str): Give bpemodel with --mode bpe.
+    --nlsyms: non-linguistic symbol list
+    --oov (str): default is "<unk>"
 
 EOF
 )
 SECONDS=0
 
-
-stage=1
-stop_stage=100
-
-# bpemode (unigram or bpe)
-bpemode=
-nbpe=30
-bpedir=
-
-trans_type=char
-# non-linguistic symbol list
+mode=bpe
+bpemodel=
 nlsyms=
 oov="<unk>"
+
 
 log "$0 $*"
 . ./utils/parse_options.sh || exit 1;
 
-if [ $# -ne 2 ]; then
+
+if [ $# -ne 3 ]; then
     log "Invalid arguments"
     log "${help_message}"
 fi
-
 . ./path.sh
 
-train_set=$1
-train_dev=$2
+text=$1
+dict=$2
+dir=$3
+
+for f in "${text}" "${dict}"; do
+    if [ ! -f "${f}" ]; then
+        log "Error: No such file ${f}"
+        log "${help_message}"
+        exit 1
+    fi
+done
 
 
-[ -z "${bpedir}" ] && bpedir=data/local/bpe_${train_set}_${bpemode}${nbpe}
+mkdir -p "${dir}"
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ -n "${bpemode}" ]; then
-        dict=${bpedir}/units.txt
-        bpemodel=${bpedir}/model
-        mkdir -p ${bpedir}
-        cut -f 2- -d" " ${train_set}/text > ${bpedir}/train.txt
 
-        spm_train \
-            --input=${bpedir}/train.txt \
-            --vocab_size="${nbpe}" \
-            --model_type="${bpemode}" \
-            --model_prefix="${bpemodel}" \
-            --input_sentence_size=100000000
-
-        echo "<unk> 1" > "${dict}" # <unk> must be 1, 0 will be used for "blank" in CTC
-        spm_encode --model="${bpemodel}.model" --output_format=piece \
-            < ${bpedir}/train.txt | \
-            tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
-
-    else
-        echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-        pyscripts/text/text2token.py -s 1 -n 1 -l ${nlsyms} ${train_set}/text \
-            | cut -f 2- -d" " | tr " " "\n" | sort -u \
-            | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-
+# 1. Prepare token
+if [ "${mode}" = bpe ]; then
+    if [ ! -n "${bpemodel}" ]; then
+        log "Error: --bpemodel is required for bpe mode."
+        log "${help_message}"
+        exit 1
     fi
 
-    # We prepares three type expressions for "text":
-    #   text: The raw transcription
-    #   token: Tokenized version of text
-    #   token_int: The int-sequences converted from tokens.
-    for dset in ${train_set} ${train_dev}; do
+    paste -d " " \
+        <(awk '{print $1}' "${text}") \
+        <(cut -f 2- -d" " "${text}" | spm_encode --model="${bpemodel}" --output_format=piece) \
+            > ${dir}/token
 
-        # mode1: BPE
-        if [ -n "${bpemode}" ]; then
-            out=${dset}_bpe_${train_set##*/}_${bpemode}${nbpe}
-            utils/copy_data_dir.sh ${dset} ${out}
-            [ -e ${dset}/utt2num_samples ] && cp ${dset}/utt2num_samples ${out}
-            paste -d " " \
-                <(awk '{print $1}' ${out}/text) \
-                <(cut -f 2- -d" " ${out}/text |
-                spm_encode --model=${bpemodel}.model --output_format=piece) \
-                > ${out}/token
 
-        # mode2: Char
-        else
-            out=${dset}
-            if [ -n "${nlsyms}" ]; then
-                pyscripts/text/text2token.py -s 1 -n 1 -l ${nlsyms} ${dset}/text \
-                    --trans_type ${trans_type} > ${dset}/token
-            else
-                pyscripts/text/text2token.py -s 1 -n 1 ${dset}/text \
-                    --trans_type ${trans_type} > ${dset}/token
-            fi
+elif [ "${mode}" = char ]; then
+    trans_type=char
+    # non-linguistic symbol list
 
-        # mode3: Word
-        fi
+    # token:
+    # uttidA h e l l o
+    if [ -n "${nlsyms}" ]; then
+        pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}"" ${text}" \
+            --trans_type "${trans_type}" > "${dir}/token"
+    else
+        pyscripts/text/text2token.py -s 1 -n 1 ${dset}/text \
+            --trans_type "${trans_type}" > "${ddir}/token"
+    fi
 
-        <${out}/token \
-            utils/sym2int.pl --map-oov ${oov} -f 2- ${dict} \
-                > ${out}/token_int
+elif [ "${mode}" = word ]; then
+    log "not yet"
+    exit 1
 
-        # Creating token_shape, which looks like...
-        #   uttidA 20,32
-        #   uttidB 12,32
-        # where the first column indicates the number of tokens
-        # and the secod is the vocabsize
-        vocsize=$(tail -n 1 ${dict} | awk '{print $2}')
-        # +2 comes from CTC blank and EOS
-        odim="$((vocsize + 2))"
-        <${out}/token_int \
-            awk -v odim=${odim} '{print($1,NF-1 "," odim)}' > ${out}/token_shape
-    done
-
+else
+    log "Error: not supported --mode ${mode}"
+    exit 1
 fi
+
+
+# 3. Create "token_int"
+<${dir}/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dict}" > "${dir}/token_int"
+
+
+# 4. Create "token_shape", which looks like...
+#   uttidA 20,32
+#   uttidB 12,32
+# where the first column indicates the number of tokens
+# and the secod is the vocabsize
+vocsize=$(tail -n 1 "${dict}" | awk '{print $2}')
+# +2 comes from CTC blank and SOS/EOS
+odim="$((vocsize + 2))"
+<${dir}/token_int awk -v odim="${odim}" '{print($1,NF-1 "," odim)}' > ${dir}/token_shape
+
+
+# 5. Copy dict: dict is a list of tokens
+cp "${dict}" "${dir}/tokens.txt"
+
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

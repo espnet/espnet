@@ -8,8 +8,8 @@ from typeguard import typechecked
 from espnet2.lm.model import Model
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import BaseTask
-from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import str_or_none, NestedDictAction
+from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.types import str_or_none, NestedAction
 
 
 class LMTask(BaseTask):
@@ -17,7 +17,7 @@ class LMTask(BaseTask):
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
+        # Note(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='Train launguage model',
@@ -32,14 +32,16 @@ class LMTask(BaseTask):
         required = parser.get_default('required')
         required += []
 
+        group.add_argument('--token_list', type=str, default=None,
+                           help='The token list')
         group.add_argument(
             '--lm', type=str_or_none, default='seq_rnn',
             choices=cls.lm_choices(), help='Specify frontend class')
         group.add_argument(
-            '--lm_conf', action=NestedDictAction, default=dict(),
+            '--lm_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for lm class.')
         group.add_argument(
-            '--model_conf', action=NestedDictAction, default=dict(),
+            '--model_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for Model class.')
 
         return parser
@@ -52,14 +54,16 @@ class LMTask(BaseTask):
     @classmethod
     @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        # This method is used only for --print_config
+
         # 0. Parse command line arguments
         parser = LMTask.add_arguments()
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
         lm_class = cls.get_lm_class(args.lm)
-        lm_conf = get_defaut_values(lm_class)
-        model_conf = get_defaut_values(Model)
+        lm_conf = get_defaut_kwargs(lm_class)
+        model_conf = get_defaut_kwargs(Model)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -91,6 +95,8 @@ class LMTask(BaseTask):
     @classmethod
     @typechecked
     def get_lm_class(cls, name: str) -> Type[torch.nn.Module]:
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
         if name.lower() == 'seq_rnn':
             return SequentialRNNLM
         else:
@@ -101,6 +107,8 @@ class LMTask(BaseTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+        assert args.token_list is None, 'Not yet'
+
         lm_class = cls.get_lm_class()
         lm = lm_class(**args.lm_conf)
         model = Model(lm=lm, **args.model_conf)

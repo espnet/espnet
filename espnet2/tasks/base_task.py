@@ -22,11 +22,11 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
-from espnet2.train.reporter import Reporter, SubReporter, aggregate
+from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
-from espnet2.utils.get_default_values import get_defaut_values
+from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, NestedDictAction, )
+    int_or_none, str2bool, str_or_none, NestedAction, )
 
 
 class BaseTask(ABC):
@@ -46,13 +46,13 @@ class BaseTask(ABC):
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
-        # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
+        # Note(kamo): Use '_' instead of '-' to avoid confusion
 
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=['output_dir',
-                                      'train_batch_files',
-                                      'eval_batch_files'])
+                                      'train_batch_srcs',
+                                      'eval_batch_srcs'])
 
         group = parser.add_argument_group('Common configuration')
 
@@ -138,41 +138,41 @@ class BaseTask(ABC):
             choices=['const', 'seq', 'batch_bin', None],
             help='If not given, the value of --batch_type is used')
 
-        group.add_argument(
-            '--train_batch_files', type=str, nargs='+', default=None)
-        group.add_argument(
-            '--eval_batch_files', type=str, nargs='+', default=None)
-
         group = parser.add_argument_group('Dataset related')
         group.add_argument(
-            '--train_data_conf', action=NestedDictAction, default=dict())
+            '--train_batch_srcs', action=NestedAction, default=dict())
         group.add_argument(
-            '--eval_data_conf', action=NestedDictAction, default=dict())
+            '--eval_batch_srcs', action=NestedAction, default=dict())
+
         group.add_argument(
-            '--train_preprocess', action=NestedDictAction, default=dict())
+            '--train_data_conf', action=NestedAction, default=dict())
         group.add_argument(
-            '--eval_preprocess', action=NestedDictAction, default=dict())
+            '--eval_data_conf', action=NestedAction, default=dict())
+        group.add_argument(
+            '--train_preprocess', action=NestedAction, default=dict())
+        group.add_argument(
+            '--eval_preprocess', action=NestedAction, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument(
             '--optim', type=str, default='adam',
             choices=cls.optimizer_choices(), help='The optimizer type')
         group.add_argument(
-            '--optim_conf', action=NestedDictAction, default=dict())
+            '--optim_conf', action=NestedAction, default=dict())
 
         group.add_argument(
             '--escheduler', type=str_or_none,
             choices=cls.epoch_scheduler_choices(),
             help='The epoch-scheduler type')
         group.add_argument(
-            '--escheduler_conf', action=NestedDictAction, default=dict())
+            '--escheduler_conf', action=NestedAction, default=dict())
 
         group.add_argument(
             '--bscheduler', type=str_or_none, default=None,
             choices=cls.batch_scheduler_choices(),
             help='The batch-scheduler-type')
         group.add_argument(
-            '--bscheduler_conf', action=NestedDictAction, default=dict())
+            '--bscheduler_conf', action=NestedAction, default=dict())
         return parser
 
     @classmethod
@@ -187,25 +187,25 @@ class BaseTask(ABC):
         parser = BaseTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
-        # Excludes the specified options
+        # Excludes the specified options not to need to be shown
         for k in BaseTask.exclude_opts():
             config.pop(k)
 
         # Get the default arguments from the specified class
         # e.g. --print_config --optim adadelta
         optim_class = cls.get_optimizer_class(args.optim)
-        optim_conf = get_defaut_values(optim_class)
+        optim_conf = get_defaut_kwargs(optim_class)
         optim_conf.update(config['optim_conf'])
         config['optim_conf'] = optim_conf
 
         if args.escheduler is not None:
             escheduler_class = cls.get_epoch_scheduler_class(args.escheduler)
-            escheduler_conf = get_defaut_values(escheduler_class)
+            escheduler_conf = get_defaut_kwargs(escheduler_class)
             escheduler_conf.update(config['escheduler_conf'])
             config['escheduler_conf'] = escheduler_conf
         if args.bscheduler is not None:
             bscheduler_class = cls.get_batch_scheduler_class(args.bscheduler)
-            bscheduler_conf = get_defaut_values(bscheduler_class)
+            bscheduler_conf = get_defaut_kwargs(bscheduler_class)
             bscheduler_conf.update(config['bscheduler_conf'])
             config['bscheduler_conf'] = bscheduler_conf
 
@@ -382,7 +382,7 @@ class BaseTask(ABC):
         train_dataset = Dataset(
             args.train_data_conf, args.train_preprocess, float_dtype=dtype)
         train_batch_sampler = BatchSampler(
-            type=args.batch_type, paths=args.train_batch_files,
+            type=args.batch_type, srcs=args.train_batch_srcs,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
@@ -397,7 +397,7 @@ class BaseTask(ABC):
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
         eval_batch_sampler = BatchSampler(
-            type=args.eval_batch_type, paths=args.eval_batch_files,
+            type=args.eval_batch_type, srcs=args.eval_batch_srcs,
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
@@ -439,17 +439,14 @@ class BaseTask(ABC):
         # Note(kamo): Don't give "args" to load() and run() directly!!!
 
         # Loads states from saved files
-        cls.load(model=model,
-                 optimizer=optimizer,
-                 reporter=reporter,
-                 output_path=output_path,
+        cls.load(model=model, optimizer=optimizer,
+                 reporter=reporter, output_path=output_path,
                  batch_scheduler=batch_scheduler,
                  epoch_scheduler=epoch_scheduler,
                  resume_epoch=args.resume_epoch,
                  resume_path=args.resume_path,
                  pretrain_path=args.pretrain_path,
-                 pretrain_key=args.pretrain_key,
-                 )
+                 pretrain_key=args.pretrain_key)
 
         cls.run(model=model,
                 optimizer=optimizer,
@@ -466,8 +463,7 @@ class BaseTask(ABC):
                 grad_noise=args.grad_noise,
                 accum_grad=args.accum_grad,
                 grad_clip_threshold=args.grad_clip_threshold,
-                log_interval=args.log_interval,
-                )
+                log_interval=args.log_interval)
 
     @classmethod
     @typechecked
