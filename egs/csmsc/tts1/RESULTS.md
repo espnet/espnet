@@ -1,7 +1,7 @@
 # v.0.5.3 FastSpeech
 
 - FTT in points: 2048
-- Shift in points: 256
+- Shift in points: 300
 - Window in points: 1200
 - Frequency limit: 80-7600
 - Fast-GL 64 iters
@@ -33,7 +33,7 @@ https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK
 # v.0.5.3 Initial Transformer
 
 - FTT in points: 2048
-- Shift in points: 256
+- Shift in points: 300
 - Window in points: 1200
 - Frequency limit: 80-7600
 - Fast-GL 64 iters

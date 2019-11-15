@@ -41,6 +41,7 @@ requirements = {
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
+        'nltk>=3.4.5',
         'nnmnkwii',
         'jaconv',
         'g2p_en',

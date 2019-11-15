@@ -20,17 +20,17 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
+preprocess_config=
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
 n_average=5                  # the number of ST models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
-
 
 # pre-training related
 asr_model=
@@ -69,11 +69,10 @@ set -u
 set -o pipefail
 
 train_set=train_sp.en-${tgt_lang}.${tgt_lang}
-train_set_prefix=train_sp
 train_dev=dev.en-${tgt_lang}.${tgt_lang}
-recog_set=""
+trans_set=""
 for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-    recog_set="${recog_set} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
+    trans_set="${trans_set} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
 done
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -132,11 +131,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # Divide into source and target languages
-    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
+    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
         local/divide_lang.sh ${x} ${tgt_lang}
     done
 
-    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang}; do
+    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang}; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in ${tgt_lang} en; do
@@ -145,8 +144,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
-        cut -f -1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
+        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
+        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
         comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
 
         for lang in ${tgt_lang} en; do
@@ -174,16 +173,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
-            ${feat_recog_dir}
+            data/${ttask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${ttask} \
+            ${feat_trans_dir}
     done
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${case}.txt
 bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -192,13 +191,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
+    echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
     spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
@@ -208,10 +207,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
-            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
+        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${case} --bpecode ${bpemodel}.model \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 
     # update json (add source references)
@@ -230,6 +229,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
     if [ -n "${asr_model}" ]; then
         expname=${expname}_asrtrans
     fi
@@ -246,8 +248,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        st_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -261,57 +264,51 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json \
-        --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --enc-init ${asr_model} \
+        --dec-init ${mt_model}
 fi
-
-for rtask in ${recog_set}; do
-    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-    local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
-        data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
-done
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average ST models
         if ${use_valbest_average}; then
-            recog_model=model.val${n_average}.avg.best
+            trans_model=model.val${n_average}.avg.best
             opt="--log ${expdir}/results/log"
         else
-            recog_model=model.last${n_average}.avg.best
+            trans_model=model.last${n_average}.avg.best
             opt="--log"
         fi
         average_checkpoints.py \
             ${opt} \
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
-            --out ${expdir}/results/${recog_model} \
+            --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for ttask in ${trans_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            st_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}

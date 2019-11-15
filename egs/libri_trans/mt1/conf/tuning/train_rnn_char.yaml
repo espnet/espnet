@@ -9,6 +9,7 @@ subsample: "1_1" # skip every n frame from input to nth layers
 dlayers: 2
 dunits: 1024
 context-residual: true
+tie-src-tgt-embedding: false
 # attention related
 atype: add
 adim: 1024
@@ -27,7 +28,7 @@ weight-decay: 1e-6
 # optimization related
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt: adadelta
-epochs: 20
+epochs: 25
 patience: 3
 
 # scheduled sampling option
