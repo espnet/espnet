@@ -13,8 +13,8 @@ context-residual: true
 atype: add
 adim: 1024
 
-# hybrid CTC/attention
-mtlalpha: 0.0  # this must be 0.0
+# multitask
+asr-weight: 0.0
 
 # minibatch related
 batch-size: 25

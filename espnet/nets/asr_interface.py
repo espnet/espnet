@@ -75,6 +75,16 @@ class ASRInterface:
         """
         raise NotImplementedError("Batch decoding is not supported yet.")
 
+    def translate(self, x, trans_args, char_list=None, rnnlm=None):
+        """On the fly."""
+        return self.recognize(x, trans_args, char_list, rnnlm)
+        # TODO(hirofumi0810): remove this after supporting Trasformer for the ST task
+
+    def translate_batch(self, x, trans_args, char_list=None, rnnlm=None):
+        """On the fly."""
+        return self.recognize_batch(x, trans_args, char_list, rnnlm)
+        # TODO(hirofumi0810): remove this after supporting Trasformer for the ST task
+
     def calculate_all_attentions(self, xs, ilens, ys):
         """Caluculate attention.
 

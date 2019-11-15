@@ -663,18 +663,30 @@ class Transformer(TTSInterface, torch.nn.Module):
         outs, probs = [], []
 
         # forward decoder step-by-step
+        z_cache = self.decoder.init_state(x)
         while True:
             # update index
             idx += 1
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, cache=z_cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
             # update next inputs
             ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
+
+            # get attention weights
+            att_ws_ = []
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention) and "src" in name:
+                    att_ws_ += [m.attn[0, :, -1].unsqueeze(1)]  # [(#heads, 1, T),...]
+            if idx == 1:
+                att_ws = att_ws_
+            else:
+                # [(#heads, l, T), ...]
+                att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
 
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
@@ -688,12 +700,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
+        # concatenate attention weights
+        att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws
 
