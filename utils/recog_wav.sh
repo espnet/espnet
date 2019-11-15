@@ -74,6 +74,7 @@ Available models:
     - tedlium3.transformer.v1
     - librispeech.transformer.v1
     - commonvoice.transformer.v1
+    - csj.transformer.v1
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -131,6 +132,7 @@ function download_models () {
         "tedlium3.transformer.v1") share_url="https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO" ;;
         "librispeech.transformer.v1") share_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" ;;
         "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
+        "csj.transformer.v1") share_url="https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 

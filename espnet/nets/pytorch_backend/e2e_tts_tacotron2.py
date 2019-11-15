@@ -122,6 +122,15 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_masks(ilens, olens):
         """Make masks indicating non-padded part.
 
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+            olens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor indicating non-padded part.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+
         Examples:
             >>> ilens, olens = [5, 2], [8, 5]
             >>> _make_mask(ilens, olens)

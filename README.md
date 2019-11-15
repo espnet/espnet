@@ -385,9 +385,9 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Aishell test           | 6.7     | N/A     | same as above                                                                                                                                                         |
 | Common Voice dev       | 1.7     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
 | Common Voice test      | 1.8     | 2.3     | same as above                                                                                                                                                         |
-| CSJ eval1              | 5.7     | N/A     | N/A                                                                                                                                                                   |
-| CSJ eval2              | 4.1     | N/A     | N/A                                                                                                                                                                   |
-| CSJ eval3              | 4.5     | N/A     | N/A                                                                                                                                                                   |
+| CSJ eval1              | 5.7     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                            |
+| CSJ eval2              | 3.8     | N/A     | same as above                                                                                                                                                         |
+| CSJ eval3              | 4.2     | N/A     | same as above                                                                                                                                                         |
 | HKUST dev              | 23.5    | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs)                                                             |
 | Librispeech dev_clean  | N/A     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lm)                          |
 | Librispeech dev_other  | N/A     | 5.6     | same as above                                                                                                                                                         |
@@ -425,6 +425,7 @@ Available pretrained models in the demo script are listed as below.
 | [tedlium3.transformer.v1](https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO)    | Joint-CTC attention Transformer trained on Tedlium 3       |
 | [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech     |
 | [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
+| [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
 
 
 ### TTS results
