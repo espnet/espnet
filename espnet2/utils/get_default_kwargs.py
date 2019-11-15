@@ -9,12 +9,12 @@ class Invalid:
     """Marker object for not serializable-object"""
 
 
-def get_defaut_values(func):
+def get_defaut_kwargs(func):
     """
 
     Examples:
         >>> def func(a, b=3):  pass
-        >>> get_defaut_values(func)
+        >>> get_defaut_kwargs(func)
         {'b': 3}
 
     """

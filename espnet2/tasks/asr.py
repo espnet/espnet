@@ -8,10 +8,10 @@ import humanfriendly
 
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet2.asr.model import Model
-from espnet2.asr.frontend.default import Default
+from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.tasks.base_task import BaseTask
-from espnet2.utils.get_default_values import get_defaut_values
-from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
+from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.types import str_or_none, int_or_none, NestedAction
 
 
 class ASRTask(BaseTask):
@@ -19,7 +19,7 @@ class ASRTask(BaseTask):
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        # Note(kamo): Use '_' instead of '-' to avoid confusion as separator
+        # Note(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='Train ASR',
@@ -37,12 +37,14 @@ class ASRTask(BaseTask):
         group.add_argument(
             '--fs', type=humanfriendly.parse_size, default=16000)
         group.add_argument('--odim', type=int_or_none, default=None)
+        group.add_argument('--token_list', type=str, default=None,
+                           help='The token list')
 
         group.add_argument(
             '--frontend', type=str_or_none, default='default',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
-            '--frontend_conf', action=NestedDictAction, default=dict(),
+            '--frontend_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for frontend class.')
 
         group.add_argument(
@@ -50,16 +52,16 @@ class ASRTask(BaseTask):
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(
-            '--encoder_conf', action=NestedDictAction, default=dict(),
+            '--encoder_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for Encoder class.')
         group.add_argument(
-            '--decoder_conf', action=NestedDictAction, default=dict(),
+            '--decoder_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for Decoder class.')
         group.add_argument(
-            '--ctc_conf', action=NestedDictAction, default=dict(),
+            '--ctc_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for CTC class.')
         group.add_argument(
-            '--model_conf', action=NestedDictAction, default=dict(),
+            '--model_conf', action=NestedAction, default=dict(),
             help='The keyword arguments for Model class.')
 
         return parser
@@ -72,20 +74,24 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        assert args.token_list is None, 'Not yet'
+
+        # This method is used only for --print_config
+
         # 0. Parse command line arguments
         parser = ASRTask.add_arguments()
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
         frontend_class = cls.get_frontend_class(args.frontend)
-        frontend_conf = get_defaut_values(frontend_class)
+        frontend_conf = get_defaut_kwargs(frontend_class)
 
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
-        encoder_conf = get_defaut_values(encoder_class)
-        decoder_conf = get_defaut_values(decoder_class)
-        ctc_conf = get_defaut_values(CTC)
-        model_conf = get_defaut_values(Model)
+        encoder_conf = get_defaut_kwargs(encoder_class)
+        decoder_conf = get_defaut_kwargs(decoder_class)
+        ctc_conf = get_defaut_kwargs(CTC)
+        model_conf = get_defaut_kwargs(Model)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -99,6 +105,8 @@ class ASRTask(BaseTask):
         decoder_conf.update(config['decoder_conf'])
         ctc_conf.update(config['ctc_conf'])
 
+        assert args.dict is None, 'Not yet'
+
         # 5. Reassign them to the configuration
         config.update(
             frontend_conf=frontend_conf,
@@ -107,7 +115,7 @@ class ASRTask(BaseTask):
             ctc_conf=ctc_conf,
             model_conf=model_conf)
 
-        # 6. Excludes the specified options
+        # 6. Excludes the specified options not to need to be shown
         for k in cls.exclude_opts():
             config.pop(k)
 
@@ -124,8 +132,10 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def get_frontend_class(cls, name: str) -> Type[torch.nn.Module]:
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
         if name.lower() == 'default':
-            return Default
+            return DefaultFrontend
         else:
             raise RuntimeError(
                 f'--frontend must be one of '
@@ -143,6 +153,10 @@ class ASRTask(BaseTask):
     @typechecked
     def get_encoder_decoder_class(cls, name: str) \
             -> Tuple[Type[torch.nn.Module], Type[torch.nn.Module]]:
+        # This method is used only for --print_config
+
+        # Note(kamo): Don't use getattr or dynamic_import
+        # for readability and debuggability as possible
         if name.lower() == 'transformer':
             from espnet.nets.pytorch_backend.transformer.decoder import Decoder
             from espnet.nets.pytorch_backend.transformer.encoder import Encoder
@@ -172,14 +186,17 @@ class ASRTask(BaseTask):
         # 3. CTC
         ctc = CTC(odim=args.odim, **args.ctc_conf)
 
-        # 4. Set them to E2E
+        # 4. RNN-T Decoder (Not implemented)
+        rnnt_decoder = None
+
+        # 5. Set them to Model
         model = Model(
             odim=args.odim,
             frontend=frontend,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
-            rnnt_decoder=None,
+            rnnt_decoder=rnnt_decoder,
             **args.model_conf)
 
         return model

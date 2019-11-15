@@ -11,7 +11,8 @@ from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.transform.transformation import Transformation
-from espnet2.utils.fileio import SoundScpReader, scp2dict
+from espnet2.utils.fileio import SoundScpReader, scp2dict, \
+    load_num_sequence_text
 
 
 class BatchSampler(Sampler):
@@ -19,20 +20,26 @@ class BatchSampler(Sampler):
     def __init__(self,
                  batch_size: int,
                  type: str,
-                 paths: Union[Tuple[str, ...], List[str]],
+                 srcs: Union[Tuple[str, ...], List[str]],
                  shuffle: bool = False):
-        if len(paths) == 0:
-            raise ValueError('1 or more paths must be given')
-        paths = tuple(paths)
+        if len(srcs) == 0:
+            raise ValueError('1 or more srcs must be given')
+        srcs = tuple(srcs)
 
         self.shuffle = shuffle
         self.batch_size = batch_size
 
+        # FIXME(kamo): Should be changed class-based instead of if-block?
         if type == 'const':
-            utt2length = scp2dict(paths[0])
-            utt2length = {k: int(v) for k, v in utt2length.items()}
+            # Use the first src only
+
+            # utt2shape: (Length, Dim)
+            #    uttA 100,80
+            #    uttg 201,80
+            utt2shape = \
+                load_num_sequence_text(srcs[0], loader_type='csv_int')
             # Sorted in descending order
-            keys = sorted(utt2length, key=lambda k: -utt2length[k])
+            keys = sorted(utt2shape, key=lambda k: -utt2shape[k][0])
 
             self.batch_list = \
                 [keys[i:i + batch_size]
@@ -163,8 +170,9 @@ class Dataset:
         self.debug_info = {}
         for key, data in config.items():
             if set(data) != {'path', 'type'}:
-                raise ValueError(f'"path" and "type" is only allowed '
-                                 f'as dict-key now: {data}')
+                raise ValueError(
+                    f'"path" and "type" is only allowed '
+                    f'as dict-key now: {data}')
 
             path = data['path']
             _type = data['type']
@@ -234,39 +242,8 @@ class Dataset:
             raise NotImplementedError
 
         elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
-            if loader_type == 'text_int':
-                delimiter = ' '
-                dtype = np.long
-            elif loader_type == 'text_float':
-                delimiter = ' '
-                dtype = np.float32
-            elif loader_type == 'csv_int':
-                delimiter = ','
-                dtype = np.long
-            elif loader_type == 'csv_float':
-                delimiter = ','
-                dtype = np.float32
-            else:
-                raise RuntimeError('Can\'t reach')
-
-            # path looks like:
-            #   utta 1,0
-            #   uttb 3,4,5
-            # -> return {'utta': np.ndarray([1, 0]),
-            #            'uttb': np.ndarray([3, 4, 5])}
-            d = scp2dict(path)
-
-            # Using for-loop instead of dict-comprehension for debuggability
-            retval = {}
-            for k, v in d.items():
-                try:
-                    retval[k] = np.loadtxt(
-                        StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)
-                except Exception:
-                    logging.error(f'Error happened with path="{path}", '
-                                  f'id="{k}", value="{v}"')
-                    raise
-            return retval
+            # Not lazy loader, but vanilla-dict
+            return load_num_sequence_text(path, loader_type)
 
         else:
             raise RuntimeError(

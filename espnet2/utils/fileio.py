@@ -1,11 +1,74 @@
+from __future__ import annotations
+
 import collections.abc
+import logging
 import warnings
+from io import StringIO
 from pathlib import Path
-from typing import Union, Dict, Tuple
+from typing import Union, Dict
 
 import numpy as np
 import soundfile
 from typeguard import typechecked
+
+
+class DatadirWriter:
+    def __init__(self, p: Union[Path, str]):
+        self.path = Path(p)
+        self.chilidren = {}
+        self.fd = None
+        self.has_children = False
+        self.keys = set()
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    @typechecked
+    def __getitem__(self, key: str) -> DatadirWriter:
+        if self.fd is not None:
+            raise RuntimeError('This writer points out a file')
+
+        if key not in self.chilidren:
+            self.chilidren[key] = (self.path / key)
+            self.has_children = True
+
+        p = self.chilidren[key]
+        return DatadirWriter(p)
+
+    @typechecked
+    def __setitem__(self, key: str, value: str):
+        if self.has_children:
+            raise RuntimeError('This writer points out a directory')
+        if key in self.keys:
+            warnings.warn(f'Duplicated: {key}')
+
+        if self.fd is None:
+            self.fd = self.path.open('w')
+
+        self.keys.add(key)
+        self.fd.write(f'{key} {value}\n')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        if self.closed:
+            return
+
+        if self.has_children:
+            prev_child = None
+            for child in self.chilidren.values():
+                child.close()
+                if prev_child is not None and prev_child.keys == child.keys():
+                    warnings.warn(
+                        f'Ids are mismatching between '
+                        f'{prev_child} and {child}')
+                prev_child = child
+
+        elif self.fd is not None:
+            self.fd.close()
+        self.closed = True
 
 
 @typechecked
@@ -35,6 +98,45 @@ def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
                 raise RuntimeError(f'{k} is duplicated ({path}:{linenum})')
             data[k] = v.rstrip()
     return data
+
+
+@typechecked
+def load_num_sequence_text(path: Union[Path, str],
+                           loader_type: str = 'csv_int') \
+        -> Dict[str, np.ndarray]:
+    if loader_type == 'text_int':
+        delimiter = ' '
+        dtype = np.long
+    elif loader_type == 'text_float':
+        delimiter = ' '
+        dtype = np.float32
+    elif loader_type == 'csv_int':
+        delimiter = ','
+        dtype = np.long
+    elif loader_type == 'csv_float':
+        delimiter = ','
+        dtype = np.float32
+    else:
+        raise RuntimeError('Can\'t reach')
+
+    # path looks like:
+    #   utta 1,0
+    #   uttb 3,4,5
+    # -> return {'utta': np.ndarray([1, 0]),
+    #            'uttb': np.ndarray([3, 4, 5])}
+    d = scp2dict(path)
+
+    # Using for-loop instead of dict-comprehension for debuggability
+    retval = {}
+    for k, v in d.items():
+        try:
+            retval[k] = np.loadtxt(
+                StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)
+        except Exception:
+            logging.error(f'Error happened with path="{path}", '
+                          f'id="{k}", value="{v}"')
+            raise
+    return retval
 
 
 class SoundScpReader(collections.abc.Mapping):

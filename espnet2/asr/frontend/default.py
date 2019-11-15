@@ -8,19 +8,19 @@ from espnet.nets.pytorch_backend.frontends.feature_transform import \
     FeatureTransform
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.layers.stft import Stft
-from espnet2.utils.get_default_values import get_defaut_values
+from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 
 
-class Default(torch.nn.Module):
+class DefaultFrontend(torch.nn.Module):
     """Conventional frontend structure for ASR
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
     def __init__(
         self,
-        stft_conf: dict = get_defaut_values(Stft),
-        frontend_conf: Optional[dict] = get_defaut_values(Frontend),
-        feature_transform_conf: dict = get_defaut_values(FeatureTransform)
+        stft_conf: dict = get_defaut_kwargs(Stft),
+        frontend_conf: Optional[dict] = get_defaut_kwargs(Frontend),
+        feature_transform_conf: dict = get_defaut_kwargs(FeatureTransform)
     ):
         super().__init__()
 

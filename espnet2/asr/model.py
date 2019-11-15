@@ -87,8 +87,8 @@ class Model(torch.nn.Module):
         assert output_lengths.dim() == 1, output_lengths.shape
         assert (input.shape[0] == input_lengths.shape[0] ==
                 output.shape[0] == output_lengths.shape[0]), \
-            (input.shape, input_lengths.shape, output.shape,
-             output_lengths.shape)
+            (input.shape,
+             input_lengths.shape, output.shape, output_lengths.shape)
         batch_size = input.shape[0]
 
         # 0. Change pad_value
