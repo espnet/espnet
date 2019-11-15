@@ -477,6 +477,13 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 ### TTS demo
 
+(**New!**) We made a new real-time E2E-TTS demosntration in Google Colab.  
+Please access the notebook from the following button and enjoy the real-time sythesis!
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
+
+---
+
 You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
