@@ -95,7 +95,7 @@ class Prenet(torch.nn.Module):
     of inputs before input to auto-regressive lstm, which helps to learn diagonal attentions.
 
     Note:
-        This module alway applies dropout even in evaluation See the detail in `Natural TTS Synthesis by
+        This module alway applies dropout even in evaluation. See the detail in `Natural TTS Synthesis by
         Conditioning WaveNet on Mel Spectrogram Predictions`_.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
