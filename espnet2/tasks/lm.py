@@ -5,11 +5,12 @@ import configargparse
 import torch
 from typeguard import typechecked
 
-from espnet2.lm.model import Model
+from espnet2.lm.abs_lm import LMInterface
+from espnet2.lm.model import LanguageModel
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, NestedAction
+from espnet2.utils.types import str_or_none, NestedDictAction
 
 
 class LMTask(BaseTask):
@@ -32,16 +33,18 @@ class LMTask(BaseTask):
         required = parser.get_default('required')
         required += []
 
+        group.add_argument('--sos_and_eos', type=int, default=None,
+                           help='The sentence')
         group.add_argument('--token_list', type=str, default=None,
                            help='The token list')
         group.add_argument(
             '--lm', type=str_or_none, default='seq_rnn',
             choices=cls.lm_choices(), help='Specify frontend class')
         group.add_argument(
-            '--lm_conf', action=NestedAction, default=dict(),
+            '--lm_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for lm class.')
         group.add_argument(
-            '--model_conf', action=NestedAction, default=dict(),
+            '--model_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for Model class.')
 
         return parser
@@ -63,7 +66,7 @@ class LMTask(BaseTask):
         # 1. Get the default values from class.__init__
         lm_class = cls.get_lm_class(args.lm)
         lm_conf = get_defaut_kwargs(lm_class)
-        model_conf = get_defaut_kwargs(Model)
+        model_conf = get_defaut_kwargs(LanguageModel)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -94,7 +97,7 @@ class LMTask(BaseTask):
 
     @classmethod
     @typechecked
-    def get_lm_class(cls, name: str) -> Type[torch.nn.Module]:
+    def get_lm_class(cls, name: str) -> Type[LMInterface]:
         # Note(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'seq_rnn':
@@ -106,12 +109,12 @@ class LMTask(BaseTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+    def build_model(cls, args: argparse.Namespace) -> LanguageModel:
         assert args.token_list is None, 'Not yet'
 
         lm_class = cls.get_lm_class()
         lm = lm_class(**args.lm_conf)
-        model = Model(lm=lm, **args.model_conf)
+        model = LanguageModel(lm=lm, sos_and_eos=args.sos_and_eos)
         return model
 
 

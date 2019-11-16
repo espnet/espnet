@@ -1,7 +1,7 @@
 import argparse
 import copy
 from distutils.util import strtobool
-from typing import Optional
+from typing import Optional, Tuple
 
 import yaml
 from typeguard import typechecked
@@ -30,12 +30,36 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
     return value
 
 
-class NestedAction(argparse.Action):
+@typechecked
+def str2tuple_str(value: str) -> Tuple[str, str]:
+    """
+
+    Examples:
+        >>> str2tuple_str('abc,def ')
+        ('abc', 'def')
+    """
+    a, b = value.split(',')
+    return a.strip(), b.strip()
+
+
+@typechecked
+def str2triple_str(value: str) -> Tuple[str, str, str]:
+    """
+
+    Examples:
+        >>> str2triple_str('abc,def ,ghi')
+        ('abc', 'def', 'ghi')
+    """
+    a, b, c = value.split(',')
+    return a.strip(), b.strip(), c.strip()
+
+
+class NestedDictAction(argparse.Action):
     """
 
     Examples:
         >>> parser = argparse.ArgumentParser()
-        >>> _ = parser.add_argument('--conf', action=NestedAction,
+        >>> _ = parser.add_argument('--conf', action=NestedDictAction,
         ...                         default={'a': 4})
         >>> parser.parse_args(['--conf', 'a=3', '--conf', 'c=4'])
         Namespace(conf={'a': 3, 'c': 4})
@@ -45,10 +69,6 @@ class NestedAction(argparse.Action):
         Namespace(conf={'a': 4, 'c': 2})
         >>> parser.parse_args(['--conf', '{d: 5, e: 9}'])
         Namespace(conf={'d': 5, 'e': 9})
-        >>> parser.parse_args(['--conf', 'e.f=[0, 1, 2]'])
-        Namespace(conf={'a': 4, 'e': {'f': [0, 1, 2]}})
-        >>> parser.parse_args(['--conf', '[0, 1, 2]'])
-        Namespace(conf=[0, 1, 2])
 
     """
     def __init__(self,
@@ -63,11 +83,8 @@ class NestedAction(argparse.Action):
         if default is None:
             default = {}
 
-        # Note(kamo): Not allowing str object because
-        # all string can be interpreted as str even if wrong yaml is given.
-        # e.g. ---conf "{a: 4}}}}}"
-        if isinstance(default, str):
-            raise TypeError('default can not be str object: {}'
+        if not isinstance(default, dict):
+            raise TypeError('default must be str object: {}'
                             .format(type(default)))
 
         super().__init__(
@@ -112,12 +129,12 @@ class NestedAction(argparse.Action):
                 # e.g. --{option} "{'a': 3}" -> {'a': 3}
                 # This is workaround for internal behaviour of configargparse.
                 value = eval(values, {}, {})
-                if isinstance(value, str):
+                if not isinstance(value, dict):
                     raise ValueError
             except Exception:
                 # and the second, try yaml.load
                 value = yaml.load(values, Loader=yaml.Loader)
-                if isinstance(value, str):
+                if not isinstance(value, dict):
                     raise ValueError
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)

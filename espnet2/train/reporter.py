@@ -21,6 +21,7 @@ def to_report_value(v: Num, weight: Num = None) -> ReportValue:
         v = v.item()
     if isinstance(weight, (torch.Tensor, np.ndarray)):
         weight = weight.item()
+
     if weight is not None:
         return WeightedAverage(v, weight)
     else:
@@ -30,7 +31,7 @@ def to_report_value(v: Num, weight: Num = None) -> ReportValue:
 @typechecked
 def aggregate(values: Sequence[ReportValue]):
     if isinstance(values[0], Average):
-        return np.nanmean([v.value for v in values]).item()
+        return np.nanmean([v.value for v in values])
 
     elif isinstance(values[0], WeightedAverage):
         # Excludes non finite values
@@ -182,7 +183,7 @@ class Reporter:
         if self.epoch - 1 not in self.stats or \
                 key not in self.stats[self.epoch - 1]:
             # If the previous epoch doesn't exist for some reason,
-            # maybe it's bug, this case also indicates 0-count.
+            # maybe due to bug, this case also indicates 0-count.
             if self.epoch - 1 != 0:
                 logging.warning(
                     f'The stats of the previous epoch={self.epoch - 1}'
@@ -197,8 +198,6 @@ class Reporter:
         return sub_reporter
 
     def finish_epoch(self, sub_reporter: SubReporter):
-        # Note(k): Reporter and SubReporter is tight coupled due to this method
-
         # Calc mean of current stats and set it as previous epochs stats
         stats = {}
         for key2, values in sub_reporter.stats.items():

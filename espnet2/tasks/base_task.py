@@ -21,12 +21,14 @@ from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
+from espnet2.train.batch_sampler import create_batch_sampler
 from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, NestedAction, )
+    int_or_none, str2bool, str_or_none, NestedDictAction, str2str_tuple,
+    str2triple_str, )
 
 
 class BaseTask(ABC):
@@ -51,8 +53,8 @@ class BaseTask(ABC):
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=['output_dir',
-                                      'train_batch_srcs',
-                                      'eval_batch_srcs'])
+                                      'train_batch_shapes',
+                                      'eval_batch_shapes'])
 
         group = parser.add_argument_group('Common configuration')
 
@@ -73,9 +75,9 @@ class BaseTask(ABC):
                            help='Random seed')
 
         group.add_argument(
-            '--init', type=str, default='pytorch',
+            '--init', type=str_or_none, default='pytorch',
             choices=('pytorch', 'xavier_uniform', 'xavier_normal',
-                     'kaiming_uniform', 'kaiming_normal'),
+                     'kaiming_uniform', 'kaiming_normal', None),
             help='The initialization method for the model parameters')
 
         group = parser.add_argument_group('Trainer related')
@@ -105,7 +107,7 @@ class BaseTask(ABC):
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
 
-        def type_epoch(value: str) -> Optional[Union[str, int]]:
+        def epoch_type(value: str) -> Optional[Union[str, int]]:
             if value == 'latest':
                 return value
             elif value.lower() in ('none', 'null', 'nil'):
@@ -115,7 +117,7 @@ class BaseTask(ABC):
 
         egroup = group.add_mutually_exclusive_group()
         egroup.add_argument(
-            '--resume_epoch', type=type_epoch, default=None,
+            '--resume_epoch', type=epoch_type, default=None,
             help='The training starts from the specified epoch. '
                  '"latest" indicates the latest-epoch file found '
                  'in output_path')
@@ -138,41 +140,45 @@ class BaseTask(ABC):
             choices=['const', 'seq', 'batch_bin', None],
             help='If not given, the value of --batch_type is used')
 
-        group = parser.add_argument_group('Dataset related')
         group.add_argument(
-            '--train_batch_srcs', action=NestedAction, default=dict())
+            '--train_shape_file', type=str, action='append', default=[])
         group.add_argument(
-            '--eval_batch_srcs', action=NestedAction, default=dict())
+            '--eval_shape_file', type=str, action='append', default=[])
 
+        group = parser.add_argument_group('Dataset related')
+        group.add_argument('--num_workers', type=int, default=1,
+                           help='The number of workers used for DataLoader')
         group.add_argument(
-            '--train_data_conf', action=NestedAction, default=dict())
+            '--train_data_path_and_name_and_type',
+            type=str2triple_str, action='append', default=[])
         group.add_argument(
-            '--eval_data_conf', action=NestedAction, default=dict())
+            '--eval_data_path_and_name_and_type',
+            type=str2triple_str, action='append', default=[])
         group.add_argument(
-            '--train_preprocess', action=NestedAction, default=dict())
+            '--train_preprocess', action=NestedDictAction, default=dict())
         group.add_argument(
-            '--eval_preprocess', action=NestedAction, default=dict())
+            '--eval_preprocess', action=NestedDictAction, default=dict())
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument(
             '--optim', type=str, default='adam',
             choices=cls.optimizer_choices(), help='The optimizer type')
         group.add_argument(
-            '--optim_conf', action=NestedAction, default=dict())
+            '--optim_conf', action=NestedDictAction, default=dict())
 
         group.add_argument(
             '--escheduler', type=str_or_none,
             choices=cls.epoch_scheduler_choices(),
             help='The epoch-scheduler type')
         group.add_argument(
-            '--escheduler_conf', action=NestedAction, default=dict())
+            '--escheduler_conf', action=NestedDictAction, default=dict())
 
         group.add_argument(
             '--bscheduler', type=str_or_none, default=None,
             choices=cls.batch_scheduler_choices(),
             help='The batch-scheduler-type')
         group.add_argument(
-            '--bscheduler_conf', action=NestedAction, default=dict())
+            '--bscheduler_conf', action=NestedDictAction, default=dict())
         return parser
 
     @classmethod
@@ -214,7 +220,6 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def check_required(cls, args: argparse.Namespace):
-        # The key includes "-" is confusing if it is written in a yaml
         for k in vars(args):
             if '-' in k:
                 raise RuntimeError(
@@ -380,9 +385,10 @@ class BaseTask(ABC):
             dtype = args.train_dtype
         # Creates train-data-iterator
         train_dataset = Dataset(
-            args.train_data_conf, args.train_preprocess, float_dtype=dtype)
-        train_batch_sampler = BatchSampler(
-            type=args.batch_type, srcs=args.train_batch_srcs,
+            args.train_data_path_and_name_and_type,
+            args.train_preprocess, float_dtype=dtype)
+        train_batch_sampler = create_batch_sampler(
+            type=args.batch_type, shape_files=args.train_shape_files,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
@@ -390,23 +396,25 @@ class BaseTask(ABC):
 
         # Creates eval-data-iterator
         eval_dataset = Dataset(
-            args.eval_data_conf, args.eval_preprocess, float_dtype=dtype)
+            args.eval_data_path_and_name_and_type,
+            args.eval_preprocess, float_dtype=dtype)
 
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
-        eval_batch_sampler = BatchSampler(
-            type=args.eval_batch_type, srcs=args.eval_batch_srcs,
+        eval_batch_sampler = create_batch_sampler(
+            type=args.eval_batch_type, shape_files=args.eval_shape_files,
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
-                               collate_fn=collate_fn)
+                               collate_fn=collate_fn,
+                               num_workers=args.num_workers)
 
         # Creates model, optimizer, scheduler
         model = cls.build_model(args=args)
-        # FIXME(kamo): Which is better here or in model for initialization?
-        initialize(model, args.init)
+        if args.init is not None:
+            initialize(model, args.init)
 
         optimizer_class = cls.get_optimizer_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
@@ -430,14 +438,18 @@ class BaseTask(ABC):
                 batch_scheduler_class(optimizer, **args.bscheduler_conf)
         else:
             batch_scheduler = None
-        # epoch_scheduler: invoked at every epochs
-        output_path = Path(args.output_dir)
-        reporter = Reporter()
 
+        output_path = Path(args.output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
+
+        with (output_path / 'output.yaml').open('w') as f:
+            logging.info(
+                f'Saving the configuration in {output_path / "output.yaml"}')
+            yaml.dump(vars(args), f, Dumper=yaml.Dumper)
 
         # Note(kamo): Don't give "args" to load() and run() directly!!!
 
+        reporter = Reporter()
         # Loads states from saved files
         cls.load(model=model, optimizer=optimizer,
                  reporter=reporter, output_path=output_path,

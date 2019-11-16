@@ -5,15 +5,17 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.lm.lm_interface import LMInterface
+from espnet2.lm.abs_lm import LMInterface
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class Model(torch.nn.Module):
+class LanguageModel(torch.nn.Module):
     @typechecked
-    def __init__(self, lm: LMInterface, ignore_id: int = -1):
+    def __init__(self, lm: LMInterface, sos_and_eos: int, ignore_id: int = -1):
         super().__init__()
         self.lm = lm
+        self.sos = sos_and_eos
+        self.eos = sos_and_eos
         self.ignore_id = ignore_id
 
     def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
@@ -29,7 +31,6 @@ class Model(torch.nn.Module):
         t = torch.pad(input, [(0, 1), (0, 0)], 'constant', self.ignore_id)
         for l in input_lengths:
             t[l] = self.sos
-        mask = torch.pad(mask, [(1, 0), (0, 0)], 'constant', True)
 
         # 2. Forward Language model
         # x: (Batch, Length) -> y: (Batch, Length, NVocab)
@@ -43,7 +44,7 @@ class Model(torch.nn.Module):
         # loss, mask: (BxL,) x (BxL,) -> (BxL,)
         loss = loss * mask.view(-1)
         # mask: (BxL,) -> ntokens: (1,)
-        ntokens = mask.sum()
+        ntokens = input_lengths.sum()
         # loss: (BxL,) -> (1,)
         loss = loss.sum() / ntokens
         stats = dict(loss=loss.detach())

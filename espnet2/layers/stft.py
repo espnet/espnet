@@ -42,4 +42,5 @@ class Stft(torch.nn.Module):
         return output, olens
 
     def istft(self, input):
+        # TODO(kamo): torch audio?
         raise NotImplementedError
