@@ -126,10 +126,10 @@ class Prenet(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Batch of input tensors (B, *, idim).
+            x (Tensor): Batch of input tensors (B, ..., idim).
 
         Returns:
-            Tensor: Batch of output tensors (B, *, odim).
+            Tensor: Batch of output tensors (B, ..., odim).
 
         """
         for l in six.moves.range(len(self.prenet)):

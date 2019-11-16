@@ -240,10 +240,10 @@ class HighwayNet(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Batch of inputs (B, *, idim).
+            x (Tensor): Batch of inputs (B, ..., idim).
 
         Returns:
-            Tensor: Batch of outputs, which are the same shape as inputs (B, *, idim).
+            Tensor: Batch of outputs, which are the same shape as inputs (B, ..., idim).
 
         """
         proj = self.projection(x)
