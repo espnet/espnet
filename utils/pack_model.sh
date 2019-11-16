@@ -54,13 +54,11 @@ else
     echo "missing ${dec_conf}"
     exit 1
 fi
+# NOTE(kan-bayashi): preprocess conf is optional
 if [ -n "${preprocess_conf}" ]; then
     tar rfh ${outfile}.tar ${preprocess_conf}
     echo -n "    - preprocess config file: \`"
     echo ${preprocess_conf} | sed -e "s/$/\`/"
-else
-    echo "missing ${preprocess_conf}"
-    exit 1
 fi
 
 # cmvn
