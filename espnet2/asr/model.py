@@ -11,16 +11,17 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class Model(torch.nn.Module):
+class ASRModel(torch.nn.Module):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     @typechecked
     def __init__(self,
-                 odim: int,
-                 frontend: torch.nn.Module,
+                 nvocab: int,
+                 frontend: AbsFrontend,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: CTC,
@@ -32,21 +33,19 @@ class Model(torch.nn.Module):
 
                  report_cer: bool = False,
                  report_wer: bool = False,
-                 char_list: Union[Tuple[str], List[str]] = (),
+                 id2token: Dict[int, str] = None,
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
-        # TODO(kamo): Implement Interface class for frontend, encoder-decoder
+        # TODO(kamo): Implement Interface class for encoder-decoder
         assert 0. < ctc_weight < 1., ctc_weight
         assert rnnt_decoder is None, 'Not implemented'
 
-        char_list = tuple(char_list)
-        
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
-        self.sos = odim - 1
-        self.eos = odim - 1
-        self.odim = odim
+        self.sos = nvocab - 1
+        self.eos = nvocab - 1
+        self.nvocab = nvocab
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
 
@@ -56,11 +55,12 @@ class Model(torch.nn.Module):
         self.ctc = ctc
         self.rnnt_decoder = rnnt_decoder
         self.label_smoothing_loss = LabelSmoothingLoss(
-            odim, ignore_id, lsm_weight, length_normalized_loss)
+            nvocab, ignore_id, lsm_weight, length_normalized_loss)
 
         if report_cer or report_wer:
+            token_list = list(id2token)
             self.error_calculator = ErrorCalculator(
-                char_list, sym_space, sym_blank, report_cer, report_wer)
+                token_list, sym_space, sym_blank, report_cer, report_wer)
         else:
             self.error_calculator = None
 
@@ -166,7 +166,7 @@ class Model(torch.nn.Module):
 
         # Compute attention loss
         loss_att = self.label_smoothing_loss(decoder_out, ys_out_pad)
-        acc_att = th_accuracy(decoder_out.view(-1, self.odim), ys_out_pad,
+        acc_att = th_accuracy(decoder_out.view(-1, self.nvocab), ys_out_pad,
                               ignore_label=self.ignore_id)
 
         # Compute cer/wer using attention-decoder

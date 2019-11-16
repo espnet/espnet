@@ -1,79 +1,27 @@
 import collections
+import copy
 import logging
-from io import StringIO
-from typing import Dict, Mapping, List, Tuple, Union
+from typing import Dict, Mapping, Sequence, Union
 
 import kaldiio
 import numpy as np
 import torch
-from torch.utils.data import Sampler
 from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.transform.transformation import Transformation
-from espnet2.utils.fileio import SoundScpReader, scp2dict, \
-    load_num_sequence_text
-
-
-class BatchSampler(Sampler):
-    @typechecked
-    def __init__(self,
-                 batch_size: int,
-                 type: str,
-                 srcs: Union[Tuple[str, ...], List[str]],
-                 shuffle: bool = False):
-        if len(srcs) == 0:
-            raise ValueError('1 or more srcs must be given')
-        srcs = tuple(srcs)
-
-        self.shuffle = shuffle
-        self.batch_size = batch_size
-
-        # FIXME(kamo): Should be changed class-based instead of if-block?
-        if type == 'const':
-            # Use the first src only
-
-            # utt2shape: (Length, Dim)
-            #    uttA 100,80
-            #    uttg 201,80
-            utt2shape = \
-                load_num_sequence_text(srcs[0], loader_type='csv_int')
-            # Sorted in descending order
-            keys = sorted(utt2shape, key=lambda k: -utt2shape[k][0])
-
-            self.batch_list = \
-                [keys[i:i + batch_size]
-                 for i in range(0, int(np.ceil(len(keys) / batch_size)),
-                                batch_size)]
-
-        # conventional behaviour of batchify()
-        elif type == 'seq':
-            raise NotImplementedError
-
-        elif type == 'batchbin':
-            raise NotImplementedError
-
-        if self.shuffle:
-            np.random.shuffle(self.batch_list)
-
-    def __len__(self):
-        raise len(self.batch_list)
-
-    def __iter__(self):
-        for batch in self.batch_list:
-            yield batch
+from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text
 
 
 @typechecked
-def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
-    """Concat ndarray-list and convert to torch.Tensor.
+def collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
+        -> Dict[str, torch.Tensor]:
+    """Concatenate ndarray-list to an array and convert to torch.Tensor.
 
     Examples:
-        Simple data flow from data-creation to DNN-forward
-
-        >>> sampler = BatchSampler(...)
+        >>> from espnet2.train.batch_sampler import ConstantBatchSampler
+        >>> sampler = ConstantBatchSampler(...)
         >>> dataset = Dataset(...)
-
         >>> keys = next(iter(sampler)
         >>> batch = [dataset[key] for key in keys]
         >>> batch = collate_fn(batch)
@@ -84,7 +32,7 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
 
     """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
-    assert all(k + 'lengths' not in data[0] for k in data[0]), \
+    assert all(k + '_lengths' not in data[0] for k in data[0]), \
         '*_lengths is reserved: {list(data[0})'
 
     output = {}
@@ -94,8 +42,6 @@ def collate_fn(data: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
         # to repaint the pad_value to the desired value for each tasks.
         if data[0][key].dtype.kind == 'f':
             pad_value = -np.inf
-        elif data[0][key].dtype == np.bool:
-            pad_value = 0
         else:
             pad_value = -32768
 
@@ -146,57 +92,83 @@ class Dataset:
     """
 
     Examples:
-        >>> dataset = Dataset(dict(input=dict(path='wav.scp', type='sound'),
-        ...                        output=dict(path='token_int',
-        ...                                    type='csv_int')),
-        ...                   dict(input=[dict(type='fbank',
-        ...                                    n_mels=80, fs=16000)]))
+        >>> dataset = Dataset([('wav.scp', 'input', 'sound'),
+        ...                    ('token_int', 'output', 'text_int')],
+        ...                   preproces=dict(input=[dict(type='fbank',
+        ...                                              n_mels=80, fs=16000)])
+        ...                   )
         ... data = dataset['uttid']
         {'input': ndarray, 'output': ndarray}
     """
 
     @typechecked
-    def __init__(self, config: dict, preproces: dict = None,
+    def __init__(self, path_name_type_list: Sequence[Sequence[str]],
+                 preproces: Dict[str, Union[str, dict]] = None,
                  float_dtype: str = 'float32', int_dtype: str = 'long'):
-        if len(config) == 0:
-            raise ValueError('1 or more elements are required for "config"')
-        config = config.copy()
-        preproces = preproces.copy()
+        if len(path_name_type_list) == 0:
+            raise ValueError(
+                '1 or more elements are required for "path_name_type_list"')
+        # str is also Sequence[Sequence[str]]
+        if isinstance(path_name_type_list, str):
+            raise TypeError('config must be Sequence[Sequence[str]], '
+                            'but got str')
+        for _config in path_name_type_list:
+            # str is also Sequence[str]
+            if isinstance(_config, str):
+                raise TypeError('config must be Sequence[Sequence[str]], '
+                                'but got Sequence[str]')
+            if len(_config) != 3:
+                raise ValueError(f'Must be a sequence of 3 str: '
+                                 f'path, name, and, type: {_config}')
+
+        path_name_type_list = copy.deepcopy(path_name_type_list)
+        preproces = copy.deepcopy(preproces)
 
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
 
         self.loader_dict = {}
         self.debug_info = {}
-        for key, data in config.items():
-            if set(data) != {'path', 'type'}:
-                raise ValueError(
-                    f'"path" and "type" is only allowed '
-                    f'as dict-key now: {data}')
-
-            path = data['path']
-            _type = data['type']
-
+        for path, name, _type in path_name_type_list:
             loader = Dataset.create_loader(path, _type)
-            self.loader_dict[key] = loader
-            self.debug_info[key] = path, _type
+            self.loader_dict[name] = loader
+            self.debug_info[name] = path, _type
+            if len(self.loader_dict[name]) == 0:
+                raise RuntimeError(f'{path} has no samples')
+        self._uids = \
+            tuple(set.intersection(*[set(d) for d in self.loader_dict]))
+
+        logging.info(
+            'The number of samples: ' +
+            ' '.join(f'{n}={len(self.loader_dict[n])}, '
+                     for _, n, _ in path_name_type_list) +
+            f' -> Intersection={len(self._uids)}')
+        if len(self._uids) == 0:
+            raise RuntimeError('No samples remain: ' +
+                               ', '.join(p for p, _, _ in path_name_type_list))
 
         self.preprocess_dict = {}
         if preproces is not None:
-            for key, data in preproces.items():
+            for name, data in preproces.items():
                 proceess = Transformation(data)
-                self.preprocess_dict[key] = proceess
+                self.preprocess_dict[name] = proceess
 
             # The keys of preprocess must be sub-set of the keys of dataset
-            for k in self.preprocess_dict:
-                if k not in self.loader_dict:
+            for name in self.preprocess_dict:
+                if name not in self.loader_dict:
                     raise RuntimeError(
-                        f'The preprocess-key doesn\'t exit in data-keys: '
-                        f'{k} not in {set(self.loader_dict)}')
+                        f'The preprocess-key doesn\'t exist in data-keys: '
+                        f'{name} not in {set(self.loader_dict)}')
 
     @staticmethod
     @typechecked
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
+        """Helper function to instantiate Loader
+
+        Args:
+            path:  The file path
+            loader_type:  loader_type. sound, npy, text_int, text_float, etc
+        """
         if loader_type == 'sound':
             # path looks like:
             #   utta /some/where/a.wav
@@ -235,35 +207,53 @@ class Dataset:
             #   uttb /some/where/a.ark:456
             return kaldiio.load_scp(path)
 
-        elif loader_type == 'npy_scp':
+        elif loader_type == 'npy':
             # path looks like:
             #   utta /some/where/a.npy
             #   uttb /some/where/b.npy
             raise NotImplementedError
 
         elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
-            # Not lazy loader, but vanilla-dict
+            # Not lazy loader, but as vanilla-dict
             return load_num_sequence_text(path, loader_type)
 
         else:
             raise RuntimeError(
                 f'Not supported: loader_type={loader_type}')
 
+    def __repr__(self):
+        _mes = self.__class__.__name__
+        _mes += f'(Nsamples: {len(self)}'
+        for name, (path, _type) in self.debug_info.items():
+            _mes += (f'\n{name}:'
+                     f'    path: {path}\n'
+                     f'    type: {_type}')
+        for name, preproces in self.preprocess_dict.items():
+            _mes += (f'\n{name}:'
+                     f'    preprocess: {preproces}')
+        _mes += ')'
+        return _mes
+
     def __len__(self):
-        raise RuntimeError(
-            'Not necessary to be used because '
-            'we are using custom batch-sampler')
+        return len(self._uids)
+
+    def keys(self):
+        return self._uids
 
     # Note(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
-    # however this Dataset required a string, which represents a sample-id.
+    # however this Dataset handle a string, which represents a sample-id.
     @typechecked
-    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
+    def __getitem__(self, uid: Union[str, int]) -> Dict[str, np.ndarray]:
+        if isinstance(uid, int):
+            uid = self._uids[uid]
+
         data = {}
         for name, loader in self.loader_dict.items():
             try:
                 value = loader[uid]
-                assert isinstance(value, np.ndarray), type(value)
+                if not isinstance(value, np.ndarray):
+                    raise TypeError(f'Must be ndarray: {type(value)}')
             except Exception:
                 path, _type = self.debug_info[name]
                 logging.error(
@@ -281,7 +271,7 @@ class Dataset:
                 value = value.astype(self.int_dtype)
             else:
                 raise NotImplementedError(
-                    f'Not supported dtype: {value.kind}')
+                    f'Not supported dtype: {value.dtype}')
 
             data[name] = value
 

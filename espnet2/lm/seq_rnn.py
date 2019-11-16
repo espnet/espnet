@@ -4,10 +4,10 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 
-from espnet2.lm.lm_interface import LMInterface
+from espnet2.lm.abs_lm import AbsLM
 
 
-class SequentialRNNLM(LMInterface, torch.nn.Module):
+class SequentialRNNLM(AbsLM):
     """Sequential RNNLM.
 
     See also:

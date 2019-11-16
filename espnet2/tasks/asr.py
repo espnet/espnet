@@ -7,11 +7,13 @@ from typeguard import typechecked
 import humanfriendly
 
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet2.asr.model import Model
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.model import ASRModel
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.tasks.base_task import BaseTask
+from espnet2.utils.fileio import scp2dict
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, int_or_none, NestedAction
+from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
 
 
 class ASRTask(BaseTask):
@@ -32,19 +34,18 @@ class ASRTask(BaseTask):
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
-        required += ['odim']
+        required += ['id2token']
 
         group.add_argument(
             '--fs', type=humanfriendly.parse_size, default=16000)
-        group.add_argument('--odim', type=int_or_none, default=None)
-        group.add_argument('--token_list', type=str, default=None,
-                           help='The token list')
+        group.add_argument('--id2token', type=str_or_none, default=None,
+                           help='A text mapping int-id to token')
 
         group.add_argument(
             '--frontend', type=str_or_none, default='default',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
-            '--frontend_conf', action=NestedAction, default=dict(),
+            '--frontend_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for frontend class.')
 
         group.add_argument(
@@ -52,16 +53,16 @@ class ASRTask(BaseTask):
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(
-            '--encoder_conf', action=NestedAction, default=dict(),
+            '--encoder_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for Encoder class.')
         group.add_argument(
-            '--decoder_conf', action=NestedAction, default=dict(),
+            '--decoder_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for Decoder class.')
         group.add_argument(
-            '--ctc_conf', action=NestedAction, default=dict(),
+            '--ctc_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for CTC class.')
         group.add_argument(
-            '--model_conf', action=NestedAction, default=dict(),
+            '--model_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for Model class.')
 
         return parser
@@ -69,13 +70,11 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
-        return ('odim',) + BaseTask.exclude_opts()
+        return ('nvocab',) + BaseTask.exclude_opts()
 
     @classmethod
     @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
-        assert args.token_list is None, 'Not yet'
-
         # This method is used only for --print_config
 
         # 0. Parse command line arguments
@@ -91,7 +90,7 @@ class ASRTask(BaseTask):
         encoder_conf = get_defaut_kwargs(encoder_class)
         decoder_conf = get_defaut_kwargs(decoder_class)
         ctc_conf = get_defaut_kwargs(CTC)
-        model_conf = get_defaut_kwargs(Model)
+        model_conf = get_defaut_kwargs(ASRModel)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -131,7 +130,7 @@ class ASRTask(BaseTask):
 
     @classmethod
     @typechecked
-    def get_frontend_class(cls, name: str) -> Type[torch.nn.Module]:
+    def get_frontend_class(cls, name: str) -> Type[AbsFrontend]:
         # Note(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'default':
@@ -172,7 +171,11 @@ class ASRTask(BaseTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+    def build_model(cls, args: argparse.Namespace) -> ASRModel:
+        id2token = scp2dict(args.id2token)
+        id2token = {int(i): t for i, t in id2token.items()}
+        nvocab = len(id2token)
+
         # 1. Frontend
         frontend_class = cls.get_frontend_class(args.frontend)
         frontend = frontend_class(**args.frontend_conf)
@@ -181,25 +184,33 @@ class ASRTask(BaseTask):
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
         encoder = encoder_class(**args.encoder_conf)
-        decoder = decoder_class(odim=args.odim, **args.decoder_conf)
+        decoder = decoder_class(odim=nvocab, **args.decoder_conf)
 
         # 3. CTC
-        ctc = CTC(odim=args.odim, **args.ctc_conf)
+        ctc = CTC(odim=nvocab, **args.ctc_conf)
 
         # 4. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
-        # 5. Set them to Model
-        model = Model(
-            odim=args.odim,
+        # 5. Set them to ASRModel
+        model = ASRModel(
+            nvocab=nvocab,
             frontend=frontend,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
+            id2token=id2token,
             **args.model_conf)
 
-        return model
+        # The least required arguments for decoding
+        params = dict(
+            nvocab=nvocab,
+            frontend=args.frontend,
+            encoder_decoder=args.encoder_decoder,
+            encoder_decoder_conf=args.encoder_decoder_conf,
+            ctc_conf=args.ctc_conf)
+        return params, model
 
 
 if __name__ == '__main__':

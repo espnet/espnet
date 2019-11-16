@@ -7,11 +7,12 @@ from torch_complex.tensor import ComplexTensor
 from espnet.nets.pytorch_backend.frontends.feature_transform import \
     FeatureTransform
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 
 
-class DefaultFrontend(torch.nn.Module):
+class DefaultFrontend(AbsFrontend):
     """Conventional frontend structure for ASR
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN

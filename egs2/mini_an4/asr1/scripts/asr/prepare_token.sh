@@ -58,8 +58,8 @@ mkdir -p "${dir}"
 
 # 1. Prepare token
 if [ "${mode}" = bpe ]; then
-    if [ ! -n "${bpemodel}" ]; then
-        log "Error: --bpemodel is required for bpe mode."
+    if [ ! -f "${bpemodel}" ]; then
+        log "Error: No such file: ${bpemodel}."
         log "${help_message}"
         exit 1
     fi
@@ -67,7 +67,7 @@ if [ "${mode}" = bpe ]; then
     paste -d " " \
         <(awk '{print $1}' "${text}") \
         <(cut -f 2- -d" " "${text}" | spm_encode --model="${bpemodel}" --output_format=piece) \
-            > ${dir}/token
+            > "${dir}"/token
 
 
 elif [ "${mode}" = char ]; then
@@ -77,11 +77,11 @@ elif [ "${mode}" = char ]; then
     # token:
     # uttidA h e l l o
     if [ -n "${nlsyms}" ]; then
-        pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}"" ${text}" \
+        pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" "${text}" \
             --trans_type "${trans_type}" > "${dir}/token"
     else
-        pyscripts/text/text2token.py -s 1 -n 1 ${dset}/text \
-            --trans_type "${trans_type}" > "${ddir}/token"
+        pyscripts/text/text2token.py -s 1 -n 1 "${text}" \
+            --trans_type "${trans_type}" > "${dir}/token"
     fi
 
 elif [ "${mode}" = word ]; then
@@ -94,23 +94,23 @@ else
 fi
 
 
-# 3. Create "token_int"
-<${dir}/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dict}" > "${dir}/token_int"
+# 2. Create "token_int"
+<"${dir}"/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dict}" > "${dir}/token_int"
 
 
-# 4. Create "token_shape", which looks like...
+# 3. Create "token_shape", which looks like...
 #   uttidA 20,32
 #   uttidB 12,32
 # where the first column indicates the number of tokens
 # and the secod is the vocabsize
 vocsize=$(tail -n 1 "${dict}" | awk '{print $2}')
 # +2 comes from CTC blank and SOS/EOS
-odim="$((vocsize + 2))"
-<${dir}/token_int awk -v odim="${odim}" '{print($1,NF-1 "," odim)}' > ${dir}/token_shape
+nvocab="$((vocsize + 2))"
+<"${dir}"/token_int awk -v odim="${nvocab}" '{print($1,NF-1 "," nvocab)}' > "${dir}"/token_shape
 
 
-# 5. Copy dict: dict is a list of tokens
-cp "${dict}" "${dir}/tokens.txt"
-
+# 4. Create id2token
+# 0 is blank, 1~Nvocab: token, Nvocab+1: SOS/EOS
+<"${dict}" awk 'BEGIN{print(0,"<blank>")} {print(NR,$1)} END{print(NR+1,"<eos/sos>")}' > "${dir}"/id2token
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

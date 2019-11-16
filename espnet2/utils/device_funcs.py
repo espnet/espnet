@@ -10,8 +10,8 @@ def to_device(data, device):
     if isinstance(data, dict):
         return {k: to_device(v, device) for k, v in data.items()}
     elif dataclasses.is_dataclass(data) and not isinstance(data, type):
-        return type(data)(*[to_device(v, device)
-                            for v in dataclasses.astuple(data)])
+        return type(data)(
+            *[to_device(v, device) for v in dataclasses.astuple(data)])
     # maybe namedtuple. I don't know the correct way to judge namedtuple.
     elif isinstance(data, tuple) and type(data) is not tuple:
         return type(data)(*[to_device(o, device) for o in data])
@@ -40,7 +40,7 @@ def force_gatherable(data, device):
     """
     if isinstance(data, dict):
         return {k: force_gatherable(v, device) for k, v in data.items()}
-    # maybe namedtuple. I don't know the correct way to judge namedtuple.
+    # DataParallel can't handle NamedTuple well
     elif isinstance(data, tuple) and type(data) is not tuple:
         return type(data)(*[force_gatherable(o, device) for o in data])
     elif isinstance(data, (list, tuple)):
