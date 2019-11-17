@@ -11,7 +11,7 @@ class Stft(torch.nn.Module):
                  win_length: int = 512,
                  hop_length: int = 128,
                  center: bool = True,
-                 pad_mode: str ='reflect',
+                 pad_mode: str = 'reflect',
                  normalized: bool = False,
                  onesided: bool = True
                  ):

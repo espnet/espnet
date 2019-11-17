@@ -31,11 +31,11 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
 
 
 @typechecked
-def str2tuple_str(value: str) -> Tuple[str, str]:
+def str2pair_str(value: str) -> Tuple[str, str]:
     """
 
     Examples:
-        >>> str2tuple_str('abc,def ')
+        >>> str2pair_str('abc,def ')
         ('abc', 'def')
     """
     a, b = value.split(',')

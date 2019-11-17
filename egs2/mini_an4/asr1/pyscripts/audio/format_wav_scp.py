@@ -13,7 +13,7 @@ import soundfile
 from tqdm import tqdm
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.utils.fileio import scp2dict, SoundScpWriter
+from espnet2.utils.fileio import read_2column_text, SoundScpWriter
 
 
 def humanfriendly_or_none(value: str):
@@ -65,7 +65,7 @@ def main():
             return args.ref_channels
 
     elif args.utt2ref_channels is not None:
-        utt2ref_channels_dict = scp2dict(args.utt2ref_channels)
+        utt2ref_channels_dict = read_2column_text(args.utt2ref_channels)
 
         def utt2ref_channels(x, d=utt2ref_channels_dict) -> Tuple[int, ...]:
             chs_str = d[x]

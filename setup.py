@@ -7,9 +7,9 @@ from setuptools import setup
 import sys
 
 
-if LooseVersion(sys.version) < LooseVersion('3.6'):
+if LooseVersion(sys.version) < LooseVersion('3.7'):
     raise RuntimeError(
-        'ESPnet requires Python>=3.6, '
+        'ESPnet requires Python>=3.7, '
         'but your Python is {}'.format(sys.version))
 if LooseVersion(pip.__version__) < LooseVersion('19'):
     raise RuntimeError(
@@ -44,6 +44,8 @@ requirements = {
         'nltk>=3.4.5',
         'nnmnkwii',
         'jaconv',
+        'typeguard',
+        'humanfriendly',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],

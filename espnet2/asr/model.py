@@ -20,7 +20,7 @@ class ASRModel(torch.nn.Module):
 
     @typechecked
     def __init__(self,
-                 nvocab: int,
+                 vocab_size: int,
                  frontend: AbsFrontend,
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
@@ -33,7 +33,7 @@ class ASRModel(torch.nn.Module):
 
                  report_cer: bool = False,
                  report_wer: bool = False,
-                 id2token: Dict[int, str] = None,
+                 token_list: Union[Tuple[str, ...], List[str]] = None,
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
@@ -43,9 +43,9 @@ class ASRModel(torch.nn.Module):
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
-        self.sos = nvocab - 1
-        self.eos = nvocab - 1
-        self.nvocab = nvocab
+        self.sos = vocab_size - 1
+        self.eos = vocab_size - 1
+        self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
 
@@ -55,10 +55,9 @@ class ASRModel(torch.nn.Module):
         self.ctc = ctc
         self.rnnt_decoder = rnnt_decoder
         self.label_smoothing_loss = LabelSmoothingLoss(
-            nvocab, ignore_id, lsm_weight, length_normalized_loss)
+            vocab_size, ignore_id, lsm_weight, length_normalized_loss)
 
         if report_cer or report_wer:
-            token_list = list(id2token)
             self.error_calculator = ErrorCalculator(
                 token_list, sym_space, sym_blank, report_cer, report_wer)
         else:
@@ -166,8 +165,8 @@ class ASRModel(torch.nn.Module):
 
         # Compute attention loss
         loss_att = self.label_smoothing_loss(decoder_out, ys_out_pad)
-        acc_att = th_accuracy(decoder_out.view(-1, self.nvocab), ys_out_pad,
-                              ignore_label=self.ignore_id)
+        acc_att = th_accuracy(decoder_out.view(-1, self.vocab_size),
+                              ys_out_pad, ignore_label=self.ignore_id)
 
         # Compute cer/wer using attention-decoder
         if self.training or self.error_calculator is None:
