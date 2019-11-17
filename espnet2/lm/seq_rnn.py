@@ -18,7 +18,7 @@ class SequentialRNNLM(AbsLM):
                  ntoken: int = 100,
                  unit: int = 650,
                  nlayers: int = 2,
-                 dropout_rate: float = 0.5,
+                 dropout_rate: float = 0.0,
                  tie_weights: bool = False,
                  rnn_type: str = 'lstm',
                  ):

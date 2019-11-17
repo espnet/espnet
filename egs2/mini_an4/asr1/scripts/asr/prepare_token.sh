@@ -85,8 +85,7 @@ elif [ "${mode}" = char ]; then
     fi
 
 elif [ "${mode}" = word ]; then
-    log "not yet"
-    exit 1
+    cp "${text}" "${dir}/token"
 
 else
     log "Error: not supported --mode ${mode}"
@@ -106,11 +105,12 @@ fi
 vocsize=$(tail -n 1 "${dict}" | awk '{print $2}')
 # +2 comes from CTC blank and SOS/EOS
 nvocab="$((vocsize + 2))"
-<"${dir}"/token_int awk -v odim="${nvocab}" '{print($1,NF-1 "," nvocab)}' > "${dir}"/token_shape
+<"${dir}"/token_int awk -v nvocab="${nvocab}" '{print($1,NF-1 "," nvocab)}' > "${dir}"/token_shape
 
-
-# 4. Create id2token
+# 4. Create tokens.txt
 # 0 is blank, 1~Nvocab: token, Nvocab+1: SOS/EOS
-<"${dict}" awk 'BEGIN{print(0,"<blank>")} {print(NR,$1)} END{print(NR+1,"<eos/sos>")}' > "${dir}"/id2token
+echo "<blank>" > "${dir}"/tokens.txt
+cat "${dict}" >> "${dir}"/tokens.txt
+echo "<sos/eos>" > "${dir}"/tokens.txt
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

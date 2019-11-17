@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-Num = Union[float, int, torch.Tensor, np.ndarray]
+Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
 
 def to_report_value(v: Num, weight: Num = None) -> ReportValue:

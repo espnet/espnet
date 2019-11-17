@@ -4,16 +4,14 @@ from typing import Any, Dict, Type, Tuple, Optional
 import configargparse
 import torch
 from typeguard import typechecked
-import humanfriendly
 
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.model import ASRModel
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.model import ASRModel
 from espnet2.tasks.base_task import BaseTask
-from espnet2.utils.fileio import scp2dict
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, int_or_none, NestedDictAction
+from espnet2.utils.types import str_or_none, NestedDictAction
 
 
 class ASRTask(BaseTask):
@@ -34,11 +32,9 @@ class ASRTask(BaseTask):
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
-        required += ['id2token']
+        required += ['token_list']
 
-        group.add_argument(
-            '--fs', type=humanfriendly.parse_size, default=16000)
-        group.add_argument('--id2token', type=str_or_none, default=None,
+        group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
 
         group.add_argument(
@@ -70,7 +66,7 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
-        return ('nvocab',) + BaseTask.exclude_opts()
+        return ('vocab_size',) + BaseTask.exclude_opts()
 
     @classmethod
     @typechecked
@@ -104,8 +100,6 @@ class ASRTask(BaseTask):
         decoder_conf.update(config['decoder_conf'])
         ctc_conf.update(config['ctc_conf'])
 
-        assert args.dict is None, 'Not yet'
-
         # 5. Reassign them to the configuration
         config.update(
             frontend_conf=frontend_conf,
@@ -114,7 +108,7 @@ class ASRTask(BaseTask):
             ctc_conf=ctc_conf,
             model_conf=model_conf)
 
-        # 6. Excludes the specified options not to need to be shown
+        # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
             config.pop(k)
 
@@ -172,11 +166,19 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ASRModel:
-        id2token = scp2dict(args.id2token)
-        id2token = {int(i): t for i, t in id2token.items()}
-        nvocab = len(id2token)
+        if isinstance(args.token_list, str):
+            with open(args.token_list) as f:
+                token_list = [line.rstrip() for line in f]
+            # "args" is saved in a yaml file by BaseTask.main().
+            # Overwriting token_list to keep it as "portable".
+            args.token_list = token_list.copy()
+        elif isinstance(args.token_list, (tuple, list)):
+            token_list = args.token_list.copy()
+        else:
+            raise RuntimeError('token_list must be str or list')
+        vocab_size = len(token_list)
 
-        # 1. Frontend
+        # 1. frontend
         frontend_class = cls.get_frontend_class(args.frontend)
         frontend = frontend_class(**args.frontend_conf)
 
@@ -184,41 +186,23 @@ class ASRTask(BaseTask):
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
         encoder = encoder_class(**args.encoder_conf)
-        decoder = decoder_class(odim=nvocab, **args.decoder_conf)
+        decoder = decoder_class(odim=vocab_size, **args.decoder_conf)
 
         # 3. CTC
-        ctc = CTC(odim=nvocab, **args.ctc_conf)
+        ctc = CTC(odim=vocab_size, **args.ctc_conf)
 
         # 4. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
         # 5. Set them to ASRModel
         model = ASRModel(
-            nvocab=nvocab,
+            vocab_size=vocab_size,
             frontend=frontend,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
-            id2token=id2token,
+            token_list=token_list,
             **args.model_conf)
 
-        # The least required arguments for decoding
-        params = dict(
-            nvocab=nvocab,
-            frontend=args.frontend,
-            encoder_decoder=args.encoder_decoder,
-            encoder_decoder_conf=args.encoder_decoder_conf,
-            ctc_conf=args.ctc_conf)
-        return params, model
-
-
-if __name__ == '__main__':
-    # These two are equivalent:
-    #   % python -m espnet2.tasks.asr
-    #   % python -m espnet2.bin.train asr
-
-    import sys
-    from espnet.utils.cli_utils import get_commandline_args
-    print(get_commandline_args(), file=sys.stderr)
-    ASRTask.main()
+        return model

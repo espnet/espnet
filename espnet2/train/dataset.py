@@ -14,17 +14,17 @@ from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text
 
 
 @typechecked
-def collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
+def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         -> Dict[str, torch.Tensor]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
 
     Examples:
         >>> from espnet2.train.batch_sampler import ConstantBatchSampler
         >>> sampler = ConstantBatchSampler(...)
-        >>> dataset = Dataset(...)
+        >>> dataset = ESPNetDataset(...)
         >>> keys = next(iter(sampler)
         >>> batch = [dataset[key] for key in keys]
-        >>> batch = collate_fn(batch)
+        >>> batch = our_collate_fn(batch)
         >>> model(**batch)
 
         Note that the dict-keys of batch are propagated from
@@ -88,15 +88,15 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         return array
 
 
-class Dataset:
+class ESPNetDataset:
     """
 
     Examples:
-        >>> dataset = Dataset([('wav.scp', 'input', 'sound'),
-        ...                    ('token_int', 'output', 'text_int')],
-        ...                   preproces=dict(input=[dict(type='fbank',
-        ...                                              n_mels=80, fs=16000)])
-        ...                   )
+        >>> dataset = ESPNetDataset([('wav.scp', 'input', 'sound'),
+        ...                          ('token_int', 'output', 'text_int')],
+        ...                          preproces=dict(input=[dict(type='fbank',
+        ...                                         n_mels=80, fs=16000)])
+        ...                         )
         ... data = dataset['uttid']
         {'input': ndarray, 'output': ndarray}
     """
@@ -130,7 +130,7 @@ class Dataset:
         self.loader_dict = {}
         self.debug_info = {}
         for path, name, _type in path_name_type_list:
-            loader = Dataset.create_loader(path, _type)
+            loader = ESPNetDataset.create_loader(path, _type)
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
@@ -190,7 +190,7 @@ class Dataset:
             # but ndarray is desired, so Adapter class is inserted here
             return AdapterForSoundScpReader(loader)
 
-        elif loader_type == 'pipe-wav.scp':
+        elif loader_type == 'pipe_wav':
             # path looks like:
             #   utta cat a.wav |
             #   uttb cat b.wav |

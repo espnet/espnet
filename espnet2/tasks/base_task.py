@@ -22,13 +22,12 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.batch_sampler import create_batch_sampler
-from espnet2.train.dataset import Dataset, BatchSampler, collate_fn
+from espnet2.train.dataset import ESPNetDataset,  our_collate_fn
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, NestedDictAction, str2str_tuple,
-    str2triple_str, )
+    int_or_none, str2bool, str_or_none, NestedDictAction, str2triple_str, )
 
 
 class BaseTask(ABC):
@@ -52,9 +51,7 @@ class BaseTask(ABC):
 
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        parser.set_defaults(required=['output_dir',
-                                      'train_batch_shapes',
-                                      'eval_batch_shapes'])
+        parser.set_defaults(required=['output_dir'])
 
         group = parser.add_argument_group('Common configuration')
 
@@ -193,7 +190,7 @@ class BaseTask(ABC):
         parser = BaseTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
-        # Excludes the specified options not to need to be shown
+        # Excludes the options not to be shown
         for k in BaseTask.exclude_opts():
             config.pop(k)
 
@@ -384,31 +381,30 @@ class BaseTask(ABC):
         else:
             dtype = args.train_dtype
         # Creates train-data-iterator
-        train_dataset = Dataset(
+        train_dataset = ESPNetDataset(
             args.train_data_path_and_name_and_type,
             args.train_preprocess, float_dtype=dtype)
         train_batch_sampler = create_batch_sampler(
-            type=args.batch_type, shape_files=args.train_shape_files,
+            type=args.batch_type, shape_files=args.train_shape_file,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=collate_fn,)
+                                collate_fn=our_collate_fn, )
 
         # Creates eval-data-iterator
-        eval_dataset = Dataset(
+        eval_dataset = ESPNetDataset(
             args.eval_data_path_and_name_and_type,
             args.eval_preprocess, float_dtype=dtype)
-
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
         eval_batch_sampler = create_batch_sampler(
-            type=args.eval_batch_type, shape_files=args.eval_shape_files,
+            type=args.eval_batch_type, shape_files=args.eval_shape_file,
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
-                               collate_fn=collate_fn,
+                               collate_fn=our_collate_fn,
                                num_workers=args.num_workers)
 
         # Creates model, optimizer, scheduler

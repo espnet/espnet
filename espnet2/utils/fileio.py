@@ -72,7 +72,7 @@ class DatadirWriter:
 
 
 @typechecked
-def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
+def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     """
 
     Example:
@@ -80,7 +80,7 @@ def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
             key1 /some/path/a.wav
             key2 /some/path/b.wav
 
-        >>> scp2dict('wav.scp')
+        >>> read_2column_text('wav.scp')
         {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
 
     """
@@ -91,7 +91,7 @@ def scp2dict(path: Union[Path, str]) -> Dict[str, str]:
             sps = line.rstrip().split(maxsplit=1)
             if len(sps) != 2:
                 raise RuntimeError(
-                    f'scp file must have two columns: '
+                    f'scp file must have two or more columns: '
                     f'{line} ({path}:{linenum})')
             k, v = sps
             if k in data:
@@ -124,7 +124,7 @@ def load_num_sequence_text(path: Union[Path, str],
     #   uttb 3,4,5
     # -> return {'utta': np.ndarray([1, 0]),
     #            'uttb': np.ndarray([3, 4, 5])}
-    d = scp2dict(path)
+    d = read_2column_text(path)
 
     # Using for-loop instead of dict-comprehension for debuggability
     retval = {}
@@ -159,7 +159,7 @@ class SoundScpReader(collections.abc.Mapping):
         self.dtype = dtype
         self.always_2d = always_2d
         self.normalize = normalize
-        self.data = scp2dict(fname)
+        self.data = read_2column_text(fname)
 
     def __getitem__(self, key):
         wav = self.data[key]

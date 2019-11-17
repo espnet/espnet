@@ -2,10 +2,10 @@ import argparse
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-import torch
+import humanfriendly
 from typeguard import typechecked
 
-from espnet2.lm.abs_lm import LMInterface
+from espnet2.lm.abs_lm import AbsLM
 from espnet2.lm.model import LanguageModel
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import BaseTask
@@ -31,12 +31,12 @@ class LMTask(BaseTask):
         # Note(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
-        required += []
+        required += ['token_list']
 
-        group.add_argument('--sos_and_eos', type=int, default=None,
-                           help='The sentence')
-        group.add_argument('--token_list', type=str, default=None,
-                           help='The token list')
+        group.add_argument(
+            '--fs', type=humanfriendly.parse_size, default=16000)
+        group.add_argument('--token_list', type=str_or_none, default=None,
+                           help='A text mapping int-id to token')
         group.add_argument(
             '--lm', type=str_or_none, default='seq_rnn',
             choices=cls.lm_choices(), help='Specify frontend class')
@@ -81,7 +81,7 @@ class LMTask(BaseTask):
         # 5. Reassign them to the configuration
         config.update(lm_conf=lm_conf, model_conf=model_conf)
 
-        # 6. Excludes the specified options
+        # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
             config.pop(k)
 
@@ -97,7 +97,7 @@ class LMTask(BaseTask):
 
     @classmethod
     @typechecked
-    def get_lm_class(cls, name: str) -> Type[LMInterface]:
+    def get_lm_class(cls, name: str) -> Type[AbsLM]:
         # Note(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'seq_rnn':
@@ -110,21 +110,20 @@ class LMTask(BaseTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> LanguageModel:
-        assert args.token_list is None, 'Not yet'
+        if isinstance(args.token_list, str):
+            with open(args.token_list) as f:
+                token_list = [line.rstrip() for line in f]
 
-        lm_class = cls.get_lm_class()
+            # "args" is saved as it is in a yaml file by BaseTask.main().
+            # Overwriting token_list to keep it as "portable".
+            args.token_list = token_list.copy()
+        elif isinstance(args.token_list, (tuple, list)):
+            token_list = args.token_list.copy()
+        else:
+            raise RuntimeError('token_list must be str or dict')
+        vocab_size = len(token_list)
+
+        lm_class = cls.get_lm_class(args.lm)
         lm = lm_class(**args.lm_conf)
-        model = LanguageModel(lm=lm, sos_and_eos=args.sos_and_eos)
+        model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1)
         return model
-
-
-if __name__ == '__main__':
-    # These two are equivalent:
-    #   % python -m espnet2.tasks.lm
-    #   % python -m espnet2.bin.train lm
-
-    import sys
-    from espnet.utils.cli_utils import get_commandline_args
-    print(get_commandline_args(), file=sys.stderr)
-    LMTask.main()
-
