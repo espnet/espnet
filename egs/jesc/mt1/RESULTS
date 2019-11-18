@@ -1,5 +1,4 @@
 # NOTE: apostrophe is included both in hyp and ref
 
-
-BLEU = 0.00, 1.5/3.1/0.0/0.0 (BP=0.990, ratio=0.990, hyp_len=2032, ref_len=2052)
+BLEU = 13.39, 43.3/25.4/16.9/10.9 (BP=0.631, ratio=0.685, hyp_len=20767, ref_len=30338)
 
