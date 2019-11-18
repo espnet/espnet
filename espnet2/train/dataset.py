@@ -94,8 +94,7 @@ class ESPNetDataset:
     Examples:
         >>> dataset = ESPNetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
-        ...                          preproces=dict(input=[dict(type='fbank',
-        ...                                         n_mels=80, fs=16000)])
+        ...                          preprocess=dict(input='preprocess.yaml')
         ...                         )
         ... data = dataset['uttid']
         {'input': ndarray, 'output': ndarray}
@@ -135,8 +134,8 @@ class ESPNetDataset:
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
                 raise RuntimeError(f'{path} has no samples')
-        self._uids = \
-            tuple(set.intersection(*[set(d) for d in self.loader_dict]))
+        self._uids = tuple(
+            set.intersection(*[set(l) for l in self.loader_dict.values()]))
 
         logging.info(
             'The number of samples: ' +
@@ -196,7 +195,7 @@ class ESPNetDataset:
             #   uttb cat b.wav |
 
             # Note(kamo): I don't think this case is practical
-            # because subprocess takes much times due to fork() system call.
+            # because subprocess takes much times due to fork().
 
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
@@ -223,19 +222,17 @@ class ESPNetDataset:
 
     def __repr__(self):
         _mes = self.__class__.__name__
-        _mes += f'(Nsamples: {len(self)}'
+        _mes += f'('
         for name, (path, _type) in self.debug_info.items():
-            _mes += (f'\n{name}:'
-                     f'    path: {path}\n'
-                     f'    type: {_type}')
+            _mes += f'\n{name}: {{"path": "{path}", "type": "{_type}"}}'
         for name, preproces in self.preprocess_dict.items():
-            _mes += (f'\n{name}:'
-                     f'    preprocess: {preproces}')
+            _mes += f'\n{name}: preprocess:\n{preproces}'
         _mes += ')'
         return _mes
 
     def __len__(self):
-        return len(self._uids)
+        raise NotImplementedError('This method doesn\'t be needed because '
+                                  'we use custom BatchSampler ')
 
     def keys(self):
         return self._uids
@@ -244,10 +241,7 @@ class ESPNetDataset:
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Dict[str, np.ndarray]:
-        if isinstance(uid, int):
-            uid = self._uids[uid]
-
+    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
         data = {}
         for name, loader in self.loader_dict.items():
             try:

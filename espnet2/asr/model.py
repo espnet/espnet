@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from typing import Tuple
 
 import torch
@@ -21,7 +21,8 @@ class ASRModel(torch.nn.Module):
     @typechecked
     def __init__(self,
                  vocab_size: int,
-                 frontend: AbsFrontend,
+                 token_list: Union[Tuple[str, ...], List[str]],
+                 frontend: Optional[AbsFrontend],
                  encoder: torch.nn.Module,
                  decoder: torch.nn.Module,
                  ctc: CTC,
@@ -33,7 +34,6 @@ class ASRModel(torch.nn.Module):
 
                  report_cer: bool = False,
                  report_wer: bool = False,
-                 token_list: Union[Tuple[str, ...], List[str]] = None,
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
@@ -48,6 +48,7 @@ class ASRModel(torch.nn.Module):
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
+        self.token_list = token_list.copy()
 
         self.frontend = frontend
         self.encoder = encoder
@@ -69,7 +70,7 @@ class ASRModel(torch.nn.Module):
                 output: torch.Tensor,
                 output_lengths: torch.Tensor)\
             -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """
+        """Frontend + Encoder + Decoder + Calc loss
 
         Args:
             input: (Batch, Length)
@@ -79,10 +80,7 @@ class ASRModel(torch.nn.Module):
         """
         # TODO(kamo): Unify to either mask-way or length-way.
         # length-way may be better?
-
-        assert input.dim() == 2, input.shape
         assert output.dim() == 2, output.shape
-        assert input_lengths.dim() == 1, input_lengths.shape
         assert output_lengths.dim() == 1, output_lengths.shape
         assert (input.shape[0] == input_lengths.shape[0] ==
                 output.shape[0] == output_lengths.shape[0]), \
@@ -92,23 +90,11 @@ class ASRModel(torch.nn.Module):
 
         # 0. Change pad_value
         # For data parallel
-        input = input[:, :input_lengths.max()]
         output = output[:, :output_lengths.max()]
-        input.masked_fill_(make_pad_mask(input_lengths).to(input.device), 0,)
         output.masked_fill_(make_pad_mask(output_lengths).to(output.device),
                             self.ignore_id)
 
-        # 1. STFT, Feature transform
-        # input (Batch, NSamples) -> input_feats: (Batch, Length, Dim)
-        input_feats, feats_lens = self.frontend(input, input_lengths)
-
-        # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
-        feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :].to(
-            feats_lens.device)
-
-        # 2. Forward encoder
-        # input_feats: (Batch, Length, Dim)
-        encoder_out, encoder_out_mask = self.encoder(input_feats, feats_mask)
+        encoder_out, encoder_out_mask = self.encode(input, input_lengths)
 
         # 3a. Attention-decoder branch
         if self.ctc_weight == 1.0:
@@ -151,6 +137,39 @@ class ASRModel(torch.nn.Module):
         loss, stats, weight = \
             force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def encode(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        """Frontend + Encoder. Note that this method is used by asr_recog.py
+
+        Args:
+            input: (Batch, Length)
+            input_lengths: (Batch, )
+        """
+        # TODO(kamo): Unify to either mask-way or length-way.
+        # length-way may be better?
+        assert input_lengths.dim() == 1, input_lengths.shape
+
+        # 0. Change pad_value
+        # For data parallel
+        input = input[:, :input_lengths.max()]
+        input.masked_fill_(make_pad_mask(input_lengths).to(input.device), 0,)
+
+        # 1. STFT, Feature transform
+        # input (Batch, NSamples) -> input_feats: (Batch, Length, Dim)
+        if self.frontend is not None:
+            input_feats, feats_lens = self.frontend(input, input_lengths)
+        else:
+            input_feats, feats_lens = input, input_lengths
+
+        # FIXME(kamo): Change the interface of Encoder-Decoder to use length-way
+        feats_mask = (~make_pad_mask(feats_lens.tolist()))[:, None, :].to(
+            feats_lens.device)
+
+        # 2. Forward encoder
+        # input_feats: (Batch, Length, Dim)
+        encoder_out, encoder_out_mask = self.encoder(input_feats, feats_mask)
+        return encoder_out, encoder_out_mask
 
     def _calc_decoder_loss(self,
                            ys_pad: torch.Tensor,

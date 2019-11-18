@@ -46,6 +46,7 @@ requirements = {
         'jaconv',
         'typeguard',
         'humanfriendly',
+        'resampy',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],

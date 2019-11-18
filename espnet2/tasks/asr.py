@@ -1,4 +1,5 @@
 import argparse
+import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
@@ -120,6 +121,7 @@ class ASRTask(BaseTask):
         choices = ('default',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
+        choices += (None,)
         return choices
 
     @classmethod
@@ -146,8 +148,6 @@ class ASRTask(BaseTask):
     @typechecked
     def get_encoder_decoder_class(cls, name: str) \
             -> Tuple[Type[torch.nn.Module], Type[torch.nn.Module]]:
-        # This method is used only for --print_config
-
         # Note(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'transformer':
@@ -171,16 +171,20 @@ class ASRTask(BaseTask):
                 token_list = [line.rstrip() for line in f]
             # "args" is saved in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
-            args.token_list = token_list.copy()
+            args.token_list = list(token_list)
         elif isinstance(args.token_list, (tuple, list)):
-            token_list = args.token_list.copy()
+            token_list = list(args.token_list)
         else:
             raise RuntimeError('token_list must be str or list')
         vocab_size = len(token_list)
+        logging.info(f'Vocabulary size: {vocab_size }')
 
         # 1. frontend
         frontend_class = cls.get_frontend_class(args.frontend)
-        frontend = frontend_class(**args.frontend_conf)
+        if frontend_class is not None:
+            frontend = frontend_class(**args.frontend_conf)
+        else:
+            frontend = None
 
         # 2. Encoder, Decoder
         encoder_class, decoder_class = \

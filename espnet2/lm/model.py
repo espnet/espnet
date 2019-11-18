@@ -44,10 +44,10 @@ class LanguageModel(torch.nn.Module):
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1),
                                reduction="none")
 
-        # loss, mask: (BxL,) x (BxL,) -> (BxL,)
+        # loss, mask: (BxL,) x (BxL,) -> loss: (BxL,)
         loss.masked_fill_(mask.view(-1), 0.)
         # mask: (BxL,) -> ntokens: (1,)
-        ntokens = mask.sum()
+        ntokens = (~mask).sum()
         # loss: (BxL,) -> (1,)
         loss = loss.sum() / ntokens
         stats = dict(loss=loss.detach())
@@ -55,4 +55,4 @@ class LanguageModel(torch.nn.Module):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = \
             force_gatherable((loss, stats, ntokens), loss.device)
-        return loss, stats, ntokens.detach()
+        return loss, stats, weight

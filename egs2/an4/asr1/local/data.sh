@@ -14,7 +14,10 @@ SECONDS=0
 stage=1
 stop_stage=100
 
-an4_root=./downloads/an4
+datadir=./downloads
+an4_root=${datadir}/an4
+data_url=http://www.speech.cs.cmu.edu/databases/an4/
+ndev_utt=100
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -32,10 +35,9 @@ train_dev="train_dev"
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 1: Untar downloads.tar.gz"
-    if [ ! -e downloads/ ]; then
-        tar -xvf downloads.tar.gz
-    fi
+    log "stage 1: Data Download"
+    mkdir -p ${datadir}
+    local/download_and_untar.sh ${datadir} ${data_url}
 fi
 
 
@@ -54,13 +56,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
-        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
     done
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 1 data/${train_dev}
-    n=$(($(wc -l < data/train/text) - 1))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --first data/train "${ndev_utt}" "data/${train_dev}"
+    n=$(($(wc -l < data/train/text) - ndev_utt))
+    utils/subset_data_dir.sh --last data/train "${n}" "data/${train_set}"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -16,7 +16,7 @@ from typeguard import typechecked
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
 
-def to_report_value(v: Num, weight: Num = None) -> ReportValue:
+def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
     if isinstance(v, (torch.Tensor, np.ndarray)):
         v = v.item()
     if isinstance(weight, (torch.Tensor, np.ndarray)):
@@ -29,7 +29,7 @@ def to_report_value(v: Num, weight: Num = None) -> ReportValue:
 
 
 @typechecked
-def aggregate(values: Sequence[ReportValue]):
+def aggregate(values: Sequence[ReportedValue]):
     if isinstance(values[0], Average):
         return np.nanmean([v.value for v in values])
 
@@ -51,17 +51,17 @@ def aggregate(values: Sequence[ReportValue]):
         raise NotImplementedError(f'type={type(values[0])}')
 
 
-class ReportValue:
+class ReportedValue:
     pass
 
 
 @dataclasses.dataclass(frozen=True)
-class Average(ReportValue):
+class Average(ReportedValue):
     value: Num
 
 
 @dataclasses.dataclass(frozen=True)
-class WeightedAverage(ReportValue):
+class WeightedAverage(ReportedValue):
     value: Tuple[Num, Num]
     weight: Num
 
@@ -81,6 +81,7 @@ class SubReporter:
         self._finished = False
 
     def get_total_count(self):
+        """Returns the number of iteration over all epochs"""
         return self.total_count
 
     @typechecked
@@ -91,16 +92,11 @@ class SubReporter:
         if not not_increment_count:
             self.total_count += 1
 
-        # key: train or eval
-        if len(self.stats) != 0 and set(self.stats) != set(stats):
-            raise RuntimeError(
-                f'keys mismatching: {set(self.stats)} != {set(stats)}')
-
         for key2, v in stats.items():
             # if the input stats has None value, the key is not registered
             if v is None:
                 continue
-            r = to_report_value(v, weight)
+            r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
     def logging(self, logger=None, level: str = 'INFO', nlatest: int = None):
@@ -124,13 +120,7 @@ class SubReporter:
             else:
                 message += ', '
 
-            if isinstance(values[0], Average):
-                v = np.nanmean([v.value for v in values])
-            elif isinstance(values[0], Average):
-                v = np.nansum([v.value for v in values])
-            else:
-                raise NotImplementedError(f'type={type(values[0])}')
-
+            v = aggregate(values)
             message += f'{key2}={v}'
         logger.log(level, message)
 

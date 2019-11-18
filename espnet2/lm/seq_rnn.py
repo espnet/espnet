@@ -3,6 +3,7 @@ from typing import Tuple
 
 import torch
 import torch.nn as nn
+from typeguard import typechecked
 
 from espnet2.lm.abs_lm import AbsLM
 
@@ -14,8 +15,10 @@ class SequentialRNNLM(AbsLM):
         https://github.com/pytorch/examples/blob/4581968193699de14b56527296262dd76ab43557/word_language_model/model.py
 
     """
+
+    @typechecked
     def __init__(self,
-                 ntoken: int = 100,
+                 vocab_size: int,
                  unit: int = 650,
                  nlayers: int = 2,
                  dropout_rate: float = 0.0,
@@ -36,7 +39,7 @@ class SequentialRNNLM(AbsLM):
         rnn_type = rnn_type.upper()
 
         self.drop = nn.Dropout(dropout_rate)
-        self.encoder = nn.Embedding(ntoken, ninp)
+        self.encoder = nn.Embedding(vocab_size, ninp)
         if rnn_type in ['LSTM', 'GRU']:
             rnn_class = getattr(nn, rnn_type)
             self.rnn = rnn_class(ninp, nhid, nlayers, dropout=dropout_rate)
@@ -50,7 +53,7 @@ class SequentialRNNLM(AbsLM):
                     options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
             self.rnn = nn.RNN(ninp, nhid, nlayers, nonlinearity=nonlinearity,
                               dropout=dropout_rate)
-        self.decoder = nn.Linear(nhid, ntoken)
+        self.decoder = nn.Linear(nhid, vocab_size)
 
         # Optionally tie weights as in:
         # "Using the Output Embedding to Improve Language Models"
@@ -110,6 +113,6 @@ class SequentialRNNLM(AbsLM):
                 and next state for ys
 
         """
-        y, new_state = self._before_loss(y[-1].view(1, 1), state)
+        y, new_state = self(y[-1].view(1, 1), state)
         logp = y.log_softmax(dim=-1).view(-1)
         return logp, new_state
