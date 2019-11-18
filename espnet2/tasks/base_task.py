@@ -100,6 +100,9 @@ class BaseTask(ABC):
         group.add_argument('--log_interval', type=int, default=200,
                            help='Show logs every the number iterations in'
                                 'each epochs of training phase.')
+        group.add_argument('--n_latest_history', type=int, default=20,
+                           help='The number of latest epochs to save '
+                                'the training state.')
 
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
@@ -447,8 +450,6 @@ class BaseTask(ABC):
                 f'Saving the configuration in {output_path / "config.yaml"}')
             yaml.safe_dump(vars(args), f)
 
-        # Note(kamo): Don't give "args" to load() and run() directly!!!
-
         logging.info(f'Model:\n{model}')
         logging.info(f'Optimizer:\n{optimizer}')
         logging.info(f'Train Dataset: {train_dataset}')
@@ -457,6 +458,30 @@ class BaseTask(ABC):
         logging.info(f'Eval BatchSampler: {eval_batch_sampler}')
 
         reporter = Reporter()
+
+        # FIXME(kamo): I want to move this block into train()
+        #  but model.to() seems to need to be used before
+        #  optimizer.load_state_dict(). I don't know why.
+        #  https://discuss.pytorch.org/t/runtimeerror-expected-type-torch-floattensor-but-got-torch-cuda-floattensor/37375
+        # For apex supporting
+        if args.train_dtype in ('O0', 'O1', 'O2', 'O3'):
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(f'You need to install apex. '
+                              f'See https://github.com/NVIDIA/apex#linux')
+                raise
+            model, optimizer = \
+                amp.initialize(model, optimizer, opt_level=args.train_dtype)
+        if args.train_dtype in ('float16', 'float32', 'float64'):
+            dtype = getattr(torch, args.train_dtype)
+        else:
+            dtype = torch.float32
+        # To gpu
+        model = model.to(
+            dtype=dtype, device='cuda' if args.ngpu > 0 else 'cpu')
+
+        # Note(kamo): Don't give "args" to load() and run() directly!!!
         # Loads states from saved files
         cls.load(model=model, optimizer=optimizer,
                  reporter=reporter, output_path=output_path,
@@ -465,7 +490,8 @@ class BaseTask(ABC):
                  resume_epoch=args.resume_epoch,
                  resume_path=args.resume_path,
                  pretrain_path=args.pretrain_path,
-                 pretrain_key=args.pretrain_key)
+                 pretrain_key=args.pretrain_key,
+                 loc='cuda' if args.ngpu > 0 else 'cpu')
 
         cls.run(model=model,
                 optimizer=optimizer,
@@ -482,7 +508,8 @@ class BaseTask(ABC):
                 grad_noise=args.grad_noise,
                 accum_grad=args.accum_grad,
                 grad_clip_threshold=args.grad_clip_threshold,
-                log_interval=args.log_interval)
+                log_interval=args.log_interval,
+                n_latest_history=args.n_latest_history)
 
     @classmethod
     @typechecked
@@ -496,7 +523,8 @@ class BaseTask(ABC):
              resume_epoch: Union[int, str] = None,
              resume_path: Union[str, Path] = None,
              pretrain_path: Union[str, Path] = None,
-             pretrain_key: str = None) -> None:
+             pretrain_key: str = None,
+             loc: str = 'cpu') -> None:
         # For resuming: Specify either resume_epoch or resume_path.
         #     - resume_epoch: Load from outdir/{}epoch.pt.
         #     - resume_path: Load from the specified path.
@@ -514,9 +542,10 @@ class BaseTask(ABC):
             if resume_epoch == 0:
                 resume_epoch = None
         if resume_epoch is not None or resume_path is not None:
-            if resume_path is not None:
+            if resume_path is None:
                 resume_path = output_path / f'{resume_epoch}epoch.pt'
-            resumed_dict = torch.load(resume_path, map_location='cpu')
+
+            resumed_dict = torch.load(resume_path, map_location=loc)
             model.load_state_dict(resumed_dict['model'])
             optimizer.load_state_dict(resumed_dict['optimizer'])
             reporter.load_state_dict(resumed_dict['reporter'])
@@ -527,6 +556,8 @@ class BaseTask(ABC):
                 epoch_scheduler.load_state_dict(
                     resumed_dict['epoch_scheduler'])
 
+        # FIXME(kamo): Should this be done in Task.build_model()?
+        #  Maybe it's more clear and easy.
         # For distillation, fine-tuning, transfer learning, etc.
         if pretrain_path is not None:
             if pretrain_key is None:
@@ -552,7 +583,7 @@ class BaseTask(ABC):
                 obj = get_attr(model, pretrain_key)
 
             state_dict = obj.state_dict()
-            pretrained_dict = torch.load(pretrain_path, map_location='cpu')
+            pretrained_dict = torch.load(pretrain_path, map_location=loc)
             # Ignores the parameters not existing in the train-model
             pretrained_dict = \
                 {k: v for k, v in pretrained_dict.items() if k in state_dict}
@@ -578,22 +609,8 @@ class BaseTask(ABC):
             accum_grad: int = 1,
             grad_clip_threshold: float = 0.05,
             log_interval: int = 200,
+            n_latest_history: int = 20,
             ) -> None:
-        # For apex supporting
-        if train_dtype in ('O0', 'O1', 'O2', 'O3'):
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(f'You need to install apex. '
-                              f'See https://github.com/NVIDIA/apex#linux')
-                raise
-            model, optimizer = \
-                amp.initialize(model, optimizer, opt_level=train_dtype)
-        if train_dtype in ('float16', 'float32', 'float64'):
-            dtype = getattr(torch, train_dtype)
-        else:
-            dtype = torch.float32
-        model = model.to(dtype=dtype, device='cuda' if ngpu > 0 else 'cpu')
 
         # Starting training process from here
         start_epoch = reporter.get_epoch()
@@ -629,6 +646,7 @@ class BaseTask(ABC):
                     epoch_scheduler.step(val)
                 else:
                     epoch_scheduler.step()
+            # Save the snapshot
             torch.save(
                 {'model': model.state_dict(),
                  'optimizer': optimizer.state_dict(),
@@ -638,6 +656,11 @@ class BaseTask(ABC):
                  'batch_scheduler': batch_scheduler.state_dict()
                  if batch_scheduler is not None else None},
                 output_path / f'{iepoch}epoch.pt')
+            # Keeps n-latest model
+            for e in range(1, iepoch - n_latest_history + 1):
+                p = output_path / f'{e}epoch.pt'
+                if p.exists():
+                    p.unlink()
 
             # Saves the best model
             for k, mode in [('loss', 'min'), ('acc', 'max')]:

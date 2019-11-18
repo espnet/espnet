@@ -123,7 +123,6 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
-
     local/data.sh
 fi
 
@@ -183,7 +182,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         echo "<unk>" > "${token_list}"
         cat ${srctexts} | cut -f 2- -d" " | \
-            spm_encode --model="${bpemodel}.model" --output_format=piece | \
+            spm_encode --model="${bpemodel}" --output_format=piece | \
                 tr ' ' '\n' | sort -u >> "${token_list}"
 
     elif [ "${token_mode}" = char ]; then

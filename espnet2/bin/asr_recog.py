@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import logging
 import random
@@ -13,6 +14,7 @@ from torch.utils.data.dataloader import DataLoader
 from typeguard import typechecked
 
 from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
@@ -74,7 +76,7 @@ def recog(
     asr_model.load_state_dict(torch.load(asr_model_file, map_location='cpu'))
 
     decoder = asr_model.decoder
-    ctc = asr_model.ctc
+    ctc = CTCPrefixScorer(asr_model.ctc, asr_model.eos)
     token_list = asr_model.token_list
     scorers = dict(
         decoder=decoder,
@@ -161,8 +163,8 @@ def recog(
             for n, hyp in enumerate(nbest_hyps, 1):
                 assert isinstance(hyp, Hypothesis), type(hyp)
 
-                # remove sos and get results
-                token_int = hyp.yseq[1:].tolist()
+                # remove sos/eos and get results
+                token_int = hyp.yseq[1:-1].tolist()
                 # Change integer-ids to tokens
                 token = [token_list[idx] for idx in token_int]
 
@@ -171,15 +173,9 @@ def recog(
 
                 # Write the result to each files
                 ibest_writer['token'][key] = (' '.join(token)
-                                              .replace('<blank>', '')
-                                              .replace('<sos/eos>', ''))
+                                              .replace('<blank>', ''))
                 ibest_writer['token_int'][key] = ' '.join(map(str, token_int))
                 ibest_writer['score'][key] = str(hyp.score)
-
-    # Copying dict for usability/debugging
-    with (Path(output_dir) / 'tokens.txt').open('w') as f:
-        for t in token_list:
-            f.write(f'{t}\n')
 
 
 def get_parser():
@@ -226,7 +222,7 @@ def get_parser():
     group.add_argument('--batch_size', type=int, default=1)
     group.add_argument('--nbest', type=int, default=1,
                        help='Output N-best hypotheses')
-    group.add_argument('--beam_size', type=int, default=1,
+    group.add_argument('--beam_size', type=int, default=20,
                        help='Beam size')
     group.add_argument('--penalty', type=float, default=0.0,
                        help='Insertion penalty')
@@ -237,9 +233,9 @@ def get_parser():
                        "to automatically find maximum hypothesis lengths")
     group.add_argument('--minlenratio', type=float, default=0.0,
                        help='Input length ratio to obtain min output length')
-    group.add_argument('--ctc_weight', type=float, default=0.0,
+    group.add_argument('--ctc_weight', type=float, default=0.5,
                        help='CTC weight in joint decoding')
-    group.add_argument('--lm_weight', type=float, default=0.1,
+    group.add_argument('--lm_weight', type=float, default=1.0,
                        help='RNNLM weight')
 
     return parser
