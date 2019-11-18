@@ -30,11 +30,11 @@ class DatadirWriter:
             raise RuntimeError('This writer points out a file')
 
         if key not in self.chilidren:
-            self.chilidren[key] = (self.path / key)
+            w = DatadirWriter((self.path / key))
+            self.chilidren[key] = w
             self.has_children = True
 
-        p = self.chilidren[key]
-        return DatadirWriter(p)
+        return self.chilidren[key]
 
     @typechecked
     def __setitem__(self, key: str, value: str):
@@ -44,6 +44,7 @@ class DatadirWriter:
             warnings.warn(f'Duplicated: {key}')
 
         if self.fd is None:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             self.fd = self.path.open('w')
 
         self.keys.add(key)
@@ -60,10 +61,10 @@ class DatadirWriter:
             prev_child = None
             for child in self.chilidren.values():
                 child.close()
-                if prev_child is not None and prev_child.keys == child.keys():
+                if prev_child is not None and prev_child.keys != child.keys:
                     warnings.warn(
                         f'Ids are mismatching between '
-                        f'{prev_child} and {child}')
+                        f'{prev_child.path} and {child.path}')
                 prev_child = child
 
         elif self.fd is not None:

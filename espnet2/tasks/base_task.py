@@ -78,7 +78,7 @@ class BaseTask(ABC):
             help='The initialization method for the model parameters')
 
         group = parser.add_argument_group('Trainer related')
-        group.add_argument('--max_epoch', type=int, default=30,
+        group.add_argument('--max_epoch', type=int, default=25,
                            help='The maximum number epoch to train')
         group.add_argument(
             '--train_dtype', default="float32",
@@ -130,8 +130,8 @@ class BaseTask(ABC):
         group.add_argument(
             '--eval_batch_size', type=int_or_none, default=None,
             help='If not given, the value of --batch_size is used')
-        group.add_argument('--batch_type', type=str, default='const',
-                           choices=['const', 'seq', 'batch_bin'])
+        group.add_argument('--batch_type', type=str, default='seq',
+                           choices=['const', 'seq', 'bin', 'frame'])
         group.add_argument(
             '--eval_batch_type', type=str_or_none, default=None,
             choices=['const', 'seq', 'batch_bin', None],
@@ -141,6 +141,9 @@ class BaseTask(ABC):
             '--train_shape_file', type=str, action='append', default=[])
         group.add_argument(
             '--eval_shape_file', type=str, action='append', default=[])
+
+        group.add_argument(
+            '--max_length', type=int, action='append', default=[])
 
         group = parser.add_argument_group('Dataset related')
         group.add_argument('--num_workers', type=int, default=1,
@@ -351,8 +354,7 @@ class BaseTask(ABC):
     def print_config(cls, file: TextIOBase = sys.stdout):
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
-        file.write(yaml.dump(config, indent=4, sort_keys=False,
-                             Dumper=yaml.Dumper))
+        file.write(yaml.safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
     @typechecked
@@ -386,6 +388,7 @@ class BaseTask(ABC):
             args.train_preprocess, float_dtype=dtype)
         train_batch_sampler = create_batch_sampler(
             type=args.batch_type, shape_files=args.train_shape_file,
+            max_lengths=args.max_length,
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
@@ -401,6 +404,7 @@ class BaseTask(ABC):
             args.eval_batch_size = args.batch_size
         eval_batch_sampler = create_batch_sampler(
             type=args.eval_batch_type, shape_files=args.eval_shape_file,
+            max_lengths=args.max_length,
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
@@ -438,12 +442,19 @@ class BaseTask(ABC):
         output_path = Path(args.output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        with (output_path / 'output.yaml').open('w') as f:
+        with (output_path / 'config.yaml').open('w') as f:
             logging.info(
-                f'Saving the configuration in {output_path / "output.yaml"}')
-            yaml.dump(vars(args), f, Dumper=yaml.Dumper)
+                f'Saving the configuration in {output_path / "config.yaml"}')
+            yaml.safe_dump(vars(args), f)
 
         # Note(kamo): Don't give "args" to load() and run() directly!!!
+
+        logging.info(f'Model:\n{model}')
+        logging.info(f'Optimizer:\n{optimizer}')
+        logging.info(f'Train Dataset: {train_dataset}')
+        logging.info(f'Train BatchSampler: {train_batch_sampler}')
+        logging.info(f'Eval Dataset: {eval_dataset}')
+        logging.info(f'Eval BatchSampler: {eval_batch_sampler}')
 
         reporter = Reporter()
         # Loads states from saved files
@@ -505,7 +516,7 @@ class BaseTask(ABC):
         if resume_epoch is not None or resume_path is not None:
             if resume_path is not None:
                 resume_path = output_path / f'{resume_epoch}epoch.pt'
-            resumed_dict = torch.load(resume_path)
+            resumed_dict = torch.load(resume_path, map_location='cpu')
             model.load_state_dict(resumed_dict['model'])
             optimizer.load_state_dict(resumed_dict['optimizer'])
             reporter.load_state_dict(resumed_dict['reporter'])
@@ -541,7 +552,7 @@ class BaseTask(ABC):
                 obj = get_attr(model, pretrain_key)
 
             state_dict = obj.state_dict()
-            pretrained_dict = torch.load(pretrain_path)
+            pretrained_dict = torch.load(pretrain_path, map_location='cpu')
             # Ignores the parameters not existing in the train-model
             pretrained_dict = \
                 {k: v for k, v in pretrained_dict.items() if k in state_dict}
@@ -586,7 +597,7 @@ class BaseTask(ABC):
 
         # Starting training process from here
         start_epoch = reporter.get_epoch()
-        for iepoch in range(start_epoch, max_epoch):
+        for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f'{iepoch}epoch started')
 
             reporter.set_epoch(iepoch)
@@ -698,8 +709,13 @@ class BaseTask(ABC):
                 # Weighted averaging of loss from torch-data-parallel
                 loss = (loss * weight.to(loss.dtype) / weight.sum()).mean(0)
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
-                         for k, v in stats.items() if v is not None}
+                         if v is not None else None
+                         for k, v in stats.items()}
                 weight = weight.sum()
+
+            if 'loss' not in stats and 'acc' not in stats:
+                # loss or acc is used for saving the best model and early-stop
+                raise RuntimeError(f'loss or acc must be in stats: {stats}')
 
             reporter.register(stats, weight)
 
@@ -729,7 +745,7 @@ class BaseTask(ABC):
                     scheduler.step()
 
             if iiter % log_interval == 0:
-                reporter.logging('train', nlatest=log_interval)
+                reporter.logging(nlatest=log_interval)
 
     @classmethod
     @typechecked
@@ -746,10 +762,12 @@ class BaseTask(ABC):
                 _, stats, weight = \
                     data_parallel(model, (), range(ngpu), module_kwargs=batch)
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
-                         for k, v in stats.items() if v is not None}
+                         if v is not None else None
+                         for k, v in stats.items()}
                 weight = weight.sum()
 
             if 'loss' not in stats and 'acc' not in stats:
+                # loss or acc is used for saving the best model and early-stop
                 raise RuntimeError(f'loss or acc must be in stats: {stats}')
 
             reporter.register(stats, weight)

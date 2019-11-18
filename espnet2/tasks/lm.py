@@ -1,4 +1,5 @@
 import argparse
+import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
@@ -122,8 +123,9 @@ class LMTask(BaseTask):
         else:
             raise RuntimeError('token_list must be str or dict')
         vocab_size = len(token_list)
+        logging.info(f'Vocabulary size: {vocab_size }')
 
         lm_class = cls.get_lm_class(args.lm)
-        lm = lm_class(**args.lm_conf)
+        lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
         model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1)
         return model

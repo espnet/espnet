@@ -10,7 +10,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
 }
 help_message=$(cat << EOF
-$0 <text> <dict> <output-dir>
+$0 <text> <token_list> <output-dir>
 
 Generate token, token_int and token_shape from text
 
@@ -41,12 +41,12 @@ fi
 . ./path.sh
 
 text=$1
-dict=$2
+token_list=$2
 dir=$3
 
-for f in "${text}" "${dict}"; do
+for f in "${text}" "${token_list}"; do
     if [ ! -f "${f}" ]; then
-        log "Error: No such file ${f}"
+        log "Error: No such file: '${f}'"
         log "${help_message}"
         exit 1
     fi
@@ -54,12 +54,14 @@ done
 
 
 mkdir -p "${dir}"
+# 0. token_mode
+echo "${mode}" > ${dir}/token_mode
 
 
 # 1. Prepare token
 if [ "${mode}" = bpe ]; then
     if [ ! -f "${bpemodel}" ]; then
-        log "Error: No such file: ${bpemodel}."
+        log "Error: No such file: '${bpemodel}'"
         log "${help_message}"
         exit 1
     fi
@@ -88,29 +90,32 @@ elif [ "${mode}" = word ]; then
     cp "${text}" "${dir}/token"
 
 else
-    log "Error: not supported --mode ${mode}"
+    log "Error: not supported --mode '${mode}'"
+    log "${help_message}"
     exit 1
 fi
 
 
 # 2. Create "token_int"
-<"${dir}"/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dict}" > "${dir}/token_int"
+# 0 is reserved by CTC-blank, +1 comes from it.
+<${token_list} awk '{ print($1,NR+1)}' >"${dir}/token2id"
+<"${dir}"/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dir}/token2id" > "${dir}/token_int"
 
 
-# 3. Create "token_shape", which looks like...
+# 3. Create tokens.txt
+# 0 is blank, 1~Nvocab: token, Nvocab+1: SOS/EOS
+echo "<blank>" > "${dir}"/tokens.txt
+cat "${token_list}" >> "${dir}"/tokens.txt
+echo "<sos/eos>" >> "${dir}"/tokens.txt
+
+
+# 4. Create "token_shape", which looks like...
 #   uttidA 20,32
 #   uttidB 12,32
 # where the first column indicates the number of tokens
-# and the secod is the vocabsize
-vocsize=$(tail -n 1 "${dict}" | awk '{print $2}')
-# +2 comes from CTC blank and SOS/EOS
-nvocab="$((vocsize + 2))"
+# and the second is the vocab_size
+nvocab="$(<"${dir}"/tokens.txt | wc -l)"
 <"${dir}"/token_int awk -v nvocab="${nvocab}" '{print($1,NF-1 "," nvocab)}' > "${dir}"/token_shape
 
-# 4. Create tokens.txt
-# 0 is blank, 1~Nvocab: token, Nvocab+1: SOS/EOS
-echo "<blank>" > "${dir}"/tokens.txt
-cat "${dict}" >> "${dir}"/tokens.txt
-echo "<sos/eos>" > "${dir}"/tokens.txt
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
