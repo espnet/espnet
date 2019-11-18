@@ -44,6 +44,7 @@ requirements = {
         'nltk>=3.4.5',
         'nnmnkwii',
         'jaconv',
+        'g2p_en',
         'typeguard',
         'humanfriendly',
         'resampy',
@@ -82,7 +83,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.5.3',
+      version='0.5.4',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
