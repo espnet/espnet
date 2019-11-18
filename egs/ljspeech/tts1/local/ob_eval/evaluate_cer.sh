@@ -29,7 +29,7 @@ fi
 set -euo pipefail
 
 echo "step 0: Model preparation"
-# ASR model selection for CER objective evaluation 
+# ASR model selection for CER objective evaluation
 # Please add new model if you want to use your ASR model.
 asr_model_dir="exp/${asr_model}_asr"
 case "${asr_model}" in
@@ -51,22 +51,22 @@ fi
 echo "ASR model: ${asr_model_dir} exits."
 
 # Select TTS model
+if [ ${db_root} == "" ]; then
+    echo "Please set --db_root"; exit 1
+fi
 if [ ${eval_tts_model} == true ]; then
     echo "Evaluate: TTS model"
 else
     echo "Evaluate: ground truth"
     expdir=exp/ground_truth
     outdir=${expdir}/sym_link
-    
-    if [ ${db_root} == "" ]; then
-        echo "Please set --db_root"; exit 1
-    fi
+
     mkdir -p ${outdir}_denorm/${name}/wav
     cat < data/${name}/wav.scp | awk '{print $1}' | while read -r filename; do
         if [ -L ${outdir}_denorm/${name}/wav/${filename}.wav ]; then
             unlink ${outdir}_denorm/${name}/wav/${filename}.wav
         fi
-        ln -s ${db_root}/LJSpeech-1.1/wavs/${filename}.wav ${outdir}_denorm/${name}/wav/${filename}.wav
+        ln -s ${db_root}/wavs/${filename}.wav ${outdir}_denorm/${name}/wav/${filename}.wav
     done
 fi
 
@@ -80,8 +80,10 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-local/ob_eval/data_prep_for_asr.sh ${outdir}_denorm/${name}/wav ${asr_data_dir}/${name}
-cp data/${name}/text ${asr_data_dir}/${name}/text
+local/ob_eval/data_prep_for_asr.sh \
+    ${outdir}_denorm/${name}/wav \
+    ${asr_data_dir}/${name} \
+    ${db_root}/metadata.csv
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
 
 
@@ -118,7 +120,7 @@ cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr
 # split data
 splitjson.py --parts ${nj} ${asr_feat_dir}/${name}/data.json
 
-# set batchsize 0 to disable batch decoding    
+# set batchsize 0 to disable batch decoding
 ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${name}/log/decode.JOB.log \
     asr_recog.py \
       --config ${asr_decode_config} \
