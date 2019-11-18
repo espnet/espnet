@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
 
 class Frontend(nn.Module):
     def __init__(self,
-                 idim: int,
+                 n_fft: int = 512,
                  # WPE options
                  use_wpe: bool = False,
                  wtype: str = 'blstmp',
@@ -54,7 +54,7 @@ class Frontend(nn.Module):
                 iterations = 2
 
             self.wpe = DNN_WPE(wtype=wtype,
-                               widim=idim,
+                               widim=n_fft,
                                wunits=wunits,
                                wprojs=wprojs,
                                wlayers=wlayers,
@@ -68,7 +68,7 @@ class Frontend(nn.Module):
 
         if self.use_beamformer:
             self.beamformer = DNN_Beamformer(btype=btype,
-                                             bidim=idim,
+                                             bidim=n_fft,
                                              bunits=bunits,
                                              bprojs=bprojs,
                                              blayers=blayers,
