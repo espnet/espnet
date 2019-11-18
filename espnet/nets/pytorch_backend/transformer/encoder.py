@@ -40,7 +40,7 @@ class Encoder(torch.nn.Module):
     :param int padding_idx: padding_idx for input_layer=embed
     """
 
-    def __init__(self, idim,
+    def __init__(self, idim: int = 80,
                  attention_dim=256,
                  attention_heads=4,
                  linear_units=2048,
