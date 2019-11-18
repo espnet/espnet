@@ -187,6 +187,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d", "conv1d-linear"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=1, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
         group.add_argument("--postnet-chans", default=256, type=int,
@@ -400,7 +405,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define projection layer
@@ -670,6 +677,17 @@ class Transformer(TTSInterface, torch.nn.Module):
             # update next inputs
             ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
 
+            # get attention weights
+            att_ws_ = []
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention) and "src" in name:
+                    att_ws_ += [m.attn[0, :, -1].unsqueeze(1)]  # [(#heads, 1, T),...]
+            if idx == 1:
+                att_ws = att_ws_
+            else:
+                # [(#heads, l, T), ...]
+                att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
+
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
                 # check mininum length
@@ -682,12 +700,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
+        # concatenate attention weights
+        att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws
 
@@ -804,6 +818,14 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _source_mask(self, ilens):
         """Make masks for self-attention.
 
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+
         Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
@@ -824,6 +846,14 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     def _target_mask(self, olens):
         """Make masks for masked self-attention.
+
+        Args:
+            olens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for masked self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> olens = [5, 3]
@@ -846,6 +876,15 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     def _source_to_target_mask(self, ilens, olens):
         """Make masks for encoder-decoder attention.
+
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+            olens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for encoder-decoder attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> ilens = [4, 2]
