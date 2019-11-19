@@ -134,17 +134,6 @@ class ESPNetDataset:
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
                 raise RuntimeError(f'{path} has no samples')
-        self._uids = tuple(
-            set.intersection(*[set(l) for l in self.loader_dict.values()]))
-
-        logging.info(
-            'The number of samples: ' +
-            ' '.join(f'{n}={len(self.loader_dict[n])}, '
-                     for _, n, _ in path_name_type_list) +
-            f' -> Intersection={len(self._uids)}')
-        if len(self._uids) == 0:
-            raise RuntimeError('No samples remain: ' +
-                               ', '.join(p for p, _, _ in path_name_type_list))
 
         self.preprocess_dict = {}
         if preproces is not None:
@@ -173,16 +162,9 @@ class ESPNetDataset:
             #   utta /some/where/a.wav
             #   uttb /some/where/a.flac
 
-            # Note(kamo): I recommend "flac" format for audio file
-            # because "flac" is one of lossless compression format and
-            # and it has not bad compression performance and
-            # can be decoded quickly.
-
             # Note(kamo): SoundScpReader doesn't support pipe-fashion
             # like Kaldi e.g. "cat a.wav |".
-
             # Note(kamo): The audio signal is normalized to [-1,1] range.
-
             loader = SoundScpReader(path, normalize=True, always_2d=False)
 
             # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
@@ -196,7 +178,6 @@ class ESPNetDataset:
 
             # Note(kamo): I don't think this case is practical
             # because subprocess takes much times due to fork().
-
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
 
@@ -233,9 +214,6 @@ class ESPNetDataset:
     def __len__(self):
         raise NotImplementedError('This method doesn\'t be needed because '
                                   'we use custom BatchSampler ')
-
-    def keys(self):
-        return self._uids
 
     # Note(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,

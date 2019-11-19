@@ -27,7 +27,11 @@ SECONDS=0
 mode=bpe
 bpemodel=
 nlsyms=
+
+
 oov="<unk>"
+blank="<blank>"
+sos_eos="<sos/eos>"
 
 
 log "$0 $*"
@@ -53,7 +57,10 @@ for f in "${text}" "${token_list}"; do
 done
 
 
+# TODO(kamo): To be pythonized?
+
 mkdir -p "${dir}"
+
 # 0. token_mode
 echo "${mode}" > ${dir}/token_mode
 
@@ -96,25 +103,29 @@ else
 fi
 
 
-# 2. Create "token_int"
-# 0 is reserved by CTC-blank, +1 comes from it.
-<${token_list} awk '{ print($1,NR+1)}' >"${dir}/token2id"
-<"${dir}"/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dir}/token2id" > "${dir}/token_int"
-
-
-# 3. Create tokens.txt
+# 2. Recreate "tokens.txt":
 # 0 is blank, 1~Nvocab: token, Nvocab+1: SOS/EOS
-echo "<blank>" > "${dir}"/tokens.txt
+echo "${blank}" > "${dir}"/tokens.txt
 cat "${token_list}" >> "${dir}"/tokens.txt
-echo "<sos/eos>" >> "${dir}"/tokens.txt
+echo "${sos_eos}" >> "${dir}"/tokens.txt
+
+
+# 3. Create "token_int"
+# Create token2id for mapping symbol to integer-id, which looks like
+#    <blank> 0
+#    A 1
+#    ...
+<"${dir}/tokens.txt" awk '{ print($1,NR-1)}' >"${dir}/token2id"
+<"${dir}"/token utils/sym2int.pl --map-oov "${oov}" -f 2- "${dir}/token2id" \
+    > "${dir}/token_int"
 
 
 # 4. Create "token_shape", which looks like...
 #   uttidA 20,32
 #   uttidB 12,32
-# where the first column indicates the number of tokens
-# and the second is the vocab_size
-nvocab="$(<"${dir}"/tokens.txt | wc -l)"
+# where the first column indicates the number of tokens in the text
+# and the second is the vocabulary size.
+nvocab="$(<"${dir}"/tokens.txt wc -l)"
 <"${dir}"/token_int awk -v nvocab="${nvocab}" '{print($1,NF-1 "," nvocab)}' > "${dir}"/token_shape
 
 
