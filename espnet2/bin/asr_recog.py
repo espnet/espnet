@@ -122,14 +122,13 @@ def recog(
             scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # Creates eval-data-iterator
-    dataset = \
-        ESPNetDataset(data_path_and_name_and_type, preprocess,
-                      float_dtype=dtype)
+    dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
+                            float_dtype=dtype)
     if key_file is None:
         key_file = data_path_and_name_and_type[0]
 
     batch_sampler = ConstantBatchSampler(
-        batch_size=1, shape_file=key_file,
+        batch_size=batch_size, shape_file=key_file,
         shuffle=False, sort_in_batch=None)
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
@@ -159,6 +158,7 @@ def recog(
         # I prefer list-type text, such as "scp", rather than JSON or Yaml
         # because it it easy to process them in bash terminal.
         with DatadirWriter(output_dir) as writer:
+            # Only supporting batch_size==1
             key = keys[0]
             for n, hyp in enumerate(nbest_hyps, 1):
                 assert isinstance(hyp, Hypothesis), type(hyp)
@@ -172,8 +172,8 @@ def recog(
                 ibest_writer = writer[f'{n}best_recog']
 
                 # Write the result to each files
-                ibest_writer['token'][key] = (' '.join(token)
-                                              .replace('<blank>', ''))
+                ibest_writer['token'][key] = \
+                    (' '.join(token).replace('<blank>', ''))
                 ibest_writer['token_int'][key] = ' '.join(map(str, token_int))
                 ibest_writer['score'][key] = str(hyp.score)
 

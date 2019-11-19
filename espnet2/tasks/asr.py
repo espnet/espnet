@@ -67,7 +67,8 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
-        return ('vocab_size',) + BaseTask.exclude_opts()
+        # Append the options not to be shown
+        return () + BaseTask.exclude_opts()
 
     @classmethod
     @typechecked
@@ -139,7 +140,7 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def encoder_decoder_choices(cls) -> Tuple[str, ...]:
-        choices = ('Transformer',)
+        choices = ('Transformer', 'rnn')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         return choices
@@ -156,7 +157,9 @@ class ASRTask(BaseTask):
             return Encoder, Decoder
 
         elif name.lower() == 'rnn':
-            raise NotImplementedError
+            from espnet2.asr.encoder_decoder.rnn.decoder import Decoder
+            from espnet2.asr.encoder_decoder.rnn.encoder import Encoder
+            return Encoder, Decoder
 
         else:
             raise RuntimeError(
@@ -166,11 +169,23 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ASRModel:
+
+        # TODO(kamo): Implement a system/interface
+        #  to propagate the output dimension of each components,
+        #  e.g. fbank-dim, encoder-proj-dim.
+        #  How about this?
+        #  >>> out_dim frontend.get_out_dim()
+        #  >>> encoder = encoder_class(idim=out_dim, **args.encoder_conf)
+        #  >>> out_dim = encoder.get_out_dim()
+        #  >>> decoder = decoder_class(idim=out_dim, **args.decoder_conf)
+
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
+
             # "args" is saved in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
+            # This is dirty way, but I have no clean idea.
             args.token_list = list(token_list)
         elif isinstance(args.token_list, (tuple, list)):
             token_list = list(args.token_list)
@@ -197,6 +212,8 @@ class ASRTask(BaseTask):
 
         # 4. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
+
+        # Note(kamo): Don't give args to ASRModel directly!
 
         # 5. Set them to ASRModel
         model = ASRModel(

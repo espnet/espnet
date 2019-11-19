@@ -34,8 +34,6 @@ class LMTask(BaseTask):
         required = parser.get_default('required')
         required += ['token_list']
 
-        group.add_argument(
-            '--fs', type=humanfriendly.parse_size, default=16000)
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
         group.add_argument(
@@ -122,10 +120,15 @@ class LMTask(BaseTask):
             token_list = args.token_list.copy()
         else:
             raise RuntimeError('token_list must be str or dict')
+
         vocab_size = len(token_list)
         logging.info(f'Vocabulary size: {vocab_size }')
 
+        # Note(kamo): Don't give args to LanguageModel directly!
+
         lm_class = cls.get_lm_class(args.lm)
         lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
+
+        # Assume the last-id is sos_and_eos
         model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1)
         return model

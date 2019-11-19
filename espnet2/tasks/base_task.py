@@ -47,10 +47,11 @@ class BaseTask(ABC):
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
-        # Note(kamo): Use '_' instead of '-' to avoid confusion
+        # Note(kamo): Use '_' instead of '-' to avoid confusion.
+        #  I think '-' looks really confusing if it's written in yaml.
 
         # Note(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
+        #  to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=['output_dir'])
 
         group = parser.add_argument_group('Common configuration')
@@ -78,7 +79,7 @@ class BaseTask(ABC):
             help='The initialization method for the model parameters')
 
         group = parser.add_argument_group('Trainer related')
-        group.add_argument('--max_epoch', type=int, default=25,
+        group.add_argument('--max_epoch', type=int, default=20,
                            help='The maximum number epoch to train')
         group.add_argument(
             '--train_dtype', default="float32",
@@ -376,16 +377,16 @@ class BaseTask(ABC):
             format=
             '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
-        # Set random-seed
+        # 1. Set random-seed
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
 
+        # 2. Build train-data-iterator
         if args.train_dtype in ('float32', 'O0', 'O1', 'O2', 'O3'):
             dtype = 'float32'
         else:
             dtype = args.train_dtype
-        # Creates train-data-iterator
         train_dataset = ESPNetDataset(
             args.train_data_path_and_name_and_type,
             args.train_preprocess, float_dtype=dtype)
@@ -397,7 +398,7 @@ class BaseTask(ABC):
                                 batch_sampler=train_batch_sampler,
                                 collate_fn=our_collate_fn, )
 
-        # Creates eval-data-iterator
+        # 3. Build eval-data-iterator
         eval_dataset = ESPNetDataset(
             args.eval_data_path_and_name_and_type,
             args.eval_preprocess, float_dtype=dtype)
@@ -414,7 +415,7 @@ class BaseTask(ABC):
                                collate_fn=our_collate_fn,
                                num_workers=args.num_workers)
 
-        # Creates model, optimizer, scheduler
+        # 4. Build model, optimizer, scheduler
         model = cls.build_model(args=args)
         if args.init is not None:
             initialize(model, args.init)
@@ -422,7 +423,7 @@ class BaseTask(ABC):
         optimizer_class = cls.get_optimizer_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
 
-        # epoch_scheduler: invoked at every epochs
+        # 5. Build epoch_scheduler: invoked at every epochs
         # e.g. torch.optim.lr_scheduler.StepLR
         if args.escheduler is not None:
             epoch_scheduler_class = \
@@ -432,7 +433,7 @@ class BaseTask(ABC):
         else:
             epoch_scheduler = None
 
-        # batch_scheduler: invoked after every updating
+        # 6. Build batch_scheduler: invoked after every updating
         # e.g. torch.optim.lr_scheduler.CyclicLR
         if args.bscheduler is not None:
             batch_scheduler_class = \
@@ -442,9 +443,9 @@ class BaseTask(ABC):
         else:
             batch_scheduler = None
 
+        # 7. Dump "args" to config.yaml
         output_path = Path(args.output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-
         with (output_path / 'config.yaml').open('w') as f:
             logging.info(
                 f'Saving the configuration in {output_path / "config.yaml"}')
@@ -457,12 +458,10 @@ class BaseTask(ABC):
         logging.info(f'Eval Dataset: {eval_dataset}')
         logging.info(f'Eval BatchSampler: {eval_batch_sampler}')
 
-        reporter = Reporter()
-
-        # FIXME(kamo): I want to move this block into train()
+        # 8. Model to device
+        # FIXME(kamo): I wanna move this block into train(),
         #  but model.to() seems to need to be used before
         #  optimizer.load_state_dict(). I don't know why.
-        #  https://discuss.pytorch.org/t/runtimeerror-expected-type-torch-floattensor-but-got-torch-cuda-floattensor/37375
         # For apex supporting
         if args.train_dtype in ('O0', 'O1', 'O2', 'O3'):
             try:
@@ -477,12 +476,13 @@ class BaseTask(ABC):
             dtype = getattr(torch, args.train_dtype)
         else:
             dtype = torch.float32
-        # To gpu
-        model = model.to(
-            dtype=dtype, device='cuda' if args.ngpu > 0 else 'cpu')
+        model = \
+            model.to(dtype=dtype, device='cuda' if args.ngpu > 0 else 'cpu')
+
+        reporter = Reporter()
 
         # Note(kamo): Don't give "args" to load() and run() directly!!!
-        # Loads states from saved files
+        # 9. Loads states from saved files
         cls.load(model=model, optimizer=optimizer,
                  reporter=reporter, output_path=output_path,
                  batch_scheduler=batch_scheduler,
@@ -493,6 +493,7 @@ class BaseTask(ABC):
                  pretrain_key=args.pretrain_key,
                  loc='cuda' if args.ngpu > 0 else 'cpu')
 
+        # 10. Start training
         cls.run(model=model,
                 optimizer=optimizer,
                 train_iter=train_iter,
@@ -544,6 +545,11 @@ class BaseTask(ABC):
         if resume_epoch is not None or resume_path is not None:
             if resume_path is None:
                 resume_path = output_path / f'{resume_epoch}epoch.pt'
+                logging.info(f'--resume_epoch {resume_epoch}: '
+                             f'Loading from {resume_path}')
+            else:
+                logging.info(f'--resume_path {resume_path}: '
+                             f'Loading from {resume_path}')
 
             resumed_dict = torch.load(resume_path, map_location=loc)
             model.load_state_dict(resumed_dict['model'])
@@ -618,6 +624,7 @@ class BaseTask(ABC):
             logging.info(f'{iepoch}epoch started')
 
             reporter.set_epoch(iepoch)
+            # 1. Train and eval for one-epoch
             with reporter.start('train') as sub_reporter:
                 cls.train(model=model,
                           optimizer=optimizer,
@@ -637,6 +644,7 @@ class BaseTask(ABC):
                          reporter=sub_reporter,
                          ngpu=ngpu)
 
+            # 2. Scheduler step
             if epoch_scheduler is not None:
                 # Controls opt-params by scheduler e.g. learning rate decay
                 if isinstance(epoch_scheduler, AbsValEpochScheduler):
@@ -646,7 +654,8 @@ class BaseTask(ABC):
                     epoch_scheduler.step(val)
                 else:
                     epoch_scheduler.step()
-            # Save the snapshot
+
+            # 3. Save the snapshot
             torch.save(
                 {'model': model.state_dict(),
                  'optimizer': optimizer.state_dict(),
@@ -656,13 +665,13 @@ class BaseTask(ABC):
                  'batch_scheduler': batch_scheduler.state_dict()
                  if batch_scheduler is not None else None},
                 output_path / f'{iepoch}epoch.pt')
-            # Keeps n-latest model
+            # Remove the snapshot files keeping n-latest model
             for e in range(1, iepoch - n_latest_history + 1):
                 p = output_path / f'{e}epoch.pt'
                 if p.exists():
                     p.unlink()
 
-            # Saves the best model
+            # 4. Saves the best model
             for k, mode in [('loss', 'min'), ('acc', 'max')]:
                 _saved = None
                 if reporter.has_key('eval', k):
@@ -677,8 +686,8 @@ class BaseTask(ABC):
                             _saved = output_path / f'{k}.best.pt'
                             torch.save(model.state_dict(), _saved)
 
+            # 5. Report the results
             reporter.show_stats()
-
             # Plot results using Matplotlib
             for k in reporter.get_keys2():
                 plt = reporter.plot_stats(['train', 'eval'], k)
@@ -687,7 +696,7 @@ class BaseTask(ABC):
                 plt.savefig(p)
                 plt.clf()
 
-            # Early stopping
+            # 6. Check early stopping
             if patience is not None:
                 best_epoch, _ = reporter.best_epoch_and_value(
                     'eval',

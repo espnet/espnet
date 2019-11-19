@@ -47,6 +47,8 @@ class DefaultFrontend(AbsFrontend):
         assert input_stft.dim() >= 4, input_stft.shape
         # "2" refers to the real/imag parts of Complex
         assert input_stft.shape[-1] == 2, input_stft.shape
+
+        # Change torch.Tensor to ComplexTensor
         # input_stft: (..., F, T, 2) -> (..., F, T)
         input_stft = \
             ComplexTensor(input_stft[..., 0], input_stft[..., 1])
