@@ -220,8 +220,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "$base X" > ${decode_dir}/data/wav.scp
     echo "X $base" > ${decode_dir}/data/spk2utt
     echo "$base X" > ${decode_dir}/data/utt2spk
-    echo -n "$base " > ${decode_dir}/data/text
-    cat $txt >> ${decode_dir}/data/text
+    
+    echo -n "$base|  |" > ${decode_dir}/data/tmp_text
+    cat $txt >> ${decode_dir}/data/tmp_text
+
+    # make text
+    local/clean_text.py ${decode_dir}/data/tmp_text $trans_type > ${decode_dir}/data/text
+    rm ${decode_dir}/data/tmp_text
+    echo "finished making text."
 
     mkdir -p ${decode_dir}/dump
     data2json.sh --trans_type ${trans_type} ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
