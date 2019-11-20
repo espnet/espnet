@@ -62,6 +62,8 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
 
     Returns:
         Tensor: Mask tensor containing indices of padded part.
+                dtype=torch.uint8 in PyTorch 1.2-
+                dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
     Examples:
         With only lengths.
@@ -172,6 +174,8 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
 
     Returns:
         ByteTensor: mask tensor containing indices of padded part.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
     Examples:
         With only lengths.
