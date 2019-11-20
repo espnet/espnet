@@ -183,7 +183,7 @@ class ESPNetDataset:
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
 
-        elif loader_type == 'ark_scp':
+        elif loader_type == 'kaldi_ark_scp':
             # path looks like:
             #   utta /some/where/a.ark:123
             #   uttb /some/where/a.ark:456

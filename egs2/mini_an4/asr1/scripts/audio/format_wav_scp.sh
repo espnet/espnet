@@ -43,8 +43,8 @@ log "$0 $*"
 . utils/parse_options.sh
 
 if [ $# -ne 2 ] && [ $# -ne 3 ] && [ $# -ne 4 ]; then
-    log "Error: invalid command line arguments"
     log "${help_message}"
+    log "Error: invalid command line arguments"
     exit 1
 fi
 
@@ -52,8 +52,8 @@ fi
 
 scp=$1
 if [ ! -f ${scp} ]; then
-    echo "$0: Error: No such file: ${scp}"
     log "${help_message}"
+    echo "$0: Error: No such file: ${scp}"
     exit 1
 fi
 dir=$2
