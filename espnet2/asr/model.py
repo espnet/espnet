@@ -16,10 +16,11 @@ from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet2.asr.encoder_decoder.rnn.decoder import Decoder as RNNDecoder
 from espnet2.asr.encoder_decoder.rnn.encoder import Encoder as RNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.train.abs_espnet_model import AbsESPNetModel
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class ASRModel(torch.nn.Module):
+class ASRModel(AbsESPNetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     @typechecked

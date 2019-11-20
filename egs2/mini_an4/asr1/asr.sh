@@ -39,6 +39,8 @@ gpu_decode=false
 ## The options for prepare.sh
 audio_format=flac
 fs=16k
+feat_type='raw'
+
 
 # token_mode=char
 token_mode=bpe
@@ -136,22 +138,37 @@ fi
 
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Format wav.scp: data/ -> ${data_format}/"
+    if [ "${feat_type}" = raw ]; then
+        log "stage 2: Format wav.scp: data/ -> ${data_format}/"
 
-    # ====== Recreating "wav.scp" ======
-    # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
-    # shouldn't be used in training process.
-    # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-    # and also it can also change the audio-format and sampling rate.
-    # If nothing is need, then format_wav_scp.sh does nothing:
-    # i.e. the input file format and rate is same as the output.
+        # ====== Recreating "wav.scp" ======
+        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
+        # shouldn't be used in training process.
+        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
+        # and also it can also change the audio-format and sampling rate.
+        # If nothing is need, then format_wav_scp.sh does nothing:
+        # i.e. the input file format and rate is same as the output.
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-        utils/copy_data_dir.sh data/"${dset}" "${data_format}/${dset}"
-        scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-            --audio-format "${audio_format}" --fs "${fs}" \
-            "data/${dset}/wav.scp" "${data_format}/${dset}"
-    done
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            utils/copy_data_dir.sh data/"${dset}" "${data_format}/${dset}"
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" \
+                "data/${dset}/wav.scp" "${data_format}/${dset}"
+        done
+
+    elif [ "${feat_type}" = pitch_fbank ]; then
+        log "[Require] stage 2: Extract ${feat_type}"
+
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            utils/copy_data_dir.sh data/"${dset}" "${data_format}/${dset}"
+            steps/make_fbank_pitch.sh --nj "${nj}" --cmd "${train_cmd}" "data/${dset}"
+            cp "data/${dset}/feats.scp" "${data_format}/${dset}"
+        done
+
+    else
+        log "Error: not supported: --feat_type ${feat_type}"
+        exit 1
+    fi
 fi
 
 
@@ -264,7 +281,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
         python3 -m espnet2.bin.lm_train \
             --ngpu "${ngpu}" \
-            --batch_size=1 \
             --token_list "${data_lm}/train/tokens.txt" \
             --train_data_path_and_name_and_type "${data_lm}/train/token_int,input,text_int" \
             --eval_data_path_and_name_and_type "${data_lm}/dev/token_int,input,text_int" \
@@ -306,15 +322,23 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # --train_data_type <type>
     # ...
 
+    # FIXME(kamo): max_length is confusing name. How about fold_length?
+
+    if [ "${feat_type}" = raw ]; then
+        _scp=wav.scp
+    else
+        _scp=feats.scp
+        _opts+="--frontend none "
+    fi
+
     log "ASR training started... log: '${asr_exp}/train.log'"
     ${cuda_cmd} --gpu "${ngpu}" "${asr_exp}"/train.log \
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
-            --batch_size=1 \
             --token_list "${asr_train_dir}/tokens.txt" \
-            --train_data_path_and_name_and_type "${asr_train_dir}/wav.scp,input,sound" \
+            --train_data_path_and_name_and_type "${asr_train_dir}/${_scp},input,sound" \
             --train_data_path_and_name_and_type "${asr_train_dir}/token_int,output,text_int" \
-            --eval_data_path_and_name_and_type "${asr_dev_dir}/wav.scp,input,sound" \
+            --eval_data_path_and_name_and_type "${asr_dev_dir}/${_scp},input,sound" \
             --eval_data_path_and_name_and_type "${asr_dev_dir}/token_int,output,text_int" \
             --train_shape_file "${asr_train_dir}/utt2num_samples" \
             --train_shape_file "${asr_train_dir}/token_shape" \
@@ -370,12 +394,19 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         done
         utils/split_scp.pl "${key_file}" ${split_scps}
 
+        if [ "${feat_type}" = raw ]; then
+            _scp=wav.scp
+        else
+            _scp=feats.scp
+            _opts+="--frontend none "
+        fi
+
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/asr_recog.*.log'"
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
             python3 -m espnet2.bin.asr_recog \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/wav.scp,input,sound" \
+                --data_path_and_name_and_type "${_data}/${_scp},input,sound" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${_asr_model_file}" \
@@ -435,7 +466,6 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         else
             _modes="wer"
         fi
-
 
         for _mode in ${_modes}; do
             if [ "${_mode}" = wer ]; then

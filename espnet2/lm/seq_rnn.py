@@ -24,6 +24,7 @@ class SequentialRNNLM(AbsLM):
                  dropout_rate: float = 0.0,
                  tie_weights: bool = False,
                  rnn_type: str = 'lstm',
+                 ignore_id: int = 0,
                  ):
         """Initialize class.
 
@@ -32,14 +33,14 @@ class SequentialRNNLM(AbsLM):
             args (argparse.Namespace): configurations. see py:method:`add_arguments`
 
         """
-        torch.nn.Module.__init__(self)
+        super().__init__()
 
         ninp = unit
         nhid = unit
         rnn_type = rnn_type.upper()
 
         self.drop = nn.Dropout(dropout_rate)
-        self.encoder = nn.Embedding(vocab_size, ninp)
+        self.encoder = nn.Embedding(vocab_size, ninp, padding_idx=ignore_id)
         if rnn_type in ['LSTM', 'GRU']:
             rnn_class = getattr(nn, rnn_type)
             self.rnn = rnn_class(ninp, nhid, nlayers, dropout=dropout_rate)

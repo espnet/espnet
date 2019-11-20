@@ -6,16 +6,20 @@ from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_lm import AbsLM
+from espnet2.train.abs_espnet_model import AbsESPNetModel
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class LanguageModel(torch.nn.Module):
+class LanguageModel(AbsESPNetModel):
     @typechecked
-    def __init__(self, lm: AbsLM, sos_and_eos: int, ignore_id: int = -1):
+    def __init__(self, lm: AbsLM, sos_and_eos: int, ignore_id: int = 0):
         super().__init__()
         self.lm = lm
         self.sos = sos_and_eos
         self.eos = sos_and_eos
+
+        # ignore_id may be assumed as 0, shared with CTC-blank symbol for ASR.
+        # in the other part.
         self.ignore_id = ignore_id
 
     def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \

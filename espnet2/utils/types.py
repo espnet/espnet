@@ -71,11 +71,23 @@ class NestedDictAction(argparse.Action):
         Namespace(conf={'d': 5, 'e': 9})
 
     """
+    _syntax = """Syntax: 
+  {op} <key>=<yaml-string>
+  {op} <key>.<key2>=<yaml-string>
+  {op} <python-dict>
+  {op} <yaml-string>
+e.g.
+  {op} a=4
+  {op} a.b={{c: true}}
+  {op} {{"c": True}}
+  {op} {{a: 34.5}}
+"""
+
     def __init__(self,
                  option_strings,
                  dest,
                  nargs=None,
-                 default = None,
+                 default=None,
                  choices=None,
                  required=False,
                  help=None,
@@ -84,14 +96,14 @@ class NestedDictAction(argparse.Action):
             default = {}
 
         if not isinstance(default, dict):
-            raise TypeError('default must be str object: {}'
-                            .format(type(default)))
+            raise TypeError(f'default must be dict object: "{default}"')
 
         super().__init__(
             option_strings=option_strings,
             dest=dest,
             nargs=nargs,
             default=copy.deepcopy(default),
+            type=None,
             choices=choices,
             required=required,
             help=help,
@@ -130,12 +142,18 @@ class NestedDictAction(argparse.Action):
                 # This is workaround for internal behaviour of configargparse.
                 value = eval(values, {}, {})
                 if not isinstance(value, dict):
-                    raise ValueError
+                    syntax = self._syntax.format(op=option_strings)
+                    mes = (f'must be interpreted as dict: but got {values}'
+                           f'{syntax}')
+                    raise argparse.ArgumentTypeError(self, mes)
             except Exception:
                 # and the second, try yaml.load
                 value = yaml.load(values, Loader=yaml.Loader)
                 if not isinstance(value, dict):
-                    raise ValueError
+                    syntax = self._syntax.format(op=option_strings)
+                    mes = (f'must be interpreted as dict: but got {values}\n'
+                           f'{syntax}')
+                    raise argparse.ArgumentError(self, mes)
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)
 

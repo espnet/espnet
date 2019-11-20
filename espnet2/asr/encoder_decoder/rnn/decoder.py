@@ -12,9 +12,6 @@ from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 from espnet.nets.scorer_interface import ScorerInterface
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 
-MAX_DECODER_OUTPUT = 5
-CTC_SCORING_RATIO = 1.5
-
 
 def build_attention_list(
         eprojs,

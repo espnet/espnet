@@ -46,7 +46,7 @@ class ASRTask(BaseTask):
             help='The keyword arguments for frontend class.')
 
         group.add_argument(
-            '--encoder_decoder', type=str, default='transformer',
+            '--encoder_decoder', type=str, default='rnn',
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(
@@ -214,7 +214,6 @@ class ASRTask(BaseTask):
         rnnt_decoder = None
 
         # Note(kamo): Don't give args to ASRModel directly!
-
         # 5. Set them to ASRModel
         model = ASRModel(
             vocab_size=vocab_size,
