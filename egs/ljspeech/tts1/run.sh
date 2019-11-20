@@ -232,24 +232,27 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    echo "Finished."
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Objective Evaluation"
-
+    pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
+    (
         local/ob_eval/evaluate_cer.sh --nj ${nj} \
             --do_delta false \
             --eval_tts_model ${eval_tts_model} \
-            --db_root ${db_root} \
+            --db_root ${db_root}/LJSpeech-1.1 \
             --backend pytorch \
             --wer ${wer} \
             --api v2 \
             ${asr_model} \
             ${outdir} \
             ${name}
+    ) &
+    pids+=($!) # store background pids
     done
-
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
 fi

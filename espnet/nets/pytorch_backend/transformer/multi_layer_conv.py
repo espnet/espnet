@@ -41,10 +41,10 @@ class MultiLayeredConv1d(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Batch of input tensors (B, *, in_chans).
+            x (Tensor): Batch of input tensors (B, ..., in_chans).
 
         Returns:
-            Tensor: Batch of output tensors (B, *, hidden_chans)
+            Tensor: Batch of output tensors (B, ..., hidden_chans).
 
         """
         x = torch.relu(self.w_1(x.transpose(-1, 1))).transpose(-1, 1)
@@ -78,10 +78,10 @@ class Conv1dLinear(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Batch of input tensors (B, *, in_chans).
+            x (Tensor): Batch of input tensors (B, ..., in_chans).
 
         Returns:
-            Tensor: Batch of output tensors (B, *, hidden_chans)
+            Tensor: Batch of output tensors (B, ..., hidden_chans).
 
         """
         x = torch.relu(self.w_1(x.transpose(-1, 1))).transpose(-1, 1)

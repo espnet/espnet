@@ -1,10 +1,26 @@
 # Transformer results
 ## Pytorch backend Transformer without any hyperparameter tuning
-|dataset| Snt | Wrd| Corr | Sub | Del | Ins | Err | S.Err|
-|---|---|---|---|---|---|---|---|---|
-|exp/train_nodup_sp_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu2_bs32_lr10.0_warmup25000_mli512_mlo150_epochs50_accum2_lennormFalse_lsmunigram0.1/decode_eval1_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3_2layer_unit650_sgd_bs256/|1272|43897|95.1|3.1|1.8|0.8|5.7|52.9|
-|exp/train_nodup_sp_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu2_bs32_lr10.0_warmup25000_mli512_mlo150_epochs50_accum2_lennormFalse_lsmunigram0.1/decode_eval2_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3_2layer_unit650_sgd_bs256/|1292|43623|96.4|2.4|1.2|0.5|4.1|51.9|
-|exp/train_nodup_sp_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu2_bs32_lr10.0_warmup25000_mli512_mlo150_epochs50_accum2_lennormFalse_lsmunigram0.1/decode_eval3_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3_2layer_unit650_sgd_bs256/|1385|28225|96.3|2.5|1.2|0.8|4.5|36.6|
+  - Model files (archived to transformer.v1.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_nodup_sp/cmvn.ark`
+    - e2e file: `exp/train_nodup_sp_pytorch_train/results/model.acc.best`
+    - e2e JSON file: `exp/train_nodup_sp_pytorch_train/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_nodup_sp_pytorch_train/decode_eval1_decode_lm/result.txt
+     | SPKR     | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+     | Sum/Avg  | 1272   43897 | 95.1    3.1    1.7    0.8    5.7   53.5 |
+exp/train_nodup_sp_pytorch_train/decode_eval2_decode_lm/result.txt
+     | SPKR     | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+     | Sum/Avg  | 1292   43623 | 96.7    2.1    1.1    0.5    3.8   49.6 |
+exp/train_nodup_sp_pytorch_train/decode_eval3_decode_lm/result.txt
+     | SPKR     | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+     | Sum/Avg  | 1385   28225 | 96.6    2.3    1.1    0.8    4.2   35.9 |
+```
 
 # RNN results
 ## Deep VGGBLSTM with pytorch backend + Dropout + Speed perturbation + CTC joint decoding + LM rescoring

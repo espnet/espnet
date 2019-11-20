@@ -142,7 +142,7 @@ https://drive.google.com/open?id=1vXcexlhhadvIsZj4ATJYvKbpsIbOuzUU
 
 # Model files
 
-- model link: https://drive.google.com/open?id=1zbSprxJ_iiv3DJq-S7Qt6O0EVPmbl7YF
+- model link: https://drive.google.com/open?id=1W86YEQ6KbuUTIvVURLqKtSNqe_eI2GDN
 - training config file: `conf/tuning/train_fastspeech.v3.yaml`
 - decoding config file: `conf/decode.yaml`
 - cmvn file: `data/phn_train_no_dev/cmvn.ark`
