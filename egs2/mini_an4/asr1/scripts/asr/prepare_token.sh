@@ -39,8 +39,8 @@ log "$0 $*"
 
 
 if [ $# -ne 3 ]; then
-    log "Invalid arguments"
     log "${help_message}"
+    log "Invalid arguments"
 fi
 . ./path.sh
 
@@ -50,8 +50,8 @@ dir=$3
 
 for f in "${text}" "${token_list}"; do
     if [ ! -f "${f}" ]; then
-        log "Error: No such file: '${f}'"
         log "${help_message}"
+        log "Error: No such file: '${f}'"
         exit 1
     fi
 done
@@ -68,8 +68,8 @@ echo "${mode}" > ${dir}/token_mode
 # 1. Prepare token
 if [ "${mode}" = bpe ]; then
     if [ ! -f "${bpemodel}" ]; then
-        log "Error: No such file: '${bpemodel}'"
         log "${help_message}"
+        log "Error: No such file: '${bpemodel}'"
         exit 1
     fi
 
@@ -97,8 +97,8 @@ elif [ "${mode}" = word ]; then
     cp "${text}" "${dir}/token"
 
 else
-    log "Error: not supported --mode '${mode}'"
     log "${help_message}"
+    log "Error: not supported --mode '${mode}'"
     exit 1
 fi
 

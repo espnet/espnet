@@ -84,15 +84,15 @@ log "$0 $*"
 . ./cmd.sh
 
 if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
     log "${help_message}"
+    log "Error: No positional arguments are required."
     exit 2
 fi
 
-[ -z "${train_set}" ] && { log "Error: --train_set is required"; log "${help_message}"; exit 2; };
-[ -z "${dev_set}" ] && { log "Error: --dev_set is required"; log "${help_message}"; exit 2; };
-[ -z "${eval_sets}" ] && { log "Error: --eval_sets is required"; log "${help_message}"; exit 2; };
-[ -z "${srctexts}" ] && { log "Error: --srctexts is required"; log "${help_message}"; exit 2; };
+[ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
+[ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
+[ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
+[ -z "${srctexts}" ] &&  { log "${help_message}"; log "Error: --srctexts is required" ; exit 2; };
 
 lm_train_text="data/${train_set}/text"
 lm_dev_text="data/${dev_set}/text"
@@ -100,9 +100,9 @@ lm_dev_text="data/${dev_set}/text"
 data_format=data_format
 data_tokenized="data_tokenized_${token_mode}"
 if ${use_word_lm}; then
-    data_lm=data_${token_mode}_lm
+    lmdata=lmdata_${token_mode}
 else
-    data_lm=data_word_lm
+    lmdata=lmdata_word
 fi
 
 token_listdir=data/token_list
@@ -157,13 +157,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
 
     elif [ "${feat_type}" = pitch_fbank ]; then
-        log "[Require] stage 2: Extract ${feat_type}"
+        log "[Require kaldi] stage 2: Extract ${feat_type}"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_format}/${dset}"
             steps/make_fbank_pitch.sh --nj "${nj}" --cmd "${train_cmd}" "data/${dset}"
             cp "data/${dset}/feats.scp" "${data_format}/${dset}"
         done
+
+    elif [ "${feat_type}" = fbank ]; then
+        log "stage 2: Extract ${feat_type}"
+        log "Not yet"
+        exit 1
 
     else
         log "Error: not supported: --feat_type ${feat_type}"
@@ -253,10 +258,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     scripts/asr/prepare_token.sh \
         --mode "${lm_token_mode}" --bpemodel "${bpemodel}" \
-            "${lm_train_text}" "${token_list}" "${data_lm}"/train
+            "${lm_train_text}" "${token_list}" "${lmdata}"/train
     scripts/asr/prepare_token.sh \
         --mode "${lm_token_mode}" --bpemodel "${bpemodel}" \
-            "${lm_dev_text}" "${token_list}" "${data_lm}"/dev
+            "${lm_dev_text}" "${token_list}" "${lmdata}"/dev
 fi
 
 # ========================== Data preparation is done here. ==========================
@@ -264,7 +269,7 @@ fi
 
 lm_exp="${exp}/${lm_token_mode}_lm_train${lm_tag}"
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "stage 5: LM Training: train_set=${data_lm}/train, dev_set=${data_lm}/dev"
+    log "stage 5: LM Training: train_set=${lmdata}/train, dev_set=${lmdata}/dev"
 
     _opts=
     if [ -n "${lm_config}" ]; then
@@ -281,11 +286,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
         python3 -m espnet2.bin.lm_train \
             --ngpu "${ngpu}" \
-            --token_list "${data_lm}/train/tokens.txt" \
-            --train_data_path_and_name_and_type "${data_lm}/train/token_int,input,text_int" \
-            --eval_data_path_and_name_and_type "${data_lm}/dev/token_int,input,text_int" \
-            --train_shape_file "${data_lm}/train/token_shape" \
-            --eval_shape_file "${data_lm}/dev/token_shape" \
+            --token_list "${lmdata}/train/tokens.txt" \
+            --train_data_path_and_name_and_type "${lmdata}/train/token_int,input,text_int" \
+            --eval_data_path_and_name_and_type "${lmdata}/dev/token_int,input,text_int" \
+            --train_shape_file "${lmdata}/train/token_shape" \
+            --eval_shape_file "${lmdata}/dev/token_shape" \
             --max_length 150 \
             ${_opts} \
             --output_dir "${lm_exp}"
@@ -312,22 +317,15 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
          _opts+="--eval_preprosess input=${asr_preprocess_config} "
     fi
 
-    # FIXME(kamo): data_path_and_name_and_type looks not smart?
-    # another idea is
-    # --train_data_path <path>
-    # --train_data_name <name>
-    # --train_data_type <type>
-    # --train_data_path <path>
-    # --train_data_name <name>
-    # --train_data_type <type>
-    # ...
-
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     if [ "${feat_type}" = raw ]; then
-        _scp=wav.scp
+        _path=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
     else
-        _scp=feats.scp
+        _path=feats.scp
+        _type=kaldi_ark
         _opts+="--frontend none "
     fi
 
@@ -336,9 +334,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
             --token_list "${asr_train_dir}/tokens.txt" \
-            --train_data_path_and_name_and_type "${asr_train_dir}/${_scp},input,sound" \
+            --train_data_path_and_name_and_type "${asr_train_dir}/${_path},input,${_type}" \
             --train_data_path_and_name_and_type "${asr_train_dir}/token_int,output,text_int" \
-            --eval_data_path_and_name_and_type "${asr_dev_dir}/${_scp},input,sound" \
+            --eval_data_path_and_name_and_type "${asr_dev_dir}/${_path},input,${_type}" \
             --eval_data_path_and_name_and_type "${asr_dev_dir}/token_int,output,text_int" \
             --train_shape_file "${asr_train_dir}/utt2num_samples" \
             --train_shape_file "${asr_train_dir}/token_shape" \
@@ -395,9 +393,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         if [ "${feat_type}" = raw ]; then
-            _scp=wav.scp
+            _path=wav.scp
+            _type=sound
         else
-            _scp=feats.scp
+            _path=feats.scp
+            _type=kaldi_ark
             _opts+="--frontend none "
         fi
 
@@ -406,7 +406,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
             python3 -m espnet2.bin.asr_recog \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},input,sound" \
+                --data_path_and_name_and_type "${_data}/${_path},input,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${_asr_model_file}" \
