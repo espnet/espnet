@@ -4,8 +4,10 @@ import dataclasses
 import datetime
 import logging
 import time
+import warnings
 from collections import defaultdict
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Union, Dict, Tuple, Optional, Sequence
 
 import humanfriendly
@@ -18,8 +20,13 @@ Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
 def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
     if isinstance(v, (torch.Tensor, np.ndarray)):
+        if len(v.shape) not in (0, 1):
+            raise ValueError(f'v must be 0 or 1 dimension: {len(v.shape)}')
         v = v.item()
     if isinstance(weight, (torch.Tensor, np.ndarray)):
+        if len(weight.shape) not in (0, 1):
+            raise ValueError(
+                f'v must be 0 or 1 dimension: {len(weight.shape)}')
         weight = weight.item()
 
     if weight is not None:
@@ -93,7 +100,7 @@ class SubReporter:
             self.total_count += 1
 
         for key2, v in stats.items():
-            # if the input stats has None value, the key is not registered
+            # if None value, the key is not registered
             if v is None:
                 continue
             r = to_reported_value(v, weight)
@@ -175,7 +182,7 @@ class Reporter:
             # If the previous epoch doesn't exist for some reason,
             # maybe due to bug, this case also indicates 0-count.
             if self.epoch - 1 != 0:
-                logging.warning(
+                warnings.warn(
                     f'The stats of the previous epoch={self.epoch - 1}'
                     f'doesn\'t exist.')
             total_count = 0
@@ -232,7 +239,7 @@ class Reporter:
             epoch = max(self.stats)
         return key in self.stats[epoch] and key2 in self.stats[epoch][key]
 
-    def show_stats(self, logger=None, level: str = 'INFO', epoch: int = None):
+    def logging(self, logger=None, level: str = 'INFO', epoch: int = None):
         if logger is None:
             logger = logging
         if epoch is None:
@@ -273,12 +280,21 @@ class Reporter:
             epoch = max(self.stats)
         return tuple(self.stats[epoch])
 
-    def get_keys2(self, epoch: int = None) -> Tuple[str]:
+    def get_keys2(self, key: str, epoch: int = None) -> Tuple[str]:
         if epoch is None:
             epoch = max(self.stats)
-        for d in self.stats[epoch].values():
-            keys2 = tuple(k for k in d if k not in ('time', 'total_count'))
-            return keys2
+        d = self.stats[epoch][key]
+        keys2 = tuple(k for k in d if k not in ('time', 'total_count'))
+        return keys2
+
+    @typechecked
+    def save_stats_plot(self, output_dir: Union[str, Path]):
+        """Plot stats using Matplotlib and save images"""
+        for k in self.get_keys2('eval'):
+            plt = self.plot_stats(self.get_keys(), k)
+            p = (output_dir / f'{k}.png')
+            p.parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(p)
 
     @typechecked
     def plot_stats(self, keys: Sequence[str], key2: str, plt=None):
@@ -286,6 +302,7 @@ class Reporter:
             import matplotlib
             matplotlib.use('agg')
             import matplotlib.pyplot as plt
+        import matplotlib.ticker as ticker
         plt.clf()
 
         # str is also Sequence[str]
@@ -294,6 +311,10 @@ class Reporter:
 
         epochs = np.arange(1, max(self.stats))
         for key in keys:
+            if any(key2 not in self.stats[e][key] for e in epochs
+                   if e in self.stats):
+                continue
+
             y = [np.nanmean(self.stats[e][key][key2])
                  if e in self.stats else np.nan
                  for e in epochs]
@@ -302,6 +323,9 @@ class Reporter:
             plt.plot(epochs, y, label=key)
         plt.legend()
         plt.title(f'epoch vs {key2}')
+        # Force integer tick for x-axis
+        plt.gca().get_xaxis().set_major_locator(
+            ticker.MaxNLocator(integer=True))
         plt.xlabel('epoch')
         plt.ylabel(key2)
         plt.grid()

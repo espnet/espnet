@@ -76,7 +76,7 @@ def recog(
     asr_model.load_state_dict(torch.load(asr_model_file, map_location='cpu'))
 
     decoder = asr_model.decoder
-    ctc = CTCPrefixScorer(asr_model.ctc, asr_model.eos)
+    ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
     token_list = asr_model.token_list
     scorers = dict(
         decoder=decoder,

@@ -124,11 +124,12 @@ class LMTask(BaseTask):
         vocab_size = len(token_list)
         logging.info(f'Vocabulary size: {vocab_size }')
 
-        # Note(kamo): Don't give args to LanguageModel directly!
-
         lm_class = cls.get_lm_class(args.lm)
-        lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
+        lm = lm_class(vocab_size=vocab_size,
+                      **args.lm_conf)
 
+        # Note(kamo): Don't give args to LanguageModel directly!
         # Assume the last-id is sos_and_eos
-        model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1)
+        model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1,
+                              **args.model_conf)
         return model

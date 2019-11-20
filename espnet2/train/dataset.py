@@ -178,6 +178,8 @@ class ESPNetDataset:
 
             # Note(kamo): I don't think this case is practical
             # because subprocess takes much times due to fork().
+
+            # Note(kamo): kaldiio doesn't normalize the signal.
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
 
@@ -205,9 +207,9 @@ class ESPNetDataset:
         _mes = self.__class__.__name__
         _mes += f'('
         for name, (path, _type) in self.debug_info.items():
-            _mes += f'\n{name}: {{"path": "{path}", "type": "{_type}"}}'
+            _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
         for name, preproces in self.preprocess_dict.items():
-            _mes += f'\n{name}: preprocess:\n{preproces}'
+            _mes += f'\n  {name}: preprocess:\n{preproces}'
         _mes += ')'
         return _mes
 

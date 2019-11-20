@@ -62,10 +62,6 @@ def create_batch_sampler(
 
 
 class AbsSampler(ABC, Sampler):
-    def __init__(self, batch_size, shuffle):
-        self.shuffle = shuffle
-        self.batch_size = batch_size
-
     @abstractmethod
     def __len__(self):
         raise NotImplementedError
@@ -74,13 +70,21 @@ class AbsSampler(ABC, Sampler):
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
         raise NotImplementedError
 
-    def __repr__(self):
-        return (f'{self.__class__.__name__}(N-batch={len(self)}, '
-                f'batch_size={self.batch_size}, '
-                f'shuffle={self.shuffle})')
-
 
 class ConstantBatchSampler(AbsSampler):
+    """
+
+    Args:
+        batch_size:
+        shape_file:
+        shuffle:
+        sort_in_batch: 'descending', 'ascending' or None.
+            If sort_in_batch is None, any sorting is not done,
+            so no length information is required,
+            This mode is convenient for decoding mode,
+            which doesn't required sorted order.
+        sort_batch:
+    """
     @typechecked
     def __init__(self,
                  batch_size: int,
@@ -89,8 +93,14 @@ class ConstantBatchSampler(AbsSampler):
                  sort_in_batch: Optional[str] = 'descending',
                  sort_batch: str = 'ascending',
                  ):
+        if sort_in_batch is None:
+            sort_batch = None
+
         self.shuffle = shuffle
         self.batch_size = batch_size
+        self.shape_file = shape_file
+        self.sort_in_batch = sort_in_batch
+        self.sort_batch = sort_batch
 
         if sort_in_batch is None:
             # utt2shape:
@@ -137,6 +147,15 @@ class ConstantBatchSampler(AbsSampler):
                         f'descending: {sort_batch}')
                 self.batch_list.reverse()
 
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'N-batch={len(self)}, '
+                f'batch_size={self.batch_size}, '
+                f'shape_file={self.shape_file}, '
+                f'shuffle={self.shuffle}, '
+                f'sort_in_batch={self.sort_in_batch}, '
+                f'sort_batch={self.sort_batch})')
+
     def __len__(self):
         return len(self.batch_list)
 
@@ -158,6 +177,9 @@ class SequenceBatchSampler(AbsSampler):
                  ):
         self.shuffle = shuffle
         self.batch_size = batch_size
+        self.shape_files = shape_files
+        self.sort_in_batch = sort_in_batch
+        self.sort_batch = sort_batch
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -205,6 +227,15 @@ class SequenceBatchSampler(AbsSampler):
             else:
                 raise ValueError(f'sort_batch must be ascending or '
                                  f'descending: {sort_batch}')
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'N-batch={len(self)}, '
+                f'batch_size={self.batch_size}, '
+                f'shape_files={self.shape_files}, '
+                f'shuffle={self.shuffle}, '
+                f'sort_in_batch={self.sort_in_batch}, '
+                f'sort_batch={self.sort_batch})')
 
     def __len__(self):
         return len(self.batch_list)

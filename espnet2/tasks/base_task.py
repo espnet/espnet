@@ -21,6 +21,7 @@ from espnet.asr.asr_utils import add_gradient_noise
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
+from espnet2.train.abs_espnet_model import AbsESPNetModel
 from espnet2.train.batch_sampler import create_batch_sampler
 from espnet2.train.dataset import ESPNetDataset,  our_collate_fn
 from espnet2.train.reporter import Reporter, SubReporter
@@ -129,7 +130,7 @@ class BaseTask(ABC):
 
         group = parser.add_argument_group('BatchSampler related')
         group.add_argument(
-            '--batch_size', type=int, default=10,
+            '--batch_size', type=int, default=20,
             help='The mini-batch size used for training')
         group.add_argument(
             '--eval_batch_size', type=int_or_none, default=None,
@@ -213,6 +214,7 @@ class BaseTask(ABC):
             escheduler_conf = get_defaut_kwargs(escheduler_class)
             escheduler_conf.update(config['escheduler_conf'])
             config['escheduler_conf'] = escheduler_conf
+
         if args.bscheduler is not None:
             bscheduler_class = cls.get_batch_scheduler_class(args.bscheduler)
             bscheduler_conf = get_defaut_kwargs(bscheduler_class)
@@ -417,6 +419,9 @@ class BaseTask(ABC):
 
         # 4. Build model, optimizer, scheduler
         model = cls.build_model(args=args)
+        if not isinstance(model, AbsESPNetModel):
+            raise RuntimeError(
+                f'model must inherit AbsESPNetModel, but got {type(model)}')
         if args.init is not None:
             initialize(model, args.init)
 
@@ -542,6 +547,7 @@ class BaseTask(ABC):
             # If not found any snapshots, then nothing is done
             if resume_epoch == 0:
                 resume_epoch = None
+
         if resume_epoch is not None or resume_path is not None:
             if resume_path is None:
                 resume_path = output_path / f'{resume_epoch}epoch.pt'
@@ -687,14 +693,8 @@ class BaseTask(ABC):
                             torch.save(model.state_dict(), _saved)
 
             # 5. Report the results
-            reporter.show_stats()
-            # Plot results using Matplotlib
-            for k in reporter.get_keys2():
-                plt = reporter.plot_stats(['train', 'eval'], k)
-                p = output_path / 'images' / f'{k}.png'
-                p.parent.mkdir(parents=True, exist_ok=True)
-                plt.savefig(p)
-                plt.clf()
+            reporter.logging()
+            reporter.save_stats_plot(output_path / 'images')
 
             # 6. Check early stopping
             if patience is not None:
