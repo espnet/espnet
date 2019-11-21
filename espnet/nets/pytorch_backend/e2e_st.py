@@ -44,11 +44,14 @@ CTC_LOSS_THRESHOLD = 10000
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper."""
 
-    def report(self, loss_asr, loss_st, acc_asr, acc, cer_ctc, cer, wer, bleu, mtl_loss):
+    def report(self, loss_asr, loss_mt, loss_st, acc_asr, acc_mt, acc,
+               cer_ctc, cer, wer, bleu, mtl_loss):
         """Report at every step."""
         reporter.report({'loss_asr': loss_asr}, self)
+        reporter.report({'loss_mt': loss_mt}, self)
         reporter.report({'loss_st': loss_st}, self)
         reporter.report({'acc_asr': acc_asr}, self)
+        reporter.report({'acc_mt': acc_mt}, self)
         reporter.report({'acc': acc}, self)
         reporter.report({'cer_ctc': cer_ctc}, self)
         reporter.report({'cer': cer}, self)
@@ -64,8 +67,6 @@ class E2E(STInterface, torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
-    :param E2E (ASRInterface) asr_model: pre-trained ASR model for encoder initialization
-    :param E2E (MTInterface) mt_model: pre-trained NMT model for decoder initialization
 
     """
 
@@ -141,7 +142,7 @@ class E2E(STInterface, torch.nn.Module):
                            help='Ratio of predicted labels fed back to decoder')
         return parser
 
-    def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
+    def __init__(self, idim, odim, args):
         """Construct an E2E object.
 
         :param int idim: dimension of inputs
@@ -151,8 +152,10 @@ class E2E(STInterface, torch.nn.Module):
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.asr_weight = getattr(args, "asr_weight", 0)
+        self.mt_weight = getattr(args, "mt_weight", 0)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
+        assert 0.0 <= self.mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
         self.verbose = args.verbose
@@ -168,6 +171,10 @@ class E2E(STInterface, torch.nn.Module):
         # note that sos/eos IDs are identical
         self.sos = odim - 1
         self.eos = odim - 1
+        self.pad = 0
+        # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
+        # in ASR. However, blank labels are not used in NMT. To keep the vocabulary size,
+        # we use index:0 for padding instead of adding one more class.
 
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
@@ -201,7 +208,7 @@ class E2E(STInterface, torch.nn.Module):
         # decoder (ST)
         self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist)
 
-        # ASR submodule
+        # submodule for ASR task
         self.ctc = None
         self.att_asr = None
         self.dec_asr = None
@@ -216,7 +223,12 @@ class E2E(STInterface, torch.nn.Module):
                 args_asr.atype = 'location'  # TODO(hirofumi0810): make this option
                 self.dec_asr = decoder_for(args_asr, odim, self.sos, self.eos, self.att_asr, labeldist)
 
-        # MT submodule
+        # submodule for MT task
+        if self.mt_weight > 0:
+            self.embed_mt = torch.nn.Embedding(odim, args.eunits, padding_idx=self.pad)
+            self.dropout_mt = torch.nn.Dropout(p=args.dropout_rate)
+            self.enc_mt = encoder_for(args, args.eunits,
+                                      subsample=np.ones(args.elayers + 1, dtype=np.int))
 
         # weight initialization
         self.init_like_chainer()
@@ -272,7 +284,7 @@ class E2E(STInterface, torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad, ys_pad_asr):
+    def forward(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -299,15 +311,26 @@ class E2E(STInterface, torch.nn.Module):
         if self.asr_weight == 0 or self.mtlalpha == 0:
             self.loss_ctc = None
         else:
-            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_asr)
+            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_src)
 
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
             self.loss_asr = None
             self.acc_asr = 0.0
         else:
-            self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_asr)
+            self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
             self.acc_asr = acc_asr
+
+        # 3. MT attention loss
+        if self.mt_weight == 0:
+            self.loss_mt = None
+            self.acc_mt = 0.0
+        else:
+            # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
+            ilens_mt = torch.sum(ys_pad_src != 0, dim=1).cpu().numpy()
+            hs_pad_mt, hlens_mt, _ = self.enc_mt(self.dropout_mt(self.embed_mt(ys_pad_src)), ilens_mt)
+            self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
+            self.acc_mt = acc_mt
 
         # 4. compute cer without beam search
         if (self.asr_weight == 0 or self.mtlalpha == 0) or self.char_list is None:
@@ -318,7 +341,7 @@ class E2E(STInterface, torch.nn.Module):
             y_hats = self.ctc.argmax(hs_pad).data
             for i, y in enumerate(y_hats):
                 y_hat = [x[0] for x in groupby(y)]
-                y_true = ys_pad_asr[i]
+                y_true = ys_pad_src[i]
 
                 seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
                 seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
@@ -400,27 +423,39 @@ class E2E(STInterface, torch.nn.Module):
             bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
 
         alpha = self.mtlalpha
-        if self.asr_weight == 0:  # E2E-ST
+        if self.asr_weight == 0 and self.mt_weight == 0:  # pure E2E-ST
             self.loss = self.loss_st
             loss_st_data = float(self.loss_st)
             loss_asr_data = None
-        elif alpha == 0:  # E2E-ST + att-ASR
-            self.loss = (1 - self.asr_weight) * self.loss_st + self.asr_weight * self.loss_asr
+            loss_mt_data = None
+        elif self.asr_weight == 0:
+            self.loss = (1 - self.mt_weight) * self.loss_st + self.mt_weight * self.loss_mt
+            loss_st_data = float(self.loss_st)
+            loss_asr_data = None
+            loss_mt_data = float(self.loss_mt)
+        elif alpha == 0:  # E2E-ST + att-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
+                self.loss_asr + self.mt_weight * self.loss_mt
             loss_st_data = float(self.loss_st)
             loss_asr_data = float(self.loss_asr)
-        elif alpha == 1:  # E2E-ST + CTC-ASR
-            self.loss = (1 - self.asr_weight) * self.loss_st + self.asr_weight * self.loss_ctc
+            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
+        elif alpha == 1:  # E2E-ST + CTC-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
+                self.loss_ctc + self.mt_weight * self.loss_mt
             loss_st_data = float(self.loss_st)
             loss_asr_data = float(self.loss_ctc)
-        else:  # E2E-ST + att-ASR + CTC-ASR
-            self.loss = (1 - self.asr_weight) * self.loss_st + self.asr_weight * \
-                (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
+        else:  # E2E-ST + att-ASR + CTC-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
+                (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr) + self.mt_weight * self.loss_mt
             loss_st_data = float(self.loss_st)
             loss_asr_data = float(alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_asr_data, loss_st_data, self.acc_asr, acc,
+            self.reporter.report(loss_asr_data, loss_mt_data, loss_st_data,
+                                 self.acc_asr, self.acc_mt, acc,
                                  cer_ctc, cer, wer, bleu, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
@@ -500,7 +535,7 @@ class E2E(STInterface, torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_asr):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
