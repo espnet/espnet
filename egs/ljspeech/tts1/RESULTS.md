@@ -1,4 +1,49 @@
-# v.0.6.0 with frequency limit
+# v.0.6.0 with frequency limit FastSpeech
+
+- FTT in points: 1024
+- Shift in points: 256
+- Frequency limit: 80-7600
+- Fast-GL 64 iters
+
+## Environments
+
+- date: `Thu Nov 21 16:42:08 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `0ad99d180e71e03db9b71c04762a31c0025bab51`
+  - Commit date: `Sat Nov 2 21:25:02 2019 +0900`
+
+## Models
+
+- model link: https://drive.google.com/open?id=1cDTCWIkiS81YxxRHhTjYTbKoP3cGxxe8
+- training config file: `conf/tuning/train_fastspeech.v3.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_fastspeech.v3.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_fastspeech.v3.single/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1eHppNe-m15yIHadxUxt8bScqBBvSgOeT
+
+## Models
+
+- model link: https://drive.google.com/open?id=1aajckF2Uq1c8g-UhittR7PT-Qa8sgoyl
+- training config file: `conf/tuning/train_fastspeech.v3.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_fastspeech.v3.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_fastspeech.v3.single/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1wUlnQwFIJeSG7kYHv0NR_U-lvGBX-5HW
+
+# v.0.6.0 with frequency limit Transformer and Tacotron 2
 
 - FTT in points: 1024
 - Shift in points: 256
