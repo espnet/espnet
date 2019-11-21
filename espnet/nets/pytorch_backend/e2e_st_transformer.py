@@ -268,7 +268,7 @@ class E2E(STInterface, torch.nn.Module):
         # TODO(karita) calculate these stats
         cer_ctc = None
         if self.mtlalpha == 0.0 or self.asr_weight == 0:
-            loss_ctc = None
+            loss_ctc = 0.0
         else:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
@@ -287,34 +287,11 @@ class E2E(STInterface, torch.nn.Module):
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
-        if self.asr_weight == 0 and self.mt_weight == 0:  # pure E2E-ST
-            self.loss = loss_att
-            loss_st_data = float(loss_att)
-            loss_asr_data = None
-            loss_mt_data = None
-        elif self.asr_weight == 0:  # E2E-ST + MT
-            self.loss = (1 - self.mt_weight) * loss_att + self.mt_weight * loss_mt
-            loss_st_data = float(loss_att)
-            loss_asr_data = None
-            loss_mt_data = float(loss_mt)
-        elif alpha == 0:  # E2E-ST + att-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                loss_asr + self.mt_weight * loss_mt
-            loss_st_data = float(loss_att)
-            loss_asr_data = float(loss_asr)
-            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
-        elif alpha == 1:  # E2E-ST + CTC-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                loss_ctc + self.mt_weight * loss_mt
-            loss_st_data = float(loss_att)
-            loss_asr_data = float(loss_ctc)
-            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
-        else:  # E2E-ST + att-ASR + CTC-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                (alpha * loss_ctc + (1 - alpha) * loss_asr) + self.mt_weight * loss_mt
-            loss_st_data = float(loss_att)
-            loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
-            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
+            (alpha * loss_ctc + (1 - alpha) * loss_asr) + self.mt_weight * loss_mt
+        loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
+        loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        loss_st_data = float(loss_att)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
