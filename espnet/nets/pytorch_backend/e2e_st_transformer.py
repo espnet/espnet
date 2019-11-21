@@ -245,8 +245,7 @@ class E2E(STInterface, torch.nn.Module):
             ys_zero_pad_src = ys_zero_pad_src[:, :max(ilens_mt)]  # for data parallel
             src_mask_mt = (~make_pad_mask(ilens_mt.tolist())).to(ys_zero_pad_src.device).unsqueeze(-2)
             # ys_zero_pad_src, ys_pad = self.target_forcing(ys_zero_pad_src, ys_pad)
-            encoder_mt = self.src_context_encoder if self.src_context_attn and self.share_mt_encoder else self.encoder_mt
-            hs_pad_mt, hs_mask_mt = encoder_mt(ys_zero_pad_src, src_mask_mt)
+            hs_pad_mt, hs_mask_mt = self.encoder_mt(ys_zero_pad_src, src_mask_mt)
             # forward MT decoder
             pred_pad_mt, _ = self.decoder(ys_in_pad, ys_mask, hs_pad_mt, hs_mask_mt)
             # compute loss
