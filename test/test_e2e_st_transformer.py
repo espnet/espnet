@@ -50,6 +50,7 @@ def make_arg(**kwargs):
         char_list=['<blank>', 'a', 'e', 'i', 'o', 'u'],
         ctc_type="warpctc",
         asr_weight=0.0,
+        mt_weight=0.0,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -109,16 +110,17 @@ def test_transformer_mask(module):
 
 @pytest.mark.parametrize(
     "module, model_dict", [
-        ('pytorch', {'asr_weight': 0.0}),  # pure E2E-ST
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0}),  # MTL w/ attention ASR
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0}),  # MTL w/ CTC ASR
+        ('pytorch', {'asr_weight': 0.0, 'mt_weight': 0.0}),  # pure E2E-ST
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0, 'mt_weight': 0.0}),  # MTL w/ attention ASR
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0, 'mt_weight': 0.1}),  # MTL w/ attention ASR + MT
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'mt_weight': 0.0}),  # MTL w/ CTC ASR
         ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'ctc_type': "builtin"}),
         ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_cer': True}),
         ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_wer': True}),
         ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_cer': True, 'report_wer': True}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.5}),  # MTL w/ attention ASR + CTC ASR
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'mt_weight': 0.1}),  # MTL w/ CTC ASR + MT
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.5, 'mt_weight': 0.0}),  # MTL w/ attention ASR + CTC ASR
+        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.5, 'mt_weight': 0.1}),  # MTL w/ attention ASR + CTC ASR + MT
     ]
 )
 def test_transformer_trainable_and_decodable(module, model_dict):
