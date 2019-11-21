@@ -309,13 +309,13 @@ class E2E(STInterface, torch.nn.Module):
 
         # 2. ASR CTC loss
         if self.asr_weight == 0 or self.mtlalpha == 0:
-            self.loss_ctc = None
+            self.loss_ctc = 0.0
         else:
             self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_src)
 
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
-            self.loss_asr = None
+            self.loss_asr = 0.0
             self.acc_asr = 0.0
         else:
             self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
@@ -323,7 +323,7 @@ class E2E(STInterface, torch.nn.Module):
 
         # 3. MT attention loss
         if self.mt_weight == 0:
-            self.loss_mt = None
+            self.loss_mt = 0.0
             self.acc_mt = 0.0
         else:
             # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
@@ -426,34 +426,11 @@ class E2E(STInterface, torch.nn.Module):
             bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
 
         alpha = self.mtlalpha
-        if self.asr_weight == 0 and self.mt_weight == 0:  # pure E2E-ST
-            self.loss = self.loss_st
-            loss_st_data = float(self.loss_st)
-            loss_asr_data = None
-            loss_mt_data = None
-        elif self.asr_weight == 0:
-            self.loss = (1 - self.mt_weight) * self.loss_st + self.mt_weight * self.loss_mt
-            loss_st_data = float(self.loss_st)
-            loss_asr_data = None
-            loss_mt_data = float(self.loss_mt)
-        elif alpha == 0:  # E2E-ST + att-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
-                self.loss_asr + self.mt_weight * self.loss_mt
-            loss_st_data = float(self.loss_st)
-            loss_asr_data = float(self.loss_asr)
-            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
-        elif alpha == 1:  # E2E-ST + CTC-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
-                self.loss_ctc + self.mt_weight * self.loss_mt
-            loss_st_data = float(self.loss_st)
-            loss_asr_data = float(self.loss_ctc)
-            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
-        else:  # E2E-ST + att-ASR + CTC-ASR (+ MT)
-            self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
-                (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr) + self.mt_weight * self.loss_mt
-            loss_st_data = float(self.loss_st)
-            loss_asr_data = float(alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
-            loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
+        self.loss = (1 - self.asr_weight - self.mt_weight) * self.loss_st + self.asr_weight * \
+            (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr) + self.mt_weight * self.loss_mt
+        loss_st_data = float(self.loss_st)
+        loss_asr_data = float(alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+        loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
@@ -489,7 +466,7 @@ class E2E(STInterface, torch.nn.Module):
         hs, _, _ = self.enc(hs, ilens)
         return hs.squeeze(0)
 
-    def translate(self, x, trans_args, char_list, rnnlm=None, ensemble_models=[]):
+    def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
