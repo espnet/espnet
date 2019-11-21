@@ -69,7 +69,8 @@ def make_arg(**kwargs):
         multilingual=False,
         replace_sos=False,
         tgt_lang=False,
-        asr_weight=0.5,
+        asr_weight=0.0,
+        mt_weight=0.0,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -156,7 +157,12 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
         ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_loc'}),
         ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_multi_res_loc'}),
         ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.0, 'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.5, 'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 1.0, 'mt_weight': 0.2}),
         ('espnet.nets.pytorch_backend.e2e_st', {'sampling_probability': 0.5}),
         ('espnet.nets.pytorch_backend.e2e_st', {'context_residual': True}),
         ('espnet.nets.pytorch_backend.e2e_st', {'grad_noise': True}),
