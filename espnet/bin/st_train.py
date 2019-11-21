@@ -78,14 +78,13 @@ def get_parser(parser=None, required=True):
                         help='Type of CTC implementation to calculate loss.')
     parser.add_argument('--mtlalpha', default=0.0, type=float,
                         help='Multitask learning coefficient, alpha: \
-                                alpha*ctc_loss + (1-alpha)*att_loss ')
+                                alpha*ctc_loss + (1-alpha)*att_loss')
     parser.add_argument('--asr-weight', default=0.0, type=float,
                         help='Multitask learning coefficient for ASR task, weight: \
-                                asr_weight*asr_loss + (1-asr_weight)*st_loss')
-    parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
-                        help='Apply label smoothing with a specified distribution type')
-    parser.add_argument('--lsm-weight', default=0.0, type=float,
-                        help='Label smoothing weight')
+                                asr_weight*(alpha*ctc_loss + (1-alpha)*att_loss) + (1-asr_weight-mt_weight)*st_loss')
+    parser.add_argument('--mt-weight', default=0.0, type=float,
+                        help='Multitask learning coefficient for MT task, weight: \
+                                mt_weight*mt_loss + (1-mt_weight-asr_weight)*st_loss')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')
@@ -193,7 +192,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
-
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='The stats file for the feature normalization')
