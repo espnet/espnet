@@ -166,10 +166,9 @@ class CustomUpdater(StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
-        self.iteration += 1
-
+        # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
         x = tuple(arr.to(self.device) if arr is not None else None
                   for arr in batch)
 
