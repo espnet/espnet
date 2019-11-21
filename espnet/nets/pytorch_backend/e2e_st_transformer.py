@@ -15,6 +15,7 @@ from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -237,11 +238,15 @@ class E2E(STInterface, torch.nn.Module):
         # Multi-task w/ MT
         if self.mt_weight > 0:
             # forward MT encoder
-            ilens_mt = torch.sum(ys_pad_src != 0, dim=1).cpu().numpy()
-            ys_pad_src = ys_pad_src[:, :max(ilens_mt)]  # for data parallel
-            src_mask_mt = (~make_pad_mask(ilens_mt.tolist())).to(ys_pad_src.device).unsqueeze(-2)
-            # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
-            hs_pad_mt, hs_mask_mt = self.encoder_mt(ys_pad_src, src_mask_mt)
+            ilens_mt = torch.sum(ys_pad_src != self.ignore_id, dim=1).cpu().numpy()
+            # NOTE: ys_pad_src is padded with -1
+            ys_src = [y[y != self.ignore_id] for y in ys_pad_src]  # parse padded ys_src
+            ys_zero_pad_src = pad_list(ys_src, self.pad)  # re-pad with zero
+            ys_zero_pad_src = ys_zero_pad_src[:, :max(ilens_mt)]  # for data parallel
+            src_mask_mt = (~make_pad_mask(ilens_mt.tolist())).to(ys_zero_pad_src.device).unsqueeze(-2)
+            # ys_zero_pad_src, ys_pad = self.target_forcing(ys_zero_pad_src, ys_pad)
+            encoder_mt = self.src_context_encoder if self.src_context_attn and self.share_mt_encoder else self.encoder_mt
+            hs_pad_mt, hs_mask_mt = encoder_mt(ys_zero_pad_src, src_mask_mt)
             # forward MT decoder
             pred_pad_mt, _ = self.decoder(ys_in_pad, ys_mask, hs_pad_mt, hs_mask_mt)
             # compute loss
@@ -283,36 +288,34 @@ class E2E(STInterface, torch.nn.Module):
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
-        if self.asr_weight == 0 and self.mt_weight == 0:  # E2E-ST
+        if self.asr_weight == 0 and self.mt_weight == 0:  # pure E2E-ST
             self.loss = loss_att
             loss_st_data = float(loss_att)
             loss_asr_data = None
             loss_mt_data = None
-        else:
-            if self.asr_weight == 0:  # E2E-ST + MT
-                self.loss = (1 - self.mt_weight) * loss_att + self.mt_weight * loss_mt
-                loss_st_data = float(loss_att)
-                loss_asr_data = None
-                loss_mt_data = float(loss_mt)
-            else:
-                if alpha == 0:  # E2E-ST + att-ASR
-                    self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                        loss_asr + self.mt_weight * loss_mt
-                    loss_st_data = float(loss_att)
-                    loss_asr_data = float(loss_asr)
-                    loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
-                elif alpha == 1:  # E2E-ST + CTC-ASR
-                    self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                        loss_ctc + self.mt_weight * loss_mt
-                    loss_st_data = float(loss_att)
-                    loss_asr_data = float(loss_ctc)
-                    loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
-                else:  # E2E-ST + att-ASR + CTC-ASR
-                    self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
-                        (alpha * loss_ctc + (1 - alpha) * loss_asr) + self.mt_weight * loss_mt
-                    loss_st_data = float(loss_att)
-                    loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
-                    loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        elif self.asr_weight == 0:  # E2E-ST + MT
+            self.loss = (1 - self.mt_weight) * loss_att + self.mt_weight * loss_mt
+            loss_st_data = float(loss_att)
+            loss_asr_data = None
+            loss_mt_data = float(loss_mt)
+        elif alpha == 0:  # E2E-ST + att-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
+                loss_asr + self.mt_weight * loss_mt
+            loss_st_data = float(loss_att)
+            loss_asr_data = float(loss_asr)
+            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        elif alpha == 1:  # E2E-ST + CTC-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
+                loss_ctc + self.mt_weight * loss_mt
+            loss_st_data = float(loss_att)
+            loss_asr_data = float(loss_ctc)
+            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        else:  # E2E-ST + att-ASR + CTC-ASR (+ MT)
+            self.loss = (1 - self.asr_weight - self.mt_weight) * loss_att + self.asr_weight * \
+                (alpha * loss_ctc + (1 - alpha) * loss_asr) + self.mt_weight * loss_mt
+            loss_st_data = float(loss_att)
+            loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
+            loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
