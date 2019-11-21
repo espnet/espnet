@@ -327,9 +327,9 @@ class E2E(STInterface, torch.nn.Module):
             self.acc_mt = 0.0
         else:
             # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
-            ilens_mt = torch.sum(ys_pad_src != self.ignore_id, dim=1).cpu().numpy()
+            ilens_mt = torch.sum(ys_pad_src != -1, dim=1).cpu().numpy()
             # NOTE: ys_pad_src is padded with -1
-            ys_src = [y[y != self.ignore_id] for y in ys_pad_src]  # parse padded ys_src
+            ys_src = [y[y != -1] for y in ys_pad_src]  # parse padded ys_src
             ys_zero_pad_src = pad_list(ys_src, self.pad)  # re-pad with zero
             hs_pad_mt, hlens_mt, _ = self.enc_mt(self.dropout_mt(self.embed_mt(ys_zero_pad_src)), ilens_mt)
             self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
@@ -489,7 +489,7 @@ class E2E(STInterface, torch.nn.Module):
         hs, _, _ = self.enc(hs, ilens)
         return hs.squeeze(0)
 
-    def translate(self, x, trans_args, char_list, rnnlm=None):
+    def translate(self, x, trans_args, char_list, rnnlm=None, ensemble_models=[]):
         """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
