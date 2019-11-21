@@ -83,7 +83,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """Return PlotAttentionReport."""
         return PlotAttentionReport
 
-    def __init__(self, idim, odim, args, ignore_id=-1, asr_model=None, mt_model=None):
+    def __init__(self, idim, odim, args, ignore_id=-1):
         """Construct an E2E object.
 
         :param int idim: dimension of inputs
