@@ -6,6 +6,7 @@ from typing import Dict, Mapping, Sequence, Union
 import kaldiio
 import numpy as np
 import torch
+from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -33,11 +34,11 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
     """
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
     assert all(k + '_lengths' not in data[0] for k in data[0]), \
-        '*_lengths is reserved: {list(data[0})'
+        f'*_lengths is reserved: {list(data[0])}'
 
     output = {}
     for key in data[0]:
-        # Note(kamo):
+        # NOTE(kamo):
         # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.
         if data[0][key].dtype.kind == 'f':
@@ -46,6 +47,8 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
             pad_value = -32768
 
         array_list = [d[key] for d in data]
+
+        # Assume the first axis is length:
         # tensor_list: Batch x (Length, ...)
         tensor_list = [torch.from_numpy(a) for a in array_list]
         # tensor: (Batch, Length, ...)
@@ -82,13 +85,11 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
                 f'Sampling rates are mismatched: {self.rate} != {rate}')
         self.rate = rate
         # Multichannel wave fie
-        if array.ndim == 2:
-            # (NSample, Channel) -> (Channel, NSample)
-            array = array.T
+        # array: (NSample, Channel) or (Nsample)
         return array
 
 
-class ESPNetDataset:
+class ESPNetDataset(Dataset):
     """
 
     Examples:
@@ -129,6 +130,9 @@ class ESPNetDataset:
         self.loader_dict = {}
         self.debug_info = {}
         for path, name, _type in path_name_type_list:
+            if name in self.loader_dict:
+                raise RuntimeError(f'"{name}" is duplicated for data-key')
+
             loader = ESPNetDataset.create_loader(path, _type)
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
@@ -138,6 +142,9 @@ class ESPNetDataset:
         self.preprocess_dict = {}
         if preproces is not None:
             for name, data in preproces.items():
+                if name in self.preprocess_dict:
+                    raise RuntimeError(
+                        f'"{name}" is duplicated for preprocess-key')
                 proceess = Transformation(data)
                 self.preprocess_dict[name] = proceess
 
@@ -162,9 +169,9 @@ class ESPNetDataset:
             #   utta /some/where/a.wav
             #   uttb /some/where/a.flac
 
-            # Note(kamo): SoundScpReader doesn't support pipe-fashion
+            # NOTE(kamo): SoundScpReader doesn't support pipe-fashion
             # like Kaldi e.g. "cat a.wav |".
-            # Note(kamo): The audio signal is normalized to [-1,1] range.
+            # NOTE(kamo): The audio signal is normalized to [-1,1] range.
             loader = SoundScpReader(path, normalize=True, always_2d=False)
 
             # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
@@ -176,14 +183,14 @@ class ESPNetDataset:
             #   utta cat a.wav |
             #   uttb cat b.wav |
 
-            # Note(kamo): I don't think this case is practical
+            # NOTE(kamo): I don't think this case is practical
             # because subprocess takes much times due to fork().
 
-            # Note(kamo): kaldiio doesn't normalize the signal.
+            # NOTE(kamo): kaldiio doesn't normalize the signal.
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader)
 
-        elif loader_type == 'kaldi_ark_scp':
+        elif loader_type == 'kaldi_ark':
             # path looks like:
             #   utta /some/where/a.ark:123
             #   uttb /some/where/a.ark:456
@@ -217,7 +224,7 @@ class ESPNetDataset:
         raise NotImplementedError('This method doesn\'t be needed because '
                                   'we use custom BatchSampler ')
 
-    # Note(kamo):
+    # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
     @typechecked

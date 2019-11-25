@@ -4,7 +4,7 @@ import logging
 import random
 import sys
 from pathlib import Path
-from typing import Sequence, Optional, Union, Dict
+from typing import Sequence, Optional, Union, Dict, Tuple
 
 import configargparse
 import numpy as np
@@ -42,7 +42,7 @@ def recog(
         nbest: int,
         num_workers: int,
         log_level: Union[int, str],
-        data_path_and_name_and_type: Sequence[Sequence[str]],
+        data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
         key_file: Optional[str],
         preprocess: Optional[Dict[str, Union[str, dict]]],
         asr_train_config: str,
@@ -51,6 +51,7 @@ def recog(
         lm_file: Optional[str],
         word_lm_train_config: Optional[str],
         word_lm_file: Optional[str],
+        blank_symbol: str,
         ):
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -64,40 +65,48 @@ def recog(
         format=
         '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
-    # Set random-seed
+    if ngpu >= 1:
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    # 1. Set random-seed
     random.seed(seed)
     np.random.seed(seed)
     torch.random.manual_seed(seed)
 
+    # 2. Build ASR model
+    scorers = {}
     with Path(asr_train_config).open('r') as f:
         asr_train_args = yaml.load(f, Loader=yaml.Loader)
     asr_train_args = argparse.Namespace(**asr_train_args)
     asr_model = ASRTask.build_model(asr_train_args)
-    asr_model.load_state_dict(torch.load(asr_model_file, map_location='cpu'))
+    asr_model.load_state_dict(torch.load(asr_model_file, map_location=device))
 
     decoder = asr_model.decoder
     ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
     token_list = asr_model.token_list
-    scorers = dict(
+    scorers.update(
         decoder=decoder,
         ctc=ctc,
         length_bonus=LengthBonus(len(token_list)),
     )
 
+    # 3. Build Language model
     if lm_train_config is not None:
         with Path(lm_train_config).open('r') as f:
             lm_train_args = yaml.load(f, Loader=yaml.Loader)
         lm_train_args = argparse.Namespace(**lm_train_args)
         lm = LMTask.build_model(lm_train_args)
-        lm.load_state_dict(torch.load(lm_file, map_location='cpu'))
+        lm.load_state_dict(torch.load(lm_file, map_location=device))
         scorers['lm'] = lm.lm
 
+    # 4. Build BeamSearch object
     weights = dict(
         decoder=1.0 - ctc_weight,
         ctc=ctc_weight,
         lm=lm_weight,
         length_bonus=penalty)
-
     beam_search = BeamSearch(
         beam_size=beam_size,
         weights=weights,
@@ -107,60 +116,52 @@ def recog(
         vocab_size=len(token_list),
         token_list=token_list,
     )
-    logging.info(f'Beam_search: {beam_search}')
-
-    if ngpu == 1:
-        device = 'cuda'
-    else:
-        device = 'cpu'
-
-    logging.info(f'Decoding device={device}, dtype={dtype}')
-
     beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
     for scorer in scorers.values():
         if isinstance(scorer, torch.nn.Module):
             scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+    logging.info(f'Beam_search: {beam_search}')
+    logging.info(f'Decoding device={device}, dtype={dtype}')
 
-    # Creates eval-data-iterator
+    # 5. Build data-iterator
     dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
                             float_dtype=dtype)
     if key_file is None:
-        key_file = data_path_and_name_and_type[0]
+        key_file, _, _ = data_path_and_name_and_type[0]
 
     batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, shape_file=key_file,
-        shuffle=False, sort_in_batch=None)
+        batch_size=batch_size, key_file=key_file, shuffle=False)
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
                         collate_fn=our_collate_fn, num_workers=num_workers)
-    for keys, batch in zip(batch_sampler, loader):
-        assert isinstance(batch, dict), type(batch)
-        assert all(isinstance(s, str) for s in keys), keys
-        _bs = len(next(iter(batch.values())))
-        assert _bs == batch_size, f'{_bs} != {batch_size}'
-        assert len(keys) == batch_size, f'{len(keys)} != {batch_sampler}'
 
-        with torch.no_grad():
-            # 1. To device
-            batch = to_device(batch, device)
+    # 6 .Start for-loop
+    # FIXME(kamo): The output format should be discussed about
+    with DatadirWriter(output_dir) as writer:
+        for keys, batch in zip(batch_sampler, loader):
+            assert isinstance(batch, dict), type(batch)
+            assert all(isinstance(s, str) for s in keys), keys
+            _bs = len(next(iter(batch.values())))
+            assert len(keys) == _bs, f'{len(keys)} != {_bs}'
 
-            # 2. Forward Encoder
-            enc, _ = asr_model.encode(**batch)
-            assert len(enc) == batch_size, len(enc)
+            with torch.no_grad():
+                # a. To device
+                batch = to_device(batch, device)
 
-            # 3. Beam search
-            nbest_hyps = beam_search(
-                x=enc[0], maxlenratio=maxlenratio, minlenratio=minlenratio)
-            nbest_hyps = nbest_hyps[:nbest]
+                # b. Forward Encoder
+                enc, _ = asr_model.encode(**batch)
+                assert len(enc) == batch_size, len(enc)
 
-        # FIXME(kamo): The output format should be discussed about
-        # I prefer list-type text, such as "scp", rather than JSON or Yaml
-        # because it it easy to process them in bash terminal.
-        with DatadirWriter(output_dir) as writer:
+                # c. Passed the encoder result and the beam search
+                nbest_hyps = beam_search(
+                    x=enc[0], maxlenratio=maxlenratio, minlenratio=minlenratio)
+                nbest_hyps = nbest_hyps[:nbest]
+
             # Only supporting batch_size==1
             key = keys[0]
-            for n, hyp in enumerate(nbest_hyps, 1):
+            for n in range(1, nbest + 1):
+                hyp = nbest_hyps[n - 1]
                 assert isinstance(hyp, Hypothesis), type(hyp)
 
                 # remove sos/eos and get results
@@ -173,7 +174,7 @@ def recog(
 
                 # Write the result to each files
                 ibest_writer['token'][key] = \
-                    (' '.join(token).replace('<blank>', ''))
+                    (' '.join(token).replace(blank_symbol, ''))
                 ibest_writer['token_int'][key] = ' '.join(map(str, token_int))
                 ibest_writer['score'][key] = str(hyp.score)
 
@@ -237,6 +238,8 @@ def get_parser():
                        help='CTC weight in joint decoding')
     group.add_argument('--lm_weight', type=float, default=1.0,
                        help='RNNLM weight')
+    group.add_argument('--blank_symbol', type=str, default='<blank>',
+                       help='The token symbol represents CTC-blank')
 
     return parser
 
@@ -247,8 +250,6 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop('config', None)
-
-    # Note(kamo): Don't give "args" to recog() directly!!!
     recog(**kwargs)
 
 

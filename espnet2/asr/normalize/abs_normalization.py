@@ -4,12 +4,9 @@ import torch
 from typing import Tuple
 
 
-class AbsFrontend(torch.nn.Module, ABC):
-    @abstractmethod
-    def out_dim(self) -> int:
-        raise NotImplementedError
-
+class AbsNormalization(torch.nn.Module, ABC):
     @abstractmethod
     def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
+        # return output, output_lengths
         raise NotImplementedError

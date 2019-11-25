@@ -22,10 +22,11 @@ class LanguageModel(AbsESPNetModel):
         # in the other part.
         self.ignore_id = ignore_id
 
-    def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
-            -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        assert input.size(-1) >= input_lengths.max(), (input.size(),
-                                                       input_lengths.max())
+    def nll(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        assert input.size(-1) >= input_lengths.max(), \
+            (input.size(), input_lengths.max())
+        batch_size = input.size(0)
         # 0. Change pad_value
         input = input[:, :input_lengths.max()]
         mask = make_pad_mask(input_lengths).to(input.device)
@@ -35,25 +36,29 @@ class LanguageModel(AbsESPNetModel):
         # input: (Batch, Length) -> x, y: (Batch, Legnth + 1)
         x = F.pad(input, [1, 0], 'constant', self.eos)
         t = F.pad(input, [0, 1], 'constant', self.ignore_id)
-        mask = F.pad(mask, [0, 1], 'constant', True)
         for i, l in enumerate(input_lengths):
             t[i, l] = self.sos
+        x_lengths = input_lengths + 1
 
         # 2. Forward Language model
         # x: (Batch, Length) -> y: (Batch, Length, NVocab)
         y, _ = self.lm(x, None)
 
-        # 3. Calc loss
-        # loss: (BxL,)
-        loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1),
-                               reduction="none")
+        # 3. Calc negative log likelihood
+        # nll: (BxL,)
+        nll = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1),
+                              reduction="none")
+        # nll: (BxL,) -> (BxL,)
+        nll.masked_fill_(make_pad_mask(x_lengths).to(nll.device).view(-1), 0.)
+        # nll: (BxL,) -> (B, L)
+        nll = nll.view(batch_size, -1)
+        return nll, x_lengths
 
-        # loss, mask: (BxL,) x (BxL,) -> loss: (BxL,)
-        loss.masked_fill_(mask.view(-1), 0.)
-        # mask: (BxL,) -> ntokens: (1,)
-        ntokens = (~mask).sum()
-        # loss: (BxL,) -> (1,)
-        loss = loss.sum() / ntokens
+    def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+            -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        nll, y_lengths = self.nll(input, input_lengths)
+        ntokens = y_lengths.sum()
+        loss = nll.sum() / ntokens
         stats = dict(loss=loss.detach())
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel

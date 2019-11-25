@@ -33,11 +33,17 @@ def create_batch_sampler(
         sort_batch:
     """
     if type == 'const':
-        return ConstantBatchSampler(
-            batch_size=batch_size, shape_file=shape_files[0],
-            shuffle=shuffle,
-            sort_in_batch=sort_in_batch,
-            sort_batch=sort_batch)
+        if sort_in_batch is None:
+            return ConstantBatchSampler(
+                batch_size=batch_size, key_file=shape_files[0],
+                shuffle=shuffle)
+
+        else:
+            return ConstantSortedBatchSampler(
+                batch_size=batch_size, shape_file=shape_files[0],
+                shuffle=shuffle,
+                sort_in_batch=sort_in_batch,
+                sort_batch=sort_batch)
 
     elif type == 'seq':
         if len(max_lengths) != len(shape_files):
@@ -71,7 +77,7 @@ class AbsSampler(ABC, Sampler):
         raise NotImplementedError
 
 
-class ConstantBatchSampler(AbsSampler):
+class ConstantSortedBatchSampler(AbsSampler):
     """
 
     Args:
@@ -79,10 +85,6 @@ class ConstantBatchSampler(AbsSampler):
         shape_file:
         shuffle:
         sort_in_batch: 'descending', 'ascending' or None.
-            If sort_in_batch is None, any sorting is not done,
-            so no length information is required,
-            This mode is convenient for decoding mode,
-            which doesn't required sorted order.
         sort_batch:
     """
     @typechecked
@@ -90,49 +92,34 @@ class ConstantBatchSampler(AbsSampler):
                  batch_size: int,
                  shape_file: str,
                  shuffle: bool = False,
-                 sort_in_batch: Optional[str] = 'descending',
+                 sort_in_batch: str = 'descending',
                  sort_batch: str = 'ascending',
                  ):
-        if sort_in_batch is None:
-            sort_batch = None
-
         self.shuffle = shuffle
         self.batch_size = batch_size
         self.shape_file = shape_file
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
 
-        if sort_in_batch is None:
-            # utt2shape:
-            #    uttA <anything is o.k>
-            #    uttB <anything is o.k>
-            utt2shape = read_2column_text(shape_file)
-            # In this case the, the first column in only used
-            keys = list(utt2shape)
-            if self.shuffle:
-                np.random.shuffle(keys)
+        # utt2shape: (Length, ...)
+        #    uttA 100,...
+        #    uttB 201,...
+        utt2shape = \
+            load_num_sequence_text(shape_file, loader_type='csv_int')
+        if sort_in_batch == 'descending':
+            # Sort samples in descending order (required by RNN)
+            keys = sorted(utt2shape, key=lambda k: -utt2shape[k][0])
+        elif sort_in_batch == 'ascending':
+            # Sort samples in ascending order
+            keys = sorted(utt2shape, key=lambda k: utt2shape[k][0])
         else:
-            # utt2shape: (Length, ...)
-            #    uttA 100,...
-            #    uttB 201,...
-            utt2shape = \
-                load_num_sequence_text(shape_file, loader_type='csv_int')
-            if sort_in_batch == 'descending':
-                # Sort samples in descending order (required by RNN)
-                keys = sorted(utt2shape, key=lambda k: -utt2shape[k][0])
-            elif sort_in_batch == 'ascending':
-                # Sort samples in ascending order
-                keys = sorted(utt2shape, key=lambda k: utt2shape[k][0])
-            else:
-                raise ValueError(
-                    f'sort_in_batch must be either one of '
-                    f'ascending, descending, or None: {sort_in_batch}')
+            raise ValueError(
+                f'sort_in_batch must be either one of '
+                f'ascending, descending, or None: {sort_in_batch}')
 
         # batch_list: List[Tuple[str, ...]]
-        self.batch_list = \
-            [tuple(keys[i:i + batch_size])
-             for i in range(0, int(np.ceil(len(keys) / batch_size)),
-                            batch_size)]
+        self.batch_list = [tuple(keys[i:i + batch_size])
+                           for i in range(0, len(keys), batch_size)]
 
         if len(self.batch_list) == 0:
             logging.warning(f'{shape_file} is empty')
@@ -140,7 +127,7 @@ class ConstantBatchSampler(AbsSampler):
         if self.shuffle:
             np.random.shuffle(self.batch_list)
         else:
-            if sort_in_batch is not None and sort_in_batch != sort_batch:
+            if sort_in_batch != sort_batch:
                 if sort_batch not in ('ascending', 'descending'):
                     raise ValueError(
                         f'sort_batch must be ascending or '
@@ -155,6 +142,59 @@ class ConstantBatchSampler(AbsSampler):
                 f'shuffle={self.shuffle}, '
                 f'sort_in_batch={self.sort_in_batch}, '
                 f'sort_batch={self.sort_batch})')
+
+    def __len__(self):
+        return len(self.batch_list)
+
+    def __iter__(self) -> Iterator[Tuple[str, ...]]:
+        for batch in self.batch_list:
+            yield batch
+
+
+class ConstantBatchSampler(AbsSampler):
+    """
+
+    Any sorting is not done in this class,
+    so no length information is required,
+    This class is convenient for decoding mode,
+    or not seq2seq learning e.g. classification.
+
+    Args:
+        batch_size:
+        key_file:
+        shuffle:
+    """
+    @typechecked
+    def __init__(self, batch_size: int, key_file: str, shuffle: bool = False):
+        self.shuffle = shuffle
+        self.batch_size = batch_size
+        self.key_file = key_file
+
+        # utt2shape:
+        #    uttA <anything is o.k>
+        #    uttB <anything is o.k>
+        utt2any = read_2column_text(key_file)
+        # In this case the, the first column in only used
+        keys = list(utt2any)
+        if self.shuffle:
+            np.random.shuffle(keys)
+
+        # batch_list: List[Tuple[str, ...]]
+        self.batch_list = [tuple(keys[i:i + batch_size])
+                           for i in range(0, len(keys), batch_size)]
+
+        if len(self.batch_list) == 0:
+            logging.warning(f'{key_file} is empty')
+
+        if self.shuffle:
+            np.random.shuffle(self.batch_list)
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'N-batch={len(self)}, '
+                f'batch_size={self.batch_size}, '
+                f'key_file={self.key_file}, '
+                f'shuffle={self.shuffle})')
 
     def __len__(self):
         return len(self.batch_list)

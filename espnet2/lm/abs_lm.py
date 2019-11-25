@@ -6,7 +6,7 @@ import torch
 from espnet.nets.scorer_interface import ScorerInterface
 
 
-class AbsLM(ABC, ScorerInterface, torch.nn.Module):
+class AbsLM(torch.nn.Module, ScorerInterface, ABC):
     @abstractmethod
     def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
