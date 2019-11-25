@@ -3,16 +3,20 @@ import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-import torch
 from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.ctc import CTC
+from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
+from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.model import ASRModel
+from espnet2.asr.normalize.abs_normalization import AbsNormalization
+from espnet2.asr.normalize.global_mvn import GlobalMVN
+from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, NestedDictAction
+from espnet2.utils.types import str_or_none, NestedDictAction, int_or_none
 
 
 class ASRTask(BaseTask):
@@ -20,7 +24,7 @@ class ASRTask(BaseTask):
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        # Note(kamo): Use '_' instead of '-' to avoid confusion
+        # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='Train ASR',
@@ -30,7 +34,7 @@ class ASRTask(BaseTask):
         BaseTask.add_arguments(parser)
         group = parser.add_argument_group(description='Task related')
 
-        # Note(kamo): add_arguments(..., required=True) can't be used
+        # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
         required += ['token_list']
@@ -38,12 +42,22 @@ class ASRTask(BaseTask):
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
 
-        group.add_argument(
+        excl = group.add_mutually_exclusive_group()
+        excl.add_argument('--idim', type=int_or_none, default=None,
+                          help='The number of input dimension of the feature')
+        excl.add_argument(
             '--frontend', type=str_or_none, default='default',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
             '--frontend_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for frontend class.')
+        group.add_argument(
+            '--normalize', type=str_or_none, default='utterance_mvn',
+            choices=cls.normalize_choices(),
+            help='Specify normalization class')
+        group.add_argument(
+            '--normalize_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for normalization class.')
 
         group.add_argument(
             '--encoder_decoder', type=str, default='rnn',
@@ -80,8 +94,19 @@ class ASRTask(BaseTask):
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
-        frontend_class = cls.get_frontend_class(args.frontend)
-        frontend_conf = get_defaut_kwargs(frontend_class)
+        if args.idim is None:
+            frontend_class = cls.get_frontend_class(args.frontend)
+            frontend_conf = get_defaut_kwargs(frontend_class)
+        else:
+            if hasattr(args, 'frontend'):
+                # Either one of frontend and idim can be selected
+                delattr(args, 'frontend')
+            frontend_conf = {}
+        if args.normalize is not None:
+            normalize_class = cls.get_normalize_class(args.normalize)
+            normalize_conf = get_defaut_kwargs(normalize_class)
+        else:
+            normalize_conf = None
 
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
@@ -98,6 +123,7 @@ class ASRTask(BaseTask):
 
         # 4. Overwrite the default config by the command-arguments
         frontend_conf.update(config['frontend_conf'])
+        normalize_conf.update(config['normalize_conf'])
         encoder_conf.update(config['encoder_conf'])
         decoder_conf.update(config['decoder_conf'])
         ctc_conf.update(config['ctc_conf'])
@@ -105,6 +131,7 @@ class ASRTask(BaseTask):
         # 5. Reassign them to the configuration
         config.update(
             frontend_conf=frontend_conf,
+            normalize_conf=normalize_conf,
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
@@ -128,7 +155,7 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def get_frontend_class(cls, name: str) -> Type[AbsFrontend]:
-        # Note(kamo): Don't use getattr or dynamic_import
+        # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'default':
             return DefaultFrontend
@@ -136,6 +163,27 @@ class ASRTask(BaseTask):
             raise RuntimeError(
                 f'--frontend must be one of '
                 f'{cls.frontend_choices()}: --frontend {name}')
+
+    @classmethod
+    @typechecked
+    def normalize_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('global_mvn', 'utterance_mvn')
+        choices += tuple(x.lower() for x in choices if x != x.lower()) \
+            + tuple(x.upper() for x in choices if x != x.upper())
+        choices += (None,)
+        return choices
+
+    @classmethod
+    @typechecked
+    def get_normalize_class(cls, name: str) -> Type[AbsNormalization]:
+        if name.lower() == 'global_mvn':
+            return GlobalMVN
+        elif name.lower() == 'utterance_mvn':
+            return UtteranceMVN
+        else:
+            raise RuntimeError(
+                f'--frontend must be one of '
+                f'{cls.normalize_choices()}: --frontend {name}')
 
     @classmethod
     @typechecked
@@ -148,12 +196,10 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def get_encoder_decoder_class(cls, name: str) \
-            -> Tuple[Type[torch.nn.Module], Type[torch.nn.Module]]:
-        # Note(kamo): Don't use getattr or dynamic_import
-        # for readability and debuggability as possible
+            -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
         if name.lower() == 'transformer':
-            from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-            from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+            from espnet2.asr.encoder_decoder.transformer.encoder import Encoder
+            from espnet2.asr.encoder_decoder.transformer.decoder import Decoder
             return Encoder, Decoder
 
         elif name.lower() == 'rnn':
@@ -169,23 +215,11 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ASRModel:
-
-        # TODO(kamo): Implement a system/interface
-        #  to propagate the output dimension of each components,
-        #  e.g. fbank-dim, encoder-proj-dim.
-        #  How about this?
-        #  >>> out_dim frontend.get_out_dim()
-        #  >>> encoder = encoder_class(idim=out_dim, **args.encoder_conf)
-        #  >>> out_dim = encoder.get_out_dim()
-        #  >>> decoder = decoder_class(idim=out_dim, **args.decoder_conf)
-
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
 
-            # "args" is saved in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
-            # This is dirty way, but I have no clean idea.
             args.token_list = list(token_list)
         elif isinstance(args.token_list, (tuple, list)):
             token_list = list(args.token_list)
@@ -195,29 +229,46 @@ class ASRTask(BaseTask):
         logging.info(f'Vocabulary size: {vocab_size }')
 
         # 1. frontend
-        frontend_class = cls.get_frontend_class(args.frontend)
-        if frontend_class is not None:
+        if args.idim is None:
+            frontend_class = cls.get_frontend_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
+            idim = frontend.out_dim()
         else:
+            if hasattr(args, 'frontend'):
+                # Either one of frontend and idim can be selected
+                delattr(args, 'frontend')
+            args.frontend_conf = {}
             frontend = None
+            idim = args.idim
 
-        # 2. Encoder, Decoder
+        # 2. Normalization layer
+        if args.normalize is not None:
+            normalize_class = cls.get_normalize_class(args.normalize)
+            normalize = normalize_class(**args.normalize_conf)
+        else:
+            normalize = None
+
+        # 3. Encoder, Decoder
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
-        encoder = encoder_class(**args.encoder_conf)
-        decoder = decoder_class(odim=vocab_size, **args.decoder_conf)
+        encoder = encoder_class(idim=idim,
+                                **args.encoder_conf)
+        decoder = decoder_class(odim=vocab_size,
+                                encoder_out_dim=encoder.out_dim(),
+                                **args.decoder_conf)
 
-        # 3. CTC
-        ctc = CTC(odim=vocab_size, **args.ctc_conf)
+        # 4. CTC
+        ctc = CTC(odim=vocab_size, encoder_out_dim=encoder.out_dim(),
+                  **args.ctc_conf)
 
-        # 4. RNN-T Decoder (Not implemented)
+        # 5. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
-        # Note(kamo): Don't give args to ASRModel directly!
-        # 5. Set them to ASRModel
+        # 6. Set them to ASRModel
         model = ASRModel(
             vocab_size=vocab_size,
             frontend=frontend,
+            normalize=normalize,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,

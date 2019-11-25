@@ -23,6 +23,7 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
         if len(v.shape) not in (0, 1):
             raise ValueError(f'v must be 0 or 1 dimension: {len(v.shape)}')
         v = v.item()
+
     if isinstance(weight, (torch.Tensor, np.ndarray)):
         if len(weight.shape) not in (0, 1):
             raise ValueError(
@@ -37,6 +38,10 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
 
 @typechecked
 def aggregate(values: Sequence[ReportedValue]):
+    if len(values) == 0:
+        warnings.warn('No stats found')
+        return np.nan
+
     if isinstance(values[0], Average):
         return np.nanmean([v.value for v in values])
 
@@ -48,11 +53,18 @@ def aggregate(values: Sequence[ReportedValue]):
                 invalid_indices.add(i)
         values = [v for i, v in enumerate(values) if i not in invalid_indices]
 
-        # Calc weighed average. Weights are changed to sum-to-1.
-        sum_weights = np.sum(v.weight for i, v in enumerate(values))
-        sum_value = np.sum(v.value * v.weight for i, v in enumerate(values))
-
-        return sum_value / sum_weights
+        if len(values) != 0:
+            # Calc weighed average. Weights are changed to sum-to-1.
+            sum_weights = np.sum(v.weight for i, v in enumerate(values))
+            sum_value = np.sum(v.value * v.weight for i, v in enumerate(values))
+            if sum_weights == 0:
+                warnings.warn('weight is zero')
+                return np.nan
+            else:
+                return sum_value / sum_weights
+        else:
+            warnings.warn('No valid stats found')
+            return np.nan
 
     else:
         raise NotImplementedError(f'type={type(values[0])}')
@@ -148,9 +160,9 @@ class Reporter:
 
     """
     @typechecked
-    def __init__(self, epoch: int = 1):
-        if epoch <= 0:
-            raise RuntimeError(f'epoch must be 1 or more: {epoch}')
+    def __init__(self, epoch: int = 0):
+        if epoch < 0:
+            raise RuntimeError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
         # stats: Dict[int, Dict[str, Dict[str, float]]]
         # e.g. self.stats[epoch]['train']['loss']
@@ -160,8 +172,8 @@ class Reporter:
         return self.epoch
 
     def set_epoch(self, epoch: int):
-        if epoch <= 0:
-            raise RuntimeError(f'epoch must be 1 or more: {epoch}')
+        if epoch < 0:
+            raise RuntimeError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
 
     @contextmanager
@@ -173,8 +185,8 @@ class Reporter:
 
     def start_epoch(self, key: str, epoch: int = None) -> SubReporter:
         if epoch is not None:
-            if epoch <= 0:
-                raise RuntimeError(f'epoch must be 1 or more: {epoch}')
+            if epoch < 0:
+                raise RuntimeError(f'epoch must be 0 or more: {epoch}')
             self.epoch = epoch
 
         if self.epoch - 1 not in self.stats or \
@@ -215,7 +227,8 @@ class Reporter:
 
     def best_epoch_and_value(self, key: str, key2: str, mode: str) \
             -> Tuple[Optional[int], Optional[float]]:
-        assert mode in ('min', 'max'), mode
+        if mode not in ('min', 'max'):
+            raise ValueError(f'mode must min or max: {mode}')
 
         # iterate from the last epoch
         best_value = None
@@ -228,10 +241,12 @@ class Reporter:
                 best_value = value
                 best_epoch = epoch
             else:
-                if mode == 'min' and best_value < value:
+                if mode == 'min' and best_value > value:
                     best_value = value
-                elif mode == 'min' and best_value > value:
+                    best_epoch = epoch
+                elif mode == 'max' and best_value < value:
                     best_value = value
+                    best_epoch = epoch
         return best_epoch, best_value
 
     def has_key(self, key: str, key2: str, epoch: int = None) -> bool:
@@ -298,6 +313,10 @@ class Reporter:
 
     @typechecked
     def plot_stats(self, keys: Sequence[str], key2: str, plt=None):
+        # str is also Sequence[str]
+        if isinstance(keys, str):
+            raise TypeError(f'Input as [{keys}]')
+
         if plt is None:
             import matplotlib
             matplotlib.use('agg')
@@ -305,11 +324,7 @@ class Reporter:
         import matplotlib.ticker as ticker
         plt.clf()
 
-        # str is also Sequence[str]
-        if isinstance(keys, str):
-            raise TypeError(f'Input as [{keys}]')
-
-        epochs = np.arange(1, max(self.stats))
+        epochs = np.arange(1, max(self.stats) + 1)
         for key in keys:
             if any(key2 not in self.stats[e][key] for e in epochs
                    if e in self.stats):
@@ -320,7 +335,7 @@ class Reporter:
                  for e in epochs]
             assert len(epochs) == len(y), 'Bug?'
 
-            plt.plot(epochs, y, label=key)
+            plt.plot(epochs, y, label=key, marker='x')
         plt.legend()
         plt.title(f'epoch vs {key2}')
         # Force integer tick for x-axis
@@ -338,8 +353,3 @@ class Reporter:
     def load_state_dict(self, state_dict: dict):
         self.epoch = state_dict['epoch']
         self.stats = state_dict['stats']
-
-
-if __name__ == '__main__':
-    print(WeightedAverage(0.4, weight=0))
-    print(WeightedAverage(0.4, 'a'))

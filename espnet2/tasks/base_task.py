@@ -1,6 +1,7 @@
 import argparse
 import logging
 import random
+import shutil
 import sys
 from abc import ABC, abstractmethod
 from io import TextIOBase
@@ -18,17 +19,16 @@ from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet.asr.asr_utils import add_gradient_noise
-from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.train.abs_espnet_model import AbsESPNetModel
 from espnet2.train.batch_sampler import create_batch_sampler
-from espnet2.train.dataset import ESPNetDataset,  our_collate_fn
+from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, NestedDictAction, str2triple_str, )
+    int_or_none, str2bool, str_or_none, NestedDictAction, str2triple_str)
 
 
 class BaseTask(ABC):
@@ -48,10 +48,10 @@ class BaseTask(ABC):
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
-        # Note(kamo): Use '_' instead of '-' to avoid confusion.
+        # NOTE(kamo): Use '_' instead of '-' to avoid confusion.
         #  I think '-' looks really confusing if it's written in yaml.
 
-        # Note(kamo): add_arguments(..., required=True) can't be used
+        # NOTE(kamo): add_arguments(..., required=True) can't be used
         #  to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=['output_dir'])
 
@@ -73,14 +73,8 @@ class BaseTask(ABC):
         group.add_argument('--seed', type=int, default=0,
                            help='Random seed')
 
-        group.add_argument(
-            '--init', type=str_or_none, default='pytorch',
-            choices=('pytorch', 'xavier_uniform', 'xavier_normal',
-                     'kaiming_uniform', 'kaiming_normal', None),
-            help='The initialization method for the model parameters')
-
         group = parser.add_argument_group('Trainer related')
-        group.add_argument('--max_epoch', type=int, default=20,
+        group.add_argument('--max_epoch', type=int, default=40,
                            help='The maximum number epoch to train')
         group.add_argument(
             '--train_dtype', default="float32",
@@ -92,16 +86,42 @@ class BaseTask(ABC):
             '--patience', type=int_or_none, default=None,
             help='Number of epochs to wait without improvement '
                  'before stopping the training')
-        group.add_argument('--grad_clip_threshold', type=float, default=5.,
+        group.add_argument('--early_stopping_criterion', type=str2triple_str,
+                           default=('eval', 'loss', 'min'),
+                           help='The criterion used for judging of '
+                                'early stopping. '
+                                'Give a pair referring '
+                                'the phase, "train" or "eval",'
+                                'the criterion name and the mode, '
+                                '"min" or "max", e.g. "acc,max".')
+        group.add_argument('--best_model_criterion', type=str2triple_str,
+                           action='append',
+                           default=[('train', 'loss', 'min'),
+                                    ('eval', 'loss', 'min'),
+                                    ('train', 'acc', 'max'),
+                                    ('eval', 'acc', 'max'),
+                                    ],
+                           help='The criterion used for judging of '
+                                'the best model. '
+                                'Give a pair referring '
+                                'the phase, "train" or "eval",'
+                                'the criterion name, and '
+                                'the mode, '
+                                '"min" or "max", e.g. "acc,max".')
+
+        group.add_argument('--grad_clip', type=float, default=5.,
                            help='Gradient norm threshold to clip')
         group.add_argument('--grad_noise', type=str2bool, default=False,
                            help='The flag to switch to use noise injection to '
                                 'gradients during training')
         group.add_argument('--accum_grad', type=int, default=1,
                            help='The number of gradient accumulation')
-        group.add_argument('--log_interval', type=int, default=200,
-                           help='Show logs every the number iterations in'
-                                'each epochs of training phase.')
+        group.add_argument('--log_interval', type=int_or_none, default=None,
+                           help='Show the logs every the number iterations in'
+                                'each epochs at the training phase. '
+                                'If None is given, the value of 1% of '
+                                'the number of training iteration '
+                                'is selected.')
         group.add_argument('--n_latest_history', type=int, default=20,
                            help='The number of latest epochs to save '
                                 'the training state.')
@@ -115,7 +135,10 @@ class BaseTask(ABC):
             elif value.lower() in ('none', 'null', 'nil'):
                 return None
             else:
-                return int(value)
+                v = int(value)
+                if v < 0:
+                    raise TypeError('must be 0 or more integer')
+                return v
 
         egroup = group.add_mutually_exclusive_group()
         egroup.add_argument(
@@ -166,7 +189,7 @@ class BaseTask(ABC):
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument(
-            '--optim', type=str, default='adam',
+            '--optim', type=str, default='adadelta',
             choices=cls.optimizer_choices(), help='The optimizer type')
         group.add_argument(
             '--optim_conf', action=NestedDictAction, default=dict())
@@ -176,14 +199,16 @@ class BaseTask(ABC):
             choices=cls.epoch_scheduler_choices(),
             help='The epoch-scheduler type')
         group.add_argument(
-            '--escheduler_conf', action=NestedDictAction, default=dict())
+            '--escheduler_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for the epoch scheduler')
 
         group.add_argument(
             '--bscheduler', type=str_or_none, default=None,
             choices=cls.batch_scheduler_choices(),
             help='The batch-scheduler-type')
         group.add_argument(
-            '--bscheduler_conf', action=NestedDictAction, default=dict())
+            '--bscheduler_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for the batch scheduler')
         return parser
 
     @classmethod
@@ -252,7 +277,8 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def optimizer_choices(cls) -> Tuple[str, ...]:
-        choices = ('Adam', 'SGD', 'Adadelta')
+        choices = ('Adam', 'SGD', 'Adadelta', 'Adagrad', 'AdamW',
+                   'Adamax', 'ASGD', 'LBFGS', 'RMSprop', 'Rprop')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         return choices
@@ -260,7 +286,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def get_optimizer_class(cls, name: str) -> Type[torch.optim.Optimizer]:
-        # Note(kamo): Don't use getattr or dynamic_import
+        # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'adam':
             return torch.optim.Adam
@@ -268,6 +294,20 @@ class BaseTask(ABC):
             return torch.optim.SGD
         elif name.lower() == 'adadelta':
             return torch.optim.Adadelta
+        elif name.lower() == 'adagrad':
+            return torch.optim.Adagrad
+        elif name.lower() == 'adaw':
+            return torch.optim.AdamW
+        elif name.lower() == 'adamax':
+            return torch.optim.Adamax
+        elif name.lower() == 'asgd':
+            return torch.optim.ASGD
+        elif name.lower() == 'lbfgs':
+            return torch.optim.LBFGS
+        elif name.lower() == 'rmsprop':
+            return torch.optim.RMSprop
+        elif name.lower() == 'rprop':
+            return torch.optim.Rprop
         else:
             raise RuntimeError(
                 f'--optim must be one of {cls.optimizer_choices()}: '
@@ -286,7 +326,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def get_epoch_scheduler_class(cls, name: str) -> Type[AbsEpochScheduler]:
-        """Schedulers control optim-parameters at the end of each epochs
+        """Schedulers change optim-parameters at the end of each epochs
 
         FIXME(kamo): EpochScheduler is confusing name.
 
@@ -301,7 +341,7 @@ class BaseTask(ABC):
             >>>     val = validate(...)
             >>>     scheduler.step(val)
         """
-        # Note(kamo): Don't use getattr or dynamic_import
+        # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'reducelronplateau':
             return torch.optim.lr_scheduler.ReduceLROnPlateau
@@ -332,7 +372,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def get_batch_scheduler_class(cls, name: str) -> Type[AbsBatchScheduler]:
-        """Schedulers control optim-parameters after every updating
+        """Schedulers change optim-parameters after every updating
 
         FIXME(kamo): BatchScheduler is confusing name.
 
@@ -342,7 +382,7 @@ class BaseTask(ABC):
             >>>         train_batch(...)
             >>>         scheduler.step()
         """
-        # Note(kamo): Don't use getattr or dynamic_import
+        # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'cycliclr':
             return torch.optim.lr_scheduler.CyclicLR
@@ -398,7 +438,8 @@ class BaseTask(ABC):
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=our_collate_fn, )
+                                collate_fn=our_collate_fn,
+                                num_workers = args.num_workers)
 
         # 3. Build eval-data-iterator
         eval_dataset = ESPNetDataset(
@@ -422,8 +463,6 @@ class BaseTask(ABC):
         if not isinstance(model, AbsESPNetModel):
             raise RuntimeError(
                 f'model must inherit AbsESPNetModel, but got {type(model)}')
-        if args.init is not None:
-            initialize(model, args.init)
 
         optimizer_class = cls.get_optimizer_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
@@ -458,6 +497,8 @@ class BaseTask(ABC):
 
         logging.info(f'Model:\n{model}')
         logging.info(f'Optimizer:\n{optimizer}')
+        logging.info(f'Epoch scheduler: {epoch_scheduler}')
+        logging.info(f'Batch scheduler: {batch_scheduler}')
         logging.info(f'Train Dataset: {train_dataset}')
         logging.info(f'Train BatchSampler: {train_batch_sampler}')
         logging.info(f'Eval Dataset: {eval_dataset}')
@@ -486,7 +527,6 @@ class BaseTask(ABC):
 
         reporter = Reporter()
 
-        # Note(kamo): Don't give "args" to load() and run() directly!!!
         # 9. Loads states from saved files
         cls.load(model=model, optimizer=optimizer,
                  reporter=reporter, output_path=output_path,
@@ -499,6 +539,8 @@ class BaseTask(ABC):
                  loc='cuda' if args.ngpu > 0 else 'cpu')
 
         # 10. Start training
+        if args.log_interval is None:
+            log_interval = max(len(train_batch_sampler) // 100, 30)
         cls.run(model=model,
                 optimizer=optimizer,
                 train_iter=train_iter,
@@ -513,9 +555,12 @@ class BaseTask(ABC):
                 patience=args.patience,
                 grad_noise=args.grad_noise,
                 accum_grad=args.accum_grad,
-                grad_clip_threshold=args.grad_clip_threshold,
-                log_interval=args.log_interval,
-                n_latest_history=args.n_latest_history)
+                grad_clip=args.grad_clip,
+                log_interval=log_interval,
+                n_latest_history=args.n_latest_history,
+                early_stopping_criterion=args.early_stopping_criterion,
+                best_model_criterion=args.best_model_criterion,
+                )
 
     @classmethod
     @typechecked
@@ -537,39 +582,36 @@ class BaseTask(ABC):
         # Find the latest epoch snapshot
         if resume_epoch == 'latest':
             resume_epoch = 0
-            for p in output_path.glob('*epoch.pt'):
+            for p in output_path.glob('*epoch'):
                 try:
                     n = int(p.stem.replace('epoch', ''))
                 except TypeError:
                     continue
                 if n > resume_epoch:
                     resume_epoch = n
-            # If not found any snapshots, then nothing is done
-            if resume_epoch == 0:
-                resume_epoch = None
+        # If not found any snapshots, then nothing is done
+        if resume_epoch == 0:
+            resume_epoch = None
 
         if resume_epoch is not None or resume_path is not None:
             if resume_path is None:
-                resume_path = output_path / f'{resume_epoch}epoch.pt'
+                resume_path = output_path / f'{resume_epoch}epoch'
                 logging.info(f'--resume_epoch {resume_epoch}: '
                              f'Loading from {resume_path}')
             else:
                 logging.info(f'--resume_path {resume_path}: '
                              f'Loading from {resume_path}')
 
-            resumed_dict = torch.load(resume_path, map_location=loc)
-            model.load_state_dict(resumed_dict['model'])
-            optimizer.load_state_dict(resumed_dict['optimizer'])
-            reporter.load_state_dict(resumed_dict['reporter'])
-            if batch_scheduler is not None:
-                batch_scheduler.load_state_dict(
-                    resumed_dict['batch_scheduler'])
-            if epoch_scheduler is not None:
-                epoch_scheduler.load_state_dict(
-                    resumed_dict['epoch_scheduler'])
+            for key, obj in [('model', model),
+                             ('optimizer', optimizer),
+                             ('reporter', reporter),
+                             ('epoch_scheduler', epoch_scheduler),
+                             ('batch_scheduler', batch_scheduler)]:
+                _st = torch.load(resume_path / f'{key}.pt', map_location=loc)
+                if obj is not None:
+                    obj.load_state_dict(_st)
 
-        # FIXME(kamo): Should this be done in Task.build_model()?
-        #  Maybe it's more clear and easy.
+        # FIXME(kamo): Should be done in Task.build_model()?
         # For distillation, fine-tuning, transfer learning, etc.
         if pretrain_path is not None:
             if pretrain_key is None:
@@ -619,31 +661,41 @@ class BaseTask(ABC):
             train_dtype: str = 'float32',
             grad_noise: bool = False,
             accum_grad: int = 1,
-            grad_clip_threshold: float = 0.05,
+            grad_clip: float = 5.,
             log_interval: int = 200,
             n_latest_history: int = 20,
+            early_stopping_criterion: Tuple[str, str, str] =
+            ('eval', 'loss', 'min'),
+            best_model_criterion: Sequence[Tuple[str, str, str]] =
+            (('eval', 'loss', 'min'), ('train', 'loss', 'min')),
             ) -> None:
 
         # Starting training process from here
-        start_epoch = reporter.get_epoch()
+        start_epoch = reporter.get_epoch() + 1
+        if start_epoch == max_epoch + 1:
+            logging.warning(f'The training has already reached at '
+                            f'max_epoch: {start_epoch}')
+
+        best_epoch_dict = {}
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f'{iepoch}epoch started')
 
             reporter.set_epoch(iepoch)
             # 1. Train and eval for one-epoch
             with reporter.start('train') as sub_reporter:
-                cls.train(model=model,
-                          optimizer=optimizer,
-                          iterator=train_iter,
-                          reporter=sub_reporter,
-                          scheduler=batch_scheduler,
-                          ngpu=ngpu,
-                          use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
-                          grad_noise=grad_noise,
-                          accum_grad=accum_grad,
-                          grad_clip_threshold=grad_clip_threshold,
-                          log_interval=log_interval,
-                          )
+                all_steps_are_invalid = cls.train(
+                    model=model,
+                    optimizer=optimizer,
+                    iterator=train_iter,
+                    reporter=sub_reporter,
+                    scheduler=batch_scheduler,
+                    ngpu=ngpu,
+                    use_apex=train_dtype in ('O0', 'O1', 'O2', 'O3'),
+                    grad_noise=grad_noise,
+                    accum_grad=accum_grad,
+                    grad_clip=grad_clip,
+                    log_interval=log_interval,
+                    )
             with reporter.start('eval') as sub_reporter:
                 cls.eval(model=model,
                          iterator=eval_iter,
@@ -661,52 +713,70 @@ class BaseTask(ABC):
                 else:
                     epoch_scheduler.step()
 
-            # 3. Save the snapshot
-            torch.save(
-                {'model': model.state_dict(),
-                 'optimizer': optimizer.state_dict(),
-                 'reporter': reporter.state_dict(),
-                 'epoch_scheduler': epoch_scheduler.state_dict()
-                 if epoch_scheduler is not None else None,
-                 'batch_scheduler': batch_scheduler.state_dict()
-                 if batch_scheduler is not None else None},
-                output_path / f'{iepoch}epoch.pt')
-            # Remove the snapshot files keeping n-latest model
-            for e in range(1, iepoch - n_latest_history + 1):
-                p = output_path / f'{e}epoch.pt'
-                if p.exists():
-                    p.unlink()
-
-            # 4. Saves the best model
-            for k, mode in [('loss', 'min'), ('acc', 'max')]:
-                _saved = None
-                if reporter.has_key('eval', k):
-                    best_epoch, _ = \
-                        reporter.best_epoch_and_value('eval', k, mode)
-                    if best_epoch == iepoch:
-                        if _saved is not None:
-                            # Creates sym links
-                            p = output_path / f'{k}.best.pt'
-                            p.symlink_to(_saved.name)
-                        else:
-                            _saved = output_path / f'{k}.best.pt'
-                            torch.save(model.state_dict(), _saved)
-
-            # 5. Report the results
+            # 3. Report the results
             reporter.logging()
             reporter.save_stats_plot(output_path / 'images')
 
-            # 6. Check early stopping
+            # 4. Save the snapshot
+            for key, obj in [('model', model),
+                             ('optimizer', optimizer),
+                             ('reporter', reporter),
+                             ('epoch_scheduler', epoch_scheduler),
+                             ('batch_scheduler', batch_scheduler),
+                             ]:
+                (output_path / f'{iepoch}epoch').mkdir(
+                    parents=True, exist_ok=True)
+                torch.save(obj.state_dict() if obj is not None else None,
+                           output_path / f'{iepoch}epoch' / f'{key}.pt')
+
+            # 5. Saves the best model
+            _improved = []
+            for _phase, k, _mode in best_model_criterion:
+                if reporter.has_key(_phase, k):
+                    best_epoch, _ = \
+                        reporter.best_epoch_and_value(_phase, k, _mode)
+                    best_epoch_dict[(_phase, k)] = best_epoch
+                    # Creates sym links if it's the best result
+                    if best_epoch == iepoch:
+                        p = output_path / f'{k}.best.pt'
+                        if p.exists():
+                            p.unlink()
+                        p.symlink_to(Path(f'{iepoch}epoch') / f'model.pt')
+                        _improved.append(f'{_phase}/{k}')
+            if len(_improved) == 0:
+                logging.info(f'There are no improvements in this epoch')
+            else:
+                logging.info(f'The best model has been updated: ' +
+                             ', '.join(_improved))
+
+            # 6. Remove the snapshot files keeping n-latest model
+            for e in range(1, iepoch - n_latest_history + 1):
+                p = output_path / f'{e}epoch'
+                if p.exists() and all(best_epoch_dict.get((ph, k)) != e
+                                      for ph, k, _ in best_model_criterion):
+                    shutil.rmtree(p)
+                    logging.info(f'The snapshot was removed: {p}')
+
+            # 7. If any updating has happened, stops the training
+            if all_steps_are_invalid:
+                logging.warning(f'All gradients for each steps are invalid '
+                                f'in this epoch. Something seems wrong. '
+                                f'This training was stopped at {iepoch}epoch')
+                break
+
+            # 8. Check early stopping
             if patience is not None:
-                best_epoch, _ = reporter.best_epoch_and_value(
-                    'eval',
-                    'acc' if reporter.has_key('eval', 'acc') else 'loss',
-                    'max' if reporter.has_key('eval', 'acc') else 'min')
+                _phase, _criterion, _mode = early_stopping_criterion
+                if not reporter.has_key(_phase, _criterion):
+                    raise RuntimeError(
+                        f'{_phase}/{_criterion} is not found in stats')
+                best_epoch, _ = \
+                    reporter.best_epoch_and_value(_phase, _criterion, _mode)
                 if iepoch - best_epoch > patience:
                     logging.info(
                         f'[Early stopping] The value has not been improved '
                         f'{iepoch - best_epoch} epochs continuously. '
-                        f'The training stopped at {iepoch}')
+                        f'The training was stopped at {iepoch}epoch')
                     break
 
         else:
@@ -724,15 +794,16 @@ class BaseTask(ABC):
               use_apex: bool = False,
               grad_noise: bool = False,
               accum_grad: int = 1,
-              grad_clip_threshold: float = 0.05,
+              grad_clip: float = 5.,
               log_interval: int = 200,
-              ) -> None:
+              ) -> bool:
         model.train()
+        all_steps_are_invalid = True
         for iiter, batch in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             if ngpu <= 1:
-                # Note(kamo): data_parallel also should work with ngpu=1,
+                # NOTE(kamo): data_parallel also should work with ngpu=1,
                 # but for debuggability it's better to keep this block.
                 loss, stats, weight = model(**batch)
             else:
@@ -744,10 +815,9 @@ class BaseTask(ABC):
                          if v is not None else None
                          for k, v in stats.items()}
                 weight = weight.sum()
-
-            if 'loss' not in stats and 'acc' not in stats:
-                # loss or acc is used for saving the best model and early-stop
-                raise RuntimeError(f'loss or acc must be in stats: {stats}')
+            if weight.dim() not in (0, 1):
+                raise RuntimeError(
+                    f'weight must be 0 or 1 dimension: {weight.dim()}')
 
             reporter.register(stats, weight)
 
@@ -765,12 +835,13 @@ class BaseTask(ABC):
 
             # compute the gradient norm to check if it is normal or not
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), grad_clip_threshold)
+                model.parameters(), grad_clip)
             if iiter % accum_grad == 0:
                 if not np.isfinite(grad_norm):
                     logging.warning(f'The grad norm is {grad_norm}. '
                                     f'Skipping updating the model.')
                 else:
+                    all_steps_are_invalid = False
                     optimizer.step()
                 optimizer.zero_grad()
                 if scheduler is not None:
@@ -778,6 +849,7 @@ class BaseTask(ABC):
 
             if iiter % log_interval == 0:
                 reporter.logging(nlatest=log_interval)
+        return all_steps_are_invalid
 
     @classmethod
     @typechecked
@@ -797,9 +869,5 @@ class BaseTask(ABC):
                          if v is not None else None
                          for k, v in stats.items()}
                 weight = weight.sum()
-
-            if 'loss' not in stats and 'acc' not in stats:
-                # loss or acc is used for saving the best model and early-stop
-                raise RuntimeError(f'loss or acc must be in stats: {stats}')
 
             reporter.register(stats, weight)

@@ -4,7 +4,7 @@ from typing import Tuple, Dict
 import torch
 
 
-class AbsESPNetModel(ABC, torch.nn.Module):
+class AbsESPNetModel(torch.nn.Module, ABC):
     """The common abstract class among each tasks
 
     "Model" is referred to as a class which inherits

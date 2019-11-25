@@ -1,21 +1,21 @@
 import random
-from typing import Union, Tuple, List
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.initialization import \
+    lecun_normal_init_parameters, set_forget_bias_to_one
+from espnet.nets.pytorch_backend.nets_utils import to_device, make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import initial_att
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 
 
 def build_attention_list(
-        eprojs,
-        dunits,
+        eprojs: int,
+        dunits: int,
         atype: str = 'location',
         num_att: int = 1,
         num_encs: int = 1,
@@ -73,32 +73,38 @@ def build_attention_list(
     return att_list
 
 
-class Decoder(torch.nn.Module, ScorerInterface):
+class Decoder(AbsDecoder):
     @typechecked
     def __init__(self,
                  odim: int,
-                 eprojs: int = 256,
+                 encoder_out_dim: int,
                  dtype: str = 'lstm',
                  dlayers: int = 1,
                  dunits: int = 320,
-                 char_list: Union[Tuple[str, ...], List[str]] = None,
-                 lsm_type: str = None,
-                 lsm_weight: float = 0.,
                  sampling_probability: float = 0.0,
                  dropout: float = 0.0,
                  context_residual: bool = False,
                  replace_sos: bool = False,
                  num_encs: int = 1,
-                 ignore_id: int = -1,
                  att_conf: dict = get_defaut_kwargs(build_attention_list)):
-        # FIXME(kamo): The parts of num_spk and num_encs need to be refactored.
-        #  Hmm... too dirty beyond saving.
+        # FIXME(kamo): The parts of num_spk should be refactored more more more
 
-        torch.nn.Module.__init__(self)
+        super().__init__()
+        eprojs = encoder_out_dim
         self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
         self.context_residual = context_residual
+        self.sos = odim - 1
+        self.eos = odim - 1
+        self.odim = odim
+        self.sampling_probability = sampling_probability
+        self.dropout = dropout
+        self.num_encs = num_encs
+
+        # for multilingual translation
+        self.replace_sos = replace_sos
+
         self.embed = torch.nn.Embedding(odim, dunits)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
@@ -116,36 +122,34 @@ class Decoder(torch.nn.Module, ScorerInterface):
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
-        self.ignore_id = ignore_id
 
         if context_residual:
             self.output = torch.nn.Linear(dunits + eprojs, odim)
         else:
             self.output = torch.nn.Linear(dunits, odim)
 
-        self.att_list = build_attention_list(eprojs=eprojs,
-                                             dunits=dunits,
-                                             **att_conf)
+        self.att_list = \
+            build_attention_list(eprojs=eprojs, dunits=dunits, **att_conf)
 
-        self.dunits = dunits
-        self.sos = odim - 1
-        self.eos = odim - 1
-        self.odim = odim
-        self.char_list = char_list
-        if lsm_type is not None:
-            raise NotImplementedError
-            self.labeldist = label_smoothing_dist(odim, lsm_type,
-                                                  transcript=train_json)
-        else:
-            self.labeldist = None
-        self.vlabeldist = None
-        self.lsm_weight = lsm_weight
-        self.sampling_probability = sampling_probability
-        self.dropout = dropout
-        self.num_encs = num_encs
+        self.init_like_chainer()
 
-        # for multilingual translation
-        self.replace_sos = replace_sos
+    def init_like_chainer(self):
+        """Initialize weight like chainer.
+
+        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
+        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
+        however, there are two exceptions as far as I know.
+        - EmbedID.W ~ Normal(0, 1)
+        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
+        """
+        lecun_normal_init_parameters(self)
+        # exceptions
+        # embed weight ~ Normal(0, 1)
+        self.embed.weight.data.normal_(0, 1)
+        # forget-bias = 1.0
+        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+        for l in range(len(self.decoder)):
+            set_forget_bias_to_one(self.decoder[l].bias_ih)
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
@@ -164,7 +168,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                     self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_in_pad, strm_idx=0):
+    def forward(self, hs_pad, hlens, ys_in_pad, ys_in_lens, strm_idx=0):
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
@@ -180,7 +184,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
         hlens = [list(map(int, hlens[idx])) for idx in range(self.num_encs)]
 
         # get dim, length info
-        batch = ys_in_pad.size(0)
         olength = ys_in_pad.size(1)
 
         # initialization
@@ -216,7 +219,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                                            self.dropout_dec[0](z_list[0]),
                                            att_w_list[idx])
                 hs_pad_han = torch.stack(att_c_list, dim=1)
-                hlens_han = [self.num_encs] * len(ys_in)
+                hlens_han = [self.num_encs] * len(ys_in_pad)
                 att_c, att_w_list[self.num_encs] = \
                     self.att_list[self.num_encs](hs_pad_han, hlens_han,
                                                  self.dropout_dec[0](z_list[0]),
@@ -237,10 +240,10 @@ class Decoder(torch.nn.Module, ScorerInterface):
             else:
                 z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, -1)
-        # compute loss
-        y_all = self.output(z_all)
-        return y_all
+        z_all = torch.stack(z_all, dim=1)
+        z_all = self.output(z_all)
+        z_all.masked_fill_(make_pad_mask(ys_in_lens, z_all, 1), 0,)
+        return z_all, ys_in_lens
 
     def init_state(self, x):
         # to support mutiple encoder asr mode, in single encoder mode,

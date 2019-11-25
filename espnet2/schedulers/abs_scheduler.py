@@ -44,6 +44,7 @@ class AbsValEpochScheduler(AbsBatchScheduler):
 # Note(kamo): Currently PyTorch doesn't provide the base class
 # to judge these classes.
 AbsValEpochScheduler.register(torch.optim.lr_scheduler.ReduceLROnPlateau)
+AbsEpochScheduler.register(torch.optim.lr_scheduler.ReduceLROnPlateau)
 AbsEpochScheduler.register(torch.optim.lr_scheduler.LambdaLR)
 AbsEpochScheduler.register(torch.optim.lr_scheduler.StepLR)
 AbsEpochScheduler.register(torch.optim.lr_scheduler.MultiStepLR)

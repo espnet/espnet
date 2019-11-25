@@ -3,7 +3,6 @@ import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-import humanfriendly
 from typeguard import typechecked
 
 from espnet2.lm.abs_lm import AbsLM
@@ -19,7 +18,7 @@ class LMTask(BaseTask):
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
-        # Note(kamo): Use '_' instead of '-' to avoid confusion
+        # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='Train launguage model',
@@ -29,7 +28,7 @@ class LMTask(BaseTask):
         BaseTask.add_arguments(parser)
         group = parser.add_argument_group(description='Task related')
 
-        # Note(kamo): add_arguments(..., required=True) can't be used
+        # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
         required += ['token_list']
@@ -97,7 +96,7 @@ class LMTask(BaseTask):
     @classmethod
     @typechecked
     def get_lm_class(cls, name: str) -> Type[AbsLM]:
-        # Note(kamo): Don't use getattr or dynamic_import
+        # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'seq_rnn':
             return SequentialRNNLM
@@ -128,7 +127,6 @@ class LMTask(BaseTask):
         lm = lm_class(vocab_size=vocab_size,
                       **args.lm_conf)
 
-        # Note(kamo): Don't give args to LanguageModel directly!
         # Assume the last-id is sos_and_eos
         model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1,
                               **args.model_conf)

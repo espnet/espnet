@@ -10,13 +10,13 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
 }
 help_message=$(cat << EOF
-$0 <text> <token_list> <output-dir>
+Usage: $0 <text> <token_list> <output-dir>
 
 Generate token, token_int and token_shape from text
 
 Options:
-    --mode (str): The tokenize level. Select either one of "bpe", "char" or "word".
-    --bpemodel (str): Give bpemodel with --mode bpe.
+    --type (str): The tokenize level. Select either one of "bpe", "char" or "word".
+    --bpemodel (str): Give bpemodel with --type bpe.
     --nlsyms: non-linguistic symbol list
     --oov (str): default is "<unk>"
 
@@ -24,7 +24,7 @@ EOF
 )
 SECONDS=0
 
-mode=bpe
+type=bpe
 bpemodel=
 nlsyms=
 
@@ -61,12 +61,12 @@ done
 
 mkdir -p "${dir}"
 
-# 0. token_mode
-echo "${mode}" > ${dir}/token_mode
+# 0. token_type
+echo "${type}" > ${dir}/token_type
 
 
 # 1. Prepare token
-if [ "${mode}" = bpe ]; then
+if [ "${type}" = bpe ]; then
     if [ ! -f "${bpemodel}" ]; then
         log "${help_message}"
         log "Error: No such file: '${bpemodel}'"
@@ -79,7 +79,7 @@ if [ "${mode}" = bpe ]; then
             > "${dir}"/token
 
 
-elif [ "${mode}" = char ]; then
+elif [ "${type}" = char ]; then
     trans_type=char
     # non-linguistic symbol list
 
@@ -93,12 +93,12 @@ elif [ "${mode}" = char ]; then
             --trans_type "${trans_type}" > "${dir}/token"
     fi
 
-elif [ "${mode}" = word ]; then
+elif [ "${type}" = word ]; then
     cp "${text}" "${dir}/token"
 
 else
     log "${help_message}"
-    log "Error: not supported --mode '${mode}'"
+    log "Error: not supported --type '${type}'"
     exit 1
 fi
 

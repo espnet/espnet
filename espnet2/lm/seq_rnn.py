@@ -1,5 +1,5 @@
 """Sequential implementation of Recurrent Neural Network Language Model."""
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -26,13 +26,6 @@ class SequentialRNNLM(AbsLM):
                  rnn_type: str = 'lstm',
                  ignore_id: int = 0,
                  ):
-        """Initialize class.
-
-        Args:
-            n_vocab (int): The size of the vocabulary
-            args (argparse.Namespace): configurations. see py:method:`add_arguments`
-
-        """
         super().__init__()
 
         ninp = unit
@@ -43,7 +36,8 @@ class SequentialRNNLM(AbsLM):
         self.encoder = nn.Embedding(vocab_size, ninp, padding_idx=ignore_id)
         if rnn_type in ['LSTM', 'GRU']:
             rnn_class = getattr(nn, rnn_type)
-            self.rnn = rnn_class(ninp, nhid, nlayers, dropout=dropout_rate)
+            self.rnn = rnn_class(ninp, nhid, nlayers, dropout=dropout_rate,
+                                 batch_first=True)
         else:
             try:
                 nonlinearity = {'RNN_TANH': 'tanh',
@@ -53,7 +47,7 @@ class SequentialRNNLM(AbsLM):
                     """An invalid option for `--model` was supplied,
                     options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
             self.rnn = nn.RNN(ninp, nhid, nlayers, nonlinearity=nonlinearity,
-                              dropout=dropout_rate)
+                              dropout=dropout_rate, batch_first=True)
         self.decoder = nn.Linear(nhid, vocab_size)
 
         # Optionally tie weights as in:
@@ -72,14 +66,26 @@ class SequentialRNNLM(AbsLM):
         self.rnn_type = rnn_type
         self.nhid = nhid
         self.nlayers = nlayers
+        self._init_weights()
+
+    def _init_weights(self):
+        # NOTE: original init in pytorch/examples
+        # initrange = 0.1
+        # self.encoder.weight.data.uniform_(-initrange, initrange)
+        # self.decoder.bias.data.zero_()
+        # self.decoder.weight.data.uniform_(-initrange, initrange)
+        # NOTE: our default.py:RNNLM init
+        for param in self.parameters():
+            param.data.uniform_(-0.1, 0.1)
 
     def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
-        decoded = self.decoder(output.view(output.size(0) * output.size(1),
-                                           output.size(2)))
+        decoded = self.decoder(
+            output.contiguous().view(output.size(0) * output.size(1),
+                                     output.size(2)))
         return decoded.view(output.size(0), output.size(1),
                             decoded.size(1)), hidden
 
@@ -100,16 +106,20 @@ class SequentialRNNLM(AbsLM):
         else:
             return weight.new_zeros(self.nlayers, bsz, self.nhid)
 
-    def score(self, y, state, x):
+    def score(self, y: torch.Tensor,
+              state: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
+              x: torch.Tensor) \
+            -> Tuple[torch.Tensor, Union[torch.Tensor,
+                                         Tuple[torch.Tensor, torch.Tensor]]]:
         """Score new token.
 
         Args:
-            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            y: 1D torch.int64 prefix tokens.
             state: Scorer state for prefix tokens
-            x (torch.Tensor): 2D encoder feature that generates ys.
+            x: 2D encoder feature that generates ys.
 
         Returns:
-            tuple[torch.Tensor, Any]: Tuple of
+            Tuple of
                 torch.float32 scores for next token (n_vocab)
                 and next state for ys
 

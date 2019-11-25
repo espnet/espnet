@@ -1,11 +1,11 @@
 import copy
 from typing import Optional, Tuple
 
+import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.feature_transform import \
-    FeatureTransform
+from espnet.nets.pytorch_backend.frontends.feature_transform import LogMel
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.stft import Stft
@@ -21,14 +21,14 @@ class DefaultFrontend(AbsFrontend):
         self,
         stft_conf: dict = get_defaut_kwargs(Stft),
         frontend_conf: Optional[dict] = get_defaut_kwargs(Frontend),
-        feature_transform_conf: dict = get_defaut_kwargs(FeatureTransform)
+        logmel_fbank_conf: dict = get_defaut_kwargs(LogMel),
     ):
         super().__init__()
 
         # Deepcopy (In general, dict shouldn't be used as default arg)
         stft_conf = copy.deepcopy(stft_conf)
         frontend_conf = copy.deepcopy(frontend_conf)
-        feature_transform_conf = copy.deepcopy(feature_transform_conf)
+        logmel_fbank_conf = copy.deepcopy(logmel_fbank_conf)
 
         self.stft = Stft(**stft_conf)
         if frontend_conf is not None:
@@ -36,8 +36,11 @@ class DefaultFrontend(AbsFrontend):
         else:
             self.frontend = None
 
-        self.feature_transform = \
-            FeatureTransform(**feature_transform_conf)
+        self.logmel = LogMel(**logmel_fbank_conf)
+        self.n_mels = logmel_fbank_conf['n_mels']
+
+    def out_dim(self) -> int:
+        return self.n_mels
 
     def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
@@ -50,8 +53,7 @@ class DefaultFrontend(AbsFrontend):
 
         # Change torch.Tensor to ComplexTensor
         # input_stft: (..., F, T, 2) -> (..., F, T)
-        input_stft = \
-            ComplexTensor(input_stft[..., 0], input_stft[..., 1])
+        input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
         # input_stft: (..., F, T) -> (..., T, F)
         input_stft = input_stft.transpose(-1, -2)
 
@@ -61,9 +63,24 @@ class DefaultFrontend(AbsFrontend):
             # input_stft: (Batch, [Channel,] Length, Freq)
             input_stft, _, mask = self.frontend(input_stft, feats_lens)
 
-        # 3. Feature transform e.g. Stft -> Mel-Fbank
-        # input_stft: (Batch, [Channel,] Length, Freq)
+        # 3. [Multi channel case]: Select a channel
+        if input_stft.dim() == 4:
+            # h: (B, T, C, F) -> h: (B, T, F)
+            if self.training:
+                # Select 1ch randomly
+                ch = np.random.randint(x.size(2))
+                input_stft = input_stft[:, :, ch, :]
+            else:
+                # Use the first channel
+                input_stft = input_stft[:, :, 0, :]
+
+        # 4. STFT -> Power spectrum
+        # h: ComplexTensor(B, T, F) -> torch.Tensor(B, T, F)
+        input_power = input_stft.real ** 2 + input_stft.imag ** 2
+
+        # 5. Feature transform e.g. Stft -> Log-Mel-Fbank
+        # input_power: (Batch, [Channel,] Length, Freq)
         #       -> input_feats: (Batch, Length, Dim)
-        input_feats, _ = self.feature_transform(input_stft, feats_lens)
+        input_feats, _ = self.logmel(input_power, feats_lens)
 
         return input_feats, feats_lens
