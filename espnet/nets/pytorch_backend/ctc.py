@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -15,10 +17,7 @@ class CTC(torch.nn.Module):
     :param bool reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim,
-                 eprojs=256,
-                 dropout_rate=0.,
-                 ctc_type='warpctc', reduce=True):
+    def __init__(self, odim, eprojs, dropout_rate, ctc_type='warpctc', reduce=True):
         super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -76,6 +75,10 @@ class CTC(torch.nn.Module):
         # zero padding for ys
         ys_true = torch.cat(ys).cpu().int()  # batch x olen
 
+        # get length info
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(hlens).split('\n')))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + ''.join(str(olens).split('\n')))
+
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         dtype = ys_hat.dtype
@@ -91,6 +94,7 @@ class CTC(torch.nn.Module):
             # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
             # but builtin return as tensor w/o shape (scalar).
             self.loss = self.loss.sum()
+            logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
 
