@@ -111,7 +111,8 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) for arr in batch)
+                x = tuple(arr.to(self.device) if arr is not None else None
+                          for arr in batch)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -165,10 +166,11 @@ class CustomUpdater(StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) for arr in batch)
+        x = tuple(arr.to(self.device) if arr is not None else None
+                  for arr in batch)
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -266,8 +268,8 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
-        # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+        # NOTE: this is for multi-output (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0][:]) if isinstance(y, tuple) else y).long()
                            for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
