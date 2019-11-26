@@ -23,7 +23,8 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, NestedDictAction, str_or_none
+from espnet2.utils.types import str2triple_str, str_or_none
+from espnet2.utils.nested_dict_action import NestedDictAction
 
 
 @typechecked

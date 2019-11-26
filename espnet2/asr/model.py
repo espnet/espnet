@@ -7,6 +7,8 @@ from typeguard import typechecked
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet2.asr.ctc import CTC
@@ -41,7 +43,6 @@ class ASRModel(AbsESPNetModel):
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
-        # TODO(kamo): Implement Interface class for encoder-decoder
         assert 0. <= ctc_weight <= 1., ctc_weight
         assert rnnt_decoder is None, 'Not implemented'
 

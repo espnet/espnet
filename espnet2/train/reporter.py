@@ -227,6 +227,12 @@ class Reporter:
 
     def best_epoch_and_value(self, key: str, key2: str, mode: str) \
             -> Tuple[Optional[int], Optional[float]]:
+        """Return the epoch which resulted the best value
+        
+        Example:
+            >>> ep, v = reporter.best_epoch_and_value('eval', 'loss', 'min')
+        
+        """
         if mode not in ('min', 'max'):
             raise ValueError(f'mode must min or max: {mode}')
 

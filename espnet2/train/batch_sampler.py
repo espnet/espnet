@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, List, Iterator, Optional, Sequence
+from typing import Union, Tuple, List, Iterator, Optional, Sequence, Iterable
 
 import numpy as np
 from torch.utils.data import Sampler
@@ -67,7 +67,11 @@ def create_batch_sampler(
         raise RuntimeError(f'Not supported: {type}')
 
 
-class AbsSampler(ABC, Sampler):
+class AbsSampler(Sampler, ABC):
+    @abstractmethod
+    def get_batch_list(self) -> List[Tuple[str, ...]]:
+        raise NotImplementedError
+
     @abstractmethod
     def __len__(self):
         raise NotImplementedError
@@ -75,6 +79,34 @@ class AbsSampler(ABC, Sampler):
     @abstractmethod
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
         raise NotImplementedError
+
+
+class SubsetSampler(AbsSampler):
+    @typechecked
+    def __init__(self, sampler: AbsSampler,
+                 indices_or_nsamples: Union[int, Iterable[int]]):
+        self.sampler = sampler
+        batch_list = self.sampler.get_batch_list()
+        if isinstance(indices_or_nsamples, int):
+            indices_or_nsamples = range(indices_or_nsamples)
+
+        self.batch_list = [batch_list[idx] for idx in indices_or_nsamples
+                           if idx < len(batch_list)]
+
+    def get_batch_list(self) -> List[Tuple[str, ...]]:
+        return self.batch_list
+
+    def __len__(self):
+        return len(self.batch_list)
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'N-batch={len(self)}, '
+                f'org_sampler={self.sampler})')
+
+    def __iter__(self) -> Iterator[Tuple[str, ...]]:
+        for batch in self.batch_list:
+            yield batch
 
 
 class ConstantSortedBatchSampler(AbsSampler):
@@ -134,6 +166,9 @@ class ConstantSortedBatchSampler(AbsSampler):
                         f'descending: {sort_batch}')
                 self.batch_list.reverse()
 
+    def get_batch_list(self) -> List[Tuple[str, ...]]:
+        return self.batch_list
+
     def __repr__(self):
         return (f'{self.__class__.__name__}('
                 f'N-batch={len(self)}, '
@@ -188,6 +223,9 @@ class ConstantBatchSampler(AbsSampler):
 
         if self.shuffle:
             np.random.shuffle(self.batch_list)
+
+    def get_batch_list(self) -> List[Tuple[str, ...]]:
+        return self.batch_list
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
@@ -267,6 +305,9 @@ class SequenceBatchSampler(AbsSampler):
             else:
                 raise ValueError(f'sort_batch must be ascending or '
                                  f'descending: {sort_batch}')
+
+    def get_batch_list(self):
+        return self.batch_list
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
