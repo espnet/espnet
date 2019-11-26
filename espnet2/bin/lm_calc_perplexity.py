@@ -9,9 +9,10 @@ from typing import Sequence, Optional, Union, Dict, Tuple
 import configargparse
 import numpy as np
 import torch
-import yaml
+from torch.nn.parallel import data_parallel
 from torch.utils.data.dataloader import DataLoader
 from typeguard import typechecked
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
@@ -19,8 +20,24 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, NestedDictAction, str_or_none, \
-    float_or_none
+from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
+from espnet2.utils.nested_dict_action import NestedDictAction
+
+
+class ModuleWrapper(torch.nn.Module):
+    """Wrapped module to parallelize specified method
+
+    torch.nn.DataParallel parallelizes only "forward()"
+    and, maybe, the method having the other name can't be applied
+    except for wrapping the module just like this class.
+
+    """
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, *args, **kwargs):
+        return self.module.nll(*args, **kwargs)
 
 
 @typechecked
@@ -39,9 +56,6 @@ def calc_perplexity(
         model_file: Optional[str],
         log_base: Optional[float],
         ):
-    if ngpu > 1:
-        raise NotImplementedError('only single GPU decoding is supported')
-
     logging.basicConfig(
         level=log_level,
         format=
@@ -63,7 +77,8 @@ def calc_perplexity(
     lm_train_args = argparse.Namespace(**lm_train_args)
     lm = LMTask.build_model(lm_train_args)
     lm.load_state_dict(torch.load(model_file, map_location=device))
-    lm.to(device=device, dtype=getattr(torch, dtype)).eval()
+    wrapped_lm = ModuleWrapper(lm)
+    wrapped_lm.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
     dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
@@ -73,6 +88,8 @@ def calc_perplexity(
 
     batch_sampler = ConstantBatchSampler(
         batch_size=batch_size, key_file=key_file, shuffle=False)
+
+    logging.info(f'Model:\n{lm}')
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
@@ -90,7 +107,14 @@ def calc_perplexity(
 
             with torch.no_grad():
                 batch = to_device(batch, device)
-                nll, lengths = lm.nll(**batch)
+                if ngpu <= 1:
+                    # NOTE(kamo): data_parallel also should work with ngpu=1,
+                    # but for debuggability it's better to keep this block.
+                    nll, lengths = wrapped_lm(**batch)
+                else:
+                    nll, lengths = data_parallel(wrapped_lm, (), range(ngpu),
+                                                 module_kwargs=batch)
+
             assert _bs == len(nll) == len(lengths), \
                 (_bs, len(nll), len(lengths))
             # nll: (B, L) -> (B,)
@@ -153,7 +177,8 @@ def get_parser():
     parser.add_argument('--num_workers', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=30)
     parser.add_argument('--log_base', type=float_or_none, default=None,
-                        help='The base of logarithm for Perplexity')
+                        help="The base of logarithm for Perplexity. "
+                             "If None, napier's constant is used.")
 
     group = parser.add_argument_group('Input data related')
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,

@@ -353,7 +353,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --ngpu "${ngpu}" \
             --data_path_and_name_and_type "${data_lm}/test/token_int,input,text_int" \
             --train_config "${lm_exp}"/config.yaml \
-            --model_file "${lm_exp}"/loss.best.pt \
+            --model_file "${lm_exp}"/eval.loss.best.pt \
             --output_dir "${lm_exp}/perplexity_test" \
             ${_opts}
     log "PPL: ${data_lm}/test: $(cat ${lm_exp}/perplexity_test/ppl)"
@@ -439,10 +439,10 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         _opts+="--preprosess input=${asr_preprocess_config} "
     fi
 
-    if [ -f "${asr_exp}"/acc.best.pt ]; then
-        _asr_model_file="${asr_exp}"/acc.best.pt
+    if [ -f "${asr_exp}"/eval.acc.best.pt ]; then
+        _asr_model_file="${asr_exp}"/eval.acc.best.pt
     else
-        _asr_model_file="${asr_exp}"/loss.best.pt
+        _asr_model_file="${asr_exp}"/eval.loss.best.pt
     fi
 
     for dset in ${eval_sets}; do

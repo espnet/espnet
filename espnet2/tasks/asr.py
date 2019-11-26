@@ -16,7 +16,8 @@ from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, NestedDictAction, int_or_none
+from espnet2.utils.types import str_or_none, int_or_none
+from espnet2.utils.nested_dict_action import NestedDictAction
 
 
 class ASRTask(BaseTask):
@@ -60,7 +61,7 @@ class ASRTask(BaseTask):
             help='The keyword arguments for normalization class.')
 
         group.add_argument(
-            '--encoder_decoder', type=str, default='rnn',
+            '--encoder_decoder', type=str, default='transformer',
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(

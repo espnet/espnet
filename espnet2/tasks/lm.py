@@ -10,7 +10,8 @@ from espnet2.lm.model import LanguageModel
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import BaseTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, NestedDictAction
+from espnet2.utils.types import str_or_none
+from espnet2.utils.nested_dict_action import NestedDictAction
 
 
 class LMTask(BaseTask):
