@@ -165,12 +165,14 @@ class CustomUpdater(StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
+        epoch = train_iter.epoch
 
         # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
         x = tuple(arr.to(self.device) if arr is not None else None
                   for arr in batch)
+        is_new_epoch = train_iter.epoch != epoch
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -194,7 +196,7 @@ class CustomUpdater(StandardUpdater):
 
         # update parameters
         self.forward_count += 1
-        if self.forward_count != self.accum_grad:
+        if not is_new_epoch and self.forward_count != self.accum_grad:
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
