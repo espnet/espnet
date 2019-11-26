@@ -9,8 +9,10 @@ dunits: 2048
 adim: 256
 aheads: 4
 
-# hybrid CTC/attention
-mtlalpha: 0.0  # this must be 0.0
+# multitask
+mtlalpha: 0.0
+asr-weight: 0.0
+mt-weight: 0.0
 
 # label smoothing
 lsm-weight: 0.1
@@ -31,7 +33,7 @@ dropout-rate: 0.1
 
 # transformer specific setting
 backend: pytorch
-model-module: "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E"
+model-module: "espnet.nets.pytorch_backend.e2e_st_transformer:E2E"
 transformer-input-layer: conv2d     # encoder architecture type
 transformer-lr: 2.5
 transformer-warmup-steps: 25000

@@ -355,7 +355,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.mtlalpha == 1:
             self.loss_att, acc = None, None
         else:
-            self.loss_att, acc, _ = self.dec(hs_pad_list, hlens_list, ys_pad, tgt_lang_ids=tgt_lang_ids)
+            self.loss_att, acc, _ = self.dec(hs_pad_list, hlens_list, ys_pad, lang_ids=tgt_lang_ids)
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -406,7 +406,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 hs_pad_list, hlens_list, lpz_list,
                 self.recog_args, self.char_list,
                 self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+                lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -593,6 +593,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 hlens_list.append(hlens)
 
             # 2. Decoder
-            att_ws = self.dec.calculate_all_attentions(hs_pad_list, hlens_list, ys_pad, tgt_lang_ids=tgt_lang_ids)
+            att_ws = self.dec.calculate_all_attentions(hs_pad_list, hlens_list, ys_pad, lang_ids=tgt_lang_ids)
 
         return att_ws
