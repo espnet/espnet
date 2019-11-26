@@ -19,42 +19,31 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
     """Verify tuples (key, shape) for input model modules match specified modules.
 
     Args:
-        model_state_dict (odict): the initial model state_dict
-        partial_state_dict (odict): the trained model state_dict
+        model_state_dict (OrderedDict): the initial model state_dict
+        partial_state_dict (OrderedDict): the trained model state_dict
         modules (list): specified module list for transfer
 
     Return:
         (boolean): allow transfer
 
     """
-    modules_model = []
     partial_modules = []
-
     for key_p, value_p in partial_state_dict.items():
         if any(key_p.startswith(m) for m in modules):
-            partial_modules += [(key_p, value_p.shape)]
-
-    for key_m, value_m in model_state_dict.items():
-        if any(key_m.startswith(m) for m in modules):
-            modules_model += [(key_m, value_m.shape)]
-
-    len_match = (len(modules_model) == len(partial_modules))
-
-    module_match = (sorted(modules_model, key=lambda x: (x[0], x[1])) ==
-                    sorted(partial_modules, key=lambda x: (x[0], x[1])))
-
-    return len_match and module_match
+            if value_p.shape == model_state_dict[key_p].shape:
+                partial_modules += [(key_p, value_p.shape)]
+    return len(partial_modules) > 0
 
 
 def get_partial_asr_mt_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
 
     Args:
-        model_state_dict (odict): trained model state_dict
+        model_state_dict (OrderedDict): trained model state_dict
         modules (list): specified module list for transfer
 
     Return:
-        new_state_dict (odict): the updated state_dict
+        new_state_dict (OrderedDict): the updated state_dict
 
     """
     new_state_dict = OrderedDict()
@@ -72,11 +61,11 @@ def get_partial_lm_state_dict(model_state_dict, modules):
     The keys for specified modules are modified to match ASR decoder modules keys.
 
     Args:
-        model_state_dict (odict): trained model state_dict
+        model_state_dict (OrderedDict): trained model state_dict
         modules (list): specified module list for transfer
 
     Return:
-        new_state_dict (odict): the updated state_dict
+        new_state_dict (OrderedDict): the updated state_dict
         new_mods (list): the updated module list
 
     """
@@ -84,13 +73,11 @@ def get_partial_lm_state_dict(model_state_dict, modules):
     new_modules = []
 
     for key, value in list(model_state_dict.items()):
-        if key == "predictor.embed.weight" \
-           and "predictor.embed." in modules:
+        if key == "predictor.embed.weight" and "predictor.embed." in modules:
             new_key = "dec.embed.weight"
             new_state_dict[new_key] = value
             new_modules += [new_key]
-        elif "predictor.rnn." in key \
-             and "predictor.rnn." in modules:
+        elif "predictor.rnn." in key and "predictor.rnn." in modules:
             new_key = "dec.decoder." + key.split("predictor.rnn.", 1)[1]
             new_state_dict[new_key] = value
             new_modules += [new_key]
@@ -102,7 +89,7 @@ def filter_modules(model_state_dict, modules):
     """Filter non-matched modules in module_state_dict.
 
     Args:
-        model_state_dict (odict): trained model state_dict
+        model_state_dict (OrderedDict): trained model state_dict
         modules (list): specified module list for transfer
 
     Return:
@@ -132,7 +119,7 @@ def load_trained_model(model_path):
     """Load the trained model for recognition.
 
     Args:
-        model_path(str): Path to model.***.best
+        model_path (str): Path to model.***.best
 
     """
     idim, odim, train_args = get_model_conf(
@@ -146,6 +133,7 @@ def load_trained_model(model_path):
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
+
     torch_load(model_path, model)
 
     return model, train_args
@@ -158,7 +146,7 @@ def get_trained_model_state_dict(model_path):
         model_path (str): Path to model.***.best
 
     Return:
-        model.state_dict() (odict): the loaded model state_dict
+        model.state_dict() (OrderedDict): the loaded model state_dict
         (str): Type of model. Either ASR/MT or LM.
 
     """
@@ -191,7 +179,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
     Args:
         idim (int): initial input dimension.
         odim (int): initial output dimension.
-        args (namespace): The initial model arguments.
+        args (Namespace): The initial model arguments.
         interface (Interface): ASRInterface or STInterface
 
     Return:
@@ -221,13 +209,16 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
                     partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
                 else:
                     partial_state_dict = get_partial_asr_mt_state_dict(model_state_dict, modules)
-                if partial_state_dict:
-                    if transfer_verification(main_state_dict, partial_state_dict, modules):
-                        logging.warning('loading %s from model: %s', modules, model_path)
-                        main_state_dict.update(partial_state_dict)
-                    else:
-                        logging.warning('modules %s in model %s don\'t match your training config',
-                                        modules, model_path)
+
+                    if partial_state_dict:
+                        if transfer_verification(main_state_dict, partial_state_dict, modules):
+                            logging.warning('loading %s from model: %s', modules, model_path)
+                            for k in partial_state_dict.keys():
+                                logging.warning('override %s' % k)
+                            main_state_dict.update(partial_state_dict)
+                        else:
+                            logging.warning('modules %s in model %s don\'t match your training config',
+                                            modules, model_path)
             else:
                 logging.warning('model was not found : %s', model_path)
 
