@@ -173,6 +173,10 @@ class CustomUpdater(StandardUpdater):
         x = tuple(arr.to(self.device) if arr is not None else None
                   for arr in batch)
         is_new_epoch = train_iter.epoch != epoch
+        # When the last minibatch in the current epoch is given,
+        # gradient accumulation is turned off in order to evaluate the model
+        # on the validation set in every epoch.
+        # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
