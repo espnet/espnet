@@ -1,9 +1,11 @@
 import copy
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
+import humanfriendly
 import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.frontends.feature_transform import LogMel
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
@@ -11,33 +13,47 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 
+_stft_conf = get_defaut_kwargs(Stft)
+_stft_conf.pop('n_fft')
+
+_logmel_kwargs = get_defaut_kwargs(LogMel)
+_logmel_kwargs.pop('fs')
+_logmel_kwargs.pop('n_fft')
+
 
 class DefaultFrontend(AbsFrontend):
     """Conventional frontend structure for ASR
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
+
+    @typechecked
     def __init__(
         self,
-        stft_conf: dict = get_defaut_kwargs(Stft),
+        fs: Union[int, str] = 16000,
+        n_fft: int = 512,
+        stft_conf: dict = _stft_conf.copy(),
         frontend_conf: Optional[dict] = get_defaut_kwargs(Frontend),
-        logmel_fbank_conf: dict = get_defaut_kwargs(LogMel),
+        logmel_fbank_conf: dict = _logmel_kwargs.copy(),
     ):
         super().__init__()
+        if isinstance(fs, str):
+            fs = humanfriendly.parse_size(fs)
 
         # Deepcopy (In general, dict shouldn't be used as default arg)
         stft_conf = copy.deepcopy(stft_conf)
         frontend_conf = copy.deepcopy(frontend_conf)
         logmel_fbank_conf = copy.deepcopy(logmel_fbank_conf)
 
-        self.stft = Stft(**stft_conf)
+        self.stft = Stft(n_fft=n_fft, **stft_conf)
         if frontend_conf is not None:
-            self.frontend = Frontend(**frontend_conf)
+            self.frontend = Frontend(idim=n_fft, **frontend_conf)
         else:
             self.frontend = None
 
-        self.logmel = LogMel(**logmel_fbank_conf)
-        self.n_mels = logmel_fbank_conf['n_mels']
+        self.logmel = LogMel(fs=fs, n_fft=n_fft, **logmel_fbank_conf)
+        self.n_mels = logmel_fbank_conf.get(
+            'n_mels', get_defaut_kwargs(LogMel).get('n_mels'))
 
     def out_dim(self) -> int:
         return self.n_mels

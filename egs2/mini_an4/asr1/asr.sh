@@ -72,6 +72,14 @@ asr_preprocess_config=
 
 decode_tag=
 decode_config=
+decode_asr_model=eval.loss.best.pt
+decode_lm=eval.loss.best.pt
+# e.g.
+# decode_asr_model=train.loss.best.pt
+# decode_asr_model=3epoch/model.pt
+# decode_asr_model=eval.acc.best.pt
+# decode_asr_model=eval.loss.ave.pt
+
 
 # [Task depented] Set the datadir name created by local/data.sh
 train_set=
@@ -203,13 +211,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
                 "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/logs"
 
-            # # TODO(kamo): Parallelize?
-            # 4. Compute global cmvn stats.
-            pyscripts/feats/compute-cmvn-stats.py --out-filetype npy \
-                scp:"${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/cmvn.npy"
-
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
+        # 4. Compute global cmvn stats.
+        # TODO(kamo): Parallelize?
+        pyscripts/feats/compute-cmvn-stats.py --out-filetype npy \
+            scp:"cat ${data_feats}/${train_set}/feats.scp ${data_feats}/${dev_set}/feats.scp |" \
+            "${data_feats}/${train_set}/cmvn.npy"
 
     elif [ "${feats_type}" = fbank ]; then
         log "stage 2: Extract feature: --feats_type=${feats_type}"
@@ -289,19 +297,19 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                 cp "${data_feats}/${dset}/${f}" "${data_asr}/${dset}/${f}"
         done
 
-        scripts/asr/prepare_token.sh \
+        scripts/text/prepare_token.sh \
             --type "${token_type}" --bpemodel "${bpemodel}" \
                 "${data_feats}/${dset}/text" "${token_list}" "${data_asr}/${dset}"
     done
 
     # Prepares tokens for LM training
-    scripts/asr/prepare_token.sh \
+    scripts/text/prepare_token.sh \
         --type "${lm_token_type}" --bpemodel "${bpemodel}" \
             "${lm_train_text}" "${token_list}" "${data_lm}"/train
-    scripts/asr/prepare_token.sh \
+    scripts/text/prepare_token.sh \
         --type "${lm_token_type}" --bpemodel "${bpemodel}" \
             "${lm_dev_text}" "${token_list}" "${data_lm}"/dev
-    scripts/asr/prepare_token.sh \
+    scripts/text/prepare_token.sh \
         --type "${lm_token_type}" --bpemodel "${bpemodel}" \
             "${lm_test_text}" "${token_list}" "${data_lm}"/test
 fi
@@ -347,6 +355,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     if [ -n "${lm_preprocess_config}" ]; then
         _opts+="--preprosess input=${lm_preprocess_config} "
     fi
+    # TODO(kamo): Parallelize?
     log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
         python3 -m espnet2.bin.lm_calc_perplexity \
@@ -368,15 +377,15 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "stage 7: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
-    if [ -n "${asr_config}" ]; then
-        # To generate the config file: e.g.
-        #   % python -m espnet2.bin.asr_train --print_config --optimizer adam --encoder_decoder transformer
-        _opts+="--config ${asr_config} "
-    fi
     if [ -n "${asr_preprocess_config}" ]; then
         # syntax: --train_preprosess {key}={yaml file or yaml string}
         _opts+="--train_preprosess input=${asr_preprocess_config} "
         _opts+="--eval_preprosess input=${asr_preprocess_config} "
+    fi
+    if [ -n "${asr_config}" ]; then
+        # To generate the config file: e.g.
+        #   % python -m espnet2.bin.asr_train --print_config --optimizer adam --encoder_decoder transformer
+        _opts+="--config ${asr_config} "
     fi
 
     _feats_type="$(<${_asr_train_dir}/feats_type)"
@@ -386,6 +395,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # "sound" supports "wav", "flac", etc.
         _type=sound
         _max_length=80000
+        _opts+="--frontend_conf fs=${fs} "
     else
         _scp=feats.scp
         _shape=feats_shape
@@ -393,6 +403,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _max_length=800
         _idim="$(<${_asr_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
         _opts+="--idim=${_idim} "
+
+        # Default normalization is utterance_mvn and changes to global_mvn
+        _opts+="--normalize=global_mvn --normalize_conf stats_file=${_asr_train_dir}/cmvn.npy"
     fi
 
 
@@ -432,22 +445,16 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     fi
 
     _opts=
-    if [ -n "${decode_config}" ]; then
-        _opts+="--config ${decode_config} "
-    fi
     if [ -n "${asr_preprocess_config}" ]; then
         _opts+="--preprosess input=${asr_preprocess_config} "
     fi
-
-    if [ -f "${asr_exp}"/eval.acc.best.pt ]; then
-        _asr_model_file="${asr_exp}"/eval.acc.best.pt
-    else
-        _asr_model_file="${asr_exp}"/eval.loss.best.pt
+    if [ -n "${decode_config}" ]; then
+        _opts+="--config ${decode_config} "
     fi
 
     for dset in ${eval_sets}; do
         _data="${data_asr}/${dset}"
-        _dir="${asr_exp}/decode_${dset}"
+        _dir="${asr_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -478,9 +485,9 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
                 --data_path_and_name_and_type "${_data}/${_scp},input,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
-                --asr_model_file "${_asr_model_file}" \
+                --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
                 --lm_train_config "${lm_exp}"/config.yaml \
-                --lm_file "${lm_exp}"/loss.best.pt \
+                --lm_file "${lm_exp}"/"${decode_lm}" \
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts}
 

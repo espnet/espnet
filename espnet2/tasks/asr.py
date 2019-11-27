@@ -14,13 +14,13 @@ from espnet2.asr.model import ASRModel
 from espnet2.asr.normalize.abs_normalization import AbsNormalization
 from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
-from espnet2.tasks.base_task import BaseTask
+from espnet2.tasks.base_task import AbsTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import str_or_none, int_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
 
 
-class ASRTask(BaseTask):
+class ASRTask(AbsTask):
     @classmethod
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
@@ -32,7 +32,7 @@ class ASRTask(BaseTask):
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
-        BaseTask.add_arguments(parser)
+        AbsTask.add_arguments(parser)
         group = parser.add_argument_group(description='Task related')
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -82,8 +82,8 @@ class ASRTask(BaseTask):
     @classmethod
     @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
-        # Append the options not to be shown
-        return () + BaseTask.exclude_opts()
+        """The options not to be shown by --print_config"""
+        return AbsTask.exclude_opts()
 
     @classmethod
     @typechecked
@@ -120,7 +120,7 @@ class ASRTask(BaseTask):
         config = vars(args)
 
         # 3. Update the dict using the inherited configuration from BaseTask
-        config.update(BaseTask.get_default_config())
+        config.update(AbsTask.get_default_config())
 
         # 4. Overwrite the default config by the command-arguments
         frontend_conf.update(config['frontend_conf'])

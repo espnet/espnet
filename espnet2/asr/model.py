@@ -7,8 +7,6 @@ from typeguard import typechecked
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss \
     import LabelSmoothingLoss
 from espnet2.asr.ctc import CTC
@@ -120,7 +118,7 @@ class ASRModel(AbsESPNetModel):
             loss_ctc, cer_ctc = self._calc_ctc_loss(
                 encoder_out, encoder_out_lens, output, output_lengths)
 
-        # 2c. RNN-T branch (Is it possible?)
+        # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
             _ = self._calc_rnnt_loss(
                 encoder_out, encoder_out_lens, output, output_lengths)
@@ -158,9 +156,8 @@ class ASRModel(AbsESPNetModel):
         """
         assert input_lengths.dim() == 1, input_lengths.shape
 
-        # 0. Change pad_value
-        input = input[:, :input_lengths.max()]  # for data-parallel
-        input.masked_fill_(make_pad_mask(input_lengths, input, 1), 0,)
+        # for data-parallel
+        input = input[:, :input_lengths.max()]
 
         if self.frontend is not None:
             # 1. Frontend
@@ -170,7 +167,7 @@ class ASRModel(AbsESPNetModel):
             input_feats, feats_lens = self.frontend(input, input_lengths)
         else:
             # 1. No frontend:
-            #  data_loader must send feature in this case
+            #  data_loader must send the features data in this case
             input_feats, feats_lens = input, input_lengths
 
         # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN

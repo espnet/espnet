@@ -8,7 +8,7 @@ import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Dict, Tuple, Optional, Sequence
+from typing import Union, Dict, Tuple, Optional, Sequence, List
 
 import humanfriendly
 import numpy as np
@@ -225,35 +225,25 @@ class Reporter:
         self.stats[self.epoch][sub_reporter.key] = stats
         sub_reporter.finished()
 
-    def best_epoch_and_value(self, key: str, key2: str, mode: str) \
-            -> Tuple[Optional[int], Optional[float]]:
+    def sort_epochs_and_values(self, key: str, key2: str, mode: str) \
+            -> List[Tuple[int, float]]:
         """Return the epoch which resulted the best value
         
         Example:
-            >>> ep, v = reporter.best_epoch_and_value('eval', 'loss', 'min')
-        
+            >>> ep, v = reporter.sort_epochs_and_values('eval', 'loss', 'min')[0]
+
         """
         if mode not in ('min', 'max'):
             raise ValueError(f'mode must min or max: {mode}')
 
         # iterate from the last epoch
-        best_value = None
-        best_epoch = None
-        for epoch in sorted(self.stats):
-            value = self.stats[epoch][key][key2]
+        values = [(e, self.stats[e][key][key2]) for e in self.stats]
 
-            # If at the first iteration:
-            if best_value is None:
-                best_value = value
-                best_epoch = epoch
-            else:
-                if mode == 'min' and best_value > value:
-                    best_value = value
-                    best_epoch = epoch
-                elif mode == 'max' and best_value < value:
-                    best_value = value
-                    best_epoch = epoch
-        return best_epoch, best_value
+        if mode == 'min':
+            values = sorted(values, key=lambda x: x[1])
+        else:
+            values = sorted(values, key=lambda x: -x[1])
+        return values
 
     def has_key(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
@@ -289,24 +279,32 @@ class Reporter:
                 message += f'[{key}] {_message}'
         logger.log(level, message)
 
-    @typechecked
     def get_value(self, key: str, key2: str, epoch: int = None):
         if epoch is None:
             epoch = max(self.stats)
         values = self.stats[epoch][key][key2]
         return np.nanmean(values)
 
-    def get_keys(self, epoch: int = None) -> Tuple[str]:
+    def get_keys(self, epoch: int = None) -> Tuple[str, ...]:
         if epoch is None:
             epoch = max(self.stats)
         return tuple(self.stats[epoch])
 
-    def get_keys2(self, key: str, epoch: int = None) -> Tuple[str]:
+    def get_keys2(self, key: str, epoch: int = None) -> Tuple[str, ...]:
         if epoch is None:
             epoch = max(self.stats)
         d = self.stats[epoch][key]
         keys2 = tuple(k for k in d if k not in ('time', 'total_count'))
         return keys2
+
+    def get_all_keys(self, epoch: int = None) -> Tuple[Tuple[str, str], ...]:
+        if epoch is None:
+            epoch = max(self.stats)
+        all_keys = []
+        for key in self.stats[epoch]:
+            for key2 in self.stats[epoch][key]:
+                all_keys.append((key, key2))
+        return tuple(all_keys)
 
     @typechecked
     def save_stats_plot(self, output_dir: Union[str, Path]):
@@ -318,15 +316,14 @@ class Reporter:
             plt.savefig(p)
 
     @typechecked
-    def plot_stats(self, keys: Sequence[str], key2: str, plt=None):
+    def plot_stats(self, keys: Sequence[str], key2: str):
         # str is also Sequence[str]
         if isinstance(keys, str):
             raise TypeError(f'Input as [{keys}]')
 
-        if plt is None:
-            import matplotlib
-            matplotlib.use('agg')
-            import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use('agg')
+        import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
         plt.clf()
 

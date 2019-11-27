@@ -29,7 +29,7 @@ def int_or_none(value: Optional[str]) -> Optional[int]:
     """
     if value is None:
         return value
-    if value.lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return int(value)
 
@@ -53,7 +53,7 @@ def float_or_none(value: Optional[str]) -> Optional[float]:
     """
     if value is None:
         return value
-    if value.lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return float(value)
 
@@ -77,7 +77,7 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
     """
     if value is None:
         return value
-    if value.lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return value
 

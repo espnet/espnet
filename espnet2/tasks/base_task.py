@@ -30,11 +30,11 @@ from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, str2triple_str)
+    int_or_none, str2bool, str_or_none, str2triple_str, str2pair_str)
 from espnet2.utils.nested_dict_action import NestedDictAction
 
 
-class BaseTask(ABC):
+class AbsTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
 
@@ -90,14 +90,15 @@ class BaseTask(ABC):
             help='Number of epochs to wait without improvement '
                  'before stopping the training')
         group.add_argument('--val_scheduler_criterion',
-                           type=str2triple_str,
-                           default=('eval', 'loss', 'min'),
+                           type=str2pair_str,
+                           default=('eval', 'loss'),
                            help='The criterion used for the value given to '
                                 'the scheduler. '
                                 'Give a pair referring '
                                 'the phase, "train" or "eval",'
-                                'the criterion name and the mode, '
-                                '"min" or "max", e.g. "acc,max".')
+                                'and the criterion name. '
+                                'The mode specifying "min" or "max" can '
+                                'be changed by --escheduler_conf')
         group.add_argument('--early_stopping_criterion', type=str2triple_str,
                            default=('eval', 'loss', 'min'),
                            help='The criterion used for judging of '
@@ -134,9 +135,9 @@ class BaseTask(ABC):
                                 'If None is given, the value of 1% of '
                                 'the number of training iteration '
                                 'is selected.')
-        group.add_argument('--n_latest_history', type=int, default=20,
-                           help='The number of latest epochs to save '
-                                'the training state.')
+        group.add_argument('--keep_n_best_snapshot', type=int, default=10,
+                           help='Remove previous snapshots excluding '
+                                'the n-best scored epochs')
         group.add_argument('--num_att_plot', type=int, default=3,
                            help='The number images to plot the outputs '
                                 'from attention. '
@@ -231,17 +232,18 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
+        """The options not to be shown by --print_config"""
         return ('required', 'print_config', 'config', 'ngpu',
                 'log_level', 'output_dir')
 
     @classmethod
     @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
-        parser = BaseTask.add_arguments()
+        parser = AbsTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
         # Excludes the options not to be shown
-        for k in BaseTask.exclude_opts():
+        for k in AbsTask.exclude_opts():
             config.pop(k)
 
         # Get the default arguments from the specified class
@@ -475,7 +477,7 @@ class BaseTask(ABC):
                                collate_fn=our_collate_fn,
                                num_workers=args.num_workers)
 
-        # 4. Create subset of eval iterator
+        # 4. Create a iterator used for attention plot
         if args.num_att_plot != 0:
             plot_attention_sampler = \
                 SubsetSampler(
@@ -521,6 +523,8 @@ class BaseTask(ABC):
             batch_scheduler = None
 
         # 8. Dump "args" to config.yaml
+        # NOTE(kamo): "args" should be saved after object-buildings are done
+        #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         with (output_dir / 'config.yaml').open('w') as f:
@@ -595,7 +599,7 @@ class BaseTask(ABC):
                 accum_grad=args.accum_grad,
                 grad_clip=args.grad_clip,
                 log_interval=log_interval,
-                n_latest_history=args.n_latest_history,
+                keep_n_best_snapshot=args.keep_n_best_snapshot,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
@@ -604,7 +608,7 @@ class BaseTask(ABC):
     @classmethod
     @typechecked
     def load(cls,
-             model: torch.nn.Module,
+             model: AbsESPNetModel,
              optimizer: torch.optim.Optimizer,
              reporter: Reporter,
              output_dir: Union[str, Path],
@@ -660,7 +664,7 @@ class BaseTask(ABC):
                 if obj is not None:
                     obj.load_state_dict(_st)
 
-        # FIXME(kamo): Should be done in Task.build_model()?
+        # FIXME(kamo): Should be done in Task.build_model() or in model?
         # For distillation, fine-tuning, transfer learning, etc.
         if pretrain_path is not None:
             if pretrain_key is None:
@@ -714,12 +718,11 @@ class BaseTask(ABC):
             accum_grad: int,
             grad_clip: float,
             log_interval: int,
-            n_latest_history: int,
+            keep_n_best_snapshot: int,
             early_stopping_criterion: Tuple[str, str, str],
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            val_scheduler_criterion: Tuple[str, str, str]) -> None:
+            val_scheduler_criterion: Tuple[str, str]) -> None:
 
-        # Starting training process from here
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
             logging.warning(f'The training has already reached at '
@@ -746,29 +749,27 @@ class BaseTask(ABC):
                     log_interval=log_interval,
                     )
             with reporter.start('eval') as sub_reporter:
-                cls.eval(model=model,
-                         iterator=eval_iter,
-                         reporter=sub_reporter,
-                         ngpu=ngpu)
+                cls.eval(model=model, iterator=eval_iter,
+                         reporter=sub_reporter, ngpu=ngpu)
             if plot_attention_iter is not None:
-                # NOTE(kamo): Reporter also performs as timer
-                with reporter.start('att_plot'):
+                with reporter.start('att_plot') as sub_reporter:
                     cls.plot_attention(
                         model=model,
                         output_dir=output_dir / f'{iepoch}epoch',
                         sampler=plot_attention_sampler,
                         iterator=plot_attention_iter,
-                        ngpu=ngpu)
+                        ngpu=ngpu, reporter=sub_reporter)
 
             # 2. Scheduler step
+            #   Controls opt-params by scheduler e.g. learning rate decay
             if epoch_scheduler is not None:
-                # Controls opt-params by scheduler e.g. learning rate decay
                 if isinstance(epoch_scheduler, AbsValEpochScheduler):
-                    _phase, _criterion, _mode = val_scheduler_criterion
+                    _phase, _criterion = val_scheduler_criterion
                     if not reporter.has_key(_phase, _criterion):
                         raise RuntimeError(
-                            f'{_phase}.{_criterion} is not found in stats')
-                    val = reporter.get_value(_phase, _criterion, _mode)
+                            f'{_phase}.{_criterion} is not found in stats'
+                            f'{reporter.get_all_keys()}')
+                    val = reporter.get_value(_phase, _criterion)
                     epoch_scheduler.step(val)
                 else:
                     epoch_scheduler.step()
@@ -786,24 +787,25 @@ class BaseTask(ABC):
                              ]:
                 (output_dir / f'{iepoch}epoch').mkdir(
                     parents=True, exist_ok=True)
-                torch.save(obj.state_dict() if obj is not None else None,
-                           output_dir / f'{iepoch}epoch' / f'{key}.pt')
+                p = output_dir / f'{iepoch}epoch' / f'{key}.pt'
+                p.parent.mkdir(parents=True, exist_ok=True)
+                torch.save(obj.state_dict() if obj is not None else None, p)
+            # Write the data in "timestamp"
             with (output_dir / f'{iepoch}epoch' / 'timestamp').open('w') as f:
                 dt = datetime.now()
-                f.write(dt.strftime('%Y-%m-%d %H:%M:%S'))
-                f.write('\n')
+                f.write(dt.strftime('%Y-%m-%d %H:%M:%S') + '\n')
 
             # 5. Saves the best model
             _improved = []
             for _phase, k, _mode in best_model_criterion:
                 if reporter.has_key(_phase, k):
                     best_epoch, _ = \
-                        reporter.best_epoch_and_value(_phase, k, _mode)
+                        reporter.sort_epochs_and_values(_phase, k, _mode)[0]
                     best_epoch_dict[(_phase, k)] = best_epoch
                     # Creates sym links if it's the best result
                     if best_epoch == iepoch:
                         p = output_dir / f'{_phase}.{k}.best.pt'
-                        if p.exists():
+                        if p.is_symlink() or p.exists():
                             p.unlink()
                         p.symlink_to(Path(f'{iepoch}epoch') / f'model.pt')
                         _improved.append(f'{_phase}.{k}')
@@ -813,17 +815,24 @@ class BaseTask(ABC):
                 logging.info(f'The best model has been updated: ' +
                              ', '.join(_improved))
 
-            # 6. Remove the snapshot files keeping n-latest model
-            for e in range(1, iepoch - n_latest_history + 1):
+            # 6. Remove the snapshot files excluding n-best epoch
+            _removed = []
+            for e in range(1, iepoch - keep_n_best_snapshot + 1):
                 p = output_dir / f'{e}epoch'
-                if p.exists() and all(best_epoch_dict.get((ph, k)) != e
-                                      for ph, k, _ in best_model_criterion):
+                # nbests: List[List[Tuple[epoch, value]]]
+                nbests = [reporter.sort_epochs_and_values(ph, k, m)
+                          for ph, k, m in best_model_criterion
+                          if reporter.has_key(ph, k)]
+                # nbests: Set[epoch]
+                nbests = set.union(*[set(i[0] for i in v) for v in nbests])
+                if p.exists() and e not in nbests:
                     shutil.rmtree(p)
-                    logging.info(f'The snapshot was removed: {p}')
+                    _removed.append(str(p))
+            logging.info(f'The snapshot was removed: ' + ', '.join(_removed))
 
-            # 7. If any updating has happened, stops the training
+            # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
-                logging.warning(f'All gradients for each steps are invalid '
+                logging.warning(f'The gradients from all steps are invalid '
                                 f'in this epoch. Something seems wrong. '
                                 f'This training was stopped at {iepoch}epoch')
                 break
@@ -833,9 +842,10 @@ class BaseTask(ABC):
                 _phase, _criterion, _mode = early_stopping_criterion
                 if not reporter.has_key(_phase, _criterion):
                     raise RuntimeError(
-                        f'{_phase}.{_criterion} is not found in stats')
-                best_epoch, _ = \
-                    reporter.best_epoch_and_value(_phase, _criterion, _mode)
+                        f'{_phase}.{_criterion} is not found in stats: '
+                        f'{reporter.get_all_keys()}')
+                best_epoch, _ = reporter.sort_epochs_and_values(
+                    _phase, _criterion, _mode)[0]
                 if iepoch - best_epoch > patience:
                     logging.info(
                         f'[Early stopping] The value has not been improved '
@@ -845,6 +855,12 @@ class BaseTask(ABC):
 
         else:
             logging.info(f'The training was finished at {max_epoch} epochs ')
+
+        # 9. Average the n-best models
+        cls.average_nbest_models(reporter=reporter,
+                                 output_dir=output_dir,
+                                 best_model_criterion=best_model_criterion,
+                                 nbest=keep_n_best_snapshot)
 
     @classmethod
     @typechecked
@@ -879,9 +895,6 @@ class BaseTask(ABC):
                          if v is not None else None
                          for k, v in stats.items()}
                 weight = weight.sum()
-            if weight.dim() not in (0, 1):
-                raise RuntimeError(
-                    f'weight must be 0 or 1 dimension: {weight.dim()}')
 
             reporter.register(stats, weight)
 
@@ -940,15 +953,67 @@ class BaseTask(ABC):
     @typechecked
     @torch.no_grad()
     def plot_attention(cls, model: AbsESPNetModel,
-                       output_dir: Union[str, Path],
+                       output_dir: Path,
                        sampler: AbsSampler,
-                       iterator, ngpu: int) -> None:
+                       iterator, ngpu: int,
+                       reporter: SubReporter,
+                       ) -> None:
         model.eval()
         for ids, batch in zip(sampler, iterator):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
             # Only supporting ngpu == 1
 
+            # This function is slow due to matplotlib
             model.plot_and_save_attentions(
                 output_dir=output_dir / 'images_att',
                 ids=ids, batch=batch)
+
+            # Dummy register() stimulates to increment the counter
+            reporter.register({})
+
+    @classmethod
+    @typechecked
+    def average_nbest_models(
+            cls,
+            output_dir: Path,
+            reporter: Reporter,
+            best_model_criterion: Sequence[Tuple[str, str, str]],
+            nbest: int) -> None:
+        # 1.. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
+        nbest_epochs = \
+            [(ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])
+             for ph, k, m in best_model_criterion if reporter.has_key(ph, k)]
+
+        _loaded = {}
+        for ph, cr, epoch_and_values in nbest_epochs:
+            # Note that len(epoch_and_values) doesn't always equal to nbest.
+
+            op = output_dir / f'{ph}.{cr}.ave_{len(epoch_and_values)}best.pt'
+            logging.info(f'Averaging {len(epoch_and_values)}best models: '
+                         f'criterion="{ph}.{cr}": {op}')
+
+            avg = None
+            # 2.a Averaging model
+            for e, _ in epoch_and_values:
+                if e not in _loaded:
+                    _loaded[e] = torch.load(
+                        output_dir / f'{e}epoch' / 'model.pt',
+                        map_location='cpu')
+                states = _loaded[e]
+
+                if avg is None:
+                    avg = states
+                else:
+                    # Accumulated
+                    for k in avg:
+                        avg[k] += states[k]
+            for k in avg:
+                avg[k] /= len(epoch_and_values)
+
+            # 2.b Save the ave model and create a symlink
+            torch.save(avg, op)
+            sym_op = output_dir / f'{ph}.{cr}.ave.pt'
+            if sym_op.is_symlink() or sym_op.exists():
+                sym_op.unlink()
+            sym_op.symlink_to(op.name)

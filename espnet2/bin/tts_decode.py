@@ -3,45 +3,28 @@ import argparse
 import logging
 import random
 import sys
+import time
 from pathlib import Path
 from typing import Sequence, Optional, Union, Dict, Tuple
 
 import configargparse
+import kaldiio
 import numpy as np
 import torch
-from torch.nn.parallel import data_parallel
+import yaml
 from torch.utils.data.dataloader import DataLoader
 from typeguard import typechecked
-import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.tasks.lm import LMTask
+from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
-from espnet2.utils.device_funcs import to_device
-from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
-
-
-class ModuleWrapper(torch.nn.Module):
-    """Wrapped module to parallelize specified method
-
-    torch.nn.DataParallel parallelizes only "forward()"
-    and, maybe, the method having the other name can't be applied
-    except for wrapping the module just like this class.
-
-    """
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
-
-    def forward(self, *args, **kwargs):
-        return self.module.nll(*args, **kwargs)
+from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
 
 
 @typechecked
-def calc_perplexity(
+def tts_decode(
         output_dir: str,
         batch_size: int,
         dtype: str,
@@ -54,8 +37,14 @@ def calc_perplexity(
         preprocess: Optional[Dict[str, Union[str, dict]]],
         train_config: Optional[str],
         model_file: Optional[str],
-        log_base: Optional[float],
+        threshold: float,
+        minlenratio: float,
+        maxlenratio: float,
         ):
+    if batch_size > 1:
+        raise NotImplementedError('batch decoding is not implemented')
+    if ngpu > 1:
+        raise NotImplementedError('only single GPU decoding is supported')
     logging.basicConfig(
         level=log_level,
         format=
@@ -71,14 +60,13 @@ def calc_perplexity(
     np.random.seed(seed)
     torch.random.manual_seed(seed)
 
-    # 2. Build LM
+    # 2. Build model
     with Path(train_config).open('r') as f:
         train_args = yaml.load(f, Loader=yaml.Loader)
     train_args = argparse.Namespace(**train_args)
-    model = LMTask.build_model(train_args)
+    model = TTSTask.build_model(train_args)
     model.load_state_dict(torch.load(model_file, map_location=device))
-    wrapped_model = ModuleWrapper(model)
-    wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    model.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
     dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
@@ -96,64 +84,48 @@ def calc_perplexity(
                         collate_fn=our_collate_fn, num_workers=num_workers)
 
     # 4. Start for-loop
-    with DatadirWriter(output_dir) as writer:
-        total_nll = 0.
-        total_ntokens = 0
-        for keys, batch in zip(batch_sampler, loader):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
+    #  How about numpy or HDF5?
+    #  >>> with NpyScpWriter() as f:
+    with kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(o=output_dir / 'feats')) as f:
+        for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f'{len(keys)} != {_bs}'
 
+            key = keys[0]
+            # Change to single sequence and remove *_length
+            # because inference() requires 1-seq, not mini-batch.
+            _data = {k: v[0] for k, v in batch.items()
+                     if k + '_length' in batch}
+            start_time = time.perf_counter()
             with torch.no_grad():
-                batch = to_device(batch, device)
-                if ngpu <= 1:
-                    # NOTE(kamo): data_parallel also should work with ngpu=1,
-                    # but for debuggability it's better to keep this block.
-                    nll, lengths = wrapped_model(**batch)
-                else:
-                    nll, lengths = data_parallel(wrapped_model,
-                                                 (), range(ngpu),
-                                                 module_kwargs=batch)
+                outs, probs, att_ws = model.inference(**_data,
+                                                      threshold=threshold,
+                                                      maxlenratio=maxlenratio,
+                                                      minlenratio=minlenratio)
 
-            assert _bs == len(nll) == len(lengths), \
-                (_bs, len(nll), len(lengths))
-            # nll: (B, L) -> (B,)
-            nll = nll.detach().cpu().numpy().sum(1)
-            # lengths: (B,)
-            lengths = lengths.detach().cpu().numpy()
-            total_nll += nll.sum()
-            total_ntokens += lengths.sum()
+            insize = next(iter(_data.values())).size(0)
+            logging.info("inference speed = {} msec / frame.".format(
+                (time.perf_counter() - start_time) /
+                (int(outs.size(0)) * 1000)))
+            if outs.size(0) == insize * maxlenratio:
+                logging.warning(
+                    f"output length reaches maximum length ({key}).")
 
-            for key, _nll, ntoken in zip(keys, nll, lengths):
-                if log_base is None:
-                    utt_ppl = np.exp(_nll / ntoken)
-                else:
-                    utt_ppl = log_base ** (_nll / ntoken / np.log(log_base))
-
-                # Write PPL of each utts for debugging or analysis
-                writer['utt2ppl'][key] = str(utt_ppl)
-                writer['utt2ntokens'][key] = str(ntoken)
-
-        if log_base is None:
-            ppl = np.exp(total_nll / total_ntokens)
-        else:
-            ppl = log_base ** (total_nll / total_ntokens / np.log(log_base))
-
-        with (Path(output_dir) / 'ppl').open('w') as f:
-            f.write(f'{ppl}\n')
-        with (Path(output_dir) / 'base').open('w') as f:
-            if log_base is None:
-                _log_base = np.e
-            else:
-                _log_base = log_base
-            f.write(f'{_log_base}\n')
-        logging.info(f'PPL={ppl}')
+            logging.info(f'({idx}/{len(batch_sampler)}) {key} '
+                         f'(size:{insize}->{outs.size(0)})')
+            f[key] = outs.cpu().numpy()
 
 
 def get_parser():
     parser = configargparse.ArgumentParser(
-        description='Calc perplexity',
+        description='TTS Decode',
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
@@ -167,7 +139,7 @@ def get_parser():
         choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
         help='The verbose level of logging')
 
-    parser.add_argument('--output_dir', type=str, required=True)
+    parser.add_argument('--out', type=str, required=True)
     parser.add_argument('--ngpu', type=int, default=0,
                         help='The number of gpus. 0 indicates CPU mode')
     parser.add_argument('--seed', type=int, default=0,
@@ -191,6 +163,13 @@ def get_parser():
     group.add_argument('--train_config', type=str)
     group.add_argument('--model_file', type=str)
 
+    group = parser.add_argument_group('Decoding related')
+    group.add_argument('--maxlenratio', type=float, default=5,
+                       help='Maximum length ratio in decoding')
+    group.add_argument('--minlenratio', type=float, default=0,
+                       help='Minimum length ratio in decoding')
+    group.add_argument('--threshold', type=float, default=0.5,
+                       help='Threshold value in decoding')
     return parser
 
 
@@ -200,7 +179,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop('config', None)
-    calc_perplexity(**kwargs)
+    tts_decode(**kwargs)
 
 
 if __name__ == '__main__':

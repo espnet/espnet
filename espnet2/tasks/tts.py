@@ -5,16 +5,15 @@ from typing import Any, Dict, Type, Tuple, Optional
 import configargparse
 from typeguard import typechecked
 
-from espnet2.lm.abs_lm import AbsLM
-from espnet2.lm.model import LanguageModel
-from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.base_task import AbsTask
+from espnet2.tts.abs_model import AbsTTSModel
+from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str_or_none
 
 
-class LMTask(AbsTask):
+class TTSTask(AbsTask):
     @classmethod
     @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
@@ -32,16 +31,15 @@ class LMTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default('required')
-        required += ['token_list']
+        required += ['token_list', 'odim']
 
+        group.add_argument('--odim', type=int, default=None,
+                           help='The number of output dimension of the feature')
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
         group.add_argument(
-            '--lm', type=str, default='seq_rnn',
-            choices=cls.lm_choices(), help='Specify frontend class')
-        group.add_argument(
-            '--lm_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for lm class.')
+            '--model', type=str, default='tacotron2',
+            choices=cls.model_choices(), help='Specify frontend class')
         group.add_argument(
             '--model_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for Model class.')
@@ -60,13 +58,12 @@ class LMTask(AbsTask):
         # This method is used only for --print_config
 
         # 0. Parse command line arguments
-        parser = LMTask.add_arguments()
+        parser = TTSTask.add_arguments()
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
-        lm_class = cls.get_lm_class(args.lm)
-        lm_conf = get_defaut_kwargs(lm_class)
-        model_conf = get_defaut_kwargs(LanguageModel)
+        model_class = cls.get_model_class(args.model)
+        model_conf = get_defaut_kwargs(model_class)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -75,11 +72,10 @@ class LMTask(AbsTask):
         config.update(AbsTask.get_default_config())
 
         # 4. Overwrite the default config by the command-arguments
-        lm_conf.update(config['lm_conf'])
         model_conf.update(config['model_conf'])
 
         # 5. Reassign them to the configuration
-        config.update(lm_conf=lm_conf, model_conf=model_conf)
+        config.update(model_conf=model_conf)
 
         # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
@@ -89,27 +85,27 @@ class LMTask(AbsTask):
 
     @classmethod
     @typechecked
-    def lm_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('seq_rnn',)
+    def model_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('Tacotron2',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         return choices
 
     @classmethod
     @typechecked
-    def get_lm_class(cls, name: str) -> Type[AbsLM]:
+    def get_model_class(cls, name: str) -> Type[AbsTTSModel]:
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
-        if name.lower() == 'seq_rnn':
-            return SequentialRNNLM
+        if name.lower() == 'tacotron2':
+            return Tacotron2
         else:
             raise RuntimeError(
-                f'--lm must be one of '
-                f'{cls.lm_choices()}: --frontend {name}')
+                f'--model must be one of '
+                f'{cls.model_choices()}: --frontend {name}')
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> LanguageModel:
+    def build_model(cls, args: argparse.Namespace) -> AbsTTSModel:
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -125,11 +121,6 @@ class LMTask(AbsTask):
         vocab_size = len(token_list)
         logging.info(f'Vocabulary size: {vocab_size }')
 
-        lm_class = cls.get_lm_class(args.lm)
-        lm = lm_class(vocab_size=vocab_size,
-                      **args.lm_conf)
-
-        # Assume the last-id is sos_and_eos
-        model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1,
-                              **args.model_conf)
+        model_class = cls.get_model_class(args.lm)
+        model = model_class(idim=vocab_size, odim=args.idim, **args.model_conf)
         return model

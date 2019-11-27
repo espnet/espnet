@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Tacotron 2 related modules."""
 
 import logging
+from typing import Tuple, Dict
 
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, \
+    make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
@@ -19,7 +19,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
-from espnet2.train.abs_espnet_model import AbsESPNetModel
+from espnet2.tts.abs_model import AbsTTSModel
 from espnet2.utils.device_funcs import force_gatherable
 
 
@@ -204,60 +204,65 @@ class Tacotron2Loss(torch.nn.Module):
         return l1_loss, mse_loss, bce_loss
 
 
-class Tacotron2(AbsESPNetModel):
+class Tacotron2(AbsTTSModel):
     """Tacotron2 module for end-to-end text-to-speech (E2E-TTS).
 
-    This is a module of Spectrogram prediction network in Tacotron2 described in `Natural TTS Synthesis
-    by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts the sequence of characters
-    into the sequence of Mel-filterbanks.
+    This is a module of Spectrogram prediction network in Tacotron2 described
+    in `Natural TTS Synthesis
+    by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts
+    the sequence of characters into the sequence of Mel-filterbanks.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
 
     Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        spk_embed_dim (int): Dimension of the speaker embedding.
-        embed_dim (int): Dimension of character embedding.
-        elayers (int): The number of encoder blstm layers.
-        eunits (int): The number of encoder blstm units.
-        econv_layers (int): The number of encoder conv layers.
-        econv_filts (int): The number of encoder conv filter size.
-        econv_chans (int): The number of encoder conv filter channels.
-        dlayers (int): The number of decoder lstm layers.
-        dunits (int): The number of decoder lstm units.
-        prenet_layers (int): The number of prenet layers.
-        prenet_units (int): The number of prenet units.
-        postnet_layers (int): The number of postnet layers.
-        postnet_filts (int): The number of postnet filter size.
-        postnet_chans (int): The number of postnet filter channels.
-        output_activation (int): The name of activation function for outputs.
-        adim (int): The number of dimension of mlp in attention.
-        aconv_chans (int): The number of attention conv filter channels.
-        aconv_filts (int): The number of attention conv filter size.
-        cumulate_att_w (bool): Whether to cumulate previous attention weight.
-        use_batch_norm (bool): Whether to use batch normalization.
-        use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
-        dropout_rate (float): Dropout rate.
-        zoneout_rate (float): Zoneout rate.
-        reduction_factor (int): Reduction factor.
-        spk_embed_dim (int): Number of speaker embedding dimenstions.
-        spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
-        use_cbhg (bool): Whether to use CBHG module.
-        cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
-        cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
-        cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
-        cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
-        cbhg_highway_layers (int): The number of layers of highway network in CBHG.
-        cbhg_highway_units (int): The number of units of highway network in CBHG.
-        cbhg_gru_units (int): The number of units of GRU in CBHG.
-        use_masking (bool): Whether to mask padded part in loss calculation.
-        bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
-        use-guided-attn-loss (bool): Whether to use guided attention loss.
-        guided-attn-loss-sigma (float) Sigma in guided attention loss.
-        guided-attn-loss-lamdba (float): Lambda in guided attention loss.
+        idim: Dimension of the inputs.
+        odim: Dimension of the outputs.
+        spk_embed_dim: Dimension of the speaker embedding.
+        embed_dim: Dimension of character embedding.
+        elayers: The number of encoder blstm layers.
+        eunits: The number of encoder blstm units.
+        econv_layers: The number of encoder conv layers.
+        econv_filts: The number of encoder conv filter size.
+        econv_chans: The number of encoder conv filter channels.
+        dlayers: The number of decoder lstm layers.
+        dunits: The number of decoder lstm units.
+        prenet_layers: The number of prenet layers.
+        prenet_units: The number of prenet units.
+        postnet_layers: The number of postnet layers.
+        postnet_filts: The number of postnet filter size.
+        postnet_chans: The number of postnet filter channels.
+        output_activation: The name of activation function for outputs.
+        adim: The number of dimension of mlp in attention.
+        aconv_chans: The number of attention conv filter channels.
+        aconv_filts: The number of attention conv filter size.
+        cumulate_att_w: Whether to cumulate previous attention weight.
+        use_batch_norm: Whether to use batch normalization.
+        use_concate: Whether to concatenate encoder embedding with decoder
+            lstm outputs.
+        dropout_rate: Dropout rate.
+        zoneout_rate: Zoneout rate.
+        reduction_factor: Reduction factor.
+        spk_embed_dim: Number of speaker embedding dimenstions.
+        spc_dim: Number of spectrogram embedding dimenstions
+            (only for use_cbhg=True).
+        use_cbhg: Whether to use CBHG module.
+        cbhg_conv_bank_layers: The number of convoluional banks in CBHG.
+        cbhg_conv_bank_chans: The number of channels of convolutional bank in CBHG.
+        cbhg_proj_filts: The number of filter size of projection layeri in CBHG.
+        cbhg_proj_chans: The number of channels of projection layer in CBHG.
+        cbhg_highway_layers: The number of layers of highway network in CBHG.
+        cbhg_highway_units: The number of units of highway network in CBHG.
+        cbhg_gru_units: The number of units of GRU in CBHG.
+        use_masking: Whether to mask padded part in loss calculation.
+        bce_pos_weight: Weight of positive sample of stop token
+            (only for use_masking=True).
+        use_guided_attn_loss: Whether to use guided attention loss.
+        guided_attn_loss_sigma (float) Sigma in guided attention loss.
+        guided_attn_loss_lamdba: Lambda in guided attention loss.
     """
 
+    @typechecked
     def __init__(self,
                  idim: int, odim: int,
                  embed_dim: int = 512,
@@ -306,6 +311,7 @@ class Tacotron2(AbsESPNetModel):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.eos = idim - 1
         self.spk_embed_dim = spk_embed_dim
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
@@ -318,10 +324,12 @@ class Tacotron2(AbsESPNetModel):
         elif hasattr(F, output_activation):
             self.output_activation_fn = getattr(F, output_activation)
         else:
-            raise ValueError('there is no such an activation function. (%s)' % output_activation)
+            raise ValueError(f'there is no such an activation function. '
+                             f'({output_activation})')
 
         # set padding idx
         padding_idx = 0
+        self.padding_idx = padding_idx
 
         # define network modules
         self.enc = Encoder(idim=idim,
@@ -350,7 +358,8 @@ class Tacotron2(AbsESPNetModel):
                              aconv_chans,
                              aconv_filts)
             if self.cumulate_att_w:
-                logging.warning("cumulation of attention weights is disabled in forward attention.")
+                logging.warning("cumulation of attention weights is disabled "
+                                "in forward attention.")
                 self.cumulate_att_w = False
         elif atype == "forward_ta":
             att = AttForwardTA(dec_idim,
@@ -360,7 +369,8 @@ class Tacotron2(AbsESPNetModel):
                                aconv_filts,
                                odim)
             if self.cumulate_att_w:
-                logging.warning("cumulation of attention weights is disabled in forward attention.")
+                logging.warning("cumulation of attention weights is disabled "
+                                "in forward attention.")
                 self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")
@@ -400,41 +410,45 @@ class Tacotron2(AbsESPNetModel):
                              gru_units=cbhg_gru_units)
             self.cbhg_loss = CBHGLoss(use_masking=use_masking)
 
-    def forward(self, input, input_lengths,
-                output, output_lengths,
-                spembs=None,
-                spembs_lengths=None,
-                spcs=None,
-                spcs_lengths=None,
-                ):
+    def forward(self,
+                input: torch.Tensor,
+                input_lengths: torch.Tensor,
+                output: torch.Tensor,
+                output_lengths: torch.Tensor,
+                spembs: torch.Tensor = None,
+                spembs_lengths: torch.Tensor = None,
+                spcs: torch.Tensor = None,
+                spcs_lengths: torch.Tensor = None,
+                ) -> \
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
-            input (Tensor): Batch of padded character ids (B, Tmax).
-            input_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            output (Tensor): Batch of padded target features (B, Lmax, odim).
-            output_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs_lengths (Tensor, optional)
-            spcs (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
-
-        Returns:
-            Tensor: Loss value.
-
+            input: Batch of padded character ids (B, Tmax).
+            input_lengths): Batch of lengths of each input batch (B,).
+            output: Batch of padded target features (B, Lmax, odim).
+            output_lengths: Batch of the lengths of each target (B,).
+            spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs_lengths:
+            spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
+            spcs_lengths:
         """
-        xs = input
-        ys = output_lengths
-        ilens = input_lengths
+        input = input[:, :input_lengths.max()]  # for data-parallel
+        output = output[:, :output_lengths.max()]  # for data-parallel
+
+        batch_size = input.size(0)
+        # Add eos at the last of sequence
+        xs = F.pad(input, [0, 1], 'constant', 0.)
+        for i, l in enumerate(input_lengths):
+            xs[i, l] = self.eos
+        ilens = input_lengths + 1
+        xs.masked_fill_(make_pad_mask(ilens, xs, 1), self.padding_idx)
+
+        ys = output
         olens = output_lengths
 
-        # remove unnecessary padded part (for multi-gpus)
-        max_in = max(ilens)
-        max_out = max(olens)
-        if max_in != xs.shape[1]:
-            xs = xs[:, :max_in]
-        if max_out != ys.shape[1]:
-            ys = ys[:, :max_out]
-            labels = labels[:, :max_out]
+        # make labels for stop prediction
+        labels = make_pad_mask(olens - 1).to(ys.dtype, ys.device)
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
@@ -443,15 +457,16 @@ class Tacotron2(AbsESPNetModel):
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
-        # modifiy mod part of groundtruth
+        # modify mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
+            olens = olens.new([olen - olen % self.reduction_factor
+                               for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
             labels[:, -1] = 1.0  # make sure at least one frame has 1
 
-        # caluculate taco2 loss
+        # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens)
         loss = l1_loss + mse_loss + bce_loss
@@ -462,11 +477,12 @@ class Tacotron2(AbsESPNetModel):
             bce_loss=bce_loss.item(),
         )
 
-        # caluculate attention loss
+        # calculate attention loss
         if self.use_guided_attn_loss:
             # NOTE(kan-bayashi): length of output for auto-regressive input will be changed when r > 1
             if self.reduction_factor > 1:
-                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+                olens_in = olens.new([olen // self.reduction_factor
+                                      for olen in olens])
             else:
                 olens_in = olens
             attn_loss = self.attn_loss(att_ws, ilens, olens_in)
@@ -488,20 +504,26 @@ class Tacotron2(AbsESPNetModel):
                          )
 
         stats.update(loss=loss.item())
-        loss, stats, batch_size = \
-            force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, batch_size
 
-    def inference(self, x, inference_args, spemb=None):
+        loss, stats, weight = \
+            force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
+
+    def inference(self,
+                  input: torch.Tensor,
+                  threshold: float,
+                  minlenratio: float,
+                  maxlenratio: float,
+                  spembs: torch.Tensor = None,
+                  ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            x (Tensor): Input sequence of characters (T,).
-            inference_args (Namespace):
-                - threshold (float): Threshold in inference.
-                - minlenratio (float): Minimum length ratio in inference.
-                - maxlenratio (float): Maximum length ratio in inference.
-            spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
+            input: Input sequence of characters (T,).
+            spembs: Speaker embedding vector (spk_embed_dim).
+            threshold: Threshold in inference.
+            minlenratio: Minimum length ratio in inference.
+            maxlenratio: Maximum length ratio in inference.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -509,10 +531,8 @@ class Tacotron2(AbsESPNetModel):
             Tensor: Attention weights (L, T).
 
         """
-        # get options
-        threshold = inference_args.threshold
-        minlenratio = inference_args.minlenratio
-        maxlenratio = inference_args.maxlenratio
+        x = input
+        spemb = spembs
 
         # inference
         h = self.enc.inference(x)

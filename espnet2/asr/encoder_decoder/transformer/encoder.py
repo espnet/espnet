@@ -29,23 +29,25 @@ from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 class Encoder(AbsEncoder):
     """Transformer encoder module.
 
-    :param int idim: input dim
-    :param int attention_dim: dimention of attention
-    :param int attention_heads: the number of heads of multi head attention
-    :param int linear_units: the number of units of position-wise feed forward
-    :param int num_blocks: the number of decoder blocks
-    :param float dropout_rate: dropout rate
-    :param float attention_dropout_rate: dropout rate in attention
-    :param float positional_dropout_rate: dropout rate after adding positional encoding
-    :param str or torch.nn.Module input_layer: input layer type
-    :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-    :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
-        if False, no additional linear will be applied. i.e. x -> x + att(x)
-    :param str positionwise_layer_type: linear of conv1d
-    :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-    :param int padding_idx: padding_idx for input_layer=embed
+    Args:
+        idim: input dim
+        attention_dim: dimention of attention
+        attention_heads: the number of heads of multi head attention
+        linear_units: the number of units of position-wise feed forward
+        num_blocks: the number of decoder blocks
+        dropout_rate: dropout rate
+        attention_dropout_rate: dropout rate in attention
+        positional_dropout_rate: dropout rate after adding positional encoding
+        input_layer: input layer type
+        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+        normalize_before: whether to use layer_norm before the first block
+        concat_after: whether to concat attention layer's input and output
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied. i.e. x -> x + att(x)
+        positionwise_layer_type: linear of conv1d
+        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
+        padding_idx: padding_idx for input_layer=embed
     """
 
     @typechecked
@@ -138,8 +140,9 @@ class Encoder(AbsEncoder):
         Args:
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
-        :return: position embedded tensor and mask
-        :rtype Tuple[torch.Tensor, torch.Tensor]:
+            prev_states: Not to be used now.
+        Returns:
+            position embedded tensor and mask
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
