@@ -14,8 +14,9 @@ Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eva
 
 Options:
     --nj (int): The number of parallel jobs
+    --decode-nj (int): The number of parallel jobs for decoding
     --ngpu (int): The number of gpus
-    --gpu-decoder (bool): Use gpu for decoding.
+    --gpu-decode (bool): Use gpu for decoding.
     --stage (int): Processes starts from the specifed stage.
     --stop-stage (int): Processes is stopped at the specifed stage.
     --nlsyms: non-linguistic symbol list
@@ -200,14 +201,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "[Require Kaldi] stage 2: Extract feature: --feats_type=${feats_type}"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            # 1. Copy datadir
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
-            # 2. Generate feats
             _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
-            # 3. Write the the number of frame and the dimension of feats
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
                 "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/logs"
 
@@ -452,20 +450,11 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    for dset in ${eval_sets}; do
+    for sets in ${dev_set} ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
-
-        # 1. Split the key file
-        key_file=${_data}/wav.scp
-        split_scps=""
-        _nj=$((${decode_nj}<$(<${key_file} wc -l)?${decode_nj}:$(<${key_file} wc -l)))
-        for n in $(seq ${_nj}); do
-            split_scps+=" ${_logdir}/keys.${n}.scp"
-        done
-        utils/split_scp.pl "${key_file}" ${split_scps}
 
         _feats_type="$(<${_data}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
@@ -475,6 +464,15 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             _scp=feats.scp
             _type=kaldi_ark
         fi
+
+        # 1. Split the key file
+        key_file=${_data}/${_scp}
+        split_scps=""
+        _nj=$((${decode_nj}<$(<${key_file} wc -l)?${decode_nj}:$(<${key_file} wc -l)))
+        for n in $(seq ${_nj}); do
+            split_scps+=" ${_logdir}/keys.${n}.scp"
+        done
+        utils/split_scp.pl "${key_file}" ${split_scps}
 
 
         # 2. Submit decoding jobs
@@ -527,7 +525,7 @@ fi
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     log "stage 9: Scoring"
 
-    for dset in ${eval_sets}; do
+    for sets in ${dev_set} ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
 
