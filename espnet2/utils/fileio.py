@@ -256,3 +256,82 @@ class SoundScpWriter:
 
     def close(self):
         self.fscp.close()
+
+
+class NpyScpWriter:
+    """
+
+        key1 /some/path/a.npy
+        key2 /some/path/b.npy
+        key3 /some/path/c.npy
+        key4 /some/path/d.npy
+        ...
+
+    >>> writer = SoundScpWriter('./data/', 'feat')
+    >>> writer['aa'] = numpy_array
+    >>> writer['bb'] = numpy_array
+
+    """
+    def __init__(self, basedir, name):
+        self.dir = Path(basedir) / f'data_{name}'
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self.fscp = (Path(basedir) / f'{name}.scp').open('w')
+
+    def __setitem__(self, key, value):
+        assert isinstance(value, np.ndarray), type(value)
+        p = self.dir / f'{key}.npy'
+        p.parent.mkdir(parents=True, exist_ok=True)
+        np.save(str(p), value)
+        self.fscp.write(f'{key} {p}\n')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self.fscp.close()
+
+
+class NpyScpReader(collections.abc.Mapping):
+    """
+
+        key1 /some/path/a.npy
+        key2 /some/path/b.npy
+        key3 /some/path/c.npy
+        key4 /some/path/d.npy
+        ...
+
+    >>> reader = SoundScpReader('wav.scp')
+    >>> rate, array = reader['key1']
+
+    """
+    def __init__(self, fname):
+        self.fname = fname
+        with open(fname, 'r') as f:
+            self.data = {}
+            for line in f:
+                sps = line.rstrip().split(maxsplit=1)
+                if len(sps) != 2:
+                    raise RuntimeError(f'Format error: {line}')
+                k, v = sps
+                if k in self.data:
+                    raise RuntimeError(f'{k} is duplicated')
+                self.data[k] = v.rstrip()
+
+    def __getitem__(self, key) -> np.ndarray:
+        p = self.data[key]
+        return np.load(p)
+
+    def __contains__(self, item):
+        return item
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()

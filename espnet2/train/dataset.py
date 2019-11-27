@@ -11,7 +11,8 @@ from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.transform.transformation import Transformation
-from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text
+from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text, \
+    NpyScpReader
 
 
 @typechecked
@@ -42,7 +43,7 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.
         if data[0][key].dtype.kind == 'f':
-            pad_value = -np.inf
+            pad_value = 0.
         else:
             pad_value = -32768
 
@@ -98,7 +99,8 @@ class ESPNetDataset(Dataset):
         ...                          preprocess=dict(input='preprocess.yaml')
         ...                         )
         ... data = dataset['uttid']
-        {'input': ndarray, 'output': ndarray}
+        {'input': ndarray, 'input_lengths': ndarray,
+         'output': ndarray, 'output_lengths': ndarray}
     """
 
     @typechecked
@@ -200,7 +202,7 @@ class ESPNetDataset(Dataset):
             # path looks like:
             #   utta /some/where/a.npy
             #   uttb /some/where/b.npy
-            raise NotImplementedError
+            raise NpyScpReader(path)
 
         elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
             # Not lazy loader, but as vanilla-dict

@@ -24,8 +24,8 @@ class AbsESPNetModel(torch.nn.Module, ABC):
     just only these three values.
 
     Example:
-        >>> from espnet2.tasks.base_task import BaseTask
-        >>> class YourTask(BaseTask): pass
+        >>> from espnet2.tasks.base_task import AbsTask
+        >>> class YourTask(AbsTask): pass
         ...     def forward(self, input, input_lengths):
         ...         ...
         ...         return loss, stats, weight
@@ -82,7 +82,6 @@ class AbsESPNetModel(torch.nn.Module, ABC):
             axes = [axes]
 
         for ax, aw in zip(axes, att_w):
-            # plt.subplot(1, len(att_w), h)
             ax.imshow(aw.astype(np.float32), aspect='auto')
             ax.set_xlabel('Input')
             ax.set_ylabel('Output')
@@ -141,6 +140,8 @@ class AbsESPNetModel(torch.nn.Module, ABC):
                  for k in keys})
 
             self(**_sample)
+
+            # Derive the attention results
             for name, output in outputs.items():
                 return_dict[name].append(output)
 

@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
-from typing import Tuple
+from typing import Tuple, List
 
 import torch
 from typeguard import typechecked
@@ -143,18 +143,23 @@ class Decoder(AbsDecoder):
         olens = tgt_mask.sum(1)
         return x, olens
 
-    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+    def forward_one_step(self,
+                         tgt: torch.Tensor, tgt_mask: torch.Tensor,
+                         memory: torch.Tensor,
+                         cache: List[torch.Tensor] = None) -> \
+            Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
-        :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
-        :param torch.Tensor tgt_mask: input token mask,  (batch, maxlen_out)
-                                      dtype=torch.uint8 in PyTorch 1.2-
-                                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
-        :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
-        :param List[torch.Tensor] cache: cached output list of (batch, max_time_out-1, size)
-        :return y, cache: NN output value and cache per `self.decoders`.
-            `y.shape` is (batch, maxlen_out, token)
-        :rtype: Tuple[torch.Tensor, List[torch.Tensor]]
+        Args:
+            tgt: input token ids, int64 (batch, maxlen_out)
+            tgt_mask: input token mask,  (batch, maxlen_out)
+                      dtype=torch.uint8 in PyTorch 1.2-
+                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
+            memory: encoded memory, float32  (batch, maxlen_in, feat)
+            cache: cached output list of (batch, max_time_out-1, size)
+        Returns:
+            y, cache: NN output value and cache per `self.decoders`.
+            y.shape` is (batch, maxlen_out, token)
         """
         x = self.embed(tgt)
         if cache is None:
