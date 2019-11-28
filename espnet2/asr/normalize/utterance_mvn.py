@@ -21,8 +21,15 @@ class UtteranceMVN(AbsNormalization):
     def extra_repr(self):
         return f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
 
-    def forward(self, x: torch.Tensor, ilens: torch.LongTensor) \
+    def forward(self, x: torch.Tensor, ilens: torch.LongTensor = None) \
             -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Forward function
+
+        Args:
+            x: (B, L, ...)
+            ilens: (B,)
+
+        """
         return utterance_mvn(x, ilens,
                              norm_means=self.norm_means,
                              norm_vars=self.norm_vars,
@@ -31,7 +38,7 @@ class UtteranceMVN(AbsNormalization):
 
 def utterance_mvn(
         x: torch.Tensor,
-        ilens: torch.LongTensor,
+        ilens: torch.LongTensor = None,
         norm_means: bool = True,
         norm_vars: bool = False,
         eps: float = 1.0e-20) -> Tuple[torch.Tensor, torch.LongTensor]:
@@ -39,27 +46,40 @@ def utterance_mvn(
 
     Args:
         x: (B, T, D), assumed zero padded
-        ilens: (B, T, D)
+        ilens: (B,)
         norm_means:
         norm_vars:
         eps:
 
     """
-    ilens_ = ilens.type_as(x)
+    if ilens is None:
+        ilens = x.new_full([x.size(0)], x.size(1))
+    ilens_ = ilens.to(x.device, x.dtype).view(-1,
+                                              *[1 for _ in range(x.dim() - 1)])
     # mean: (B, D)
-    mean = x.sum(dim=1) / ilens_[:, None]
+    mean = x.sum(dim=1, keepdim=True) / ilens_
 
     if norm_means:
-        x -= mean[:, None, :]
-        x_ = x
-    else:
-        x_ = x - mean[:, None, :]
+        if x.is_leaf and x.requires_grad:
+            x -= mean
+        else:
+            x = x - mean
 
-    # Zero padding
-    x_.masked_fill(make_pad_mask(ilens, x_, 1), 0.0)
-    if norm_vars:
-        var = x_.pow(2).sum(dim=1) / ilens_[:, None]
-        var = torch.clamp(var, min=eps)
-        x /= var.sqrt()[:, None, :]
-        x_ = x
-    return x_, ilens
+        # Zero padding
+        x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
+
+        if norm_vars:
+            var = x.pow(2).sum(dim=1, keepdim=True) / ilens_
+            std = torch.clamp(var.sqrt(), min=eps)
+            x /= std.sqrt()
+        return x, ilens
+    else:
+        if norm_vars:
+            var = (x - mean).pow(2).sum(dim=1, keepdim=True) / ilens_
+            std = torch.clamp(var.sqrt(), min=eps)
+            if x.is_leaf and x.requires_grad:
+                x = x / std.sqrt()
+            else:
+                x /= std
+        return x. ilens
+

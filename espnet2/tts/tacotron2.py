@@ -19,7 +19,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
-from espnet2.tts.abs_model import AbsTTSModel
+from espnet2.tts.abs_model import AbsTTS
 from espnet2.utils.device_funcs import force_gatherable
 
 
@@ -204,7 +204,7 @@ class Tacotron2Loss(torch.nn.Module):
         return l1_loss, mse_loss, bce_loss
 
 
-class Tacotron2(AbsTTSModel):
+class Tacotron2(AbsTTS):
     """Tacotron2 module for end-to-end text-to-speech (E2E-TTS).
 
     This is a module of Spectrogram prediction network in Tacotron2 described
@@ -448,7 +448,7 @@ class Tacotron2(AbsTTSModel):
         olens = output_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens - 1).to(ys.dtype, ys.device)
+        labels = make_pad_mask(olens).to(ys.device, ys.dtype)
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)

@@ -39,10 +39,10 @@ ngpu=1
 gpu_decode=false
 
 
-## The options for prepare.sh
+## The options for feature_extract
+feats_type=raw
 audio_format=flac
 fs=16k
-feats_type=raw
 
 
 # token_type=char
@@ -198,14 +198,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
 
     elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] stage 2: Extract feature: --feats_type=${feats_type}"
+        log "[Require Kaldi] stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            # 1. Copy datadir
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
+            # 2. Feature extract
             _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
+            # 3. Create feats_shape
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
                 "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/logs"
 
@@ -218,7 +221,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             "${data_feats}/${train_set}/cmvn.npy"
 
     elif [ "${feats_type}" = fbank ]; then
-        log "stage 2: Extract feature: --feats_type=${feats_type}"
+        log "stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
         log "Not yet"
         exit 1
 
@@ -432,7 +435,7 @@ fi
 
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "stage 8: Decoding"
+    log "stage 8: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -450,7 +453,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    for sets in ${dev_set} ${eval_sets}; do
+    for dset in ${dev_set} ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
@@ -525,7 +528,7 @@ fi
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     log "stage 9: Scoring"
 
-    for sets in ${dev_set} ${eval_sets}; do
+    for dset in ${dev_set} ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
 

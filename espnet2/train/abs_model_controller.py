@@ -10,12 +10,15 @@ from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
 
 
-class AbsESPNetModel(torch.nn.Module, ABC):
+class AbsModelController(torch.nn.Module, ABC):
     """The common abstract class among each tasks
 
-    "Model" is referred to as a class which inherits
-    torch.nn.Module and define "loss", "stats", and "weight"
-    for the task of the model.
+    FIXME(kamo): Is Controller a good name?
+
+    "Controller" is referred to as a class which inherits torch.nn.Module,
+    and makes the dnn-models forward as its member field,
+    a.k.a delegate pattern,
+    and defines "loss", "stats", and "weight" for the task.
 
     If you intend to implement new task in ESPNet,
     the model must inherit this class.
@@ -24,12 +27,12 @@ class AbsESPNetModel(torch.nn.Module, ABC):
     just only these three values.
 
     Example:
-        >>> from espnet2.tasks.base_task import AbsTask
-        >>> class YourTask(AbsTask): pass
+        >>> from espnet2.tasks.abs_task import AbsTask
+        >>> class YourTask(AbsTask):
         ...     def forward(self, input, input_lengths):
         ...         ...
         ...         return loss, stats, weight
-        >>> class YourModel(AbsESPNetModel): pass
+        >>> class YourController(AbsModelController):
         ...     def forward(self, input, input_lengths):
         ...         ...
         ...         return loss, stats, weight

@@ -5,12 +5,12 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.lm.abs_lm import AbsLM
-from espnet2.train.abs_espnet_model import AbsESPNetModel
+from espnet2.lm.abs_model import AbsLM
+from espnet2.train.abs_model_controller import AbsModelController
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class LanguageModel(AbsESPNetModel):
+class LanguageModelController(AbsModelController):
     @typechecked
     def __init__(self, lm: AbsLM, sos_and_eos: int, ignore_id: int = 0):
         super().__init__()

@@ -5,10 +5,10 @@ from typing import Any, Dict, Type, Tuple, Optional
 import configargparse
 from typeguard import typechecked
 
-from espnet2.lm.abs_lm import AbsLM
-from espnet2.lm.model import LanguageModel
+from espnet2.lm.abs_model import AbsLM
+from espnet2.lm.contoller import LanguageModelController
 from espnet2.lm.seq_rnn import SequentialRNNLM
-from espnet2.tasks.base_task import AbsTask
+from espnet2.tasks.abs_task import AbsTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import str_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -38,13 +38,13 @@ class LMTask(AbsTask):
                            help='A text mapping int-id to token')
         group.add_argument(
             '--lm', type=str, default='seq_rnn',
-            choices=cls.lm_choices(), help='Specify frontend class')
+            choices=cls.lm_choices(), help='Specify lm class')
         group.add_argument(
             '--lm_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for lm class.')
         group.add_argument(
             '--model_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for Model class.')
+            help='The keyword arguments for ModelController class.')
 
         return parser
 
@@ -66,7 +66,7 @@ class LMTask(AbsTask):
         # 1. Get the default values from class.__init__
         lm_class = cls.get_lm_class(args.lm)
         lm_conf = get_defaut_kwargs(lm_class)
-        model_conf = get_defaut_kwargs(LanguageModel)
+        model_conf = get_defaut_kwargs(LanguageModelController)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -105,11 +105,11 @@ class LMTask(AbsTask):
         else:
             raise RuntimeError(
                 f'--lm must be one of '
-                f'{cls.lm_choices()}: --frontend {name}')
+                f'{cls.lm_choices()}: --lm {name}')
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> LanguageModel:
+    def build_model(cls, args: argparse.Namespace) -> LanguageModelController:
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -125,11 +125,13 @@ class LMTask(AbsTask):
         vocab_size = len(token_list)
         logging.info(f'Vocabulary size: {vocab_size }')
 
+        # 1. Build LM model
         lm_class = cls.get_lm_class(args.lm)
         lm = lm_class(vocab_size=vocab_size,
                       **args.lm_conf)
 
+        # 2. Build controller
         # Assume the last-id is sos_and_eos
-        model = LanguageModel(lm=lm, sos_and_eos=vocab_size - 1,
-                              **args.model_conf)
+        model = LanguageModelController(lm=lm, sos_and_eos=vocab_size - 1,
+                                        **args.model_conf)
         return model

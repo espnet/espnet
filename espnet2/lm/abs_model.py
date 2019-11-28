@@ -10,13 +10,12 @@ class AbsLM(torch.nn.Module, ScorerInterface, ABC):
     """The abstract LM class
 
     To share the loss calculation way among different models,
-    We uses delegate pattern:
+    We uses delegate pattern here:
     The instance of this class should be passed to "LanguageModel"
-    (This naming is confusing, sorry.)
 
-    >>> from espnet2.lm.model import LanguageModel
+    >>> from espnet2.lm.contoller import LanguageModelController
     >>> lm = AbsLM()
-    >>> model = LanguageModel(lm=lm)
+    >>> model = LanguageModelController(lm=lm)
 
     This "model" is a mediator objects for "Task" class.
 

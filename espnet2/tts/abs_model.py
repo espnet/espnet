@@ -1,12 +1,10 @@
-from abc import abstractmethod
-from typing import Tuple
+from abc import abstractmethod, ABC
+from typing import Tuple, Dict
 
 import torch
 
-from espnet2.train.abs_espnet_model import AbsESPNetModel
 
-
-class AbsTTSModel(AbsESPNetModel):
+class AbsTTS(torch.nn.Module, ABC):
     @abstractmethod
     def forward(self,
                 input: torch.Tensor,
