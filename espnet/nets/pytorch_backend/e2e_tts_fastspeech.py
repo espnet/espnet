@@ -248,7 +248,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
                 - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
                 - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking for padded part in loss calculation.
                 - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
                 - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
