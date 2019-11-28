@@ -9,10 +9,10 @@ from typing import Sequence, Optional, Union, Dict, Tuple
 import configargparse
 import numpy as np
 import torch
+import yaml
 from torch.nn.parallel import data_parallel
 from torch.utils.data.dataloader import DataLoader
-from typeguard import typechecked
-import yaml
+from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
@@ -20,8 +20,8 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
 
 
 class ModuleWrapper(torch.nn.Module):
@@ -40,7 +40,6 @@ class ModuleWrapper(torch.nn.Module):
         return self.module.nll(*args, **kwargs)
 
 
-@typechecked
 def calc_perplexity(
         output_dir: str,
         batch_size: int,
@@ -56,6 +55,7 @@ def calc_perplexity(
         model_file: Optional[str],
         log_base: Optional[float],
         ):
+    assert check_argument_types()
     logging.basicConfig(
         level=log_level,
         format=
@@ -175,8 +175,10 @@ def get_parser():
     parser.add_argument(
         '--dtype', default="float32",
         choices=["float16", "float32", "float64"], help='Data type')
-    parser.add_argument('--num_workers', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=30)
+    parser.add_argument('--num_workers', type=int, default=1,
+                        help='The number of workers used for DataLoader')
+    parser.add_argument('--batch_size', type=int, default=1,
+                        help='The batch size for inference')
     parser.add_argument('--log_base', type=float_or_none, default=None,
                         help="The base of logarithm for Perplexity. "
                              "If None, napier's constant is used.")

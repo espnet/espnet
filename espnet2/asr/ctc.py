@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 
 class CTC(torch.nn.Module):
@@ -14,12 +14,12 @@ class CTC(torch.nn.Module):
         reduce: reduce the CTC loss into a scalar
     """
 
-    @typechecked
     def __init__(self, odim: int,
                  encoder_out_dim: int,
                  dropout_rate: float = 0.,
                  ctc_type: str = 'warpctc',
                  reduce: bool = True):
+        assert check_argument_types()
         super().__init__()
         eprojs = encoder_out_dim
         self.dropout_rate = dropout_rate

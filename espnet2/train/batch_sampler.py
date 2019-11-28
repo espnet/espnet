@@ -6,12 +6,11 @@ from typing import Union, Tuple, List, Iterator, Optional, Sequence, Iterable
 
 import numpy as np
 from torch.utils.data import Sampler
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.utils.fileio import load_num_sequence_text, read_2column_text
 
 
-@typechecked
 def create_batch_sampler(
         type: str,
         batch_size: int,
@@ -32,14 +31,15 @@ def create_batch_sampler(
         sort_in_batch:
         sort_batch:
     """
+    assert check_argument_types()
     if type == 'const':
         if sort_in_batch is None:
-            return ConstantBatchSampler(
+            retval = ConstantBatchSampler(
                 batch_size=batch_size, key_file=shape_files[0],
                 shuffle=shuffle)
 
         else:
-            return ConstantSortedBatchSampler(
+            retval = ConstantSortedBatchSampler(
                 batch_size=batch_size, shape_file=shape_files[0],
                 shuffle=shuffle,
                 sort_in_batch=sort_in_batch,
@@ -50,7 +50,7 @@ def create_batch_sampler(
             raise ValueError(f'The number of max_lengths must be equal to '
                              f'the number of shape_files: '
                              f'{len(max_lengths)} != {len(shape_files)}')
-        return SequenceBatchSampler(
+        retval = SequenceBatchSampler(
             batch_size=batch_size, shape_files=shape_files,
             max_lengths=max_lengths,
             shuffle=shuffle,
@@ -65,6 +65,8 @@ def create_batch_sampler(
 
     else:
         raise RuntimeError(f'Not supported: {type}')
+    assert check_return_type(retval)
+    return retval
 
 
 class AbsSampler(Sampler, ABC):
@@ -82,9 +84,9 @@ class AbsSampler(Sampler, ABC):
 
 
 class SubsetSampler(AbsSampler):
-    @typechecked
     def __init__(self, sampler: AbsSampler,
                  indices_or_nsamples: Union[int, Iterable[int]]):
+        assert check_argument_types()
         self.sampler = sampler
         batch_list = self.sampler.get_batch_list()
         if isinstance(indices_or_nsamples, int):
@@ -119,7 +121,6 @@ class ConstantSortedBatchSampler(AbsSampler):
         sort_in_batch: 'descending', 'ascending' or None.
         sort_batch:
     """
-    @typechecked
     def __init__(self,
                  batch_size: int,
                  shape_file: str,
@@ -127,6 +128,7 @@ class ConstantSortedBatchSampler(AbsSampler):
                  sort_in_batch: str = 'descending',
                  sort_batch: str = 'ascending',
                  ):
+        assert check_argument_types()
         self.shuffle = shuffle
         self.batch_size = batch_size
         self.shape_file = shape_file
@@ -199,8 +201,8 @@ class ConstantBatchSampler(AbsSampler):
         key_file:
         shuffle:
     """
-    @typechecked
     def __init__(self, batch_size: int, key_file: str, shuffle: bool = False):
+        assert check_argument_types()
         self.shuffle = shuffle
         self.batch_size = batch_size
         self.key_file = key_file
@@ -243,7 +245,6 @@ class ConstantBatchSampler(AbsSampler):
 
 
 class SequenceBatchSampler(AbsSampler):
-    @typechecked
     def __init__(self,
                  batch_size: int,
                  shape_files: Union[Tuple[str, ...], List[str]],
@@ -253,6 +254,7 @@ class SequenceBatchSampler(AbsSampler):
                  sort_in_batch: str = 'descending',
                  sort_batch: str = 'ascending',
                  ):
+        assert check_argument_types()
         self.shuffle = shuffle
         self.batch_size = batch_size
         self.shape_files = shape_files

@@ -2,7 +2,7 @@ from typing import Tuple, Dict
 
 import torch
 import torch.nn.functional as F
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_model import AbsLM
@@ -11,8 +11,8 @@ from espnet2.utils.device_funcs import force_gatherable
 
 
 class LanguageModelController(AbsModelController):
-    @typechecked
     def __init__(self, lm: AbsLM, sos_and_eos: int, ignore_id: int = 0):
+        assert check_argument_types()
         super().__init__()
         self.lm = lm
         self.sos = sos_and_eos

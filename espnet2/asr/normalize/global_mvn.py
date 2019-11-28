@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.normalize.abs_normalization import AbsNormalization
@@ -19,13 +19,13 @@ class GlobalMVN(AbsNormalization):
         eps:
     """
 
-    @typechecked
     def __init__(self,
                  stats_file: str,
                  norm_means: bool = True,
                  norm_vars: bool = True,
                  inverse: bool = False,
                  eps: float = 1.0e-20):
+        assert check_argument_types()
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
@@ -81,7 +81,7 @@ class GlobalMVN(AbsNormalization):
                 else:
                     x -= self.mean
             if x.is_leaf and x.requires_grad:
-                x.masked_fill_(mask, 0.0)
+                x = x.masked_fill(mask, 0.0)
             else:
                 x.masked_fill_(mask, 0.0)
 
@@ -96,7 +96,7 @@ class GlobalMVN(AbsNormalization):
         # Inverse normalize mode
         else:
             if x.is_leaf and x.requires_grad:
-                x.masked_fill_(mask, 0.0)
+                x = x.masked_fill(mask, 0.0)
             else:
                 x.masked_fill_(mask, 0.0)
 

@@ -5,7 +5,7 @@
 from typing import Tuple, List
 
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention \
@@ -43,7 +43,6 @@ class Decoder(AbsDecoder):
             i.e. x -> x + att(x)
     """
 
-    @typechecked
     def __init__(self,
                  odim: int,
                  encoder_out_dim: int,
@@ -59,6 +58,7 @@ class Decoder(AbsDecoder):
                  pos_enc_class=PositionalEncoding,
                  normalize_before: bool = True,
                  concat_after: bool = False):
+        assert check_argument_types()
         super().__init__()
         attention_dim = encoder_out_dim
 

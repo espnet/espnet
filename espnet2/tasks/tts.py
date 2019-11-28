@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -20,9 +20,9 @@ from espnet2.utils.types import str_or_none
 
 class TTSTask(AbsTask):
     @classmethod
-    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
+        assert check_argument_types()
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
@@ -67,17 +67,18 @@ class TTSTask(AbsTask):
             '--model_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for ModelController class.')
 
+        assert check_return_type(parser)
         return parser
 
     @classmethod
-    @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
+        assert check_argument_types()
         return AbsTask.exclude_opts()
 
     @classmethod
-    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        assert check_argument_types()
         # This method is used only for --print_config
 
         # 0. Parse command line arguments
@@ -127,71 +128,81 @@ class TTSTask(AbsTask):
         for k in cls.exclude_opts():
             config.pop(k)
 
+        assert check_return_type(config)
         return config
 
     @classmethod
-    @typechecked
     def feats_extract_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('default',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_feats_extract_class(cls, name: str) -> Type[AbsFrontend]:
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'default':
-            return DefaultFrontend
+            retval = DefaultFrontend
         else:
             raise RuntimeError(
                 f'--feats_extract must be one of '
                 f'{cls.feats_extract_choices()}: --feats_extract {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('global_mvn', )
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_normalize_class(cls, name: str) -> Type[AbsNormalization]:
+        assert check_argument_types()
         if name.lower() == 'global_mvn':
-            return GlobalMVN
+            retval = GlobalMVN
         else:
             raise RuntimeError(
                 f'--normalize must be one of '
                 f'{cls.normalize_choices()}: --normalize {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def tts_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('Tacotron2',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_tts_class(cls, name: str) -> Type[AbsTTS]:
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'tacotron2':
-            return Tacotron2
+            retval = Tacotron2
         else:
             raise RuntimeError(
                 f'--tts must be one of '
                 f'{cls.tts_choices()}: --tts {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def build_model(cls, args: argparse.Namespace) -> TTSModelController:
+        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -237,4 +248,5 @@ class TTSTask(AbsTask):
         model = TTSModelController(
             feats_extractor=feats_extract, normalize=normalize, tts=tts,
             **args.model_conf)
+        assert check_return_type(model)
         return model

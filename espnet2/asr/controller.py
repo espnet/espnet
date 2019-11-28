@@ -2,7 +2,7 @@ from typing import Dict, List, Union, Optional
 from typing import Tuple
 
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy, make_pad_mask
@@ -21,7 +21,6 @@ from espnet2.utils.device_funcs import force_gatherable
 class ASRModelController(AbsModelController):
     """CTC-attention hybrid Encoder-Decoder model"""
 
-    @typechecked
     def __init__(self,
                  vocab_size: int,
                  token_list: Union[Tuple[str, ...], List[str]],
@@ -41,6 +40,7 @@ class ASRModelController(AbsModelController):
                  sym_space: str = '<space>',
                  sym_blank: str = '<blank>',
                  ):
+        assert check_argument_types()
         assert 0. <= ctc_weight <= 1., ctc_weight
         assert rnnt_decoder is None, 'Not implemented'
 

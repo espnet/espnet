@@ -3,22 +3,22 @@ import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-from typeguard import typechecked
+from typeguard import check_return_type, check_argument_types
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.contoller import LanguageModelController
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str_or_none
 
 
 class LMTask(AbsTask):
     @classmethod
-    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
+        assert check_argument_types()
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
@@ -46,17 +46,18 @@ class LMTask(AbsTask):
             '--model_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for ModelController class.')
 
+        assert check_return_type(parser)
         return parser
 
     @classmethod
-    @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
+        assert check_argument_types()
         return AbsTask.exclude_opts()
 
     @classmethod
-    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        assert check_argument_types()
         # This method is used only for --print_config
 
         # 0. Parse command line arguments
@@ -85,31 +86,35 @@ class LMTask(AbsTask):
         for k in cls.exclude_opts():
             config.pop(k)
 
+        assert check_return_type(config)
         return config
 
     @classmethod
-    @typechecked
     def lm_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('seq_rnn',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_lm_class(cls, name: str) -> Type[AbsLM]:
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'seq_rnn':
-            return SequentialRNNLM
+            retval = SequentialRNNLM
         else:
             raise RuntimeError(
                 f'--lm must be one of '
                 f'{cls.lm_choices()}: --lm {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def build_model(cls, args: argparse.Namespace) -> LanguageModelController:
+        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -134,4 +139,5 @@ class LMTask(AbsTask):
         # Assume the last-id is sos_and_eos
         model = LanguageModelController(lm=lm, sos_and_eos=vocab_size - 1,
                                         **args.model_conf)
+        assert check_return_type(model)
         return model

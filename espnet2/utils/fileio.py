@@ -9,11 +9,12 @@ from typing import Union, Dict
 
 import numpy as np
 import soundfile
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 
 class DatadirWriter:
     def __init__(self, p: Union[Path, str]):
+        assert check_argument_types()
         self.path = Path(p)
         self.chilidren = {}
         self.fd = None
@@ -24,8 +25,8 @@ class DatadirWriter:
     def __enter__(self):
         return self
 
-    @typechecked
     def __getitem__(self, key: str) -> DatadirWriter:
+        assert check_argument_types()
         if self.fd is not None:
             raise RuntimeError('This writer points out a file')
 
@@ -34,10 +35,12 @@ class DatadirWriter:
             self.chilidren[key] = w
             self.has_children = True
 
-        return self.chilidren[key]
+        retval = self.chilidren[key]
+        assert check_return_type(retval)
+        return retval
 
-    @typechecked
     def __setitem__(self, key: str, value: str):
+        assert check_argument_types()
         if self.has_children:
             raise RuntimeError('This writer points out a directory')
         if key in self.keys:
@@ -72,7 +75,6 @@ class DatadirWriter:
         self.closed = True
 
 
-@typechecked
 def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     """
 
@@ -85,6 +87,7 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
         {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
 
     """
+    assert check_argument_types()
 
     data = {}
     with Path(path).open('r') as f:
@@ -98,13 +101,14 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
             if k in data:
                 raise RuntimeError(f'{k} is duplicated ({path}:{linenum})')
             data[k] = v.rstrip()
+    assert check_return_type(data)
     return data
 
 
-@typechecked
 def load_num_sequence_text(path: Union[Path, str],
                            loader_type: str = 'csv_int') \
         -> Dict[str, np.ndarray]:
+    assert check_argument_types()
     if loader_type == 'text_int':
         delimiter = ' '
         dtype = np.long
@@ -137,6 +141,7 @@ def load_num_sequence_text(path: Union[Path, str],
             logging.error(f'Error happened with path="{path}", '
                           f'id="{k}", value="{v}"')
             raise
+    assert check_return_type(retval)
     return retval
 
 
@@ -153,9 +158,9 @@ class SoundScpReader(collections.abc.Mapping):
     >>> rate, array = reader['key1']
 
     """
-    @typechecked
     def __init__(self, fname, dtype=np.int16,
                  always_2d: bool = False, normalize: bool = False):
+        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d
@@ -204,9 +209,9 @@ class SoundScpWriter:
     >>> writer['bb'] = 16000, numpy_array
 
     """
-    @typechecked
     def __init__(self, basedir, name, format='wav', dtype=None,
                  normalize: bool = False):
+        assert check_argument_types()
         self.dir = Path(basedir) / f'data_{name}'
         self.dir.mkdir(parents=True, exist_ok=True)
         self.fscp = (Path(basedir) / f'{name}.scp').open('w')
@@ -272,7 +277,8 @@ class NpyScpWriter:
     >>> writer['bb'] = numpy_array
 
     """
-    def __init__(self, basedir, name):
+    def __init__(self, basedir: Union[Path, str], name: str):
+        assert check_argument_types()
         self.dir = Path(basedir) / f'data_{name}'
         self.dir.mkdir(parents=True, exist_ok=True)
         self.fscp = (Path(basedir) / f'{name}.scp').open('w')
@@ -307,8 +313,9 @@ class NpyScpReader(collections.abc.Mapping):
     >>> rate, array = reader['key1']
 
     """
-    def __init__(self, fname):
-        self.fname = fname
+    def __init__(self, fname: Union[Path, str]):
+        assert check_argument_types()
+        self.fname = Path(fname)
         with open(fname, 'r') as f:
             self.data = {}
             for line in f:

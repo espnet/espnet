@@ -5,7 +5,7 @@
 from typing import Tuple, Optional
 
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention \
@@ -50,7 +50,6 @@ class Encoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
-    @typechecked
     def __init__(self,
                  idim: int,
                  attention_dim: int = 256,
@@ -67,6 +66,7 @@ class Encoder(AbsEncoder):
                  positionwise_layer_type: str = "linear",
                  positionwise_conv_kernel_size: int = 1,
                  padding_idx: int = -1):
+        assert check_argument_types()
         super().__init__()
         self.attention_dim = attention_dim
 

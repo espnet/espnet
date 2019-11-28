@@ -8,7 +8,7 @@ from typing import Tuple, Dict
 
 import torch
 import torch.nn.functional as F
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, \
     make_pad_mask
@@ -43,6 +43,7 @@ class GuidedAttentionLoss(torch.nn.Module):
             reset_always (bool, optional): Whether to always reset masks.
 
         """
+        assert check_argument_types()
         super(GuidedAttentionLoss, self).__init__()
         self.sigma = sigma
         self.alpha = alpha
@@ -165,6 +166,7 @@ class Tacotron2Loss(torch.nn.Module):
             bce_pos_weight (float): Weight of positive sample of stop token.
 
         """
+        assert check_argument_types()
         super(Tacotron2Loss, self).__init__()
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
@@ -262,7 +264,6 @@ class Tacotron2(AbsTTS):
         guided_attn_loss_lamdba: Lambda in guided attention loss.
     """
 
-    @typechecked
     def __init__(self,
                  idim: int, odim: int,
                  embed_dim: int = 512,
@@ -306,6 +307,7 @@ class Tacotron2(AbsTTS):
                  guided_attn_loss_sigma: float = 0.4,
                  guided_attn_loss_lambda: float = 1.0,
                  ):
+        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters
@@ -416,7 +418,6 @@ class Tacotron2(AbsTTS):
                 output: torch.Tensor,
                 output_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
-                spembs_lengths: torch.Tensor = None,
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None,
                 ) -> \
@@ -429,7 +430,6 @@ class Tacotron2(AbsTTS):
             output: Batch of padded target features (B, Lmax, odim).
             output_lengths: Batch of the lengths of each target (B,).
             spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
-            spembs_lengths:
             spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
             spcs_lengths:
         """

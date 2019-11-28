@@ -7,7 +7,7 @@ import kaldiio
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.transform.transformation import Transformation
@@ -15,7 +15,6 @@ from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text, \
     NpyScpReader
 
 
-@typechecked
 def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         -> Dict[str, torch.Tensor]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
@@ -33,6 +32,7 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         that of the dataset as they are.
 
     """
+    assert check_argument_types()
     assert all(set(data[0]) == set(d) for d in data), 'dict-keys mismatching'
     assert all(k + '_lengths' not in data[0] for k in data[0]), \
         f'*_lengths is reserved: {list(data[0])}'
@@ -62,11 +62,13 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
         output[key + '_lengths'] = lens
 
+    assert check_return_type(output)
     return output
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
     def __init__(self, loader: SoundScpReader):
+        assert check_argument_types()
         self.loader = loader
         self.rate = None
 
@@ -103,10 +105,10 @@ class ESPNetDataset(Dataset):
          'output': ndarray, 'output_lengths': ndarray}
     """
 
-    @typechecked
     def __init__(self, path_name_type_list: Sequence[Sequence[str]],
                  preproces: Dict[str, Union[str, dict]] = None,
                  float_dtype: str = 'float32', int_dtype: str = 'long'):
+        assert check_argument_types()
         if len(path_name_type_list) == 0:
             raise ValueError(
                 '1 or more elements are required for "path_name_type_list"')
@@ -158,7 +160,6 @@ class ESPNetDataset(Dataset):
                         f'{name} not in {set(self.loader_dict)}')
 
     @staticmethod
-    @typechecked
     def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
         """Helper function to instantiate Loader
 
@@ -229,8 +230,8 @@ class ESPNetDataset(Dataset):
     # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
-    @typechecked
     def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
         data = {}
         for name, loader in self.loader_dict.items():
             try:
@@ -258,5 +259,5 @@ class ESPNetDataset(Dataset):
 
             data[name] = value
 
+        assert check_return_type(data)
         return data
-

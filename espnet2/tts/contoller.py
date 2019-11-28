@@ -1,7 +1,7 @@
 from typing import Tuple, Dict, Optional
 
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.normalize.abs_normalization import AbsNormalization
@@ -10,12 +10,12 @@ from espnet2.tts.abs_model import AbsTTS
 
 
 class TTSModelController(AbsModelController):
-    @typechecked
     def __init__(self,
                  feats_extractor: Optional[AbsFrontend],
                  normalize: Optional[AbsNormalization],
                  tts: AbsTTS,
                  ):
+        assert check_argument_types()
         super().__init__()
         self.feats_extractor = feats_extractor
         self.normalize = normalize
@@ -31,6 +31,8 @@ class TTSModelController(AbsModelController):
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None) -> \
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        assert input.size(1) >= input_lengths.max(), \
+            (input.size(), input_lengths.max())
         if self.feats_extractor is not None:
             feats, feats_lens = self.feats_extractor(output, output_lengths)
         else:
@@ -45,7 +47,5 @@ class TTSModelController(AbsModelController):
             output=feats,
             output_lengths=feats_lens,
             spembs=spembs,
-            spembs_lengths=spembs_lengths,
             spcs=spcs,
             spcs_lengths=spcs_lengths)
-

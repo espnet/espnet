@@ -1,11 +1,12 @@
 from typing import Tuple, Optional
 
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types
+
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class Stft(torch.nn.Module):
-    @typechecked
     def __init__(self,
                  n_fft: int = 512,
                  win_length: int = 512,
@@ -15,6 +16,7 @@ class Stft(torch.nn.Module):
                  normalized: bool = False,
                  onesided: bool = True
                  ):
+        assert check_argument_types()
         super().__init__()
         self.n_fft = n_fft
         self.win_length = win_length
@@ -51,6 +53,8 @@ class Stft(torch.nn.Module):
             olens = (ilens - self.win_length) // self.hop_length + 1
         else:
             olens = None
+
+        output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         return output, olens
 
     def istft(self, input):
