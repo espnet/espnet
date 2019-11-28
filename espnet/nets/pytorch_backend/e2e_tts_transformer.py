@@ -277,7 +277,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
                 - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
                 - postnet_dropout_rate (float): Dropout rate in postnet.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking for padded part in loss calculation.
                 - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
                 - loss_type (str): How to calculate loss.
                 - use_guided_attn_loss (bool): Whether to use guided attention loss.
