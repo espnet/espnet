@@ -67,6 +67,8 @@ def tts_decode(
     model = TTSTask.build_model(train_args)
     model.load_state_dict(torch.load(model_file, map_location=device))
     model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    tts = model.tts
+    normalize = model.normalize
 
     # 3. Build data-iterator
     dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
@@ -77,7 +79,8 @@ def tts_decode(
     batch_sampler = ConstantBatchSampler(
         batch_size=batch_size, key_file=key_file, shuffle=False)
 
-    logging.info(f'Model:\n{model}')
+    logging.info(f'Normalization :\n{normalize}')
+    logging.info(f'TTS :\n{tts}')
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
@@ -102,13 +105,19 @@ def tts_decode(
             # Change to single sequence and remove *_length
             # because inference() requires 1-seq, not mini-batch.
             _data = {k: v[0] for k, v in batch.items()
-                     if k + '_length' in batch}
+                     if k + '_lengths' in batch}
             start_time = time.perf_counter()
+
+            # TODO(kamo): Use common gathering attention system and plot it
+            #  Not att_ws is not used.
+
             with torch.no_grad():
-                outs, probs, att_ws = model.inference(**_data,
-                                                      threshold=threshold,
-                                                      maxlenratio=maxlenratio,
-                                                      minlenratio=minlenratio)
+                outs, probs, att_ws = tts.inference(**_data,
+                                                    threshold=threshold,
+                                                    maxlenratio=maxlenratio,
+                                                    minlenratio=minlenratio)
+                outs, _ = normalize(outs[None], inverse=True)
+                outs = outs.squeeze(0)
 
             insize = next(iter(_data.values())).size(0)
             logging.info("inference speed = {} msec / frame.".format(
@@ -139,7 +148,7 @@ def get_parser():
         choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
         help='The verbose level of logging')
 
-    parser.add_argument('--out', type=str, required=True)
+    parser.add_argument('--output_dir', type=str, required=True)
     parser.add_argument('--ngpu', type=int, default=0,
                         help='The number of gpus. 0 indicates CPU mode')
     parser.add_argument('--seed', type=int, default=0,
@@ -148,10 +157,7 @@ def get_parser():
         '--dtype', default="float32",
         choices=["float16", "float32", "float64"], help='Data type')
     parser.add_argument('--num_workers', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=30)
-    parser.add_argument('--log_base', type=float_or_none, default=None,
-                        help="The base of logarithm for Perplexity. "
-                             "If None, napier's constant is used.")
+    parser.add_argument('--batch_size', type=int, default=1)
 
     group = parser.add_argument_group('Input data related')
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from typeguard import typechecked
 
-from espnet2.lm.abs_lm import AbsLM
+from espnet2.lm.abs_model import AbsLM
 
 
 class SequentialRNNLM(AbsLM):

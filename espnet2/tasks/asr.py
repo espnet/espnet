@@ -10,11 +10,11 @@ from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.model import ASRModel
+from espnet2.asr.controller import ASRModelController
 from espnet2.asr.normalize.abs_normalization import AbsNormalization
 from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
-from espnet2.tasks.base_task import AbsTask
+from espnet2.tasks.abs_task import AbsTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.types import str_or_none, int_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -61,7 +61,7 @@ class ASRTask(AbsTask):
             help='The keyword arguments for normalization class.')
 
         group.add_argument(
-            '--encoder_decoder', type=str, default='transformer',
+            '--encoder_decoder', type=str, default='rnn',
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(
@@ -75,7 +75,7 @@ class ASRTask(AbsTask):
             help='The keyword arguments for CTC class.')
         group.add_argument(
             '--model_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for Model class.')
+            help='The keyword arguments for ModelController class.')
 
         return parser
 
@@ -114,7 +114,7 @@ class ASRTask(AbsTask):
         encoder_conf = get_defaut_kwargs(encoder_class)
         decoder_conf = get_defaut_kwargs(decoder_class)
         ctc_conf = get_defaut_kwargs(CTC)
-        model_conf = get_defaut_kwargs(ASRModel)
+        model_conf = get_defaut_kwargs(ASRModelController)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -183,8 +183,8 @@ class ASRTask(AbsTask):
             return UtteranceMVN
         else:
             raise RuntimeError(
-                f'--frontend must be one of '
-                f'{cls.normalize_choices()}: --frontend {name}')
+                f'--normalize must be one of '
+                f'{cls.normalize_choices()}: --normalize {name}')
 
     @classmethod
     @typechecked
@@ -215,7 +215,7 @@ class ASRTask(AbsTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> ASRModel:
+    def build_model(cls, args: argparse.Namespace) -> ASRModelController:
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -265,8 +265,8 @@ class ASRTask(AbsTask):
         # 5. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
-        # 6. Set them to ASRModel
-        model = ASRModel(
+        # 6. Build controller
+        model = ASRModelController(
             vocab_size=vocab_size,
             frontend=frontend,
             normalize=normalize,

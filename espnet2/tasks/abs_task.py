@@ -22,7 +22,7 @@ from typeguard import typechecked
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
-from espnet2.train.abs_espnet_model import AbsESPNetModel
+from espnet2.train.abs_model_controller import AbsModelController
 from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
@@ -419,7 +419,14 @@ class AbsTask(ABC):
     def print_config(cls, file: TextIOBase = sys.stdout):
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
-        file.write(yaml.safe_dump(config, indent=4, sort_keys=False))
+
+        class NoAliasSafeDumper(yaml.SafeDumper):
+            # Disable anchor/alias in yaml because looks ugly
+            def ignore_aliases(self, data):
+                return True
+
+        file.write(yaml.dump(config, Dumper=NoAliasSafeDumper,
+                             indent=4, sort_keys=False))
 
     @classmethod
     @typechecked
@@ -495,7 +502,7 @@ class AbsTask(ABC):
 
         # 5. Build model, optimizer, scheduler
         model = cls.build_model(args=args)
-        if not isinstance(model, AbsESPNetModel):
+        if not isinstance(model, AbsModelController):
             raise RuntimeError(
                 f'model must inherit AbsESPNetModel, but got {type(model)}')
 
@@ -608,7 +615,7 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     def load(cls,
-             model: AbsESPNetModel,
+             model: AbsModelController,
              optimizer: torch.optim.Optimizer,
              reporter: Reporter,
              output_dir: Union[str, Path],
@@ -700,7 +707,7 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     def run(cls,
-            model: AbsESPNetModel,
+            model: AbsModelController,
             optimizer: torch.optim.Optimizer,
             train_iter,
             eval_iter,
@@ -828,7 +835,9 @@ class AbsTask(ABC):
                 if p.exists() and e not in nbests:
                     shutil.rmtree(p)
                     _removed.append(str(p))
-            logging.info(f'The snapshot was removed: ' + ', '.join(_removed))
+            if len(_removed) != 0:
+                logging.info(
+                    f'The snapshot was removed: ' + ', '.join(_removed))
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
@@ -865,7 +874,7 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     def train(cls,
-              model: AbsESPNetModel,
+              model: AbsModelController,
               iterator,
               optimizer: torch.optim.Optimizer,
               reporter: SubReporter,
@@ -931,7 +940,7 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     @torch.no_grad()
-    def eval(cls, model: AbsESPNetModel, iterator, reporter: SubReporter,
+    def eval(cls, model: AbsModelController, iterator, reporter: SubReporter,
              ngpu: int) -> None:
         model.eval()
         for batch in iterator:
@@ -952,7 +961,7 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     @torch.no_grad()
-    def plot_attention(cls, model: AbsESPNetModel,
+    def plot_attention(cls, model: AbsModelController,
                        output_dir: Path,
                        sampler: AbsSampler,
                        iterator, ngpu: int,
