@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
-from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence
+from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, Mapping
 
 import configargparse
 import numpy as np
@@ -17,7 +17,7 @@ import torch.optim
 import yaml
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet2.schedulers.abs_scheduler import (
@@ -27,11 +27,12 @@ from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import (
     int_or_none, str2bool, str_or_none, str2triple_str, str2pair_str)
-from espnet2.utils.nested_dict_action import NestedDictAction
 
 
 class AbsTask(ABC):
@@ -42,9 +43,9 @@ class AbsTask(ABC):
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
-    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
+        assert check_argument_types()
         if parser is None:
             parser = configargparse.ArgumentParser(
                 description='base parser',
@@ -227,18 +228,20 @@ class AbsTask(ABC):
         group.add_argument(
             '--bscheduler_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for the batch scheduler')
+
+        assert check_return_type(parser)
         return parser
 
     @classmethod
-    @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
+        assert check_argument_types()
         return ('required', 'print_config', 'config', 'ngpu',
                 'log_level', 'output_dir')
 
     @classmethod
-    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        assert check_argument_types()
         parser = AbsTask.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
@@ -265,11 +268,12 @@ class AbsTask(ABC):
             bscheduler_conf.update(config['bscheduler_conf'])
             config['bscheduler_conf'] = bscheduler_conf
 
+        assert check_return_type(config)
         return config
 
     @classmethod
-    @typechecked
     def check_required(cls, args: argparse.Namespace):
+        assert check_argument_types()
         for k in vars(args):
             if '-' in k:
                 raise RuntimeError(
@@ -288,62 +292,64 @@ class AbsTask(ABC):
             sys.exit(2)
 
     @classmethod
-    @typechecked
     @abstractmethod
     def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+        assert check_argument_types()
         raise NotImplementedError
 
     @classmethod
-    @typechecked
     def optimizer_choices(cls) -> Tuple[str, ...]:
+        assert check_argument_types()
         choices = ('Adam', 'SGD', 'Adadelta', 'Adagrad', 'AdamW',
                    'Adamax', 'ASGD', 'LBFGS', 'RMSprop', 'Rprop')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_optimizer_class(cls, name: str) -> Type[torch.optim.Optimizer]:
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'adam':
-            return torch.optim.Adam
+            retval = torch.optim.Adam
         elif name.lower() == 'sgd':
-            return torch.optim.SGD
+            retval = torch.optim.SGD
         elif name.lower() == 'adadelta':
-            return torch.optim.Adadelta
+            retval = torch.optim.Adadelta
         elif name.lower() == 'adagrad':
-            return torch.optim.Adagrad
+            retval = torch.optim.Adagrad
         elif name.lower() == 'adaw':
-            return torch.optim.AdamW
+            retval = torch.optim.AdamW
         elif name.lower() == 'adamax':
-            return torch.optim.Adamax
+            retval = torch.optim.Adamax
         elif name.lower() == 'asgd':
-            return torch.optim.ASGD
+            retval = torch.optim.ASGD
         elif name.lower() == 'lbfgs':
-            return torch.optim.LBFGS
+            retval = torch.optim.LBFGS
         elif name.lower() == 'rmsprop':
-            return torch.optim.RMSprop
+            retval = torch.optim.RMSprop
         elif name.lower() == 'rprop':
-            return torch.optim.Rprop
+            retval = torch.optim.Rprop
         else:
             raise RuntimeError(
                 f'--optim must be one of {cls.optimizer_choices()}: '
                 f'--optim {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def epoch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('ReduceLROnPlateau', 'LambdaLR', 'StepLR', 'MultiStepLR',
                    'ExponentialLR', 'CosineAnnealingLR')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_epoch_scheduler_class(cls, name: str) -> Type[AbsEpochScheduler]:
         """Schedulers change optim-parameters at the end of each epochs
 
@@ -360,36 +366,39 @@ class AbsTask(ABC):
             >>>     val = validate(...)
             >>>     scheduler.step(val)
         """
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'reducelronplateau':
-            return torch.optim.lr_scheduler.ReduceLROnPlateau
+            retval = torch.optim.lr_scheduler.ReduceLROnPlateau
         elif name.lower() == 'lambdalr':
-            return torch.optim.lr_scheduler.LambdaLR
+            retval = torch.optim.lr_scheduler.LambdaLR
         elif name.lower() == 'steplr':
-            return torch.optim.lr_scheduler.StepLR
+            retval = torch.optim.lr_scheduler.StepLR
         elif name.lower() == 'multisteplr':
-            return torch.optim.lr_scheduler.MultiStepLR
+            retval = torch.optim.lr_scheduler.MultiStepLR
         elif name.lower() == 'exponentiallr':
-            return torch.optim.lr_scheduler.ExponentialLR
+            retval = torch.optim.lr_scheduler.ExponentialLR
         elif name.lower() == 'cosineannealinglr':
-            return torch.optim.lr_scheduler.CosineAnnealingLR
+            retval = torch.optim.lr_scheduler.CosineAnnealingLR
         else:
             raise RuntimeError(
                 f'--escheduler must be one of '
                 f'{cls.epoch_scheduler_choices()}: --escheduler {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('CyclicLR', 'OneCycleLR', 'CosineAnnealingWarmRestarts')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_batch_scheduler_class(cls, name: str) -> Type[AbsBatchScheduler]:
         """Schedulers change optim-parameters after every updating
 
@@ -401,22 +410,25 @@ class AbsTask(ABC):
             >>>         train_batch(...)
             >>>         scheduler.step()
         """
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'cycliclr':
-            return torch.optim.lr_scheduler.CyclicLR
+            retval = torch.optim.lr_scheduler.CyclicLR
         elif name.lower() == 'onecyclelr':
-            return torch.optim.lr_scheduler.OneCycleLR
+            retval = torch.optim.lr_scheduler.OneCycleLR
         elif name.lower() == 'cosineannealingwarmrestarts':
-            return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+            retval = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
         else:
             raise RuntimeError(
                 f'--bscheduler must be one of '
                 f'{cls.batch_scheduler_choices()}: --bscheduler {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
-    def print_config(cls, file: TextIOBase = sys.stdout):
+    def print_config(cls, file: TextIOBase = sys.stdout) -> None:
+        assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
 
@@ -429,9 +441,9 @@ class AbsTask(ABC):
                              indent=4, sort_keys=False))
 
     @classmethod
-    @typechecked
     def main(cls, args: argparse.Namespace = None,
              cmd: Sequence[str] = None) -> None:
+        assert check_argument_types()
         if args is None:
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
@@ -613,7 +625,6 @@ class AbsTask(ABC):
                 )
 
     @classmethod
-    @typechecked
     def load(cls,
              model: AbsModelController,
              optimizer: torch.optim.Optimizer,
@@ -626,6 +637,7 @@ class AbsTask(ABC):
              pretrain_path: Optional[Union[str, Path]],
              pretrain_key: Optional[str],
              loc: str) -> None:
+        assert check_argument_types()
         # For resuming: Specify either resume_epoch or resume_path.
         #     - resume_epoch: Load from outdir/{}epoch/.
         #     - resume_path: Load from the specified path.
@@ -705,7 +717,6 @@ class AbsTask(ABC):
             obj.load_state_dict(state_dict)
 
     @classmethod
-    @typechecked
     def run(cls,
             model: AbsModelController,
             optimizer: torch.optim.Optimizer,
@@ -729,6 +740,7 @@ class AbsTask(ABC):
             early_stopping_criterion: Tuple[str, str, str],
             best_model_criterion: Sequence[Tuple[str, str, str]],
             val_scheduler_criterion: Tuple[str, str]) -> None:
+        assert check_argument_types()
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -872,7 +884,6 @@ class AbsTask(ABC):
                                  nbest=keep_n_best_snapshot)
 
     @classmethod
-    @typechecked
     def train(cls,
               model: AbsModelController,
               iterator,
@@ -886,6 +897,7 @@ class AbsTask(ABC):
               grad_clip: float,
               log_interval: int,
               ) -> bool:
+        assert check_argument_types()
         model.train()
         all_steps_are_invalid = True
         for iiter, batch in enumerate(iterator, 1):
@@ -938,10 +950,10 @@ class AbsTask(ABC):
         return all_steps_are_invalid
 
     @classmethod
-    @typechecked
     @torch.no_grad()
     def eval(cls, model: AbsModelController, iterator, reporter: SubReporter,
              ngpu: int) -> None:
+        assert check_argument_types()
         model.eval()
         for batch in iterator:
             assert isinstance(batch, dict), type(batch)
@@ -952,14 +964,13 @@ class AbsTask(ABC):
                 _, stats, weight = \
                     data_parallel(model, (), range(ngpu), module_kwargs=batch)
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
-                         if v is not None else None
+                if v is not None else None
                          for k, v in stats.items()}
                 weight = weight.sum()
 
             reporter.register(stats, weight)
 
     @classmethod
-    @typechecked
     @torch.no_grad()
     def plot_attention(cls, model: AbsModelController,
                        output_dir: Path,
@@ -967,28 +978,65 @@ class AbsTask(ABC):
                        iterator, ngpu: int,
                        reporter: SubReporter,
                        ) -> None:
+        assert check_argument_types()
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
+
         model.eval()
+        output_dir = Path(output_dir)
         for ids, batch in zip(sampler, iterator):
             assert isinstance(batch, dict), type(batch)
+            assert len(next(iter(batch.values()))) == len(ids), \
+                (len(next(iter(batch.values()))), len(ids))
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
-            # Only supporting ngpu == 1
 
-            # This function is slow due to matplotlib
-            model.plot_and_save_attentions(
-                output_dir=output_dir / 'images_att',
-                ids=ids, batch=batch)
+            # 1. Forwarding model and gathering all attentions
+            #    calculate_all_attentions() uses single gpu only.
+            att_dict = calculate_all_attentions(model, **batch)
 
-            # Dummy register() stimulates to increment the counter
-            reporter.register({})
+            # 2. Plot attentions: This part is slow due to matplotlib
+            for k, att_list in att_dict.items():
+                assert len(att_list) == len(ids), (len(att_list), len(ids))
+                for id_, att_w in zip(ids, att_list):
+
+                    if isinstance(att_w, torch.Tensor):
+                        att_w = att_w.detach().cpu().numpy()
+
+                    if att_w.ndim == 2:
+                        att_w = att_w[None]
+                    elif att_w.ndim > 3 or att_w.ndim == 1:
+                        raise RuntimeError(
+                            f'Must be 2 or 3 dimension: {att_w.ndim}')
+
+                    w, h = plt.figaspect(1.0 / len(att_w))
+                    fig = plt.Figure(figsize=(w * 2, h * 2))
+                    axes = fig.subplots(1, len(att_w))
+                    if len(att_w) == 1:
+                        axes = [axes]
+
+                    for ax, aw in zip(axes, att_w):
+                        ax.imshow(aw.astype(np.float32), aspect='auto')
+                        ax.set_xlabel('Input')
+                        ax.set_ylabel('Output')
+                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+                    p = (output_dir / id_ / (k + '.png'))
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(p)
+
+                    # Dummy register() stimulates to increment the counter
+                    reporter.register({})
 
     @classmethod
-    @typechecked
+    @torch.no_grad()
     def average_nbest_models(
             cls,
             output_dir: Path,
             reporter: Reporter,
             best_model_criterion: Sequence[Tuple[str, str, str]],
             nbest: int) -> None:
+        assert check_argument_types()
         # 1.. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
         nbest_epochs = \
             [(ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])

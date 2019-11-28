@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.initialization import \
     lecun_normal_init_parameters, set_forget_bias_to_one
@@ -74,7 +74,6 @@ def build_attention_list(
 
 
 class Decoder(AbsDecoder):
-    @typechecked
     def __init__(self,
                  odim: int,
                  encoder_out_dim: int,
@@ -88,6 +87,7 @@ class Decoder(AbsDecoder):
                  num_encs: int = 1,
                  att_conf: dict = get_defaut_kwargs(build_attention_list)):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
+        assert check_argument_types()
 
         super().__init__()
         eprojs = encoder_out_dim

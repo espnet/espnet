@@ -2,15 +2,11 @@ import argparse
 from distutils.util import strtobool
 from typing import Optional, Tuple
 
-from typeguard import typechecked
 
-
-@typechecked
 def str2bool(value: str) -> bool:
     return bool(strtobool(value))
 
 
-@typechecked
 def int_or_none(value: Optional[str]) -> Optional[int]:
     """
 
@@ -34,7 +30,6 @@ def int_or_none(value: Optional[str]) -> Optional[int]:
     return int(value)
 
 
-@typechecked
 def float_or_none(value: Optional[str]) -> Optional[float]:
     """
 
@@ -58,7 +53,6 @@ def float_or_none(value: Optional[str]) -> Optional[float]:
     return float(value)
 
 
-@typechecked
 def str_or_none(value: Optional[str]) -> Optional[str]:
     """
 
@@ -82,7 +76,6 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
     return value
 
 
-@typechecked
 def str2pair_str(value: str) -> Tuple[str, str]:
     """
 
@@ -99,7 +92,6 @@ def str2pair_str(value: str) -> Tuple[str, str]:
     return a.strip(), b.strip()
 
 
-@typechecked
 def str2triple_str(value: str) -> Tuple[str, str, str]:
     """
 

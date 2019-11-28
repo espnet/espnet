@@ -13,12 +13,13 @@ from typing import Union, Dict, Tuple, Optional, Sequence, List
 import humanfriendly
 import numpy as np
 import torch
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
 
 def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
+    assert check_argument_types()
     if isinstance(v, (torch.Tensor, np.ndarray)):
         if len(v.shape) not in (0, 1):
             raise ValueError(f'v must be 0 or 1 dimension: {len(v.shape)}')
@@ -31,19 +32,21 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
         weight = weight.item()
 
     if weight is not None:
-        return WeightedAverage(v, weight)
+        retval = WeightedAverage(v, weight)
     else:
-        return Average(v)
+        retval = Average(v)
+    assert check_return_type(retval)
+    return retval
 
 
-@typechecked
-def aggregate(values: Sequence[ReportedValue]):
+def aggregate(values: Sequence[ReportedValue]) -> Num:
+    assert check_argument_types()
     if len(values) == 0:
         warnings.warn('No stats found')
-        return np.nan
+        retval = np.nan
 
-    if isinstance(values[0], Average):
-        return np.nanmean([v.value for v in values])
+    elif isinstance(values[0], Average):
+        retval = np.nanmean([v.value for v in values])
 
     elif isinstance(values[0], WeightedAverage):
         # Excludes non finite values
@@ -59,15 +62,17 @@ def aggregate(values: Sequence[ReportedValue]):
             sum_value = np.sum(v.value * v.weight for i, v in enumerate(values))
             if sum_weights == 0:
                 warnings.warn('weight is zero')
-                return np.nan
+                retval = np.nan
             else:
-                return sum_value / sum_weights
+                retval = sum_value / sum_weights
         else:
             warnings.warn('No valid stats found')
-            return np.nan
+            retval = np.nan
 
     else:
         raise NotImplementedError(f'type={type(values[0])}')
+    assert check_return_type(retval)
+    return retval
 
 
 class ReportedValue:
@@ -90,8 +95,8 @@ class SubReporter:
 
     See the docstring of Reporter for the usage.
     """
-    @typechecked
     def __init__(self, key: str, epoch: int, total_count: int):
+        assert check_argument_types()
         self.key = key
         self.epoch = epoch
         self.start_time = time.perf_counter()
@@ -103,9 +108,10 @@ class SubReporter:
         """Returns the number of iteration over all epochs"""
         return self.total_count
 
-    @typechecked
     def register(self, stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
-                 weight: Num = None, not_increment_count: bool = False):
+                 weight: Num = None, not_increment_count: bool = False) \
+            -> None:
+        assert check_argument_types()
         if self._finished:
             raise RuntimeError('Already finished')
         if not not_increment_count:
@@ -159,8 +165,8 @@ class Reporter:
         ...         sub_reporter.register(stats)
 
     """
-    @typechecked
     def __init__(self, epoch: int = 0):
+        assert check_argument_types()
         if epoch < 0:
             raise RuntimeError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
@@ -306,7 +312,6 @@ class Reporter:
                 all_keys.append((key, key2))
         return tuple(all_keys)
 
-    @typechecked
     def save_stats_plot(self, output_dir: Union[str, Path]):
         """Plot stats using Matplotlib and save images"""
         for k in self.get_keys2('eval'):
@@ -315,8 +320,8 @@ class Reporter:
             p.parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(p)
 
-    @typechecked
     def plot_stats(self, keys: Sequence[str], key2: str):
+        assert check_argument_types()
         # str is also Sequence[str]
         if isinstance(keys, str):
             raise TypeError(f'Input as [{keys}]')

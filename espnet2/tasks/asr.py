@@ -3,28 +3,28 @@ import logging
 from typing import Any, Dict, Type, Tuple, Optional
 
 import configargparse
-from typeguard import typechecked
+from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.controller import ASRModelController
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.controller import ASRModelController
 from espnet2.asr.normalize.abs_normalization import AbsNormalization
 from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
-from espnet2.utils.types import str_or_none, int_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str_or_none, int_or_none
 
 
 class ASRTask(AbsTask):
     @classmethod
-    @typechecked
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
             -> configargparse.ArgumentParser:
+        assert check_argument_types()
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
@@ -80,14 +80,14 @@ class ASRTask(AbsTask):
         return parser
 
     @classmethod
-    @typechecked
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
+        assert check_argument_types()
         return AbsTask.exclude_opts()
 
     @classmethod
-    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
+        assert check_argument_types()
         # This method is used only for --print_config
 
         # 0. Parse command line arguments
@@ -142,80 +142,90 @@ class ASRTask(AbsTask):
         for k in cls.exclude_opts():
             config.pop(k)
 
+        assert check_return_type(config)
         return config
 
     @classmethod
-    @typechecked
     def frontend_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('default',)
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_frontend_class(cls, name: str) -> Type[AbsFrontend]:
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'default':
-            return DefaultFrontend
+            retval = DefaultFrontend
         else:
             raise RuntimeError(
                 f'--frontend must be one of '
                 f'{cls.frontend_choices()}: --frontend {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
+        assert check_argument_types()
         choices = ('global_mvn', 'utterance_mvn')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_normalize_class(cls, name: str) -> Type[AbsNormalization]:
+        assert check_argument_types()
         if name.lower() == 'global_mvn':
-            return GlobalMVN
+            retval = GlobalMVN
         elif name.lower() == 'utterance_mvn':
-            return UtteranceMVN
+            retval = UtteranceMVN
         else:
             raise RuntimeError(
                 f'--normalize must be one of '
                 f'{cls.normalize_choices()}: --normalize {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def encoder_decoder_choices(cls) -> Tuple[str, ...]:
+        assert check_argument_types()
         choices = ('Transformer', 'rnn')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
+        assert check_return_type(choices)
         return choices
 
     @classmethod
-    @typechecked
     def get_encoder_decoder_class(cls, name: str) \
             -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
+        assert check_argument_types()
         if name.lower() == 'transformer':
             from espnet2.asr.encoder_decoder.transformer.encoder import Encoder
             from espnet2.asr.encoder_decoder.transformer.decoder import Decoder
-            return Encoder, Decoder
+            retval = Encoder, Decoder
 
         elif name.lower() == 'rnn':
             from espnet2.asr.encoder_decoder.rnn.decoder import Decoder
             from espnet2.asr.encoder_decoder.rnn.encoder import Encoder
-            return Encoder, Decoder
+            retval = Encoder, Decoder
 
         else:
             raise RuntimeError(
                 f'--encoder_decoder must be one of '
                 f'{cls.encoder_decoder_choices()}: --encoder_decoder {name}')
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
-    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ASRModelController:
+        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
                 token_list = [line.rstrip() for line in f]
@@ -277,4 +287,5 @@ class ASRTask(AbsTask):
             token_list=token_list,
             **args.model_conf)
 
+        assert check_return_type(model)
         return model

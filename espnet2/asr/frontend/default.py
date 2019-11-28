@@ -5,7 +5,7 @@ import humanfriendly
 import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.frontends.feature_transform import LogMel
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
@@ -27,15 +27,15 @@ class DefaultFrontend(AbsFrontend):
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
 
-    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
         n_fft: int = 512,
         stft_conf: dict = _stft_conf.copy(),
         frontend_conf: Optional[dict] = get_defaut_kwargs(Frontend),
-        logmel_fbank_conf: dict = _logmel_kwargs.copy(),
+        logmel_fbank_conf: dict = _logmel_kwargs.copy()
     ):
+        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import yaml
 from torch.utils.data.dataloader import DataLoader
-from typeguard import typechecked
+from typeguard import typechecked, check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
@@ -23,7 +23,6 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
 
 
-@typechecked
 def tts_decode(
         output_dir: str,
         batch_size: int,
@@ -41,6 +40,7 @@ def tts_decode(
         minlenratio: float,
         maxlenratio: float,
         ):
+    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
     if ngpu > 1:
@@ -109,14 +109,15 @@ def tts_decode(
             start_time = time.perf_counter()
 
             # TODO(kamo): Use common gathering attention system and plot it
-            #  Not att_ws is not used.
+            #  Now att_ws is not used.
 
             with torch.no_grad():
                 outs, probs, att_ws = tts.inference(**_data,
                                                     threshold=threshold,
                                                     maxlenratio=maxlenratio,
                                                     minlenratio=minlenratio)
-                outs, _ = normalize(outs[None], inverse=True)
+                if normalize is not None:
+                    outs, _ = normalize(outs[None], inverse=True)
                 outs = outs.squeeze(0)
 
             insize = next(iter(_data.values())).size(0)
@@ -148,7 +149,8 @@ def get_parser():
         choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
         help='The verbose level of logging')
 
-    parser.add_argument('--output_dir', type=str, required=True)
+    parser.add_argument('--output_dir', type=str, required=True,
+                        help='The path of output directory')
     parser.add_argument('--ngpu', type=int, default=0,
                         help='The number of gpus. 0 indicates CPU mode')
     parser.add_argument('--seed', type=int, default=0,
@@ -156,8 +158,10 @@ def get_parser():
     parser.add_argument(
         '--dtype', default="float32",
         choices=["float16", "float32", "float64"], help='Data type')
-    parser.add_argument('--num_workers', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--num_workers', type=int, default=1,
+                        help='The number of workers used for DataLoader')
+    parser.add_argument('--batch_size', type=int, default=1,
+                        help='The batch size for inference')
 
     group = parser.add_argument_group('Input data related')
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,

@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import yaml
 from torch.utils.data.dataloader import DataLoader
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -23,11 +23,10 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, str_or_none
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str2triple_str, str_or_none
 
 
-@typechecked
 def recog(
         output_dir: str,
         maxlenratio: float,
@@ -54,6 +53,7 @@ def recog(
         word_lm_file: Optional[str],
         blank_symbol: str,
         ):
+    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
     if word_lm_train_config is not None:
@@ -204,7 +204,8 @@ def get_parser():
     parser.add_argument(
         '--dtype', default="float32",
         choices=["float16", "float32", "float64"], help='Data type')
-    parser.add_argument('--num_workers', type=int, default=1)
+    parser.add_argument('--num_workers', type=int, default=1,
+                        help='The number of workers used for DataLoader')
 
     group = parser.add_argument_group('Input data related')
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
@@ -221,7 +222,8 @@ def get_parser():
     group.add_argument('--word_lm_file', type=str)
 
     group = parser.add_argument_group('Beam-search related')
-    group.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=1,
+                        help='The batch size for inference')
     group.add_argument('--nbest', type=int, default=1,
                        help='Output N-best hypotheses')
     group.add_argument('--beam_size', type=int, default=20,

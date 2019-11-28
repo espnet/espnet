@@ -2,8 +2,8 @@ import logging
 from typing import Sequence, Tuple
 
 import torch
-from typeguard import typechecked
 import numpy as np
+from typeguard import check_argument_types
 
 from espnet.nets.chainer_backend.rnn.encoders import VGG2L, RNN
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
@@ -15,7 +15,6 @@ from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 
 
 class Encoder(AbsEncoder):
-    @typechecked
     def __init__(self,
                  idim: int,
                  etype: str = 'blstmp',
@@ -25,6 +24,7 @@ class Encoder(AbsEncoder):
                  dropout: float = 0.0,
                  subsample: Sequence[int] = None,
                  in_channel: int = 1):
+        assert check_argument_types()
         super().__init__()
         self.eprojs = eprojs
 
