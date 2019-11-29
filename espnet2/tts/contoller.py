@@ -11,13 +11,13 @@ from espnet2.tts.abs_model import AbsTTS
 
 class TTSModelController(AbsModelController):
     def __init__(self,
-                 feats_extractor: Optional[AbsFrontend],
+                 feats_extract: Optional[AbsFrontend],
                  normalize: Optional[AbsNormalization],
                  tts: AbsTTS,
                  ):
         assert check_argument_types()
         super().__init__()
-        self.feats_extractor = feats_extractor
+        self.feats_extract = feats_extract
         self.normalize = normalize
         self.tts = tts
 
@@ -33,8 +33,8 @@ class TTSModelController(AbsModelController):
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         assert input.size(1) >= input_lengths.max(), \
             (input.size(), input_lengths.max())
-        if self.feats_extractor is not None:
-            feats, feats_lens = self.feats_extractor(output, output_lengths)
+        if self.feats_extract is not None:
+            feats, feats_lens = self.feats_extract(output, output_lengths)
         else:
             feats, feats_lens = output, output_lengths
 

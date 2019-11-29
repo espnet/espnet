@@ -9,6 +9,7 @@ from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.contoller import LanguageModelController
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none
@@ -36,6 +37,9 @@ class LMTask(AbsTask):
 
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
+        group.add_argument('--init', type=str_or_none, default='pytorch',
+                           help='The initialization method',
+                           choices=cls.init_choices())
         group.add_argument(
             '--lm', type=str, default='seq_rnn',
             choices=cls.lm_choices(), help='Specify lm class')
@@ -90,6 +94,12 @@ class LMTask(AbsTask):
         return config
 
     @classmethod
+    def init_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('pytorch', 'chainer', 'xavier_uniform', 'xavier_normal',
+                   'kaiming_uniform', 'kaiming_normal', None)
+        return choices
+
+    @classmethod
     def lm_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
         choices = ('seq_rnn',)
@@ -137,7 +147,9 @@ class LMTask(AbsTask):
 
         # 2. Build controller
         # Assume the last-id is sos_and_eos
-        model = LanguageModelController(lm=lm, sos_and_eos=vocab_size - 1,
+        model = LanguageModelController(lm=lm, vocab_size=vocab_size,
                                         **args.model_conf)
+        if args.init is not None:
+            initialize(model, args.init)
         assert check_return_type(model)
         return model

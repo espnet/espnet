@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
-from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, Mapping
+from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence
 
 import configargparse
 import numpy as np
@@ -774,7 +774,7 @@ class AbsTask(ABC):
                 with reporter.start('att_plot') as sub_reporter:
                     cls.plot_attention(
                         model=model,
-                        output_dir=output_dir / f'{iepoch}epoch',
+                        output_dir=output_dir / 'att_ws' / f'{iepoch}epoch',
                         sampler=plot_attention_sampler,
                         iterator=plot_attention_iter,
                         ngpu=ngpu, reporter=sub_reporter)
@@ -795,7 +795,7 @@ class AbsTask(ABC):
 
             # 3. Report the results
             reporter.logging()
-            reporter.save_stats_plot(output_dir / 'images')
+            reporter.save_stats_plot(output_dir / 'stats')
 
             # 4. Save the snapshot
             for key, obj in [('model', model),
@@ -836,14 +836,15 @@ class AbsTask(ABC):
 
             # 6. Remove the snapshot files excluding n-best epoch
             _removed = []
-            for e in range(1, iepoch - keep_n_best_snapshot + 1):
+            # nbests: List[List[Tuple[epoch, value]]]
+            nbests = [reporter.sort_epochs_and_values(
+                          ph, k, m)[:keep_n_best_snapshot]
+                      for ph, k, m in best_model_criterion
+                      if reporter.has_key(ph, k)]
+            # nbests: Set[epoch]
+            nbests = set.union(*[set(i[0] for i in v) for v in nbests])
+            for e in range(1, iepoch + 1):
                 p = output_dir / f'{e}epoch'
-                # nbests: List[List[Tuple[epoch, value]]]
-                nbests = [reporter.sort_epochs_and_values(ph, k, m)
-                          for ph, k, m in best_model_criterion
-                          if reporter.has_key(ph, k)]
-                # nbests: Set[epoch]
-                nbests = set.union(*[set(i[0] for i in v) for v in nbests])
                 if p.exists() and e not in nbests:
                     shutil.rmtree(p)
                     _removed.append(str(p))
@@ -851,7 +852,7 @@ class AbsTask(ABC):
                 logging.info(
                     f'The snapshot was removed: ' + ', '.join(_removed))
 
-            # 7. If any updating haven't happened, stops the training
+            # 7. If any updating didn't happen, stops the training
             if all_steps_are_invalid:
                 logging.warning(f'The gradients from all steps are invalid '
                                 f'in this epoch. Something seems wrong. '
@@ -964,7 +965,7 @@ class AbsTask(ABC):
                 _, stats, weight = \
                     data_parallel(model, (), range(ngpu), module_kwargs=batch)
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
-                if v is not None else None
+                         if v is not None else None
                          for k, v in stats.items()}
                 weight = weight.sum()
 
@@ -992,7 +993,7 @@ class AbsTask(ABC):
 
             # 1. Forwarding model and gathering all attentions
             #    calculate_all_attentions() uses single gpu only.
-            att_dict = calculate_all_attentions(model, **batch)
+            att_dict = calculate_all_attentions(model, batch)
 
             # 2. Plot attentions: This part is slow due to matplotlib
             for k, att_list in att_dict.items():

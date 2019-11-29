@@ -1,8 +1,4 @@
 import inspect
-from pathlib import Path
-
-import torch
-import numpy as np
 
 
 class Invalid:
@@ -22,13 +18,13 @@ def get_defaut_kwargs(func):
         # isinstance(x, tuple) includes namedtuple, so type is used here
         if type(value) is tuple:
             return yaml_serializable(list(value))
+        elif isinstance(value, set):
+            return yaml_serializable(list(value))
         elif isinstance(value, dict):
-            assert all(isinstance(k, str) for k in value), \
-                f'dict keys must be str: {list(value)}'
+            if not all(isinstance(k, str) for k in value):
+                return Invalid
             retval = {}
             for k, v in value.items():
-                if not isinstance(k, str):
-                    return Invalid
                 v2 = yaml_serializable(v)
                 # Register only valid object
                 if v2 not in (Invalid, inspect.Parameter.empty):
@@ -45,13 +41,6 @@ def get_defaut_kwargs(func):
                 else:
                     retval.append(v2)
             return retval
-        elif isinstance(value, torch.Tensor):
-            return yaml_serializable(value.cpu().numpy())
-        elif isinstance(value, np.ndarray):
-            assert value.ndim == 1, value.shape
-            return yaml_serializable(value.tolist())
-        elif isinstance(value, Path):
-            return str(value)
         elif value in (inspect.Parameter.empty, None):
             return value
         elif isinstance(value, (float, int, complex, bool, str, bytes)):

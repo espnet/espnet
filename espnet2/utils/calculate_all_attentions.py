@@ -5,10 +5,13 @@ import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
+from espnet2.layers.abs_attention import AbsAttention
+from espnet2.train.abs_model_controller import AbsModelController
 
 
 @torch.no_grad()
-def calculate_all_attentions(model: torch.nn.Module, **batch: torch.Tensor) \
+def calculate_all_attentions(model: AbsModelController,
+                             batch: Dict[str, torch.Tensor]) \
         -> Dict[str, List[torch.Tensor]]:
     """Derive the outputs from the all attention layers
 
@@ -20,9 +23,6 @@ def calculate_all_attentions(model: torch.nn.Module, **batch: torch.Tensor) \
         key_names x batch x (D1, D2, ...)
 
     """
-    # TODO(kamo): Implement the base class representing Attention
-    #  Now only MultiHeadedAttention is supported
-
     # 1. Derive the key names e.g. input, output
     keys = []
     for k in batch:
@@ -37,9 +37,14 @@ def calculate_all_attentions(model: torch.nn.Module, **batch: torch.Tensor) \
     handles = {}
     for name, modu in model.named_modules():
         def hook(module, input, output, name=name):
-            outputs[name] = output
+            # TODO(kamo): Should unify the interface?
+            if isinstance(module, MultiHeadedAttention):
+                outputs[name] = output
+            else:
+                c, w = output
+                outputs[name] = w
 
-        if isinstance(modu, MultiHeadedAttention):
+        if isinstance(modu, AbsAttention):
             handle = modu.register_forward_hook(hook)
             handles[name] = handle
 
