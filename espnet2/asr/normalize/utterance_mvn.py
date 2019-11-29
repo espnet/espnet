@@ -21,8 +21,8 @@ class UtteranceMVN(AbsNormalization):
     def extra_repr(self):
         return f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
 
-    def forward(self, x: torch.Tensor, ilens: torch.LongTensor = None) \
-            -> Tuple[torch.Tensor, torch.LongTensor]:
+    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward function
 
         Args:
@@ -38,10 +38,10 @@ class UtteranceMVN(AbsNormalization):
 
 def utterance_mvn(
         x: torch.Tensor,
-        ilens: torch.LongTensor = None,
+        ilens: torch.Tensor = None,
         norm_means: bool = True,
         norm_vars: bool = False,
-        eps: float = 1.0e-20) -> Tuple[torch.Tensor, torch.LongTensor]:
+        eps: float = 1.0e-20) -> Tuple[torch.Tensor, torch.Tensor]:
     """Apply utterance mean and variance normalization
 
     Args:

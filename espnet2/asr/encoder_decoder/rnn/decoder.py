@@ -5,8 +5,6 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.initialization import \
-    lecun_normal_init_parameters, set_forget_bias_to_one
 from espnet.nets.pytorch_backend.nets_utils import to_device, make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
@@ -130,26 +128,6 @@ class Decoder(AbsDecoder):
 
         self.att_list = \
             build_attention_list(eprojs=eprojs, dunits=dunits, **att_conf)
-
-        self.init_like_chainer()
-
-    def init_like_chainer(self):
-        """Initialize weight like chainer.
-
-        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
-        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
-        however, there are two exceptions as far as I know.
-        - EmbedID.W ~ Normal(0, 1)
-        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
-        """
-        lecun_normal_init_parameters(self)
-        # exceptions
-        # embed weight ~ Normal(0, 1)
-        self.embed.weight.data.normal_(0, 1)
-        # forget-bias = 1.0
-        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
-        for l in range(len(self.decoder)):
-            set_forget_bias_to_one(self.decoder[l].bias_ih)
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)

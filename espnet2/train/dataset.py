@@ -1,5 +1,6 @@
 import collections
 import copy
+import h5py
 import logging
 from typing import Dict, Mapping, Sequence, Union
 
@@ -67,9 +68,10 @@ def our_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    def __init__(self, loader: SoundScpReader):
+    def __init__(self, loader: SoundScpReader, dtype=None):
         assert check_argument_types()
         self.loader = loader
+        self.dtype = dtype
         self.rate = None
 
     def keys(self):
@@ -89,6 +91,8 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         self.rate = rate
         # Multichannel wave fie
         # array: (NSample, Channel) or (Nsample)
+        if self.dtype is not None:
+            array = array.astype(self.dtype)
         return array
 
 
@@ -101,8 +105,7 @@ class ESPNetDataset(Dataset):
         ...                          preprocess=dict(input='preprocess.yaml')
         ...                         )
         ... data = dataset['uttid']
-        {'input': ndarray, 'input_lengths': ndarray,
-         'output': ndarray, 'output_lengths': ndarray}
+        {'input': per_utt_array, 'output': per_utt_array}
     """
 
     def __init__(self, path_name_type_list: Sequence[Sequence[str]],
@@ -137,7 +140,7 @@ class ESPNetDataset(Dataset):
             if name in self.loader_dict:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')
 
-            loader = ESPNetDataset.create_loader(path, _type)
+            loader = self._create_loader(path, _type)
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
@@ -159,8 +162,8 @@ class ESPNetDataset(Dataset):
                         f'The preprocess-key doesn\'t exist in data-keys: '
                         f'{name} not in {set(self.loader_dict)}')
 
-    @staticmethod
-    def create_loader(path: str, loader_type: str) -> Mapping[str, np.ndarray]:
+    def _create_loader(self, path: str, loader_type: str) \
+            -> Mapping[str, np.ndarray]:
         """Helper function to instantiate Loader
 
         Args:
@@ -179,7 +182,7 @@ class ESPNetDataset(Dataset):
 
             # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
             # but ndarray is desired, so Adapter class is inserted here
-            return AdapterForSoundScpReader(loader)
+            return AdapterForSoundScpReader(loader, self.float_dtype)
 
         elif loader_type == 'pipe_wav':
             # path looks like:
@@ -191,7 +194,7 @@ class ESPNetDataset(Dataset):
 
             # NOTE(kamo): kaldiio doesn't normalize the signal.
             loader = kaldiio.load_scp(path)
-            return AdapterForSoundScpReader(loader)
+            return AdapterForSoundScpReader(loader, self.float_dtype)
 
         elif loader_type == 'kaldi_ark':
             # path looks like:
@@ -204,6 +207,9 @@ class ESPNetDataset(Dataset):
             #   utta /some/where/a.npy
             #   uttb /some/where/b.npy
             raise NpyScpReader(path)
+
+        elif loader_type == 'hdf5':
+            raise h5py.File(path, 'r')
 
         elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
             # Not lazy loader, but as vanilla-dict

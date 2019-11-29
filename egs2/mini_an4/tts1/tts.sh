@@ -85,8 +85,19 @@ log "$0 $*"
 . ./cmd.sh
 
 
+if [ $# -ne 0 ]; then
+    log "${help_message}"
+    log "Error: No positional arguments are required."
+    exit 2
+fi
+
+
 if [ "${feats_type}" = fbank ]; then
     data_feats=data_fbank
+elif [ "${feats_type}" = stft ]; then
+    data_feats=data_stft
+elif [ "${feats_type}" = raw ]; then
+    data_feats=data_raw
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -136,7 +147,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
 
-    elif [ "${feats_type}" = fbank ]; then
+    elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
         log "stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
@@ -147,14 +158,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # 2. Feature extract
             # TODO(kamo): Wrapped (nj->_nj) in make_fbank.sh
             _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
-            scripts/feats/make_fbank.sh --cmd "${train_cmd}" --nj "${_nj}" \
-                --fs "${fs}" \
-                --fmax "${fmax}" \
-                --fmin "${fmin}" \
+            _opts=
+            if [ "${feats_type}" = fbank ] ; then
+                _opts+="--fs ${fs} "
+                _opts+="--fmax ${fmax} "
+                _opts+="--fmin ${fmin} "
+                _opts+="--n_mels ${n_mels} "
+            fi
+
+            scripts/feats/make_"${feats_type}".sh --cmd "${train_cmd}" --nj "${_nj}" \
                 --n_fft "${n_fft}" \
                 --n_shift "${n_shift}" \
                 --win_length "${win_length}" \
-                --n_mels "${n_mels}" "${data_feats}/${dset}"
+                ${_opts} \
+                "${data_feats}/${dset}"
 
             # 3. Create feats_shape
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
@@ -221,7 +238,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # "sound" supports "wav", "flac", etc.
         _type=sound
         _max_length=80000
-        _opts+="--frontend_conf fs=${fs} "
+        _opts+="--feats_extract_conf fs=${fs} "
     else
         _scp=feats.scp
         _shape=feats_shape
@@ -281,6 +298,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
+        # 0. Copy feats_type
+        cp ${_data}/feats_type ${_dir}/feats_type
         # 1. Split the key file
         key_file=${_data}/token_int
         split_scps=""
@@ -306,7 +325,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
           for i in $(seq "${_nj}"); do
               cat "${_logdir}/output.${i}/feats.scp"
           done | LC_ALL=C sort -k1 >"${_dir}/feats.scp"
-
     done
 fi
 
@@ -317,18 +335,23 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     for dset in ${dev_set} ${eval_sets}; do
         _dir="${tts_exp}/decode_${dset}${decode_tag}"
 
-        # TODO(kamo): Wrapped (nj->_nj) in make_fbank.sh
+        # TODO(kamo): Wrapped (nj->_nj) in convert_fbank.sh
         _nj=$((${nj}<$(<"${_dir}/feats.scp" wc -l)?${nj}:$(<"${_dir}/feats.scp" wc -l)))
 
-        scritps/tts/convert_fbank.sh --nj "${_nj}" --cmd "${train_cmd}" \
+        _opts=
+        _feats_type="$(<${_dir}/feats_type)"
+        if [ "${_feats_type}" = fbank ] ; then
+            _opts+="--n_mels ${n_mels} "
+        fi
+        scripts/tts/convert_fbank.sh --nj "${_nj}" --cmd "${train_cmd}" \
             --fs "${fs}" \
             --fmax "${fmax}" \
             --fmin "${fmin}" \
             --n_fft "${n_fft}" \
             --n_shift "${n_shift}" \
             --win_length "${win_length}" \
-            --n_mels "${n_mels}" \
             --iters "${griffin_lim_iters}" \
+            ${_opts} \
             "${_dir}" "${_dir}/log" "${_dir}/wav"
     done
 fi

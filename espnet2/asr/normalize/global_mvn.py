@@ -45,11 +45,11 @@ class GlobalMVN(AbsNormalization):
         return f'stats_file={self.stats_file}, ' \
             f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
 
-    def forward(self, x: torch.Tensor, ilens: torch.LongTensor = None,
+    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None,
                 norm_means: bool = None,
                 norm_vars: bool = None,
                 inverse: bool = None) \
-            -> Tuple[torch.Tensor, torch.LongTensor]:
+            -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward function
 
         Args:

@@ -425,7 +425,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --train_shape_file "${_asr_train_dir}/token_shape" \
             --eval_shape_file "${_asr_dev_dir}/${_shape}" \
             --eval_shape_file "${_asr_dev_dir}/token_shape" \
-            --resume_epoch latest \
+            --resume_epoch 0 \
             --max_length "${_max_length}" \
             --max_length 150 \
             --output_dir "${asr_exp}" \

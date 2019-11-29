@@ -5,24 +5,21 @@ import torch
 import numpy as np
 from typeguard import check_argument_types
 
-from espnet.nets.chainer_backend.rnn.encoders import VGG2L, RNN
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
-from espnet.nets.pytorch_backend.initialization import \
-    lecun_normal_init_parameters
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet.nets.pytorch_backend.rnn.encoders import RNNP, VGG2L, RNN
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 
 
 class Encoder(AbsEncoder):
     def __init__(self,
                  idim: int,
-                 etype: str = 'blstmp',
-                 elayers: int = 4,
-                 eunits: int = 300,
+                 etype: str = 'vggblstmp',
+                 elayers: int = 6,
+                 eunits: int = 320,
                  eprojs: int = 320,
                  dropout: float = 0.0,
-                 subsample: Sequence[int] = None,
+                 subsample: Sequence[int] = (2, 2, 1, 1),
                  in_channel: int = 1):
         assert check_argument_types()
         super().__init__()
@@ -67,11 +64,6 @@ class Encoder(AbsEncoder):
                 self.enc = torch.nn.ModuleList(
                     [RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
                 logging.info(typ.upper() + ' without projection for encoder')
-
-        self.init_like_chainer()
-
-    def init_like_chainer(self):
-        lecun_normal_init_parameters(self)
 
     def out_dim(self) -> int:
         return self.eprojs

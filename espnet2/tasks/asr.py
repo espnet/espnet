@@ -15,6 +15,7 @@ from espnet2.asr.normalize.abs_normalization import AbsNormalization
 from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none, int_or_none
@@ -42,6 +43,9 @@ class ASRTask(AbsTask):
 
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
+        group.add_argument('--init', type=str_or_none, default='pytorch',
+                           help='The initialization method',
+                           choices=cls.init_choices())
 
         excl = group.add_mutually_exclusive_group()
         excl.add_argument('--idim', type=int_or_none, default=None,
@@ -144,6 +148,12 @@ class ASRTask(AbsTask):
 
         assert check_return_type(config)
         return config
+
+    @classmethod
+    def init_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = ('pytorch', 'chainer', 'xavier_uniform', 'xavier_normal',
+                   'kaiming_uniform', 'kaiming_normal', None)
+        return choices
 
     @classmethod
     def frontend_choices(cls) -> Tuple[Optional[str], ...]:
@@ -286,6 +296,8 @@ class ASRTask(AbsTask):
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
             **args.model_conf)
+        if args.init is not None:
+            initialize(model, args.init)
 
         assert check_return_type(model)
         return model

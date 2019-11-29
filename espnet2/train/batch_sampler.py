@@ -71,10 +71,6 @@ def create_batch_sampler(
 
 class AbsSampler(Sampler, ABC):
     @abstractmethod
-    def get_batch_list(self) -> List[Tuple[str, ...]]:
-        raise NotImplementedError
-
-    @abstractmethod
     def __len__(self):
         raise NotImplementedError
 
@@ -88,15 +84,10 @@ class SubsetSampler(AbsSampler):
                  indices_or_nsamples: Union[int, Iterable[int]]):
         assert check_argument_types()
         self.sampler = sampler
-        batch_list = self.sampler.get_batch_list()
         if isinstance(indices_or_nsamples, int):
             indices_or_nsamples = range(indices_or_nsamples)
-
-        self.batch_list = [batch_list[idx] for idx in indices_or_nsamples
-                           if idx < len(batch_list)]
-
-    def get_batch_list(self) -> List[Tuple[str, ...]]:
-        return self.batch_list
+        self.indices = \
+            {idx for idx in indices_or_nsamples if idx < len(sampler)}
 
     def __len__(self):
         return len(self.batch_list)
@@ -107,8 +98,9 @@ class SubsetSampler(AbsSampler):
                 f'org_sampler={self.sampler})')
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
-        for batch in self.batch_list:
-            yield batch
+        for idx, batch in enumerate(self.sampler):
+            if idx in self.indices:
+                yield batch
 
 
 class ConstantSortedBatchSampler(AbsSampler):
@@ -158,18 +150,12 @@ class ConstantSortedBatchSampler(AbsSampler):
         if len(self.batch_list) == 0:
             logging.warning(f'{shape_file} is empty')
 
-        if self.shuffle:
-            np.random.shuffle(self.batch_list)
-        else:
-            if sort_in_batch != sort_batch:
-                if sort_batch not in ('ascending', 'descending'):
-                    raise ValueError(
-                        f'sort_batch must be ascending or '
-                        f'descending: {sort_batch}')
-                self.batch_list.reverse()
-
-    def get_batch_list(self) -> List[Tuple[str, ...]]:
-        return self.batch_list
+        if sort_in_batch != sort_batch:
+            if sort_batch not in ('ascending', 'descending'):
+                raise ValueError(
+                    f'sort_batch must be ascending or '
+                    f'descending: {sort_batch}')
+            self.batch_list.reverse()
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
@@ -184,6 +170,8 @@ class ConstantSortedBatchSampler(AbsSampler):
         return len(self.batch_list)
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
+        if self.shuffle:
+            np.random.shuffle(self.batch_list)
         for batch in self.batch_list:
             yield batch
 
@@ -211,23 +199,10 @@ class ConstantBatchSampler(AbsSampler):
         #    uttA <anything is o.k>
         #    uttB <anything is o.k>
         utt2any = read_2column_text(key_file)
-        # In this case the, the first column in only used
-        keys = list(utt2any)
-        if self.shuffle:
-            np.random.shuffle(keys)
-
-        # batch_list: List[Tuple[str, ...]]
-        self.batch_list = [tuple(keys[i:i + batch_size])
-                           for i in range(0, len(keys), batch_size)]
-
-        if len(self.batch_list) == 0:
+        if len(utt2any) == 0:
             logging.warning(f'{key_file} is empty')
-
-        if self.shuffle:
-            np.random.shuffle(self.batch_list)
-
-    def get_batch_list(self) -> List[Tuple[str, ...]]:
-        return self.batch_list
+        # In this case the, the first column in only used
+        self.keys = list(utt2any)
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
@@ -237,10 +212,15 @@ class ConstantBatchSampler(AbsSampler):
                 f'shuffle={self.shuffle})')
 
     def __len__(self):
-        return len(self.batch_list)
+        return len(self.keys)
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
-        for batch in self.batch_list:
+        if self.shuffle:
+            np.random.shuffle(self.keys)
+        # batch_list: List[Tuple[str, ...]]
+        batch_list = [tuple(self.keys[i:i + self.batch_size])
+                      for i in range(0, len(self.keys), self.batch_size)]
+        for batch in batch_list:
             yield batch
 
 
@@ -297,19 +277,13 @@ class SequenceBatchSampler(AbsSampler):
             if start >= len(keys):
                 break
 
-        if self.shuffle:
-            np.random.shuffle(self.batch_list)
+        if sort_batch == 'ascending':
+            pass
+        elif sort_batch == 'descending':
+            self.batch_list.reverse()
         else:
-            if sort_batch == 'ascending':
-                pass
-            elif sort_batch == 'descending':
-                self.batch_list.reverse()
-            else:
-                raise ValueError(f'sort_batch must be ascending or '
-                                 f'descending: {sort_batch}')
-
-    def get_batch_list(self):
-        return self.batch_list
+            raise ValueError(f'sort_batch must be ascending or '
+                             f'descending: {sort_batch}')
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
@@ -324,5 +298,7 @@ class SequenceBatchSampler(AbsSampler):
         return len(self.batch_list)
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
+        if self.shuffle:
+            np.random.shuffle(self.batch_list)
         for batch in self.batch_list:
             yield batch

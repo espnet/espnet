@@ -29,10 +29,10 @@ class Stft(torch.nn.Module):
     def extra_repr(self):
         return (f'n_fft={self.n_fft}, ' 
                 f'win_length={self.win_length}, ' 
-                f'hop_length={self.hop_length}' 
-                f'center={self.center}' 
-                f'pad_mode={self.pad_mode}' 
-                f'normalized={self.normalized}'  
+                f'hop_length={self.hop_length}, ' 
+                f'center={self.center}, ' 
+                f'pad_mode={self.pad_mode}, ' 
+                f'normalized={self.normalized}, '  
                 f'onesided={self.onesided}')
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor = None) \
@@ -45,16 +45,15 @@ class Stft(torch.nn.Module):
             pad_mode=self.pad_mode, normalized=self.normalized,
             onesided=self.onesided)
 
-        if self.center:
-            pad = self.n_fft // 2
-            ilens = ilens + 2 * pad
-
         if ilens is not None:
+            if self.center:
+                pad = self.n_fft // 2
+                ilens = ilens + 2 * pad
+
             olens = (ilens - self.win_length) // self.hop_length + 1
+            output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None
-
-        output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         return output, olens
 
     def istft(self, input):

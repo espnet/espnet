@@ -147,6 +147,7 @@ class TTSTask(AbsTask):
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'default':
+            # Fetch the frontend module from Asr as feature extractor
             retval = DefaultFrontend
         else:
             raise RuntimeError(
@@ -246,7 +247,7 @@ class TTSTask(AbsTask):
 
         # 4. Build controller
         model = TTSModelController(
-            feats_extractor=feats_extract, normalize=normalize, tts=tts,
+            feats_extract=feats_extract, normalize=normalize, tts=tts,
             **args.model_conf)
         assert check_return_type(model)
         return model
