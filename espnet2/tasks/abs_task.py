@@ -977,6 +977,8 @@ class AbsTask(ABC):
                        reporter: SubReporter,
                        ) -> None:
         assert check_argument_types()
+        import matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from matplotlib.ticker import MaxNLocator
 
