@@ -6,7 +6,7 @@ import configargparse
 from typeguard import check_return_type, check_argument_types
 
 from espnet2.lm.abs_model import AbsLM
-from espnet2.lm.contoller import LanguageModelController
+from espnet2.lm.controller import LanguageModelController
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.initialize import initialize
