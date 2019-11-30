@@ -37,7 +37,7 @@ class LMTask(AbsTask):
 
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
-        group.add_argument('--init', type=str_or_none, default='pytorch',
+        group.add_argument('--init', type=str_or_none, default=None,
                            help='The initialization method',
                            choices=cls.init_choices())
         group.add_argument(
@@ -95,7 +95,7 @@ class LMTask(AbsTask):
 
     @classmethod
     def init_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('pytorch', 'chainer', 'xavier_uniform', 'xavier_normal',
+        choices = ('chainer', 'xavier_uniform', 'xavier_normal',
                    'kaiming_uniform', 'kaiming_normal', None)
         return choices
 
