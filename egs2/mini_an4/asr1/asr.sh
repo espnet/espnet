@@ -62,6 +62,7 @@ exp=exp
 # Add suffix to the result dir for lm training
 lm_tag=
 lm_config=
+lm_args=
 lm_preprocess_config=
 use_word_lm=false
 word_vocab_size=10000
@@ -69,10 +70,12 @@ word_vocab_size=10000
 # Add suffix to the result dir for asr training
 asr_tag=
 asr_config=
+asr_args=
 asr_preprocess_config=
 
 decode_tag=
 decode_config=
+decode_args=
 decode_asr_model=eval.loss.best.pt
 decode_lm=eval.loss.best.pt
 # e.g.
@@ -345,7 +348,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --resume_epoch latest \
             --max_length 150 \
             --output_dir "${lm_exp}" \
-            ${_opts}
+            ${_opts} ${lm_args}
 
 fi
 
@@ -429,7 +432,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --max_length "${_max_length}" \
             --max_length 150 \
             --output_dir "${asr_exp}" \
-            ${_opts}
+            ${_opts} ${asr_args}
 
 fi
 
@@ -490,7 +493,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
                 --lm_train_config "${lm_exp}"/config.yaml \
                 --lm_file "${lm_exp}"/"${decode_lm}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts}
+                ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
         for f in token token_int score; do

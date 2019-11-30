@@ -53,11 +53,13 @@ tag="" # tag for managing experiments.
 exp=exp
 # config files
 train_config=
+train_args=
 preprocess_config=
 
 
 # decoding related
 decode_config=
+decode_args=
 decode_tag=
 decode_model=eval.loss.best.pt
 # e.g.
@@ -319,7 +321,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts}
+                ${_opts} ${train_args}
 
         # 3. Concatenates the output files from each jobs
          for i in $(seq "${_nj}"); do
@@ -351,7 +353,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --n_shift "${n_shift}" \
             --win_length "${win_length}" \
             --iters "${griffin_lim_iters}" \
-            ${_opts} \
+            ${_opts} ${decode_args}\
             "${_dir}" "${_dir}/log" "${_dir}/wav"
     done
 fi

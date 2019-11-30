@@ -1,5 +1,5 @@
 import logging
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 
 import torch
 import numpy as np
@@ -14,12 +14,12 @@ from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 class Encoder(AbsEncoder):
     def __init__(self,
                  idim: int,
-                 etype: str = 'vggblstmp',
-                 elayers: int = 6,
+                 etype: str = 'blstmp',
+                 elayers: int = 4,
                  eunits: int = 320,
                  eprojs: int = 320,
                  dropout: float = 0.0,
-                 subsample: Sequence[int] = (2, 2, 1, 1),
+                 subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
                  in_channel: int = 1):
         assert check_argument_types()
         super().__init__()
@@ -34,7 +34,7 @@ class Encoder(AbsEncoder):
             subsample = np.ones(elayers + 1, dtype=np.int)
         else:
             subsample = subsample[:elayers]
-            # The first element is ignore and the second or later is used
+            # Append 1 at the beginning because the second or later is used
             subsample = np.pad(np.array(subsample, dtype=np.int),
                                [1, elayers - len(subsample)], mode='constant',
                                constant_values=1)
