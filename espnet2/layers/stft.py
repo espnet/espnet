@@ -27,12 +27,12 @@ class Stft(torch.nn.Module):
         self.onesided = onesided
 
     def extra_repr(self):
-        return (f'n_fft={self.n_fft}, ' 
-                f'win_length={self.win_length}, ' 
-                f'hop_length={self.hop_length}, ' 
-                f'center={self.center}, ' 
-                f'pad_mode={self.pad_mode}, ' 
-                f'normalized={self.normalized}, '  
+        return (f'n_fft={self.n_fft}, '
+                f'win_length={self.win_length}, '
+                f'hop_length={self.hop_length}, '
+                f'center={self.center}, '
+                f'pad_mode={self.pad_mode}, '
+                f'normalized={self.normalized}, '
                 f'onesided={self.onesided}')
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor = None) \

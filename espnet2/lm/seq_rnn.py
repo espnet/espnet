@@ -66,17 +66,6 @@ class SequentialRNNLM(AbsLM):
         self.rnn_type = rnn_type
         self.nhid = nhid
         self.nlayers = nlayers
-        self._init_weights()
-
-    def _init_weights(self):
-        # NOTE: original init in pytorch/examples
-        # initrange = 0.1
-        # self.encoder.weight.data.uniform_(-initrange, initrange)
-        # self.decoder.bias.data.zero_()
-        # self.decoder.weight.data.uniform_(-initrange, initrange)
-        # NOTE: our default.py:RNNLM init
-        for param in self.parameters():
-            param.data.uniform_(-0.1, 0.1)
 
     def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:

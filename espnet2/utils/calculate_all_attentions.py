@@ -5,7 +5,7 @@ import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
-from espnet2.layers.abs_attention import AbsAttention
+from espnet2.train.abs_attention import AbsAttention
 from espnet2.train.abs_model_controller import AbsModelController
 
 
@@ -49,7 +49,7 @@ def calculate_all_attentions(model: AbsModelController,
             handles[name] = handle
 
     # 3. Just forward one by one sample.
-    # Batch-mode can't be used to keep small requirements for each models.
+    # Batch-mode can't be used to keep requirements small for each models.
     return_dict = defaultdict(list)
     for ibatch in range(bs):
         # *: (B, L, ...) -> (1, L2, ...)

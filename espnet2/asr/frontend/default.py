@@ -84,7 +84,7 @@ class DefaultFrontend(AbsFrontend):
             # h: (B, T, C, F) -> h: (B, T, F)
             if self.training:
                 # Select 1ch randomly
-                ch = np.random.randint(x.size(2))
+                ch = np.random.randint(input_stft.size(2))
                 input_stft = input_stft[:, :, ch, :]
             else:
                 # Use the first channel

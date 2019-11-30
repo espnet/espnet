@@ -59,7 +59,8 @@ def aggregate(values: Sequence[ReportedValue]) -> Num:
         if len(values) != 0:
             # Calc weighed average. Weights are changed to sum-to-1.
             sum_weights = np.sum(v.weight for i, v in enumerate(values))
-            sum_value = np.sum(v.value * v.weight for i, v in enumerate(values))
+            sum_value = \
+                np.sum(v.value * v.weight for i, v in enumerate(values))
             if sum_weights == 0:
                 warnings.warn('weight is zero')
                 retval = np.nan
@@ -234,10 +235,10 @@ class Reporter:
     def sort_epochs_and_values(self, key: str, key2: str, mode: str) \
             -> List[Tuple[int, float]]:
         """Return the epoch which resulted the best value
-        
         Example:
-            >>> ep, v = reporter.sort_epochs_and_values('eval', 'loss', 'min')[0]
-
+            >>> val = reporter.sort_epochs_and_values('eval', 'loss', 'min')
+            >>> e_1best, v_1best = val[0]
+            >>> e_2best, v_2best = val[1]
         """
         if mode not in ('min', 'max'):
             raise ValueError(f'mode must min or max: {mode}')
@@ -251,10 +252,11 @@ class Reporter:
             values = sorted(values, key=lambda x: -x[1])
         return values
 
-    def has_key(self, key: str, key2: str, epoch: int = None) -> bool:
+    def has(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
             epoch = max(self.stats)
-        return key in self.stats[epoch] and key2 in self.stats[epoch][key]
+        return epoch in self.stats and \
+            key in self.stats[epoch] and key2 in self.stats[epoch][key]
 
     def logging(self, logger=None, level: str = 'INFO', epoch: int = None):
         if logger is None:
@@ -288,8 +290,7 @@ class Reporter:
     def get_value(self, key: str, key2: str, epoch: int = None):
         if epoch is None:
             epoch = max(self.stats)
-        values = self.stats[epoch][key][key2]
-        return np.nanmean(values)
+        return self.stats[epoch][key][key2]
 
     def get_keys(self, epoch: int = None) -> Tuple[str, ...]:
         if epoch is None:

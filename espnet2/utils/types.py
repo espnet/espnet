@@ -1,4 +1,3 @@
-import argparse
 from distutils.util import strtobool
 from typing import Optional, Tuple
 
@@ -11,6 +10,7 @@ def int_or_none(value: Optional[str]) -> Optional[int]:
     """
 
     Examples:
+        >>> import argparse
         >>> parser = argparse.ArgumentParser()
         >>> _ = parser.add_argument('--foo', type=int_or_none)
         >>> parser.parse_args(['--foo', '456'])
@@ -34,6 +34,7 @@ def float_or_none(value: Optional[str]) -> Optional[float]:
     """
 
     Examples:
+        >>> import argparse
         >>> parser = argparse.ArgumentParser()
         >>> _ = parser.add_argument('--foo', type=float_or_none)
         >>> parser.parse_args(['--foo', '4.5'])
@@ -57,6 +58,7 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
     """
 
     Examples:
+        >>> import argparse
         >>> parser = argparse.ArgumentParser()
         >>> _ = parser.add_argument('--foo', type=str_or_none)
         >>> parser.parse_args(['--foo', 'aaa'])
@@ -80,6 +82,7 @@ def str2pair_str(value: str) -> Tuple[str, str]:
     """
 
     Examples:
+        >>> import argparse
         >>> str2pair_str('abc,def ')
         ('abc', 'def')
         >>> parser = argparse.ArgumentParser()

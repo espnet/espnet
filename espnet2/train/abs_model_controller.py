@@ -37,4 +37,3 @@ class AbsModelController(torch.nn.Module, ABC):
     def forward(self, **batch: torch.Tensor) \
             -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         raise NotImplementedError
-        return loss, stats, weight

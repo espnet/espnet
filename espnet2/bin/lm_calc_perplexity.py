@@ -53,13 +53,12 @@ def calc_perplexity(
         preprocess: Optional[Dict[str, Union[str, dict]]],
         train_config: Optional[str],
         model_file: Optional[str],
-        log_base: Optional[float],
-        ):
+        log_base: Optional[float]):
     assert check_argument_types()
     logging.basicConfig(
         level=log_level,
-        format=
-        '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        format='%(asctime)s (%(module)s:%(lineno)d) '
+               '%(levelname)s: %(message)s')
 
     if ngpu >= 1:
         device = 'cuda'
