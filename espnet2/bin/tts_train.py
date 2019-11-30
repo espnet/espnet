@@ -15,8 +15,8 @@ def main(cmd=None):
 
     Example:
 
-        % python lm_train.py asr --print_config --optim adadelta
-        % python lm_train.py --config conf/train_asr.yaml
+        % python tts_train.py asr --print_config --optim adadelta
+        % python tts_train.py --config conf/train_asr.yaml
     """
     print(get_commandline_args(), file=sys.stderr)
     TTSTask.main(cmd=cmd)

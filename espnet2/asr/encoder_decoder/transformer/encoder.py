@@ -44,7 +44,8 @@ class Encoder(AbsEncoder):
         concat_after: whether to concat attention layer's input and output
             if True, additional linear will be applied.
             i.e. x -> x + linear(concat(x, att(x)))
-            if False, no additional linear will be applied. i.e. x -> x + att(x)
+            if False, no additional linear will be applied.
+            i.e. x -> x + att(x)
         positionwise_layer_type: linear of conv1d
         positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
         padding_idx: padding_idx for input_layer=embed

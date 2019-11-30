@@ -156,7 +156,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
             # 2. Feature extract
-            # TODO(kamo): Wrapped (nj->_nj) in make_fbank.sh
+            # TODO(kamo): Wrapp (nj->_nj) in make_fbank.sh
             _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             _opts=
             if [ "${feats_type}" = fbank ] ; then
@@ -322,9 +322,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 ${_opts}
 
         # 3. Concatenates the output files from each jobs
-          for i in $(seq "${_nj}"); do
+         for i in $(seq "${_nj}"); do
               cat "${_logdir}/output.${i}/feats.scp"
-          done | LC_ALL=C sort -k1 >"${_dir}/feats.scp"
+         done | LC_ALL=C sort -k1 >"${_dir}/feats.scp"
     done
 fi
 
@@ -335,11 +335,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     for dset in ${dev_set} ${eval_sets}; do
         _dir="${tts_exp}/decode_${dset}${decode_tag}"
 
-        # TODO(kamo): Wrapped (nj->_nj) in convert_fbank.sh
+        # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
         _nj=$((${nj}<$(<"${_dir}/feats.scp" wc -l)?${nj}:$(<"${_dir}/feats.scp" wc -l)))
 
-        _opts=
         _feats_type="$(<${_dir}/feats_type)"
+        _opts=
         if [ "${_feats_type}" = fbank ] ; then
             _opts+="--n_mels ${n_mels} "
         fi

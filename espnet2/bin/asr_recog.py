@@ -51,8 +51,7 @@ def recog(
         lm_file: Optional[str],
         word_lm_train_config: Optional[str],
         word_lm_file: Optional[str],
-        blank_symbol: str,
-        ):
+        blank_symbol: str):
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -63,8 +62,8 @@ def recog(
 
     logging.basicConfig(
         level=log_level,
-        format=
-        '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        format='%(asctime)s (%(module)s:%(lineno)d) '
+               '%(levelname)s: %(message)s')
 
     if ngpu >= 1:
         device = 'cuda'

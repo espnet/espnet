@@ -15,7 +15,7 @@ class AbsAttention(torch.nn.Module, ABC):
     pass
 
 
-# TODO(kamo): Using tricky way such as register() because I want to keep espnet/ as it is.
+# TODO(kamo): Using tricky way such as register() to keep espnet/ as it is.
 #  Each class should inherit the abs class originally.
 # See also: calculate_all_attentions()
 AbsAttention.register(MultiHeadedAttention)
@@ -33,11 +33,3 @@ AbsAttention.register(AttMultiHeadLoc)
 AbsAttention.register(AttMultiHeadMultiResLoc)
 AbsAttention.register(AttForward)
 AbsAttention.register(AttForwardTA)
-
-
-
-
-
-
-
-

@@ -13,14 +13,14 @@ import numpy as np
 import torch
 import yaml
 from torch.utils.data.dataloader import DataLoader
-from typeguard import typechecked, check_argument_types
+from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset, our_collate_fn
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none, float_or_none
+from espnet2.utils.types import str2triple_str, str_or_none
 
 
 def tts_decode(
@@ -38,8 +38,7 @@ def tts_decode(
         model_file: Optional[str],
         threshold: float,
         minlenratio: float,
-        maxlenratio: float,
-        ):
+        maxlenratio: float):
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -47,8 +46,8 @@ def tts_decode(
         raise NotImplementedError('only single GPU decoding is supported')
     logging.basicConfig(
         level=log_level,
-        format=
-        '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        format='%(asctime)s (%(module)s:%(lineno)d) '
+               '%(levelname)s: %(message)s')
 
     if ngpu >= 1:
         device = 'cuda'

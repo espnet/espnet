@@ -2,22 +2,43 @@ import torch
 
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
-from espnet.nets.pytorch_backend.transformer.initializer import initialize as \
-    transformer_initialize
+from espnet.nets.pytorch_backend.initialization import \
+    lecun_normal_init_parameters
 
 
 def initialize(model: torch.nn.Module, init: str):
     assert check_argument_types()
     if init == 'chainer':
-        # embed weight ~ Normal(0, 1)
+        lecun_normal_init_parameters(model)
+
         for mod in model.modules():
-                # embed weight ~ Normal(0, 1)
             if isinstance(mod, torch.nn.Embedding):
+                # embed weight ~ Normal(0, 1)
                 mod.weight.data.normal_(0, 1)
             elif isinstance(mod, torch.nn.RNNCellBase):
                 # forget-bias = 1.0
-                # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
-                set_forget_bias_to_one(model.bias_ih)
+                n = mod.bias_ih.size(0)
+                mod.bias_ih.data[n // 4:n // 2].fill_(1.)
     else:
-        transformer_initialize(model, init)
+        # weight init
+        for p in model.parameters():
+            if p.dim() > 1:
+                if init == "xavier_uniform":
+                    torch.nn.init.xavier_uniform_(p.data)
+                elif init == "xavier_normal":
+                    torch.nn.init.xavier_normal_(p.data)
+                elif init == "kaiming_uniform":
+                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
+                elif init == "kaiming_normal":
+                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
+                else:
+                    raise ValueError("Unknown initialization: " + init)
+        # bias init
+        for p in model.parameters():
+            if p.dim() == 1:
+                p.data.zero_()
+
+        # reset some modules with default init
+        for m in model.modules():
+            if isinstance(m, (torch.nn.Embedding, torch.nn.LayerNorm)):
+                m.reset_parameters()

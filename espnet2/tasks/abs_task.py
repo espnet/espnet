@@ -22,6 +22,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
+from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_model_controller import AbsModelController
 from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
@@ -94,8 +95,7 @@ class AbsTask(ABC):
                            type=str2pair_str,
                            default=('eval', 'loss'),
                            help='The criterion used for the value given to '
-                                'the scheduler. '
-                                'Give a pair referring '
+                                'the scheduler. Give a pair referring '
                                 'the phase, "train" or "eval",'
                                 'and the criterion name. '
                                 'The mode specifying "min" or "max" can '
@@ -103,8 +103,7 @@ class AbsTask(ABC):
         group.add_argument('--early_stopping_criterion', type=str2triple_str,
                            default=('eval', 'loss', 'min'),
                            help='The criterion used for judging of '
-                                'early stopping. '
-                                'Give a pair referring '
+                                'early stopping. Give a pair referring '
                                 'the phase, "train" or "eval",'
                                 'the criterion name and the mode, '
                                 '"min" or "max", e.g. "acc,max".')
@@ -113,15 +112,14 @@ class AbsTask(ABC):
                            default=[('train', 'loss', 'min'),
                                     ('eval', 'loss', 'min'),
                                     ('train', 'acc', 'max'),
-                                    ('eval', 'acc', 'max'),
+                                    ('eval', 'acc', 'max')
                                     ],
                            help='The criterion used for judging of '
-                                'the best model. '
-                                'Give a pair referring '
+                                'the best model. Give a pair referring '
                                 'the phase, "train" or "eval",'
                                 'the criterion name, and '
-                                'the mode, '
-                                '"min" or "max", e.g. "acc,max".')
+                                'the mode, "min" or "max", e.g. "acc,max".'
+                           )
 
         group.add_argument('--grad_clip', type=float, default=5.,
                            help='Gradient norm threshold to clip')
@@ -236,8 +234,7 @@ class AbsTask(ABC):
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
         assert check_argument_types()
-        return ('required', 'print_config', 'config', 'ngpu',
-                'log_level', 'output_dir')
+        return 'required', 'print_config', 'config', 'ngpu'
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
@@ -342,7 +339,7 @@ class AbsTask(ABC):
     def epoch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
         choices = ('ReduceLROnPlateau', 'LambdaLR', 'StepLR', 'MultiStepLR',
-                   'ExponentialLR', 'CosineAnnealingLR')
+                   'ExponentialLR', 'CosineAnnealingLR', 'NoamLR')
         choices += tuple(x.lower() for x in choices if x != x.lower()) \
             + tuple(x.upper() for x in choices if x != x.upper())
         choices += (None,)
@@ -381,6 +378,8 @@ class AbsTask(ABC):
             retval = torch.optim.lr_scheduler.ExponentialLR
         elif name.lower() == 'cosineannealinglr':
             retval = torch.optim.lr_scheduler.CosineAnnealingLR
+        elif name.lower() == 'noamlr':
+            retval = NoamLR
         else:
             raise RuntimeError(
                 f'--escheduler must be one of '
@@ -454,8 +453,8 @@ class AbsTask(ABC):
 
         logging.basicConfig(
             level=args.log_level,
-            format=
-            '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+            format='%(asctime)s (%(module)s:%(lineno)d) '
+                   '%(levelname)s: %(message)s')
 
         # 1. Set random-seed
         random.seed(args.seed)
@@ -477,7 +476,7 @@ class AbsTask(ABC):
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
                                 collate_fn=our_collate_fn,
-                                num_workers = args.num_workers)
+                                num_workers=args.num_workers)
 
         # 3. Build eval-data-iterator
         eval_dataset = ESPNetDataset(
@@ -496,7 +495,7 @@ class AbsTask(ABC):
                                collate_fn=our_collate_fn,
                                num_workers=args.num_workers)
 
-        # 4. Create a iterator used for attention plot
+        # 4. Build a iterator used for attention plot
         if args.num_att_plot != 0:
             plot_attention_sampler = \
                 SubsetSampler(
@@ -765,8 +764,7 @@ class AbsTask(ABC):
                     grad_noise=grad_noise,
                     accum_grad=accum_grad,
                     grad_clip=grad_clip,
-                    log_interval=log_interval,
-                    )
+                    log_interval=log_interval)
             with reporter.start('eval') as sub_reporter:
                 cls.eval(model=model, iterator=eval_iter,
                          reporter=sub_reporter, ngpu=ngpu)
@@ -784,7 +782,7 @@ class AbsTask(ABC):
             if epoch_scheduler is not None:
                 if isinstance(epoch_scheduler, AbsValEpochScheduler):
                     _phase, _criterion = val_scheduler_criterion
-                    if not reporter.has_key(_phase, _criterion):
+                    if not reporter.has(_phase, _criterion):
                         raise RuntimeError(
                             f'{_phase}.{_criterion} is not found in stats'
                             f'{reporter.get_all_keys()}')
@@ -809,7 +807,7 @@ class AbsTask(ABC):
                 p = output_dir / f'{iepoch}epoch' / f'{key}.pt'
                 p.parent.mkdir(parents=True, exist_ok=True)
                 torch.save(obj.state_dict() if obj is not None else None, p)
-            # Write the data in "timestamp"
+            # Write the datetime in "timestamp"
             with (output_dir / f'{iepoch}epoch' / 'timestamp').open('w') as f:
                 dt = datetime.now()
                 f.write(dt.strftime('%Y-%m-%d %H:%M:%S') + '\n')
@@ -817,7 +815,7 @@ class AbsTask(ABC):
             # 5. Saves the best model
             _improved = []
             for _phase, k, _mode in best_model_criterion:
-                if reporter.has_key(_phase, k):
+                if reporter.has(_phase, k):
                     best_epoch, _ = \
                         reporter.sort_epochs_and_values(_phase, k, _mode)[0]
                     best_epoch_dict[(_phase, k)] = best_epoch
@@ -837,10 +835,10 @@ class AbsTask(ABC):
             # 6. Remove the snapshot files excluding n-best epoch
             _removed = []
             # nbests: List[List[Tuple[epoch, value]]]
-            nbests = [reporter.sort_epochs_and_values(
-                          ph, k, m)[:keep_n_best_snapshot]
+            nbests = [reporter.sort_epochs_and_values(ph, k, m)
+                      [:keep_n_best_snapshot]
                       for ph, k, m in best_model_criterion
-                      if reporter.has_key(ph, k)]
+                      if reporter.has(ph, k)]
             # nbests: Set[epoch]
             nbests = set.union(*[set(i[0] for i in v) for v in nbests])
             for e in range(1, iepoch + 1):
@@ -862,7 +860,7 @@ class AbsTask(ABC):
             # 8. Check early stopping
             if patience is not None:
                 _phase, _criterion, _mode = early_stopping_criterion
-                if not reporter.has_key(_phase, _criterion):
+                if not reporter.has(_phase, _criterion):
                     raise RuntimeError(
                         f'{_phase}.{_criterion} is not found in stats: '
                         f'{reporter.get_all_keys()}')
@@ -914,8 +912,7 @@ class AbsTask(ABC):
                 # Weighted averaging of loss from torch-data-parallel
                 loss = (loss * weight.to(loss.dtype) / weight.sum()).mean(0)
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
-                         if v is not None else None
-                         for k, v in stats.items()}
+                         if v is not None else None for k, v in stats.items()}
                 weight = weight.sum()
 
             reporter.register(stats, weight)
@@ -1041,7 +1038,7 @@ class AbsTask(ABC):
         # 1.. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
         nbest_epochs = \
             [(ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])
-             for ph, k, m in best_model_criterion if reporter.has_key(ph, k)]
+             for ph, k, m in best_model_criterion if reporter.has(ph, k)]
 
         _loaded = {}
         for ph, cr, epoch_and_values in nbest_epochs:

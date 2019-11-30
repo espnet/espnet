@@ -272,7 +272,7 @@ class NpyScpWriter:
         key4 /some/path/d.npy
         ...
 
-    >>> writer = SoundScpWriter('./data/', 'feat')
+    >>> writer = NpyScpWriter('./data/', 'feat')
     >>> writer['aa'] = numpy_array
     >>> writer['bb'] = numpy_array
 
@@ -309,8 +309,8 @@ class NpyScpReader(collections.abc.Mapping):
         key4 /some/path/d.npy
         ...
 
-    >>> reader = SoundScpReader('wav.scp')
-    >>> rate, array = reader['key1']
+    >>> reader = NpyScpReader('npy.scp')
+    >>> array = reader['key1']
 
     """
     def __init__(self, fname: Union[Path, str]):

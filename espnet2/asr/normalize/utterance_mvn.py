@@ -61,9 +61,9 @@ def utterance_mvn(
 
     if norm_means:
         if x.is_leaf and x.requires_grad:
-            x -= mean
-        else:
             x = x - mean
+        else:
+            x -= mean
 
         # Zero padding
         x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
@@ -74,16 +74,13 @@ def utterance_mvn(
             x /= std.sqrt()
         return x, ilens
     else:
-        if x.is_leaf and x.requires_grad:
-            x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
-        else:
-            x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
         if norm_vars:
-            var = (x - mean).pow(2).sum(dim=1, keepdim=True) / ilens_
+            y = (x - mean)
+            y.masked_fill_(make_pad_mask(ilens, y, 1), 0.0)
+            var = y.pow(2).sum(dim=1, keepdim=True) / ilens_
             std = torch.clamp(var.sqrt(), min=eps)
             if x.is_leaf and x.requires_grad:
                 x = x / std.sqrt()
             else:
                 x /= std
         return x, ilens
-

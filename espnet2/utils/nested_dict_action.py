@@ -21,7 +21,7 @@ class NestedDictAction(argparse.Action):
         Namespace(conf={'d': 5, 'e': 9})
 
     """
-    _syntax = """Syntax: 
+    _syntax = """Syntax:
   {op} <key>=<yaml-string>
   {op} <key>.<key2>=<yaml-string>
   {op} <python-dict>
