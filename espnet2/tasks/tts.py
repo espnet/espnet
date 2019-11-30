@@ -11,7 +11,7 @@ from espnet2.asr.normalize.abs_normalization import AbsNormalization
 from espnet2.asr.normalize.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tts.abs_model import AbsTTS
-from espnet2.tts.contoller import TTSModelController
+from espnet2.tts.controller import TTSModelController
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
