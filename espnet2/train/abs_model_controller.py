@@ -22,15 +22,14 @@ class AbsModelController(torch.nn.Module, ABC):
 
     Example:
         >>> from espnet2.tasks.abs_task import AbsTask
-        >>> class YourTask(AbsTask):
-        ...     def forward(self, input, input_lengths):
-        ...         ...
-        ...         return loss, stats, weight
         >>> class YourController(AbsModelController):
         ...     def forward(self, input, input_lengths):
         ...         ...
         ...         return loss, stats, weight
-
+        >>> class YourTask(AbsTask):
+        ...     @classmethod
+        ...     def build_model(cls, args: argparse.Namespace) \
+        ...             -> YourController:
     """
 
     @abstractmethod
