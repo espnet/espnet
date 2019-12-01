@@ -290,7 +290,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def build_model(cls, args: argparse.Namespace) -> torch.nn.Module:
+    def build_model(cls, args: argparse.Namespace) -> AbsModelController:
         assert check_argument_types()
         raise NotImplementedError
 
@@ -1037,7 +1037,7 @@ class AbsTask(ABC):
             best_model_criterion: Sequence[Tuple[str, str, str]],
             nbest: int) -> None:
         assert check_argument_types()
-        # 1.. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
+        # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
         nbest_epochs = \
             [(ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])
              for ph, k, m in best_model_criterion if reporter.has(ph, k)]

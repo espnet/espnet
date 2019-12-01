@@ -90,7 +90,7 @@ class SubsetSampler(AbsSampler):
             {idx for idx in indices_or_nsamples if idx < len(sampler)}
 
     def __len__(self):
-        return len(self.batch_list)
+        return len(self.sampler)
 
     def __repr__(self):
         return (f'{self.__class__.__name__}('
