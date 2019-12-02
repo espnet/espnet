@@ -47,7 +47,7 @@ class ScorerInterface:
             state: pruned state
 
         """
-        return None
+        return None if state is None else state[i]
 
     def merge_states(self, states: List[Any]) -> Any:
         """Merge states for decoding (optional).
@@ -58,7 +58,7 @@ class ScorerInterface:
         Returns: merged states
 
         """
-        return None
+        return None if all(s is None for s in states) else states
 
     def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).

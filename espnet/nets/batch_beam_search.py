@@ -16,11 +16,15 @@ from espnet.nets.scorer_interface import ScorerInterface
 class BatchHypothesis(NamedTuple):
     """Batchfied/Vectorized hypothesis data type."""
 
-    yseq: torch.Tensor
-    score: torch.Tensor
-    scores: Dict[str, torch.Tensor] = dict()
+    yseq: torch.Tensor                        # Long (batch, seqlen)
+    score: torch.Tensor                       # Float (batch,)
+    length: List[int]                         # (batch,)
+    scores: Dict[str, torch.Tensor] = dict()  # Float (batch,)
     states: Dict[str, Dict] = dict()
     eos: int = -1
+
+    def size(self):
+        return self.yseq.size(0)
 
 
 class BatchBeamSearch(BeamSearch):
@@ -40,6 +44,7 @@ class BatchBeamSearch(BeamSearch):
 
         return BatchHypothesis(
             yseq=pad_sequence([h.yseq for h in hs], batch_first=True, padding_value=self.eos),
+            length=[len(h.yseq) for h in hs],
             score=torch.tensor([h.score for h in hs]),
             scores=scores,
             states=states
@@ -47,7 +52,16 @@ class BatchBeamSearch(BeamSearch):
 
     def unbatchfy(self, batch: BatchHypothesis) -> List[Hypothesis]:
         """Revert batch to list."""
-        raise NotImplementedError
+        ret = []
+        for i in range(batch.size()):
+            ret.append(
+                Hypothesis(
+                    yseq=batch.yseq[i][:batch.length[i]],
+                    score=batch.score[i],
+                    scores={k: batch.scores[k][i] for k in self.scorers},
+                    states={k: v.select_state(batch.states[k], i) for k, v in self.scorers.items()}
+                ))
+        return ret
 
     def score(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
         """Score running hypotheses for encoded speech x.
