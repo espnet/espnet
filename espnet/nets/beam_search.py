@@ -355,13 +355,11 @@ class BeamSearch(torch.nn.Module):
         """
         logging.debug(f'the number of running hypothes: {len(running_hyps)}')
         if self.token_list is not None:
-            logging.debug(
-                "best hypo: " + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]]))
+            logging.debug("best hypo: " + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]]))
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
-            running_hyps = [h._replace(yseq=self.append_token(
-                h.yseq, self.eos)) for h in running_hyps]
+            running_hyps = [h._replace(yseq=self.append_token(h.yseq, self.eos)) for h in running_hyps]
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
         # (this will be a probmlem, number of hyps < beam)
