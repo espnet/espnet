@@ -16,16 +16,33 @@ from test.test_beam_search import prepare
 from test.test_beam_search import rnn_args
 
 
-def test_batch_hyp():
+def test_batchfy_hyp():
+    vocab_size = 5
     eos = -1
+    beam = BatchBeamSearch(
+        beam_size=3,
+        vocab_size=vocab_size,
+        weights={"a": 0.5,
+                 "b": 0.5},
+        scorers={"a": LengthBonus(vocab_size),
+                 "b": LengthBonus(vocab_size)},
+        sos=eos,
+        eos=eos,
+    )
     hs = [
-        Hypothesis(yseq=torch.tensor([0, 1, 2]), score=0.15, scores={
-                   "a": 0.1, "b": 0.2}, states={"a": None, "b": None}),
-        Hypothesis(yseq=torch.tensor([0, 1]), score=0.1, scores={
-                   "a": 0.0, "b": 0.2}, states={"a": None, "b": None}),
+        Hypothesis(yseq=torch.tensor([0, 1, 2]), score=0.15,
+                   scores={"a": 0.1, "b": 0.2},
+                   states={"a": None, "b": None}
+                   ),
+        Hypothesis(yseq=torch.tensor([0, 1]), score=0.1,
+                   scores={"a": 0.0, "b": 0.2},
+                   states={"a": None, "b": None}
+                   ),
     ]
-    bs = BatchHypothesis.from_list(hs, eos)
-    assert bs.to_list(eos) == hs
+    bs = beam.batchfy(hs)
+    assert torch.all(bs.yseq == torch.tensor([[0, 1, 2], [0, 1, eos]]))
+    assert torch.all(bs.score == torch.tensor([0.15, 0.1]))
+    # assert beam.unbatchfy(bs) == hs
 
 
 @pytest.mark.parametrize(

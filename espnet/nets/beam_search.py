@@ -58,6 +58,7 @@ class BeamSearch(torch.nn.Module):
         super().__init__()
         # set scorers
         self.weights = weights
+        self.scorers = scorers
         self.full_scorers = dict()
         self.part_scorers = dict()
         self.nn_dict = torch.nn.ModuleDict()

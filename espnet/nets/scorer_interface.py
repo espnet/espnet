@@ -1,6 +1,7 @@
 """Scorer interface module."""
 
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import torch
@@ -31,6 +32,30 @@ class ScorerInterface:
             x (torch.Tensor): The encoded feature tensor
 
         Returns: initial state
+
+        """
+        return None
+
+    def select_state(self, state: Any, i: int) -> Any:
+        """Select state with relative ids in the main beam search.
+
+        Args:
+            state: Decoder state for prefix tokens
+            i (int): Index to select a state in the main beam search
+
+        Returns:
+            state: pruned state
+
+        """
+        return None
+
+    def merge_states(self, states: List[Any]) -> Any:
+        """Merge states for decoding (optional).
+
+        Args:
+            states (List[Any]): States of scorers
+
+        Returns: merged states
 
         """
         return None
@@ -76,19 +101,6 @@ class PartialScorerInterface(ScorerInterface):
              * :class:`espnet.nets.scorers.ctc.CTCPrefixScorer`
 
     """
-
-    def select_state(self, state: Any, i: int) -> Any:
-        """Select state with relative ids in the main beam search (required).
-
-        Args:
-            state: Decoder state for prefix tokens
-            i (int): Index to select a state in the main beam search
-
-        Returns:
-            state: pruned state
-
-        """
-        raise NotImplementedError
 
     def score_partial(self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor) \
             -> Tuple[torch.Tensor, Any]:
