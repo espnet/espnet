@@ -65,8 +65,7 @@ class BeamSearch(torch.nn.Module):
             w = weights.get(k, 0)
             if w == 0 or v is None:
                 continue
-            assert isinstance(
-                v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
+            assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
             if isinstance(v, PartialScorerInterface):
                 self.part_scorers[k] = v
             else:
@@ -156,8 +155,7 @@ class BeamSearch(torch.nn.Module):
         scores = dict()
         states = dict()
         for k, d in self.part_scorers.items():
-            scores[k], states[k] = d.score_partial(
-                hyp.yseq, ids, hyp.states[k], x)
+            scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
     def pre_beam(self, scores: Dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
@@ -323,8 +321,7 @@ class BeamSearch(torch.nn.Module):
             logging.debug('position ' + str(i))
             best = self.score(running_hyps, x)
             # post process of one iteration
-            running_hyps = self.post_process(
-                i, maxlen, maxlenratio, best, ended_hyps)
+            running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             if len(running_hyps) == 0:
                 logging.info('no hypothesis. Finish decoding.')
                 break
@@ -332,15 +329,13 @@ class BeamSearch(torch.nn.Module):
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check number of hypotheis
         if len(nbest_hyps) == 0:
-            logging.warning(
-                'there is no N-best results, perform recognition again with smaller minlenratio.')
+            logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
             return [] if minlenratio < 0.1 else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
 
         # report the best result
         best = nbest_hyps[0]
         logging.info(f'total log probability: {best.score}')
-        logging.info(
-            f'normalized log probability: {best.score / len(best.yseq)}')
+        logging.info(f'normalized log probability: {best.score / len(best.yseq)}')
         return nbest_hyps
 
     def post_process(self, i: int, maxlen: int, maxlenratio: float,
