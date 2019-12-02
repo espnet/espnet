@@ -137,7 +137,7 @@ def load_num_sequence_text(path: Union[Path, str],
         try:
             retval[k] = np.loadtxt(
                 StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)
-        except Exception:
+        except ValueError:
             logging.error(f'Error happened with path="{path}", '
                           f'id="{k}", value="{v}"')
             raise
@@ -241,7 +241,7 @@ class SoundScpWriter:
         if self.dtype is not None:
             signal = signal.astype(self.dtype)
 
-        wav = self.dir / f'{key}.{format}'
+        wav = self.dir / f'{key}.{self.format}'
         wav.parent.mkdir(parents=True, exist_ok=True)
         soundfile.write(str(wav), signal, rate)
 
@@ -283,12 +283,20 @@ class NpyScpWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.fscp = (Path(basedir) / f'{name}.scp').open('w')
 
+        self.data = {}
+
+    def get_path(self, key):
+        return self.data[key]
+
     def __setitem__(self, key, value):
         assert isinstance(value, np.ndarray), type(value)
         p = self.dir / f'{key}.npy'
         p.parent.mkdir(parents=True, exist_ok=True)
         np.save(str(p), value)
         self.fscp.write(f'{key} {p}\n')
+
+        # Store the file path
+        self.data[key] = str(p)
 
     def __enter__(self):
         return self
@@ -326,6 +334,9 @@ class NpyScpReader(collections.abc.Mapping):
                 if k in self.data:
                     raise RuntimeError(f'{k} is duplicated')
                 self.data[k] = v.rstrip()
+
+    def get_path(self, key):
+        return self.data[key]
 
     def __getitem__(self, key) -> np.ndarray:
         p = self.data[key]

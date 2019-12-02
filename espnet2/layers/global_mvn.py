@@ -1,14 +1,16 @@
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, Union
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.asr.normalize.abs_normalization import AbsNormalization
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.inversible_interface import InversibleInterface
 
 
-class GlobalMVN(AbsNormalization):
+class GlobalMVN(AbsNormalize, InversibleInterface):
     """Apply global mean and variance normalization
 
     Args:
@@ -20,17 +22,16 @@ class GlobalMVN(AbsNormalization):
     """
 
     def __init__(self,
-                 stats_file: str,
+                 stats_file: Union[Path, str],
                  norm_means: bool = True,
                  norm_vars: bool = True,
-                 inverse: bool = False,
                  eps: float = 1.0e-20):
         assert check_argument_types()
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
-        self.inverse = inverse
         self.eps = eps
+        stats_file = Path(stats_file)
 
         self.stats_file = stats_file
         stats = np.load(stats_file)
@@ -45,10 +46,7 @@ class GlobalMVN(AbsNormalization):
         return f'stats_file={self.stats_file}, ' \
             f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
 
-    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None,
-                norm_means: bool = None,
-                norm_vars: bool = None,
-                inverse: bool = None) \
+    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward function
 
@@ -62,55 +60,48 @@ class GlobalMVN(AbsNormalization):
         """
         if ilens is None:
             ilens = x.new_full([x.size(0)], x.size(1))
-        if norm_means is None:
-            norm_means = self.norm_means
-        if norm_vars is None:
-            norm_vars = self.norm_vars
-        if inverse is None:
-            inverse = self.inverse
-
+        norm_means = self.norm_means
+        norm_vars = self.norm_vars
         self.mean = self.mean.to(x.device, x.dtype)
         self.std = self.std.to(x.device, x.dtype)
         mask = make_pad_mask(ilens, x, 1)
 
-        if not inverse:
-            # feat: (B, T, D)
-            if norm_means:
-                if x.is_leaf and x.requires_grad:
-                    x = x - self.mean
-                else:
-                    x -= self.mean
+        # feat: (B, T, D)
+        if norm_means:
             if x.is_leaf and x.requires_grad:
-                x = x.masked_fill(mask, 0.0)
+                x = x - self.mean
             else:
-                x.masked_fill_(mask, 0.0)
-
-            if norm_vars:
-                if x.is_leaf and x.requires_grad:
-                    x = x / self.std
-                else:
-                    x /= self.std
-
-            return x, ilens
-
-        # Inverse normalize mode
+                x -= self.mean
+        if x.is_leaf and x.requires_grad:
+            x = x.masked_fill(mask, 0.0)
         else:
-            if x.is_leaf and x.requires_grad:
-                x = x.masked_fill(mask, 0.0)
-            else:
-                x.masked_fill_(mask, 0.0)
+            x.masked_fill_(mask, 0.0)
 
-            if norm_vars:
-                if x.is_leaf and x.requires_grad:
-                    x = x * self.std
-                else:
-                    x *= self.std
+        if norm_vars:
+            x /= self.std
 
-            # feat: (B, T, D)
-            if norm_means:
-                if x.is_leaf and x.requires_grad:
-                    x = x + self.mean
-                else:
-                    x += self.mean
-                x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
-            return x, ilens
+        return x, ilens
+
+    def inverse(self, x: torch.Tensor, ilens: torch.Tensor = None) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        if ilens is None:
+            ilens = x.new_full([x.size(0)], x.size(1))
+        norm_means = self.norm_means
+        norm_vars = self.norm_vars
+        self.mean = self.mean.to(x.device, x.dtype)
+        self.std = self.std.to(x.device, x.dtype)
+        mask = make_pad_mask(ilens, x, 1)
+
+        if x.is_leaf and x.requires_grad:
+            x = x.masked_fill(mask, 0.0)
+        else:
+            x.masked_fill_(mask, 0.0)
+
+        if norm_vars:
+            x *= self.std
+
+        # feat: (B, T, D)
+        if norm_means:
+            x += self.mean
+            x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
+        return x, ilens

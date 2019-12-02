@@ -6,7 +6,7 @@ def str2bool(value: str) -> bool:
     return bool(strtobool(value))
 
 
-def int_or_none(value: Optional[str]) -> Optional[int]:
+def int_or_none(value: str) -> Optional[int]:
     """
 
     Examples:
@@ -23,14 +23,12 @@ def int_or_none(value: Optional[str]) -> Optional[int]:
         Namespace(foo=None)
 
     """
-    if value is None:
-        return value
     if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return int(value)
 
 
-def float_or_none(value: Optional[str]) -> Optional[float]:
+def float_or_none(value: str) -> Optional[float]:
     """
 
     Examples:
@@ -47,14 +45,12 @@ def float_or_none(value: Optional[str]) -> Optional[float]:
         Namespace(foo=None)
 
     """
-    if value is None:
-        return value
     if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return float(value)
 
 
-def str_or_none(value: Optional[str]) -> Optional[str]:
+def str_or_none(value: str) -> Optional[str]:
     """
 
     Examples:
@@ -71,8 +67,6 @@ def str_or_none(value: Optional[str]) -> Optional[str]:
         Namespace(foo=None)
 
     """
-    if value is None:
-        return value
     if value.strip().lower() in ('none', 'null', 'nil'):
         return None
     return value

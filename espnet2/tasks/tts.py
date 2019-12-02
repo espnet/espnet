@@ -7,8 +7,9 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.normalize.abs_normalization import AbsNormalization
-from espnet2.asr.normalize.global_mvn import GlobalMVN
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.controller import TTSModelController
@@ -167,7 +168,8 @@ class TTSTask(AbsTask):
         return choices
 
     @classmethod
-    def get_normalize_class(cls, name: str) -> Type[AbsNormalization]:
+    def get_normalize_class(cls, name: str) \
+            -> Type[AbsNormalize and InversibleInterface]:
         assert check_argument_types()
         if name.lower() == 'global_mvn':
             retval = GlobalMVN

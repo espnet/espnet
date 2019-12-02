@@ -4,10 +4,10 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.asr.normalize.abs_normalization import AbsNormalization
+from espnet2.layers.abs_normalize import AbsNormalize
 
 
-class UtteranceMVN(AbsNormalization):
+class UtteranceMVN(AbsNormalize):
     def __init__(self,
                  norm_means: bool = True,
                  norm_vars: bool = False,
@@ -56,22 +56,21 @@ def utterance_mvn(
         ilens = x.new_full([x.size(0)], x.size(1))
     ilens_ = ilens.to(x.device, x.dtype).view(-1,
                                               *[1 for _ in range(x.dim() - 1)])
-    # mean: (B, D)
+    # Zero padding
+    if x.is_leaf and x.requires_grad:
+        x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
+    else:
+        x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
+    # mean: (B, 1, D)
     mean = x.sum(dim=1, keepdim=True) / ilens_
 
     if norm_means:
-        if x.is_leaf and x.requires_grad:
-            x = x - mean
-        else:
-            x -= mean
-
-        # Zero padding
-        x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
+        x -= mean
 
         if norm_vars:
             var = x.pow(2).sum(dim=1, keepdim=True) / ilens_
             std = torch.clamp(var.sqrt(), min=eps)
-            x /= std.sqrt()
+            x = x / std.sqrt()
         return x, ilens
     else:
         if norm_vars:
@@ -79,8 +78,5 @@ def utterance_mvn(
             y.masked_fill_(make_pad_mask(ilens, y, 1), 0.0)
             var = y.pow(2).sum(dim=1, keepdim=True) / ilens_
             std = torch.clamp(var.sqrt(), min=eps)
-            if x.is_leaf and x.requires_grad:
-                x = x / std.sqrt()
-            else:
-                x /= std
+            x /= std
         return x, ilens

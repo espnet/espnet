@@ -8,7 +8,7 @@ import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Dict, Tuple, Optional, Sequence, List
+from typing import Union, Dict, Tuple, Optional, Sequence, List, NoReturn
 
 import humanfriendly
 import numpy as np
@@ -105,13 +105,13 @@ class SubReporter:
         self.total_count = total_count
         self._finished = False
 
-    def get_total_count(self):
+    def get_total_count(self) -> int:
         """Returns the number of iteration over all epochs"""
         return self.total_count
 
     def register(self, stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
                  weight: Num = None, not_increment_count: bool = False) \
-            -> None:
+            -> NoReturn:
         assert check_argument_types()
         if self._finished:
             raise RuntimeError('Already finished')
@@ -125,7 +125,8 @@ class SubReporter:
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def logging(self, logger=None, level: str = 'INFO', nlatest: int = None):
+    def logging(self, logger=None, level: str = 'INFO', nlatest: int = None) \
+            -> NoReturn:
         if self._finished:
             raise RuntimeError('Already finished')
         if logger is None:
@@ -142,7 +143,7 @@ class SubReporter:
             if len(message) == 0:
                 message += (
                     f'{self.epoch}epoch:{self.key}:'
-                    f'{len(stats) - nlatest}-{len(stats)}batch: ')
+                    f'{len(stats) - nlatest + 1}-{len(stats)}batch: ')
             else:
                 message += ', '
 
@@ -150,7 +151,7 @@ class SubReporter:
             message += f'{key2}={v}'
         logger.log(level, message)
 
-    def finished(self):
+    def finished(self) -> NoReturn:
         self._finished = True
 
 
@@ -178,7 +179,7 @@ class Reporter:
     def get_epoch(self) -> int:
         return self.epoch
 
-    def set_epoch(self, epoch: int):
+    def set_epoch(self, epoch: int) -> NoReturn:
         if epoch < 0:
             raise RuntimeError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
@@ -213,7 +214,7 @@ class Reporter:
         self.stats.pop(epoch, None)
         return sub_reporter
 
-    def finish_epoch(self, sub_reporter: SubReporter):
+    def finish_epoch(self, sub_reporter: SubReporter) -> NoReturn:
         # Calc mean of current stats and set it as previous epochs stats
         stats = {}
         for key2, values in sub_reporter.stats.items():

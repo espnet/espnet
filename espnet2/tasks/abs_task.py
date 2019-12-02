@@ -7,7 +7,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
-from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence
+from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, \
+    NoReturn, Iterable
 
 import configargparse
 import numpy as np
@@ -20,6 +21,7 @@ from torch.utils.data import DataLoader
 from typeguard import check_argument_types, check_return_type
 
 from espnet.asr.asr_utils import add_gradient_noise
+from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.schedulers.noam_lr import NoamLR
@@ -311,7 +313,7 @@ class AbsTask(ABC):
         if name.lower() == 'adam':
             retval = torch.optim.Adam
         elif name.lower() == 'sgd':
-            retval = torch.optim.SGD
+            retval = SGD
         elif name.lower() == 'adadelta':
             retval = torch.optim.Adadelta
         elif name.lower() == 'adagrad':
@@ -426,7 +428,7 @@ class AbsTask(ABC):
         return retval
 
     @classmethod
-    def print_config(cls, file: TextIOBase = sys.stdout) -> None:
+    def print_config(cls, file: TextIOBase = sys.stdout) -> NoReturn:
         assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
@@ -441,7 +443,7 @@ class AbsTask(ABC):
 
     @classmethod
     def main(cls, args: argparse.Namespace = None,
-             cmd: Sequence[str] = None) -> None:
+             cmd: Sequence[str] = None) -> NoReturn:
         assert check_argument_types()
         if args is None:
             parser = cls.add_arguments()
@@ -595,7 +597,7 @@ class AbsTask(ABC):
 
         # 11. Start training
         if args.log_interval is None:
-            log_interval = max(len(train_batch_sampler) // 100, 30)
+            log_interval = max(len(train_batch_sampler) // 20, 10)
         else:
             log_interval = args.log_interval
 
@@ -635,7 +637,7 @@ class AbsTask(ABC):
              resume_path: Optional[Union[str, Path]],
              pretrain_path: Optional[Union[str, Path]],
              pretrain_key: Optional[str],
-             loc: str) -> None:
+             loc: str) -> NoReturn:
         assert check_argument_types()
         # For resuming: Specify either resume_epoch or resume_path.
         #     - resume_epoch: Load from outdir/{}epoch/.
@@ -719,8 +721,8 @@ class AbsTask(ABC):
     def run(cls,
             model: AbsModelController,
             optimizer: torch.optim.Optimizer,
-            train_iter,
-            eval_iter,
+            train_iter: Iterable[Dict[str, torch.Tensor]],
+            eval_iter: Iterable[Dict[str, torch.Tensor]],
             plot_attention_iter,
             plot_attention_sampler: Optional[AbsSampler],
             reporter: Reporter,
@@ -738,7 +740,7 @@ class AbsTask(ABC):
             keep_n_best_snapshot: int,
             early_stopping_criterion: Tuple[str, str, str],
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            val_scheduler_criterion: Tuple[str, str]) -> None:
+            val_scheduler_criterion: Tuple[str, str]) -> NoReturn:
         assert check_argument_types()
 
         start_epoch = reporter.get_epoch() + 1
@@ -885,7 +887,7 @@ class AbsTask(ABC):
     @classmethod
     def train(cls,
               model: AbsModelController,
-              iterator,
+              iterator: Iterable[Dict[str, torch.Tensor]],
               optimizer: torch.optim.Optimizer,
               reporter: SubReporter,
               scheduler: Optional[AbsBatchScheduler],
@@ -949,8 +951,10 @@ class AbsTask(ABC):
 
     @classmethod
     @torch.no_grad()
-    def eval(cls, model: AbsModelController, iterator, reporter: SubReporter,
-             ngpu: int) -> None:
+    def eval(cls, model: AbsModelController,
+             iterator: Iterable[Dict[str, torch.Tensor]],
+             reporter: SubReporter,
+             ngpu: int) -> NoReturn:
         assert check_argument_types()
         model.eval()
         for batch in iterator:
@@ -973,9 +977,10 @@ class AbsTask(ABC):
     def plot_attention(cls, model: AbsModelController,
                        output_dir: Path,
                        sampler: AbsSampler,
-                       iterator, ngpu: int,
+                       iterator: Iterable[Dict[str, torch.Tensor]],
+                       ngpu: int,
                        reporter: SubReporter,
-                       ) -> None:
+                       ) -> NoReturn:
         assert check_argument_types()
         import matplotlib
         matplotlib.use('Agg')
@@ -1035,7 +1040,7 @@ class AbsTask(ABC):
             output_dir: Path,
             reporter: Reporter,
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            nbest: int) -> None:
+            nbest: int) -> NoReturn:
         assert check_argument_types()
         # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
         nbest_epochs = \
