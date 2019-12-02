@@ -4,9 +4,10 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.layers.inversible_interface import InversibleInterface
 
 
-class Stft(torch.nn.Module):
+class Stft(torch.nn.Module, InversibleInterface):
     def __init__(self,
                  n_fft: int = 512,
                  win_length: int = 512,
@@ -56,6 +57,7 @@ class Stft(torch.nn.Module):
             olens = None
         return output, olens
 
-    def istft(self, input):
+    def inverse(self, input: torch.Tensor, ilens: torch.Tensor = None) \
+            -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         # TODO(kamo): torch audio?
         raise NotImplementedError

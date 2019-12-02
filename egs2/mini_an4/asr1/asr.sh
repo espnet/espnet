@@ -456,7 +456,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    for dset in ${dev_set} ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
@@ -531,7 +531,7 @@ fi
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     log "stage 9: Scoring"
 
-    for dset in ${dev_set} ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
 

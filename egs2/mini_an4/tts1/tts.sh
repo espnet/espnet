@@ -294,7 +294,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    for dset in ${dev_set} ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${tts_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
@@ -334,7 +334,7 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "stage 6: Synthesis: training_dir=${tts_exp}"
-    for dset in ${dev_set} ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _dir="${tts_exp}/decode_${dset}${decode_tag}"
 
         # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh

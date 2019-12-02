@@ -106,8 +106,3 @@ e.g.
                     raise argparse.ArgumentError(self, mes)
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()

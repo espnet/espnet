@@ -11,9 +11,9 @@ from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.normalize.abs_normalization import AbsNormalization
-from espnet2.asr.normalize.global_mvn import GlobalMVN
-from espnet2.asr.normalize.utterance_mvn import UtteranceMVN
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
@@ -190,7 +190,7 @@ class ASRTask(AbsTask):
         return choices
 
     @classmethod
-    def get_normalize_class(cls, name: str) -> Type[AbsNormalization]:
+    def get_normalize_class(cls, name: str) -> Type[AbsNormalize]:
         assert check_argument_types()
         if name.lower() == 'global_mvn':
             retval = GlobalMVN

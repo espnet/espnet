@@ -13,7 +13,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.normalize.abs_normalization import AbsNormalization
+from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.train.abs_model_controller import AbsModelController
 from espnet2.utils.device_funcs import force_gatherable
 
@@ -25,7 +25,7 @@ class ASRModelController(AbsModelController):
                  vocab_size: int,
                  token_list: Union[Tuple[str, ...], List[str]],
                  frontend: Optional[AbsFrontend],
-                 normalize: Optional[AbsNormalization],
+                 normalize: Optional[AbsNormalize],
                  encoder: AbsEncoder,
                  decoder: AbsDecoder,
                  ctc: CTC,
@@ -235,7 +235,7 @@ class ASRModelController(AbsModelController):
 
     def _calc_rnnt_loss(self,
                         encoder_out: torch.Tensor,
-                        encoder_out_mask: torch.Tensor,
+                        encoder_out_lens: torch.Tensor,
                         ys_pad: torch.Tensor,
                         ys_pad_lens: torch.Tensor,
                         ):
