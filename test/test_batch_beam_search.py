@@ -11,9 +11,24 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search import BatchHypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorer_interface import ScorerInterface
 
 from test.test_beam_search import prepare
 from test.test_beam_search import rnn_args
+
+
+class TestScorer(ScorerInterface):
+
+    def __init__(self, n_vocab: int):
+        self.n = n_vocab
+
+    def score(self, y, states, x):
+        # TODO(karita): batchfy here instead of at BeamSearch.batchfy?
+        s = torch.tensor([1.0], device=x.device, dtype=x.dtype).expand(y.size(0), self.n)
+        return s, [s + 1 for s in states]
+
+    def init_state(self, x) -> int:
+        return 0
 
 
 def test_batchfy_hyp():
@@ -30,19 +45,29 @@ def test_batchfy_hyp():
         eos=eos,
     )
     hs = [
-        Hypothesis(yseq=torch.tensor([0, 1, 2]), score=0.15,
-                   scores={"a": 0.1, "b": 0.2},
-                   states={"a": None, "b": None}
+        Hypothesis(yseq=torch.tensor([0, 1, 2]), score=torch.tensor(0.15),
+                   scores={"a": torch.tensor(0.1), "b": torch.tensor(0.2)},
+                   states={"a": 1, "b": 2}
                    ),
-        Hypothesis(yseq=torch.tensor([0, 1]), score=0.1,
-                   scores={"a": 0.0, "b": 0.2},
-                   states={"a": None, "b": None}
+        Hypothesis(yseq=torch.tensor([0, 1]), score=torch.tensor(0.1),
+                   scores={"a": torch.tensor(0.0), "b": torch.tensor(0.2)},
+                   states={"a": 3, "b": 4}
                    ),
     ]
     bs = beam.batchfy(hs)
     assert torch.all(bs.yseq == torch.tensor([[0, 1, 2], [0, 1, eos]]))
     assert torch.all(bs.score == torch.tensor([0.15, 0.1]))
-    # assert beam.unbatchfy(bs) == hs
+    assert torch.all(bs.scores["a"] == torch.tensor([0.1, 0.0]))
+    assert torch.all(bs.scores["b"] == torch.tensor([0.2, 0.2]))
+    assert bs.states["a"] == [1, 3]
+    assert bs.states["b"] == [2, 4]
+
+    us = beam.unbatchfy(bs)
+    for i in range(len(hs)):
+        assert us[i].yseq.tolist() == hs[i].yseq.tolist()
+        assert us[i].score == hs[i].score
+        assert us[i].scores == hs[i].scores
+        assert us[i].states == hs[i].states
 
 
 @pytest.mark.parametrize(
