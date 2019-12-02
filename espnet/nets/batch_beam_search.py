@@ -1,5 +1,4 @@
 """Parallel beam search module."""
-from __future__ import annotations
 
 import logging
 from typing import Dict
@@ -7,6 +6,7 @@ from typing import List
 from typing import NamedTuple
 
 import torch
+from torch.nn.utils.rnn import pad_sequence
 
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
@@ -18,25 +18,36 @@ class BatchHypothesis(NamedTuple):
 
     yseq: torch.Tensor
     score: torch.Tensor
-    ended: torch.Tensor
     scores: Dict[str, torch.Tensor] = dict()
     states: Dict[str, Dict] = dict()
-
-    def __init__(self, hs: List[Hypothesis], eos=0):
-        """Load data from list."""
-        raise NotImplementedError
-
-    def to_list(self, eos=0) -> List[Hypothesis]:
-        """Convert data to list."""
-        raise NotImplementedError
-
-    def select(self, ids, scorers: Dict[str, ScorerInterface]) -> BatchHypothesis:
-        """Select new batch from hypothesis ids."""
-        raise NotImplementedError
+    eos: int = -1
 
 
 class BatchBeamSearch(BeamSearch):
     """Batch beam search implementation."""
+
+    def batchfy(self, hs: List[Hypothesis]) -> BatchHypothesis:
+        """Convert list to batch."""
+        assert len(hs) > 0
+        for h in hs:
+            assert h.scores.keys() == self.scorers.keys()
+
+        scores = dict()
+        states = dict()
+        for k, v in self.scorers.items():
+            scores[k] = torch.tensor([h.scores[k] for h in hs])
+            states[k] = v.merge_states([h.states[k] for h in hs])
+
+        return BatchHypothesis(
+            yseq=pad_sequence([h.yseq for h in hs], batch_first=True, padding_value=self.eos),
+            score=torch.tensor([h.score for h in hs]),
+            scores=scores,
+            states=states
+        )
+
+    def unbatchfy(self, batch: BatchHypothesis) -> List[Hypothesis]:
+        """Revert batch to list."""
+        raise NotImplementedError
 
     def score(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
         """Score running hypotheses for encoded speech x.
@@ -80,11 +91,12 @@ class BatchBeamSearch(BeamSearch):
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=weighted_scores[i, j],
-                    yseq=self.append_token(hyp.yseq, j))
+                    yseq=self.append_token(hyp.yseq, j)
                     # TODO(karita): implement merge op
                     # scores=self.merge_scores(
                     #     hyp, scores, j, part_scores, part_j),
-                    # states=self.merge_states(states, part_states, part_j)))
+                    # states=self.merge_states(states, part_states, part_j)
+                ))
 
         # sort and prune 2 x beam -> beam
         return self.top_beam_hyps(best)
