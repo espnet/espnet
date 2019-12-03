@@ -1,4 +1,5 @@
 from abc import ABC
+from distutils.version import LooseVersion
 
 import torch
 
@@ -51,10 +52,8 @@ AbsEpochScheduler.register(torch.optim.lr_scheduler.MultiStepLR)
 AbsEpochScheduler.register(torch.optim.lr_scheduler.ExponentialLR)
 AbsEpochScheduler.register(torch.optim.lr_scheduler.CosineAnnealingLR)
 
-try:
+if LooseVersion(torch.__version__) > LooseVersion('1.1.0'):
     AbsBatchScheduler.register(torch.optim.lr_scheduler.CyclicLR)
     AbsBatchScheduler.register(torch.optim.lr_scheduler.OneCycleLR)
     AbsBatchScheduler.register(
         torch.optim.lr_scheduler.CosineAnnealingWarmRestarts)
-except AttributeError:
-    pass

@@ -32,7 +32,7 @@ from espnet2.train.dataset import ESPNetDataset
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.utils.device_funcs import to_device
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import (
     int_or_none, str2bool, str_or_none, str2triple_str, str2pair_str)
@@ -262,19 +262,19 @@ class AbsTask(ABC):
         # Get the default arguments from the specified class
         # e.g. --print_config --optim adadelta
         optim_class = cls.get_optimizer_class(args.optim)
-        optim_conf = get_defaut_kwargs(optim_class)
+        optim_conf = get_default_kwargs(optim_class)
         optim_conf.update(config['optim_conf'])
         config['optim_conf'] = optim_conf
 
         if args.escheduler is not None:
             escheduler_class = cls.get_epoch_scheduler_class(args.escheduler)
-            escheduler_conf = get_defaut_kwargs(escheduler_class)
+            escheduler_conf = get_default_kwargs(escheduler_class)
             escheduler_conf.update(config['escheduler_conf'])
             config['escheduler_conf'] = escheduler_conf
 
         if args.bscheduler is not None:
             bscheduler_class = cls.get_batch_scheduler_class(args.bscheduler)
-            bscheduler_conf = get_defaut_kwargs(bscheduler_class)
+            bscheduler_conf = get_default_kwargs(bscheduler_class)
             bscheduler_conf.update(config['bscheduler_conf'])
             config['bscheduler_conf'] = bscheduler_conf
 
@@ -346,7 +346,7 @@ class AbsTask(ABC):
         choices = ('ReduceLROnPlateau'.lower(),
                    'lambdalr', 'steplr', 'multisteplr',
                    'exponentiallr', 'CosineAnnealingLR'.lower(),
-                   'noamlr', None)
+                   None)
         assert check_return_type(choices)
         return choices
 
@@ -382,8 +382,6 @@ class AbsTask(ABC):
             retval = torch.optim.lr_scheduler.ExponentialLR
         elif name.lower() == 'CosineAnnealingLR'.lower():
             retval = torch.optim.lr_scheduler.CosineAnnealingLR
-        elif name.lower() == 'noamlr':
-            retval = NoamLR
         else:
             raise RuntimeError(
                 f'--escheduler must be one of '
@@ -395,7 +393,7 @@ class AbsTask(ABC):
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
         choices = ('cycliclr', 'onecyclelr',
-                   'CosineAnnealingWarmRestarts'.lower(), None)
+                   'CosineAnnealingWarmRestarts'.lower(), 'noamlr', None)
         assert check_return_type(choices)
         return choices
 
@@ -420,6 +418,8 @@ class AbsTask(ABC):
             retval = torch.optim.lr_scheduler.OneCycleLR
         elif name.lower() == 'CosineAnnealingWarmRestarts'.lower():
             retval = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+        elif name.lower() == 'noamlr':
+            retval = NoamLR
         else:
             raise RuntimeError(
                 f'--bscheduler must be one of '

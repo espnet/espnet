@@ -13,7 +13,7 @@ from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import common_collate_fn
 from espnet2.train.initialize import initialize
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none
 
@@ -26,7 +26,7 @@ class LMTask(AbsTask):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
-                description='Train launguage model',
+                description='Train language model',
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
@@ -73,8 +73,8 @@ class LMTask(AbsTask):
 
         # 1. Get the default values from class.__init__
         lm_class = cls.get_lm_class(args.lm)
-        lm_conf = get_defaut_kwargs(lm_class)
-        model_conf = get_defaut_kwargs(LanguageModelController)
+        lm_conf = get_default_kwargs(lm_class)
+        model_conf = get_default_kwargs(LanguageModelController)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)

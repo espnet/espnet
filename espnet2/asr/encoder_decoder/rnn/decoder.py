@@ -8,7 +8,7 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import to_device, make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
 def build_attention_list(
@@ -83,7 +83,7 @@ class Decoder(AbsDecoder):
                  context_residual: bool = False,
                  replace_sos: bool = False,
                  num_encs: int = 1,
-                 att_conf: dict = get_defaut_kwargs(build_attention_list)):
+                 att_conf: dict = get_default_kwargs(build_attention_list)):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
         assert check_argument_types()
 

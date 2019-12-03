@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
 class Dummy:
@@ -48,6 +48,6 @@ def func7(b=(4, Dummy())):
      (func7, {}),
      ])
 def test_get_defaut_kwargs(func, desired: Any):
-    assert get_defaut_kwargs(func) == desired
+    assert get_default_kwargs(func) == desired
 
 
