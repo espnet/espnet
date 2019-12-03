@@ -4,14 +4,11 @@ import numpy
 import pytest
 import torch
 
-from espnet.nets.asr_interface import dynamic_import_asr
-from espnet.nets.beam_search import BeamSearch
-from espnet.nets.beam_search import Hypothesis
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search import BatchHypothesis
+from espnet.nets.beam_search import Hypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorer_interface import ScorerInterface
+from espnet.nets.scorers.length_bonus import LengthBonus
 
 from test.test_beam_search import prepare
 from test.test_beam_search import transformer_args
@@ -73,12 +70,12 @@ def test_batchfy_hyp():
 @pytest.mark.parametrize(
     "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
     [(nn, args, ctc, lm, bonus, device, dtype)
-     for device in ("cpu",)               # "cuda")
-     for nn, args in (("transformer", transformer_args),) # (("rnn", rnn_args),)
-     for ctc in (0.0,)                    # 0.5, 1.0)
-     for lm in (0.0,)                     # 0.5)
-     for bonus in (0.0,)                  # 0.1)
-     for dtype in ("float32",)            # "float16", "float64")
+     for device in ("cpu",)                                # "cuda")
+     for nn, args in (("transformer", transformer_args),)  # (("rnn", rnn_args),)
+     for ctc in (0.0,)                                     # 0.5, 1.0)
+     for lm in (0.0,)                                      # 0.5)
+     for bonus in (0.0,)                                   # 0.1)
+     for dtype in ("float32",)                             # "float16", "float64")
      ]
 )
 def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):

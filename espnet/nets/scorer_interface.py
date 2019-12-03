@@ -1,7 +1,6 @@
 """Scorer interface module."""
 
 from typing import Any
-from typing import List
 from typing import Tuple
 
 import torch
@@ -35,7 +34,6 @@ class ScorerInterface:
 
         """
         return None
-
 
     def select_state(self, state: Any, i: int) -> Any:
         """Select state with relative ids in the main beam search.
