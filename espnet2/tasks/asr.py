@@ -1,8 +1,10 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional
+from typing import Any, Dict, Type, Tuple, Optional, Sequence
 
 import configargparse
+import numpy as np
+import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.controller import ASRModelController
@@ -15,6 +17,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.collate_fn import common_collate_fn
 from espnet2.train.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -43,21 +46,23 @@ class ASRTask(AbsTask):
 
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
-        group.add_argument('--init', type=str_or_none, default=None,
-                           help='The initialization method',
+        group.add_argument('--init', type=lambda x: str_or_none(x.lower()),
+                           default=None, help='The initialization method',
                            choices=cls.init_choices())
 
         excl = group.add_mutually_exclusive_group()
         excl.add_argument('--idim', type=int_or_none, default=None,
                           help='The number of input dimension of the feature')
         excl.add_argument(
-            '--frontend', type=str_or_none, default='default',
+            '--frontend', type=lambda x: str_or_none(x.lower()),
+            default='default',
             choices=cls.frontend_choices(), help='Specify frontend class')
         group.add_argument(
             '--frontend_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for frontend class.')
         group.add_argument(
-            '--normalize', type=str_or_none, default='utterance_mvn',
+            '--normalize', type=lambda x: str_or_none(x.lower()),
+            default='utterance_mvn',
             choices=cls.normalize_choices(),
             help='Specify normalization class')
         group.add_argument(
@@ -65,7 +70,7 @@ class ASRTask(AbsTask):
             help='The keyword arguments for normalization class.')
 
         group.add_argument(
-            '--encoder_decoder', type=str, default='rnn',
+            '--encoder_decoder', type=lambda x: x.lower(), default='rnn',
             choices=cls.encoder_decoder_choices(),
             help='Specify Encoder-Decoder type')
         group.add_argument(
@@ -158,10 +163,7 @@ class ASRTask(AbsTask):
     @classmethod
     def frontend_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('default',)
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('default', None)
         assert check_return_type(choices)
         return choices
 
@@ -182,10 +184,7 @@ class ASRTask(AbsTask):
     @classmethod
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('global_mvn', 'utterance_mvn')
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('global_mvn', 'utterance_mvn', None)
         assert check_return_type(choices)
         return choices
 
@@ -206,9 +205,7 @@ class ASRTask(AbsTask):
     @classmethod
     def encoder_decoder_choices(cls) -> Tuple[str, ...]:
         assert check_argument_types()
-        choices = ('Transformer', 'rnn')
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
+        choices = ('transformer', 'rnn')
         assert check_return_type(choices)
         return choices
 
@@ -232,6 +229,11 @@ class ASRTask(AbsTask):
                 f'{cls.encoder_decoder_choices()}: --encoder_decoder {name}')
         assert check_return_type(retval)
         return retval
+
+    @classmethod
+    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
+            -> Dict[str, torch.Tensor]:
+        return common_collate_fn(data)
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ASRModelController:

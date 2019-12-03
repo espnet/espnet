@@ -3,7 +3,7 @@ from typeguard import check_argument_types
 
 
 class SGD(torch.optim.SGD):
-    """Wrap torch.optim.SGD to bind the required arguments, 'lr'
+    """Thin inheritance of torch.optim.SGD to bind the required arguments, 'lr'
 
     Note that
     the arguments of the optimizer invoked by AbsTask.main()

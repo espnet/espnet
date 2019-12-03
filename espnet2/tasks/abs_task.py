@@ -28,7 +28,7 @@ from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_model_controller import AbsModelController
 from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
-from espnet2.train.dataset import ESPNetDataset, our_collate_fn
+from espnet2.train.dataset import ESPNetDataset
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.utils.device_funcs import to_device
@@ -44,6 +44,17 @@ class AbsTask(ABC):
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
+
+    @classmethod
+    @abstractmethod
+    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
+            -> Dict[str, torch.Tensor]:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def build_model(cls, args: argparse.Namespace) -> AbsModelController:
+        raise NotImplementedError
 
     @classmethod
     def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
@@ -70,7 +81,7 @@ class AbsTask(ABC):
                            help='Print the config file and exit')
 
         group.add_argument(
-            '--log_level', type=lambda x: str(x).upper(), default='INFO',
+            '--log_level', type=lambda x: x.upper(), default='INFO',
             choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
             help='The verbose level of logging')
 
@@ -208,13 +219,13 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument(
-            '--optim', type=str, default='adadelta',
+            '--optim', type=lambda x: x.lower(), default='adadelta',
             choices=cls.optimizer_choices(), help='The optimizer type')
         group.add_argument(
             '--optim_conf', action=NestedDictAction, default=dict())
 
         group.add_argument(
-            '--escheduler', type=str_or_none,
+            '--escheduler', type=lambda x: str_or_none(x.lower()),
             choices=cls.epoch_scheduler_choices(),
             help='The epoch-scheduler type')
         group.add_argument(
@@ -222,8 +233,8 @@ class AbsTask(ABC):
             help='The keyword arguments for the epoch scheduler')
 
         group.add_argument(
-            '--bscheduler', type=str_or_none, default=None,
-            choices=cls.batch_scheduler_choices(),
+            '--bscheduler', type=lambda x: str_or_none(x.lower()),
+            default=None, choices=cls.batch_scheduler_choices(),
             help='The batch-scheduler-type')
         group.add_argument(
             '--bscheduler_conf', action=NestedDictAction, default=dict(),
@@ -291,18 +302,10 @@ class AbsTask(ABC):
             sys.exit(2)
 
     @classmethod
-    @abstractmethod
-    def build_model(cls, args: argparse.Namespace) -> AbsModelController:
-        assert check_argument_types()
-        raise NotImplementedError
-
-    @classmethod
     def optimizer_choices(cls) -> Tuple[str, ...]:
         assert check_argument_types()
-        choices = ('Adam', 'SGD', 'Adadelta', 'Adagrad', 'AdamW',
-                   'Adamax', 'ASGD', 'LBFGS', 'RMSprop', 'Rprop')
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
+        choices = ('adam', 'sgd', 'adadelta', 'adagrad', 'adamw',
+                   'adamax', 'asgd', 'lbfgs', 'rmsprop', 'rprop')
         assert check_return_type(choices)
         return choices
 
@@ -340,11 +343,10 @@ class AbsTask(ABC):
     @classmethod
     def epoch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('ReduceLROnPlateau', 'LambdaLR', 'StepLR', 'MultiStepLR',
-                   'ExponentialLR', 'CosineAnnealingLR', 'NoamLR')
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('ReduceLROnPlateau'.lower(),
+                   'lambdalr', 'steplr', 'multisteplr',
+                   'exponentiallr', 'CosineAnnealingLR'.lower(),
+                   'noamlr', None)
         assert check_return_type(choices)
         return choices
 
@@ -368,7 +370,7 @@ class AbsTask(ABC):
         assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
-        if name.lower() == 'reducelronplateau':
+        if name.lower() == 'ReduceLROnPlateau'.lower():
             retval = torch.optim.lr_scheduler.ReduceLROnPlateau
         elif name.lower() == 'lambdalr':
             retval = torch.optim.lr_scheduler.LambdaLR
@@ -378,7 +380,7 @@ class AbsTask(ABC):
             retval = torch.optim.lr_scheduler.MultiStepLR
         elif name.lower() == 'exponentiallr':
             retval = torch.optim.lr_scheduler.ExponentialLR
-        elif name.lower() == 'cosineannealinglr':
+        elif name.lower() == 'CosineAnnealingLR'.lower():
             retval = torch.optim.lr_scheduler.CosineAnnealingLR
         elif name.lower() == 'noamlr':
             retval = NoamLR
@@ -392,10 +394,8 @@ class AbsTask(ABC):
     @classmethod
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('CyclicLR', 'OneCycleLR', 'CosineAnnealingWarmRestarts')
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('cycliclr', 'onecyclelr',
+                   'CosineAnnealingWarmRestarts'.lower(), None)
         assert check_return_type(choices)
         return choices
 
@@ -418,7 +418,7 @@ class AbsTask(ABC):
             retval = torch.optim.lr_scheduler.CyclicLR
         elif name.lower() == 'onecyclelr':
             retval = torch.optim.lr_scheduler.OneCycleLR
-        elif name.lower() == 'cosineannealingwarmrestarts':
+        elif name.lower() == 'CosineAnnealingWarmRestarts'.lower():
             retval = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
         else:
             raise RuntimeError(
@@ -477,7 +477,7 @@ class AbsTask(ABC):
             batch_size=args.batch_size, shuffle=True)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=our_collate_fn,
+                                collate_fn=cls.collate_fn,
                                 num_workers=args.num_workers)
 
         # 3. Build eval-data-iterator
@@ -494,7 +494,7 @@ class AbsTask(ABC):
             batch_size=args.eval_batch_size, shuffle=False)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
-                               collate_fn=our_collate_fn,
+                               collate_fn=cls.collate_fn,
                                num_workers=args.num_workers)
 
         # 4. Build a iterator used for attention plot
@@ -507,7 +507,7 @@ class AbsTask(ABC):
             plot_attention_iter = \
                 DataLoader(dataset=eval_dataset,
                            batch_sampler=plot_attention_sampler,
-                           collate_fn=our_collate_fn,
+                           collate_fn=cls.collate_fn,
                            num_workers=args.num_workers)
         else:
             plot_attention_sampler = None
@@ -754,7 +754,7 @@ class AbsTask(ABC):
 
             reporter.set_epoch(iepoch)
             # 1. Train and eval for one-epoch
-            with reporter.start('train') as sub_reporter:
+            with reporter.observe('train') as sub_reporter:
                 all_steps_are_invalid = cls.train(
                     model=model,
                     optimizer=optimizer,
@@ -767,11 +767,11 @@ class AbsTask(ABC):
                     accum_grad=accum_grad,
                     grad_clip=grad_clip,
                     log_interval=log_interval)
-            with reporter.start('eval') as sub_reporter:
+            with reporter.observe('eval') as sub_reporter:
                 cls.eval(model=model, iterator=eval_iter,
                          reporter=sub_reporter, ngpu=ngpu)
             if plot_attention_iter is not None:
-                with reporter.start('att_plot') as sub_reporter:
+                with reporter.observe('att_plot') as sub_reporter:
                     cls.plot_attention(
                         model=model,
                         output_dir=output_dir / 'att_ws' / f'{iepoch}epoch',
@@ -870,7 +870,8 @@ class AbsTask(ABC):
                     _phase, _criterion, _mode)[0]
                 if iepoch - best_epoch > patience:
                     logging.info(
-                        f'[Early stopping] The value has not been improved '
+                        f'[Early stopping] {_phase}.{_criterion} '
+                        f'has not been improved '
                         f'{iepoch - best_epoch} epochs continuously. '
                         f'The training was stopped at {iepoch}epoch')
                     break

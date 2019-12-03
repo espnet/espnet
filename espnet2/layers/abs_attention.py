@@ -11,13 +11,15 @@ from espnet.nets.pytorch_backend.transformer.attention import \
 
 
 class AbsAttention(torch.nn.Module, ABC):
-    # A marker class to represent "Attention" object
+    """A marker class to represent "Attention" object
+
+    See also: calculate_all_attentions()
+    """
     pass
 
 
 # TODO(kamo): Using tricky way such as register() to keep espnet/ as it is.
 #  Each class should inherit the abs class originally.
-# See also: calculate_all_attentions()
 AbsAttention.register(MultiHeadedAttention)
 AbsAttention.register(NoAtt)
 AbsAttention.register(AttDot)

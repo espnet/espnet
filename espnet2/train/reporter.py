@@ -8,7 +8,8 @@ import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Dict, Tuple, Optional, Sequence, List, NoReturn
+from typing import Union, Dict, Tuple, Optional, Sequence, List, NoReturn, \
+    ContextManager
 
 import humanfriendly
 import numpy as np
@@ -18,17 +19,20 @@ from typeguard import check_argument_types, check_return_type
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
 
+_reserved = {'time', 'total_count'}
+
+
 def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
     assert check_argument_types()
     if isinstance(v, (torch.Tensor, np.ndarray)):
-        if len(v.shape) not in (0, 1):
+        if np.prod(v.shape) != 1:
             raise ValueError(f'v must be 0 or 1 dimension: {len(v.shape)}')
         v = v.item()
 
     if isinstance(weight, (torch.Tensor, np.ndarray)):
-        if len(weight.shape) not in (0, 1):
+        if np.prod(weight.shape) != 1:
             raise ValueError(
-                f'v must be 0 or 1 dimension: {len(weight.shape)}')
+                f'weight must be 0 or 1 dimension: {len(weight.shape)}')
         weight = weight.item()
 
     if weight is not None:
@@ -41,6 +45,13 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
 
 def aggregate(values: Sequence[ReportedValue]) -> Num:
     assert check_argument_types()
+
+    for v in values:
+        if type(v) is not type(values[0]):
+            raise ValueError(
+                f"Can't use different Reported type together: "
+                f"{type(v)} != {type(values[0])}")
+
     if len(values) == 0:
         warnings.warn('No stats found')
         retval = np.nan
@@ -58,9 +69,9 @@ def aggregate(values: Sequence[ReportedValue]) -> Num:
 
         if len(values) != 0:
             # Calc weighed average. Weights are changed to sum-to-1.
-            sum_weights = np.sum(v.weight for i, v in enumerate(values))
+            sum_weights = sum(v.weight for i, v in enumerate(values))
             sum_value = \
-                np.sum(v.value * v.weight for i, v in enumerate(values))
+                sum(v.value * v.weight for i, v in enumerate(values))
             if sum_weights == 0:
                 warnings.warn('weight is zero')
                 retval = np.nan
@@ -119,6 +130,8 @@ class SubReporter:
             self.total_count += 1
 
         for key2, v in stats.items():
+            if key2 in _reserved:
+                raise RuntimeError(f'{key2} is reserved.')
             # if None value, the key is not registered
             if v is None:
                 continue
@@ -161,7 +174,7 @@ class Reporter:
     Examples:
 
         >>> reporter = Reporter()
-        >>> with reporter.start('train') as sub_reporter:
+        >>> with reporter.observe('train') as sub_reporter:
         ...     for batch in iterator:
         ...         stats = dict(loss=0.2)
         ...         sub_reporter.register(stats)
@@ -170,7 +183,7 @@ class Reporter:
     def __init__(self, epoch: int = 0):
         assert check_argument_types()
         if epoch < 0:
-            raise RuntimeError(f'epoch must be 0 or more: {epoch}')
+            raise ValueError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
         # stats: Dict[int, Dict[str, Dict[str, float]]]
         # e.g. self.stats[epoch]['train']['loss']
@@ -181,11 +194,12 @@ class Reporter:
 
     def set_epoch(self, epoch: int) -> NoReturn:
         if epoch < 0:
-            raise RuntimeError(f'epoch must be 0 or more: {epoch}')
+            raise ValueError(f'epoch must be 0 or more: {epoch}')
         self.epoch = epoch
 
     @contextmanager
-    def start(self, key: str, epoch: int = None) -> SubReporter:
+    def observe(self, key: str, epoch: int = None) \
+            -> ContextManager[SubReporter]:
         sub_reporter = self.start_epoch(key, epoch)
         yield sub_reporter
         # Receive the stats from sub_reporter
@@ -194,7 +208,7 @@ class Reporter:
     def start_epoch(self, key: str, epoch: int = None) -> SubReporter:
         if epoch is not None:
             if epoch < 0:
-                raise RuntimeError(f'epoch must be 0 or more: {epoch}')
+                raise ValueError(f'epoch must be 0 or more: {epoch}')
             self.epoch = epoch
 
         if self.epoch - 1 not in self.stats or \
@@ -215,19 +229,18 @@ class Reporter:
         return sub_reporter
 
     def finish_epoch(self, sub_reporter: SubReporter) -> NoReturn:
+        if self.epoch != sub_reporter.epoch:
+            raise RuntimeError(f'Don\'t change epoch during observation: '
+                               f'{self.epoch} != {sub_reporter.epoch}')
+
         # Calc mean of current stats and set it as previous epochs stats
         stats = {}
         for key2, values in sub_reporter.stats.items():
             v = aggregate(values)
             stats[key2] = v
 
-        if 'time' in stats:
-            raise RuntimeError(f'time is reserved: {stats}')
         stats['time'] = datetime.timedelta(
             seconds=time.perf_counter() - sub_reporter.start_time)
-
-        if 'total_count' in stats:
-            raise RuntimeError(f'total_count is reserved: {stats}')
         stats['total_count'] = sub_reporter.total_count
 
         self.stats[self.epoch][sub_reporter.key] = stats
@@ -316,13 +329,15 @@ class Reporter:
 
     def save_stats_plot(self, output_dir: Union[str, Path]):
         """Plot stats using Matplotlib and save images"""
-        for k in self.get_keys2('eval'):
-            plt = self.plot_stats(self.get_keys(), k)
-            p = (output_dir / f'{k}.png')
+        keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
+        for key2 in keys2:
+            keys = [k for k in self.get_keys() if key2 in self.get_keys2(k)]
+            plt = self._plot_stats(keys, key2)
+            p = (output_dir / f'{key2}.png')
             p.parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(p)
 
-    def plot_stats(self, keys: Sequence[str], key2: str):
+    def _plot_stats(self, keys: Sequence[str], key2: str):
         assert check_argument_types()
         # str is also Sequence[str]
         if isinstance(keys, str):
@@ -336,12 +351,9 @@ class Reporter:
 
         epochs = np.arange(1, max(self.stats) + 1)
         for key in keys:
-            if any(key2 not in self.stats[e][key] for e in epochs
-                   if e in self.stats):
-                continue
-
             y = [np.nanmean(self.stats[e][key][key2])
-                 if e in self.stats else np.nan
+                 if e in self.stats and key in self.stats[e]
+                 and key2 in self.stats[e][key] else np.nan
                  for e in epochs]
             assert len(epochs) == len(y), 'Bug?'
 

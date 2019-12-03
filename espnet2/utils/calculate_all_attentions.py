@@ -5,7 +5,7 @@ import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
-from espnet2.train.abs_attention import AbsAttention
+from espnet2.layers.abs_attention import AbsAttention
 from espnet2.train.abs_model_controller import AbsModelController
 
 
@@ -72,4 +72,4 @@ def calculate_all_attentions(model: AbsModelController,
     for _, handle in handles.items():
         handle.remove()
 
-    return return_dict
+    return dict(return_dict)

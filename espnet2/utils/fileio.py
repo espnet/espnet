@@ -57,9 +57,6 @@ class DatadirWriter:
         self.close()
 
     def close(self):
-        if self.closed:
-            return
-
         if self.has_children:
             prev_child = None
             for child in self.chilidren.values():
@@ -122,7 +119,7 @@ def load_num_sequence_text(path: Union[Path, str],
         delimiter = ','
         dtype = np.float32
     else:
-        raise RuntimeError('Can\'t reach')
+        raise ValueError(f'Not supported loader_type={loader_type}')
 
     # path looks like:
     #   utta 1,0
@@ -209,15 +206,13 @@ class SoundScpWriter:
     >>> writer['bb'] = 16000, numpy_array
 
     """
-    def __init__(self, basedir, name, format='wav', dtype=None,
-                 normalize: bool = False):
+    def __init__(self, basedir, name, format='wav', dtype=None):
         assert check_argument_types()
         self.dir = Path(basedir) / f'data_{name}'
         self.dir.mkdir(parents=True, exist_ok=True)
         self.fscp = (Path(basedir) / f'{name}.scp').open('w')
         self.format = format
         self.dtype = dtype
-        self.normalize = normalize
 
         self.data = {}
 
@@ -230,16 +225,6 @@ class SoundScpWriter:
                 f'Input signal must be 1 or 2 dimension: {signal.ndim}')
         if signal.ndim == 1:
             signal = signal[:, None]
-
-        if self.normalize and signal.dtype.kind == 'f' and \
-                np.dtype(self.dtype).kind == 'i':
-            max_amp = np.abs(signal).max()
-            if max_amp > 1.:
-                warnings.warn(
-                    f'Exceeds the maximum amplitude: {max_amp} > 1.')
-            signal = signal * (np.iinfo(self.dtype).max + 1)
-        if self.dtype is not None:
-            signal = signal.astype(self.dtype)
 
         wav = self.dir / f'{key}.{self.format}'
         wav.parent.mkdir(parents=True, exist_ok=True)
@@ -324,16 +309,7 @@ class NpyScpReader(collections.abc.Mapping):
     def __init__(self, fname: Union[Path, str]):
         assert check_argument_types()
         self.fname = Path(fname)
-        with open(fname, 'r') as f:
-            self.data = {}
-            for line in f:
-                sps = line.rstrip().split(maxsplit=1)
-                if len(sps) != 2:
-                    raise RuntimeError(f'Format error: {line}')
-                k, v = sps
-                if k in self.data:
-                    raise RuntimeError(f'{k} is duplicated')
-                self.data[k] = v.rstrip()
+        self.data = read_2column_text(fname)
 
     def get_path(self, key):
         return self.data[key]
