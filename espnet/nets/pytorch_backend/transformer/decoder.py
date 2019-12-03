@@ -167,7 +167,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
-        logp, state = self.forward_one_step(ys, ys_mask, x.expand(n_batch, *x.shape), cache=batch_state)
+        logp, state = self.forward_one_step(ys, ys_mask, x, cache=batch_state)
 
         # split states
         state_list = [[state[l][b] for l in range(n_layers)] for b in range(n_batch)]

@@ -68,15 +68,7 @@ def recog_v2(args):
         lm=args.lm_weight,
         length_bonus=args.penalty)
 
-    beam_impl = BeamSearch
-    if args.batchsize == 1:
-        non_batch = [k for k, v in scorers.items() if not isinstance(v, BatchScorerInterface)]
-        if len(non_batch) == 0:
-            beam_impl = BatchBeamSearch
-        else:
-            logging.warning(f"Non-batch scorers {non_batch} are found. Fallback to non-batch beam search impl.")
-
-    beam_search = beam_impl(
+    beam_search = BeamSearch(
         beam_size=args.beam_size,
         vocab_size=len(train_args.char_list),
         weights=weights,
@@ -86,6 +78,14 @@ def recog_v2(args):
         token_list=train_args.char_list,
         pre_beam_score_key=None if args.ctc_weight == 1.0 else "decoder"
     )
+    # TODO(karita): make all scorers batchfied
+    if args.batchsize == 1:
+        non_batch = [k for k, v in beam_search.full_scorers.items() if not isinstance(v, BatchScorerInterface)]
+        if len(non_batch) == 0:
+            beam_search.__class__ = BatchBeamSearch
+            logging.info("BatchBeamSearch implementation is selected.")
+        else:
+            logging.warning(f"As non-batch scorers {non_batch} are found, fall back to non-batch implementation.")
 
     if args.ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")

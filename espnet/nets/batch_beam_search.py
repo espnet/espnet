@@ -15,10 +15,10 @@ from espnet.nets.beam_search import Hypothesis
 class BatchHypothesis(NamedTuple):
     """Batchfied/Vectorized hypothesis data type."""
 
-    yseq: torch.Tensor                        # Long (batch, seqlen)
-    score: torch.Tensor                       # Float (batch,)
-    length: List[int]                         # (batch,)
-    scores: Dict[str, torch.Tensor] = dict()  # Float (batch,)
+    yseq: torch.Tensor
+    score: torch.Tensor
+    length: List[int]
+    scores: Dict[str, torch.Tensor] = dict()
     states: Dict[str, Dict] = dict()
 
 
@@ -85,7 +85,7 @@ class BatchBeamSearch(BeamSearch):
         batch_hyps = self.batchfy(running_hyps)
 
         # batch scoring
-        scores, states = self.score_full(batch_hyps, x)
+        scores, states = self.score_full(batch_hyps, x.expand(n_batch, *x.shape))
         if self.do_pre_beam:
             part_ids = torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size, dim=-1)[1]
         else:
