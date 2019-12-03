@@ -14,10 +14,10 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorer_interface import ScorerInterface
 
 from test.test_beam_search import prepare
-from test.test_beam_search import rnn_args
+from test.test_beam_search import transformer_args
 
 
-class TestScorer(ScorerInterface):
+class MockScorer(ScorerInterface):
 
     def __init__(self, n_vocab: int):
         self.n = n_vocab
@@ -74,7 +74,7 @@ def test_batchfy_hyp():
     "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
     [(nn, args, ctc, lm, bonus, device, dtype)
      for device in ("cpu",)               # "cuda")
-     for nn, args in (("rnn", rnn_args),)  # ("transformer", transformer_args))
+     for nn, args in (("transformer", transformer_args),) # (("rnn", rnn_args),)
      for ctc in (0.0,)                    # 0.5, 1.0)
      for lm in (0.0,)                     # 0.5)
      for bonus in (0.0,)                  # 0.1)
@@ -100,8 +100,7 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-    lm = dynamic_import_lm("default", backend="pytorch")(
-        len(char_list), lm_args)
+    lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
     # test previous beam search

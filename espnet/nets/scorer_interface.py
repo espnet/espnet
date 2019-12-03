@@ -36,6 +36,7 @@ class ScorerInterface:
         """
         return None
 
+
     def select_state(self, state: Any, i: int) -> Any:
         """Select state with relative ids in the main beam search.
 
@@ -48,17 +49,6 @@ class ScorerInterface:
 
         """
         return None if state is None else state[i]
-
-    def merge_states(self, states: List[Any]) -> Any:
-        """Merge states for decoding (optional).
-
-        Args:
-            states (List[Any]): States of scorers
-
-        Returns: merged states
-
-        """
-        return None if all(s is None for s in states) else states
 
     def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).

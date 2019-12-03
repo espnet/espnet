@@ -3,6 +3,7 @@
 import logging
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import NamedTuple
 
 import torch
@@ -21,7 +22,6 @@ class BatchHypothesis(NamedTuple):
     length: List[int]                         # (batch,)
     scores: Dict[str, torch.Tensor] = dict()  # Float (batch,)
     states: Dict[str, Dict] = dict()
-    eos: int = -1
 
     def size(self):
         return self.yseq.size(0)
@@ -34,13 +34,14 @@ class BatchBeamSearch(BeamSearch):
         """Convert list to batch."""
         assert len(hs) > 0
         for h in hs:
-            assert h.scores.keys() == self.scorers.keys()
+            if h.scores.keys() != self.scorers.keys():
+                raise KeyError(f"{h.scores.keys()} != {self.scorers.keys()}")
 
         scores = dict()
         states = dict()
         for k, v in self.scorers.items():
             scores[k] = torch.tensor([h.scores[k] for h in hs])
-            states[k] = v.merge_states([h.states[k] for h in hs])
+            states[k] = [h.states[k] for h in hs]
 
         return BatchHypothesis(
             yseq=pad_sequence([h.yseq for h in hs], batch_first=True, padding_value=self.eos),
@@ -63,6 +64,64 @@ class BatchBeamSearch(BeamSearch):
                 ))
         return ret
 
+    def pre_beam(self, scores: Dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
+        """Compute topk token ids for `self.part_scorers`.
+
+        Args:
+            scores (Dict[str, torch.Tensor]): The score dict of `hyp` that has string keys of `self.full_scorers`
+                and tensor score values; its shape is `(n_beam, self.n_vocab,)`,
+            device (torch.device): The device to compute topk
+
+        Returns:
+            torch.Tensor: The partial tokens ids for `self.part_scorers` size of `(n_beam, self.pre_beam_size)`
+
+        """
+        if self._do_pre_beam(scores):
+            # NOTE: pre-beam only considers vocab topk (instead of beam-vocab topk)
+            return torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size, dim=-1)[1]
+        else:
+            n_beam = next(iter(scores.values())).shape[0]
+            return torch.arange(self.n_vocab, device=device).expand(n_beam, self.n_vocab)
+
+    def main_beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) \
+        -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Batch-compute topk full token ids and partial token ids.
+
+        Args:
+            weighted_scores (torch.Tensor): The weighted sum scores for each tokens.
+                Its shape is `(n_beam, self.vocab_size)`.
+            ids (torch.Tensor): The partial token ids to compute topk.
+                Its shape is `(n_beam, self.pre_beam_size)`.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                The topk full (beam, vocab) ids and partial (beam, vocab) ids.
+                Their shapes are all `(self.beam_size,)`
+
+        """
+        # no pre-beam performed
+        print(f"ids: {ids.shape}, n_vocab: {self.n_vocab}, scores {weighted_scores.size()}")
+        if weighted_scores.size(1) == ids.size(1):
+            top_ids = weighted_scores.view(-1).topk(self.beam_size)[1]
+            beam_ids = top_ids // self.n_vocab
+            vocab_ids = top_ids % self.n_vocab
+            print(f"beam: {beam_ids}, vocab: {vocab_ids}")
+            return beam_ids, vocab_ids, beam_ids, vocab_ids
+
+        raise NotImplementedError
+        # # mask pruned in pre-beam not to select in topk
+        # masked_scores = torch.empty_like(weighted_scores)
+        # masked_scores.fill_(-float("inf"))
+        # # TODO(karita): remove this for-loop
+        # local_ids = []
+        # for batch, i in enumerate(ids):
+        #     local_scores = weighted_scores[batch, i]
+        #     masked_scores[batch, i] = local_scores
+        #     local_ids.append(local_scores.topk())
+        # top_ids = masked_scores.view(-1).topk(self.beam_size)[1]
+        # local_ids = weighted_scores[ids].topk(self.beam_size)[1]
+        # return top_ids, local_ids
+
     def score(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
         """Score running hypotheses for encoded speech x.
 
@@ -74,17 +133,16 @@ class BatchBeamSearch(BeamSearch):
             List[Hypotheses]: Best sorted hypotheses
 
         """
-        # TODO(karita): implement
-        raise NotImplementedError
-
         n_batch = len(running_hyps)
-        batch_hyps = BatchHypothesis(running_hyps)
-        # TODO(karita): implement batch scorer
+        batch_hyps = self.batchfy(running_hyps)
+        # TODO(karita): implement batch full-vocab scorer
         scores, states = self.score_full(batch_hyps, x)
+        _d = {k: v.shape for k, v in scores.items()}
+        print(f"scores: {_d}")
 
-        # TODO(karita): implement batch partial scorer
-        # part_ids = self.pre_beam(scores, device=x.device)
-        # part_scores, part_states = self.score_partial(batch_hyps, part_ids, x)
+        # TODO(karita): implement batch partial-vocab scorer
+        part_ids = self.pre_beam(scores, device=x.device)
+        part_scores, part_states = self.score_partial(batch_hyps, part_ids, x)
 
         # TODO(karita): mask ended hyps
         # weighted sum scores
@@ -96,21 +154,24 @@ class BatchBeamSearch(BeamSearch):
         # for k in self.part_scorers:
         #     weighted_scores[part_ids] += self.weights[k] * \
         #         part_scores[k]
-        weighted_scores += batch_hyps.score
+        weighted_scores += batch_hyps.score.unsqueeze(1)  # for vocab dim in weighted_scores
 
         # update hyps
         best = []
-        for i, hyp in enumerate(running_hyps):
-            for j, part_j in zip(*self.main_beam(weighted_scores, part_ids)):
-                # will be (2 x beam at most)
-                best.append(Hypothesis(
-                    score=weighted_scores[i, j],
-                    yseq=self.append_token(hyp.yseq, j)
-                    # TODO(karita): implement merge op
-                    # scores=self.merge_scores(
-                    #     hyp, scores, j, part_scores, part_j),
-                    # states=self.merge_states(states, part_states, part_j)
-                ))
+        for full_beam, full_vocab, part_beam, part_vocab in \
+            zip(*self.main_beam(weighted_scores, part_ids)):
+            prev_hyp = running_hyps[full_beam]
+            best.append(Hypothesis(
+                score=weighted_scores[full_beam, full_vocab],
+                yseq=self.append_token(prev_hyp.yseq, full_vocab),
+                scores=self.merge_scores(
+                    prev_hyp,
+                    {k: v[full_beam] for k, v in scores.items()}, full_vocab,
+                    {k: v[part_beam] for k, v in part_scores.items()}, part_vocab),
+                states=self.merge_states(
+                    {k: v[full_beam] for k, v in states.items()},
+                    {k: v[part_beam] for k, v in part_states.items()}, part_vocab)
+            ))
 
         # sort and prune 2 x beam -> beam
         return self.top_beam_hyps(best)

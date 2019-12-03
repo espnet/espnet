@@ -866,6 +866,20 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 self.att[idx].reset()  # reset pre-computation of h in atts and han
         return dict(c_prev=c_list[:], z_prev=z_list[:], a_prev=a, workspace=(att_idx, z_list, c_list))
 
+    def merge_states(self, states):
+        def stack(key):
+            if states[key][0] is None:
+                return None
+            return torch.stack([s[key] for s in states])
+
+        return {
+            "c_prev": stack("c_prev"),
+            "z_prev": stack("z_prev"),
+            "a_prev": stack("a_prev"),
+            # TODO(karita): merge workspace
+            # "workspace": (torchfor s in states["workspace"])
+        }
+
     def score(self, yseq, state, x):
         # to support mutiple encoder asr mode, in single encoder mode, convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
