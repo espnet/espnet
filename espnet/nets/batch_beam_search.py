@@ -46,7 +46,7 @@ class BatchBeamSearch(BeamSearch):
                     batch.states[k], i) for k, v in self.scorers.items()}
             ) for i in range(len(batch.length))]
 
-    def main_beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) \
+    def batch_beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Batch-compute topk full token ids and partial token ids.
 
@@ -83,11 +83,13 @@ class BatchBeamSearch(BeamSearch):
         """
         n_batch = len(running_hyps)
         batch_hyps = self.batchfy(running_hyps)
-        scores, states = self.score_full(batch_hyps, x)
 
-        part_ids = self.pre_beam(scores, device=x.device)
-        if not self.do_pre_beam:
-            part_ids = part_ids.expand(n_batch, self.n_vocab)
+        # batch scoring
+        scores, states = self.score_full(batch_hyps, x)
+        if self.do_pre_beam:
+            part_ids = torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size, dim=-1)[1]
+        else:
+            part_ids = torch.arange(self.n_vocab, device=x.device).expand(n_batch, self.n_vocab)
         part_scores, part_states = self.score_partial(batch_hyps, part_ids, x)
 
         # weighted sum scores
@@ -100,7 +102,7 @@ class BatchBeamSearch(BeamSearch):
 
         # update hyps
         best = []
-        for full_beam, full_vocab, part_beam, part_vocab in zip(*self.main_beam(weighted_scores, part_ids)):
+        for full_beam, full_vocab, part_beam, part_vocab in zip(*self.batch_beam(weighted_scores, part_ids)):
             prev_hyp = running_hyps[full_beam]
             best.append(Hypothesis(
                 score=weighted_scores[full_beam, full_vocab],
@@ -114,6 +116,4 @@ class BatchBeamSearch(BeamSearch):
                     {k: self.part_scorers[k].select_state(v, part_beam) for k, v in part_states.items()},
                     part_vocab)
             ))
-
-        # sort and prune 2 x beam -> beam
-        return self.top_beam_hyps(best)
+        return best
