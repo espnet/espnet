@@ -78,13 +78,10 @@ class BatchBeamSearch(BeamSearch):
 
         """
         # no pre-beam performed
-        print(
-            f"ids: {ids.shape}, n_vocab: {self.n_vocab}, scores {weighted_scores.size()}")
         if weighted_scores.size(1) == ids.size(1):
             top_ids = weighted_scores.view(-1).topk(self.beam_size)[1]
             beam_ids = top_ids // self.n_vocab
             vocab_ids = top_ids % self.n_vocab
-            print(f"beam: {beam_ids}, vocab: {vocab_ids}")
             return beam_ids, vocab_ids, beam_ids, vocab_ids
 
         raise NotImplementedError
@@ -114,28 +111,21 @@ class BatchBeamSearch(BeamSearch):
         """
         n_batch = len(running_hyps)
         batch_hyps = self.batchfy(running_hyps)
-        # TODO(karita): implement batch full-vocab scorer
         scores, states = self.score_full(batch_hyps, x)
-        _d = {k: v.shape for k, v in scores.items()}
-        print(f"scores: {_d}")
 
-        # TODO(karita): implement batch partial-vocab scorer
         part_ids = self.pre_beam(scores, device=x.device)
         if part_ids.dim() == 1:
             part_ids = part_ids.expand(n_batch, self.n_vocab)
         part_scores, part_states = self.score_partial(batch_hyps, part_ids, x)
 
-        # TODO(karita): mask ended hyps
+        # TODO(karita): mask ended hyps?
         # weighted sum scores
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device)
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
-        # TODO(karita): implement batch partial scorer
-        # for k in self.part_scorers:
-        #     weighted_scores[part_ids] += self.weights[k] * \
-        #         part_scores[k]
-        # for vocab dim in weighted_scores
+        for k in self.part_scorers:
+            weighted_scores[part_ids] += self.weights[k] * part_scores[k]
         weighted_scores += batch_hyps.score.unsqueeze(1)
 
         # update hyps

@@ -134,7 +134,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
         """
         x = self.embed(tgt)
         if cache is None:
-            cache = self.init_state()
+            cache = [None] * len(self.decoders)
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(x, tgt_mask, memory, None, cache=c)
@@ -150,10 +150,6 @@ class Decoder(ScorerInterface, torch.nn.Module):
         return y, new_cache
 
     # beam search API (see ScorerInterface)
-    def init_state(self, x=None):
-        """Get an initial state for decoding."""
-        return [None for i in range(len(self.decoders))]
-
     def score(self, ys, state, x):
         """Score."""
         if ys.dim() == 1:
@@ -161,10 +157,18 @@ class Decoder(ScorerInterface, torch.nn.Module):
             logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
             return logp.squeeze(0), state
 
+        # merge states
+        n_batch = len(ys)
+        n_layers = len(self.decoders)
+        if state[0] is None:
+            batch_state = None
+        else:
+            batch_state = [torch.stack([state[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+
         # batch decoding
-        print("ys=", ys)
         n_batch = ys.size(0)
         ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
-        logp, state = self.forward_one_step(ys, ys_mask, x.expand(n_batch, *x.shape))
-        # TODO(karita): split state again
-        return logp, [self.init_state()] * n_batch
+        logp, state = self.forward_one_step(ys, ys_mask, x.expand(n_batch, *x.shape), cache=batch_state)
+        # split states again
+        state_list = [[state[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        return logp, state_list

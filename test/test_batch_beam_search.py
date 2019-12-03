@@ -21,7 +21,8 @@ class MockScorer(ScorerInterface):
 
     def score(self, y, states, x):
         # TODO(karita): batchfy here instead of at BeamSearch.batchfy?
-        s = torch.tensor([1.0], device=x.device, dtype=x.dtype).expand(y.size(0), self.n)
+        s = torch.tensor([1.0], device=x.device,
+                         dtype=x.dtype).expand(y.size(0), self.n)
         return s, [s + 1 for s in states]
 
     def init_state(self, x) -> int:
@@ -71,11 +72,13 @@ def test_batchfy_hyp():
     "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
     [(nn, args, ctc, lm, bonus, device, dtype)
      for device in ("cpu",)                                # "cuda")
-     for nn, args in (("transformer", transformer_args),)  # (("rnn", rnn_args),)
+     # (("rnn", rnn_args),)
+     for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
      for lm in (0.0,)                                      # 0.5)
      for bonus in (0.0,)                                   # 0.1)
-     for dtype in ("float32",)                             # "float16", "float64")
+     # "float16", "float64")
+     for dtype in ("float32",)
      ]
 )
 def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):
@@ -97,7 +100,8 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-    lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
+    lm = dynamic_import_lm("default", backend="pytorch")(
+        len(char_list), lm_args)
     lm.eval()
 
     # test previous beam search
