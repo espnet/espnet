@@ -13,6 +13,7 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -66,10 +67,14 @@ def recog_v2(args):
         ctc=args.ctc_weight,
         lm=args.lm_weight,
         length_bonus=args.penalty)
-    if args.batchsize == 0:
-        beam_impl = BeamSearch
-    else:
-        beam_impl = BatchBeamSearch
+
+    beam_impl = BeamSearch
+    if args.batchsize == 1:
+        non_batch = [k for k, v in scorers.items() if not isinstance(v, BatchScorerInterface)]
+        if len(non_batch) == 0:
+            beam_impl = BatchBeamSearch
+        else:
+            logging.warning(f"Non-batch scorers {non_batch} are found. Fallback to non-batch beam search impl.")
 
     beam_search = beam_impl(
         beam_size=args.beam_size,
@@ -79,6 +84,7 @@ def recog_v2(args):
         sos=model.sos,
         eos=model.eos,
         token_list=train_args.char_list,
+        pre_beam_score_key=None if args.ctc_weight == 1.0 else "decoder"
     )
 
     if args.ngpu > 1:

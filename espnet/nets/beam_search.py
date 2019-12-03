@@ -82,10 +82,7 @@ class BeamSearch(torch.nn.Module):
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
         self.n_vocab = vocab_size
-        if pre_beam_score_key is None:
-            if "decoder" in self.full_scorers:
-                pre_beam_score_key = "decoder"
-        elif pre_beam_score_key not in self.full_scorers:
+        if pre_beam_score_key is not None and pre_beam_score_key not in self.full_scorers:
             raise KeyError(f"{pre_beam_score_key} is not found in {self.full_scorers}")
         self.pre_beam_score_key = pre_beam_score_key
         self.do_pre_beam = self.pre_beam_score_key is not None and \
@@ -167,24 +164,7 @@ class BeamSearch(torch.nn.Module):
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
-    def pre_beam(self, scores: Dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
-        """Compute topk token ids for `self.part_scorers`.
-
-        Args:
-            scores (Dict[str, torch.Tensor]): The score dict of `hyp` that has string keys of `self.full_scorers`
-                and tensor score values; its shape is `(self.n_vocab,)`,
-            device (torch.device): The device to compute topk
-
-        Returns:
-            torch.Tensor: The partial tokens ids for `self.part_scorers`
-
-        """
-        if self.do_pre_beam:
-            return torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size, dim=-1)[1]
-        else:
-            return torch.arange(self.n_vocab, device=device)
-
-    def main_beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute topk full token ids and partial token ids.
 
         Args:
@@ -255,10 +235,6 @@ class BeamSearch(torch.nn.Module):
             new_states[k] = d.select_state(part_states[k], part_idx)
         return new_states
 
-    def top_beam_hyps(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
-        """Get top `self.beam_size` hypothesis."""
-        return sorted(hyps, key=lambda x: x.score, reverse=True)[:min(len(hyps), self.beam_size)]
-
     def search(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -271,9 +247,12 @@ class BeamSearch(torch.nn.Module):
 
         """
         best = []
+        part_ids = torch.arange(self.n_vocab, device=x.device)  # no pre-beam
         for hyp in running_hyps:
+            # scoring
             scores, states = self.score_full(hyp, x)
-            part_ids = self.pre_beam(scores, device=x.device)
+            if self.do_pre_beam:
+                part_ids = torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size)[1]
             part_scores, part_states = self.score_partial(hyp, part_ids, x)
 
             # weighted sum scores
@@ -286,7 +265,7 @@ class BeamSearch(torch.nn.Module):
             weighted_scores += hyp.score
 
             # update hyps
-            for j, part_j in zip(*self.main_beam(weighted_scores, part_ids)):
+            for j, part_j in zip(*self.beam(weighted_scores, part_ids)):
                 # will be (2 x beam at most)
                 best.append(Hypothesis(
                     score=weighted_scores[j],
@@ -296,7 +275,7 @@ class BeamSearch(torch.nn.Module):
                     states=self.merge_states(states, part_states, part_j)))
 
             # sort and prune 2 x beam -> beam
-            best = self.top_beam_hyps(best)
+            best = sorted(best, key=lambda x: x.score, reverse=True)[:min(len(best), self.beam_size)]
         return best
 
     def forward(self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0) -> List[Hypothesis]:

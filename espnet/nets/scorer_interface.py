@@ -1,6 +1,7 @@
 """Scorer interface module."""
 
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import torch
@@ -75,6 +76,26 @@ class ScorerInterface:
 
         """
         return 0.0
+
+
+class BatchScorerInterface(ScorerInterface):
+    """Batch scorer interface."""
+
+    def score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens .
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys
+
+        """
+        raise NotImplementedError
 
 
 class PartialScorerInterface(ScorerInterface):
