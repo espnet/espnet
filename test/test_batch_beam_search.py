@@ -7,31 +7,16 @@ import torch
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorer_interface import ScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 
 from test.test_beam_search import prepare
 from test.test_beam_search import transformer_args
 
 
-class MockScorer(ScorerInterface):
-
-    def __init__(self, n_vocab: int):
-        self.n = n_vocab
-
-    def score(self, y, states, x):
-        # TODO(karita): batchfy here instead of at BeamSearch.batchfy?
-        s = torch.tensor([1.0], device=x.device,
-                         dtype=x.dtype).expand(y.size(0), self.n)
-        return s, [s + 1 for s in states]
-
-    def init_state(self, x) -> int:
-        return 0
-
-
 def test_batchfy_hyp():
     vocab_size = 5
     eos = -1
+    # simplest beam search
     beam = BatchBeamSearch(
         beam_size=3,
         vocab_size=vocab_size,
@@ -39,6 +24,7 @@ def test_batchfy_hyp():
                  "b": 0.5},
         scorers={"a": LengthBonus(vocab_size),
                  "b": LengthBonus(vocab_size)},
+        pre_beam_score_key="a",
         sos=eos,
         eos=eos,
     )
