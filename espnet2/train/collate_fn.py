@@ -7,8 +7,10 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-def common_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
-        -> Dict[str, torch.Tensor]:
+def common_collate_fn(data: Sequence[Dict[str, np.ndarray]],
+                      int_pad_value: int = -32768,
+                      float_pad_value: float = 0.,
+                      ) -> Dict[str, torch.Tensor]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
 
     Examples:
@@ -35,10 +37,10 @@ def common_collate_fn(data: Sequence[Dict[str, np.ndarray]]) \
         # NOTE(kamo):
         # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.
-        if data[0][key].dtype.kind == 'f':
-            pad_value = 0.
+        if data[0][key].dtype.kind == 'i':
+            pad_value = int_pad_value
         else:
-            pad_value = -32768
+            pad_value = float_pad_value
 
         array_list = [d[key] for d in data]
 

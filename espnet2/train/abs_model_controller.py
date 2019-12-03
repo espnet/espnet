@@ -8,6 +8,11 @@ class AbsModelController(torch.nn.Module, ABC):
     """The common abstract class among each tasks
 
     FIXME(kamo): Is Controller a good name?
+    Candidates:
+        - ModelController
+        - ModelCombiner
+        - LossDefiner
+        - E2E
 
     "Controller" is referred to as a class which inherits torch.nn.Module,
     and makes the dnn-models forward as its member field,

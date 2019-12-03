@@ -19,7 +19,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import common_collate_fn
 from espnet2.train.initialize import initialize
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none, int_or_none
 
@@ -106,7 +106,7 @@ class ASRTask(AbsTask):
         # 1. Get the default values from class.__init__
         if args.idim is None:
             frontend_class = cls.get_frontend_class(args.frontend)
-            frontend_conf = get_defaut_kwargs(frontend_class)
+            frontend_conf = get_default_kwargs(frontend_class)
         else:
             if hasattr(args, 'frontend'):
                 # Either one of frontend and idim can be selected
@@ -114,16 +114,16 @@ class ASRTask(AbsTask):
             frontend_conf = {}
         if args.normalize is not None:
             normalize_class = cls.get_normalize_class(args.normalize)
-            normalize_conf = get_defaut_kwargs(normalize_class)
+            normalize_conf = get_default_kwargs(normalize_class)
         else:
             normalize_conf = None
 
         encoder_class, decoder_class = \
             cls.get_encoder_decoder_class(args.encoder_decoder)
-        encoder_conf = get_defaut_kwargs(encoder_class)
-        decoder_conf = get_defaut_kwargs(decoder_class)
-        ctc_conf = get_defaut_kwargs(CTC)
-        model_conf = get_defaut_kwargs(ASRModelController)
+        encoder_conf = get_default_kwargs(encoder_class)
+        decoder_conf = get_default_kwargs(decoder_class)
+        ctc_conf = get_default_kwargs(CTC)
+        model_conf = get_default_kwargs(ASRModelController)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)

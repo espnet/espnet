@@ -17,7 +17,7 @@ from espnet2.train.collate_fn import common_collate_fn
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.controller import TTSModelController
 from espnet2.tts.tacotron2 import Tacotron2
-from espnet2.utils.get_default_kwargs import get_defaut_kwargs
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none
 
@@ -93,7 +93,7 @@ class TTSTask(AbsTask):
         if args.odim is None:
             feats_extract_class = \
                 cls.get_feats_extract_class(args.feats_extract)
-            feats_extract_conf = get_defaut_kwargs(feats_extract_class)
+            feats_extract_conf = get_default_kwargs(feats_extract_class)
         else:
             if hasattr(args, 'feats_extract'):
                 # Either one of feats_extract and odim can be selected
@@ -101,13 +101,13 @@ class TTSTask(AbsTask):
             feats_extract_conf = {}
         if args.normalize is not None:
             normalize_class = cls.get_normalize_class(args.normalize)
-            normalize_conf = get_defaut_kwargs(normalize_class)
+            normalize_conf = get_default_kwargs(normalize_class)
         else:
             normalize_conf = None
 
         tts_class = cls.get_tts_class(args.tts)
-        tts_conf = get_defaut_kwargs(tts_class)
-        model_conf = get_defaut_kwargs(TTSModelController)
+        tts_conf = get_default_kwargs(tts_class)
+        model_conf = get_default_kwargs(TTSModelController)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
