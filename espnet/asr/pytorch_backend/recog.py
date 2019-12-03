@@ -10,6 +10,7 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
@@ -29,7 +30,7 @@ def recog_v2(args):
     """
     logging.warning("experimental API for custom LMs is selected by --api v2")
     if args.batchsize > 1:
-        raise NotImplementedError("batch decoding is not implemented")
+        raise NotImplementedError("multi-utt batch decoding is not implemented")
     if args.streaming_mode is not None:
         raise NotImplementedError("streaming mode is not implemented")
     if args.word_rnnlm:
@@ -65,7 +66,12 @@ def recog_v2(args):
         ctc=args.ctc_weight,
         lm=args.lm_weight,
         length_bonus=args.penalty)
-    beam_search = BeamSearch(
+    if args.batchsize == 0:
+        beam_impl = BeamSearch
+    else:
+        beam_impl = BatchBeamSearch
+
+    beam_search = beam_impl(
         beam_size=args.beam_size,
         vocab_size=len(train_args.char_list),
         weights=weights,
