@@ -40,7 +40,7 @@ def test_repl(stats_file, norm_vars, norm_means):
                           (False, True)])
 def test_backward_leaf_in(stats_file, norm_vars, norm_means):
     layer = GlobalMVN(stats_file, norm_means=norm_means, norm_vars=norm_vars)
-    x = torch.randn(2, 10, 80, requires_grad=True)
+    x = torch.randn(1, 2, 80, requires_grad=True)
     y, _ = layer(x)
     y.sum().backward()
 
@@ -52,7 +52,7 @@ def test_backward_leaf_in(stats_file, norm_vars, norm_means):
                           (False, True)])
 def test_backward_not_leaf_in(stats_file, norm_vars, norm_means):
     layer = GlobalMVN(stats_file, norm_means=norm_means, norm_vars=norm_vars)
-    x = torch.randn(2, 10, 80, requires_grad=True)
+    x = torch.randn(2, 3, 80, requires_grad=True)
     x = x + 2
     y, _ = layer(x)
     y.sum().backward()
@@ -65,7 +65,7 @@ def test_backward_not_leaf_in(stats_file, norm_vars, norm_means):
                           (False, True)])
 def test_inverse_backwar_leaf_in(stats_file, norm_vars, norm_means):
     layer = GlobalMVN(stats_file, norm_means=norm_means, norm_vars=norm_vars)
-    x = torch.randn(2, 10, 80, requires_grad=True)
+    x = torch.randn(2, 3, 80, requires_grad=True)
     y, _ = layer.inverse(x)
     y.sum().backward()
 
@@ -77,7 +77,19 @@ def test_inverse_backwar_leaf_in(stats_file, norm_vars, norm_means):
                           (False, True)])
 def test_inverse_backwar_not_leaf_in(stats_file, norm_vars, norm_means):
     layer = GlobalMVN(stats_file, norm_means=norm_means, norm_vars=norm_vars)
-    x = torch.randn(2, 10, 80, requires_grad=True)
+    x = torch.randn(2, 3, 80, requires_grad=True)
     x = x + 2
     y, _ = layer.inverse(x)
-    y.sum().backward()
+
+
+@pytest.mark.parametrize('norm_vars, norm_means',
+                         [(True, True),
+                          (False, False),
+                          (True, False),
+                          (False, True)])
+def test_inverse_identity(stats_file, norm_vars, norm_means):
+    layer = GlobalMVN(stats_file, norm_means=norm_means, norm_vars=norm_vars)
+    x = torch.randn(2, 3, 80)
+    y, _ = layer(x)
+    x2, _ = layer.inverse(y)
+    np.testing.assert_allclose(x.numpy(), x2.numpy())

@@ -20,7 +20,8 @@ def test_read_2column_text(tmp_path: Path):
 @pytest.mark.parametrize('loader_type', ['text_int',
                                          'text_float',
                                          'csv_int',
-                                         'csv_float'])
+                                         'csv_float',
+                                         'dummy'])
 def test_load_num_sequence_text(loader_type: str, tmp_path: Path):
     p = tmp_path / 'dummy.txt'
     if 'csv' in loader_type:
@@ -33,7 +34,12 @@ def test_load_num_sequence_text(loader_type: str, tmp_path: Path):
         f.write('def ' + delimiter.join(['3', '4', '5']) + '\n')
     desired = {'abc': np.array([0, 1, 2]),
                'def': np.array([3, 4, 5])}
-    target = load_num_sequence_text(p, loader_type=loader_type)
+    if loader_type == 'dummy':
+        with pytest.raises(ValueError):
+            load_num_sequence_text(p, loader_type=loader_type)
+        return
+    else:
+        target = load_num_sequence_text(p, loader_type=loader_type)
     for k in desired:
         np.testing.assert_array_equal(target[k], desired[k])
 
@@ -43,6 +49,17 @@ def test_load_num_sequence_text_invalid(tmp_path: Path):
     with p.open('w') as f:
         f.write('abc 12.3.3.,4.44\n')
     with pytest.raises(ValueError):
+        load_num_sequence_text(p)
+
+    with p.open('w') as f:
+        f.write('abc\n')
+    with pytest.raises(RuntimeError):
+        load_num_sequence_text(p)
+
+    with p.open('w') as f:
+        f.write('abc 1 2\n')
+        f.write('abc 2 4\n')
+    with pytest.raises(RuntimeError):
         load_num_sequence_text(p)
 
 
@@ -134,8 +151,7 @@ def test_SoundScpReader_normalize(tmp_path: Path):
 def test_SoundScpWriter(tmp_path: Path):
     audio1 = np.random.randint(-100, 100, 16, dtype=np.int16)
     audio2 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    with SoundScpWriter(tmp_path, 'wav',
-                        normalize=False, dtype=np.int16) as writer:
+    with SoundScpWriter(tmp_path, 'wav', dtype=np.int16) as writer:
         writer['abc'] = 16, audio1
         writer['def'] = 16, audio2
         # Unsupported dimension
@@ -158,14 +174,13 @@ def test_SoundScpWriter(tmp_path: Path):
     assert writer.get_path('def') == str(tmp_path / 'data_wav' / 'def.wav')
 
 
-
 def test_SoundScpWriter_normalize(tmp_path: Path):
     audio1 = np.random.randint(-100, 100, 16, dtype=np.int16)
     audio2 = np.random.randint(-100, 100, 16, dtype=np.int16)
     audio1 = audio1.astype(np.float64) / (np.iinfo(np.int16).max + 1)
     audio2 = audio2.astype(np.float64) / (np.iinfo(np.int16).max + 1)
 
-    with SoundScpWriter(tmp_path, 'wav', normalize=True,
+    with SoundScpWriter(tmp_path, 'wav',
                         dtype=np.int16) as writer:
         writer['abc'] = 16, audio1
         writer['def'] = 16, audio2
@@ -175,8 +190,7 @@ def test_SoundScpWriter_normalize(tmp_path: Path):
             writer['ghi'] = 16, y
     target = SoundScpReader(tmp_path / 'wav.scp', normalize=True,
                             dtype=np.float64)
-    desired = {'abc': (16, audio1),
-               'def': (16, audio2)}
+    desired = {'abc': (16, audio1), 'def': (16, audio2)}
 
     for k in desired:
         rate1, t = target[k]
