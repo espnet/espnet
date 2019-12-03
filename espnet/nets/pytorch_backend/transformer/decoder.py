@@ -166,5 +166,5 @@ class Decoder(ScorerInterface, torch.nn.Module):
         n_batch = ys.size(0)
         ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(ys, ys_mask, x.expand(n_batch, *x.shape))
-        # TODO: split state again
+        # TODO(karita): split state again
         return logp, [self.init_state()] * n_batch
