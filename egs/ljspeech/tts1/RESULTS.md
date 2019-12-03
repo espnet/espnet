@@ -1,3 +1,81 @@
+# v.0.6.0 Tacotron 2 with length-weighted normalized loss
+
+- FTT in points: 1024
+- Shift in points: 256
+- Frequency limit: 80-7600
+- Fast-GL 64 iters
+
+## Environments
+
+- date: `Tue Dec  3 10:49:26 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.5.3`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `1308357e74d31974827357b06ae3ea90a1740393`
+  - Commit date: `Thu Nov 28 17:03:04 2019 +0900`
+
+## Models
+
+- model link: https://drive.google.com/open?id=1Qs6nuA7uKGlToyaw-xTIU_zFhpSbAXKg
+- training config file: `conf/tuning/train_pytorch_tacotron2.v4.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/char_train_no_dev/cmvn.ark`
+- e2e file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v4/results/model.last1.avg.best`
+- e2e JSON file: `exp/char_train_no_dev_pytorch_train_pytorch_tacotron2.v4/results/model.json`
+- dict file: `data/lang_1char/char_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1dp8ZzDcgEVzsCLTseM5ZThRFgw5yWOBN
+
+## Results
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+librispeech.transformer.ngpu4_asr.result.v2/char_dev/result.txt:|250|22337|98.8|0.3|0.9|0.2|1.4|45.2|
+librispeech.transformer.ngpu4_asr.result.v2/char_eval/result.txt:|250|21532|98.4|0.5|1.1|0.6|2.1|44.4|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+librispeech.transformer.ngpu4_asr.result.v2/char_dev/result.wrd.txt:|250|4218|96.0|2.9|1.1|1.3|5.2|49.6|
+librispeech.transformer.ngpu4_asr.result.v2/char_eval/result.wrd.txt:|250|4023|95.3|3.4|1.3|1.9|6.6|50.4|
+
+## Models
+
+- model link: https://drive.google.com/open?id=1bmyeYILVbymfbAodiFHHAvCnTExYKWRO
+- training config file: `conf/tuning/train_pytorch_tacotron2.v4.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v4/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v4/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1o6AGB-4A4ZLZ-T1LCZlcfEpBHkofgLPC
+
+## Results
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+librispeech.transformer.ngpu4_asr.result.v2/phn_dev/result.txt:|250|22337|98.9|0.4|0.7|0.2|1.3|42.4|
+librispeech.transformer.ngpu4_asr.result.v2/phn_eval/result.txt:|250|21532|98.4|0.5|1.2|0.4|2.1|48.0|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+librispeech.transformer.ngpu4_asr.result.v2/phn_dev/result.wrd.txt:|250|4218|96.1|2.9|1.0|1.4|5.3|48.8|
+librispeech.transformer.ngpu4_asr.result.v2/phn_eval/result.wrd.txt:|250|4023|94.5|4.0|1.5|1.7|7.3|54.4|
+
+
 # v.0.6.0 with frequency limit FastSpeech
 
 - FTT in points: 1024
