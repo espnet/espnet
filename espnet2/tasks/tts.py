@@ -1,8 +1,10 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional
+from typing import Any, Dict, Type, Tuple, Optional, Sequence
 
 import configargparse
+import numpy as np
+import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -11,6 +13,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.collate_fn import common_collate_fn
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.controller import TTSModelController
 from espnet2.tts.tacotron2 import Tacotron2
@@ -45,21 +48,21 @@ class TTSTask(AbsTask):
         excl.add_argument('--odim', type=int, default=None,
                           help='The number of dimension of output feature')
         excl.add_argument(
-            '--feats_extract', type=str_or_none, default='default',
-            choices=cls.feats_extract_choices(),
+            '--feats_extract', type=lambda x: str_or_none(x.lower()),
+            default='default', choices=cls.feats_extract_choices(),
             help='Specify feats_extract class')
         group.add_argument(
             '--feats_extract_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for feats_extract class.')
         group.add_argument(
-            '--normalize', type=str_or_none, default='global_mvn',
-            choices=cls.normalize_choices(),
+            '--normalize', type=lambda x: str_or_none(x.lwoer()),
+            default='global_mvn', choices=cls.normalize_choices(),
             help='Specify normalization class')
         group.add_argument(
             '--normalize_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for normalization class.')
         group.add_argument(
-            '--tts', type=str, default='tacotron2',
+            '--tts', type=lambda x: x.lower(), default='tacotron2',
             choices=cls.tts_choices(), help='Specify tts class')
         group.add_argument(
             '--tts_conf', action=NestedDictAction, default=dict(),
@@ -135,10 +138,7 @@ class TTSTask(AbsTask):
     @classmethod
     def feats_extract_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('default',)
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('default', None)
         assert check_return_type(choices)
         return choices
 
@@ -160,10 +160,7 @@ class TTSTask(AbsTask):
     @classmethod
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('global_mvn', )
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
-        choices += (None,)
+        choices = ('global_mvn', None)
         assert check_return_type(choices)
         return choices
 
@@ -183,9 +180,7 @@ class TTSTask(AbsTask):
     @classmethod
     def tts_choices(cls) -> Tuple[Optional[str], ...]:
         assert check_argument_types()
-        choices = ('Tacotron2',)
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
+        choices = ('tacotron2',)
         assert check_return_type(choices)
         return choices
 
@@ -202,6 +197,11 @@ class TTSTask(AbsTask):
                 f'{cls.tts_choices()}: --tts {name}')
         assert check_return_type(retval)
         return retval
+
+    @classmethod
+    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
+            -> Dict[str, torch.Tensor]:
+        return common_collate_fn(data)
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> TTSModelController:

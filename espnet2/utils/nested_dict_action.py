@@ -42,12 +42,6 @@ e.g.
                  required=False,
                  help=None,
                  metavar=None):
-        if default is None:
-            default = {}
-
-        if not isinstance(default, dict):
-            raise TypeError(f'default must be dict object: "{default}"')
-
         super().__init__(
             option_strings=option_strings,
             dest=dest,

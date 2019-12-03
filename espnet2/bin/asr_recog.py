@@ -20,7 +20,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPNetDataset, our_collate_fn
+from espnet2.train.dataset import ESPNetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -134,7 +134,7 @@ def recog(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=our_collate_fn, num_workers=num_workers)
+                        collate_fn=ASRTask.collate_fn, num_workers=num_workers)
 
     # 6 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
@@ -191,7 +191,7 @@ def get_parser():
                         help='config file path')
 
     parser.add_argument(
-        '--log_level', type=lambda x: str(x).upper(), default='INFO',
+        '--log_level', type=lambda x: x.upper(), default='INFO',
         choices=('INFO', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'),
         help='The verbose level of logging')
 

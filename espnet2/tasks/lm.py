@@ -1,14 +1,17 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional
+from typing import Any, Dict, Type, Tuple, Optional, Sequence
 
 import configargparse
+import numpy as np
+import torch
 from typeguard import check_return_type, check_argument_types
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.controller import LanguageModelController
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.collate_fn import common_collate_fn
 from espnet2.train.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_defaut_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -37,11 +40,11 @@ class LMTask(AbsTask):
 
         group.add_argument('--token_list', type=str_or_none, default=None,
                            help='A text mapping int-id to token')
-        group.add_argument('--init', type=str_or_none, default=None,
-                           help='The initialization method',
+        group.add_argument('--init', type=lambda x: str_or_none(x.lower()),
+                           default=None, help='The initialization method',
                            choices=cls.init_choices())
         group.add_argument(
-            '--lm', type=str, default='seq_rnn',
+            '--lm', type=lambda x: x.lower(), default='seq_rnn',
             choices=cls.lm_choices(), help='Specify lm class')
         group.add_argument(
             '--lm_conf', action=NestedDictAction, default=dict(),
@@ -100,11 +103,9 @@ class LMTask(AbsTask):
         return choices
 
     @classmethod
-    def lm_choices(cls) -> Tuple[Optional[str], ...]:
+    def lm_choices(cls) -> Tuple[str, ...]:
         assert check_argument_types()
         choices = ('seq_rnn',)
-        choices += tuple(x.lower() for x in choices if x != x.lower()) \
-            + tuple(x.upper() for x in choices if x != x.upper())
         assert check_return_type(choices)
         return choices
 
@@ -121,6 +122,11 @@ class LMTask(AbsTask):
                 f'{cls.lm_choices()}: --lm {name}')
         assert check_return_type(retval)
         return retval
+
+    @classmethod
+    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
+            -> Dict[str, torch.Tensor]:
+        return common_collate_fn(data)
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> LanguageModelController:

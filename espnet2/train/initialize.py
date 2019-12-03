@@ -1,24 +1,49 @@
+import math
+
 import torch
 
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.initialization import \
-    lecun_normal_init_parameters
-
 
 def initialize(model: torch.nn.Module, init: str):
     assert check_argument_types()
+
     if init == 'chainer':
-        lecun_normal_init_parameters(model)
+        # 1. lecun_normal_init_parameters
+        for p in model.parameters():
+            data = p.data
+            if data.dim() == 1:
+                # bias
+                data.zero_()
+            elif data.dim() == 2:
+                # linear weight
+                n = data.size(1)
+                stdv = 1. / math.sqrt(n)
+                data.normal_(0, stdv)
+            elif data.dim() in (3, 4):
+                # conv weight
+                n = data.size(1)
+                for k in data.size()[2:]:
+                    n *= k
+                stdv = 1. / math.sqrt(n)
+                data.normal_(0, stdv)
+            else:
+                raise NotImplementedError
 
         for mod in model.modules():
+            # 2. embed weight ~ Normal(0, 1)
             if isinstance(mod, torch.nn.Embedding):
-                # embed weight ~ Normal(0, 1)
                 mod.weight.data.normal_(0, 1)
+            # 3. forget-bias = 1.0
             elif isinstance(mod, torch.nn.RNNCellBase):
-                # forget-bias = 1.0
                 n = mod.bias_ih.size(0)
                 mod.bias_ih.data[n // 4:n // 2].fill_(1.)
+            elif isinstance(mod, torch.nn.RNNBase):
+                for name, param in mod.named_parameters():
+                    if 'bias' in name:
+                        n = param.size(0)
+                        param.data[n // 4:n // 2].fill_(1.)
+
     else:
         # weight init
         for p in model.parameters():

@@ -199,6 +199,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
+        # FIXME(kamo): How can we get the global mean-variance if using on-the-fly scheme? I don't have clear way.
 
     elif [ "${feats_type}" = fbank_pitch ]; then
         log "[Require Kaldi] stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
@@ -502,6 +503,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             done | LC_ALL=C sort -k1 >"${_dir}/${f}"
         done
 
+        # TODO(kamo): Should we invoke spm_decode in asr_recog.py? Also, we can calculate WER in that time.
         # 4. Convert token to text
         _token_type="$(<${_data}/token_type)"
 
