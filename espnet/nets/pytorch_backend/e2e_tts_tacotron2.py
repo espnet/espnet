@@ -165,7 +165,7 @@ class Tacotron2Loss(torch.nn.Module):
 
         Args:
             use_masking (bool): Whether to apply masking for padded part in loss calculation.
-            use_weighted_masking (bool): Whether to applyg weighted for maskng padded part in loss calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
             bce_pos_weight (float): Weight of positive sample of stop token.
 
         """
@@ -378,7 +378,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 - cbhg_highway_units (int): The number of units of highway network in CBHG.
                 - cbhg_gru_units (int): The number of units of GRU in CBHG.
                 - use_masking (bool): Whether to apply masking for padded part in loss calculation.
-                - use_weighted_masking (bool): Whether to apply weighted masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
                 - use-guided-attn-loss (bool): Whether to use guided attention loss.
                 - guided-attn-loss-sigma (float) Sigma in guided attention loss.

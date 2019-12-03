@@ -40,7 +40,7 @@ class FeedForwardTransformerLoss(torch.nn.Module):
 
         Args:
             use_masking (bool): Whether to apply masking for padded part in loss calculation.
-            use_weighted_masking (bool): Whether to applyg weighted for maskng padded part in loss calculation.
+            use_weighted_masking (bool): Whether to weighted masking in loss calculation.
 
         """
         super(FeedForwardTransformerLoss, self).__init__()
@@ -67,8 +67,7 @@ class FeedForwardTransformerLoss(torch.nn.Module):
 
         Returns:
             Tensor: L1 loss value.
-            Tensor: Mean square error loss value.
-            Tensor: Binary cross entropy loss value.
+            Tensor: Duration predictor loss value.
 
         """
         # apply mask to remove padded part
@@ -249,7 +248,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
                 - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
                 - use_masking (bool): Whether to apply masking for padded part in loss calculation.
-                - use_weighted_masking (bool): Whether to apply weighted masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
                 - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
