@@ -166,9 +166,9 @@ class Decoder(ScorerInterface, torch.nn.Module):
             batch_state = [torch.stack([state[b][l] for b in range(n_batch)]) for l in range(n_layers)]
 
         # batch decoding
-        n_batch = ys.size(0)
         ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(ys, ys_mask, x.expand(n_batch, *x.shape), cache=batch_state)
-        # split states again
+
+        # split states
         state_list = [[state[l][b] for l in range(n_layers)] for b in range(n_batch)]
         return logp, state_list
