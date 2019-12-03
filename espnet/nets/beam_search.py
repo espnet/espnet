@@ -58,7 +58,7 @@ class BeamSearch(torch.nn.Module):
         super().__init__()
         # set scorers
         self.weights = weights
-        self.scorers = scorers
+        self.scorers = dict()
         self.full_scorers = dict()
         self.part_scorers = dict()
         self.nn_dict = torch.nn.ModuleDict()
@@ -67,6 +67,7 @@ class BeamSearch(torch.nn.Module):
             if w == 0 or v is None:
                 continue
             assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
+            self.scorers[k] = v
             if isinstance(v, PartialScorerInterface):
                 self.part_scorers[k] = v
             else:
@@ -95,7 +96,7 @@ class BeamSearch(torch.nn.Module):
         """
         init_states = dict()
         init_scores = dict()
-        for k, d in chain(self.full_scorers.items(), self.part_scorers.items()):
+        for k, d in self.scorers.items():
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
         return Hypothesis(
@@ -159,6 +160,9 @@ class BeamSearch(torch.nn.Module):
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
+    def _do_pre_beam(self, scores: Dict[str, torch.Tensor]):
+        return self.pre_beam_size < self.n_vocab and self.pre_beam_score_key in scores and len(self.part_scorers) > 0
+
     def pre_beam(self, scores: Dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
         """Compute topk token ids for `self.part_scorers`.
 
@@ -171,7 +175,7 @@ class BeamSearch(torch.nn.Module):
             torch.Tensor: The partial tokens ids for `self.part_scorers`
 
         """
-        if self.pre_beam_size < self.n_vocab and self.pre_beam_score_key in scores:
+        if self._do_pre_beam(scores):
             return torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size)[1]
         else:
             return torch.arange(self.n_vocab, device=device)
