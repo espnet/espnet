@@ -62,6 +62,8 @@ def main():
         if args.inyaml == outyaml:
             p = Path(args.outyaml)
             outyaml = p.parent / (p.stem + '.2' + p.suffix)
+
+        outyaml = Path(outyaml)
     else:
         outyaml = Path(args.outyaml)
 
