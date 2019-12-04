@@ -54,7 +54,6 @@ exp=exp
 # config files
 train_config=
 train_args=
-preprocess_config=
 
 
 # decoding related
@@ -222,11 +221,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
-    if [ -n "${preprocess_config}" ]; then
-        # syntax: --train_preprosess {key}={yaml file or yaml string}
-        _opts+="--train_preprosess input=${preprocess_config} "
-        _opts+="--eval_preprosess input=${preprocess_config} "
-    fi
     if [ -n "${train_config}" ]; then
         # To generate the config file: e.g.
         #   % python -m espnet2.bin.tts_train --print_config --optimizer adam --encoder_decoder transformer
@@ -258,10 +252,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         python3 -m espnet2.bin.tts_train \
             --ngpu "${ngpu}" \
             --token_list "${_train_dir}/tokens.txt" \
-            --train_data_path_and_name_and_type "${_train_dir}/token_int,input,text_int" \
-            --train_data_path_and_name_and_type "${_train_dir}/${_scp},output,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/token_int,input,text_int" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},output,${_type}" \
+            --train_data_path_and_name_and_type "${_train_dir}/token_int,text,text_int" \
+            --train_data_path_and_name_and_type "${_train_dir}/${_scp},feats,${_type}" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/token_int,text,text_int" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},feats,${_type}" \
             --train_shape_file "${_train_dir}/token_shape" \
             --train_shape_file "${_train_dir}/feats_shape" \
             --eval_shape_file "${_dev_dir}/token_shape" \
@@ -287,9 +281,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     _opts=
-    if [ -n "${preprocess_config}" ]; then
-        _opts+="--preprosess input=${preprocess_config} "
-    fi
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
     fi
@@ -316,7 +307,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
             python3 -m espnet2.bin.tts_decode \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/token_int,input,text_int" \
+                --data_path_and_name_and_type "${_data}/token_int,text,text_int" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \

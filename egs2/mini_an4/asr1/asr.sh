@@ -63,7 +63,6 @@ exp=exp
 lm_tag=
 lm_config=
 lm_args=
-lm_preprocess_config=
 use_word_lm=false
 word_vocab_size=10000
 
@@ -71,7 +70,6 @@ word_vocab_size=10000
 asr_tag=
 asr_config=
 asr_args=
-asr_preprocess_config=
 
 decode_tag=
 decode_config=
@@ -332,22 +330,21 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #   % python -m espnet2.bin.lm_train --print_config --optimizer adam --lm transformer
         _opts+="--config ${lm_config} "
     fi
-    if [ -n "${lm_preprocess_config}" ]; then
-        _opts+="--train_preprosess input=${lm_preprocess_config} "
-        _opts+="--eval_preprosess input=${lm_preprocess_config} "
-    fi
 
     log "LM training started... log: '${lm_exp}/train.log'"
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
         python3 -m espnet2.bin.lm_train \
             --ngpu "${ngpu}" \
             --token_list "${data_lm}/train/tokens.txt" \
-            --train_data_path_and_name_and_type "${data_lm}/train/token_int,input,text_int" \
-            --eval_data_path_and_name_and_type "${data_lm}/dev/token_int,input,text_int" \
-            --train_shape_file "${data_lm}/train/token_shape" \
-            --eval_shape_file "${data_lm}/dev/token_shape" \
-            --resume_epoch latest \
-            --max_length 150 \
+            --train_data_path_and_name_and_type "${data_lm}/train/text,text,text" \
+            --eval_data_path_and_name_and_type "${data_lm}/dev/text,text,text" \
+            --use_preprocessor true \
+            --batch_type const \
+            --sort_in_batch none \
+            --bpemodel "${bpemodel}" \
+            --token_type "${token_type}"\
+            --train_shape_file "${data_lm}/train/text" \
+            --eval_shape_file "${data_lm}/dev/text" \
             --output_dir "${lm_exp}" \
             ${_opts} ${lm_args}
 
@@ -357,15 +354,12 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "stage 6: Calc perplexity: ${data_lm}/test"
     _opts=
-    if [ -n "${lm_preprocess_config}" ]; then
-        _opts+="--preprosess input=${lm_preprocess_config} "
-    fi
     # TODO(kamo): Parallelize?
     log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
         python3 -m espnet2.bin.lm_calc_perplexity \
             --ngpu "${ngpu}" \
-            --data_path_and_name_and_type "${data_lm}/test/token_int,input,text_int" \
+            --data_path_and_name_and_type "${data_lm}/test/text,text,text" \
             --train_config "${lm_exp}"/config.yaml \
             --model_file "${lm_exp}"/eval.loss.best.pt \
             --output_dir "${lm_exp}/perplexity_test" \
@@ -382,11 +376,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "stage 7: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
-    if [ -n "${asr_preprocess_config}" ]; then
-        # syntax: --train_preprosess {key}={yaml file or yaml string}
-        _opts+="--train_preprosess input=${asr_preprocess_config} "
-        _opts+="--eval_preprosess input=${asr_preprocess_config} "
-    fi
     if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
         #   % python -m espnet2.bin.asr_train --print_config --optimizer adam --encoder_decoder transformer
@@ -421,17 +410,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
             --token_list "${_asr_train_dir}/tokens.txt" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},input,${_type}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/token_int,output,text_int" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},input,${_type}" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/token_int,output,text_int" \
+            --use_preprocessor true \
+            --bpemodel "${bpemodel}" \
+            --token_type "${token_type}"\
+            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},feats,${_type}" \
+            --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
+            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},feats,${_type}" \
+            --eval_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
+            --batch_type seq \
             --train_shape_file "${_asr_train_dir}/${_shape}" \
-            --train_shape_file "${_asr_train_dir}/token_shape" \
             --eval_shape_file "${_asr_dev_dir}/${_shape}" \
-            --eval_shape_file "${_asr_dev_dir}/token_shape" \
             --resume_epoch latest \
             --max_length "${_max_length}" \
-            --max_length 150 \
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
 
@@ -450,9 +440,6 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     fi
 
     _opts=
-    if [ -n "${asr_preprocess_config}" ]; then
-        _opts+="--preprosess input=${asr_preprocess_config} "
-    fi
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
     fi
@@ -487,7 +474,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
             python3 -m espnet2.bin.asr_recog \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},input,${_type}" \
+                --data_path_and_name_and_type "${_data}/${_scp},feats,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
@@ -496,36 +483,15 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${decode_args}
 
+        # TODO(kamo): Embed ${cmd} in python?
         # 3. Concatenates the output files from each jobs
-        for f in token token_int score; do
+        for f in token token_int score text; do
             for i in $(seq "${_nj}"); do
                 cat "${_logdir}/output.${i}/1best_recog/${f}"
             done | LC_ALL=C sort -k1 >"${_dir}/${f}"
         done
 
-        # TODO(kamo): Should we invoke spm_decode in asr_recog.py? Also, we can calculate WER in that time.
-        # 4. Convert token to text
-        _token_type="$(<${_data}/token_type)"
-
-        if [ "${_token_type}" = bpe ]; then
-            paste <(<${_dir}/token cut -f 1 -d" ") \
-                <(<${_dir}/token cut -f 2- -d" " \
-                  | spm_decode --model=${bpemodel} --input_format=piece \
-                  | sed -e "s/▁/ /g") \
-                >  ${_dir}/text
-
-        elif [ "${_token_type}" = char ]; then
-            paste <(<${_dir}/token cut -f 1 -d" ") \
-                <(<${_dir}/token cut -f 2- -d" "  \
-                  | sed -e 's/ //g' \
-                  | sed -e 's/<space>/ /g' \
-                  ) \
-                >  ${_dir}/text
-        else
-            log "Error: not supported --token_type '${_token_type}'"
-            exit 2
-        fi
-
+        # TODO(kamo): Calc WER in asr_recog.py?
     done
 fi
 
