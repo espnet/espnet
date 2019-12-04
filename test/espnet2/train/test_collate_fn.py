@@ -10,7 +10,8 @@ def test_common_collate_fn():
     t = common_collate_fn(data)
 
     desired = dict(a=np.stack([data[0]['a'],
-                               np.pad(data[1]['a'], [(0, 1), (0, 0)])]),
+                               np.pad(data[1]['a'], [(0, 1), (0, 0)],
+                                      mode='constant')]),
                    b=np.stack([data[0]['b'], data[1]['b']]),
                    a_lengths=np.array([3, 2], dtype=np.long),
                    b_lengths=np.array([4, 4], dtype=np.long),
