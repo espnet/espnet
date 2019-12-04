@@ -60,7 +60,7 @@ def get_parser():
                         help='Threshold value in decoding')
     parser.add_argument('--use-att-constraint', type=strtobool, default=False,
                         help='Whether to use the attention constraint')
-    parser.add_argument('--backward_window', type=int, default=0,
+    parser.add_argument('--backward_window', type=int, default=1,
                         help='Backward window size in the attention constraint')
     parser.add_argument('--forward_window', type=float, default=3,
                         help='Forward window size in the attention constraint')

@@ -74,7 +74,7 @@ def make_inference_args(**kwargs):
         maxlenratio=5.0,
         minlenratio=0.0,
         use_att_constraint=False,
-        backward_window=0,
+        backward_window=1,
         forward_window=3,
     )
     defaults.update(kwargs)
