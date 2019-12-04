@@ -111,7 +111,8 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) for arr in batch)
+                x = tuple(arr.to(self.device) if arr is not None else None
+                          for arr in batch)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -164,11 +165,18 @@ class CustomUpdater(StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
+        epoch = train_iter.epoch
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) for arr in batch)
+        x = tuple(arr.to(self.device) if arr is not None else None
+                  for arr in batch)
+        is_new_epoch = train_iter.epoch != epoch
+        # When the last minibatch in the current epoch is given,
+        # gradient accumulation is turned off in order to evaluate the model
+        # on the validation set in every epoch.
+        # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -192,7 +200,7 @@ class CustomUpdater(StandardUpdater):
 
         # update parameters
         self.forward_count += 1
-        if self.forward_count != self.accum_grad:
+        if not is_new_epoch and self.forward_count != self.accum_grad:
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
@@ -266,8 +274,8 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
-        # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+        # NOTE: this is for multi-output (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0][:]) if isinstance(y, tuple) else y).long()
                            for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
@@ -373,7 +381,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
     # write model config

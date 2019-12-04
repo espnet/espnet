@@ -29,11 +29,11 @@ CTC_SCORING_RATIO = 1.5
 class Decoder(torch.nn.Module, ScorerInterface):
     """Decoder module
 
-    :param int eprojs: # encoder projection units
+    :param int eprojs: encoder projection units
     :param int odim: dimension of outputs
     :param str dtype: gru or lstm
-    :param int dlayers: # decoder layers
-    :param int dunits: # decoder units
+    :param int dlayers: decoder layers
+    :param int dunits: decoder units
     :param int sos: start of sequence symbol id
     :param int eos: end of sequence symbol id
     :param torch.nn.Module att: attention module
@@ -94,7 +94,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         self.dropout = dropout
         self.num_encs = num_encs
 
-        # for multilingual translation
+        # for multilingual E2E-ST
         self.replace_sos = replace_sos
 
         self.logzero = -10000000000.0
@@ -114,7 +114,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, tgt_lang_ids=None):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, lang_ids=None):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -124,7 +124,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                                     [in multi-encoder case, list of torch.Tensor, [(B), (B), ..., ]
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :param int strm_idx: stream index indicates the index of decoding stream.
-        :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
+        :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -149,7 +149,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
         if self.replace_sos:
-            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(lang_ids, ys)]
         else:
             ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
@@ -495,7 +495,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         return nbest_hyps
 
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
-                             normalize_score=True, strm_idx=0, tgt_lang_ids=None):
+                             normalize_score=True, strm_idx=0, lang_ids=None):
         # to support mutiple encoder asr mode, in single encoder mode, convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
             h = [h]
@@ -560,9 +560,9 @@ class Decoder(torch.nn.Module, ScorerInterface):
             logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
             logging.info('<sos> mark: ' + recog_args.tgt_lang)
             yseq = [[char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)]
-        elif tgt_lang_ids is not None:
+        elif lang_ids is not None:
             # NOTE: used for evaluation during training
-            yseq = [[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
+            yseq = [[lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
         else:
             logging.info('<sos> index: ' + str(self.sos))
             logging.info('<sos> mark: ' + char_list[self.sos])
@@ -712,7 +712,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, tgt_lang_ids=None):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, lang_ids=None):
         """Calculate all of attentions
 
             :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -722,7 +722,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                                         [in multi-encoder case, list of torch.Tensor, [(B), (B), ..., ]
             :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
             :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
-            :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
+            :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
             :return: attention weights with the following shape,
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                 2) multi-encoder case => [(B, Lmax, Tmax1), (B, Lmax, Tmax2), ..., (B, Lmax, NumEncs)]
@@ -746,7 +746,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
         if self.replace_sos:
-            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(lang_ids, ys)]
         else:
             ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]

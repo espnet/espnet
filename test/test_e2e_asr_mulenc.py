@@ -73,8 +73,6 @@ def make_arg(num_encs, **kwargs):
         grad_noise=False,
         context_residual=False,
         use_frontend=False,
-        replace_sos=False,
-        tgt_lang=False,
         share_ctc=False,
         weights_ctc_train=[0.5 for _ in range(num_encs)],
         weights_ctc_dec=[0.5 for _ in range(num_encs)],
