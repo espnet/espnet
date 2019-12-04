@@ -582,7 +582,7 @@ def decode(args):
                 int(outs.size(0)) / (time.time() - start_time)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
-            logging.info('(%d/%d) %s (size:%d->%d, focus rate:%.3f)' % (
+            logging.info('(%d/%d) %s (size: %d->%d, focus rate: %.3f)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), _calculate_focus_rete(att_ws)))
             f[utt_id] = outs.cpu().numpy()
 
