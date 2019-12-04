@@ -6,11 +6,11 @@ import torch
 from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
 from espnet2.layers.abs_attention import AbsAttention
-from espnet2.train.abs_model_controller import AbsModelController
+from espnet2.train.abs_e2e import AbsE2E
 
 
 @torch.no_grad()
-def calculate_all_attentions(model: AbsModelController,
+def calculate_all_attentions(model: AbsE2E,
                              batch: Dict[str, torch.Tensor]) \
         -> Dict[str, List[torch.Tensor]]:
     """Derive the outputs from the all attention layers

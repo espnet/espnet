@@ -6,11 +6,11 @@ from typeguard import check_argument_types
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet2.train.abs_model_controller import AbsModelController
+from espnet2.train.abs_e2e import AbsE2E
 from espnet2.tts.abs_model import AbsTTS
 
 
-class TTSModelController(AbsModelController):
+class TTSE2E(AbsE2E):
     def __init__(self,
                  feats_extract: Optional[AbsFrontend],
                  normalize: Optional[AbsNormalize and InversibleInterface],

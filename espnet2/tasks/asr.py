@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.asr.controller import ASRModelController
 from espnet2.asr.ctc import CTC
+from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -83,8 +83,8 @@ class ASRTask(AbsTask):
             '--ctc_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for CTC class.')
         group.add_argument(
-            '--model_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for ModelController class.')
+            '--e2e_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for E2E class.')
 
         return parser
 
@@ -123,7 +123,7 @@ class ASRTask(AbsTask):
         encoder_conf = get_default_kwargs(encoder_class)
         decoder_conf = get_default_kwargs(decoder_class)
         ctc_conf = get_default_kwargs(CTC)
-        model_conf = get_default_kwargs(ASRModelController)
+        e2e_conf = get_default_kwargs(ASRE2E)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -145,7 +145,7 @@ class ASRTask(AbsTask):
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
-            model_conf=model_conf)
+            e2e_conf=e2e_conf)
 
         # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
@@ -236,7 +236,7 @@ class ASRTask(AbsTask):
         return common_collate_fn(data)
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ASRModelController:
+    def build_model(cls, args: argparse.Namespace) -> ASRE2E:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
@@ -287,8 +287,8 @@ class ASRTask(AbsTask):
         # 5. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
-        # 6. Build controller
-        model = ASRModelController(
+        # 6. Build model
+        model = ASRE2E(
             vocab_size=vocab_size,
             frontend=frontend,
             normalize=normalize,
@@ -297,7 +297,7 @@ class ASRTask(AbsTask):
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
-            **args.model_conf)
+            **args.e2e_conf)
         if args.init is not None:
             initialize(model, args.init)
 
