@@ -19,10 +19,13 @@ WORKDIR /espnet/tools
 # Docker build does not load libcuda.so.1
 # Replace nvidia-smi for nvcc because docker does not load nvidia-smi
 RUN if [ -z "$( nvcc -V )" ]; then \
+        echo "Build withoug CUDA" &&\
         make KALDI=/kaldi CUPY_VERSION=''; \
     else \
-        sed -i '159s|install.py|install.py --no-cupy|' Makefile && \
-        sed -i '19s|nvidia-smi|nvcc|' Makefile && \
+        echo "Build with CUDA" && \
+        export CFLAGS="-I$CUDA_HOME/include $CFLAGS" && \
+        sed -i '154s|install.py|install.py --no-cupy|' Makefile && \
+        sed -i '21s|nvidia-smi|nvcc|' Makefile && \
         make KALDI=/kaldi CUDA_VERSION=${CUDA_VER}; \
     fi
 

@@ -18,6 +18,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         curl \
         flac \
         gawk \
+        gfortran \
         git \
         libtool \
         python2.7 \
