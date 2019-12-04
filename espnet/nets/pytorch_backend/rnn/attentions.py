@@ -1,3 +1,5 @@
+"""Attention modules for RNN."""
+
 import math
 import six
 
@@ -6,6 +8,38 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
+
+
+def _apply_attention_constraint(e, last_attended_idx, backward_window=1, forward_window=3):
+    """Apply monotonic attention constraint.
+
+    This function apply the monotonic attention constraint introduced in `Deep Voice 3: Scaling
+    Text-to-Speech with Convolutional Sequence Learning`_.
+
+    Args:
+        e (Tensor): Attention energy before applying softmax (1, T).
+        last_attended_idx (int): The index of the inputs of the last attended [0, T].
+        backward_window (int, optional): Backward window size in attention constraint.
+        forward_window (int, optional): Forward window size in attetion constraint.
+
+    Returns:
+        Tensor: Monotonic constrained attention energy (1, T).
+
+    .. _`Deep Voice 3: Scaling Text-to-Speech with Convolutional Sequence Learning`:
+        https://arxiv.org/abs/1710.07654
+
+    """
+    # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+    if last_attended_idx is not None:
+        if e.size(0) != 1:
+            raise NotImplementedError("Batch attention constraining is not yet supported.")
+        backward_idx = last_attended_idx - backward_window
+        forward_idx = last_attended_idx + forward_window
+        if backward_idx > 0:
+            e[:, :backward_idx] = -float('inf')
+        if forward_idx < e.size(1):
+            e[:, forward_idx:] = -float('inf')
+    return e
 
 
 class NoAtt(torch.nn.Module):
@@ -254,7 +288,7 @@ class AttLoc(torch.nn.Module):
         :param torch.Tensor att_prev: previous attention weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
         :param torch.Tensor forward_window: forward window size when constraining attention
-        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int last_attended_idx: index of the inputs of the last attended
         :param int backward_window: backward window size in attention constraint
         :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
@@ -300,16 +334,9 @@ class AttLoc(torch.nn.Module):
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
 
-        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            if batch != 1:
-                raise NotImplementedError("Batch attention constraining is not yet supported.")
-            backward_idx = last_attended_idx - backward_window
-            forward_idx = last_attended_idx + forward_window
-            if backward_idx > 0:
-                e[:, :backward_idx] = -float('inf')
-            if forward_idx < self.h_length:
-                e[:, forward_idx:] = -float('inf')
+            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -1248,7 +1275,7 @@ class AttForward(torch.nn.Module):
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: attention weights of previous step
         :param float scaling: scaling parameter before applying softmax
-        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int last_attended_idx: index of the inputs of the last attended
         :param int backward_window: backward window size in attention constraint
         :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
@@ -1293,16 +1320,9 @@ class AttForward(torch.nn.Module):
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
 
-        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            if batch != 1:
-                raise NotImplementedError("Batch attention constraining is not yet supported.")
-            backward_idx = last_attended_idx - backward_window
-            forward_idx = last_attended_idx + forward_window
-            if backward_idx > 0:
-                e[:, :backward_idx] = -float('inf')
-            if forward_idx < self.h_length:
-                e[:, forward_idx:] = -float('inf')
+            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -1369,7 +1389,7 @@ class AttForwardTA(torch.nn.Module):
         :param torch.Tensor att_prev: attention weights of previous step
         :param torch.Tensor out_prev: decoder outputs of previous step (B, odim)
         :param float scaling: scaling parameter before applying softmax
-        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int last_attended_idx: index of the inputs of the last attended
         :param int backward_window: backward window size in attention constraint
         :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, dunits)
@@ -1414,16 +1434,9 @@ class AttForwardTA(torch.nn.Module):
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
 
-        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            if batch != 1:
-                raise NotImplementedError("Batch attention constraining is not yet supported.")
-            backward_idx = last_attended_idx - backward_window
-            forward_idx = last_attended_idx + forward_window
-            if backward_idx > 0:
-                e[:, :backward_idx] = -float('inf')
-            if forward_idx < self.h_length:
-                e[:, forward_idx:] = -float('inf')
+            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
