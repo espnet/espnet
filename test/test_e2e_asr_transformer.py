@@ -1,4 +1,4 @@
-from argparse import Namespace
+import argparse
 import chainer
 import importlib
 import logging
@@ -46,8 +46,8 @@ def test_mask(module):
     assert (m.unsqueeze(0) == subsequent_mask(3)).all()
 
 
-def prepare(backend):
-    args = Namespace(
+def make_arg(**kwargs):
+    defaults = dict(
         adim=16,
         aheads=2,
         dropout_rate=0.0,
@@ -65,8 +65,14 @@ def prepare(backend):
         report_wer=False,
         mtlalpha=0.0,
         lsm_weight=0.001,
-        char_list=['a', 'e', 'i', 'o', 'u'],
+        char_list=['<blank>', 'a', 'e', 'i', 'o', 'u'],
+        ctc_type="warpctc",
     )
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
+
+
+def prepare(backend, args):
     idim = 40
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
@@ -102,7 +108,8 @@ def prepare(backend):
 
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_transformer_mask(module):
-    model, x, ilens, y, data = prepare(module)
+    args = make_arg()
+    model, x, ilens, y, data = prepare(module, args)
     from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
     from espnet.nets.pytorch_backend.transformer.mask import target_mask
     yi, yo = add_sos_eos(y, model.sos, model.eos, model.ignore_id)
@@ -114,12 +121,23 @@ def test_transformer_mask(module):
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
-@pytest.mark.parametrize("module", ["pytorch", "chainer"])
-def test_transformer_trainable_and_decodable(module):
-    model, x, ilens, y, data = prepare(module)
+@pytest.mark.parametrize(
+    "module, model_dict", [
+        ('pytorch', {}),
+        ('pytorch', {'report_cer': True}),
+        ('pytorch', {'report_wer': True}),
+        ('pytorch', {'report_cer': True, 'report_wer': True}),
+        ('pytorch', {'report_cer': True, 'report_wer': True, 'mtlalpha': 0.0}),
+        ('pytorch', {'report_cer': True, 'report_wer': True, 'mtlalpha': 1.0}),
+        ('chainer', {}),
+    ]
+)
+def test_transformer_trainable_and_decodable(module, model_dict):
+    args = make_arg(**model_dict)
+    model, x, ilens, y, data = prepare(module, args)
 
     # test beam search
-    recog_args = Namespace(
+    recog_args = argparse.Namespace(
         beam_size=1,
         penalty=0.0,
         ctc_weight=0.0,
@@ -173,7 +191,7 @@ def prepare_copy_task(d_model, d_ff=64, n=1):
     odim = idim
 
     if d_model:
-        args = Namespace(
+        args = argparse.Namespace(
             adim=d_model,
             aheads=2,
             dropout_rate=0.1,
@@ -231,7 +249,7 @@ def run_transformer_copy():
     model.cpu()
     model.eval()
     # test beam search
-    recog_args = Namespace(
+    recog_args = argparse.Namespace(
         beam_size=1,
         penalty=0.0,
         ctc_weight=0.0,
@@ -266,7 +284,8 @@ def test_transformer_parallel():
     if not torch.cuda.is_available():
         return
 
-    model, x, ilens, y, data = prepare("pytorch")
+    args = make_arg()
+    model, x, ilens, y, data = prepare("pytorch", args)
     model = torch.nn.DataParallel(model).cuda()
     logging.debug(ilens)
     # test acc is almost 100%
