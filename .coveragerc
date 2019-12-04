@@ -6,4 +6,4 @@ exclude_lines =
     if __name__ == "__main__":
     if __name__ == '__main__':
     @abstractmethod
-    if LooseVersion(torch.__version__) <
+    raise NotImplementedError
