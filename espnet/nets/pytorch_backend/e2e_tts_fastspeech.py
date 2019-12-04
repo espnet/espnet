@@ -13,7 +13,6 @@ import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
@@ -601,7 +600,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         assert args.reduction_factor == self.reduction_factor
 
         # load teacher model
-        model = Transformer(idim, odim, args)
+        from espnet.utils.dynamic_import import dynamic_import
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
         torch_load(model_path, model)
 
         # freeze teacher model parameters
