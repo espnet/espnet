@@ -246,7 +246,7 @@ class BeamSearch(torch.nn.Module):
             List[Hypotheses]: Best sorted hypotheses
 
         """
-        best = []
+        best_hyps = []
         part_ids = torch.arange(self.n_vocab, device=x.device)  # no pre-beam
         for hyp in running_hyps:
             # scoring
@@ -267,7 +267,7 @@ class BeamSearch(torch.nn.Module):
             # update hyps
             for j, part_j in zip(*self.beam(weighted_scores, part_ids)):
                 # will be (2 x beam at most)
-                best.append(Hypothesis(
+                best_hyps.append(Hypothesis(
                     score=weighted_scores[j],
                     yseq=self.append_token(hyp.yseq, j),
                     scores=self.merge_scores(
@@ -275,8 +275,8 @@ class BeamSearch(torch.nn.Module):
                     states=self.merge_states(states, part_states, part_j)))
 
             # sort and prune 2 x beam -> beam
-            best = sorted(best, key=lambda x: x.score, reverse=True)[:min(len(best), self.beam_size)]
-        return best
+            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[:min(len(best_hyps), self.beam_size)]
+        return best_hyps
 
     def forward(self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0) -> List[Hypothesis]:
         """Perform beam search.

@@ -152,6 +152,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
     # beam search API (see ScorerInterface)
     def score(self, ys, state, x):
         """Score."""
+        # TODO(karita): remove this section after all ScorerInterface implements batch decoding
         if ys.dim() == 1:
             ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
             logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
@@ -163,12 +164,13 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         if state[0] is None:
             batch_state = None
         else:
+            # transpose state of [batch, layer] into [layer, batch]
             batch_state = [torch.stack([state[b][l] for b in range(n_batch)]) for l in range(n_layers)]
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(ys, ys_mask, x, cache=batch_state)
 
-        # split states
+        # transpose state of [layer, batch] into [batch, layer]
         state_list = [[state[l][b] for l in range(n_layers)] for b in range(n_batch)]
         return logp, state_list

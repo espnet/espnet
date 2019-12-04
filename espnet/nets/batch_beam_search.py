@@ -25,26 +25,26 @@ class BatchHypothesis(NamedTuple):
 class BatchBeamSearch(BeamSearch):
     """Batch beam search implementation."""
 
-    def batchfy(self, hs: List[Hypothesis]) -> BatchHypothesis:
+    def batchfy(self, hyps: List[Hypothesis]) -> BatchHypothesis:
         """Convert list to batch."""
         return BatchHypothesis(
-            yseq=pad_sequence([h.yseq for h in hs], batch_first=True, padding_value=self.eos),
-            length=[len(h.yseq) for h in hs],
-            score=torch.tensor([h.score for h in hs]),
-            scores={k: torch.tensor([h.scores[k] for h in hs]) for k in self.scorers},
-            states={k: [h.states[k] for h in hs] for k in self.scorers}
+            yseq=pad_sequence([h.yseq for h in hyps], batch_first=True, padding_value=self.eos),
+            length=[len(h.yseq) for h in hyps],
+            score=torch.tensor([h.score for h in hyps]),
+            scores={k: torch.tensor([h.scores[k] for h in hyps]) for k in self.scorers},
+            states={k: [h.states[k] for h in hyps] for k in self.scorers}
         )
 
-    def unbatchfy(self, batch: BatchHypothesis) -> List[Hypothesis]:
+    def unbatchfy(self, batch_hyps: BatchHypothesis) -> List[Hypothesis]:
         """Revert batch to list."""
         return [
             Hypothesis(
-                yseq=batch.yseq[i][:batch.length[i]],
-                score=batch.score[i],
-                scores={k: batch.scores[k][i] for k in self.scorers},
+                yseq=batch_hyps.yseq[i][:batch_hyps.length[i]],
+                score=batch_hyps.score[i],
+                scores={k: batch_hyps.scores[k][i] for k in self.scorers},
                 states={k: v.select_state(
-                    batch.states[k], i) for k, v in self.scorers.items()}
-            ) for i in range(len(batch.length))]
+                    batch_hyps.states[k], i) for k, v in self.scorers.items()}
+            ) for i in range(len(batch_hyps.length))]
 
     def batch_beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
