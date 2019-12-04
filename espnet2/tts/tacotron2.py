@@ -233,10 +233,10 @@ class Tacotron2(AbsTTS):
             self.cbhg_loss = CBHGLoss(use_masking=use_masking)
 
     def forward(self,
-                input: torch.Tensor,
-                input_lengths: torch.Tensor,
-                output: torch.Tensor,
-                output_lengths: torch.Tensor,
+                text: torch.Tensor,
+                text_lengths: torch.Tensor,
+                feats: torch.Tensor,
+                feats_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None,
@@ -245,26 +245,26 @@ class Tacotron2(AbsTTS):
         """Calculate forward propagation.
 
         Args:
-            input: Batch of padded character ids (B, Tmax).
+            text: Batch of padded character ids (B, Tmax).
             input_lengthsx): Batch of lengths of each input batch (B,).
-            output: Batch of padded target features (B, Lmax, odim).
-            output_lengths: Batch of the lengths of each target (B,).
+            feats: Batch of padded target features (B, Lmax, odim).
+            feats_lengths: Batch of the lengths of each target (B,).
             spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
             spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
             spcs_lengths:
         """
-        input = input[:, :input_lengths.max()]  # for data-parallel
-        output = output[:, :output_lengths.max()]  # for data-parallel
+        text = text[:, :text_lengths.max()]  # for data-parallel
+        feats = feats[:, :feats_lengths.max()]  # for data-parallel
 
-        batch_size = input.size(0)
+        batch_size = text.size(0)
         # Add eos at the last of sequence
-        xs = F.pad(input, [0, 1], 'constant', 0.)
-        for i, l in enumerate(input_lengths):
+        xs = F.pad(text, [0, 1], 'constant', 0.)
+        for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
-        ilens = input_lengths + 1
+        ilens = text_lengths + 1
 
-        ys = output
-        olens = output_lengths
+        ys = feats
+        olens = feats_lengths
 
         # make labels for stop prediction
         labels = make_pad_mask(olens).to(ys.device, ys.dtype)
@@ -332,7 +332,7 @@ class Tacotron2(AbsTTS):
         return loss, stats, weight
 
     def inference(self,
-                  input: torch.Tensor,
+                  text: torch.Tensor,
                   threshold: float,
                   minlenratio: float,
                   maxlenratio: float,
@@ -341,7 +341,7 @@ class Tacotron2(AbsTTS):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            input: Input sequence of characters (T,).
+            text: Input sequence of characters (T,).
             spembs: Speaker embedding vector (spk_embed_dim).
             threshold: Threshold in inference.
             minlenratio: Minimum length ratio in inference.
@@ -353,7 +353,7 @@ class Tacotron2(AbsTTS):
             Tensor: Attention weights (L, T).
 
         """
-        x = input
+        x = text
         spemb = spembs
 
         # inference

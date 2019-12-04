@@ -12,7 +12,7 @@ class AbsTextConverter(ABC):
     def __call__(self, line: str) -> np.ndarray:
         raise NotImplementedError
 
-    def inverse(self, intergers: Union[np.ndarray, Sequence[int]]) -> str:
+    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         raise NotImplementedError
 
 
@@ -26,12 +26,10 @@ def build_text_converter(token_type: str,
     if token_type == 'bpe':
         return Text2Sentencepieces(model_or_token_list)
     elif token_type == 'word':
-        return Text2Words(model_or_token_list,
-                          unk_symbol=unk_symbol,
+        return Text2Words(model_or_token_list, unk_symbol=unk_symbol,
                           delimiter=delimiter)
     elif token_type == 'char':
-        return Text2Chars(model_or_token_list,
-                          unk_symbol=unk_symbol)
+        return Text2Chars(model_or_token_list, unk_symbol=unk_symbol)
     else:
         raise ValueError(f'token_mode must be one of bpe, word, or char: '
                          f'{token_type}')
@@ -55,13 +53,13 @@ class Text2Sentencepieces(AbsTextConverter):
         ids = self.sp.EncodeAsIds(line)
         return np.array(ids)
 
-    def inverse(self, intergers: Union[np.ndarray, Sequence[int]]) -> str:
-        if isinstance(intergers, np.ndarray):
-            if intergers.dtype.kind != 'i':
+    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+        if isinstance(integers, np.ndarray):
+            if integers.dtype.kind != 'i':
                 raise ValueError(
-                    f'Must be int array: but got {intergers.dtype}')
-            intergers = intergers.tolist()
-        return self.sp.DecodeIds(intergers)
+                    f'Must be int array: but got {integers.dtype}')
+            integers = integers.tolist()
+        return self.sp.DecodeIds(integers)
 
 
 class Text2Words(AbsTextConverter):
@@ -106,12 +104,12 @@ class Text2Words(AbsTextConverter):
         return np.fromiter((self.token2id.get(t, self.unk_id) for t in tokens),
                            dtype=np.int64)
 
-    def inverse(self, intergers: Union[np.ndarray, Sequence[int]]) -> str:
+    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         if self.delimiter is None:
             delimiter = ' '
         else:
             delimiter = self.delimiter
-        return delimiter.join([self.id2token[i] for i in intergers])
+        return delimiter.join([self.id2token[i] for i in integers])
 
 
 class Text2Chars(AbsTextConverter):
@@ -151,6 +149,6 @@ class Text2Chars(AbsTextConverter):
         return np.fromiter((self.token2id.get(t, self.unk_id) for t in line),
                            dtype=np.int64)
 
-    def inverse(self, intergers: Union[np.ndarray, Sequence[int]]) -> str:
-        return ''.join([self.id2token[i] for i in intergers])
+    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+        return ''.join([self.id2token[i] for i in integers])
 

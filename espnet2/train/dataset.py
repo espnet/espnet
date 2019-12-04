@@ -190,7 +190,7 @@ class ESPNetDataset(Dataset):
             if not isinstance(value, np.ndarray):
                 raise RuntimeError(
                     f'str type object must be converted to np.ndarray object '
-                    f'by preprocessing.')
+                    f'by preprocessing, but "{name}" is still str.')
 
             # Cast to desired type
             if value.dtype.kind == 'f':

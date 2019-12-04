@@ -52,7 +52,8 @@ def recog(
         word_lm_file: Optional[str],
         blank_symbol: str,
         token_type: str,
-        bpemodel: str):
+        bpemodel: str,
+        allow_variable_data_keys: bool):
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -128,6 +129,7 @@ def recog(
     dataset = ESPNetDataset(
         data_path_and_name_and_type, float_dtype=dtype,
         preprocess=ASRTask.get_preprocess_fn(asr_train_args, 'eval'))
+    ASRTask.check_task_requirements(dataset, allow_variable_data_keys)
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -235,6 +237,7 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
+    group.add_argument('--allow_variable_data_keys', type=str2bool)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--asr_train_config', type=str, required=True)

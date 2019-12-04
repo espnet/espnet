@@ -8,7 +8,7 @@ from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
 from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, \
-    NoReturn, Iterable, Callable
+    Iterable, Callable
 
 import configargparse
 import numpy as np
@@ -320,7 +320,6 @@ class AbsTask(ABC):
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
-        assert check_argument_types()
         return 'required', 'print_config', 'config', 'ngpu'
 
     @classmethod
@@ -377,7 +376,6 @@ class AbsTask(ABC):
 
     @classmethod
     def optimizer_choices(cls) -> Tuple[str, ...]:
-        assert check_argument_types()
         choices = ('adam', 'sgd', 'adadelta', 'adagrad', 'adamw',
                    'adamax', 'asgd', 'lbfgs', 'rmsprop', 'rprop')
         assert check_return_type(choices)
@@ -416,10 +414,8 @@ class AbsTask(ABC):
 
     @classmethod
     def epoch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
-        assert check_argument_types()
-        choices = ('ReduceLROnPlateau'.lower(),
-                   'lambdalr', 'steplr', 'multisteplr',
-                   'exponentiallr', 'CosineAnnealingLR'.lower(),
+        choices = ('ReduceLROnPlateau'.lower(), 'lambdalr', 'steplr',
+                   'multisteplr', 'exponentiallr', 'CosineAnnealingLR'.lower(),
                    None)
         assert check_return_type(choices)
         return choices
@@ -465,7 +461,6 @@ class AbsTask(ABC):
 
     @classmethod
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
-        assert check_argument_types()
         choices = ('cycliclr', 'onecyclelr',
                    'CosineAnnealingWarmRestarts'.lower(), 'noamlr', None)
         assert check_return_type(choices)
@@ -483,7 +478,6 @@ class AbsTask(ABC):
             >>>         train_batch(...)
             >>>         scheduler.step()
         """
-        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == 'cycliclr':
@@ -502,7 +496,7 @@ class AbsTask(ABC):
         return retval
 
     @classmethod
-    def print_config(cls, file: TextIOBase = sys.stdout) -> NoReturn:
+    def print_config(cls, file: TextIOBase = sys.stdout) -> None:
         assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
@@ -517,7 +511,7 @@ class AbsTask(ABC):
 
     @classmethod
     def main(cls, args: argparse.Namespace = None,
-             cmd: Sequence[str] = None) -> NoReturn:
+             cmd: Sequence[str] = None) -> None:
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
@@ -600,7 +594,7 @@ class AbsTask(ABC):
         model = cls.build_model(args=args)
         if not isinstance(model, AbsE2E):
             raise RuntimeError(
-                f'model must inherit AbsESPNetModel, but got {type(model)}')
+                f'model must inherit {AbsE2E.__name__}, but got {type(model)}')
 
         optimizer_class = cls.get_optimizer_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
@@ -710,7 +704,7 @@ class AbsTask(ABC):
 
     @classmethod
     def check_task_requirements(cls, dataset: ESPNetDataset,
-                                allow_variable_data_keys: bool) -> NoReturn:
+                                allow_variable_data_keys: bool) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
         assert check_argument_types()
         mes = (f'If you intend to use an additional input, modify '
@@ -744,7 +738,7 @@ class AbsTask(ABC):
              resume_path: Optional[Union[str, Path]],
              pretrain_path: Optional[Union[str, Path]],
              pretrain_key: Optional[str],
-             map_location: str) -> NoReturn:
+             map_location: str) -> None:
         assert check_argument_types()
         # For resuming: Specify either resume_epoch or resume_path.
         #     - resume_epoch: Load from outdir/{}epoch/.
@@ -849,7 +843,7 @@ class AbsTask(ABC):
             keep_n_best_snapshot: int,
             early_stopping_criterion: Tuple[str, str, str],
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            val_scheduler_criterion: Tuple[str, str]) -> NoReturn:
+            val_scheduler_criterion: Tuple[str, str]) -> None:
         assert check_argument_types()
 
         start_epoch = reporter.get_epoch() + 1
@@ -1070,7 +1064,7 @@ class AbsTask(ABC):
     def eval(cls, model: AbsE2E,
              iterator: Iterable[Dict[str, torch.Tensor]],
              reporter: SubReporter,
-             ngpu: int) -> NoReturn:
+             ngpu: int) -> None:
         assert check_argument_types()
         model.eval()
         for batch in iterator:
@@ -1096,7 +1090,7 @@ class AbsTask(ABC):
                        iterator: Iterable[Dict[str, torch.Tensor]],
                        ngpu: int,
                        reporter: SubReporter,
-                       ) -> NoReturn:
+                       ) -> None:
         assert check_argument_types()
         import matplotlib
         matplotlib.use('Agg')
@@ -1157,7 +1151,7 @@ class AbsTask(ABC):
             output_dir: Path,
             reporter: Reporter,
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            nbest: int) -> NoReturn:
+            nbest: int) -> None:
         assert check_argument_types()
         # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
         nbest_epochs = \
