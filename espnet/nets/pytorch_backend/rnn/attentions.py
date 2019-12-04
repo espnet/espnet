@@ -206,7 +206,7 @@ class AttAdd(torch.nn.Module):
 
 
 class AttLoc(torch.nn.Module):
-    """location-aware attention
+    """location-aware attention module.
 
     Reference: Attention-Based Models for Speech Recognition
         (https://arxiv.org/pdf/1506.07503.pdf)
@@ -244,14 +244,19 @@ class AttLoc(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """AttLoc forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
+                scaling=2.0, last_attended_idx=None, backward_window=0, forward_window=3):
+        """Calcualte AttLoc forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: previous attention weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
+        :param torch.Tensor forward_window: forward window size when constraining attention
+        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
         :rtype: torch.Tensor
         :return: previous attention weights (B x T_max)
@@ -290,10 +295,22 @@ class AttLoc(torch.nn.Module):
         # utt x frame x att_dim -> utt x frame
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
-        # NOTE consider zero padding when compute w.
+        # NOTE: consider zero padding when compute w.
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        if last_attended_idx is not None:
+            if batch != 1:
+                raise NotImplementedError("Batch attention constraining is not yet supported.")
+            backward_idx = last_attended_idx - backward_window
+            forward_idx = last_attended_idx + forward_window
+            if backward_idx > 0:
+                e[:, :backward_idx] = -float('inf')
+            if forward_idx < self.h_length:
+                e[:, forward_idx:] = -float('inf')
+
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -1222,14 +1239,18 @@ class AttForward(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=1.0):
-        """AttForward forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
+                scaling=1.0, last_attended_idx=None, backward_window=0, forward_window=3):
+        """Calculate AttForward forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: attention weights of previous step
         :param float scaling: scaling parameter before applying softmax
+        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
         :rtype: torch.Tensor
         :return: previous attention weights (B x T_max)
@@ -1267,10 +1288,22 @@ class AttForward(torch.nn.Module):
         # utt x frame x att_dim -> utt x frame
         e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled + att_conv)).squeeze(2)
 
-        # NOTE consider zero padding when compute w.
+        # NOTE: consider zero padding when compute w.
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        if last_attended_idx is not None:
+            if batch != 1:
+                raise NotImplementedError("Batch attention constraining is not yet supported.")
+            backward_idx = last_attended_idx - backward_window
+            forward_idx = last_attended_idx + forward_window
+            if backward_idx > 0:
+                e[:, :backward_idx] = -float('inf')
+            if forward_idx < self.h_length:
+                e[:, forward_idx:] = -float('inf')
+
         w = F.softmax(scaling * e, dim=1)
 
         # forward attention
@@ -1326,8 +1359,9 @@ class AttForwardTA(torch.nn.Module):
         self.mask = None
         self.trans_agent_prob = 0.5
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
-        """AttForwardTA forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev,
+                scaling=1.0, last_attended_idx=None, backward_window=0, forward_window=3):
+        """Calculate AttForwardTA forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1335,6 +1369,9 @@ class AttForwardTA(torch.nn.Module):
         :param torch.Tensor att_prev: attention weights of previous step
         :param torch.Tensor out_prev: decoder outputs of previous step (B, odim)
         :param float scaling: scaling parameter before applying softmax
+        :param int last_attended_idx: index of the inputs of the last attended (from 0 to T_max)
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, dunits)
         :rtype: torch.Tensor
         :return: previous attention weights (B, Tmax)
@@ -1376,6 +1413,18 @@ class AttForwardTA(torch.nn.Module):
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
+        if last_attended_idx is not None:
+            if batch != 1:
+                raise NotImplementedError("Batch attention constraining is not yet supported.")
+            backward_idx = last_attended_idx - backward_window
+            forward_idx = last_attended_idx + forward_window
+            if backward_idx > 0:
+                e[:, :backward_idx] = -float('inf')
+            if forward_idx < self.h_length:
+                e[:, forward_idx:] = -float('inf')
+
         w = F.softmax(scaling * e, dim=1)
 
         # forward attention
