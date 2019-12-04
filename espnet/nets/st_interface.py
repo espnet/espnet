@@ -12,7 +12,7 @@ class STInterface(ASRInterface):
 
     """
 
-    def translate(self, x, trans_args, char_list=None, rnnlm=None):
+    def translate(self, x, trans_args, char_list=None, rnnlm=None, ensemble_models=[]):
         """Recognize x for evaluation.
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
@@ -40,14 +40,13 @@ class STInterface(ASRInterface):
 predefined_st = {
     "pytorch": {
         "rnn": "espnet.nets.pytorch_backend.e2e_st:E2E",
-        "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
+        "transformer": "espnet.nets.pytorch_backend.e2e_st_transformer:E2E",
     },
-    "chainer": {
-        "rnn": "espnet.nets.chainer_backend.e2e_st:E2E",
-        "transformer": "espnet.nets.chainer_backend.e2e_asr_transformer:E2E",
-    }
+    # "chainer": {
+    #     "rnn": "espnet.nets.chainer_backend.e2e_st:E2E",
+    #     "transformer": "espnet.nets.chainer_backend.e2e_st_transformer:E2E",
+    # }
 }
-# TODO(hirofumi0810): fix transformer
 
 
 def dynamic_import_st(module, backend):
