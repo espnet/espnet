@@ -1204,7 +1204,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
 
 class AttForward(torch.nn.Module):
-    """Forward attention
+    """Forward attention module.
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
@@ -1321,7 +1321,7 @@ class AttForward(torch.nn.Module):
 
 
 class AttForwardTA(torch.nn.Module):
-    """Forward attention with transition agent
+    """Forward attention with transition agent module.
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
