@@ -561,8 +561,8 @@ def decode(args):
             # tacotron 2 case -> (L, T)
             return float(att_ws.max(dim=-1)[0].mean())
         else:
-            # transformer case -> (H, L, T)
-            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max()[0])
+            # transformer case -> (#layers, #heads, L, T)
+            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
 
     # start decoding
     with kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
