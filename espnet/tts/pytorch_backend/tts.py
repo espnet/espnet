@@ -552,7 +552,7 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
-    # define function to calculate focus rate (see details in https://arxiv.org/abs/1905.09263)
+    # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
     def _calculate_focus_rete(att_ws):
         if att_ws is None:
             # fastspeech case -> None
