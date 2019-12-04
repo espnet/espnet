@@ -4,17 +4,10 @@ from typing import Tuple, Dict
 import torch
 
 
-class AbsModelController(torch.nn.Module, ABC):
+class AbsE2E(torch.nn.Module, ABC):
     """The common abstract class among each tasks
 
-    FIXME(kamo): Is Controller a good name?
-    Candidates:
-        - ModelController
-        - ModelCombiner
-        - LossDefiner
-        - E2E
-
-    "Controller" is referred to as a class which inherits torch.nn.Module,
+    "E22" is referred to as a class which inherits torch.nn.Module,
     and makes the dnn-models forward as its member field,
     a.k.a delegate pattern,
     and defines "loss", "stats", and "weight" for the task.
@@ -27,14 +20,14 @@ class AbsModelController(torch.nn.Module, ABC):
 
     Example:
         >>> from espnet2.tasks.abs_task import AbsTask
-        >>> class YourController(AbsModelController):
+        >>> class YourE2E(AbsE2E):
         ...     def forward(self, input, input_lengths):
         ...         ...
         ...         return loss, stats, weight
         >>> class YourTask(AbsTask):
         ...     @classmethod
         ...     def build_model(cls, args: argparse.Namespace) \
-        ...             -> YourController:
+        ...             -> YourE2E:
     """
 
     @abstractmethod

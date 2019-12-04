@@ -6,11 +6,11 @@ from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_model import AbsLM
-from espnet2.train.abs_model_controller import AbsModelController
+from espnet2.train.abs_e2e import AbsE2E
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class LanguageModelController(AbsModelController):
+class LanguageE2E(AbsE2E):
     def __init__(self, lm: AbsLM, vocab_size: int, ignore_id: int = 0):
         assert check_argument_types()
         super().__init__()

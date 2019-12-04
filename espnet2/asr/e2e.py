@@ -14,11 +14,11 @@ from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.train.abs_model_controller import AbsModelController
+from espnet2.train.abs_e2e import AbsE2E
 from espnet2.utils.device_funcs import force_gatherable
 
 
-class ASRModelController(AbsModelController):
+class ASRE2E(AbsE2E):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     def __init__(self,

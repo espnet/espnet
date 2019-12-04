@@ -25,7 +25,7 @@ from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.schedulers.noam_lr import NoamLR
-from espnet2.train.abs_model_controller import AbsModelController
+from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
@@ -53,7 +53,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def build_model(cls, args: argparse.Namespace) -> AbsModelController:
+    def build_model(cls, args: argparse.Namespace) -> AbsE2E:
         raise NotImplementedError
 
     @classmethod
@@ -515,7 +515,7 @@ class AbsTask(ABC):
 
         # 5. Build model, optimizer, scheduler
         model = cls.build_model(args=args)
-        if not isinstance(model, AbsModelController):
+        if not isinstance(model, AbsE2E):
             raise RuntimeError(
                 f'model must inherit AbsESPNetModel, but got {type(model)}')
 
@@ -593,7 +593,7 @@ class AbsTask(ABC):
                  resume_path=args.resume_path,
                  pretrain_path=args.pretrain_path,
                  pretrain_key=args.pretrain_key,
-                 loc='cuda' if args.ngpu > 0 else 'cpu')
+                 map_location='cuda' if args.ngpu > 0 else 'cpu')
 
         # 11. Start training
         if args.log_interval is None:
@@ -627,7 +627,7 @@ class AbsTask(ABC):
 
     @classmethod
     def load(cls,
-             model: AbsModelController,
+             model: AbsE2E,
              optimizer: torch.optim.Optimizer,
              reporter: Reporter,
              output_dir: Union[str, Path],
@@ -637,7 +637,7 @@ class AbsTask(ABC):
              resume_path: Optional[Union[str, Path]],
              pretrain_path: Optional[Union[str, Path]],
              pretrain_key: Optional[str],
-             loc: str) -> NoReturn:
+             map_location: str) -> NoReturn:
         assert check_argument_types()
         # For resuming: Specify either resume_epoch or resume_path.
         #     - resume_epoch: Load from outdir/{}epoch/.
@@ -680,7 +680,8 @@ class AbsTask(ABC):
                              ('reporter', reporter),
                              ('epoch_scheduler', epoch_scheduler),
                              ('batch_scheduler', batch_scheduler)]:
-                _st = torch.load(resume_path / f'{key}.pt', map_location=loc)
+                _st = torch.load(resume_path / f'{key}.pt',
+                                 map_location=map_location)
                 if obj is not None:
                     obj.load_state_dict(_st)
 
@@ -710,7 +711,8 @@ class AbsTask(ABC):
                 obj = get_attr(model, pretrain_key)
 
             state_dict = obj.state_dict()
-            pretrained_dict = torch.load(pretrain_path, map_location=loc)
+            pretrained_dict = torch.load(pretrain_path,
+                                         map_location=map_location)
             # Ignores the parameters not existing in the train-model
             pretrained_dict = \
                 {k: v for k, v in pretrained_dict.items() if k in state_dict}
@@ -719,7 +721,7 @@ class AbsTask(ABC):
 
     @classmethod
     def run(cls,
-            model: AbsModelController,
+            model: AbsE2E,
             optimizer: torch.optim.Optimizer,
             train_iter: Iterable[Dict[str, torch.Tensor]],
             eval_iter: Iterable[Dict[str, torch.Tensor]],
@@ -887,7 +889,7 @@ class AbsTask(ABC):
 
     @classmethod
     def train(cls,
-              model: AbsModelController,
+              model: AbsE2E,
               iterator: Iterable[Dict[str, torch.Tensor]],
               optimizer: torch.optim.Optimizer,
               reporter: SubReporter,
@@ -952,7 +954,7 @@ class AbsTask(ABC):
 
     @classmethod
     @torch.no_grad()
-    def eval(cls, model: AbsModelController,
+    def eval(cls, model: AbsE2E,
              iterator: Iterable[Dict[str, torch.Tensor]],
              reporter: SubReporter,
              ngpu: int) -> NoReturn:
@@ -975,7 +977,7 @@ class AbsTask(ABC):
 
     @classmethod
     @torch.no_grad()
-    def plot_attention(cls, model: AbsModelController,
+    def plot_attention(cls, model: AbsE2E,
                        output_dir: Path,
                        sampler: AbsSampler,
                        iterator: Iterable[Dict[str, torch.Tensor]],

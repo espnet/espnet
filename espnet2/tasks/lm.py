@@ -8,7 +8,7 @@ import torch
 from typeguard import check_return_type, check_argument_types
 
 from espnet2.lm.abs_model import AbsLM
-from espnet2.lm.controller import LanguageModelController
+from espnet2.lm.e2e import LanguageE2E
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import common_collate_fn
@@ -50,8 +50,8 @@ class LMTask(AbsTask):
             '--lm_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for lm class.')
         group.add_argument(
-            '--model_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for ModelController class.')
+            '--e2e_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for E2E class.')
 
         assert check_return_type(parser)
         return parser
@@ -74,7 +74,7 @@ class LMTask(AbsTask):
         # 1. Get the default values from class.__init__
         lm_class = cls.get_lm_class(args.lm)
         lm_conf = get_default_kwargs(lm_class)
-        model_conf = get_default_kwargs(LanguageModelController)
+        e2e_conf = get_default_kwargs(LanguageE2E)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -84,10 +84,10 @@ class LMTask(AbsTask):
 
         # 4. Overwrite the default config by the command-arguments
         lm_conf.update(config['lm_conf'])
-        model_conf.update(config['model_conf'])
+        e2e_conf.update(config['e2e_conf'])
 
         # 5. Reassign them to the configuration
-        config.update(lm_conf=lm_conf, model_conf=model_conf)
+        config.update(lm_conf=lm_conf, e2e_conf=e2e_conf)
 
         # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
@@ -129,7 +129,7 @@ class LMTask(AbsTask):
         return common_collate_fn(data)
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> LanguageModelController:
+    def build_model(cls, args: argparse.Namespace) -> LanguageE2E:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
@@ -151,10 +151,10 @@ class LMTask(AbsTask):
         lm = lm_class(vocab_size=vocab_size,
                       **args.lm_conf)
 
-        # 2. Build controller
+        # 2. Build model
         # Assume the last-id is sos_and_eos
-        model = LanguageModelController(lm=lm, vocab_size=vocab_size,
-                                        **args.model_conf)
+        model = LanguageE2E(lm=lm, vocab_size=vocab_size,
+                            **args.e2e_conf)
         if args.init is not None:
             initialize(model, args.init)
         assert check_return_type(model)

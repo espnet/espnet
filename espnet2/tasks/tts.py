@@ -15,7 +15,8 @@ from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import common_collate_fn
 from espnet2.tts.abs_model import AbsTTS
-from espnet2.tts.controller import TTSModelController
+
+from espnet2.tts.e2e import TTSE2E
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -68,8 +69,8 @@ class TTSTask(AbsTask):
             '--tts_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for TTS class.')
         group.add_argument(
-            '--model_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for ModelController class.')
+            '--e2e_conf', action=NestedDictAction, default=dict(),
+            help='The keyword arguments for E2E class.')
 
         assert check_return_type(parser)
         return parser
@@ -107,7 +108,7 @@ class TTSTask(AbsTask):
 
         tts_class = cls.get_tts_class(args.tts)
         tts_conf = get_default_kwargs(tts_class)
-        model_conf = get_default_kwargs(TTSModelController)
+        e2e_conf = get_default_kwargs(TTSE2E)
 
         # 2. Create configuration-dict from command-arguments
         config = vars(args)
@@ -119,14 +120,14 @@ class TTSTask(AbsTask):
         feats_extract_conf.update(config['feats_extract_conf'])
         normalize_conf.update(config['normalize_conf'])
         tts_conf.update(config['tts_conf'])
-        model_conf.update(config['model_conf'])
+        e2e_conf.update(config['e2e_conf'])
 
         # 5. Reassign them to the configuration
         config.update(
             feats_extract_conf=feats_extract_conf,
             normalize_conf=normalize_conf,
             tts_conf=tts_conf,
-            model_conf=model_conf)
+            e2e_conf=e2e_conf)
 
         # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
@@ -204,7 +205,7 @@ class TTSTask(AbsTask):
         return common_collate_fn(data)
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> TTSModelController:
+    def build_model(cls, args: argparse.Namespace) -> TTSE2E:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list) as f:
@@ -247,9 +248,9 @@ class TTSTask(AbsTask):
         tts_class = cls.get_tts_class(args.tts)
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
-        # 4. Build controller
-        model = TTSModelController(
+        # 4. Build model
+        model = TTSE2E(
             feats_extract=feats_extract, normalize=normalize, tts=tts,
-            **args.model_conf)
+            **args.e2e_conf)
         assert check_return_type(model)
         return model
