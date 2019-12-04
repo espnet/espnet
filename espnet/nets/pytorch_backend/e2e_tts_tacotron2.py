@@ -627,7 +627,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -636,9 +636,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            keep_tensor (bool, optional): Whether to keep original tensor.
 
         Returns:
-            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).
+            Union[ndarray, Tensor]: Batch of attention weights (B, Lmax, Tmax).
 
         """
         # check ilens type (should be list of int)
@@ -654,7 +655,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         self.train()
 
-        return att_ws.cpu().numpy()
+        if keep_tensor:
+            return att_ws
+        else:
+            return att_ws.cpu().numpy()
 
     @property
     def base_plot_keys(self):
