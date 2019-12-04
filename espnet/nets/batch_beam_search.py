@@ -101,10 +101,10 @@ class BatchBeamSearch(BeamSearch):
         weighted_scores += batch_hyps.score.unsqueeze(1)
 
         # update hyps
-        best = []
+        best_hyps = []
         for full_beam, full_vocab, part_beam, part_vocab in zip(*self.batch_beam(weighted_scores, part_ids)):
             prev_hyp = running_hyps[full_beam]
-            best.append(Hypothesis(
+            best_hyps.append(Hypothesis(
                 score=weighted_scores[full_beam, full_vocab],
                 yseq=self.append_token(prev_hyp.yseq, full_vocab),
                 scores=self.merge_scores(
@@ -116,4 +116,4 @@ class BatchBeamSearch(BeamSearch):
                     {k: self.part_scorers[k].select_state(v, part_beam) for k, v in part_states.items()},
                     part_vocab)
             ))
-        return best
+        return best_hyps
