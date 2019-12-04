@@ -62,7 +62,8 @@ done
 mkdir -p "${dir}"
 
 # 0. token_type
-echo "${type}" > ${dir}/token_type
+echo "${type}" > "${dir}/token_type"
+cp "${text}" "${dir}/text"
 
 
 # 1. Prepare token
