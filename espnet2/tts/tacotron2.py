@@ -262,7 +262,6 @@ class Tacotron2(AbsTTS):
         for i, l in enumerate(input_lengths):
             xs[i, l] = self.eos
         ilens = input_lengths + 1
-        xs.masked_fill_(make_pad_mask(ilens, xs, 1), self.padding_idx)
 
         ys = output
         olens = output_lengths

@@ -8,7 +8,7 @@ from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
 from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, \
-    NoReturn, Iterable
+    NoReturn, Iterable, Callable
 
 import configargparse
 import numpy as np
@@ -21,12 +21,13 @@ from torch.utils.data import DataLoader
 from typeguard import check_argument_types, check_return_type
 
 from espnet.asr.asr_utils import add_gradient_noise
+from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import (
     AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.batch_sampler import create_batch_sampler, AbsSampler, \
+from espnet2.train.batch_sampler import build_batch_sampler, AbsSampler, \
     SubsetSampler, ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
 from espnet2.train.reporter import Reporter, SubReporter
@@ -47,8 +48,68 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
-            -> Dict[str, torch.Tensor]:
+    def get_collate_fn(cls, args: argparse.Namespace) \
+            -> Callable[[Sequence[Dict[str, np.ndarray]]],
+                        Dict[str, torch.Tensor]]:
+        """Return "collate_fn", which is a callable object and
+        will be given to pytorch DataLoader.
+
+        >>> from torch.utils.data import DataLoader
+        >>> loader = DataLoader(collate_fn=cls.get_collate_fn(args), ...)
+
+        In many cases, you can use our common collate_fn:
+
+        >>> from espnet2.train.collate_fn import common_collate_fn
+
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\
+            -> Optional[Callable[[Dict[str, np.array]],
+                                 Dict[str, np.ndarray]]]:
+        """
+        >>> from espnet2.train.dataset import ESPNetDataset
+        >>> dataset = ESPNetDataset(...)
+        >>> mini_batch = dataset['uttid']
+        >>> mini_batch = cls.get_preprocess_fn(mini_batch)
+        >>> loss, stats, weight = model(**mini_batch)
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def required_data_names(cls) -> Tuple[str, ...]:
+        """
+
+        If your model is defined as following,
+
+        >>> from espnet2.train.abs_e2e import AbsE2E
+        >>> class Model(AbsE2E):
+        ...     def forward(self, input, output, opt=None):  pass
+
+        then "required_data_names" should be as
+
+        >>> required_data_names = ('input', 'output')
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def optional_data_names(cls) -> Tuple[str, ...]:
+        """
+
+        If your model is defined as following,
+
+        >>> from espnet2.train.abs_e2e import AbsE2E
+        >>> class Model(AbsE2E):
+        ...     def forward(self, input, output, opt=None):  pass
+
+        then "optional_data_names" should be as
+
+        >>> optional_data_names = ('opt',)
+        """
         raise NotImplementedError
 
     @classmethod
@@ -144,7 +205,7 @@ class AbsTask(ABC):
         group.add_argument('--log_interval', type=int_or_none, default=None,
                            help='Show the logs every the number iterations in'
                                 'each epochs at the training phase. '
-                                'If None is given, the value of 1% of '
+                                'If None is given, the value of 1 percent of '
                                 'the number of training iteration '
                                 'is selected.')
         group.add_argument('--keep_n_best_snapshot', type=int, default=10,
@@ -155,6 +216,8 @@ class AbsTask(ABC):
                                 'from attention. '
                                 'This option makes sense '
                                 'only when attention-based model')
+        group.add_argument('--num_workers', type=int, default=1,
+                           help='The number of workers used for DataLoader')
 
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
@@ -175,7 +238,8 @@ class AbsTask(ABC):
             '--resume_epoch', type=epoch_type, default=None,
             help='The training starts from the specified epoch. '
                  '"latest" indicates the latest-epoch file found '
-                 'in output_path')
+                 'in output_path. If None or 0 are specified, '
+                 'then training starts from the initial state')
         egroup.add_argument('--resume_path', type=str_or_none, default=None)
 
         group.add_argument('--pretrain_path', type=str_or_none, default=None)
@@ -203,19 +267,29 @@ class AbsTask(ABC):
         group.add_argument(
             '--max_length', type=int, action='append', default=[])
 
+        group.add_argument(
+            '--sort_in_batch', type=str_or_none, default='descending',
+            choices=['descending', 'ascending', None],
+            help='Sort the samples in each mini-batches by the sample '
+                 'lengths. To enable this, '
+                 '"shape_file" must have the length information.')
+        group.add_argument(
+            '--sort_batch', type=str_or_none, default='descending',
+            choices=['descending', 'ascending'],
+            help='Sort mini-batches by the sample lengths')
+
         group = parser.add_argument_group('Dataset related')
-        group.add_argument('--num_workers', type=int, default=1,
-                           help='The number of workers used for DataLoader')
         group.add_argument(
             '--train_data_path_and_name_and_type',
             type=str2triple_str, action='append', default=[])
         group.add_argument(
             '--eval_data_path_and_name_and_type',
             type=str2triple_str, action='append', default=[])
-        group.add_argument(
-            '--train_preprocess', action=NestedDictAction, default=dict())
-        group.add_argument(
-            '--eval_preprocess', action=NestedDictAction, default=dict())
+        group.add_argument('--allow_variable_data_keys', type=str2bool,
+                           default=False,
+                           help='Allow the arbitrary keys '
+                                'for mini-batch with ignoring '
+                                'the task requirements')
 
         group = parser.add_argument_group('Optimizer related')
         group.add_argument(
@@ -445,6 +519,7 @@ class AbsTask(ABC):
     def main(cls, args: argparse.Namespace = None,
              cmd: Sequence[str] = None) -> NoReturn:
         assert check_argument_types()
+        print(get_commandline_args(), file=sys.stderr)
         if args is None:
             parser = cls.add_arguments()
             args = parser.parse_args(cmd)
@@ -469,32 +544,40 @@ class AbsTask(ABC):
         else:
             dtype = args.train_dtype
         train_dataset = ESPNetDataset(
-            args.train_data_path_and_name_and_type,
-            args.train_preprocess, float_dtype=dtype)
-        train_batch_sampler = create_batch_sampler(
+            args.train_data_path_and_name_and_type, float_dtype=dtype,
+            preprocess=cls.get_preprocess_fn(args, 'train'))
+        cls.check_task_requirements(train_dataset,
+                                    args.allow_variable_data_keys)
+        train_batch_sampler = build_batch_sampler(
             type=args.batch_type, shape_files=args.train_shape_file,
             max_lengths=args.max_length,
-            batch_size=args.batch_size, shuffle=True)
+            batch_size=args.batch_size, shuffle=True,
+            sort_in_batch=args.sort_in_batch,
+            sort_batch=args.sort_batch)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=cls.collate_fn,
+                                collate_fn=cls.get_collate_fn(args),
                                 num_workers=args.num_workers)
 
         # 3. Build eval-data-iterator
         eval_dataset = ESPNetDataset(
-            args.eval_data_path_and_name_and_type,
-            args.eval_preprocess, float_dtype=dtype)
+            args.eval_data_path_and_name_and_type, float_dtype=dtype,
+            preprocess=cls.get_preprocess_fn(args, 'eval'))
+        cls.check_task_requirements(eval_dataset,
+                                    args.allow_variable_data_keys)
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
-        eval_batch_sampler = create_batch_sampler(
+        eval_batch_sampler = build_batch_sampler(
             type=args.eval_batch_type, shape_files=args.eval_shape_file,
             max_lengths=args.max_length,
-            batch_size=args.eval_batch_size, shuffle=False)
+            batch_size=args.eval_batch_size, shuffle=False,
+            sort_in_batch=args.sort_in_batch,
+            sort_batch=args.sort_batch)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
-                               collate_fn=cls.collate_fn,
+                               collate_fn=cls.get_collate_fn(args),
                                num_workers=args.num_workers)
 
         # 4. Build a iterator used for attention plot
@@ -507,7 +590,7 @@ class AbsTask(ABC):
             plot_attention_iter = \
                 DataLoader(dataset=eval_dataset,
                            batch_sampler=plot_attention_sampler,
-                           collate_fn=cls.collate_fn,
+                           collate_fn=cls.get_collate_fn(args),
                            num_workers=args.num_workers)
         else:
             plot_attention_sampler = None
@@ -624,6 +707,30 @@ class AbsTask(ABC):
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 )
+
+    @classmethod
+    def check_task_requirements(cls, dataset: ESPNetDataset,
+                                allow_variable_data_keys: bool) -> NoReturn:
+        """Check if the dataset satisfy the requirement of current Task"""
+        assert check_argument_types()
+        mes = (f'If you intend to use an additional input, modify '
+               f'"{cls.__name__}.required_data_names()" or '
+               f'"{cls.__name__}.optional_data_names()". '
+               f'Otherwise you need to set --allow_variable_data_keys true ')
+
+        for k in cls.required_data_names():
+            if not dataset.has_name(k):
+                raise RuntimeError(
+                    f'"{cls.required_data_names()}" are required for'
+                    f' {cls.__name__}. but "{dataset.names()}" are input.\n'
+                    f'{mes}')
+        if not allow_variable_data_keys:
+            task_keys = cls.required_data_names() + cls.optional_data_names()
+            for k in dataset.names():
+                if k not in task_keys:
+                    raise RuntimeError(
+                        f'The data-name must be one of {task_keys} '
+                        f'for {cls.__name__}: "{k}" is not allowed.\n{mes}')
 
     @classmethod
     def load(cls,
@@ -948,6 +1055,12 @@ class AbsTask(ABC):
                 if scheduler is not None:
                     scheduler.step()
 
+                # Register lr
+                reporter.register(
+                    {f'lr_{i}': pg['lr']
+                     for i, pg in enumerate(optimizer.param_groups)},
+                    not_increment_count=True)
+
             if iiter % log_interval == 0:
                 reporter.logging(nlatest=log_interval)
         return all_steps_are_invalid
@@ -1017,13 +1130,14 @@ class AbsTask(ABC):
                             f'Must be 2 or 3 dimension: {att_w.ndim}')
 
                     w, h = plt.figaspect(1.0 / len(att_w))
-                    fig = plt.Figure(figsize=(w * 2, h * 2))
+                    fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
                     axes = fig.subplots(1, len(att_w))
                     if len(att_w) == 1:
                         axes = [axes]
 
                     for ax, aw in zip(axes, att_w):
                         ax.imshow(aw.astype(np.float32), aspect='auto')
+                        ax.set_title(f'{k}_{id_}')
                         ax.set_xlabel('Input')
                         ax.set_ylabel('Output')
                         ax.xaxis.set_major_locator(MaxNLocator(integer=True))

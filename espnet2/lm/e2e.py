@@ -22,23 +22,21 @@ class LanguageE2E(AbsE2E):
         # in the other part.
         self.ignore_id = ignore_id
 
-    def nll(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+    def nll(self, text: torch.Tensor, text_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
-        assert input.size(-1) >= input_lengths.max(), \
-            (input.size(), input_lengths.max())
-        batch_size = input.size(0)
-        # 0. Change pad_value
-        input = input[:, :input_lengths.max()]
-        mask = make_pad_mask(input_lengths).to(input.device)
-        input.masked_fill_(mask, self.ignore_id)
+        assert text.size(-1) >= text_lengths.max(), \
+            (text.size(), text_lengths.max())
+        batch_size = text.size(0)
+        # For data parallel
+        text = text[:, :text_lengths.max()]
 
         # 1. Create a sentence pair like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
-        # input: (Batch, Length) -> x, y: (Batch, Legnth + 1)
-        x = F.pad(input, [1, 0], 'constant', self.eos)
-        t = F.pad(input, [0, 1], 'constant', self.ignore_id)
-        for i, l in enumerate(input_lengths):
+        # text: (Batch, Length) -> x, y: (Batch, Legnth + 1)
+        x = F.pad(text, [1, 0], 'constant', self.eos)
+        t = F.pad(text, [0, 1], 'constant', self.ignore_id)
+        for i, l in enumerate(text_lengths):
             t[i, l] = self.sos
-        x_lengths = input_lengths + 1
+        x_lengths = text_lengths + 1
 
         # 2. Forward Language model
         # x: (Batch, Length) -> y: (Batch, Length, NVocab)
@@ -54,9 +52,9 @@ class LanguageE2E(AbsE2E):
         nll = nll.view(batch_size, -1)
         return nll, x_lengths
 
-    def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+    def forward(self, text: torch.Tensor, text_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        nll, y_lengths = self.nll(input, input_lengths)
+        nll, y_lengths = self.nll(text, text_lengths)
         ntokens = y_lengths.sum()
         loss = nll.sum() / ntokens
         stats = dict(loss=loss.detach())

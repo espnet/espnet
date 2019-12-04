@@ -23,30 +23,28 @@ class TTSE2E(AbsE2E):
         self.tts = tts
 
     def forward(self,
-                input: torch.Tensor,
-                input_lengths: torch.Tensor,
-                output: torch.Tensor,
-                output_lengths: torch.Tensor,
+                text: torch.Tensor,
+                text_lengths: torch.Tensor,
+                feats: torch.Tensor,
+                feats_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
                 spembs_lengths: torch.Tensor = None,
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None) -> \
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        assert input.size(1) >= input_lengths.max(), \
-            (input.size(), input_lengths.max())
+        assert text.size(1) >= text_lengths.max(), \
+            (text.size(), text_lengths.max())
         if self.feats_extract is not None:
-            feats, feats_lens = self.feats_extract(output, output_lengths)
-        else:
-            feats, feats_lens = output, output_lengths
+            feats, feats_lengths = self.feats_extract(feats, feats_lengths)
 
         if self.normalize is not None:
-            feats, feats_lens = self.normalize(feats, feats_lens)
+            feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         return self.tts(
-            input=input,
-            input_lengths=input_lengths,
+            input=text,
+            input_lengths=text_lengths,
             output=feats,
-            output_lengths=feats_lens,
+            output_lengths=feats_lengths,
             spembs=spembs,
             spcs=spcs,
             spcs_lengths=spcs_lengths)

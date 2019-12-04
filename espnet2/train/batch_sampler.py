@@ -11,7 +11,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.utils.fileio import load_num_sequence_text, read_2column_text
 
 
-def create_batch_sampler(
+def build_batch_sampler(
         type: str,
         batch_size: int,
         shape_files: Union[Tuple[str, ...], List[str]],

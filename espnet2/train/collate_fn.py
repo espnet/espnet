@@ -1,4 +1,4 @@
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Union
 
 import numpy as np
 from typeguard import check_argument_types, check_return_type
@@ -8,8 +8,8 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 def common_collate_fn(data: Sequence[Dict[str, np.ndarray]],
+                      float_pad_value: Union[float, int] = 0.,
                       int_pad_value: int = -32768,
-                      float_pad_value: float = 0.,
                       ) -> Dict[str, torch.Tensor]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
 

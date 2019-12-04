@@ -161,7 +161,7 @@ class SubReporter:
                 message += ', '
 
             v = aggregate(values)
-            message += f'{key2}={v}'
+            message += f'{key2}={v:.3f}'
         logger.log(level, message)
 
     def finished(self) -> NoReturn:

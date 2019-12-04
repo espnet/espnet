@@ -50,7 +50,6 @@ def calc_perplexity(
         log_level: Union[int, str],
         data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
         key_file: Optional[str],
-        preprocess: Optional[Dict[str, Union[str, dict]]],
         train_config: Optional[str],
         model_file: Optional[str],
         log_base: Optional[float]):
@@ -80,8 +79,9 @@ def calc_perplexity(
     wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
-    dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
-                            float_dtype=dtype)
+    dataset = ESPNetDataset(
+        data_path_and_name_and_type, float_dtype=dtype,
+        preprocess=LMTask.get_preprocess_fn(train_args, 'eval'))
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -92,7 +92,7 @@ def calc_perplexity(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=LMTask.collate_fn,
+                        collate_fn=LMTask.get_collate_fn(train_args),
                         num_workers=num_workers)
 
     # 4. Start for-loop
@@ -187,7 +187,6 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
-    group.add_argument('--preprocess', type=NestedDictAction)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--train_config', type=str)

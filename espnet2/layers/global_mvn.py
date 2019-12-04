@@ -13,6 +13,8 @@ from espnet2.layers.inversible_interface import InversibleInterface
 class GlobalMVN(AbsNormalize, InversibleInterface):
     """Apply global mean and variance normalization
 
+    TODO(kamo): Make this class portable somehow
+
     Args:
         stats_file: npy file
         norm_means: Apply mean normalization
