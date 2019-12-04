@@ -1,5 +1,4 @@
 import argparse
-import functools
 import logging
 from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
 
@@ -14,9 +13,8 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.collate_fn import common_collate_fn
+from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.tts.abs_model import AbsTTS
-
 from espnet2.tts.e2e import TTSE2E
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -198,8 +196,7 @@ class TTSTask(AbsTask):
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
-        return functools.partial(common_collate_fn,
-                                 float_pad_value=0., int_pad_value=0)
+        return CommonCollateFn(float_pad_value=0., int_pad_value=0)
 
     @classmethod
     def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\

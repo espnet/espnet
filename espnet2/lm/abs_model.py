@@ -13,11 +13,11 @@ class AbsLM(torch.nn.Module, ScorerInterface, ABC):
     We uses delegate pattern here:
     The instance of this class should be passed to "LanguageModel"
 
-    >>> from espnet2.lm.contoller import LanguageE2E
+    >>> from espnet2.lm.e2e import LanguageE2E
     >>> lm = AbsLM()
     >>> model = LanguageE2E(lm=lm)
 
-    This "model" is a mediator objects for "Task" class.
+    This "model" is one of mediator objects for "Task" class.
 
     """
     @abstractmethod

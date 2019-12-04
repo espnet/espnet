@@ -48,7 +48,7 @@ class CommonPreprocessor(AbsPreprocessor):
             # - Data augmentation
             pass
 
-        if 'text' in data:
+        if 'text' in data and self.converter is not None:
             text = data['text']
             text_int_array = self.converter(text)
             data['text'] = text_int_array

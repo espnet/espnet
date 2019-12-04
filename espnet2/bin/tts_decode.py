@@ -5,7 +5,7 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import Sequence, Optional, Union, Dict, Tuple
+from typing import Sequence, Optional, Union, Tuple
 
 import configargparse
 import kaldiio
@@ -19,8 +19,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
-from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none
+from espnet2.utils.types import str2triple_str, str_or_none, str2bool
 
 
 def tts_decode(
@@ -37,7 +36,8 @@ def tts_decode(
         model_file: Optional[str],
         threshold: float,
         minlenratio: float,
-        maxlenratio: float):
+        maxlenratio: float,
+        allow_variable_data_keys: bool):
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -72,14 +72,15 @@ def tts_decode(
     dataset = ESPNetDataset(
         data_path_and_name_and_type, float_dtype=dtype,
         preprocess=TTSTask.get_preprocess_fn(train_args, 'eval'))
+    TTSTask.check_task_requirements(dataset, allow_variable_data_keys)
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
     batch_sampler = ConstantBatchSampler(
         batch_size=batch_size, key_file=key_file, shuffle=False)
 
-    logging.info(f'Normalization :\n{normalize}')
-    logging.info(f'TTS :\n{tts}')
+    logging.info(f'Normalization:\n{normalize}')
+    logging.info(f'TTS:\n{tts}')
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
@@ -167,6 +168,7 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
+    group.add_argument('--allow_variable_data_keys', type=str2bool)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--train_config', type=str)

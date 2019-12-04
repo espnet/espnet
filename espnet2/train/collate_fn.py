@@ -7,6 +7,23 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
+class CommonCollateFn:
+    """Functor class of common_collate_fn()"""
+    def __init__(self, float_pad_value: Union[float, int] = 0.,
+                 int_pad_value: int = -32768):
+        self.float_pad_value = float_pad_value
+        self.int_pad_value = int_pad_value
+
+    def __repr__(self):
+        return f'{self.__class__}(float_pad_value={self.float_pad_value}, ' \
+               f'int_pad_value={self.float_pad_value})'
+
+    def __call__(self, data: Sequence[Dict[str, np.ndarray]]):
+        return common_collate_fn(data,
+                                 float_pad_value=self.float_pad_value,
+                                 int_pad_value=self.int_pad_value)
+
+
 def common_collate_fn(data: Sequence[Dict[str, np.ndarray]],
                       float_pad_value: Union[float, int] = 0.,
                       int_pad_value: int = -32768,

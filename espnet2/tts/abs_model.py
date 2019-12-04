@@ -7,10 +7,10 @@ import torch
 class AbsTTS(torch.nn.Module, ABC):
     @abstractmethod
     def forward(self,
-                input: torch.Tensor,
-                input_lengths: torch.Tensor,
-                output: torch.Tensor,
-                output_lengths: torch.Tensor,
+                text: torch.Tensor,
+                text_lengths: torch.Tensor,
+                feats: torch.Tensor,
+                feats_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
                 spembs_lengths: torch.Tensor = None,
                 spcs: torch.Tensor = None,
@@ -20,7 +20,7 @@ class AbsTTS(torch.nn.Module, ABC):
 
     @abstractmethod
     def inference(self,
-                  input: torch.Tensor,
+                  text: torch.Tensor,
                   threshold: float,
                   minlenratio: float,
                   maxlenratio: float,

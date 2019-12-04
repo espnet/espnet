@@ -75,7 +75,7 @@ class DatadirWriter:
 def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     """
 
-    Example:
+    Examples:
         wav.scp:
             key1 /some/path/a.wav
             key2 /some/path/b.wav
@@ -145,14 +145,15 @@ def load_num_sequence_text(path: Union[Path, str],
 class SoundScpReader(collections.abc.Mapping):
     """
 
+    Examples:
         key1 /some/path/a.wav
         key2 /some/path/b.wav
         key3 /some/path/c.wav
         key4 /some/path/d.wav
         ...
 
-    >>> reader = SoundScpReader('wav.scp')
-    >>> rate, array = reader['key1']
+        >>> reader = SoundScpReader('wav.scp')
+        >>> rate, array = reader['key1']
 
     """
     def __init__(self, fname, dtype=np.int16,
@@ -195,15 +196,16 @@ class SoundScpReader(collections.abc.Mapping):
 class SoundScpWriter:
     """
 
+    Examples:
         key1 /some/path/a.wav
         key2 /some/path/b.wav
         key3 /some/path/c.wav
         key4 /some/path/d.wav
         ...
 
-    >>> writer = SoundScpWriter('./data/', 'feat')
-    >>> writer['aa'] = 16000, numpy_array
-    >>> writer['bb'] = 16000, numpy_array
+        >>> writer = SoundScpWriter('./data/', 'feat')
+        >>> writer['aa'] = 16000, numpy_array
+        >>> writer['bb'] = 16000, numpy_array
 
     """
     def __init__(self, basedir, name, format='wav', dtype=None):
@@ -251,15 +253,16 @@ class SoundScpWriter:
 class NpyScpWriter:
     """
 
+    Examples:
         key1 /some/path/a.npy
         key2 /some/path/b.npy
         key3 /some/path/c.npy
         key4 /some/path/d.npy
         ...
 
-    >>> writer = NpyScpWriter('./data/', 'feat')
-    >>> writer['aa'] = numpy_array
-    >>> writer['bb'] = numpy_array
+        >>> writer = NpyScpWriter('./data/', 'feat')
+        >>> writer['aa'] = numpy_array
+        >>> writer['bb'] = numpy_array
 
     """
     def __init__(self, basedir: Union[Path, str], name: str):
@@ -296,14 +299,15 @@ class NpyScpWriter:
 class NpyScpReader(collections.abc.Mapping):
     """
 
+    Examples:
         key1 /some/path/a.npy
         key2 /some/path/b.npy
         key3 /some/path/c.npy
         key4 /some/path/d.npy
         ...
 
-    >>> reader = NpyScpReader('npy.scp')
-    >>> array = reader['key1']
+        >>> reader = NpyScpReader('npy.scp')
+        >>> array = reader['key1']
 
     """
     def __init__(self, fname: Union[Path, str]):

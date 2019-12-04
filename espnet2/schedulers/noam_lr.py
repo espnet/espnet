@@ -20,20 +20,19 @@ class NoamLR(_LRScheduler, AbsBatchScheduler):
                  warmup_steps: Union[int, float] = 25000,
                  last_epoch: int = -1):
         if LooseVersion(torch.__version__) < LooseVersion('1.1.0'):
-            raise NotImplementedError(f'Require PyTorch>=1.1.0: '
-                                      f'{torch.__version__}')
+            raise NotImplementedError(
+                f'Require PyTorch>=1.1.0: {torch.__version__}')
 
         assert check_argument_types()
         self.model_size = model_size
         self.warmup_steps = warmup_steps
 
-        # __init__ must be invoked by setting field
+        # __init__ must be invoked before setting field
         # because step() is invoked in __init__
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         step_num = self.last_epoch + 1
         return [lr * self.model_size ** -0.5 *
-                min(step_num ** -0.5,
-                    step_num * self.warmup_steps ** -1.5)
+                min(step_num ** -0.5, step_num * self.warmup_steps ** -1.5)
                 for lr in self.base_lrs]

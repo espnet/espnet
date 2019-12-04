@@ -1,5 +1,4 @@
 import argparse
-import functools
 import logging
 from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
 
@@ -14,13 +13,13 @@ from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.train.preprocess import CommonPreprocessor
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.collate_fn import common_collate_fn
+from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.initialize import initialize
+from espnet2.train.preprocess import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none, int_or_none, str2bool
@@ -239,8 +238,7 @@ class ASRTask(AbsTask):
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
-        return functools.partial(common_collate_fn,
-                                 float_pad_value=0., int_pad_value=-1)
+        return CommonCollateFn(float_pad_value=0., int_pad_value=-1)
 
     @classmethod
     def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\

@@ -1,5 +1,4 @@
 import argparse
-import functools
 import logging
 from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
 
@@ -12,7 +11,7 @@ from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.e2e import LanguageE2E
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.collate_fn import common_collate_fn
+from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.initialize import initialize
 from espnet2.train.preprocess import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -136,7 +135,7 @@ class LMTask(AbsTask):
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
-        return functools.partial(common_collate_fn, int_pad_value=0)
+        return CommonCollateFn(int_pad_value=0)
 
     @classmethod
     def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str) \
