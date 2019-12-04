@@ -578,8 +578,8 @@ def decode(args):
             # decode and write
             start_time = time.time()
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
-            logging.info("inference speed = %s msec / frame." % (
-                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
+            logging.info("inference speed = %.1f frames / sec." % (
+                int(outs.size(0)) / (time.time() - start_time)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d, focus rate:%.3f)' % (
