@@ -245,7 +245,7 @@ class AttLoc(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
-                scaling=2.0, last_attended_idx=None, backward_window=0, forward_window=3):
+                scaling=2.0, last_attended_idx=None, backward_window=1, forward_window=3):
         """Calcualte AttLoc forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
@@ -1240,7 +1240,7 @@ class AttForward(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
-                scaling=1.0, last_attended_idx=None, backward_window=0, forward_window=3):
+                scaling=1.0, last_attended_idx=None, backward_window=1, forward_window=3):
         """Calculate AttForward forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
@@ -1360,7 +1360,7 @@ class AttForwardTA(torch.nn.Module):
         self.trans_agent_prob = 0.5
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev,
-                scaling=1.0, last_attended_idx=None, backward_window=0, forward_window=3):
+                scaling=1.0, last_attended_idx=None, backward_window=1, forward_window=3):
         """Calculate AttForwardTA forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
