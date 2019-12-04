@@ -61,6 +61,7 @@ class BeamSearch(torch.nn.Module):
         self.scorers = dict()
         self.full_scorers = dict()
         self.part_scorers = dict()
+        # this module dict is required for recursive cast `self.to(device, dtype)` in `recog.py`
         self.nn_dict = torch.nn.ModuleDict()
         for k, v in scorers.items():
             w = weights.get(k, 0)
