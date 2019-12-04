@@ -62,7 +62,7 @@ class DurationCalculator(torch.nn.Module):
         else:
             # NOTE(kan-bayashi): Here we assume that the teacher is tacotron 2
             att_ws = self.teacher_model.calculate_all_attentions(
-                xs, ilens, ys, olens, spembs=spembs, keep_tensor=True)
+                xs, ilens, ys, spembs=spembs, keep_tensor=True)
         durations = [self._calculate_duration(att_w, ilen, olen) for att_w, ilen, olen in zip(att_ws, ilens, olens)]
 
         return pad_list(durations, 0)
