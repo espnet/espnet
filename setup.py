@@ -44,7 +44,7 @@ requirements = {
         'nnmnkwii',
         'jaconv',
         'g2p_en',
-        'typeguard',
+        'typeguard==2.6.0',  # Exclude 2.6.1
         'humanfriendly',
         'resampy',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
