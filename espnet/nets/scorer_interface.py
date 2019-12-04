@@ -86,13 +86,13 @@ class BatchScorerInterface(ScorerInterface):
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            states (List[Any]): Scorer states for prefix tokens .
+            states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
                 batchfied scores for next token with shape of `(n_batch, n_vocab)`
-                and next state list for ys
+                and next state list for ys.
 
         """
         raise NotImplementedError
