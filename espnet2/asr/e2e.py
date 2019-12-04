@@ -75,53 +75,51 @@ class ASRE2E(AbsE2E):
             self.error_calculator = None
 
     def forward(self,
-                input: torch.Tensor,
-                input_lengths: torch.Tensor,
-                output: torch.Tensor,
-                output_lengths: torch.Tensor)\
+                feats: torch.Tensor,
+                feats_lengths: torch.Tensor,
+                text: torch.Tensor,
+                text_lengths: torch.Tensor)\
             -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
-            input: (Batch, Length, ...)
-            input_lengths: (Batch, )
-            output: (Batch, Length)
-            output_lengths: (Batch,)
+            feats: (Batch, Length, ...)
+            feats_lengths: (Batch, )
+            text: (Batch, Length)
+            text_lengths: (Batch,)
         """
-        assert output_lengths.dim() == 1, output_lengths.shape
+        assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
-        assert (input.shape[0] == input_lengths.shape[0] ==
-                output.shape[0] == output_lengths.shape[0]), \
-            (input.shape,
-             input_lengths.shape, output.shape, output_lengths.shape)
-        batch_size = input.shape[0]
+        assert (feats.shape[0] == feats_lengths.shape[0] ==
+                text.shape[0] == text_lengths.shape[0]), \
+            (feats.shape,
+             feats_lengths.shape, text.shape, text_lengths.shape)
+        batch_size = feats.shape[0]
 
-        # 0. Change pad_value
-        output = output[:, :output_lengths.max()]  # for data-parallel
-        output.masked_fill_(make_pad_mask(output_lengths, output, 1),
-                            self.ignore_id)
+        # for data-parallel
+        text = text[:, :text_lengths.max()]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(input, input_lengths)
+        encoder_out, encoder_out_lens = self.encode(feats, feats_lengths)
 
         # 2a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
             loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                encoder_out, encoder_out_lens, output, output_lengths)
+                encoder_out, encoder_out_lens, text, text_lengths)
 
         # 2b. CTC branch
         if self.ctc_weight == 0.:
             loss_ctc, cer_ctc = None, None
         else:
             loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, output, output_lengths)
+                encoder_out, encoder_out_lens, text, text_lengths)
 
         # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
             _ = self._calc_rnnt_loss(
-                encoder_out, encoder_out_lens, output, output_lengths)
+                encoder_out, encoder_out_lens, text, text_lengths)
 
         if self.ctc_weight == 0.:
             loss = loss_att
@@ -146,42 +144,37 @@ class ASRE2E(AbsE2E):
             force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
-    def encode(self, input: torch.Tensor, input_lengths: torch.Tensor) \
+    def encode(self, feats: torch.Tensor, feats_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_recog.py
 
         Args:
-            input: (Batch, Length, ...)
-            input_lengths: (Batch, )
+            feats: (Batch, Length, ...)
+            feats_lengths: (Batch, )
         """
-        assert input_lengths.dim() == 1, input_lengths.shape
+        assert feats_lengths.dim() == 1, feats_lengths.shape
 
         # for data-parallel
-        input = input[:, :input_lengths.max()]
+        feats = feats[:, :feats_lengths.max()]
 
         if self.frontend is not None:
             # 1. Frontend
             #  e.g. STFT and Feature transform
             #       data_loader may send time-domain signal in this case
-            # input (Batch, NSamples) -> input_feats: (Batch, NFrames, Dim)
-            input_feats, feats_lens = self.frontend(input, input_lengths)
-        else:
-            # 1. No frontend:
-            #  data_loader must send the features data in this case
-            input_feats, feats_lens = input, input_lengths
+            # feats (Batch, NSamples) -> feats_feats: (Batch, NFrames, Dim)
+            feats, feats_lengths = self.frontend(feats, feats_lengths)
 
         # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.normalize is not None:
-            input_feats, feats_lens = self.normalize(input_feats, feats_lens)
+            feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         # 3. Forward encoder
-        # input_feats: (Batch, Length, Dim)
+        # feats_feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, encoder_out_lens, _ = \
-            self.encoder(input_feats, feats_lens)
+        encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
 
-        assert encoder_out.size(0) == input.size(0), \
-            (encoder_out.size(), input.size(0))
+        assert encoder_out.size(0) == feats.size(0), \
+            (encoder_out.size(), feats.size(0))
         assert encoder_out.size(1) <= encoder_out_lens.max(), \
             (encoder_out.size(), encoder_out_lens.max())
 

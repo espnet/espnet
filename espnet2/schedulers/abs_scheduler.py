@@ -1,7 +1,8 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from distutils.version import LooseVersion
 
 import torch
+import torch.optim.lr_scheduler as L
 
 
 # FIXME(kamo): EpochScheduler and BatchScheduler are confusing names.
@@ -9,51 +10,50 @@ import torch
 
 # If you need to define custom scheduler, please inherit these classes
 class AbsBatchScheduler(ABC):
-    def step(self, epoch: int = None):
-        pass
+    @abstractmethod
+    def step(self, epoch: int = None): pass
 
-    def state_dict(self):
-        pass
+    @abstractmethod
+    def state_dict(self): pass
 
-    def load_state_dict(self, state):
-        pass
+    @abstractmethod
+    def load_state_dict(self, state): pass
 
 
 class AbsEpochScheduler(ABC):
-    def step(self, epoch: int = None):
-        pass
+    @abstractmethod
+    def step(self, epoch: int = None): pass
 
-    def state_dict(self):
-        pass
+    @abstractmethod
+    def state_dict(self): pass
 
-    def load_state_dict(self, state):
-        pass
+    @abstractmethod
+    def load_state_dict(self, state): pass
 
 
 class AbsValEpochScheduler(AbsBatchScheduler):
-    def step(self, val, epoch: int = None):
-        pass
+    @abstractmethod
+    def step(self, val, epoch: int = None): pass
 
-    def state_dict(self):
-        pass
+    @abstractmethod
+    def state_dict(self): pass
 
-    def load_state_dict(self, state):
-        pass
+    @abstractmethod
+    def load_state_dict(self, state): pass
 
 
 # Create alias type to check the type
 # Note(kamo): Currently PyTorch doesn't provide the base class
 # to judge these classes.
-AbsValEpochScheduler.register(torch.optim.lr_scheduler.ReduceLROnPlateau)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.ReduceLROnPlateau)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.LambdaLR)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.StepLR)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.MultiStepLR)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.ExponentialLR)
-AbsEpochScheduler.register(torch.optim.lr_scheduler.CosineAnnealingLR)
+AbsValEpochScheduler.register(L.ReduceLROnPlateau)
+AbsEpochScheduler.register(L.ReduceLROnPlateau)
+AbsEpochScheduler.register(L.LambdaLR)
+AbsEpochScheduler.register(L.StepLR)
+AbsEpochScheduler.register(L.MultiStepLR)
+AbsEpochScheduler.register(L.ExponentialLR)
+AbsEpochScheduler.register(L.CosineAnnealingLR)
 
-if LooseVersion(torch.__version__) > LooseVersion('1.1.0'):
-    AbsBatchScheduler.register(torch.optim.lr_scheduler.CyclicLR)
-    AbsBatchScheduler.register(torch.optim.lr_scheduler.OneCycleLR)
-    AbsBatchScheduler.register(
-        torch.optim.lr_scheduler.CosineAnnealingWarmRestarts)
+if LooseVersion(torch.__version__) >= LooseVersion('1.1.0'):
+    AbsBatchScheduler.register(L.CyclicLR)
+    AbsBatchScheduler.register(L.OneCycleLR)
+    AbsBatchScheduler.register(L.CosineAnnealingWarmRestarts)

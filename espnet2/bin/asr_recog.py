@@ -4,7 +4,7 @@ import logging
 import random
 import sys
 from pathlib import Path
-from typing import Sequence, Optional, Union, Dict, Tuple
+from typing import Sequence, Optional, Union, Tuple
 
 import configargparse
 import numpy as np
@@ -23,8 +23,8 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none
+from espnet2.utils.text_converter import build_text_converter
+from espnet2.utils.types import str2triple_str, str_or_none, str2bool
 
 
 def recog(
@@ -44,14 +44,15 @@ def recog(
         log_level: Union[int, str],
         data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
         key_file: Optional[str],
-        preprocess: Optional[Dict[str, Union[str, dict]]],
         asr_train_config: str,
         asr_model_file: str,
         lm_train_config: Optional[str],
         lm_file: Optional[str],
         word_lm_train_config: Optional[str],
         word_lm_file: Optional[str],
-        blank_symbol: str):
+        blank_symbol: str,
+        token_type: str,
+        bpemodel: str):
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError('batch decoding is not implemented')
@@ -124,8 +125,9 @@ def recog(
     logging.info(f'Decoding device={device}, dtype={dtype}')
 
     # 5. Build data-iterator
-    dataset = ESPNetDataset(data_path_and_name_and_type, preprocess,
-                            float_dtype=dtype)
+    dataset = ESPNetDataset(
+        data_path_and_name_and_type, float_dtype=dtype,
+        preprocess=ASRTask.get_preprocess_fn(asr_train_args, 'eval'))
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -134,9 +136,27 @@ def recog(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=ASRTask.collate_fn, num_workers=num_workers)
+                        collate_fn=ASRTask.get_collate_fn(asr_train_args),
+                        num_workers=num_workers)
 
-    # 6 .Start for-loop
+    # 6. [Optional] Build Text converter: e.g. bpe-sym -> Text
+    if token_type is None:
+        token_type = asr_train_args.token_type
+    if bpemodel is None:
+        bpemodel = asr_train_args.bpemodel
+    if token_type is None:
+        converter = None
+    elif token_type == 'bpe':
+        if bpemodel is not None:
+            converter = build_text_converter(
+                token_type=token_type, model_or_token_list=bpemodel)
+        else:
+            converter = None
+    else:
+        converter = build_text_converter(
+            token_type=token_type, model_or_token_list=token_list)
+
+    # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
     with DatadirWriter(output_dir) as writer:
         for keys, batch in zip(batch_sampler, loader):
@@ -178,6 +198,11 @@ def recog(
                 ibest_writer['token_int'][key] = ' '.join(map(str, token_int))
                 ibest_writer['score'][key] = str(hyp.score)
 
+                if converter is not None:
+                    text = converter.inverse(token_int)
+                    ibest_writer['text'][key] = text
+                    del text
+
 
 def get_parser():
     parser = configargparse.ArgumentParser(
@@ -210,7 +235,6 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
-    group.add_argument('--preprocess', type=NestedDictAction)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--asr_train_config', type=str, required=True)
@@ -221,7 +245,7 @@ def get_parser():
     group.add_argument('--word_lm_file', type=str)
 
     group = parser.add_argument_group('Beam-search related')
-    parser.add_argument('--batch_size', type=int, default=1,
+    group.add_argument('--batch_size', type=int, default=1,
                         help='The batch size for inference')
     group.add_argument('--nbest', type=int, default=1,
                        help='Output N-best hypotheses')
@@ -242,6 +266,15 @@ def get_parser():
                        help='RNNLM weight')
     group.add_argument('--blank_symbol', type=str, default='<blank>',
                        help='The token symbol represents CTC-blank')
+
+    group = parser.add_argument_group('Text converter related')
+    group.add_argument('--token_type', type=str_or_none, default=None,
+                       choices=['char', 'bpe', None],
+                       help='The token type for ASR model. '
+                            'If not given, refers from the training args')
+    group.add_argument('--bpemodel', type=str_or_none, default=None,
+                       help='The model path of sentencepiece. '
+                            'If not given, refers from the training args')
 
     return parser
 

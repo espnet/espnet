@@ -1,6 +1,7 @@
 import argparse
+import functools
 import logging
-from typing import Any, Dict, Type, Tuple, Optional, Sequence
+from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
 
 import configargparse
 import numpy as np
@@ -78,7 +79,6 @@ class TTSTask(AbsTask):
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
         """The options not to be shown by --print_config"""
-        assert check_argument_types()
         return AbsTask.exclude_opts()
 
     @classmethod
@@ -138,9 +138,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def feats_extract_choices(cls) -> Tuple[Optional[str], ...]:
-        assert check_argument_types()
         choices = ('default', None)
-        assert check_return_type(choices)
         return choices
 
     @classmethod
@@ -160,9 +158,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
-        assert check_argument_types()
         choices = ('global_mvn', None)
-        assert check_return_type(choices)
         return choices
 
     @classmethod
@@ -180,9 +176,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def tts_choices(cls) -> Tuple[Optional[str], ...]:
-        assert check_argument_types()
         choices = ('tacotron2',)
-        assert check_return_type(choices)
         return choices
 
     @classmethod
@@ -200,9 +194,29 @@ class TTSTask(AbsTask):
         return retval
 
     @classmethod
-    def collate_fn(cls, data: Sequence[Dict[str, np.ndarray]]) \
-            -> Dict[str, torch.Tensor]:
-        return common_collate_fn(data)
+    def get_collate_fn(cls, args: argparse.Namespace) \
+            -> Callable[[Sequence[Dict[str, np.ndarray]]],
+                        Dict[str, torch.Tensor]]:
+        assert check_argument_types()
+        return functools.partial(common_collate_fn,
+                                 float_pad_value=0., int_pad_value=0)
+
+    @classmethod
+    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\
+            -> Optional[Callable[[Dict[str, np.array]],
+                                 Dict[str, np.ndarray]]]:
+        assert check_argument_types()
+        return None
+
+    @classmethod
+    def required_data_names(cls) -> Tuple[str, ...]:
+        retval = ('text', 'feats')
+        return retval
+
+    @classmethod
+    def optional_data_names(cls) -> Tuple[str, ...]:
+        retval = ('spembs', 'spcs')
+        return retval
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> TTSE2E:
