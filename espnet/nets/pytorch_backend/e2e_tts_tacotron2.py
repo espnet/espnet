@@ -596,13 +596,19 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        backward_window = inference_args.backward_window if use_att_constraint else 0
+        forward_window = inference_args.forward_window if use_att_constraint else 0
 
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
             spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
             h = torch.cat([h, spemb], dim=-1)
-        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
+        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio,
+                                                 use_att_constraint=use_att_constraint,
+                                                 backward_window=backward_window,
+                                                 forward_window=forward_window)
 
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)
