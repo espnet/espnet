@@ -29,16 +29,14 @@ def _apply_attention_constraint(e, last_attended_idx, backward_window=1, forward
         https://arxiv.org/abs/1710.07654
 
     """
-    # NOTE(kan-bayashi): apply attention constraint introduced in DeepVoice3
-    if last_attended_idx is not None:
-        if e.size(0) != 1:
-            raise NotImplementedError("Batch attention constraining is not yet supported.")
-        backward_idx = last_attended_idx - backward_window
-        forward_idx = last_attended_idx + forward_window
-        if backward_idx > 0:
-            e[:, :backward_idx] = -float('inf')
-        if forward_idx < e.size(1):
-            e[:, forward_idx:] = -float('inf')
+    if e.size(0) != 1:
+        raise NotImplementedError("Batch attention constraining is not yet supported.")
+    backward_idx = last_attended_idx - backward_window
+    forward_idx = last_attended_idx + forward_window
+    if backward_idx > 0:
+        e[:, :backward_idx] = -float('inf')
+    if forward_idx < e.size(1):
+        e[:, forward_idx:] = -float('inf')
     return e
 
 
@@ -336,7 +334,7 @@ class AttLoc(torch.nn.Module):
 
         # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -1322,7 +1320,7 @@ class AttForward(torch.nn.Module):
 
         # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -1436,7 +1434,7 @@ class AttForwardTA(torch.nn.Module):
 
         # apply monotonic attention constraint (mainly for TTS)
         if last_attended_idx is not None:
-            _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
 
         w = F.softmax(scaling * e, dim=1)
 
