@@ -1,18 +1,28 @@
-from abc import abstractmethod, ABC
+from abc import ABC
+from abc import abstractmethod
 from pathlib import Path
-from typing import Union, Dict, List, Sequence
+from typing import Dict
+from typing import List
+from typing import Sequence
+from typing import Union
 
 import numpy as np
 import sentencepiece as spm
 from typeguard import check_argument_types
+from typing import Iterable
 
 
 class AbsTextConverter(ABC):
     @abstractmethod
-    def __call__(self, line: str) -> np.ndarray:
+    def text2ids(self, line: str) -> np.ndarray:
         raise NotImplementedError
 
-    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+    @abstractmethod
+    def tokens2text(self, tokens: Iterable[str]) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         raise NotImplementedError
 
 
@@ -41,25 +51,34 @@ class Text2Sentencepieces(AbsTextConverter):
     Examples:
         >>> converter = Text2Sentencepieces('bpe.model')
         >>> line = 'Hello! I am Naoyuki Kamo!!!'
-        >>> int_array = converter(line)
+        >>> int_array = converter.text2ids(line)
 
     """
     def __init__(self, model: Union[Path, str]):
         assert check_argument_types()
+        self.model = Path(model)
         self.sp = spm.SentencePieceProcessor()
         self.sp.load(str(model))
 
-    def __call__(self, line: str) -> np.ndarray:
+    def __repr__(self):
+        return f'{self.__class__.__name__}(model="{self.model}")'
+
+    def text2ids(self, line: str) -> np.ndarray:
         ids = self.sp.EncodeAsIds(line)
         return np.array(ids)
 
-    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+    def tokens2text(self, tokens: Iterable[str]) -> str:
+        text = self.sp.DecodePieces(list(tokens))
+        return text
+
+    def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         if isinstance(integers, np.ndarray):
             if integers.dtype.kind != 'i':
                 raise ValueError(
                     f'Must be int array: but got {integers.dtype}')
             integers = integers.tolist()
-        return self.sp.DecodeIds(integers)
+        text = self.sp.DecodeIds(integers)
+        return text
 
 
 class Text2Words(AbsTextConverter):
@@ -68,7 +87,7 @@ class Text2Words(AbsTextConverter):
     Examples:
         >>> converter = Text2Words('word_list')
         >>> line = 'Hello! I am Naoyuki Kamo!!!'
-        >>> int_array = converter(line)
+        >>> int_array = converter.text2ids(line)
 
     """
     def __init__(self, token_list: Union[Path, str, Sequence[str]],
@@ -78,6 +97,8 @@ class Text2Words(AbsTextConverter):
         assert check_argument_types()
         self.delimiter = delimiter
         self.unk_symbol = unk_symbol
+        token_list = Path(token_list)
+        self.token_path = token_list
 
         if isinstance(token_list, (Path, str)):
             self.token_list: List[str] = []
@@ -99,12 +120,22 @@ class Text2Words(AbsTextConverter):
                                f'doesn\'t exist in {token_list}')
         self.unk_id = self.token2id[self.unk_symbol]
 
-    def __call__(self, line: str) -> np.ndarray:
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'token_list="{self.token_path}", '
+                f'unk_symbol="{self.unk_symbol}", '
+                f'delimiter="{self.delimiter}", '
+                f')')
+
+    def text2ids(self, line: str) -> np.ndarray:
         tokens = line.strip(self.delimiter)
         return np.fromiter((self.token2id.get(t, self.unk_id) for t in tokens),
                            dtype=np.int64)
 
-    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+    def tokens2text(self, tokens: Iterable[str]) -> str:
+        return self.delimiter.join(tokens)
+
+    def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         if self.delimiter is None:
             delimiter = ' '
         else:
@@ -118,7 +149,7 @@ class Text2Chars(AbsTextConverter):
     Examples:
         >>> converter = Text2Chars('char_list')
         >>> line = 'Hello! I am Naoyuki Kamo!!!'
-        >>> int_array = converter(line)
+        >>> int_array = converter.text2ids(line)
 
     """
     def __init__(self, token_list: Union[Path, str, Sequence[str]],
@@ -126,6 +157,8 @@ class Text2Chars(AbsTextConverter):
                  ):
         assert check_argument_types()
         token_list = Path(token_list)
+        self.token_path = token_list
+
         self.unk_symbol = unk_symbol
         if isinstance(token_list, (Path, str)):
             self.token_list: List[str] = []
@@ -145,10 +178,19 @@ class Text2Chars(AbsTextConverter):
                                f"doesn't exist in {token_list}")
         self.unk_id = self.token2id[self.unk_symbol]
 
-    def __call__(self, line: str) -> np.ndarray:
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+                f'token_list="{self.token_path}", '
+                f'unk_symbol="{self.unk_symbol}", '
+                f')')
+
+    def text2ids(self, line: str) -> np.ndarray:
         return np.fromiter((self.token2id.get(t, self.unk_id) for t in line),
                            dtype=np.int64)
 
-    def inverse(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
+    def tokens2text(self, tokens: Iterable[str]) -> str:
+        return ''.join(tokens)
+
+    def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         return ''.join([self.id2token[i] for i in integers])
 

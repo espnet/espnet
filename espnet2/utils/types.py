@@ -1,5 +1,6 @@
 from distutils.util import strtobool
-from typing import Optional, Tuple
+from typing import Optional
+from typing import Tuple
 
 
 def str2bool(value: str) -> bool:

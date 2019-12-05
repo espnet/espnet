@@ -4,7 +4,10 @@ import logging
 import random
 import sys
 from pathlib import Path
-from typing import Sequence, Optional, Union, Tuple
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import configargparse
 import numpy as np
@@ -13,7 +16,8 @@ import yaml
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
-from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.beam_search import BeamSearch
+from espnet.nets.beam_search import Hypothesis
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
@@ -23,8 +27,10 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.text_converter import build_text_converter
-from espnet2.utils.types import str2triple_str, str_or_none, str2bool
+from espnet2.train.text_converter import build_text_converter
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
 
 
 def recog(
@@ -51,8 +57,8 @@ def recog(
         word_lm_train_config: Optional[str],
         word_lm_file: Optional[str],
         blank_symbol: str,
-        token_type: str,
-        bpemodel: str,
+        token_type: Optional[str],
+        bpemodel: Optional[str],
         allow_variable_data_keys: bool):
     assert check_argument_types()
     if batch_size > 1:
@@ -128,8 +134,8 @@ def recog(
     # 5. Build data-iterator
     dataset = ESPNetDataset(
         data_path_and_name_and_type, float_dtype=dtype,
-        preprocess=ASRTask.get_preprocess_fn(asr_train_args, 'eval'))
-    ASRTask.check_task_requirements(dataset, allow_variable_data_keys)
+        preprocess=ASRTask.build_preprocess_fn(asr_train_args, False))
+    ASRTask.check_task_requirements(dataset, allow_variable_data_keys, False)
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -138,7 +144,7 @@ def recog(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=ASRTask.get_collate_fn(asr_train_args),
+                        collate_fn=ASRTask.build_collate_fn(asr_train_args),
                         num_workers=num_workers)
 
     # 6. [Optional] Build Text converter: e.g. bpe-sym -> Text
@@ -157,6 +163,7 @@ def recog(
     else:
         converter = build_text_converter(
             token_type=token_type, model_or_token_list=token_list)
+    logging.info(f'Text convertetr: {converter}')
 
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
@@ -201,9 +208,13 @@ def recog(
                 ibest_writer['score'][key] = str(hyp.score)
 
                 if converter is not None:
-                    text = converter.inverse(token_int)
+                    # FIXME(kamo): [If BPE] Sequence must be given
+                    #  as tokens instead of integers because the token-id
+                    #  is not consistent between asr-training and BPE training,
+                    #  I don't know how to match them.
+                    text = converter.tokens2text(token)
+                    # text = converter.ids2text(token_int)
                     ibest_writer['text'][key] = text
-                    del text
 
 
 def get_parser():
@@ -237,7 +248,8 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
-    group.add_argument('--allow_variable_data_keys', type=str2bool)
+    group.add_argument('--allow_variable_data_keys', type=str2bool,
+                       default=False)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--asr_train_config', type=str, required=True)

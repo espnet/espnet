@@ -4,14 +4,15 @@
 """Tacotron 2 related modules."""
 
 import logging
-from typing import Tuple, Dict
+from typing import Dict
+from typing import Tuple
 
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss, \
-    GuidedAttentionLoss
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
@@ -235,8 +236,8 @@ class Tacotron2(AbsTTS):
     def forward(self,
                 text: torch.Tensor,
                 text_lengths: torch.Tensor,
-                feats: torch.Tensor,
-                feats_lengths: torch.Tensor,
+                speech: torch.Tensor,
+                speech_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None,
@@ -247,14 +248,14 @@ class Tacotron2(AbsTTS):
         Args:
             text: Batch of padded character ids (B, Tmax).
             input_lengthsx): Batch of lengths of each input batch (B,).
-            feats: Batch of padded target features (B, Lmax, odim).
-            feats_lengths: Batch of the lengths of each target (B,).
+            speech: Batch of padded target features (B, Lmax, odim).
+            speech_lengths: Batch of the lengths of each target (B,).
             spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
             spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
             spcs_lengths:
         """
         text = text[:, :text_lengths.max()]  # for data-parallel
-        feats = feats[:, :feats_lengths.max()]  # for data-parallel
+        speech = speech[:, :speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
         # Add eos at the last of sequence
@@ -263,8 +264,8 @@ class Tacotron2(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys = feats
-        olens = feats_lengths
+        ys = speech
+        olens = speech_lengths
 
         # make labels for stop prediction
         labels = make_pad_mask(olens).to(ys.device, ys.dtype)

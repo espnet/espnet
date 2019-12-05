@@ -1,4 +1,6 @@
-from typing import Tuple, Dict, Optional
+from typing import Dict
+from typing import Optional
+from typing import Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -25,26 +27,27 @@ class TTSE2E(AbsE2E):
     def forward(self,
                 text: torch.Tensor,
                 text_lengths: torch.Tensor,
-                feats: torch.Tensor,
-                feats_lengths: torch.Tensor,
+                speech: torch.Tensor,
+                speech_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
-                spembs_lengths: torch.Tensor = None,
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None) -> \
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         assert text.size(1) >= text_lengths.max(), \
             (text.size(), text_lengths.max())
         if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(feats, feats_lengths)
+            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+        else:
+            feats, feats_lengths = speech, speech_lengths
 
         if self.normalize is not None:
             feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         return self.tts(
-            input=text,
-            input_lengths=text_lengths,
-            output=feats,
-            output_lengths=feats_lengths,
+            text=text,
+            text_lengths=text_lengths,
+            speech=feats,
+            speech_lengths=feats_lengths,
             spembs=spembs,
             spcs=spcs,
             spcs_lengths=spcs_lengths)

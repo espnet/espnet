@@ -1,5 +1,7 @@
-from abc import abstractmethod, ABC
-from typing import Tuple, Dict
+from abc import ABC
+from abc import abstractmethod
+from typing import Dict
+from typing import Tuple
 
 import torch
 
@@ -9,8 +11,8 @@ class AbsTTS(torch.nn.Module, ABC):
     def forward(self,
                 text: torch.Tensor,
                 text_lengths: torch.Tensor,
-                feats: torch.Tensor,
-                feats_lengths: torch.Tensor,
+                speech: torch.Tensor,
+                speech_lengths: torch.Tensor,
                 spembs: torch.Tensor = None,
                 spembs_lengths: torch.Tensor = None,
                 spcs: torch.Tensor = None,

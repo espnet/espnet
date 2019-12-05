@@ -1,5 +1,7 @@
-from abc import ABC, abstractmethod
-from typing import Tuple, Dict
+from abc import ABC
+from abc import abstractmethod
+from typing import Dict
+from typing import Tuple
 
 import torch
 
@@ -7,7 +9,7 @@ import torch
 class AbsE2E(torch.nn.Module, ABC):
     """The common abstract class among each tasks
 
-    "E22" is referred to as a class which inherits torch.nn.Module,
+    "E2E" is referred to a class which inherits torch.nn.Module,
     and makes the dnn-models forward as its member field,
     a.k.a delegate pattern,
     and defines "loss", "stats", and "weight" for the task.
@@ -16,7 +18,7 @@ class AbsE2E(torch.nn.Module, ABC):
     the model must inherit this class.
     In other words, the "mediator" objects between
     our training system and the your task class are
-    just only these three values.
+    just only these three values, loss, stats, and weight.
 
     Example:
         >>> from espnet2.tasks.abs_task import AbsTask
@@ -26,8 +28,7 @@ class AbsE2E(torch.nn.Module, ABC):
         ...         return loss, stats, weight
         >>> class YourTask(AbsTask):
         ...     @classmethod
-        ...     def build_model(cls, args: argparse.Namespace) \
-        ...             -> YourE2E:
+        ...     def build_model(cls, args: argparse.Namespace) -> YourE2E:
     """
 
     @abstractmethod

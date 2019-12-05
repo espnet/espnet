@@ -1,16 +1,24 @@
 import collections
 import copy
 import logging
-from typing import Dict, Mapping, Sequence, Tuple, Callable, Union
+from typing import Callable
+from typing import Dict
+from typing import Mapping
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import h5py
 import kaldiio
 import numpy as np
 from torch.utils.data.dataset import Dataset
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
-from espnet2.utils.fileio import SoundScpReader, load_num_sequence_text, \
-    NpyScpReader, read_2column_text
+from espnet2.utils.fileio import NpyScpReader
+from espnet2.utils.fileio import SoundScpReader
+from espnet2.utils.fileio import load_num_sequence_text
+from espnet2.utils.fileio import read_2column_text
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -54,7 +62,7 @@ class ESPNetDataset(Dataset):
     """
 
     def __init__(self, path_name_type_list: Sequence[Tuple[str, str, str]],
-                 preprocess: Callable[[Dict[str, np.ndarray]],
+                 preprocess: Callable[[str, Dict[str, np.ndarray]],
                                       Dict[str, np.ndarray]] = None,
                  float_dtype: str = 'float32', int_dtype: str = 'long'):
         assert check_argument_types()
@@ -153,7 +161,7 @@ class ESPNetDataset(Dataset):
         _mes += f'('
         for name, (path, _type) in self.debug_info.items():
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
-        _mes += ')'
+        _mes += f'\n preprocess: {self.preprocess})'
         return _mes
 
     def __len__(self):
@@ -181,8 +189,9 @@ class ESPNetDataset(Dataset):
             data[name] = value
 
         # 2. [Option] Apply preprocessing
+        #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
-            data = self.preprocess(data)
+            data = self.preprocess(uid, data)
 
         # 3. Force data-precision
         for name in self.loader_dict:

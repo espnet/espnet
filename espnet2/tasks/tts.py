@@ -1,11 +1,18 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
 
 import configargparse
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -55,7 +62,7 @@ class TTSTask(AbsTask):
             '--feats_extract_conf', action=NestedDictAction, default=dict(),
             help='The keyword arguments for feats_extract class.')
         group.add_argument(
-            '--normalize', type=lambda x: str_or_none(x.lwoer()),
+            '--normalize', type=lambda x: str_or_none(x.lower()),
             default='global_mvn', choices=cls.normalize_choices(),
             help='Specify normalization class')
         group.add_argument(
@@ -192,27 +199,36 @@ class TTSTask(AbsTask):
         return retval
 
     @classmethod
-    def get_collate_fn(cls, args: argparse.Namespace) \
+    def build_collate_fn(cls, args: argparse.Namespace) \
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
-        return CommonCollateFn(float_pad_value=0., int_pad_value=0)
+        return CommonCollateFn(float_pad_value=0., int_pad_value=0,
+                               not_sequence=['spembs'])
 
     @classmethod
-    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\
-            -> Optional[Callable[[Dict[str, np.array]],
+    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool)\
+            -> Optional[Callable[[str, Dict[str, np.array]],
                                  Dict[str, np.ndarray]]]:
         assert check_argument_types()
         return None
 
     @classmethod
-    def required_data_names(cls) -> Tuple[str, ...]:
-        retval = ('text', 'feats')
+    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+        if train:
+            retval = ('text', 'speech')
+        else:
+            # Inference mode
+            retval = ('text',)
         return retval
 
     @classmethod
-    def optional_data_names(cls) -> Tuple[str, ...]:
-        retval = ('spembs', 'spcs')
+    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+        if train:
+            retval = ('spembs', 'spcs')
+        else:
+            # Inference mode
+            retval = ('spembs',)
         return retval
 
     @classmethod
@@ -260,8 +276,7 @@ class TTSTask(AbsTask):
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
         # 4. Build model
-        model = TTSE2E(
-            feats_extract=feats_extract, normalize=normalize, tts=tts,
-            **args.e2e_conf)
+        model = TTSE2E(feats_extract=feats_extract, normalize=normalize,
+                       tts=tts, **args.e2e_conf)
         assert check_return_type(model)
         return model

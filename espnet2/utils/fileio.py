@@ -5,11 +5,13 @@ import logging
 import warnings
 from io import StringIO
 from pathlib import Path
-from typing import Union, Dict
+from typing import Dict
+from typing import Union
 
 import numpy as np
 import soundfile
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 
 class DatadirWriter:
@@ -20,7 +22,6 @@ class DatadirWriter:
         self.fd = None
         self.has_children = False
         self.keys = set()
-        self.closed = False
 
     def __enter__(self):
         return self
@@ -69,7 +70,6 @@ class DatadirWriter:
 
         elif self.fd is not None:
             self.fd.close()
-        self.closed = True
 
 
 def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:

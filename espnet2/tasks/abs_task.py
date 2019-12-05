@@ -3,40 +3,56 @@ import logging
 import random
 import shutil
 import sys
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 from io import TextIOBase
 from pathlib import Path
-from typing import Union, Any, Dict, Type, Tuple, Optional, Sequence, \
-    Iterable, Callable
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
+from typing import Union
 
 import configargparse
 import numpy as np
 import torch
 import torch.nn
 import torch.optim
-import yaml
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 from espnet.asr.asr_utils import add_gradient_noise
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
-from espnet2.schedulers.abs_scheduler import (
-    AbsEpochScheduler, AbsBatchScheduler, AbsValEpochScheduler, )
+from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
+from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
+from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.batch_sampler import build_batch_sampler, AbsSampler, \
-    SubsetSampler, ConstantBatchSampler
+from espnet2.train.batch_sampler import AbsSampler
+from espnet2.train.batch_sampler import ConstantBatchSampler
+from espnet2.train.batch_sampler import SubsetSampler
+from espnet2.train.batch_sampler import build_batch_sampler
 from espnet2.train.dataset import ESPNetDataset
-from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.reporter import Reporter
+from espnet2.train.reporter import SubReporter
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import (
-    int_or_none, str2bool, str_or_none, str2triple_str, str2pair_str)
+from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2pair_str
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
+from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
 
 class AbsTask(ABC):
@@ -48,14 +64,14 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def get_collate_fn(cls, args: argparse.Namespace) \
+    def build_collate_fn(cls, args: argparse.Namespace) \
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         """Return "collate_fn", which is a callable object and
         will be given to pytorch DataLoader.
 
         >>> from torch.utils.data import DataLoader
-        >>> loader = DataLoader(collate_fn=cls.get_collate_fn(args), ...)
+        >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args), ...)
 
         In many cases, you can use our common collate_fn:
 
@@ -66,23 +82,18 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\
-            -> Optional[Callable[[Dict[str, np.array]],
+    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool)\
+            -> Optional[Callable[[str, Dict[str, np.array]],
                                  Dict[str, np.ndarray]]]:
-        """
-        >>> from espnet2.train.dataset import ESPNetDataset
-        >>> dataset = ESPNetDataset(...)
-        >>> mini_batch = dataset['uttid']
-        >>> mini_batch = cls.get_preprocess_fn(mini_batch)
-        >>> loss, stats, weight = model(**mini_batch)
-        """
         raise NotImplementedError
 
     @classmethod
     @abstractmethod
-    def required_data_names(cls) -> Tuple[str, ...]:
-        """
+    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+        """Define the required names by Task
 
+        This function is used by
+        >>> cls.check_task_requirements()
         If your model is defined as following,
 
         >>> from espnet2.train.abs_e2e import AbsE2E
@@ -97,9 +108,11 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def optional_data_names(cls) -> Tuple[str, ...]:
-        """
+    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+        """Define the optional names by Task
 
+        This function is used by
+        >>> cls.check_task_requirements()
         If your model is defined as following,
 
         >>> from espnet2.train.abs_e2e import AbsE2E
@@ -205,9 +218,9 @@ class AbsTask(ABC):
         group.add_argument('--log_interval', type=int_or_none, default=None,
                            help='Show the logs every the number iterations in'
                                 'each epochs at the training phase. '
-                                'If None is given, the value of 1 percent of '
-                                'the number of training iteration '
-                                'is selected.')
+                                'If None is given, '
+                                'it is decided according the number '
+                                'of training samples automatically .')
         group.add_argument('--keep_n_best_snapshot', type=int, default=10,
                            help='Remove previous snapshots excluding '
                                 'the n-best scored epochs')
@@ -218,6 +231,14 @@ class AbsTask(ABC):
                                 'only when attention-based model')
         group.add_argument('--num_workers', type=int, default=1,
                            help='The number of workers used for DataLoader')
+        group.add_argument('--no_forward_run', type=str2bool, default=False,
+                           help='Just only iterating data loading without '
+                                'model forwarding and training')
+        group.add_argument('--no_backward_run', type=str2bool, default=False,
+                           help='Performs data loading and '
+                                'model forwarding '
+                                'without backward operations, '
+                                'optimizer updating, etc.')
 
         group = parser.add_argument_group(
             'Resuming or transfer learning related')
@@ -252,11 +273,13 @@ class AbsTask(ABC):
         group.add_argument(
             '--eval_batch_size', type=int_or_none, default=None,
             help='If not given, the value of --batch_size is used')
+
+        _batch_type_choices = ('const', 'seq', 'bin', 'frame')
         group.add_argument('--batch_type', type=str, default='seq',
-                           choices=['const', 'seq', 'bin', 'frame'])
+                           choices=_batch_type_choices)
         group.add_argument(
             '--eval_batch_type', type=str_or_none, default=None,
-            choices=['const', 'seq', 'batch_bin', None],
+            choices=_batch_type_choices + (None,),
             help='If not given, the value of --batch_type is used')
 
         group.add_argument(
@@ -355,7 +378,7 @@ class AbsTask(ABC):
         return config
 
     @classmethod
-    def check_required(cls, args: argparse.Namespace):
+    def check_required_commmand_args(cls, args: argparse.Namespace):
         assert check_argument_types()
         for k in vars(args):
             if '-' in k:
@@ -500,14 +523,7 @@ class AbsTask(ABC):
         assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
-
-        class NoAliasSafeDumper(yaml.SafeDumper):
-            # Disable anchor/alias in yaml because looks ugly
-            def ignore_aliases(self, data):
-                return True
-
-        file.write(yaml.dump(config, Dumper=NoAliasSafeDumper,
-                             indent=4, sort_keys=False))
+        file.write(yaml_no_alias_safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
     def main(cls, args: argparse.Namespace = None,
@@ -520,7 +536,7 @@ class AbsTask(ABC):
         if args.print_config:
             cls.print_config()
             sys.exit(0)
-        cls.check_required(args)
+        cls.check_required_commmand_args(args)
 
         logging.basicConfig(
             level=args.log_level,
@@ -539,9 +555,9 @@ class AbsTask(ABC):
             dtype = args.train_dtype
         train_dataset = ESPNetDataset(
             args.train_data_path_and_name_and_type, float_dtype=dtype,
-            preprocess=cls.get_preprocess_fn(args, 'train'))
-        cls.check_task_requirements(train_dataset,
-                                    args.allow_variable_data_keys)
+            preprocess=cls.build_preprocess_fn(args, True))
+        cls.check_task_requirements(
+            train_dataset, args.allow_variable_data_keys)
         train_batch_sampler = build_batch_sampler(
             type=args.batch_type, shape_files=args.train_shape_file,
             max_lengths=args.max_length,
@@ -550,15 +566,15 @@ class AbsTask(ABC):
             sort_batch=args.sort_batch)
         train_iter = DataLoader(dataset=train_dataset,
                                 batch_sampler=train_batch_sampler,
-                                collate_fn=cls.get_collate_fn(args),
+                                collate_fn=cls.build_collate_fn(args),
                                 num_workers=args.num_workers)
 
         # 3. Build eval-data-iterator
         eval_dataset = ESPNetDataset(
             args.eval_data_path_and_name_and_type, float_dtype=dtype,
-            preprocess=cls.get_preprocess_fn(args, 'eval'))
-        cls.check_task_requirements(eval_dataset,
-                                    args.allow_variable_data_keys)
+            preprocess=cls.build_preprocess_fn(args, False))
+        cls.check_task_requirements(
+            eval_dataset, args.allow_variable_data_keys)
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
@@ -571,7 +587,7 @@ class AbsTask(ABC):
             sort_batch=args.sort_batch)
         eval_iter = DataLoader(dataset=eval_dataset,
                                batch_sampler=eval_batch_sampler,
-                               collate_fn=cls.get_collate_fn(args),
+                               collate_fn=cls.build_collate_fn(args),
                                num_workers=args.num_workers)
 
         # 4. Build a iterator used for attention plot
@@ -584,7 +600,7 @@ class AbsTask(ABC):
             plot_attention_iter = \
                 DataLoader(dataset=eval_dataset,
                            batch_sampler=plot_attention_sampler,
-                           collate_fn=cls.get_collate_fn(args),
+                           collate_fn=cls.build_collate_fn(args),
                            num_workers=args.num_workers)
         else:
             plot_attention_sampler = None
@@ -627,7 +643,7 @@ class AbsTask(ABC):
         with (output_dir / 'config.yaml').open('w') as f:
             logging.info(
                 f'Saving the configuration in {output_dir / "config.yaml"}')
-            yaml.safe_dump(vars(args), f)
+            yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         logging.info(f'Model:\n{model}')
         logging.info(f'Optimizer:\n{optimizer}')
@@ -700,11 +716,14 @@ class AbsTask(ABC):
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
+                no_forward_run=args.no_forward_run,
+                no_backward_run=args.no_backward_run,
                 )
 
     @classmethod
     def check_task_requirements(cls, dataset: ESPNetDataset,
-                                allow_variable_data_keys: bool) -> None:
+                                allow_variable_data_keys: bool,
+                                train: bool = True) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
         assert check_argument_types()
         mes = (f'If you intend to use an additional input, modify '
@@ -712,14 +731,15 @@ class AbsTask(ABC):
                f'"{cls.__name__}.optional_data_names()". '
                f'Otherwise you need to set --allow_variable_data_keys true ')
 
-        for k in cls.required_data_names():
+        for k in cls.required_data_names(train):
             if not dataset.has_name(k):
                 raise RuntimeError(
-                    f'"{cls.required_data_names()}" are required for'
+                    f'"{cls.required_data_names(train)}" are required for'
                     f' {cls.__name__}. but "{dataset.names()}" are input.\n'
                     f'{mes}')
         if not allow_variable_data_keys:
-            task_keys = cls.required_data_names() + cls.optional_data_names()
+            task_keys = cls.required_data_names(train) + \
+                cls.optional_data_names(train)
             for k in dataset.names():
                 if k not in task_keys:
                     raise RuntimeError(
@@ -812,8 +832,8 @@ class AbsTask(ABC):
                 obj = get_attr(model, pretrain_key)
 
             state_dict = obj.state_dict()
-            pretrained_dict = torch.load(pretrain_path,
-                                         map_location=map_location)
+            pretrained_dict = \
+                torch.load(pretrain_path, map_location=map_location)
             # Ignores the parameters not existing in the train-model
             pretrained_dict = \
                 {k: v for k, v in pretrained_dict.items() if k in state_dict}
@@ -843,7 +863,10 @@ class AbsTask(ABC):
             keep_n_best_snapshot: int,
             early_stopping_criterion: Tuple[str, str, str],
             best_model_criterion: Sequence[Tuple[str, str, str]],
-            val_scheduler_criterion: Tuple[str, str]) -> None:
+            val_scheduler_criterion: Tuple[str, str],
+            no_forward_run: bool,
+            no_backward_run: bool,
+            ) -> None:
         assert check_argument_types()
 
         start_epoch = reporter.get_epoch() + 1
@@ -869,11 +892,16 @@ class AbsTask(ABC):
                     grad_noise=grad_noise,
                     accum_grad=accum_grad,
                     grad_clip=grad_clip,
-                    log_interval=log_interval)
+                    log_interval=log_interval,
+                    no_forward_run=no_forward_run,
+                    no_backward_run=no_backward_run,
+                )
             with reporter.observe('eval') as sub_reporter:
                 cls.eval(model=model, iterator=eval_iter,
-                         reporter=sub_reporter, ngpu=ngpu)
-            if plot_attention_iter is not None:
+                         reporter=sub_reporter, ngpu=ngpu,
+                         no_forward_run=no_forward_run,
+                         )
+            if plot_attention_iter is not None and not no_forward_run:
                 with reporter.observe('att_plot') as sub_reporter:
                     cls.plot_attention(
                         model=model,
@@ -945,7 +973,10 @@ class AbsTask(ABC):
                       for ph, k, m in best_model_criterion
                       if reporter.has(ph, k)]
             # nbests: Set[epoch]
-            nbests = set.union(*[set(i[0] for i in v) for v in nbests])
+            if len(nbests) != 0:
+                nbests = set.union(*[set(i[0] for i in v) for v in nbests])
+            else:
+                nbests = set()
             for e in range(1, iepoch + 1):
                 p = output_dir / f'{e}epoch'
                 if p.exists() and e not in nbests:
@@ -957,7 +988,7 @@ class AbsTask(ABC):
 
             # 7. If any updating didn't happen, stops the training
             if all_steps_are_invalid:
-                logging.warning(f'The gradients from all steps are invalid '
+                logging.warning(f'The gradients at all steps are invalid '
                                 f'in this epoch. Something seems wrong. '
                                 f'This training was stopped at {iepoch}epoch')
                 break
@@ -1001,6 +1032,8 @@ class AbsTask(ABC):
               accum_grad: int,
               grad_clip: float,
               log_interval: int,
+              no_forward_run: bool,
+              no_backward_run: bool,
               ) -> bool:
         assert check_argument_types()
         model.train()
@@ -1008,6 +1041,11 @@ class AbsTask(ABC):
         for iiter, batch in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
+            if no_forward_run:
+                all_steps_are_invalid = False
+                reporter.register({})
+                continue
+
             if ngpu <= 1:
                 # NOTE(kamo): data_parallel also should work with ngpu=1,
                 # but for debuggability it's better to keep this block.
@@ -1020,8 +1058,11 @@ class AbsTask(ABC):
                 stats = {k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
                          if v is not None else None for k, v in stats.items()}
                 weight = weight.sum()
-
             reporter.register(stats, weight)
+
+            if no_backward_run:
+                all_steps_are_invalid = False
+                continue
 
             if use_apex:
                 from apex import amp
@@ -1029,6 +1070,7 @@ class AbsTask(ABC):
                     scaled_loss.backward()
             else:
                 loss.backward()
+            del loss
 
             # gradient noise injection
             if grad_noise:
@@ -1052,8 +1094,8 @@ class AbsTask(ABC):
                 # Register lr
                 reporter.register(
                     {f'lr_{i}': pg['lr']
-                     for i, pg in enumerate(optimizer.param_groups)},
-                    not_increment_count=True)
+                     for i, pg in enumerate(optimizer.param_groups)
+                     if 'lr' in pg}, not_increment_count=True)
 
             if iiter % log_interval == 0:
                 reporter.logging(nlatest=log_interval)
@@ -1064,12 +1106,18 @@ class AbsTask(ABC):
     def eval(cls, model: AbsE2E,
              iterator: Iterable[Dict[str, torch.Tensor]],
              reporter: SubReporter,
-             ngpu: int) -> None:
+             ngpu: int,
+             no_forward_run: bool,
+             ) -> None:
         assert check_argument_types()
         model.eval()
         for batch in iterator:
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, 'cuda' if ngpu > 0 else 'cpu')
+            if no_forward_run:
+                reporter.register({})
+                continue
+
             if ngpu <= 1:
                 _, stats, weight = model(**batch)
             else:

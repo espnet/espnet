@@ -2,10 +2,20 @@ from abc import ABC
 
 import torch
 
-from espnet.nets.pytorch_backend.rnn.attentions import NoAtt, AttDot, AttAdd, \
-    AttLoc, AttCov, AttLoc2D, AttLocRec, AttCovLoc, AttMultiHeadDot, \
-    AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc, AttForward, \
-    AttForwardTA
+from espnet.nets.pytorch_backend.rnn.attentions import AttAdd
+from espnet.nets.pytorch_backend.rnn.attentions import AttCov
+from espnet.nets.pytorch_backend.rnn.attentions import AttCovLoc
+from espnet.nets.pytorch_backend.rnn.attentions import AttDot
+from espnet.nets.pytorch_backend.rnn.attentions import AttForward
+from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
+from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
+from espnet.nets.pytorch_backend.rnn.attentions import AttLoc2D
+from espnet.nets.pytorch_backend.rnn.attentions import AttLocRec
+from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadAdd
+from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadDot
+from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadLoc
+from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadMultiResLoc
+from espnet.nets.pytorch_backend.rnn.attentions import NoAtt
 from espnet.nets.pytorch_backend.transformer.attention import \
     MultiHeadedAttention
 
