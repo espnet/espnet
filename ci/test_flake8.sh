@@ -78,4 +78,4 @@ echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 flake8 --extend-ignore=D test utils doc ${flake8_black_list}
 
 # white list of files that should support flake8-docstrings
-flake8 espnet --exclude=${flake8_black_list//$'\n'/,}
+flake8 espnet espnet2 --exclude=${flake8_black_list//$'\n'/,}
