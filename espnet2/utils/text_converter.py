@@ -97,13 +97,12 @@ class Text2Words(AbsTextConverter):
         assert check_argument_types()
         self.delimiter = delimiter
         self.unk_symbol = unk_symbol
-        token_list = Path(token_list)
-        self.token_path = token_list
 
         if isinstance(token_list, (Path, str)):
+            token_list = Path(token_list)
+            self.token_path = token_list
             self.token_list: List[str] = []
             self.token2id: Dict[str, int] = {}
-            token_list = Path(token_list)
             with token_list.open('r') as f:
                 for idx, line in enumerate(f):
                     line = line.rstrip()
@@ -113,6 +112,7 @@ class Text2Words(AbsTextConverter):
         else:
             self.token_list: List[str] = list(token_list)
             self.token2id = {t: i for i, t in enumerate(self.token_list)}
+            self.token_path = f'(NVocab={(len(self.token_list))})'
         self.id2token = {i: t for i, t in self.id2token}
 
         if self.unk_symbol not in self.token2id:
@@ -156,11 +156,11 @@ class Text2Chars(AbsTextConverter):
                  unk_symbol: str = '<unk>',
                  ):
         assert check_argument_types()
-        token_list = Path(token_list)
-        self.token_path = token_list
 
         self.unk_symbol = unk_symbol
         if isinstance(token_list, (Path, str)):
+            token_list = Path(token_list)
+            self.token_path = token_list
             self.token_list: List[str] = []
             self.token2id: Dict[str, int] = {}
             with token_list.open('r') as f:
@@ -171,6 +171,7 @@ class Text2Chars(AbsTextConverter):
 
         else:
             self.token_list: List[str] = list(token_list)
+            self.token_path = f'(NVocab={(len(self.token_list))})'
         self.id2token = {i: t for i, t in self.id2token}
 
         if self.unk_symbol not in self.token2id:

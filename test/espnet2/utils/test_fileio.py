@@ -5,12 +5,12 @@ import pytest
 import soundfile
 
 from espnet2.utils.fileio import DatadirWriter
+from espnet2.utils.fileio import load_num_sequence_text
 from espnet2.utils.fileio import NpyScpReader
 from espnet2.utils.fileio import NpyScpWriter
+from espnet2.utils.fileio import read_2column_text
 from espnet2.utils.fileio import SoundScpReader
 from espnet2.utils.fileio import SoundScpWriter
-from espnet2.utils.fileio import load_num_sequence_text
-from espnet2.utils.fileio import read_2column_text
 
 
 def test_read_2column_text(tmp_path: Path):

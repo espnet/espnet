@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 import torch
 
+from espnet2.train.reporter import aggregate
 from espnet2.train.reporter import Average
 from espnet2.train.reporter import ReportedValue
 from espnet2.train.reporter import Reporter
-from espnet2.train.reporter import aggregate
 
 
 @pytest.mark.parametrize(

@@ -247,7 +247,7 @@ class Tacotron2(AbsTTS):
 
         Args:
             text: Batch of padded character ids (B, Tmax).
-            input_lengthsx): Batch of lengths of each input batch (B,).
+            text_lengths: Batch of lengths of each input batch (B,).
             speech: Batch of padded target features (B, Lmax, odim).
             speech_lengths: Batch of the lengths of each target (B,).
             spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
