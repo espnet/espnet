@@ -12,35 +12,44 @@ import torch.optim.lr_scheduler as L
 # If you need to define custom scheduler, please inherit these classes
 class AbsBatchScheduler(ABC):
     @abstractmethod
-    def step(self, epoch: int = None): pass
+    def step(self, epoch: int = None):
+        pass
 
     @abstractmethod
-    def state_dict(self): pass
+    def state_dict(self):
+        pass
 
     @abstractmethod
-    def load_state_dict(self, state): pass
+    def load_state_dict(self, state):
+        pass
 
 
 class AbsEpochScheduler(ABC):
     @abstractmethod
-    def step(self, epoch: int = None): pass
+    def step(self, epoch: int = None):
+        pass
 
     @abstractmethod
-    def state_dict(self): pass
+    def state_dict(self):
+        pass
 
     @abstractmethod
-    def load_state_dict(self, state): pass
+    def load_state_dict(self, state):
+        pass
 
 
 class AbsValEpochScheduler(AbsBatchScheduler):
     @abstractmethod
-    def step(self, val, epoch: int = None): pass
+    def step(self, val, epoch: int = None):
+        pass
 
     @abstractmethod
-    def state_dict(self): pass
+    def state_dict(self):
+        pass
 
     @abstractmethod
-    def load_state_dict(self, state): pass
+    def load_state_dict(self, state):
+        pass
 
 
 # Create alias type to check the type

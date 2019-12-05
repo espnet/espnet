@@ -261,7 +261,7 @@ def get_parser():
 
     group = parser.add_argument_group('Beam-search related')
     group.add_argument('--batch_size', type=int, default=1,
-                        help='The batch size for inference')
+                       help='The batch size for inference')
     group.add_argument('--nbest', type=int, default=1,
                        help='Output N-best hypotheses')
     group.add_argument('--beam_size', type=int, default=20,
