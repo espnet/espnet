@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformer
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
@@ -47,8 +48,62 @@ def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
     return batch
 
 
+def make_taco2_args(**kwargs):
+    defaults = dict(
+        model_module="espnet.nets.pytorch_backend.e2e_tts_tacotron2:Tacotron2",
+        use_speaker_embedding=False,
+        spk_embed_dim=None,
+        embed_dim=32,
+        elayers=1,
+        eunits=32,
+        econv_layers=2,
+        econv_filts=5,
+        econv_chans=32,
+        dlayers=2,
+        dunits=32,
+        prenet_layers=2,
+        prenet_units=32,
+        postnet_layers=2,
+        postnet_filts=5,
+        postnet_chans=32,
+        output_activation=None,
+        atype="location",
+        adim=32,
+        aconv_chans=16,
+        aconv_filts=5,
+        cumulate_att_w=True,
+        use_batch_norm=True,
+        use_concate=True,
+        use_residual=False,
+        dropout_rate=0.5,
+        zoneout_rate=0.1,
+        reduction_factor=1,
+        threshold=0.5,
+        maxlenratio=5.0,
+        minlenratio=0.0,
+        use_cbhg=False,
+        spc_dim=None,
+        cbhg_conv_bank_layers=4,
+        cbhg_conv_bank_chans=32,
+        cbhg_conv_proj_filts=3,
+        cbhg_conv_proj_chans=32,
+        cbhg_highway_layers=4,
+        cbhg_highway_units=32,
+        cbhg_gru_units=32,
+        use_masking=True,
+        use_weighted_masking=False,
+        bce_pos_weight=1.0,
+        use_guided_attn_loss=False,
+        guided_attn_loss_sigma=0.4,
+        guided_attn_loss_lambda=1.0,
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
 def make_transformer_args(**kwargs):
     defaults = dict(
+        model_module="espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer",
         embed_dim=0,
         spk_embed_dim=None,
         eprenet_conv_layers=0,
@@ -79,6 +134,7 @@ def make_transformer_args(**kwargs):
         transformer_enc_dec_attn_dropout_rate=0.0,
         spk_embed_integration_type="add",
         use_masking=True,
+        use_weighted_masking=False,
         bce_pos_weight=1.0,
         use_batch_norm=True,
         use_scaled_pos_enc=True,
@@ -128,6 +184,7 @@ def make_feedforward_transformer_args(**kwargs):
         transformer_enc_dec_attn_dropout_rate=0.0,
         spk_embed_integration_type="add",
         use_masking=True,
+        use_weighted_masking=False,
         use_scaled_pos_enc=True,
         encoder_normalize_before=True,
         decoder_normalize_before=True,
@@ -146,32 +203,39 @@ def make_feedforward_transformer_args(**kwargs):
 
 
 @pytest.mark.parametrize(
-    "model_dict", [
-        ({}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
-        ({"use_masking": False}),
-        ({"use_scaled_pos_enc": False}),
-        ({"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
-        ({"positionwise_layer_type": "conv1d-linear", "positionwise_conv_kernel_size": 3}),
-        ({"encoder_normalize_before": False}),
-        ({"decoder_normalize_before": False}),
-        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"encoder_concat_after": True}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
-        ({"transfer_encoder_from_teacher": True}),
-        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
-        ({"postnet_layers": 2}),
-        ({"reduction_factor": 2}),
-        ({"reduction_factor": 3}),
-        ({"reduction_factor": 4}),
-        ({"reduction_factor": 5}),
+    "teacher_type, model_dict", [
+        ("transformer", {}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ("transformer", {"use_masking": False}),
+        ("transformer", {"use_scaled_pos_enc": False}),
+        ("transformer", {"positionwise_layer_type": "conv1d", "positionwise_conv_kernel_size": 3}),
+        ("transformer", {"positionwise_layer_type": "conv1d-linear", "positionwise_conv_kernel_size": 3}),
+        ("transformer", {"encoder_normalize_before": False}),
+        ("transformer", {"decoder_normalize_before": False}),
+        ("transformer", {"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ("transformer", {"encoder_concat_after": True}),
+        ("transformer", {"decoder_concat_after": True}),
+        ("transformer", {"encoder_concat_after": True, "decoder_concat_after": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ("transformer", {"use_masking": False}),
+        ("transformer", {"use_masking": False, "use_weighted_masking": True}),
+        ("transformer", {"postnet_layers": 2}),
+        ("transformer", {"reduction_factor": 2}),
+        ("transformer", {"reduction_factor": 3}),
+        ("transformer", {"reduction_factor": 4}),
+        ("transformer", {"reduction_factor": 5}),
+        ("tacotron2", {}),
+        ("tacotron2", {"spk_embed_dim": 16}),
+        ("tacotron2", {"reduction_factor": 2}),
+        ("tacotron2", {"reduction_factor": 3}),
+        ("tacotron2", {"reduction_factor": 4}),
+        ("tacotron2", {"reduction_factor": 5}),
     ])
-def test_fastspeech_trainable_and_decodable(model_dict):
+def test_fastspeech_trainable_and_decodable(teacher_type, model_dict):
     # make args
     idim, odim = 10, 25
-    teacher_model_args = make_transformer_args(**model_dict)
     model_args = make_feedforward_transformer_args(**model_dict)
 
     # setup batch
@@ -180,7 +244,14 @@ def test_fastspeech_trainable_and_decodable(model_dict):
     batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"])
 
     # define teacher model and save it
-    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    if teacher_type == "transformer":
+        teacher_model_args = make_transformer_args(**model_dict)
+        teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    elif teacher_type == "tacotron2":
+        teacher_model_args = make_taco2_args(**model_dict)
+        teacher_model = Tacotron2(idim, odim, Namespace(**teacher_model_args))
+    else:
+        raise ValueError()
     tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
     torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
     with open(tmpdir + "/model.json", 'wb') as f:
@@ -215,25 +286,27 @@ def test_fastspeech_trainable_and_decodable(model_dict):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
 @pytest.mark.parametrize(
-    "model_dict", [
-        ({}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
-        ({"use_masking": False}),
-        ({"use_scaled_pos_enc": False}),
-        ({"encoder_normalize_before": False}),
-        ({"decoder_normalize_before": False}),
-        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"encoder_concat_after": True}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
-        ({"transfer_encoder_from_teacher": True}),
-        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+    "teacher_type, model_dict", [
+        ("transformer", {}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ("transformer", {"use_masking": False}),
+        ("transformer", {"use_masking": False, "use_weighted_masking": True}),
+        ("transformer", {"use_scaled_pos_enc": False}),
+        ("transformer", {"encoder_normalize_before": False}),
+        ("transformer", {"decoder_normalize_before": False}),
+        ("transformer", {"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ("transformer", {"encoder_concat_after": True}),
+        ("transformer", {"decoder_concat_after": True}),
+        ("transformer", {"encoder_concat_after": True, "decoder_concat_after": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ("tacotron2", {}),
+        ("tacotron2", {"spk_embed_dim": 16}),
     ])
-def test_fastspeech_gpu_trainable_and_decodable(model_dict):
+def test_fastspeech_gpu_trainable_and_decodable(teacher_type, model_dict):
     # make args
     idim, odim = 10, 25
-    teacher_model_args = make_transformer_args(**model_dict)
     model_args = make_feedforward_transformer_args(**model_dict)
 
     # setup batch
@@ -243,7 +316,14 @@ def test_fastspeech_gpu_trainable_and_decodable(model_dict):
     batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define teacher model and save it
-    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    if teacher_type == "transformer":
+        teacher_model_args = make_transformer_args(**model_dict)
+        teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    elif teacher_type == "tacotron2":
+        teacher_model_args = make_taco2_args(**model_dict)
+        teacher_model = Tacotron2(idim, odim, Namespace(**teacher_model_args))
+    else:
+        raise ValueError()
     tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
     torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
     with open(tmpdir + "/model.json", 'wb') as f:
@@ -279,25 +359,27 @@ def test_fastspeech_gpu_trainable_and_decodable(model_dict):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
 @pytest.mark.parametrize(
-    "model_dict", [
-        ({}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
-        ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
-        ({"use_masking": False}),
-        ({"use_scaled_pos_enc": False}),
-        ({"encoder_normalize_before": False}),
-        ({"decoder_normalize_before": False}),
-        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"encoder_concat_after": True}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
-        ({"transfer_encoder_from_teacher": True}),
-        ({"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+    "teacher_type, model_dict", [
+        ("transformer", {}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
+        ("transformer", {"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
+        ("transformer", {"use_masking": False}),
+        ("transformer", {"use_masking": False, "use_weighted_masking": True}),
+        ("transformer", {"use_scaled_pos_enc": False}),
+        ("transformer", {"encoder_normalize_before": False}),
+        ("transformer", {"decoder_normalize_before": False}),
+        ("transformer", {"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ("transformer", {"encoder_concat_after": True}),
+        ("transformer", {"decoder_concat_after": True}),
+        ("transformer", {"encoder_concat_after": True, "decoder_concat_after": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True}),
+        ("transformer", {"transfer_encoder_from_teacher": True, "transferred_encoder_module": "embed"}),
+        ("tacotron2", {}),
+        ("tacotron2", {"spk_embed_dim": 16}),
     ])
-def test_fastspeech_multi_gpu_trainable(model_dict):
+def test_fastspeech_multi_gpu_trainable(teacher_type, model_dict):
     # make args
     idim, odim = 10, 25
-    teacher_model_args = make_transformer_args(**model_dict)
     model_args = make_feedforward_transformer_args(**model_dict)
 
     # setup batch
@@ -307,7 +389,14 @@ def test_fastspeech_multi_gpu_trainable(model_dict):
     batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device)
 
     # define teacher model and save it
-    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    if teacher_type == "transformer":
+        teacher_model_args = make_transformer_args(**model_dict)
+        teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    elif teacher_type == "tacotron2":
+        teacher_model_args = make_taco2_args(**model_dict)
+        teacher_model = Tacotron2(idim, odim, Namespace(**teacher_model_args))
+    else:
+        raise ValueError()
     tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
     torch.save(teacher_model.state_dict(), tmpdir + "/model.dummy.best")
     with open(tmpdir + "/model.json", 'wb') as f:
