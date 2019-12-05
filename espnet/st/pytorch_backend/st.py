@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
@@ -6,6 +6,7 @@
 
 """Training/decoding definition for the speech translation task."""
 
+import copy
 import json
 import logging
 import os
@@ -30,10 +31,8 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.nets.st_interface import ASRInterface
 from espnet.nets.st_interface import STInterface
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
@@ -74,7 +73,7 @@ class CustomConverter(ASRCustomConverter):
         super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
         self.asr_task = asr_task
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transform a batch and send it to a device.
 
         Args:
@@ -86,10 +85,11 @@ class CustomConverter(ASRCustomConverter):
 
         """
         _, ys = batch[0]
+        ys_asr = copy.deepcopy(ys)
         xs_pad, ilens, ys_pad = super().__call__(batch, device)
         if self.asr_task:
             ys_pad_asr = pad_list([torch.from_numpy(np.array(y[1])).long()
-                                   for y in ys], self.ignore_id).to(device)
+                                   for y in ys_asr], self.ignore_id).to(device)
         else:
             ys_pad_asr = None
 
@@ -120,16 +120,11 @@ def train(args):
 
     # Initialize with pre-trained ASR encoder and MT decoder
     if args.enc_init is not None or args.dec_init is not None:
-        if "transformer" in args.model_module:
-            interface = ASRInterface
-        else:
-            interface = STInterface
-        model = load_trained_modules(idim, odim, args, interface=interface)
+        model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)
-    # assert isinstance(model, STInterface)
-    # TODO(hirofumi0810) fix this for after supporting Transformer
+    assert isinstance(model, STInterface)
 
     subsampling_factor = model.subsample[0]
 
@@ -244,6 +239,8 @@ def train(args):
     )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
+    # default collate function converts numpy array to pytorch tensor
+    # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
@@ -270,7 +267,11 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+    if args.save_interval_iters > 0:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
@@ -294,10 +295,11 @@ def train(args):
                                           'main/loss_asr', 'validation/main/loss_asr',
                                           'main/loss_st', 'validation/main/loss_st'],
                                          'epoch', file_name='loss.png'))
-    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
+    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc',
+                                          'main/acc_asr', 'validation/main/acc_asr'],
                                          'epoch', file_name='acc.png'))
     trainer.extend(extensions.PlotReport(['main/bleu', 'validation/main/bleu'],
-                                         'epoch', file_name='cer.png'))
+                                         'epoch', file_name='bleu.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
@@ -306,7 +308,11 @@ def train(args):
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    if args.save_interval_iters > 0:
+        trainer.extend(torch_snapshot(filename='snapshot.iter.{.updater.iteration}'),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
@@ -367,10 +373,15 @@ def train(args):
             'lr', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["lr"]),
             trigger=(args.report_interval_iters, 'iteration'))
         report_keys.append('lr')
-    if args.asr_weight > 0 and args.report_cer:
-        report_keys.append('validation/main/cer')
-    if args.asr_weight > 0 and args.report_wer:
-        report_keys.append('validation/main/wer')
+    if args.asr_weight > 0:
+        if args.mtlalpha > 0:
+            report_keys.append('main/cer_ctc')
+            report_keys.append('validation/main/cer_ctc')
+        if args.mtlalpha < 1:
+            if args.report_cer:
+                report_keys.append('validation/main/cer')
+            if args.report_wer:
+                report_keys.append('validation/main/wer')
     if args.report_bleu:
         report_keys.append('validation/main/bleu')
     trainer.extend(extensions.PrintReport(
@@ -396,9 +407,8 @@ def trans(args):
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
-    # assert isinstance(model, STInterface)
-    # TODO(hirofumi0810) fix this for after supporting Transformer
-    args.ctc_weight = 0.0
+    assert isinstance(model, STInterface)
+    # args.ctc_weight = 0.0
     model.trans_args = args
 
     # read rnnlm
@@ -413,24 +423,6 @@ def trans(args):
         rnnlm.eval()
     else:
         rnnlm = None
-
-    if args.word_rnnlm:
-        rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
-        word_dict = rnnlm_args.char_list_dict
-        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.word_rnnlm, word_rnnlm)
-        word_rnnlm.eval()
-
-        if rnnlm is not None:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
-                                           rnnlm.predictor, word_dict, char_dict))
-        else:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
-                                              word_dict, char_dict))
 
     # gpu
     if args.ngpu == 1:
@@ -465,11 +457,12 @@ def trans(args):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
 
-        # sort data
+        # sort data if batchsize > 1
         keys = list(js.keys())
-        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-        keys = [keys[i] for i in sorted_index]
+        if args.batchsize > 1:
+            feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+            sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+            keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):
