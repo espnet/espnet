@@ -193,4 +193,3 @@ class Text2Chars(AbsTextConverter):
 
     def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         return ''.join([self.id2token[i] for i in integers])
-

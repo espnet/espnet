@@ -54,7 +54,7 @@ def aggregate(values: Sequence[ReportedValue]) -> Num:
     assert check_argument_types()
 
     for v in values:
-        if type(v) is not type(values[0]):
+        if not isinstance(v, type(values[0])):
             raise ValueError(
                 f"Can't use different Reported type together: "
                 f"{type(v)} != {type(values[0])}")
@@ -359,8 +359,8 @@ class Reporter:
         epochs = np.arange(1, max(self.stats) + 1)
         for key in keys:
             y = [np.nanmean(self.stats[e][key][key2])
-                 if e in self.stats and key in self.stats[e]
-                 and key2 in self.stats[e][key] else np.nan
+                 if e in self.stats and key in self.stats[e] and
+                 key2 in self.stats[e][key] else np.nan
                  for e in epochs]
             assert len(epochs) == len(y), 'Bug?'
 

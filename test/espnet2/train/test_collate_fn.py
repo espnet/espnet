@@ -90,4 +90,3 @@ def test_CommonCollateFn_repr(float_pad_value, int_pad_value, not_sequence):
     print(CommonCollateFn(float_pad_value=float_pad_value,
                           int_pad_value=int_pad_value,
                           not_sequence=not_sequence))
-
