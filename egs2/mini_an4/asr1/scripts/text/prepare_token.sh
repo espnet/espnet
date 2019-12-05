@@ -63,7 +63,9 @@ mkdir -p "${dir}"
 
 # 0. token_type
 echo "${type}" > "${dir}/token_type"
-cp "${text}" "${dir}/text"
+if [ "${text}" != ${dir}/text ]; then
+    cp "${text}" "${dir}/text"
+fi
 
 
 # 1. Prepare token

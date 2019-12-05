@@ -1,4 +1,5 @@
-from typing import Tuple, Dict
+from typing import Dict
+from typing import Tuple
 
 import torch
 import torch.nn.functional as F

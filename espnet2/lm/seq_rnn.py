@@ -1,5 +1,6 @@
 """Sequential implementation of Recurrent Neural Network Language Model."""
-from typing import Tuple, Union
+from typing import Tuple
+from typing import Union
 
 import torch
 import torch.nn as nn

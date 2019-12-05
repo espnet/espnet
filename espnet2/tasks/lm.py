@@ -1,11 +1,18 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
 
 import configargparse
 import numpy as np
 import torch
-from typeguard import check_return_type, check_argument_types
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.e2e import LanguageE2E
@@ -13,10 +20,11 @@ from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.initialize import initialize
-from espnet2.train.preprocess import CommonPreprocessor
+from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str_or_none, str2bool
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str_or_none
 
 
 class LMTask(AbsTask):
@@ -131,20 +139,20 @@ class LMTask(AbsTask):
         return retval
 
     @classmethod
-    def get_collate_fn(cls, args: argparse.Namespace) \
+    def build_collate_fn(cls, args: argparse.Namespace) \
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
         return CommonCollateFn(int_pad_value=0)
 
     @classmethod
-    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str) \
-            -> Optional[Callable[[Dict[str, np.array]],
+    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool) \
+            -> Optional[Callable[[str, Dict[str, np.array]],
                                  Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
-                train_or_eval=train_or_eval, token_type=args.token_type,
+                train=train, token_type=args.token_type,
                 model_or_token_list=args.bpemodel
                 if args.token_type == 'bpe' else args.token_list)
         else:
@@ -153,12 +161,12 @@ class LMTask(AbsTask):
         return retval
 
     @classmethod
-    def required_data_names(cls) -> Tuple[str, ...]:
+    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
         retval = ('text',)
         return retval
 
     @classmethod
-    def optional_data_names(cls) -> Tuple[str, ...]:
+    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
         retval = ()
         return retval
 
@@ -182,14 +190,16 @@ class LMTask(AbsTask):
 
         # 1. Build LM model
         lm_class = cls.get_lm_class(args.lm)
-        lm = lm_class(vocab_size=vocab_size,
-                      **args.lm_conf)
+        lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
 
-        # 2. Build model
+        # 2. Build E2E
         # Assume the last-id is sos_and_eos
-        model = LanguageE2E(lm=lm, vocab_size=vocab_size,
-                            **args.e2e_conf)
+        model = LanguageE2E(lm=lm, vocab_size=vocab_size, **args.e2e_conf)
+
+        # FIXME(kamo): Should be done in model?
+        # 3. Initialize
         if args.init is not None:
             initialize(model, args.init)
+
         assert check_return_type(model)
         return model

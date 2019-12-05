@@ -1,11 +1,19 @@
 import argparse
 import logging
-from typing import Any, Dict, Type, Tuple, Optional, Sequence, Callable
+from pathlib import Path
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
 
 import configargparse
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.e2e import ASRE2E
@@ -19,10 +27,12 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.initialize import initialize
-from espnet2.train.preprocess import CommonPreprocessor
+from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str_or_none, int_or_none, str2bool
+from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str_or_none
 
 
 class ASRTask(AbsTask):
@@ -92,9 +102,11 @@ class ASRTask(AbsTask):
             '--use_preprocessor', type=str2bool, default=False,
             help='Apply preprocessing to data or not')
         group.add_argument('--token_type', type=str, default='bpe',
-                           choices=['bpe', 'char', 'word'], help='')
+                           choices=['bpe', 'char', 'word'],
+                           help='The text will be tokenized '
+                                'in the specified level token')
         group.add_argument('--bpemodel', type=str_or_none, default=None,
-                           help='The model file fo sentencepiece')
+                           help='The model file of sentencepiece')
         return parser
 
     @classmethod
@@ -233,7 +245,7 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def get_collate_fn(cls, args: argparse.Namespace) \
+    def build_collate_fn(cls, args: argparse.Namespace) \
             -> Callable[[Sequence[Dict[str, np.ndarray]]],
                         Dict[str, torch.Tensor]]:
         assert check_argument_types()
@@ -241,13 +253,13 @@ class ASRTask(AbsTask):
         return CommonCollateFn(float_pad_value=0., int_pad_value=-1)
 
     @classmethod
-    def get_preprocess_fn(cls, args: argparse.Namespace, train_or_eval: str)\
-            -> Optional[Callable[[Dict[str, np.array]],
+    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool)\
+            -> Optional[Callable[[str, Dict[str, np.array]],
                                  Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
-                train_or_eval=train_or_eval, token_type=args.token_type,
+                train=train, token_type=args.token_type,
                 model_or_token_list=args.bpemodel
                 if args.token_type == 'bpe' else args.token_list)
         else:
@@ -256,12 +268,16 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def required_data_names(cls) -> Tuple[str, ...]:
-        retval = ('feats', 'text')
+    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+        if train:
+            retval = ('speech', 'text')
+        else:
+            # Recognition mode
+            retval = ('speech',)
         return retval
 
     @classmethod
-    def optional_data_names(cls) -> Tuple[str, ...]:
+    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
         retval = ()
         assert check_return_type(retval)
         return retval
@@ -329,6 +345,9 @@ class ASRTask(AbsTask):
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
             **args.e2e_conf)
+
+        # FIXME(kamo): Should be done in model?
+        # 7. Initialize
         if args.init is not None:
             initialize(model, args.init)
 

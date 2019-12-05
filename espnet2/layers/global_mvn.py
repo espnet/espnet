@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple
+from typing import Union
 
 import numpy as np
 import torch
@@ -62,6 +63,8 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         """
         if ilens is None:
             ilens = x.new_full([x.size(0)], x.size(1))
+        assert x.size(0) == ilens.size(0), (x.size(0), ilens.size(0))
+        assert x.size(1) <= ilens.max(), (x.size(1), ilens)
         norm_means = self.norm_means
         norm_vars = self.norm_vars
         self.mean = self.mean.to(x.device, x.dtype)

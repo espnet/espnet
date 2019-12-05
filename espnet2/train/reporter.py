@@ -8,13 +8,20 @@ import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Dict, Tuple, Optional, Sequence, List, NoReturn, \
-    ContextManager
+from typing import ContextManager
+from typing import Dict
+from typing import List
+from typing import NoReturn
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import humanfriendly
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
@@ -117,7 +124,7 @@ class SubReporter:
         self._finished = False
 
     def get_total_count(self) -> int:
-        """Returns the number of iteration over all epochs"""
+        """Returns the number of iterations over all epochs"""
         return self.total_count
 
     def register(self, stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],

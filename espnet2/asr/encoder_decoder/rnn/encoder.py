@@ -1,13 +1,17 @@
 import logging
-from typing import Sequence, Tuple, Optional
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
 
-import torch
 import numpy as np
+import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP, VGG2L, RNN
+from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 
 

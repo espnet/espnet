@@ -1,7 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
+from typing import Tuple
 
 import torch
-from typing import Tuple
 
 
 class InversibleInterface(ABC):

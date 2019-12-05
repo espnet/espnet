@@ -14,6 +14,8 @@ class NoamLR(_LRScheduler, AbsBatchScheduler):
     FIXME(kamo): PyTorch doesn't provide _LRScheduler as public class,
      thus the behaviour isn't guaranteed at forward PyTorch version.
 
+    TODO(kamo): "Model_size" is shared from the model, but it can't be now.
+
     """
     def __init__(self, optimizer: torch.optim.Optimizer,
                  model_size: Union[int, float] = 320,
@@ -27,8 +29,8 @@ class NoamLR(_LRScheduler, AbsBatchScheduler):
         self.model_size = model_size
         self.warmup_steps = warmup_steps
 
-        # __init__ must be invoked before setting field
-        # because step() is invoked in __init__
+        # __init__() must be invoked before setting field
+        # because step() is also invoked in __init__()
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):

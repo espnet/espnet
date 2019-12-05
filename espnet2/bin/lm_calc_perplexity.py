@@ -4,7 +4,10 @@ import logging
 import random
 import sys
 from pathlib import Path
-from typing import Sequence, Optional, Union, Tuple
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import configargparse
 import numpy as np
@@ -20,8 +23,10 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.types import str2triple_str, str_or_none, float_or_none, \
-    str2bool
+from espnet2.utils.types import float_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
 
 
 class ModuleWrapper(torch.nn.Module):
@@ -82,8 +87,8 @@ def calc_perplexity(
     # 3. Build data-iterator
     dataset = ESPNetDataset(
         data_path_and_name_and_type, float_dtype=dtype,
-        preprocess=LMTask.get_preprocess_fn(train_args, 'eval'))
-    LMTask.check_task_requirements(dataset, allow_variable_data_keys)
+        preprocess=LMTask.build_preprocess_fn(train_args, False))
+    LMTask.check_task_requirements(dataset, allow_variable_data_keys, False)
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -94,7 +99,7 @@ def calc_perplexity(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=LMTask.get_collate_fn(train_args),
+                        collate_fn=LMTask.build_collate_fn(train_args),
                         num_workers=num_workers)
 
     # 4. Start for-loop
@@ -189,7 +194,8 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
-    group.add_argument('--allow_variable_data_keys', type=str2bool)
+    group.add_argument('--allow_variable_data_keys', type=str2bool,
+                       default=False)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--train_config', type=str)

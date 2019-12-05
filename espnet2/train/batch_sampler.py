@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
-from typing import Union, Tuple, List, Iterator, Optional, Sequence, Iterable
+from abc import ABC
+from abc import abstractmethod
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import numpy as np
 from torch.utils.data import Sampler
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
+from typeguard import check_return_type
 
-from espnet2.utils.fileio import load_num_sequence_text, read_2column_text
+from espnet2.utils.fileio import load_num_sequence_text
+from espnet2.utils.fileio import read_2column_text
 
 
 def build_batch_sampler(

@@ -5,7 +5,10 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import Sequence, Optional, Union, Tuple
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import configargparse
 import kaldiio
@@ -19,7 +22,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
-from espnet2.utils.types import str2triple_str, str_or_none, str2bool
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
 
 
 def tts_decode(
@@ -71,8 +76,8 @@ def tts_decode(
     # 3. Build data-iterator
     dataset = ESPNetDataset(
         data_path_and_name_and_type, float_dtype=dtype,
-        preprocess=TTSTask.get_preprocess_fn(train_args, 'eval'))
-    TTSTask.check_task_requirements(dataset, allow_variable_data_keys)
+        preprocess=TTSTask.build_preprocess_fn(train_args, False))
+    TTSTask.check_task_requirements(dataset, allow_variable_data_keys, False)
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
@@ -84,7 +89,7 @@ def tts_decode(
     logging.info(f'Batch sampler: {batch_sampler}')
     logging.info(f'dataset:\n{dataset}')
     loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler,
-                        collate_fn=TTSTask.get_collate_fn(train_args),
+                        collate_fn=TTSTask.build_collate_fn(train_args),
                         num_workers=num_workers)
 
     # 4. Start for-loop
@@ -106,7 +111,7 @@ def tts_decode(
             # Change to single sequence and remove *_length
             # because inference() requires 1-seq, not mini-batch.
             _data = {k: v[0] for k, v in batch.items()
-                     if k + '_lengths' in batch}
+                     if not k.endswith('_lengths')}
             start_time = time.perf_counter()
 
             # TODO(kamo): Use common gathering attention system and plot it
@@ -168,7 +173,8 @@ def get_parser():
     group.add_argument('--data_path_and_name_and_type', type=str2triple_str,
                        required=True, action='append')
     group.add_argument('--key_file', type=str_or_none)
-    group.add_argument('--allow_variable_data_keys', type=str2bool)
+    group.add_argument('--allow_variable_data_keys', type=str2bool,
+                       default=False)
 
     group = parser.add_argument_group('The model configuration related')
     group.add_argument('--train_config', type=str)

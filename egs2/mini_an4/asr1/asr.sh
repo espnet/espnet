@@ -207,7 +207,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
             # 2. Feature extract
-            _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
             # 3. Create feats_shape
@@ -336,15 +336,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         python3 -m espnet2.bin.lm_train \
             --ngpu "${ngpu}" \
             --token_list "${data_lm}/train/tokens.txt" \
-            --train_data_path_and_name_and_type "${data_lm}/train/text,text,text" \
-            --eval_data_path_and_name_and_type "${data_lm}/dev/text,text,text" \
-            --use_preprocessor true \
-            --batch_type const \
-            --sort_in_batch none \
-            --bpemodel "${bpemodel}" \
-            --token_type "${token_type}"\
-            --train_shape_file "${data_lm}/train/text" \
-            --eval_shape_file "${data_lm}/dev/text" \
+            --train_data_path_and_name_and_type "${data_lm}/train/token_int,text,text_int" \
+            --eval_data_path_and_name_and_type "${data_lm}/dev/token_int,text,text_int" \
+            --train_shape_file "${data_lm}/train/token_shape" \
+            --eval_shape_file "${data_lm}/dev/token_shape" \
+            --max_length 150 \
             --output_dir "${lm_exp}" \
             ${_opts} ${lm_args}
 
@@ -359,7 +355,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
         python3 -m espnet2.bin.lm_calc_perplexity \
             --ngpu "${ngpu}" \
-            --data_path_and_name_and_type "${data_lm}/test/text,text,text" \
+            --data_path_and_name_and_type "${data_lm}/test/token_int,text,text_int" \
             --train_config "${lm_exp}"/config.yaml \
             --model_file "${lm_exp}"/eval.loss.best.pt \
             --output_dir "${lm_exp}/perplexity_test" \
@@ -410,18 +406,17 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
             --token_list "${_asr_train_dir}/tokens.txt" \
-            --use_preprocessor true \
-            --bpemodel "${bpemodel}" \
-            --token_type "${token_type}"\
-            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},feats,${_type}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},feats,${_type}" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
-            --batch_type seq \
+            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
+            --train_data_path_and_name_and_type "${_asr_train_dir}/token_int,text,text_int" \
+            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
+            --eval_data_path_and_name_and_type "${_asr_dev_dir}/token_int,text,text_int" \
             --train_shape_file "${_asr_train_dir}/${_shape}" \
+            --train_shape_file "${_asr_train_dir}/token_shape" \
             --eval_shape_file "${_asr_dev_dir}/${_shape}" \
+            --eval_shape_file "${_asr_dev_dir}/token_shape" \
             --resume_epoch latest \
             --max_length "${_max_length}" \
+            --max_length 150 \
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
 
@@ -462,24 +457,27 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
-        _nj=$((${decode_nj}<$(<${key_file} wc -l)?${decode_nj}:$(<${key_file} wc -l)))
+        _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
         for n in $(seq ${_nj}); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
         utils/split_scp.pl "${key_file}" ${split_scps}
 
+        _token_type="$(<${_data}/token_type)"
 
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/asr_recog.*.log'"
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
             python3 -m espnet2.bin.asr_recog \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},feats,${_type}" \
+                --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
                 --lm_train_config "${lm_exp}"/config.yaml \
                 --lm_file "${lm_exp}"/"${decode_lm}" \
+                --bpemodel "${bpemodel}" \
+                --token_type "${_token_type}"\
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${decode_args}
 

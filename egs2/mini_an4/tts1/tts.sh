@@ -253,9 +253,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --ngpu "${ngpu}" \
             --token_list "${_train_dir}/tokens.txt" \
             --train_data_path_and_name_and_type "${_train_dir}/token_int,text,text_int" \
-            --train_data_path_and_name_and_type "${_train_dir}/${_scp},feats,${_type}" \
+            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --eval_data_path_and_name_and_type "${_dev_dir}/token_int,text,text_int" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},feats,${_type}" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_train_dir}/token_shape" \
             --train_shape_file "${_train_dir}/feats_shape" \
             --eval_shape_file "${_dev_dir}/token_shape" \
