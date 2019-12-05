@@ -23,8 +23,8 @@ concatjson.py ${dir}/data.*.json > ${dir}/data.json
 if [ $num_spkrs -eq 1 ]; then
     json2trn_wo_dict.py ${dir}/data.json --num-spkrs ${num_spkrs} --refs ${dir}/ref_org.wrd.trn --hyps ${dir}/hyp_org.wrd.trn
    
-    cat < ${dir}/hyp_org.wrd.trn | sed -e 's/▁//' | sed -e 's/▁/ /g' > ${dir}/hyp.wrd.trn
-    cat < ${dir}/ref_org.wrd.trn | sed -e 's/\.//g' -e 's/\,//g' > ${dir}/ref.wrd.trn
+    cat < ${dir}/hyp_org.wrd.trn | sed -e 's/▁//' | sed -e 's/▁/ /g' -e "s/'//g" > ${dir}/hyp.wrd.trn
+    cat < ${dir}/ref_org.wrd.trn | sed -e 's/\.//g' -e 's/\,//g' -e "s/'//g" > ${dir}/ref.wrd.trn
 
     cat < ${dir}/hyp.wrd.trn | awk -v FS='' '{a=0;for(i=1;i<=NF;i++){if($i=="("){a=1};if(a==0){printf("%s ",$i)}else{printf("%s",$i)}}printf("\n")}' > ${dir}/hyp.trn
     cat < ${dir}/ref.wrd.trn | awk -v FS='' '{a=0;for(i=1;i<=NF;i++){if($i=="("){a=1};if(a==0){printf("%s ",$i)}else{printf("%s",$i)}}printf("\n")}' > ${dir}/ref.trn

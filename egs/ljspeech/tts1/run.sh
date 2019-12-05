@@ -240,6 +240,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     for name in ${dev_set} ${eval_set}; do
     (
         local/ob_eval/evaluate_cer.sh --nj ${nj} \
+            --dur 0.1 \
             --do_delta false \
             --eval_tts_model ${eval_tts_model} \
             --db_root ${db_root}/LJSpeech-1.1 \
