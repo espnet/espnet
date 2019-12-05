@@ -62,7 +62,7 @@ def get_parser():
                         help='Whether to use the attention constraint')
     parser.add_argument('--backward-window', type=int, default=1,
                         help='Backward window size in the attention constraint')
-    parser.add_argument('--forward-window', type=float, default=3,
+    parser.add_argument('--forward-window', type=int, default=3,
                         help='Forward window size in the attention constraint')
     return parser
 
