@@ -5,7 +5,10 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.train.reporter import Reporter, Average, aggregate, ReportedValue
+from espnet2.train.reporter import Average
+from espnet2.train.reporter import ReportedValue
+from espnet2.train.reporter import Reporter
+from espnet2.train.reporter import aggregate
 
 
 @pytest.mark.parametrize(
@@ -281,4 +284,3 @@ def test_aggregate():
     with pytest.raises(NotImplementedError):
         vs = [DummyReportedValue()]
         aggregate(vs)
-

@@ -41,4 +41,3 @@ def test_NestedDictAction_exception():
 
     with pytest.raises(SystemExit):
         parser.parse_args(['--conf', '[cd, e, aaa]'])
-

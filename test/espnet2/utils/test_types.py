@@ -3,8 +3,12 @@ from typing import Any
 
 import pytest
 
-from espnet2.utils.types import str2bool, float_or_none, int_or_none, \
-    str_or_none, str2pair_str, str2triple_str
+from espnet2.utils.types import float_or_none
+from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2pair_str
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
 
 
 @contextmanager
