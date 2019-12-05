@@ -591,6 +591,10 @@ def decode(args):
         dur_writer = kaldiio.WriteHelper(
             'ark,scp:{o}.ark,{o}.scp'.format(
                 o=args.out.replace("feats", "durations")))
+    if args.save_focus_rates:
+        fr_writer = kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(
+                o=args.out.replace("feats", "focus_rates")))
 
     # start decoding
     for idx, utt_id in enumerate(js.keys()):
@@ -609,22 +613,25 @@ def decode(args):
             int(outs.size(0)) / (time.time() - start_time)))
         if outs.size(0) == x.size(0) * args.maxlenratio:
             logging.warning("output length reaches maximum length (%s)." % utt_id)
+        focus_rate = _calculate_focus_rete(att_ws)
         logging.info('(%d/%d) %s (size: %d->%d, focus rate: %.3f)' % (
-            idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), _calculate_focus_rete(att_ws)))
+            idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), focus_rate))
         feat_writer[utt_id] = outs.cpu().numpy()
+        if args.save_durations:
+            ds = _convert_att_to_duration(att_ws)
+            dur_writer[utt_id] = ds.cpu().numpy()
+        if args.save_focus_rates:
+            fr_writer[utt_id] = np.array(focus_rate).reshape(1, 1)
 
-        # plot prob and att_ws
+        # plot and save prob and att_ws
         if probs is not None:
             _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
         if att_ws is not None:
             _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)
 
-        # save duration
-        if args.save_durations:
-            ds = _convert_att_to_duration(att_ws)
-            dur_writer[utt_id] = ds.cpu().numpy()
-
     # close file object
     feat_writer.close()
     if args.save_durations:
         dur_writer.close()
+    if args.save_focus_rates:
+        fr_writer.close()
