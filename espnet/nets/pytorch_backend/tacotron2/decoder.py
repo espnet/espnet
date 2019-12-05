@@ -401,7 +401,8 @@ class Decoder(torch.nn.Module):
 
         return after_outs, before_outs, logits, att_ws
 
-    def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
+    def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0,
+                  use_att_constraint=False, backward_window=None, forward_window=None):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -411,6 +412,9 @@ class Decoder(torch.nn.Module):
                 the minimum length of outputs will be 10 * 1 = 10.
             minlenratio (float, optional): Minimum length ratio. If set to 10 and the length of input is 10,
                 the maximum length of outputs will be 10 * 10 = 100.
+            use_att_constraint (bool): Whether to apply attention constraint introduced in `Deep Voice 3`_.
+            backward_window (int): Backward window size in attention constraint.
+            forward_window (int): Forward window size in attention constraint.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -419,6 +423,8 @@ class Decoder(torch.nn.Module):
 
         Note:
             This computation is performed in auto-regressive manner.
+
+        .. _`Deep Voice 3`: https://arxiv.org/abs/1710.07654
 
         """
         # setup
@@ -440,6 +446,12 @@ class Decoder(torch.nn.Module):
         prev_att_w = None
         self.att.reset()
 
+        # setup for attention constraint
+        if use_att_constraint:
+            last_attended_idx = 0
+        else:
+            last_attended_idx = None
+
         # loop for an output sequence
         idx = 0
         outs, att_ws, probs = [], [], []
@@ -449,9 +461,16 @@ class Decoder(torch.nn.Module):
 
             # decoder calculation
             if self.use_att_extra_inputs:
-                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w, prev_out)
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w, prev_out,
+                                        last_attended_idx=last_attended_idx,
+                                        backward_window=backward_window,
+                                        forward_window=forward_window)
             else:
-                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w,
+                                        last_attended_idx=last_attended_idx,
+                                        backward_window=backward_window,
+                                        forward_window=forward_window)
+
             att_ws += [att_w]
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
@@ -470,6 +489,8 @@ class Decoder(torch.nn.Module):
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
             else:
                 prev_att_w = att_w
+            if use_att_constraint:
+                last_attended_idx = int(att_w.argmax())
 
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
