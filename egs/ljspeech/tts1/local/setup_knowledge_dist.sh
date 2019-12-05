@@ -20,7 +20,7 @@ verbose=1
 # teacher model related
 dict=
 teacher_model_path=
-decode_config=conf/best_decode_for_knowledge_dist.yaml
+decode_config=conf/decode_for_knowledge_dist.yaml
 
 # set related
 train_set=phn_train_no_dev
