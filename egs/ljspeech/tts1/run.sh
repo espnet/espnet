@@ -209,7 +209,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
     pids=() # initialize pids
-    for name in ${dev_set} ${eval_set}; do
+    for name in ${train_set}; do #${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
@@ -263,8 +263,8 @@ if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Decoding"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Decoding for knowledge distillation"
     if [ ${n_average} -gt 0 ]; then
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \
@@ -278,7 +278,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
-        ${train_cmd} --num-threads 2 JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -286,7 +286,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --out ${outdir}/${name}/feats.JOB \
                 --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
-                --save-durations true \
                 --config ${decode_config}
         # concatenate scp files
         for n in $(seq ${nj}); do
@@ -295,14 +294,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/durations.$n.scp" || exit 1;
         done > ${outdir}/${name}/durations.scp
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/focus_rates.$n.scp" || exit 1;
+        done > ${outdir}/${name}/focus_rates.scp
 
-        # make new json for knowledge distillation training
-        teacher_feats=${outdir}/${name}/feats.scp
-        teacher_durations=${outdir}/${name}/durations.scp
-
+        # make new data directory for knowledge distillation
         utils/copy_data_dir.sh data/${name} data/${name}_kd
-        cp ${teacher_feats} data/${name}_kd/feats.scp
-        cp ${teacher_durations} data/${name}_kd/durations.scp
+        cp ${outdir}/${name}/feats.scp data/${name}_kd/feats.scp
         utils/fix_data_dir.sh data/${name}_kd
     ) &
     pids+=($!) # store background pids
@@ -310,6 +308,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
+    # make new json for knowledge distillation
     data2json.sh --feat data/${train_set}_kd/feats.scp --trans_type ${trans_type} \
          data/${train_set}_kd ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat data/${dev_set}_kd/feats.scp --trans_type ${trans_type} \
@@ -325,8 +324,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-train_config=conf/tuning/train_fastspeech.v4.yaml
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     echo "stage 8: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
