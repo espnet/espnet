@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0        # start from 0 if you need to start from data preparation
+stage=-1       # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -32,13 +32,11 @@ lmtag=            # tag for managing LMs
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
-# Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  You'll want to change this
-# if you're not on the CLSP grid.
-datadir=/path/cv_corpus_v1
+datadir=downloads # original data directory to be stored
+lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru
 
 # base url for downloads.
-data_url=https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz
+data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
 
 # bpemode (unigram or bpe)
 nbpe=150
@@ -55,23 +53,34 @@ set -e
 set -u
 set -o pipefail
 
-train_set=valid_train
-train_dev=valid_dev
-recog_set="valid_dev valid_test"
+train_set=valid_train_${lang}
+train_dev=valid_dev_${lang}
+test_set=valid_test_${lang}
+recog_set="valid_dev_${lang} valid_test_${lang}"
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
     echo "stage -1: Data Download"
     mkdir -p ${datadir}
-    local/download_and_untar.sh ${datadir} ${data_url}
+    local/download_and_untar.sh ${datadir} ${data_url} ${lang}.tar.gz
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases 
-    for part in valid-train valid-dev valid-test; do
+    for part in "validated"; do
         # use underscore-separated names in data directories.
-        local/data_prep.pl ${datadir}/ cv-${part} data/"$(echo ${part} | tr - _)"
+        local/data_prep.pl ${datadir} ${part} data/"$(echo "${part}_${lang}" | tr - _)"
     done
+
+    # Kaldi Version Split
+    # ./utils/subset_data_dir_tr_cv.sh data/validated data/valid_train data/valid_test_dev
+    # ./utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 data/valid_test_dev data/valid_test data/valid_dev
+
+    # ESPNet Version (same as voxforge)
+    # consider duplicated sentences (does not consider speaker split)
+    # filter out the same sentences (also same text) of test&dev set from validated set
+    echo data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
+    local/split_tr_dt_et.sh data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -82,18 +91,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in valid_train valid_dev valid_test; do
+    for x in ${train_set} ${train_dev} ${recog_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 4 --write_utt2num_frames true \
                                   data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
     # Remove features with too long frames in training data
     max_len=3000
-    mv data/valid_train/utt2num_frames data/valid_train/utt2num_frames.bak
-    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/valid_train/utt2num_frames.bak > data/valid_train/utt2num_frames
-    utils/filter_scp.pl data/valid_train/utt2num_frames data/valid_train/utt2spk > data/valid_train/utt2spk.new
-    mv data/valid_train/utt2spk.new data/valid_train/utt2spk
-    utils/fix_data_dir.sh data/valid_train
+    mv data/${train_set}/utt2num_frames data/${train_set}/utt2num_frames.bak
+    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${train_set}/utt2num_frames.bak > data/${train_set}/utt2num_frames
+    utils/filter_scp.pl data/${train_set}/utt2num_frames data/${train_set}/utt2spk > data/${train_set}/utt2spk.new
+    mv data/${train_set}/utt2spk.new data/${train_set}/utt2spk
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark

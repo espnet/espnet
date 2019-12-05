@@ -60,6 +60,12 @@ def get_parser():
                         help='Threshold value in decoding')
     parser.add_argument('--save-durations', default=False, type=strtobool,
                         help='Whether to save attentions as durations')
+    parser.add_argument('--use-att-constraint', type=strtobool, default=False,
+                        help='Whether to use the attention constraint')
+    parser.add_argument('--backward-window', type=int, default=1,
+                        help='Backward window size in the attention constraint')
+    parser.add_argument('--forward-window', type=int, default=3,
+                        help='Forward window size in the attention constraint')
     return parser
 
 

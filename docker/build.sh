@@ -51,20 +51,32 @@ cmd_usage() {
 build(){
     echo "Build docker containers"
     # build runtime and gpu based containers
-    docker build --build-arg DOCKER_VER=${docker_ver} -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
+    docker_image=$( docker images -q espnet/espnet:runtime )
+    if ! [[ -n ${docker_image} ]]; then
+        docker build --build-arg DOCKER_VER=${docker_ver} -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
+    fi
     for ver in ${cuda_vers}; do
-        docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+        docker_image=$( docker images -q espnet/espnet:cuda${ver}-cudnn7 )
+        if ! [[ -n ${docker_image} ]]; then
+            docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+        fi
     done
 
     # build cpu based
-    docker build --build-arg FROM_TAG=runtime -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu-u18 . || exit 1
-
+    docker_image=$( docker images -q espnet/espnet:cpu-u18 )
+    if ! [[ -n ${docker_image} ]]; then
+        echo "Now building cpu-u18"
+        docker build --build-arg FROM_TAG=runtime -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu-u18 . || exit 1
+    fi
     # build gpu based
     for ver in ${cuda_vers}; do
         build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
         build_args="${build_args} --build-arg CUDA_VER=${ver}"
-
-        docker build ${build_args} -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18 . || exit 1
+        docker_image=$( docker images -q espnet/espnet:gpu-cuda${ver}-cudnn7-u18 )
+        if ! [[ -n ${docker_image} ]]; then
+            echo "Now building gpu-cuda${ver}-cudnn7-u18"
+            docker build ${build_args} -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18 . || exit 1
+        fi
     done
 }
 
@@ -157,6 +169,8 @@ elif [[ $1 == "fully_local" ]]; then
     build_local
 elif [[ $1 == "push" ]]; then
     push
+elif [[ $1 == "test" ]]; then
+    testing
 elif [[ $1 == "build_and_push" ]]; then
     build
     testing

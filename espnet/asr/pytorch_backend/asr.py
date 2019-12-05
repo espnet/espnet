@@ -111,7 +111,8 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) for arr in batch)
+                x = tuple(arr.to(self.device) if arr is not None else None
+                          for arr in batch)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -164,11 +165,18 @@ class CustomUpdater(StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
+        epoch = train_iter.epoch
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) for arr in batch)
+        x = tuple(arr.to(self.device) if arr is not None else None
+                  for arr in batch)
+        is_new_epoch = train_iter.epoch != epoch
+        # When the last minibatch in the current epoch is given,
+        # gradient accumulation is turned off in order to evaluate the model
+        # on the validation set in every epoch.
+        # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -192,7 +200,7 @@ class CustomUpdater(StandardUpdater):
 
         # update parameters
         self.forward_count += 1
-        if self.forward_count != self.accum_grad:
+        if not is_new_epoch and self.forward_count != self.accum_grad:
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
@@ -266,8 +274,8 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
-        # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+        # NOTE: this is for multi-output (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0][:]) if isinstance(y, tuple) else y).long()
                            for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
@@ -373,7 +381,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
     # write model config
@@ -392,7 +400,7 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
         if args.num_encs > 1:
@@ -736,7 +744,32 @@ def recog(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0] if args.num_encs == 1 else load_inputs_and_targets(batch)
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                if args.streaming_mode == 'window' and args.num_encs == 1:
+                    raise NotImplementedError
+                elif args.streaming_mode == 'segment' and args.num_encs == 1:
+                    if args.batchsize > 1:
+                        raise NotImplementedError
+                    feat = feats[0]
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
+                    nbest_hyps = [nbest_hyps]
+                else:
+                    nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]

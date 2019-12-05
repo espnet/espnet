@@ -9,9 +9,11 @@ from __future__ import division
 import argparse
 import codecs
 import logging
+import os
 
 import kaldiio
 import librosa
+import matplotlib.pyplot as plt
 import numpy
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -36,6 +38,8 @@ def get_parser():
                         help='Shift length in point')
     parser.add_argument('--min_silence', type=float, default=0.01,
                         help='minimum silence length')
+    parser.add_argument('--figdir', type=str, default="figs",
+                        help='Directory to save figures')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
@@ -60,6 +64,9 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
+    if not os.path.exists(args.figdir):
+        os.makedirs(args.figdir)
+
     with kaldiio.ReadHelper(args.rspecifier) as reader, \
             codecs.open(args.wspecifier, "w", encoding="utf-8") as f:
         for utt_id, (rate, array) in reader:
@@ -74,6 +81,17 @@ def main():
                 hop_length=args.shift_length
             )
             start, end = idx / args.fs
+
+            # save figure
+            plt.subplot(2, 1, 1)
+            plt.plot(array)
+            plt.title("Original")
+            plt.subplot(2, 1, 2)
+            plt.plot(array_trim)
+            plt.title("Trim")
+            plt.tight_layout()
+            plt.savefig(args.figdir + "/" + utt_id + ".png")
+            plt.close()
 
             # added minimum silence part
             start = max(0.0, start - args.min_silence)

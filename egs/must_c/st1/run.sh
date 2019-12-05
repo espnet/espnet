@@ -69,7 +69,6 @@ set -u
 set -o pipefail
 
 train_set=train_sp.en-${tgt_lang}.${tgt_lang}
-train_set_prefix=train_sp
 train_dev=dev.en-${tgt_lang}.${tgt_lang}
 trans_set=""
 for lang in $(echo ${tgt_lang} | tr '_' ' '); do
@@ -132,11 +131,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # Divide into source and target languages
-    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
+    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
         local/divide_lang.sh ${x} ${tgt_lang}
     done
 
-    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang}; do
+    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang}; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in ${tgt_lang} en; do
@@ -174,16 +173,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for rtask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${rtask} \
+            data/${ttask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${ttask} \
             ${feat_trans_dir}
     done
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${case}.txt
 bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -192,13 +191,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
+    echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
     spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
@@ -208,10 +207,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
-    for rtask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
-            data/${rtask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
+        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${case} --bpecode ${bpemodel}.model \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 
     # update json (add source references)
@@ -290,10 +289,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${trans_set}; do
+    for ttask in ${trans_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${rtask}/delta${do_delta}
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
