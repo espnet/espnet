@@ -18,11 +18,12 @@ dumpdir=dump
 verbose=1
 
 # teacher model related
-dict=
 teacher_model_path=
 decode_config=conf/decode_for_knowledge_dist.yaml
 
-# set related
+# data related
+trans_type=phn
+dict=
 train_set=phn_train_no_dev
 dev_set=phn_dev
 
