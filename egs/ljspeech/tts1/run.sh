@@ -162,6 +162,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --nj ${nj} \
             --dict ${dict} \
             --teacher_model_path ${teacher_model_path} \
+            --decode_config ${teacher_decode_config} \
             --train_set ${train_set} \
             --dev_set ${dev_set} \
             --do_filtering ${do_filtering} \
