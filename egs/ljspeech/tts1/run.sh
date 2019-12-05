@@ -38,6 +38,12 @@ train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or con
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
 
+# knowledge distillation related
+teacher_model_path=""
+teacher_decode_config=conf/decode_for_knowledge_dist.yaml
+do_filtering=false
+focus_rate_thres=0.65
+
 # decoding related
 model=model.loss.best
 n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
@@ -150,8 +156,25 @@ expdir=exp/${expname}
 mkdir -p ${expdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
-    tr_json=${feat_tr_dir}/data.json
-    dt_json=${feat_dt_dir}/data.json
+    if [ -n "${teacher_model_path}" ] && echo "${train_config}" | grep -q "fastspeech"; then
+        # setup feature and duration for fastspeech knowledge distillation training
+        local/setup_knowledge_dist.sh \
+            --nj ${nj} \
+            --dict ${dict} \
+            --teacher_model_path ${teacher_model_path} \
+            --train_set ${train_set} \
+            --dev_set ${dev_set} \
+            --do_filtering ${do_filtering} \
+            --focus_rate_thres ${focus_rate_thres}
+        teacher_expdir=$(dirname "$(dirname "${teacher_model_path}")")
+        teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
+        teacher_outdir=${teacher_expdir}/${teacher_outdir}
+        tr_json=${teacher_outdir}/dump/${train_set}/data.json
+        dt_json=${teacher_outdir}/dump/${dev_set}/data.json
+    else
+        tr_json=${feat_tr_dir}/data.json
+        dt_json=${feat_dt_dir}/data.json
+    fi
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
            --backend ${backend} \
@@ -255,90 +278,4 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
-fi
-
-feat_tr_dir=${dumpdir}/${train_set}_kd; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${dev_set}_kd; mkdir -p ${feat_dt_dir}
-if [ ${n_average} -gt 0 ]; then
-    model=model.last${n_average}.avg.best
-fi
-outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    echo "stage 7: Decoding for knowledge distillation"
-    if [ ${n_average} -gt 0 ]; then
-        average_checkpoints.py --backend ${backend} \
-                               --snapshots ${expdir}/results/snapshot.ep.* \
-                               --out ${expdir}/results/${model} \
-                               --num ${n_average}
-    fi
-    pids=() # initialize pids
-    for name in ${dev_set} ${train_set}; do
-    (
-        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
-        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
-        # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
-            tts_decode.py \
-                --backend ${backend} \
-                --ngpu 0 \
-                --verbose ${verbose} \
-                --out ${outdir}/${name}/feats.JOB \
-                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
-                --model ${expdir}/results/${model} \
-                --config ${decode_config}
-        # concatenate scp files
-        for n in $(seq ${nj}); do
-            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
-        done > ${outdir}/${name}/feats.scp
-        for n in $(seq ${nj}); do
-            cat "${outdir}/${name}/durations.$n.scp" || exit 1;
-        done > ${outdir}/${name}/durations.scp
-        for n in $(seq ${nj}); do
-            cat "${outdir}/${name}/focus_rates.$n.scp" || exit 1;
-        done > ${outdir}/${name}/focus_rates.scp
-
-        # make new data directory for knowledge distillation
-        utils/copy_data_dir.sh data/${name} data/${name}_kd
-        cp ${outdir}/${name}/feats.scp data/${name}_kd/feats.scp
-        utils/fix_data_dir.sh data/${name}_kd
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-
-    # make new json for knowledge distillation
-    data2json.sh --feat data/${train_set}_kd/feats.scp --trans_type ${trans_type} \
-         data/${train_set}_kd ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat data/${dev_set}_kd/feats.scp --trans_type ${trans_type} \
-         data/${dev_set}_kd ${dict} > ${feat_dt_dir}/data.json
-    local/update_json.sh ${feat_tr_dir}/data.json ${outdir}/${train_set}/durations.scp
-    local/update_json.sh ${feat_dt_dir}/data.json ${outdir}/${dev_set}/durations.scp
-fi
-
-if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})
-else
-    expname=${train_set}_${backend}_${tag}
-fi
-expdir=exp/${expname}
-mkdir -p ${expdir}
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    echo "stage 8: Text-to-speech model training"
-    tr_json=${feat_tr_dir}/data.json
-    dt_json=${feat_dt_dir}/data.json
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        tts_train.py \
-           --backend ${backend} \
-           --ngpu ${ngpu} \
-           --minibatches ${N} \
-           --outdir ${expdir}/results \
-           --tensorboard-dir tensorboard/${expname} \
-           --verbose ${verbose} \
-           --seed ${seed} \
-           --resume ${resume} \
-           --train-json ${tr_json} \
-           --valid-json ${dt_json} \
-           --config ${train_config}
 fi
