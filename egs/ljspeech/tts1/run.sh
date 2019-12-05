@@ -158,19 +158,21 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
     if [ -n "${teacher_model_path}" ] && echo "${train_config}" | grep -q "fastspeech"; then
         # setup feature and duration for fastspeech knowledge distillation training
-        local/setup_knowledge_dist.sh \
-            --nj ${nj} \
-            --dict ${dict} \
-            --trans_type ${trans_type} \
-            --teacher_model_path ${teacher_model_path} \
-            --decode_config ${teacher_decode_config} \
-            --train_set ${train_set} \
-            --dev_set ${dev_set} \
-            --do_filtering ${do_filtering} \
-            --focus_rate_thres ${focus_rate_thres}
         teacher_expdir=$(dirname "$(dirname "${teacher_model_path}")")
         teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
         teacher_outdir=${teacher_expdir}/${teacher_outdir}
+        if [ ! -e ${teacher_outdir}/.done ]; then
+            local/setup_knowledge_dist.sh \
+                --nj ${nj} \
+                --dict ${dict} \
+                --trans_type ${trans_type} \
+                --teacher_model_path ${teacher_model_path} \
+                --decode_config ${teacher_decode_config} \
+                --train_set ${train_set} \
+                --dev_set ${dev_set} \
+                --do_filtering ${do_filtering} \
+                --focus_rate_thres ${focus_rate_thres}
+        fi
         tr_json=${teacher_outdir}/dump/${train_set}/data.json
         dt_json=${teacher_outdir}/dump/${dev_set}/data.json
     else
