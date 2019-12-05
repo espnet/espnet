@@ -4,7 +4,8 @@ from typing import NamedTuple
 import pytest
 import torch
 
-from espnet2.utils.device_funcs import to_device, force_gatherable
+from espnet2.utils.device_funcs import force_gatherable
+from espnet2.utils.device_funcs import to_device
 
 x = torch.tensor(10)
 
@@ -72,4 +73,3 @@ def test_force_gatherable_cuda():
     obj = {'a': [torch.tensor([0, 1])]}
     obj2 = force_gatherable(obj, 'cuda')
     assert obj2['a'][0].device == torch.device('cuda:0')
-

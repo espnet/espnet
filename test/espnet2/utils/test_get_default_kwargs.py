@@ -49,5 +49,3 @@ def func7(b=(4, Dummy())):
      ])
 def test_get_defaut_kwargs(func, desired: Any):
     assert get_default_kwargs(func) == desired
-
-
