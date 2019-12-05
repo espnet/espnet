@@ -1,6 +1,9 @@
 # Config based on train_fastspeech.v2 + postnet.
 # This configuration reuqires 2 gpus in the case of each gpu memory = 24GB.
-# To use this configuration, you need the model trained with `conf/tuning/train_transformer.v3`.
+# This configuration assumes that durations and features are already dumped,
+# in other words, the training will be followed knowledge distilation manner.
+# You need to additionaly specify pretrained teacher model path in `run.sh`
+# if you want to use this configuration.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
