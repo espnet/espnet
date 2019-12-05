@@ -27,7 +27,7 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPNetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.train.text_converter import build_text_converter
+from espnet2.utils.text_converter import build_text_converter
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -163,7 +163,7 @@ def recog(
     else:
         converter = build_text_converter(
             token_type=token_type, model_or_token_list=token_list)
-    logging.info(f'Text convertetr: {converter}')
+    logging.info(f'Text converter: {converter}')
 
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
@@ -208,12 +208,10 @@ def recog(
                 ibest_writer['score'][key] = str(hyp.score)
 
                 if converter is not None:
-                    # FIXME(kamo): [If BPE] Sequence must be given
-                    #  as tokens instead of integers because the token-id
-                    #  is not consistent between asr-training and BPE training,
-                    #  I don't know how to match them.
+                    # If bpe, Sequence must be given
+                    # as tokens instead of integers because the token-id
+                    # is not consistent between asr-training and BPE training
                     text = converter.tokens2text(token)
-                    # text = converter.ids2text(token_int)
                     ibest_writer['text'][key] = text
 
 

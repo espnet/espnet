@@ -33,8 +33,6 @@ class TTSE2E(AbsE2E):
                 spcs: torch.Tensor = None,
                 spcs_lengths: torch.Tensor = None) -> \
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        assert text.size(1) >= text_lengths.max(), \
-            (text.size(), text_lengths.max())
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         else:

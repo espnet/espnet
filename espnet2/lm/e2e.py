@@ -20,13 +20,10 @@ class LanguageE2E(AbsE2E):
         self.eos = vocab_size - 1
 
         # ignore_id may be assumed as 0, shared with CTC-blank symbol for ASR.
-        # in the other part.
         self.ignore_id = ignore_id
 
     def nll(self, text: torch.Tensor, text_lengths: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
-        assert text.size(-1) >= text_lengths.max(), \
-            (text.size(), text_lengths.max())
         batch_size = text.size(0)
         # For data parallel
         text = text[:, :text_lengths.max()]

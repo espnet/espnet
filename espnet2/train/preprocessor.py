@@ -9,7 +9,7 @@ import numpy as np
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.train.text_converter import build_text_converter
+from espnet2.utils.text_converter import build_text_converter
 from espnet2.utils.fileio import DatadirWriter
 
 
