@@ -161,6 +161,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         local/setup_knowledge_dist.sh \
             --nj ${nj} \
             --dict ${dict} \
+            --trans_type ${trans_type} \
             --teacher_model_path ${teacher_model_path} \
             --decode_config ${teacher_decode_config} \
             --train_set ${train_set} \
