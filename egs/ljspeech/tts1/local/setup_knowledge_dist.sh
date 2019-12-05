@@ -115,5 +115,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
          ${outdir}/data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     local/update_json.sh ${feat_tr_dir}/data.json ${outdir}/${train_set}/durations.scp
     local/update_json.sh ${feat_dt_dir}/data.json ${outdir}/${dev_set}/durations.scp
+    touch ${outdir}/.done
     echo "successfully finished making new json."
 fi
