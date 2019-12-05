@@ -222,7 +222,7 @@ class CustomConverter(object):
         """
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys, spembs, spcs = batch[0]
+        xs, ys, spembs, extras = batch[0]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -246,15 +246,15 @@ class CustomConverter(object):
             "olens": olens,
         }
 
-        # load second target
-        if spcs is not None:
-            spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
-            new_batch["spcs"] = spcs
-
         # load speaker embedding
         if spembs is not None:
-            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
-            new_batch["spembs"] = spembs
+            spembs = torch.from_numpy(np.array(spembs)).float()
+            new_batch["spembs"] = spembs.to(device)
+
+        # load second target
+        if extras is not None:
+            extras = pad_list([torch.from_numpy(extra).float() for extra in extras], 0)
+            new_batch["extras"] = extras.to(device)
 
         return new_batch
 
