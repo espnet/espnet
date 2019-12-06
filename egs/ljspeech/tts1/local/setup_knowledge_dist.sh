@@ -57,64 +57,73 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     pids=() # initialize pids
     for name in ${dev_set} ${train_set}; do
     (
-        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
-        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
-        # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
+        [ ! -e "${outdir}/${name}" ] && mkdir -p "${outdir}/${name}"
+        cp ${dumpdir}/${name}/data.json "${outdir}/${name}"
+        splitjson.py --parts ${nj} "${outdir}/${name}/data.json"
+        # shellcheck disable=SC2154
+        ${train_cmd} JOB=1:${nj} "${outdir}/${name}/log/decode.JOB.log" \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
-                --out ${outdir}/${name}/feats.JOB \
-                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
+                --out "${outdir}/${name}/feats.JOB" \
+                --json "${outdir}/${name}/split${nj}utt/data.JOB.json" \
                 --model ${teacher_model_path} \
                 --config ${decode_config}
         # concatenate scp files
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/feats.$n.scp" || exit 1;
-        done > ${outdir}/${name}/feats.scp
+        done > "${outdir}/${name}/feats.scp"
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/durations.$n.scp" || exit 1;
-        done > ${outdir}/${name}/durations.scp
+        done > "${outdir}/${name}/durations.scp"
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/focus_rates.$n.scp" || exit 1;
-        done > ${outdir}/${name}/focus_rates.scp
+        done > "${outdir}/${name}/focus_rates.scp"
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait "${pid}" || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "successfully finished decoding."
 fi
 
-feat_tr_dir=${outdir}/dump/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${outdir}/dump/${dev_set}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Making json for knowledge distillation"
-    # perform filtering
-    if ${do_filtering}; then
-        # TODO(kan-bayashi): implement filtering
-        echo "Not yet supported."
-        exit 1;
-    fi
-
     # make data directory for knowledge distillation
     for name in ${dev_set} ${train_set}; do
-        # make new data directory for knowledge distillation
-        [ ! -e ${outdir}/data ] && mkdir -p ${outdir}/data
-        utils/copy_data_dir.sh data/${name} ${outdir}/data/${name}
-        cp ${outdir}/${name}/feats.scp ${outdir}/data/${name}/feats.scp
-        utils/fix_data_dir.sh ${outdir}/data/${name}
+        # perform filtering
+        feats=feats.scp
+        durations=durations.scp
+        if ${do_filtering}; then
+            local/filter_by_focus_rate.py \
+                --focus_rates-scp "${outdir}/${name}/focus_rates.scp" \
+                --feats-scp "${outdir}/${name}/${feats}" \
+                --durations-scp "${outdir}/${name}/${durations}" \
+                --threshold ${focus_rate_thres}
+            feats=feats_filtered.scp
+            durations=durations_filtered.scp
+        fi
+
+        # check directory existence
+        [ ! -e "${outdir}/data/${name}" ] && mkdir -p "${outdir}/data/${name}"
+        [ ! -e "${outdir}/dump/${name}" ] && mkdir -p "${outdir}/dump/${name}"
+
+        # copy data dir and then remove utterances not included in feats.scp
+        utils/copy_data_dir.sh data/${name} "${outdir}/data/${name}"
+        cp "${outdir}/${name}/${feats}" "${outdir}/data/${name}/feats.scp"
+        utils/fix_data_dir.sh "${outdir}/data/${name}"
+
+        # make a new json
+        data2json.sh --feat "${outdir}/data/${name}/feats.scp" --trans_type ${trans_type} \
+             "${outdir}/data/${name}" ${dict} > "${outdir}/dump/${name}/data.json"
+
+        # add duration info to json
+        local/update_json.sh \
+            "${outdir}/dump/${name}/data.json" \
+            "${outdir}/data/${durations}"
     done
 
-    # make new json for knowledge distillation
-    data2json.sh --feat ${outdir}/data/${train_set}/feats.scp --trans_type ${trans_type} \
-         ${outdir}/data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${outdir}/data/${dev_set}/feats.scp --trans_type ${trans_type} \
-         ${outdir}/data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
-    local/update_json.sh ${feat_tr_dir}/data.json ${outdir}/${train_set}/durations.scp
-    local/update_json.sh ${feat_dt_dir}/data.json ${outdir}/${dev_set}/durations.scp
-    touch ${outdir}/.done
+    touch "${outdir}/.done"
     echo "successfully finished making new json."
 fi
