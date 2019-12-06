@@ -4,9 +4,8 @@ import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.rnn.attentions import AttAdd
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,
-)
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 

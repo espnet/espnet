@@ -1,5 +1,5 @@
-import string
 from pathlib import Path
+import string
 
 import numpy as np
 import pytest
