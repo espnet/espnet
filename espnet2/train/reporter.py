@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import ContextManager
 from typing import Dict
 from typing import List
-from typing import NoReturn
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -134,7 +133,7 @@ class SubReporter:
         stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
         weight: Num = None,
         not_increment_count: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         assert check_argument_types()
         if self._finished:
             raise RuntimeError("Already finished")
@@ -152,7 +151,7 @@ class SubReporter:
 
     def logging(
         self, logger=None, level: str = "INFO", nlatest: int = None
-    ) -> NoReturn:
+    ) -> None:
         if self._finished:
             raise RuntimeError("Already finished")
         if logger is None:
@@ -178,7 +177,7 @@ class SubReporter:
             message += f"{key2}={v:.3f}"
         logger.log(level, message)
 
-    def finished(self) -> NoReturn:
+    def finished(self) -> None:
         self._finished = True
 
 
@@ -207,7 +206,7 @@ class Reporter:
     def get_epoch(self) -> int:
         return self.epoch
 
-    def set_epoch(self, epoch: int) -> NoReturn:
+    def set_epoch(self, epoch: int) -> None:
         if epoch < 0:
             raise ValueError(f"epoch must be 0 or more: {epoch}")
         self.epoch = epoch
@@ -247,7 +246,7 @@ class Reporter:
         self.stats.pop(epoch, None)
         return sub_reporter
 
-    def finish_epoch(self, sub_reporter: SubReporter) -> NoReturn:
+    def finish_epoch(self, sub_reporter: SubReporter) -> None:
         if self.epoch != sub_reporter.epoch:
             raise RuntimeError(
                 f"Don't change epoch during observation: "
