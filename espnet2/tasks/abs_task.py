@@ -28,7 +28,6 @@ from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet.asr.asr_utils import add_gradient_noise
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
@@ -40,7 +39,7 @@ from espnet2.train.batch_sampler import AbsSampler
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
-from espnet2.train.dataset import ESPNetDataset
+from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
@@ -700,7 +699,7 @@ class AbsTask(ABC):
             dtype = "float32"
         else:
             dtype = args.train_dtype
-        train_dataset = ESPNetDataset(
+        train_dataset = ESPnetDataset(
             args.train_data_path_and_name_and_type,
             float_dtype=dtype,
             preprocess=cls.build_preprocess_fn(args, True),
@@ -725,7 +724,7 @@ class AbsTask(ABC):
         )
 
         # 3. Build eval-data-iterator
-        eval_dataset = ESPNetDataset(
+        eval_dataset = ESPnetDataset(
             args.eval_data_path_and_name_and_type,
             float_dtype=dtype,
             preprocess=cls.build_preprocess_fn(args, False),
@@ -905,7 +904,7 @@ class AbsTask(ABC):
     @classmethod
     def check_task_requirements(
         cls,
-        dataset: ESPNetDataset,
+        dataset: ESPnetDataset,
         allow_variable_data_keys: bool,
         train: bool = True,
     ) -> None:
@@ -1205,7 +1204,7 @@ class AbsTask(ABC):
                     f"The snapshot was removed: " + ", ".join(_removed)
                 )
 
-            # 7. If any updating didn't happen, stops the training
+            # 7. If any updating haven't happen, stops the training
             if all_steps_are_invalid:
                 logging.warning(
                     f"The gradients at all steps are invalid "

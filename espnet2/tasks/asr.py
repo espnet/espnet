@@ -324,10 +324,8 @@ class ASRTask(AbsTask):
             retval = CommonPreprocessor(
                 train=train,
                 token_type=args.token_type,
-                model_or_token_list=args.bpemodel
-                if args.token_type == "bpe"
-                else args.token_list,
-            )
+                token_list=args.token_list,
+                bpemodel=args.bpemodel)
         else:
             retval = None
         assert check_return_type(retval)

@@ -15,7 +15,6 @@ class AbsTTS(torch.nn.Module, ABC):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        spembs_lengths: torch.Tensor = None,
         spcs: torch.Tensor = None,
         spcs_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
