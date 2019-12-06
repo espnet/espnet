@@ -47,7 +47,7 @@ def spm_srcs(tmp_path: Path):
     with input_text.open("r") as f:
         vocabs = {"<unk>", "▁"}
         for line in f:
-            tokens = sp.DecodePieces(list(line))
+            tokens = sp.DecodePieces(list(line.strip()))
         vocabs |= set(tokens)
     return model, vocabs
 
@@ -199,3 +199,8 @@ def test_build_text_converter_without_model():
 def test_build_text_converter_unknown_type():
     with pytest.raises(ValueError):
         build_text_converter(token_type="ddd", token_list=())
+
+
+def test_build_text_converter_duplicated():
+    with pytest.raises(RuntimeError):
+        build_text_converter(token_type="char", token_list=("unk", "e", "e"))
