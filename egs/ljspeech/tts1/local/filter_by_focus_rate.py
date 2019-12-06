@@ -46,8 +46,9 @@ def main():
     fr_reader = kaldiio.load_scp(args.focus_rates_scp)
 
     # define writer
-    feat_file_id = os.path.dirname(args.feats_scp) + "feats_filtered"
-    dur_file_id = os.path.dirname(args.durations_scp) + "durations_filtered"
+    dirname = os.path.dirname(args.feats_scp)
+    feat_file_id = f"{dirname}/feats_filtered"
+    dur_file_id = f"{dirname}/durations_filtered"
     feat_writer = kaldiio.WriteHelper(
         'ark,scp:{o}.ark,{o}.scp'.format(o=feat_file_id))
     dur_writer = kaldiio.WriteHelper(
@@ -62,7 +63,7 @@ def main():
             dur_writer[utt_id] = dur_reader[utt_id]
         else:
             drop_count += 1
-        logging.info(f"{utt_id} is dropped (focus rate: {focus_rate}).")
+            logging.info(f"{utt_id} is dropped (focus rate: {focus_rate}).")
     logging.info(f"{drop_count} utts are dropped by filtering.")
 
     # close writer instances

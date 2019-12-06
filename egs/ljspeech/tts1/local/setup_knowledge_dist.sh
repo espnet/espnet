@@ -97,7 +97,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         durations=durations.scp
         if ${do_filtering}; then
             local/filter_by_focus_rate.py \
-                --focus_rates-scp "${outdir}/${name}/focus_rates.scp" \
+                --focus-rates-scp "${outdir}/${name}/focus_rates.scp" \
                 --feats-scp "${outdir}/${name}/${feats}" \
                 --durations-scp "${outdir}/${name}/${durations}" \
                 --threshold ${focus_rate_thres}
@@ -121,7 +121,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # add duration info to json
         local/update_json.sh \
             "${outdir}/dump/${name}/data.json" \
-            "${outdir}/data/${durations}"
+            "${outdir}/${name}/${durations}"
     done
 
     touch "${outdir}/.done"
