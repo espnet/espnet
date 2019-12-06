@@ -29,47 +29,79 @@ from espnet2.utils.types import str_or_none
 
 class LMTask(AbsTask):
     @classmethod
-    def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
-            -> configargparse.ArgumentParser:
+    def add_arguments(
+        cls, parser: configargparse.ArgumentParser = None
+    ) -> configargparse.ArgumentParser:
         assert check_argument_types()
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
-                description='Train language model',
+                description="Train language model",
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
-                formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+                formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+            )
 
         AbsTask.add_arguments(parser)
-        group = parser.add_argument_group(description='Task related')
+        group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default('required')
-        required += ['token_list']
+        required = parser.get_default("required")
+        required += ["token_list"]
 
-        group.add_argument('--token_list', type=str_or_none, default=None,
-                           help='A text mapping int-id to token')
-        group.add_argument('--init', type=lambda x: str_or_none(x.lower()),
-                           default=None, help='The initialization method',
-                           choices=cls.init_choices())
         group.add_argument(
-            '--lm', type=lambda x: x.lower(), default='seq_rnn',
-            choices=cls.lm_choices(), help='Specify lm class')
+            "--token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token",
+        )
         group.add_argument(
-            '--lm_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for lm class.')
+            "--init",
+            type=lambda x: str_or_none(x.lower()),
+            default=None,
+            help="The initialization method",
+            choices=cls.init_choices(),
+        )
         group.add_argument(
-            '--e2e_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for E2E class.')
+            "--lm",
+            type=lambda x: x.lower(),
+            default="seq_rnn",
+            choices=cls.lm_choices(),
+            help="Specify lm class",
+        )
+        group.add_argument(
+            "--lm_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for lm class.",
+        )
+        group.add_argument(
+            "--e2e_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for E2E class.",
+        )
 
-        group = parser.add_argument_group(description='Preprocess related')
+        group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
-            '--use_preprocessor', type=str2bool, default=False,
-            help='Apply preprocessing to data or not')
-        group.add_argument('--token_type', type=str, default='bpe',
-                           choices=['bpe', 'char', 'word'], help='')
-        group.add_argument('--bpemodel', type=str_or_none, default=None,
-                           help='The model file fo sentencepiece')
+            "--use_preprocessor",
+            type=str2bool,
+            default=False,
+            help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--token_type",
+            type=str,
+            default="bpe",
+            choices=["bpe", "char", "word"],
+            help="",
+        )
+        group.add_argument(
+            "--bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file fo sentencepiece",
+        )
 
         assert check_return_type(parser)
         return parser
@@ -100,8 +132,8 @@ class LMTask(AbsTask):
         config.update(AbsTask.get_default_config())
 
         # 4. Overwrite the default config by the command-arguments
-        lm_conf.update(config['lm_conf'])
-        e2e_conf.update(config['e2e_conf'])
+        lm_conf.update(config["lm_conf"])
+        e2e_conf.update(config["e2e_conf"])
 
         # 5. Reassign them to the configuration
         config.update(lm_conf=lm_conf, e2e_conf=e2e_conf)
@@ -115,13 +147,19 @@ class LMTask(AbsTask):
 
     @classmethod
     def init_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('chainer', 'xavier_uniform', 'xavier_normal',
-                   'kaiming_uniform', 'kaiming_normal', None)
+        choices = (
+            "chainer",
+            "xavier_uniform",
+            "xavier_normal",
+            "kaiming_uniform",
+            "kaiming_normal",
+            None,
+        )
         return choices
 
     @classmethod
     def lm_choices(cls) -> Tuple[str, ...]:
-        choices = ('seq_rnn',)
+        choices = ("seq_rnn",)
         return choices
 
     @classmethod
@@ -129,32 +167,35 @@ class LMTask(AbsTask):
         assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
-        if name.lower() == 'seq_rnn':
+        if name.lower() == "seq_rnn":
             retval = SequentialRNNLM
         else:
             raise RuntimeError(
-                f'--lm must be one of '
-                f'{cls.lm_choices()}: --lm {name}')
+                f"--lm must be one of " f"{cls.lm_choices()}: --lm {name}"
+            )
         assert check_return_type(retval)
         return retval
 
     @classmethod
-    def build_collate_fn(cls, args: argparse.Namespace) \
-            -> Callable[[Sequence[Dict[str, np.ndarray]]],
-                        Dict[str, torch.Tensor]]:
+    def build_collate_fn(
+        cls, args: argparse.Namespace
+    ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
         assert check_argument_types()
         return CommonCollateFn(int_pad_value=0)
 
     @classmethod
-    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool) \
-            -> Optional[Callable[[str, Dict[str, np.array]],
-                                 Dict[str, np.ndarray]]]:
+    def build_preprocess_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
-                train=train, token_type=args.token_type,
+                train=train,
+                token_type=args.token_type,
                 model_or_token_list=args.bpemodel
-                if args.token_type == 'bpe' else args.token_list)
+                if args.token_type == "bpe"
+                else args.token_list,
+            )
         else:
             retval = None
         assert check_return_type(retval)
@@ -162,7 +203,7 @@ class LMTask(AbsTask):
 
     @classmethod
     def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
-        retval = ('text',)
+        retval = ("text",)
         return retval
 
     @classmethod
@@ -183,10 +224,10 @@ class LMTask(AbsTask):
         elif isinstance(args.token_list, (tuple, list)):
             token_list = args.token_list.copy()
         else:
-            raise RuntimeError('token_list must be str or dict')
+            raise RuntimeError("token_list must be str or dict")
 
         vocab_size = len(token_list)
-        logging.info(f'Vocabulary size: {vocab_size }')
+        logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. Build LM model
         lm_class = cls.get_lm_class(args.lm)

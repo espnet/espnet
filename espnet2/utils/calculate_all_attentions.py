@@ -4,16 +4,17 @@ from typing import List
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.layers.abs_attention import AbsAttention
 from espnet2.train.abs_e2e import AbsE2E
 
 
 @torch.no_grad()
-def calculate_all_attentions(model: AbsE2E,
-                             batch: Dict[str, torch.Tensor]) \
-        -> Dict[str, List[torch.Tensor]]:
+def calculate_all_attentions(
+    model: AbsE2E, batch: Dict[str, torch.Tensor]
+) -> Dict[str, List[torch.Tensor]]:
     """Derive the outputs from the all attention layers
 
     Args:
@@ -25,13 +26,15 @@ def calculate_all_attentions(model: AbsE2E,
 
     """
     bs = len(next(iter(batch.values())))
-    assert all(len(v) == bs for v in batch.values()), \
-        {k: v.shape for k, v in batch.items()}
+    assert all(len(v) == bs for v in batch.values()), {
+        k: v.shape for k, v in batch.items()
+    }
 
     # 1. Register forward_hook fn to save the output from specific layers
     outputs = {}
     handles = {}
     for name, modu in model.named_modules():
+
         def hook(module, input, output, name=name):
             # TODO(kamo): Should unify the interface?
             if isinstance(module, MultiHeadedAttention):
@@ -48,21 +51,27 @@ def calculate_all_attentions(model: AbsE2E,
     # Batch-mode can't be used to keep requirements small for each models.
     keys = []
     for k in batch:
-        if not k.endswith('_lengths'):
+        if not k.endswith("_lengths"):
             keys.append(k)
 
     return_dict = defaultdict(list)
     for ibatch in range(bs):
         # *: (B, L, ...) -> (1, L2, ...)
-        _sample = \
-            {k: batch[k][ibatch, None, :batch[k + '_lengths'][ibatch]]
-             if k + '_lengths' in batch else batch[k][ibatch, None]
-             for k in keys}
+        _sample = {
+            k: batch[k][ibatch, None, : batch[k + "_lengths"][ibatch]]
+            if k + "_lengths" in batch
+            else batch[k][ibatch, None]
+            for k in keys
+        }
 
         # *_lengths: (B,) -> (1,)
         _sample.update(
-            {k + '_lengths': batch[k + '_lengths'][ibatch, None]
-             for k in keys if k + '_lengths' in batch})
+            {
+                k + "_lengths": batch[k + "_lengths"][ibatch, None]
+                for k in keys
+                if k + "_lengths" in batch
+            }
+        )
         model(**_sample)
 
         # Derive the attention results

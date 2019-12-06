@@ -24,7 +24,7 @@ def int_or_none(value: str) -> Optional[int]:
         Namespace(foo=None)
 
     """
-    if value.strip().lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ("none", "null", "nil"):
         return None
     return int(value)
 
@@ -46,7 +46,7 @@ def float_or_none(value: str) -> Optional[float]:
         Namespace(foo=None)
 
     """
-    if value.strip().lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ("none", "null", "nil"):
         return None
     return float(value)
 
@@ -68,7 +68,7 @@ def str_or_none(value: str) -> Optional[str]:
         Namespace(foo=None)
 
     """
-    if value.strip().lower() in ('none', 'null', 'nil'):
+    if value.strip().lower() in ("none", "null", "nil"):
         return None
     return value
 
@@ -86,7 +86,7 @@ def str2pair_str(value: str) -> Tuple[str, str]:
         Namespace(foo=('abc', 'def'))
 
     """
-    a, b = value.split(',')
+    a, b = value.split(",")
     return a.strip(), b.strip()
 
 
@@ -97,5 +97,5 @@ def str2triple_str(value: str) -> Tuple[str, str, str]:
         >>> str2triple_str('abc,def ,ghi')
         ('abc', 'def', 'ghi')
     """
-    a, b, c = value.split(',')
+    a, b, c = value.split(",")
     return a.strip(), b.strip(), c.strip()

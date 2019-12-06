@@ -13,26 +13,28 @@ from espnet2.tts.abs_model import AbsTTS
 
 
 class TTSE2E(AbsE2E):
-    def __init__(self,
-                 feats_extract: Optional[AbsFrontend],
-                 normalize: Optional[AbsNormalize and InversibleInterface],
-                 tts: AbsTTS,
-                 ):
+    def __init__(
+        self,
+        feats_extract: Optional[AbsFrontend],
+        normalize: Optional[AbsNormalize and InversibleInterface],
+        tts: AbsTTS,
+    ):
         assert check_argument_types()
         super().__init__()
         self.feats_extract = feats_extract
         self.normalize = normalize
         self.tts = tts
 
-    def forward(self,
-                text: torch.Tensor,
-                text_lengths: torch.Tensor,
-                speech: torch.Tensor,
-                speech_lengths: torch.Tensor,
-                spembs: torch.Tensor = None,
-                spcs: torch.Tensor = None,
-                spcs_lengths: torch.Tensor = None) -> \
-            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    def forward(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        spembs: torch.Tensor = None,
+        spcs: torch.Tensor = None,
+        spcs_lengths: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         else:
@@ -48,4 +50,5 @@ class TTSE2E(AbsE2E):
             speech_lengths=feats_lengths,
             spembs=spembs,
             spcs=spcs,
-            spcs_lengths=spcs_lengths)
+            spcs_lengths=spcs_lengths,
+        )

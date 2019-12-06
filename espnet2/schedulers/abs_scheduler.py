@@ -63,7 +63,7 @@ AbsEpochScheduler.register(L.MultiStepLR)
 AbsEpochScheduler.register(L.ExponentialLR)
 AbsEpochScheduler.register(L.CosineAnnealingLR)
 
-if LooseVersion(torch.__version__) >= LooseVersion('1.1.0'):
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     AbsBatchScheduler.register(L.CyclicLR)
     AbsBatchScheduler.register(L.OneCycleLR)
     AbsBatchScheduler.register(L.CosineAnnealingWarmRestarts)

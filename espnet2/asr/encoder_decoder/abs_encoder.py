@@ -12,7 +12,10 @@ class AbsEncoder(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor,
-                prev_states: torch.Tensor = None) \
-            -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+    def forward(
+        self,
+        xs_pad: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         raise NotImplementedError

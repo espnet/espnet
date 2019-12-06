@@ -24,16 +24,19 @@ class Model2(torch.nn.Module):
 
 
 @pytest.mark.parametrize(
-    'init', ['chainer',
-             'xavier_uniform',
-             'xavier_normal',
-             'kaiming_normal',
-             'kaiming_uniform',
-             'dummy'
-             ])
+    "init",
+    [
+        "chainer",
+        "xavier_uniform",
+        "xavier_normal",
+        "kaiming_normal",
+        "kaiming_uniform",
+        "dummy",
+    ],
+)
 def test_initialize(init):
     model = Model()
-    if init == 'dummy':
+    if init == "dummy":
         with pytest.raises(ValueError):
             initialize(model, init)
     else:
@@ -43,4 +46,4 @@ def test_initialize(init):
 def test_5dim():
     model = Model2()
     with pytest.raises(NotImplementedError):
-        initialize(model, 'chainer')
+        initialize(model, "chainer")

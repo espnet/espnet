@@ -8,10 +8,12 @@ from espnet2.layers.abs_normalize import AbsNormalize
 
 
 class UtteranceMVN(AbsNormalize):
-    def __init__(self,
-                 norm_means: bool = True,
-                 norm_vars: bool = False,
-                 eps: float = 1.0e-20):
+    def __init__(
+        self,
+        norm_means: bool = True,
+        norm_vars: bool = False,
+        eps: float = 1.0e-20,
+    ):
         assert check_argument_types()
         super().__init__()
         self.norm_means = norm_means
@@ -19,10 +21,11 @@ class UtteranceMVN(AbsNormalize):
         self.eps = eps
 
     def extra_repr(self):
-        return f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
+        return f"norm_means={self.norm_means}, norm_vars={self.norm_vars}"
 
-    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, ilens: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward function
 
         Args:
@@ -30,18 +33,22 @@ class UtteranceMVN(AbsNormalize):
             ilens: (B,)
 
         """
-        return utterance_mvn(x, ilens,
-                             norm_means=self.norm_means,
-                             norm_vars=self.norm_vars,
-                             eps=self.eps)
+        return utterance_mvn(
+            x,
+            ilens,
+            norm_means=self.norm_means,
+            norm_vars=self.norm_vars,
+            eps=self.eps,
+        )
 
 
 def utterance_mvn(
-        x: torch.Tensor,
-        ilens: torch.Tensor = None,
-        norm_means: bool = True,
-        norm_vars: bool = False,
-        eps: float = 1.0e-20) -> Tuple[torch.Tensor, torch.Tensor]:
+    x: torch.Tensor,
+    ilens: torch.Tensor = None,
+    norm_means: bool = True,
+    norm_vars: bool = False,
+    eps: float = 1.0e-20,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Apply utterance mean and variance normalization
 
     Args:
@@ -54,8 +61,9 @@ def utterance_mvn(
     """
     if ilens is None:
         ilens = x.new_full([x.size(0)], x.size(1))
-    ilens_ = ilens.to(x.device, x.dtype).view(-1,
-                                              *[1 for _ in range(x.dim() - 1)])
+    ilens_ = ilens.to(x.device, x.dtype).view(
+        -1, *[1 for _ in range(x.dim() - 1)]
+    )
     # Zero padding
     if x.is_leaf and x.requires_grad:
         x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
@@ -74,7 +82,7 @@ def utterance_mvn(
         return x, ilens
     else:
         if norm_vars:
-            y = (x - mean)
+            y = x - mean
             y.masked_fill_(make_pad_mask(ilens, y, 1), 0.0)
             var = y.pow(2).sum(dim=1, keepdim=True) / ilens_
             std = torch.clamp(var.sqrt(), min=eps)

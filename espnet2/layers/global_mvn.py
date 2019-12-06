@@ -24,11 +24,13 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         eps:
     """
 
-    def __init__(self,
-                 stats_file: Union[Path, str],
-                 norm_means: bool = True,
-                 norm_vars: bool = True,
-                 eps: float = 1.0e-20):
+    def __init__(
+        self,
+        stats_file: Union[Path, str],
+        norm_means: bool = True,
+        norm_vars: bool = True,
+        eps: float = 1.0e-20,
+    ):
         assert check_argument_types()
         super().__init__()
         self.norm_means = norm_means
@@ -42,15 +44,18 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         mean = stats[0, :-1] / count
         var = stats[1, :-1] / count - mean * mean
         std = np.maximum(np.sqrt(var), eps)
-        self.register_buffer('mean', torch.from_numpy(mean))
-        self.register_buffer('std', torch.from_numpy(std))
+        self.register_buffer("mean", torch.from_numpy(mean))
+        self.register_buffer("std", torch.from_numpy(std))
 
     def extra_repr(self):
-        return f'stats_file={self.stats_file}, ' \
-            f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
+        return (
+            f"stats_file={self.stats_file}, "
+            f"norm_means={self.norm_means}, norm_vars={self.norm_vars}"
+        )
 
-    def forward(self, x: torch.Tensor, ilens: torch.Tensor = None) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, ilens: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward function
 
         Args:
@@ -85,8 +90,9 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
 
         return x, ilens
 
-    def inverse(self, x: torch.Tensor, ilens: torch.Tensor = None) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(
+        self, x: torch.Tensor, ilens: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         if ilens is None:
             ilens = x.new_full([x.size(0)], x.size(1))
         norm_means = self.norm_means

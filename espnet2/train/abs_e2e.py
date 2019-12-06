@@ -32,6 +32,7 @@ class AbsE2E(torch.nn.Module, ABC):
     """
 
     @abstractmethod
-    def forward(self, **batch: torch.Tensor) \
-            -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    def forward(
+        self, **batch: torch.Tensor
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         raise NotImplementedError

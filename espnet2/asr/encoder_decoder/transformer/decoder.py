@@ -8,15 +8,18 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention \
-    import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
-from espnet.nets.pytorch_backend.transformer.embedding \
-    import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward \
-    import PositionwiseFeedForward
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,
+)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
 
@@ -43,21 +46,23 @@ class Decoder(AbsDecoder):
             i.e. x -> x + att(x)
     """
 
-    def __init__(self,
-                 odim: int,
-                 encoder_out_dim: int,
-                 attention_heads: int = 4,
-                 linear_units: int = 2048,
-                 num_blocks: int = 6,
-                 dropout_rate: float = 0.1,
-                 positional_dropout_rate: float = 0.1,
-                 self_attention_dropout_rate: float = 0.0,
-                 src_attention_dropout_rate: float = 0.0,
-                 input_layer: str = "embed",
-                 use_output_layer: bool = True,
-                 pos_enc_class=PositionalEncoding,
-                 normalize_before: bool = True,
-                 concat_after: bool = False):
+    def __init__(
+        self,
+        odim: int,
+        encoder_out_dim: int,
+        attention_heads: int = 4,
+        linear_units: int = 2048,
+        num_blocks: int = 6,
+        dropout_rate: float = 0.1,
+        positional_dropout_rate: float = 0.1,
+        self_attention_dropout_rate: float = 0.0,
+        src_attention_dropout_rate: float = 0.0,
+        input_layer: str = "embed",
+        use_output_layer: bool = True,
+        pos_enc_class=PositionalEncoding,
+        normalize_before: bool = True,
+        concat_after: bool = False,
+    ):
         assert check_argument_types()
         super().__init__()
         attention_dim = encoder_out_dim
@@ -65,7 +70,7 @@ class Decoder(AbsDecoder):
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),
-                pos_enc_class(attention_dim, positional_dropout_rate)
+                pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -73,32 +78,36 @@ class Decoder(AbsDecoder):
                 torch.nn.LayerNorm(attention_dim),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
-                pos_enc_class(attention_dim, positional_dropout_rate)
+                pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 input_layer,
-                pos_enc_class(attention_dim, positional_dropout_rate)
+                pos_enc_class(attention_dim, positional_dropout_rate),
             )
         else:
             raise NotImplementedError(
-                "only `embed` or torch.nn.Module is supported.")
+                "only `embed` or torch.nn.Module is supported."
+            )
 
         self.normalize_before = normalize_before
         self.decoders = repeat(
             num_blocks,
             lambda: DecoderLayer(
                 attention_dim,
-                MultiHeadedAttention(attention_heads, attention_dim,
-                                     self_attention_dropout_rate),
-                MultiHeadedAttention(attention_heads, attention_dim,
-                                     src_attention_dropout_rate),
-                PositionwiseFeedForward(attention_dim, linear_units,
-                                        dropout_rate),
+                MultiHeadedAttention(
+                    attention_heads, attention_dim, self_attention_dropout_rate
+                ),
+                MultiHeadedAttention(
+                    attention_heads, attention_dim, src_attention_dropout_rate
+                ),
+                PositionwiseFeedForward(
+                    attention_dim, linear_units, dropout_rate
+                ),
                 dropout_rate,
                 normalize_before,
-                concat_after
-            )
+                concat_after,
+            ),
         )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
@@ -107,9 +116,13 @@ class Decoder(AbsDecoder):
         else:
             self.output_layer = None
 
-    def forward(self, hs_pad: torch.Tensor, hlens: torch.Tensor,
-                ys_in_pad: torch.Tensor, ys_in_lens: torch.Tensor) -> \
-            Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        hs_pad: torch.Tensor,
+        hlens: torch.Tensor,
+        ys_in_pad: torch.Tensor,
+        ys_in_lens: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
         Args:
@@ -133,8 +146,9 @@ class Decoder(AbsDecoder):
         memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
 
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = \
-            self.decoders(x, tgt_mask, memory, memory_mask)
+        x, tgt_mask, memory, memory_mask = self.decoders(
+            x, tgt_mask, memory, memory_mask
+        )
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
@@ -143,11 +157,13 @@ class Decoder(AbsDecoder):
         olens = tgt_mask.sum(1)
         return x, olens
 
-    def forward_one_step(self,
-                         tgt: torch.Tensor, tgt_mask: torch.Tensor,
-                         memory: torch.Tensor,
-                         cache: List[torch.Tensor] = None) -> \
-            Tuple[torch.Tensor, List[torch.Tensor]]:
+    def forward_one_step(
+        self,
+        tgt: torch.Tensor,
+        tgt_mask: torch.Tensor,
+        memory: torch.Tensor,
+        cache: List[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
         Args:
@@ -166,8 +182,9 @@ class Decoder(AbsDecoder):
             cache = self.init_state()
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
-            x, tgt_mask, memory, memory_mask = \
-                decoder(x, tgt_mask, memory, None, cache=c)
+            x, tgt_mask, memory, memory_mask = decoder(
+                x, tgt_mask, memory, None, cache=c
+            )
             new_cache.append(x)
 
         if self.normalize_before:
@@ -187,6 +204,7 @@ class Decoder(AbsDecoder):
     def score(self, ys, state, x):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask,
-                                            x.unsqueeze(0), cache=state)
+        logp, state = self.forward_one_step(
+            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
+        )
         return logp.squeeze(0), state

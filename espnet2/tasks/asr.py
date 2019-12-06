@@ -36,76 +36,126 @@ from espnet2.utils.types import str_or_none
 
 class ASRTask(AbsTask):
     @classmethod
-    def add_arguments(cls, parser: configargparse.ArgumentParser = None) \
-            -> configargparse.ArgumentParser:
+    def add_arguments(
+        cls, parser: configargparse.ArgumentParser = None
+    ) -> configargparse.ArgumentParser:
         assert check_argument_types()
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         if parser is None:
             parser = configargparse.ArgumentParser(
-                description='Train ASR',
+                description="Train ASR",
                 config_file_parser_class=configargparse.YAMLConfigFileParser,
-                formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+                formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+            )
 
         AbsTask.add_arguments(parser)
-        group = parser.add_argument_group(description='Task related')
+        group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default('required')
-        required += ['token_list']
+        required = parser.get_default("required")
+        required += ["token_list"]
 
-        group.add_argument('--token_list', type=str_or_none, default=None,
-                           help='A text mapping int-id to token')
-        group.add_argument('--init', type=lambda x: str_or_none(x.lower()),
-                           default=None, help='The initialization method',
-                           choices=cls.init_choices())
+        group.add_argument(
+            "--token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--init",
+            type=lambda x: str_or_none(x.lower()),
+            default=None,
+            help="The initialization method",
+            choices=cls.init_choices(),
+        )
 
         excl = group.add_mutually_exclusive_group()
-        excl.add_argument('--idim', type=int_or_none, default=None,
-                          help='The number of input dimension of the feature')
         excl.add_argument(
-            '--frontend', type=lambda x: str_or_none(x.lower()),
-            default='default',
-            choices=cls.frontend_choices(), help='Specify frontend class')
+            "--idim",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
+        )
+        excl.add_argument(
+            "--frontend",
+            type=lambda x: str_or_none(x.lower()),
+            default="default",
+            choices=cls.frontend_choices(),
+            help="Specify frontend class",
+        )
         group.add_argument(
-            '--frontend_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for frontend class.')
+            "--frontend_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for frontend class.",
+        )
         group.add_argument(
-            '--normalize', type=lambda x: str_or_none(x.lower()),
-            default='utterance_mvn',
+            "--normalize",
+            type=lambda x: str_or_none(x.lower()),
+            default="utterance_mvn",
             choices=cls.normalize_choices(),
-            help='Specify normalization class')
+            help="Specify normalization class",
+        )
         group.add_argument(
-            '--normalize_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for normalization class.')
+            "--normalize_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for normalization class.",
+        )
 
         group.add_argument(
-            '--encoder_decoder', type=lambda x: x.lower(), default='rnn',
+            "--encoder_decoder",
+            type=lambda x: x.lower(),
+            default="rnn",
             choices=cls.encoder_decoder_choices(),
-            help='Specify Encoder-Decoder type')
+            help="Specify Encoder-Decoder type",
+        )
         group.add_argument(
-            '--encoder_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for Encoder class.')
+            "--encoder_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for Encoder class.",
+        )
         group.add_argument(
-            '--decoder_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for Decoder class.')
+            "--decoder_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for Decoder class.",
+        )
         group.add_argument(
-            '--ctc_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for CTC class.')
+            "--ctc_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for CTC class.",
+        )
         group.add_argument(
-            '--e2e_conf', action=NestedDictAction, default=dict(),
-            help='The keyword arguments for E2E class.')
+            "--e2e_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for E2E class.",
+        )
 
-        group = parser.add_argument_group(description='Preprocess related')
+        group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
-            '--use_preprocessor', type=str2bool, default=False,
-            help='Apply preprocessing to data or not')
-        group.add_argument('--token_type', type=str, default='bpe',
-                           choices=['bpe', 'char', 'word'],
-                           help='The text will be tokenized '
-                                'in the specified level token')
-        group.add_argument('--bpemodel', type=str_or_none, default=None,
-                           help='The model file of sentencepiece')
+            "--use_preprocessor",
+            type=str2bool,
+            default=False,
+            help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--token_type",
+            type=str,
+            default="bpe",
+            choices=["bpe", "char", "word"],
+            help="The text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
+            "--bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece",
+        )
         return parser
 
     @classmethod
@@ -127,9 +177,9 @@ class ASRTask(AbsTask):
             frontend_class = cls.get_frontend_class(args.frontend)
             frontend_conf = get_default_kwargs(frontend_class)
         else:
-            if hasattr(args, 'frontend'):
+            if hasattr(args, "frontend"):
                 # Either one of frontend and idim can be selected
-                delattr(args, 'frontend')
+                delattr(args, "frontend")
             frontend_conf = {}
         if args.normalize is not None:
             normalize_class = cls.get_normalize_class(args.normalize)
@@ -137,8 +187,9 @@ class ASRTask(AbsTask):
         else:
             normalize_conf = None
 
-        encoder_class, decoder_class = \
-            cls.get_encoder_decoder_class(args.encoder_decoder)
+        encoder_class, decoder_class = cls.get_encoder_decoder_class(
+            args.encoder_decoder
+        )
         encoder_conf = get_default_kwargs(encoder_class)
         decoder_conf = get_default_kwargs(decoder_class)
         ctc_conf = get_default_kwargs(CTC)
@@ -151,11 +202,11 @@ class ASRTask(AbsTask):
         config.update(AbsTask.get_default_config())
 
         # 4. Overwrite the default config by the command-arguments
-        frontend_conf.update(config['frontend_conf'])
-        normalize_conf.update(config['normalize_conf'])
-        encoder_conf.update(config['encoder_conf'])
-        decoder_conf.update(config['decoder_conf'])
-        ctc_conf.update(config['ctc_conf'])
+        frontend_conf.update(config["frontend_conf"])
+        normalize_conf.update(config["normalize_conf"])
+        encoder_conf.update(config["encoder_conf"])
+        decoder_conf.update(config["decoder_conf"])
+        ctc_conf.update(config["ctc_conf"])
 
         # 5. Reassign them to the configuration
         config.update(
@@ -164,7 +215,8 @@ class ASRTask(AbsTask):
             encoder_conf=encoder_conf,
             decoder_conf=decoder_conf,
             ctc_conf=ctc_conf,
-            e2e_conf=e2e_conf)
+            e2e_conf=e2e_conf,
+        )
 
         # 6. Excludes the options not to be shown
         for k in cls.exclude_opts():
@@ -175,13 +227,19 @@ class ASRTask(AbsTask):
 
     @classmethod
     def init_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('chainer', 'xavier_uniform', 'xavier_normal',
-                   'kaiming_uniform', 'kaiming_normal', None)
+        choices = (
+            "chainer",
+            "xavier_uniform",
+            "xavier_normal",
+            "kaiming_uniform",
+            "kaiming_normal",
+            None,
+        )
         return choices
 
     @classmethod
     def frontend_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('default', None)
+        choices = ("default", None)
         return choices
 
     @classmethod
@@ -189,78 +247,87 @@ class ASRTask(AbsTask):
         assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
-        if name.lower() == 'default':
+        if name.lower() == "default":
             retval = DefaultFrontend
         else:
             raise RuntimeError(
-                f'--frontend must be one of '
-                f'{cls.frontend_choices()}: --frontend {name}')
+                f"--frontend must be one of "
+                f"{cls.frontend_choices()}: --frontend {name}"
+            )
         assert check_return_type(retval)
         return retval
 
     @classmethod
     def normalize_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = ('global_mvn', 'utterance_mvn', None)
+        choices = ("global_mvn", "utterance_mvn", None)
         return choices
 
     @classmethod
     def get_normalize_class(cls, name: str) -> Type[AbsNormalize]:
         assert check_argument_types()
-        if name.lower() == 'global_mvn':
+        if name.lower() == "global_mvn":
             retval = GlobalMVN
-        elif name.lower() == 'utterance_mvn':
+        elif name.lower() == "utterance_mvn":
             retval = UtteranceMVN
         else:
             raise RuntimeError(
-                f'--normalize must be one of '
-                f'{cls.normalize_choices()}: --normalize {name}')
+                f"--normalize must be one of "
+                f"{cls.normalize_choices()}: --normalize {name}"
+            )
         assert check_return_type(retval)
         return retval
 
     @classmethod
     def encoder_decoder_choices(cls) -> Tuple[str, ...]:
-        choices = ('transformer', 'rnn')
+        choices = ("transformer", "rnn")
         return choices
 
     @classmethod
-    def get_encoder_decoder_class(cls, name: str) \
-            -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
+    def get_encoder_decoder_class(
+        cls, name: str
+    ) -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
         assert check_argument_types()
-        if name.lower() == 'transformer':
+        if name.lower() == "transformer":
             from espnet2.asr.encoder_decoder.transformer.encoder import Encoder
             from espnet2.asr.encoder_decoder.transformer.decoder import Decoder
+
             retval = Encoder, Decoder
 
-        elif name.lower() == 'rnn':
+        elif name.lower() == "rnn":
             from espnet2.asr.encoder_decoder.rnn.decoder import Decoder
             from espnet2.asr.encoder_decoder.rnn.encoder import Encoder
+
             retval = Encoder, Decoder
 
         else:
             raise RuntimeError(
-                f'--encoder_decoder must be one of '
-                f'{cls.encoder_decoder_choices()}: --encoder_decoder {name}')
+                f"--encoder_decoder must be one of "
+                f"{cls.encoder_decoder_choices()}: --encoder_decoder {name}"
+            )
         assert check_return_type(retval)
         return retval
 
     @classmethod
-    def build_collate_fn(cls, args: argparse.Namespace) \
-            -> Callable[[Sequence[Dict[str, np.ndarray]]],
-                        Dict[str, torch.Tensor]]:
+    def build_collate_fn(
+        cls, args: argparse.Namespace
+    ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
         assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
-        return CommonCollateFn(float_pad_value=0., int_pad_value=-1)
+        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
-    def build_preprocess_fn(cls, args: argparse.Namespace, train: bool)\
-            -> Optional[Callable[[str, Dict[str, np.array]],
-                                 Dict[str, np.ndarray]]]:
+    def build_preprocess_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
-                train=train, token_type=args.token_type,
+                train=train,
+                token_type=args.token_type,
                 model_or_token_list=args.bpemodel
-                if args.token_type == 'bpe' else args.token_list)
+                if args.token_type == "bpe"
+                else args.token_list,
+            )
         else:
             retval = None
         assert check_return_type(retval)
@@ -269,10 +336,10 @@ class ASRTask(AbsTask):
     @classmethod
     def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
         if train:
-            retval = ('speech', 'text')
+            retval = ("speech", "text")
         else:
             # Recognition mode
-            retval = ('speech',)
+            retval = ("speech",)
         return retval
 
     @classmethod
@@ -293,9 +360,9 @@ class ASRTask(AbsTask):
         elif isinstance(args.token_list, (tuple, list)):
             token_list = list(args.token_list)
         else:
-            raise RuntimeError('token_list must be str or list')
+            raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
-        logging.info(f'Vocabulary size: {vocab_size }')
+        logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
         if args.idim is None:
@@ -303,9 +370,9 @@ class ASRTask(AbsTask):
             frontend = frontend_class(**args.frontend_conf)
             idim = frontend.out_dim()
         else:
-            if hasattr(args, 'frontend'):
+            if hasattr(args, "frontend"):
                 # Either one of frontend and idim can be selected
-                delattr(args, 'frontend')
+                delattr(args, "frontend")
             args.frontend_conf = {}
             frontend = None
             idim = args.idim
@@ -318,17 +385,20 @@ class ASRTask(AbsTask):
             normalize = None
 
         # 3. Encoder, Decoder
-        encoder_class, decoder_class = \
-            cls.get_encoder_decoder_class(args.encoder_decoder)
-        encoder = encoder_class(idim=idim,
-                                **args.encoder_conf)
-        decoder = decoder_class(odim=vocab_size,
-                                encoder_out_dim=encoder.out_dim(),
-                                **args.decoder_conf)
+        encoder_class, decoder_class = cls.get_encoder_decoder_class(
+            args.encoder_decoder
+        )
+        encoder = encoder_class(idim=idim, **args.encoder_conf)
+        decoder = decoder_class(
+            odim=vocab_size,
+            encoder_out_dim=encoder.out_dim(),
+            **args.decoder_conf,
+        )
 
         # 4. CTC
-        ctc = CTC(odim=vocab_size, encoder_out_dim=encoder.out_dim(),
-                  **args.ctc_conf)
+        ctc = CTC(
+            odim=vocab_size, encoder_out_dim=encoder.out_dim(), **args.ctc_conf
+        )
 
         # 5. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
@@ -343,7 +413,8 @@ class ASRTask(AbsTask):
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
-            **args.e2e_conf)
+            **args.e2e_conf,
+        )
 
         # FIXME(kamo): Should be done in model?
         # 7. Initialize

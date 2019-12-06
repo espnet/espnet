@@ -18,5 +18,5 @@ def main(cmd=None):
     TTSTask.main(cmd=cmd)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

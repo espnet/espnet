@@ -85,49 +85,51 @@ class Tacotron2(AbsTTS):
         guided_attn_loss_lamdba: Lambda in guided attention loss.
     """
 
-    def __init__(self,
-                 idim: int, odim: int,
-                 embed_dim: int = 512,
-                 elayers: int = 1,
-                 eunits: int = 512,
-                 econv_layers: int = 3,
-                 econv_chans: int = 512,
-                 econv_filts: int = 5,
-                 atype: str = "location",
-                 adim: int = 512,
-                 aconv_chans: int = 32,
-                 aconv_filts: int = 15,
-                 cumulate_att_w: bool = True,
-                 dlayers: int = 2,
-                 dunits: int = 1024,
-                 prenet_layers: int = 2,
-                 prenet_units: int = 256,
-                 postnet_layers: int = 5,
-                 postnet_chans: int = 512,
-                 postnet_filts: int = 5,
-                 output_activation: str = None,
-                 use_cbhg: bool = False,
-                 cbhg_conv_bank_layers: int = 8,
-                 cbhg_conv_bank_chans: int = 128,
-                 cbhg_conv_proj_filts: int = 3,
-                 cbhg_conv_proj_chans: int = 256,
-                 cbhg_highway_layers: int = 4,
-                 cbhg_highway_units: int = 128,
-                 cbhg_gru_units: int = 256,
-                 use_batch_norm: bool = True,
-                 use_concate: bool = True,
-                 use_residual: bool = True,
-                 dropout_rate: float = 0.5,
-                 zoneout_rate: float = 0.1,
-                 reduction_factor: int = 1,
-                 spk_embed_dim: int = None,
-                 spc_dim: int = None,
-                 use_masking: bool = False,
-                 bce_pos_weight: float = 20.0,
-                 use_guided_attn_loss: bool = False,
-                 guided_attn_loss_sigma: float = 0.4,
-                 guided_attn_loss_lambda: float = 1.0,
-                 ):
+    def __init__(
+        self,
+        idim: int,
+        odim: int,
+        embed_dim: int = 512,
+        elayers: int = 1,
+        eunits: int = 512,
+        econv_layers: int = 3,
+        econv_chans: int = 512,
+        econv_filts: int = 5,
+        atype: str = "location",
+        adim: int = 512,
+        aconv_chans: int = 32,
+        aconv_filts: int = 15,
+        cumulate_att_w: bool = True,
+        dlayers: int = 2,
+        dunits: int = 1024,
+        prenet_layers: int = 2,
+        prenet_units: int = 256,
+        postnet_layers: int = 5,
+        postnet_chans: int = 512,
+        postnet_filts: int = 5,
+        output_activation: str = None,
+        use_cbhg: bool = False,
+        cbhg_conv_bank_layers: int = 8,
+        cbhg_conv_bank_chans: int = 128,
+        cbhg_conv_proj_filts: int = 3,
+        cbhg_conv_proj_chans: int = 256,
+        cbhg_highway_layers: int = 4,
+        cbhg_highway_units: int = 128,
+        cbhg_gru_units: int = 256,
+        use_batch_norm: bool = True,
+        use_concate: bool = True,
+        use_residual: bool = True,
+        dropout_rate: float = 0.5,
+        zoneout_rate: float = 0.1,
+        reduction_factor: int = 1,
+        spk_embed_dim: int = None,
+        spc_dim: int = None,
+        use_masking: bool = False,
+        bce_pos_weight: float = 20.0,
+        use_guided_attn_loss: bool = False,
+        guided_attn_loss_sigma: float = 0.4,
+        guided_attn_loss_lambda: float = 1.0,
+    ):
         assert check_argument_types()
         super().__init__()
 
@@ -147,102 +149,103 @@ class Tacotron2(AbsTTS):
         elif hasattr(F, output_activation):
             self.output_activation_fn = getattr(F, output_activation)
         else:
-            raise ValueError(f'there is no such an activation function. '
-                             f'({output_activation})')
+            raise ValueError(
+                f"there is no such an activation function. "
+                f"({output_activation})"
+            )
 
         # set padding idx
         padding_idx = 0
         self.padding_idx = padding_idx
 
         # define network modules
-        self.enc = Encoder(idim=idim,
-                           embed_dim=embed_dim,
-                           elayers=elayers,
-                           eunits=eunits,
-                           econv_layers=econv_layers,
-                           econv_chans=econv_chans,
-                           econv_filts=econv_filts,
-                           use_batch_norm=use_batch_norm,
-                           use_residual=use_residual,
-                           dropout_rate=dropout_rate,
-                           padding_idx=padding_idx)
+        self.enc = Encoder(
+            idim=idim,
+            embed_dim=embed_dim,
+            elayers=elayers,
+            eunits=eunits,
+            econv_layers=econv_layers,
+            econv_chans=econv_chans,
+            econv_filts=econv_filts,
+            use_batch_norm=use_batch_norm,
+            use_residual=use_residual,
+            dropout_rate=dropout_rate,
+            padding_idx=padding_idx,
+        )
 
         dec_idim = eunits if spk_embed_dim is None else eunits + spk_embed_dim
         if atype == "location":
-            att = AttLoc(dec_idim,
-                         dunits,
-                         adim,
-                         aconv_chans,
-                         aconv_filts)
+            att = AttLoc(dec_idim, dunits, adim, aconv_chans, aconv_filts)
         elif atype == "forward":
-            att = AttForward(dec_idim,
-                             dunits,
-                             adim,
-                             aconv_chans,
-                             aconv_filts)
+            att = AttForward(dec_idim, dunits, adim, aconv_chans, aconv_filts)
             if self.cumulate_att_w:
-                logging.warning("cumulation of attention weights is disabled "
-                                "in forward attention.")
+                logging.warning(
+                    "cumulation of attention weights is disabled "
+                    "in forward attention."
+                )
                 self.cumulate_att_w = False
         elif atype == "forward_ta":
-            att = AttForwardTA(dec_idim,
-                               dunits,
-                               adim,
-                               aconv_chans,
-                               aconv_filts,
-                               odim)
+            att = AttForwardTA(
+                dec_idim, dunits, adim, aconv_chans, aconv_filts, odim
+            )
             if self.cumulate_att_w:
-                logging.warning("cumulation of attention weights is disabled "
-                                "in forward attention.")
+                logging.warning(
+                    "cumulation of attention weights is disabled "
+                    "in forward attention."
+                )
                 self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")
-        self.dec = Decoder(idim=dec_idim,
-                           odim=odim,
-                           att=att,
-                           dlayers=dlayers,
-                           dunits=dunits,
-                           prenet_layers=prenet_layers,
-                           prenet_units=prenet_units,
-                           postnet_layers=postnet_layers,
-                           postnet_chans=postnet_chans,
-                           postnet_filts=postnet_filts,
-                           output_activation_fn=self.output_activation_fn,
-                           cumulate_att_w=self.cumulate_att_w,
-                           use_batch_norm=use_batch_norm,
-                           use_concate=use_concate,
-                           dropout_rate=dropout_rate,
-                           zoneout_rate=zoneout_rate,
-                           reduction_factor=reduction_factor)
-        self.taco2_loss = Tacotron2Loss(use_masking=use_masking,
-                                        bce_pos_weight=bce_pos_weight)
+        self.dec = Decoder(
+            idim=dec_idim,
+            odim=odim,
+            att=att,
+            dlayers=dlayers,
+            dunits=dunits,
+            prenet_layers=prenet_layers,
+            prenet_units=prenet_units,
+            postnet_layers=postnet_layers,
+            postnet_chans=postnet_chans,
+            postnet_filts=postnet_filts,
+            output_activation_fn=self.output_activation_fn,
+            cumulate_att_w=self.cumulate_att_w,
+            use_batch_norm=use_batch_norm,
+            use_concate=use_concate,
+            dropout_rate=dropout_rate,
+            zoneout_rate=zoneout_rate,
+            reduction_factor=reduction_factor,
+        )
+        self.taco2_loss = Tacotron2Loss(
+            use_masking=use_masking, bce_pos_weight=bce_pos_weight
+        )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
-                sigma=guided_attn_loss_sigma,
-                alpha=guided_attn_loss_lambda,
+                sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
             )
         if self.use_cbhg:
-            self.cbhg = CBHG(idim=odim,
-                             odim=spc_dim,
-                             conv_bank_layers=cbhg_conv_bank_layers,
-                             conv_bank_chans=cbhg_conv_bank_chans,
-                             conv_proj_filts=cbhg_conv_proj_filts,
-                             conv_proj_chans=cbhg_conv_proj_chans,
-                             highway_layers=cbhg_highway_layers,
-                             highway_units=cbhg_highway_units,
-                             gru_units=cbhg_gru_units)
+            self.cbhg = CBHG(
+                idim=odim,
+                odim=spc_dim,
+                conv_bank_layers=cbhg_conv_bank_layers,
+                conv_bank_chans=cbhg_conv_bank_chans,
+                conv_proj_filts=cbhg_conv_proj_filts,
+                conv_proj_chans=cbhg_conv_proj_chans,
+                highway_layers=cbhg_highway_layers,
+                highway_units=cbhg_highway_units,
+                gru_units=cbhg_gru_units,
+            )
             self.cbhg_loss = CBHGLoss(use_masking=use_masking)
 
-    def forward(self,
-                text: torch.Tensor,
-                text_lengths: torch.Tensor,
-                speech: torch.Tensor,
-                speech_lengths: torch.Tensor,
-                spembs: torch.Tensor = None,
-                spcs: torch.Tensor = None,
-                spcs_lengths: torch.Tensor = None,
-                ) -> \
-            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    def forward(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        spembs: torch.Tensor = None,
+        spcs: torch.Tensor = None,
+        spcs_lengths: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
@@ -254,12 +257,12 @@ class Tacotron2(AbsTTS):
             spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
             spcs_lengths:
         """
-        text = text[:, :text_lengths.max()]  # for data-parallel
-        speech = speech[:, :speech_lengths.max()]  # for data-parallel
+        text = text[:, : text_lengths.max()]  # for data-parallel
+        speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
         # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], 'constant', 0.)
+        xs = F.pad(text, [0, 1], "constant", 0.0)
         for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
@@ -273,15 +276,17 @@ class Tacotron2(AbsTTS):
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1,
-                                                             hs.size(1), -1)
+            spembs = (
+                F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            )
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = olens.new([olen - olen % self.reduction_factor
-                               for olen in olens])
+            olens = olens.new(
+                [olen - olen % self.reduction_factor for olen in olens]
+            )
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
@@ -289,7 +294,8 @@ class Tacotron2(AbsTTS):
 
         # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
-            after_outs, before_outs, logits, ys, labels, olens)
+            after_outs, before_outs, logits, ys, labels, olens
+        )
         loss = l1_loss + mse_loss + bce_loss
 
         stats = dict(
@@ -303,8 +309,9 @@ class Tacotron2(AbsTTS):
             # NOTE(kan-bayashi): length of output for auto-regressive
             # input will be changed when r > 1
             if self.reduction_factor > 1:
-                olens_in = olens.new([olen // self.reduction_factor
-                                      for olen in olens])
+                olens_in = olens.new(
+                    [olen // self.reduction_factor for olen in olens]
+                )
             else:
                 olens_in = olens
             attn_loss = self.attn_loss(att_ws, ilens, olens_in)
@@ -319,26 +326,30 @@ class Tacotron2(AbsTTS):
 
             # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = \
-                self.cbhg_loss(cbhg_outs, spcs, olens)
+            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(
+                cbhg_outs, spcs, olens
+            )
             loss = loss + cbhg_l1_loss + cbhg_mse_loss
-            stats.update(cbhg_l1_loss=cbhg_l1_loss.item(),
-                         cbhg_mse_loss=cbhg_mse_loss.item(),
-                         )
+            stats.update(
+                cbhg_l1_loss=cbhg_l1_loss.item(),
+                cbhg_mse_loss=cbhg_mse_loss.item(),
+            )
 
         stats.update(loss=loss.item())
 
-        loss, stats, weight = \
-            force_gatherable((loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable(
+            (loss, stats, batch_size), loss.device
+        )
         return loss, stats, weight
 
-    def inference(self,
-                  text: torch.Tensor,
-                  threshold: float,
-                  minlenratio: float,
-                  maxlenratio: float,
-                  spembs: torch.Tensor = None,
-                  ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def inference(
+        self,
+        text: torch.Tensor,
+        threshold: float,
+        minlenratio: float,
+        maxlenratio: float,
+        spembs: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -360,11 +371,13 @@ class Tacotron2(AbsTTS):
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
-            spemb = F.normalize(spemb,
-                                dim=0).unsqueeze(0).expand(h.size(0), -1)
+            spemb = (
+                F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
+            )
             h = torch.cat([h, spemb], dim=-1)
-        outs, probs, att_ws = \
-            self.dec.inference(h, threshold, minlenratio, maxlenratio)
+        outs, probs, att_ws = self.dec.inference(
+            h, threshold, minlenratio, maxlenratio
+        )
 
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)

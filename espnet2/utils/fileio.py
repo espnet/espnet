@@ -29,7 +29,7 @@ class DatadirWriter:
     def __getitem__(self, key: str) -> DatadirWriter:
         assert check_argument_types()
         if self.fd is not None:
-            raise RuntimeError('This writer points out a file')
+            raise RuntimeError("This writer points out a file")
 
         if key not in self.chilidren:
             w = DatadirWriter((self.path / key))
@@ -43,16 +43,16 @@ class DatadirWriter:
     def __setitem__(self, key: str, value: str):
         assert check_argument_types()
         if self.has_children:
-            raise RuntimeError('This writer points out a directory')
+            raise RuntimeError("This writer points out a directory")
         if key in self.keys:
-            warnings.warn(f'Duplicated: {key}')
+            warnings.warn(f"Duplicated: {key}")
 
         if self.fd is None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.fd = self.path.open('w')
+            self.fd = self.path.open("w")
 
         self.keys.add(key)
-        self.fd.write(f'{key} {value}\n')
+        self.fd.write(f"{key} {value}\n")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -64,8 +64,9 @@ class DatadirWriter:
                 child.close()
                 if prev_child is not None and prev_child.keys != child.keys:
                     warnings.warn(
-                        f'Ids are mismatching between '
-                        f'{prev_child.path} and {child.path}')
+                        f"Ids are mismatching between "
+                        f"{prev_child.path} and {child.path}"
+                    )
                 prev_child = child
 
         elif self.fd is not None:
@@ -87,39 +88,40 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     assert check_argument_types()
 
     data = {}
-    with Path(path).open('r') as f:
+    with Path(path).open("r") as f:
         for linenum, line in enumerate(f, 1):
             sps = line.rstrip().split(maxsplit=1)
             if len(sps) != 2:
                 raise RuntimeError(
-                    f'scp file must have two or more columns: '
-                    f'{line} ({path}:{linenum})')
+                    f"scp file must have two or more columns: "
+                    f"{line} ({path}:{linenum})"
+                )
             k, v = sps
             if k in data:
-                raise RuntimeError(f'{k} is duplicated ({path}:{linenum})')
+                raise RuntimeError(f"{k} is duplicated ({path}:{linenum})")
             data[k] = v.rstrip()
     assert check_return_type(data)
     return data
 
 
-def load_num_sequence_text(path: Union[Path, str],
-                           loader_type: str = 'csv_int') \
-        -> Dict[str, np.ndarray]:
+def load_num_sequence_text(
+    path: Union[Path, str], loader_type: str = "csv_int"
+) -> Dict[str, np.ndarray]:
     assert check_argument_types()
-    if loader_type == 'text_int':
-        delimiter = ' '
+    if loader_type == "text_int":
+        delimiter = " "
         dtype = np.long
-    elif loader_type == 'text_float':
-        delimiter = ' '
+    elif loader_type == "text_float":
+        delimiter = " "
         dtype = np.float32
-    elif loader_type == 'csv_int':
-        delimiter = ','
+    elif loader_type == "csv_int":
+        delimiter = ","
         dtype = np.long
-    elif loader_type == 'csv_float':
-        delimiter = ','
+    elif loader_type == "csv_float":
+        delimiter = ","
         dtype = np.float32
     else:
-        raise ValueError(f'Not supported loader_type={loader_type}')
+        raise ValueError(f"Not supported loader_type={loader_type}")
 
     # path looks like:
     #   utta 1,0
@@ -133,10 +135,12 @@ def load_num_sequence_text(path: Union[Path, str],
     for k, v in d.items():
         try:
             retval[k] = np.loadtxt(
-                StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter)
+                StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter
+            )
         except ValueError:
-            logging.error(f'Error happened with path="{path}", '
-                          f'id="{k}", value="{v}"')
+            logging.error(
+                f'Error happened with path="{path}", ' f'id="{k}", value="{v}"'
+            )
             raise
     assert check_return_type(retval)
     return retval
@@ -156,8 +160,14 @@ class SoundScpReader(collections.abc.Mapping):
         >>> rate, array = reader['key1']
 
     """
-    def __init__(self, fname, dtype=np.int16,
-                 always_2d: bool = False, normalize: bool = False):
+
+    def __init__(
+        self,
+        fname,
+        dtype=np.int16,
+        always_2d: bool = False,
+        normalize: bool = False,
+    ):
         assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
@@ -169,11 +179,11 @@ class SoundScpReader(collections.abc.Mapping):
         wav = self.data[key]
         if self.normalize:
             # soundfile.read normalizes data to [-1,1] if dtype is not given
-            array, rate = soundfile.read(
-                wav, always_2d=self.always_2d)
+            array, rate = soundfile.read(wav, always_2d=self.always_2d)
         else:
             array, rate = soundfile.read(
-                wav, dtype=self.dtype, always_2d=self.always_2d)
+                wav, dtype=self.dtype, always_2d=self.always_2d
+            )
 
         return rate, array
 
@@ -208,11 +218,12 @@ class SoundScpWriter:
         >>> writer['bb'] = 16000, numpy_array
 
     """
-    def __init__(self, basedir, name, format='wav', dtype=None):
+
+    def __init__(self, basedir, name, format="wav", dtype=None):
         assert check_argument_types()
-        self.dir = Path(basedir) / f'data_{name}'
+        self.dir = Path(basedir) / f"data_{name}"
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.fscp = (Path(basedir) / f'{name}.scp').open('w')
+        self.fscp = (Path(basedir) / f"{name}.scp").open("w")
         self.format = format
         self.dtype = dtype
 
@@ -224,15 +235,16 @@ class SoundScpWriter:
         assert isinstance(signal, np.ndarray), type(signal)
         if signal.ndim not in (1, 2):
             raise RuntimeError(
-                f'Input signal must be 1 or 2 dimension: {signal.ndim}')
+                f"Input signal must be 1 or 2 dimension: {signal.ndim}"
+            )
         if signal.ndim == 1:
             signal = signal[:, None]
 
-        wav = self.dir / f'{key}.{self.format}'
+        wav = self.dir / f"{key}.{self.format}"
         wav.parent.mkdir(parents=True, exist_ok=True)
         soundfile.write(str(wav), signal, rate)
 
-        self.fscp.write(f'{key} {wav}\n')
+        self.fscp.write(f"{key} {wav}\n")
 
         # Store the file path
         self.data[key] = str(wav)
@@ -265,11 +277,12 @@ class NpyScpWriter:
         >>> writer['bb'] = numpy_array
 
     """
+
     def __init__(self, basedir: Union[Path, str], name: str):
         assert check_argument_types()
-        self.dir = Path(basedir) / f'data_{name}'
+        self.dir = Path(basedir) / f"data_{name}"
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.fscp = (Path(basedir) / f'{name}.scp').open('w')
+        self.fscp = (Path(basedir) / f"{name}.scp").open("w")
 
         self.data = {}
 
@@ -278,10 +291,10 @@ class NpyScpWriter:
 
     def __setitem__(self, key, value):
         assert isinstance(value, np.ndarray), type(value)
-        p = self.dir / f'{key}.npy'
+        p = self.dir / f"{key}.npy"
         p.parent.mkdir(parents=True, exist_ok=True)
         np.save(str(p), value)
-        self.fscp.write(f'{key} {p}\n')
+        self.fscp.write(f"{key} {p}\n")
 
         # Store the file path
         self.data[key] = str(p)
@@ -310,6 +323,7 @@ class NpyScpReader(collections.abc.Mapping):
         >>> array = reader['key1']
 
     """
+
     def __init__(self, fname: Union[Path, str]):
         assert check_argument_types()
         self.fname = Path(fname)

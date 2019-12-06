@@ -23,16 +23,17 @@ class AbsPreprocessor(ABC):
 
 
 class CommonPreprocessor(AbsPreprocessor):
-    def __init__(self,
-                 train: bool,
-                 token_type: str = None,
-                 model_or_token_list: Union[Path, str, Sequence[str]] = None,
-                 unk_symbol: str = '<unk>',
-                 delimiter: str = None,
-                 speech_name: str = 'speech',
-                 text_name: str = 'text',
-                 output_dir: Union[Path, str] = None,
-                 ):
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        model_or_token_list: Union[Path, str, Sequence[str]] = None,
+        unk_symbol: str = "<unk>",
+        delimiter: str = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        output_dir: Union[Path, str] = None,
+    ):
         super().__init__(train)
         self.train = train
         self.speech_name = speech_name
@@ -40,12 +41,17 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if token_type is not None:
             if model_or_token_list is None:
-                raise ValueError('model_or_token_list is required '
-                                 'if token_type is not None')
+                raise ValueError(
+                    "model_or_token_list is required "
+                    "if token_type is not None"
+                )
 
             self.text_converter = build_text_converter(
-                token_type=token_type, model_or_token_list=model_or_token_list,
-                unk_symbol=unk_symbol, delimiter=delimiter)
+                token_type=token_type,
+                model_or_token_list=model_or_token_list,
+                unk_symbol=unk_symbol,
+                delimiter=delimiter,
+            )
         else:
             self.text_converter = None
 
@@ -74,8 +80,8 @@ class CommonPreprocessor(AbsPreprocessor):
         # [Option] Derive the shape
         if self.dir_writer is not None:
             for k, v in data.items():
-                shape = ','.join(map(str, v.shape))
-                self.dir_writer[k + '_shape'][uid] = shape
+                shape = ",".join(map(str, v.shape))
+                self.dir_writer[k + "_shape"][uid] = shape
 
         assert check_return_type(data)
         return data

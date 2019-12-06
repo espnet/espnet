@@ -41,7 +41,8 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         rate, array = self.loader[key]
         if self.rate is not None and self.rate != rate:
             raise RuntimeError(
-                f'Sampling rates are mismatched: {self.rate} != {rate}')
+                f"Sampling rates are mismatched: {self.rate} != {rate}"
+            )
         self.rate = rate
         # Multichannel wave fie
         # array: (NSample, Channel) or (Nsample)
@@ -61,14 +62,20 @@ class ESPNetDataset(Dataset):
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
-    def __init__(self, path_name_type_list: Sequence[Tuple[str, str, str]],
-                 preprocess: Callable[[str, Dict[str, np.ndarray]],
-                                      Dict[str, np.ndarray]] = None,
-                 float_dtype: str = 'float32', int_dtype: str = 'long'):
+    def __init__(
+        self,
+        path_name_type_list: Sequence[Tuple[str, str, str]],
+        preprocess: Callable[
+            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        ] = None,
+        float_dtype: str = "float32",
+        int_dtype: str = "long",
+    ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
             raise ValueError(
-                '1 or more elements are required for "path_name_type_list"')
+                '1 or more elements are required for "path_name_type_list"'
+            )
 
         path_name_type_list = copy.deepcopy(path_name_type_list)
         self.preprocess = preprocess
@@ -86,19 +93,20 @@ class ESPNetDataset(Dataset):
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
-                raise RuntimeError(f'{path} has no samples')
+                raise RuntimeError(f"{path} has no samples")
 
             # TODO(kamo): Should check consistency of each utt-keys?
 
-    def _create_loader(self, path: str, loader_type: str) \
-            -> Mapping[str, Union[np.ndarray, str]]:
+    def _create_loader(
+        self, path: str, loader_type: str
+    ) -> Mapping[str, Union[np.ndarray, str]]:
         """Helper function to instantiate Loader
 
         Args:
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc
         """
-        if loader_type == 'sound':
+        if loader_type == "sound":
             # path looks like:
             #   utta /some/where/a.wav
             #   uttb /some/where/a.flac
@@ -112,7 +120,7 @@ class ESPNetDataset(Dataset):
             # but ndarray is desired, so Adapter class is inserted here
             return AdapterForSoundScpReader(loader, self.float_dtype)
 
-        elif loader_type == 'pipe_wav':
+        elif loader_type == "pipe_wav":
             # path looks like:
             #   utta cat a.wav |
             #   uttb cat b.wav |
@@ -124,31 +132,30 @@ class ESPNetDataset(Dataset):
             loader = kaldiio.load_scp(path)
             return AdapterForSoundScpReader(loader, self.float_dtype)
 
-        elif loader_type == 'kaldi_ark':
+        elif loader_type == "kaldi_ark":
             # path looks like:
             #   utta /some/where/a.ark:123
             #   uttb /some/where/a.ark:456
             return kaldiio.load_scp(path)
 
-        elif loader_type == 'npy':
+        elif loader_type == "npy":
             # path looks like:
             #   utta /some/where/a.npy
             #   uttb /some/where/b.npy
             raise NpyScpReader(path)
 
-        elif loader_type == 'hdf5':
-            raise h5py.File(path, 'r')
+        elif loader_type == "hdf5":
+            raise h5py.File(path, "r")
 
-        elif loader_type in ('text_int', 'text_float', 'csv_int', 'csv_float'):
+        elif loader_type in ("text_int", "text_float", "csv_int", "csv_float"):
             # Not lazy loader, but as vanilla-dict
             return load_num_sequence_text(path, loader_type)
 
-        elif loader_type == 'text':
+        elif loader_type == "text":
             return read_2column_text(path)
 
         else:
-            raise RuntimeError(
-                f'Not supported: loader_type={loader_type}')
+            raise RuntimeError(f"Not supported: loader_type={loader_type}")
 
     def has_name(self, name) -> bool:
         return name in self.loader_dict
@@ -158,15 +165,17 @@ class ESPNetDataset(Dataset):
 
     def __repr__(self):
         _mes = self.__class__.__name__
-        _mes += f'('
+        _mes += f"("
         for name, (path, _type) in self.debug_info.items():
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
-        _mes += f'\n preprocess: {self.preprocess})'
+        _mes += f"\n preprocess: {self.preprocess})"
         return _mes
 
     def __len__(self):
-        raise RuntimeError('This method doesn\'t be needed because '
-                           'we use custom BatchSampler ')
+        raise RuntimeError(
+            "This method doesn't be needed because "
+            "we use custom BatchSampler "
+        )
 
     # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
@@ -180,11 +189,12 @@ class ESPNetDataset(Dataset):
             try:
                 value = loader[uid]
                 if not isinstance(value, (np.ndarray, str)):
-                    raise TypeError(f'Must be ndarray or str: {type(value)}')
+                    raise TypeError(f"Must be ndarray or str: {type(value)}")
             except Exception:
                 path, _type = self.debug_info[name]
                 logging.error(
-                    f'Error happened with path={path}, type={_type}, id={uid}')
+                    f"Error happened with path={path}, type={_type}, id={uid}"
+                )
                 raise
             data[name] = value
 
@@ -198,17 +208,19 @@ class ESPNetDataset(Dataset):
             value = data[name]
             if not isinstance(value, np.ndarray):
                 raise RuntimeError(
-                    f'str type object must be converted to np.ndarray object '
-                    f'by preprocessing, but "{name}" is still str.')
+                    f"str type object must be converted to np.ndarray object "
+                    f'by preprocessing, but "{name}" is still str.'
+                )
 
             # Cast to desired type
-            if value.dtype.kind == 'f':
+            if value.dtype.kind == "f":
                 value = value.astype(self.float_dtype)
-            elif value.dtype.kind == 'i':
+            elif value.dtype.kind == "i":
                 value = value.astype(self.int_dtype)
             else:
                 raise NotImplementedError(
-                    f'Not supported dtype: {value.dtype}')
+                    f"Not supported dtype: {value.dtype}"
+                )
             data[name] = value
 
         assert check_return_type(data)
