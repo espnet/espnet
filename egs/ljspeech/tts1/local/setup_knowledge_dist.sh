@@ -5,7 +5,6 @@
 
 # Setup json files for knowledge distillation training in FastSpeech
 
-# shellcheck disable=SC1091
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
@@ -31,7 +30,6 @@ dev_set=phn_dev
 do_filtering=false
 focus_rate_thres=0.65
 
-# shellcheck disable=SC1091
 . utils/parse_options.sh || exit 1;
 
 # Set bash to 'debug' mode, it will exit on :
