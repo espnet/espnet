@@ -21,6 +21,7 @@ class NestedDictAction(argparse.Action):
         Namespace(conf={'d': 5, 'e': 9})
 
     """
+
     _syntax = """Syntax:
   {op} <key>=<yaml-string>
   {op} <key>.<key2>=<yaml-string>
@@ -33,15 +34,17 @@ e.g.
   {op} {{a: 34.5}}
 """
 
-    def __init__(self,
-                 option_strings,
-                 dest,
-                 nargs=None,
-                 default=None,
-                 choices=None,
-                 required=False,
-                 help=None,
-                 metavar=None):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        nargs=None,
+        default=None,
+        choices=None,
+        required=False,
+        help=None,
+        metavar=None,
+    ):
         super().__init__(
             option_strings=option_strings,
             dest=dest,
@@ -56,15 +59,15 @@ e.g.
 
     def __call__(self, parser, namespace, values, option_strings=None):
         # --{option} a.b=3 -> {'a': {'b': 3}}
-        if '=' in values:
+        if "=" in values:
             indict = copy.deepcopy(getattr(namespace, self.dest, {}))
-            key, value = values.split('=', maxsplit=1)
-            if not value.strip() == '':
+            key, value = values.split("=", maxsplit=1)
+            if not value.strip() == "":
                 value = yaml.load(value, Loader=yaml.Loader)
             if not isinstance(indict, dict):
                 indict = {}
 
-            keys = key.split('.')
+            keys = key.split(".")
             d = indict
             for idx, k in enumerate(keys):
                 if idx == len(keys) - 1:
@@ -87,16 +90,20 @@ e.g.
                 value = eval(values, {}, {})
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
-                    mes = (f'must be interpreted as dict: but got {values}'
-                           f'{syntax}')
+                    mes = (
+                        f"must be interpreted as dict: but got {values}"
+                        f"{syntax}"
+                    )
                     raise argparse.ArgumentTypeError(self, mes)
             except Exception:
                 # and the second, try yaml.load
                 value = yaml.load(values, Loader=yaml.Loader)
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
-                    mes = (f'must be interpreted as dict: but got {values}\n'
-                           f'{syntax}')
+                    mes = (
+                        f"must be interpreted as dict: but got {values}\n"
+                        f"{syntax}"
+                    )
                     raise argparse.ArgumentError(self, mes)
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)

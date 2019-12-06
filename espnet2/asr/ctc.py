@@ -4,7 +4,7 @@ from typeguard import check_argument_types
 
 
 class CTC(torch.nn.Module):
-    """CTC module
+    """CTC module.
 
     Args:
         odim: dimension of outputs
@@ -14,11 +14,14 @@ class CTC(torch.nn.Module):
         reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim: int,
-                 encoder_out_dim: int,
-                 dropout_rate: float = 0.,
-                 ctc_type: str = 'warpctc',
-                 reduce: bool = True):
+    def __init__(
+        self,
+        odim: int,
+        encoder_out_dim: int,
+        dropout_rate: float = 0.0,
+        ctc_type: str = "warpctc",
+        reduce: bool = True,
+    ):
         assert check_argument_types()
         super().__init__()
         eprojs = encoder_out_dim
@@ -26,20 +29,22 @@ class CTC(torch.nn.Module):
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
 
-        if self.ctc_type == 'builtin':
-            reduction_type = 'sum' if reduce else 'none'
+        if self.ctc_type == "builtin":
+            reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
-        elif self.ctc_type == 'warpctc':
+        elif self.ctc_type == "warpctc":
             import warpctc_pytorch as warp_ctc
+
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
         else:
             raise ValueError(
-                f'ctc_type must be "builtin" or "warpctc": {self.ctc_type}')
+                f'ctc_type must be "builtin" or "warpctc": {self.ctc_type}'
+            )
 
         self.reduce = reduce
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen) -> torch.Tensor:
-        if self.ctc_type == 'builtin':
+        if self.ctc_type == "builtin":
             th_pred = th_pred.log_softmax(2)
             # Use the deterministic CuDNN implementation of CTC loss to avoid
             #  [issue#17798](https://github.com/pytorch/pytorch/issues/17798)
@@ -48,7 +53,7 @@ class CTC(torch.nn.Module):
             # Batch-size average
             loss = loss / th_pred.size(1)
             return loss
-        elif self.ctc_type == 'warpctc':
+        elif self.ctc_type == "warpctc":
             # warpctc only supports float32
             th_pred = th_pred.to(dtype=torch.float32)
 
@@ -66,7 +71,7 @@ class CTC(torch.nn.Module):
             raise NotImplementedError
 
     def forward(self, hs_pad, hlens, ys_pad, ys_lens):
-        """Calculate CTC loss
+        """Calculate CTC loss.
 
         Args:
             hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -83,7 +88,8 @@ class CTC(torch.nn.Module):
         ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
 
         loss = self.loss_fn(ys_hat, ys_true, hlens, ys_lens).to(
-            device=hs_pad.device, dtype=hs_pad.dtype)
+            device=hs_pad.device, dtype=hs_pad.dtype
+        )
 
         return loss
 

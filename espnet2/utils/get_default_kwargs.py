@@ -14,6 +14,7 @@ def get_default_kwargs(func):
         {'b': 3}
 
     """
+
     def yaml_serializable(value):
         # isinstance(x, tuple) includes namedtuple, so type is used here
         if type(value) is tuple:

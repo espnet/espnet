@@ -8,7 +8,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    """
+    r"""
 
     Example:
 
@@ -19,5 +19,5 @@ def main(cmd=None):
     ASRTask.main(cmd=cmd)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

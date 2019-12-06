@@ -14,11 +14,11 @@ from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 _stft_conf = get_default_kwargs(Stft)
-_stft_conf.pop('n_fft')
+_stft_conf.pop("n_fft")
 
 _logmel_kwargs = get_default_kwargs(LogMel)
-_logmel_kwargs.pop('fs')
-_logmel_kwargs.pop('n_fft')
+_logmel_kwargs.pop("fs")
+_logmel_kwargs.pop("n_fft")
 
 
 class DefaultFrontend(AbsFrontend):
@@ -33,7 +33,7 @@ class DefaultFrontend(AbsFrontend):
         n_fft: int = 512,
         stft_conf: dict = _stft_conf.copy(),
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
-        logmel_fbank_conf: dict = _logmel_kwargs.copy()
+        logmel_fbank_conf: dict = _logmel_kwargs.copy(),
     ):
         assert check_argument_types()
         super().__init__()
@@ -53,13 +53,15 @@ class DefaultFrontend(AbsFrontend):
 
         self.logmel = LogMel(fs=fs, n_fft=n_fft, **logmel_fbank_conf)
         self.n_mels = logmel_fbank_conf.get(
-            'n_mels', get_default_kwargs(LogMel).get('n_mels'))
+            "n_mels", get_default_kwargs(LogMel).get("n_mels")
+        )
 
     def out_dim(self) -> int:
         return self.n_mels
 
-    def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, input_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
         input_stft, feats_lens = self.stft(input, input_lengths)
 

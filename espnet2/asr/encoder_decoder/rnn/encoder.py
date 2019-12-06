@@ -16,65 +16,104 @@ from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
 
 
 class Encoder(AbsEncoder):
-    def __init__(self,
-                 idim: int,
-                 etype: str = 'blstmp',
-                 elayers: int = 4,
-                 eunits: int = 320,
-                 eprojs: int = 320,
-                 dropout: float = 0.0,
-                 subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
-                 in_channel: int = 1):
+    def __init__(
+        self,
+        idim: int,
+        etype: str = "blstmp",
+        elayers: int = 4,
+        eunits: int = 320,
+        eprojs: int = 320,
+        dropout: float = 0.0,
+        subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
+        in_channel: int = 1,
+    ):
         assert check_argument_types()
         super().__init__()
         self.eprojs = eprojs
 
         typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
+        if typ not in ["lstm", "gru", "blstm", "bgru"]:
             raise ValueError(
-                "Error: need to specify an appropriate encoder architecture")
+                "Error: need to specify an appropriate encoder architecture"
+            )
 
         if subsample is None:
             subsample = np.ones(elayers + 1, dtype=np.int)
         else:
             subsample = subsample[:elayers]
             # Append 1 at the beginning because the second or later is used
-            subsample = np.pad(np.array(subsample, dtype=np.int),
-                               [1, elayers - len(subsample)], mode='constant',
-                               constant_values=1)
+            subsample = np.pad(
+                np.array(subsample, dtype=np.int),
+                [1, elayers - len(subsample)],
+                mode="constant",
+                constant_values=1,
+            )
 
         if etype.startswith("vgg"):
             if etype[-1] == "p":
                 self.enc = torch.nn.ModuleList(
-                    [VGG2L(in_channel),
-                     RNNP(get_vgg2l_odim(idim, in_channel=in_channel),
-                          elayers, eunits, eprojs, subsample, dropout,
-                          typ=typ)])
-                logging.info('Use CNN-VGG + ' + typ.upper() + 'P for encoder')
+                    [
+                        VGG2L(in_channel),
+                        RNNP(
+                            get_vgg2l_odim(idim, in_channel=in_channel),
+                            elayers,
+                            eunits,
+                            eprojs,
+                            subsample,
+                            dropout,
+                            typ=typ,
+                        ),
+                    ]
+                )
+                logging.info("Use CNN-VGG + " + typ.upper() + "P for encoder")
             else:
                 self.enc = torch.nn.ModuleList(
-                    [VGG2L(in_channel),
-                     RNN(get_vgg2l_odim(idim, in_channel=in_channel),
-                         elayers, eunits, eprojs, dropout, typ=typ)])
-                logging.info('Use CNN-VGG + ' + typ.upper() + ' for encoder')
+                    [
+                        VGG2L(in_channel),
+                        RNN(
+                            get_vgg2l_odim(idim, in_channel=in_channel),
+                            elayers,
+                            eunits,
+                            eprojs,
+                            dropout,
+                            typ=typ,
+                        ),
+                    ]
+                )
+                logging.info("Use CNN-VGG + " + typ.upper() + " for encoder")
         else:
             if etype[-1] == "p":
                 self.enc = torch.nn.ModuleList(
-                    [RNNP(idim, elayers, eunits, eprojs, subsample, dropout,
-                          typ=typ)])
+                    [
+                        RNNP(
+                            idim,
+                            elayers,
+                            eunits,
+                            eprojs,
+                            subsample,
+                            dropout,
+                            typ=typ,
+                        )
+                    ]
+                )
                 logging.info(
-                    typ.upper() + ' with every-layer projection for encoder')
+                    typ.upper() + " with every-layer projection for encoder"
+                )
             else:
                 self.enc = torch.nn.ModuleList(
-                    [RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
-                logging.info(typ.upper() + ' without projection for encoder')
+                    [RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)]
+                )
+                logging.info(typ.upper() + " without projection for encoder")
 
     def out_dim(self) -> int:
         return self.eprojs
 
-    def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor,
-                prev_states: torch.Tensor = None) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        xs_pad: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if prev_states is None:
             prev_states = [None] * len(self.enc)
         assert len(prev_states) == len(self.enc)
@@ -82,7 +121,8 @@ class Encoder(AbsEncoder):
         current_states = []
         for module, prev_state in zip(self.enc, prev_states):
             xs_pad, ilens, states = module(
-                xs_pad, ilens, prev_state=prev_state)
+                xs_pad, ilens, prev_state=prev_state
+            )
             current_states.append(states)
 
         xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0),

@@ -21,7 +21,9 @@ class AbsLM(torch.nn.Module, ScorerInterface, ABC):
     This "model" is one of mediator objects for "Task" class.
 
     """
+
     @abstractmethod
-    def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, hidden: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError

@@ -26,23 +26,26 @@ class AbsTextConverter(ABC):
         raise NotImplementedError
 
 
-def build_text_converter(token_type: str,
-                         model_or_token_list: Union[Path, str, Sequence[str]],
-                         unk_symbol: str = '<unk>',
-                         delimiter: str = None,
-                         ) -> AbsTextConverter:
+def build_text_converter(
+    token_type: str,
+    model_or_token_list: Union[Path, str, Sequence[str]],
+    unk_symbol: str = "<unk>",
+    delimiter: str = None,
+) -> AbsTextConverter:
     """A helper function to instantiate Tokenizer"""
     assert check_argument_types()
-    if token_type == 'bpe':
+    if token_type == "bpe":
         return Text2Sentencepieces(model_or_token_list)
-    elif token_type == 'word':
-        return Text2Words(model_or_token_list, unk_symbol=unk_symbol,
-                          delimiter=delimiter)
-    elif token_type == 'char':
+    elif token_type == "word":
+        return Text2Words(
+            model_or_token_list, unk_symbol=unk_symbol, delimiter=delimiter
+        )
+    elif token_type == "char":
         return Text2Chars(model_or_token_list, unk_symbol=unk_symbol)
     else:
-        raise ValueError(f'token_mode must be one of bpe, word, or char: '
-                         f'{token_type}')
+        raise ValueError(
+            f"token_mode must be one of bpe, word, or char: " f"{token_type}"
+        )
 
 
 class Text2Sentencepieces(AbsTextConverter):
@@ -54,6 +57,7 @@ class Text2Sentencepieces(AbsTextConverter):
         >>> int_array = converter.text2ids(line)
 
     """
+
     def __init__(self, model: Union[Path, str]):
         assert check_argument_types()
         self.model = Path(model)
@@ -73,9 +77,10 @@ class Text2Sentencepieces(AbsTextConverter):
 
     def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         if isinstance(integers, np.ndarray):
-            if integers.dtype.kind != 'i':
+            if integers.dtype.kind != "i":
                 raise ValueError(
-                    f'Must be int array: but got {integers.dtype}')
+                    f"Must be int array: but got {integers.dtype}"
+                )
             integers = integers.tolist()
         text = self.sp.DecodeIds(integers)
         return text
@@ -90,10 +95,13 @@ class Text2Words(AbsTextConverter):
         >>> int_array = converter.text2ids(line)
 
     """
-    def __init__(self, token_list: Union[Path, str, Sequence[str]],
-                 unk_symbol: str = '<unk>',
-                 delimiter: str = None,
-                 ):
+
+    def __init__(
+        self,
+        token_list: Union[Path, str, Sequence[str]],
+        unk_symbol: str = "<unk>",
+        delimiter: str = None,
+    ):
         assert check_argument_types()
         self.delimiter = delimiter
         self.unk_symbol = unk_symbol
@@ -103,7 +111,7 @@ class Text2Words(AbsTextConverter):
             self.token_path = token_list
             self.token_list: List[str] = []
             self.token2id: Dict[str, int] = {}
-            with token_list.open('r') as f:
+            with token_list.open("r") as f:
                 for idx, line in enumerate(f):
                     line = line.rstrip()
                     self.token_list.append(line)
@@ -112,32 +120,37 @@ class Text2Words(AbsTextConverter):
         else:
             self.token_list: List[str] = list(token_list)
             self.token2id = {t: i for i, t in enumerate(self.token_list)}
-            self.token_path = f'(NVocab={(len(self.token_list))})'
+            self.token_path = f"(NVocab={(len(self.token_list))})"
         self.id2token = {i: t for i, t in self.id2token}
 
         if self.unk_symbol not in self.token2id:
-            raise RuntimeError(f'Unknown symbol "{unk_symbol}" '
-                               f'doesn\'t exist in {token_list}')
+            raise RuntimeError(
+                f'Unknown symbol "{unk_symbol}" '
+                f"doesn't exist in {token_list}"
+            )
         self.unk_id = self.token2id[self.unk_symbol]
 
     def __repr__(self):
-        return (f'{self.__class__.__name__}('
-                f'token_list="{self.token_path}", '
-                f'unk_symbol="{self.unk_symbol}", '
-                f'delimiter="{self.delimiter}", '
-                f')')
+        return (
+            f"{self.__class__.__name__}("
+            f'token_list="{self.token_path}", '
+            f'unk_symbol="{self.unk_symbol}", '
+            f'delimiter="{self.delimiter}", '
+            f")"
+        )
 
     def text2ids(self, line: str) -> np.ndarray:
         tokens = line.strip(self.delimiter)
-        return np.fromiter((self.token2id.get(t, self.unk_id) for t in tokens),
-                           dtype=np.int64)
+        return np.fromiter(
+            (self.token2id.get(t, self.unk_id) for t in tokens), dtype=np.int64
+        )
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
         return self.delimiter.join(tokens)
 
     def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
         if self.delimiter is None:
-            delimiter = ' '
+            delimiter = " "
         else:
             delimiter = self.delimiter
         return delimiter.join([self.id2token[i] for i in integers])
@@ -152,9 +165,12 @@ class Text2Chars(AbsTextConverter):
         >>> int_array = converter.text2ids(line)
 
     """
-    def __init__(self, token_list: Union[Path, str, Sequence[str]],
-                 unk_symbol: str = '<unk>',
-                 ):
+
+    def __init__(
+        self,
+        token_list: Union[Path, str, Sequence[str]],
+        unk_symbol: str = "<unk>",
+    ):
         assert check_argument_types()
 
         self.unk_symbol = unk_symbol
@@ -163,7 +179,7 @@ class Text2Chars(AbsTextConverter):
             self.token_path = token_list
             self.token_list: List[str] = []
             self.token2id: Dict[str, int] = {}
-            with token_list.open('r') as f:
+            with token_list.open("r") as f:
                 for idx, line in enumerate(f):
                     line = line.rstrip()
                     self.token_list.append(line)
@@ -171,26 +187,31 @@ class Text2Chars(AbsTextConverter):
 
         else:
             self.token_list: List[str] = list(token_list)
-            self.token_path = f'(NVocab={(len(self.token_list))})'
+            self.token_path = f"(NVocab={(len(self.token_list))})"
         self.id2token = {i: t for i, t in self.id2token}
 
         if self.unk_symbol not in self.token2id:
-            raise RuntimeError(f'Unknown symbol "{unk_symbol}" '
-                               f"doesn't exist in {token_list}")
+            raise RuntimeError(
+                f'Unknown symbol "{unk_symbol}" '
+                f"doesn't exist in {token_list}"
+            )
         self.unk_id = self.token2id[self.unk_symbol]
 
     def __repr__(self):
-        return (f'{self.__class__.__name__}('
-                f'token_list="{self.token_path}", '
-                f'unk_symbol="{self.unk_symbol}", '
-                f')')
+        return (
+            f"{self.__class__.__name__}("
+            f'token_list="{self.token_path}", '
+            f'unk_symbol="{self.unk_symbol}", '
+            f")"
+        )
 
     def text2ids(self, line: str) -> np.ndarray:
-        return np.fromiter((self.token2id.get(t, self.unk_id) for t in line),
-                           dtype=np.int64)
+        return np.fromiter(
+            (self.token2id.get(t, self.unk_id) for t in line), dtype=np.int64
+        )
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
-        return ''.join(tokens)
+        return "".join(tokens)
 
     def ids2text(self, integers: Union[np.ndarray, Sequence[int]]) -> str:
-        return ''.join([self.id2token[i] for i in integers])
+        return "".join([self.id2token[i] for i in integers])

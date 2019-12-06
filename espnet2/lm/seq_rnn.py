@@ -17,15 +17,16 @@ class SequentialRNNLM(AbsLM):
 
     """
 
-    def __init__(self,
-                 vocab_size: int,
-                 unit: int = 650,
-                 nlayers: int = 2,
-                 dropout_rate: float = 0.0,
-                 tie_weights: bool = False,
-                 rnn_type: str = 'lstm',
-                 ignore_id: int = 0,
-                 ):
+    def __init__(
+        self,
+        vocab_size: int,
+        unit: int = 650,
+        nlayers: int = 2,
+        dropout_rate: float = 0.0,
+        tie_weights: bool = False,
+        rnn_type: str = "lstm",
+        ignore_id: int = 0,
+    ):
         assert check_argument_types()
         super().__init__()
 
@@ -35,20 +36,29 @@ class SequentialRNNLM(AbsLM):
 
         self.drop = nn.Dropout(dropout_rate)
         self.encoder = nn.Embedding(vocab_size, ninp, padding_idx=ignore_id)
-        if rnn_type in ['LSTM', 'GRU']:
+        if rnn_type in ["LSTM", "GRU"]:
             rnn_class = getattr(nn, rnn_type)
-            self.rnn = rnn_class(ninp, nhid, nlayers, dropout=dropout_rate,
-                                 batch_first=True)
+            self.rnn = rnn_class(
+                ninp, nhid, nlayers, dropout=dropout_rate, batch_first=True
+            )
         else:
             try:
-                nonlinearity = {'RNN_TANH': 'tanh',
-                                'RNN_RELU': 'relu'}[rnn_type]
+                nonlinearity = {"RNN_TANH": "tanh", "RNN_RELU": "relu"}[
+                    rnn_type
+                ]
             except KeyError:
                 raise ValueError(
                     """An invalid option for `--model` was supplied,
-                    options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
-            self.rnn = nn.RNN(ninp, nhid, nlayers, nonlinearity=nonlinearity,
-                              dropout=dropout_rate, batch_first=True)
+                    options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']"""
+                )
+            self.rnn = nn.RNN(
+                ninp,
+                nhid,
+                nlayers,
+                nonlinearity=nonlinearity,
+                dropout=dropout_rate,
+                batch_first=True,
+            )
         self.decoder = nn.Linear(nhid, vocab_size)
 
         # Optionally tie weights as in:
@@ -61,23 +71,29 @@ class SequentialRNNLM(AbsLM):
         if tie_weights:
             if nhid != ninp:
                 raise ValueError(
-                    'When using the tied flag, nhid must be equal to emsize')
+                    "When using the tied flag, nhid must be equal to emsize"
+                )
             self.decoder.weight = self.encoder.weight
 
         self.rnn_type = rnn_type
         self.nhid = nhid
         self.nlayers = nlayers
 
-    def forward(self, input: torch.Tensor, hidden: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, hidden: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
         decoded = self.decoder(
-            output.contiguous().view(output.size(0) * output.size(1),
-                                     output.size(2)))
-        return decoded.view(output.size(0), output.size(1),
-                            decoded.size(1)), hidden
+            output.contiguous().view(
+                output.size(0) * output.size(1), output.size(2)
+            )
+        )
+        return (
+            decoded.view(output.size(0), output.size(1), decoded.size(1)),
+            hidden,
+        )
 
     def init_state(self, x):
         """Get an initial state for decoding.
@@ -90,17 +106,22 @@ class SequentialRNNLM(AbsLM):
         """
         bsz = 1
         weight = next(self.parameters())
-        if self.rnn_type == 'LSTM':
-            return (weight.new_zeros(self.nlayers, bsz, self.nhid),
-                    weight.new_zeros(self.nlayers, bsz, self.nhid))
+        if self.rnn_type == "LSTM":
+            return (
+                weight.new_zeros(self.nlayers, bsz, self.nhid),
+                weight.new_zeros(self.nlayers, bsz, self.nhid),
+            )
         else:
             return weight.new_zeros(self.nlayers, bsz, self.nhid)
 
-    def score(self, y: torch.Tensor,
-              state: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
-              x: torch.Tensor) \
-            -> Tuple[torch.Tensor, Union[torch.Tensor,
-                                         Tuple[torch.Tensor, torch.Tensor]]]:
+    def score(
+        self,
+        y: torch.Tensor,
+        state: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
+        x: torch.Tensor,
+    ) -> Tuple[
+        torch.Tensor, Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
+    ]:
         """Score new token.
 
         Args:

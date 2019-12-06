@@ -16,8 +16,9 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadDot
 from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadLoc
 from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadMultiResLoc
 from espnet.nets.pytorch_backend.rnn.attentions import NoAtt
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 
 
 class AbsAttention(torch.nn.Module, ABC):
@@ -25,7 +26,6 @@ class AbsAttention(torch.nn.Module, ABC):
 
     See also: calculate_all_attentions()
     """
-    pass
 
 
 # TODO(kamo): Using tricky way such as register() to keep espnet/ as it is.
