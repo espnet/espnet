@@ -21,18 +21,14 @@ class AbsTextConverter(ABC):
             token_list = Path(token_list)
             self.token_list_repr = str(token_list)
             self.token_list: List[str] = []
-            self.token2id: Dict[str, int] = {}
 
             with token_list.open("r") as f:
                 for idx, line in enumerate(f):
                     line = line.rstrip()
                     self.token_list.append(line)
-                    self.token2id[line] = idx
 
         else:
             self.token_list: List[str] = list(token_list)
-            self.token2id = {t: i for i, t in enumerate(self.token_list)}
-
             self.token_list_repr = ""
             for i, t in enumerate(self.token_list):
                 if i == 3:
@@ -40,7 +36,11 @@ class AbsTextConverter(ABC):
                 self.token_list_repr += f"{t}, "
             self.token_list_repr += f"... (NVocab={(len(self.token_list))})"
 
-        self.id2token = {i: t for t, i in self.token2id.items()}
+        self.token2id: Dict[str, int] = {}
+        for i, t in enumerate(self.token_list):
+            if t in self.token2id:
+                raise RuntimeError(f'Symbol "{t}" is duplicated')
+            self.token2id[t] = i
 
         self.unk_symbol = unk_symbol
         if self.unk_symbol not in self.token2id:
@@ -57,7 +57,7 @@ class AbsTextConverter(ABC):
             -> List[str]:
         if isinstance(integers, np.ndarray) and integers.ndim != 1:
             raise ValueError(f"Must be 1 dim ndarray, but got {integers.ndim}")
-        return [self.id2token[i] for i in integers]
+        return [self.token_list[i] for i in integers]
 
     def tokens2ids(self, tokens: Iterable[str]) -> List[int]:
         return [self.token2id.get(i, self.unk_id) for i in tokens]
@@ -171,7 +171,7 @@ class Text2WordsConverter(AbsTextConverter):
             f"{self.__class__.__name__}("
             f'token_list="{self.token_list_repr}", '
             f'unk_symbol="{self.unk_symbol}", '
-            f'delimiter="{self.delimiter}", '
+            f'delimiter="{self.delimiter}"'
             f")"
         )
 
@@ -208,7 +208,7 @@ class Text2CharsConverter(AbsTextConverter):
         return (
             f"{self.__class__.__name__}("
             f'token_list="{self.token_list_repr}", '
-            f'unk_symbol="{self.unk_symbol}", '
+            f'unk_symbol="{self.unk_symbol}"'
             f")"
         )
 
