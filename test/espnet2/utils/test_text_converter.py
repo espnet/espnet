@@ -1,9 +1,9 @@
 import string
 from pathlib import Path
 
+import numpy as np
 import pytest
 import sentencepiece as spm
-import numpy as np
 from typing import List
 
 from espnet2.utils.text_converter import build_text_converter
