@@ -50,9 +50,9 @@ def common_collate_fn(
 
     Examples:
         >>> from espnet2.train.batch_sampler import ConstantBatchSampler
-        >>> from espnet2.train.dataset import ESPNetDataset
+        >>> from espnet2.train.dataset import ESPnetDataset
         >>> sampler = ConstantBatchSampler(...)
-        >>> dataset = ESPNetDataset(...)
+        >>> dataset = ESPnetDataset(...)
         >>> keys = next(iter(sampler)
         >>> batch = [dataset[key] for key in keys]
         >>> batch = common_collate_fn(batch)

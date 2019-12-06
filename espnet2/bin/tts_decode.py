@@ -21,7 +21,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPNetDataset
+from espnet2.train.dataset import ESPnetDataset
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -76,7 +76,7 @@ def tts_decode(
     normalize = model.normalize
 
     # 3. Build data-iterator
-    dataset = ESPNetDataset(
+    dataset = ESPnetDataset(
         data_path_and_name_and_type,
         float_dtype=dtype,
         preprocess=TTSTask.build_preprocess_fn(train_args, False),

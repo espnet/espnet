@@ -20,7 +20,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPNetDataset
+from espnet2.train.dataset import ESPnetDataset
 from espnet2.utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import float_or_none
@@ -88,7 +88,7 @@ def calc_perplexity(
     wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
-    dataset = ESPNetDataset(
+    dataset = ESPnetDataset(
         data_path_and_name_and_type,
         float_dtype=dtype,
         preprocess=LMTask.build_preprocess_fn(train_args, False),

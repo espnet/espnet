@@ -51,11 +51,11 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         return array
 
 
-class ESPNetDataset(Dataset):
+class ESPnetDataset(Dataset):
     """
 
     Examples:
-        >>> dataset = ESPNetDataset([('wav.scp', 'input', 'sound'),
+        >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
         ...                         )
         ... data = dataset['uttid']
