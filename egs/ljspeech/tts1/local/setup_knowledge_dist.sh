@@ -12,6 +12,7 @@
 stage=0
 stop_stage=100
 backend=pytorch
+ngpu=0
 nj=32
 dumpdir=dump
 verbose=1
@@ -59,10 +60,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp ${dumpdir}/${name}/data.json "${outdir}/${name}"
         splitjson.py --parts ${nj} "${outdir}/${name}/data.json"
         # shellcheck disable=SC2154
-        ${train_cmd} JOB=1:${nj} "${outdir}/${name}/log/decode.JOB.log" \
+        ${train_cmd} --gpu ${ngpu} JOB=1:${nj} "${outdir}/${name}/log/decode.JOB.log" \
             tts_decode.py \
                 --backend ${backend} \
-                --ngpu 0 \
+                --ngpu ${ngpu} \
                 --verbose ${verbose} \
                 --out "${outdir}/${name}/feats.JOB" \
                 --json "${outdir}/${name}/split${nj}utt/data.JOB.json" \
