@@ -526,13 +526,14 @@ class AbsTask(ABC):
             "sgd",
             "adadelta",
             "adagrad",
-            "adamw",
             "adamax",
             "asgd",
             "lbfgs",
             "rmsprop",
             "rprop",
         )
+        if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
+            choices += ("adamw",)
         assert check_return_type(choices)
         return choices
 
@@ -624,19 +625,16 @@ class AbsTask(ABC):
 
     @classmethod
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
+        choices = (None,)
+        if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+            choices += ("noamlr", None)
         if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-            choices = (
+            choices += (
                 "cycliclr",
                 "onecyclelr",
                 "CosineAnnealingWarmRestarts".lower(),
-                "noamlr",
                 None
             )
-        elif LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-            choices = ("noamlr", None)
-        else:
-            choices = (None,)
-
         assert check_return_type(choices)
         return choices
 
