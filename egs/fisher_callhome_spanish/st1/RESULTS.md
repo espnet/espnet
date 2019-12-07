@@ -6,13 +6,13 @@
 |RNN (char) [[Weiss et al.]](https://arxiv.org/abs/1703.08581)|48.30|49.10|48.70|16.80|17.40|
 |RNN (char, old)|40.42|41.49|41.51|14.10|14.20|
 |RNN (BPE1k)|30.96|31.56|31.31|9.74|10.30|
-|RNN (BPE1k) + ASR-CTC|36.54|36.99|35.,57|12.19|12.66|
+|+ ASR-CTC|36.54|36.99|35.57|12.19|12.66|
 |Transformer (char) + ASR-CTC|45.51|46.64|45.61|17.10|16.60|
 |Transformer (BPE1k) + ASR-CTC|45.85|47.73|45.77|16.99|16.78|
 |Transformer (BPE1k) + ASR-CTC + MT|46.98|47.95|46.87|17.88|17.65|
 |Transformer (BPE1k) + ASR-PT|46.93|47.87|47.01|17.03|17.22|
 |Transformer (BPE1k) + ASR-PT + MT-PT|48.53|48.91|48.24|17.67|17.66|
-|Transformer (BPE1k) + ASR-PT + MT-PT + SpecAugment|49.64|50.55|49.22|18.91|18.87|
+|Transformer (BPE1k) + ASR-PT + MT-PT + SpecAugment|**49.64**|**50.55**|**49.22**|**18.91**|**18.87**|
 
 ### RNN (lc, character unit)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
