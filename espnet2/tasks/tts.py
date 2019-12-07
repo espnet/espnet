@@ -26,6 +26,7 @@ from espnet2.tts.e2e import TTSE2E
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str_or_none
 
 
@@ -60,7 +61,7 @@ class TTSTask(AbsTask):
         excl = group.add_mutually_exclusive_group()
         excl.add_argument(
             "--odim",
-            type=int,
+            type=int_or_none,
             default=None,
             help="The number of dimension of output feature",
         )
@@ -186,6 +187,7 @@ class TTSTask(AbsTask):
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == "default":
+            # FIXME(kamo): Implement TTS feature extractor, not using ASR?
             # Fetch the frontend module from Asr as feature extractor
             retval = DefaultFrontend
         else:

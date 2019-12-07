@@ -6,7 +6,7 @@ import sys
 from abc import ABC
 from abc import abstractmethod
 from datetime import datetime
-from io import TextIOBase
+from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -35,6 +35,7 @@ from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.add_gradient_noise import add_gradient_noise
 from espnet2.train.batch_sampler import AbsSampler
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
@@ -48,7 +49,6 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2pair_str
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
@@ -200,7 +200,8 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--val_scheduler_criterion",
-            type=str2pair_str,
+            type=str,
+            nargs=2,
             default=("eval", "loss"),
             help="The criterion used for the value given to "
             "the scheduler. Give a pair referring "
@@ -211,7 +212,8 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--early_stopping_criterion",
-            type=str2triple_str,
+            type=str,
+            nargs=3,
             default=("eval", "loss", "min"),
             help="The criterion used for judging of "
             "early stopping. Give a pair referring "
@@ -546,7 +548,7 @@ class AbsTask(ABC):
             retval = torch.optim.Adadelta
         elif name.lower() == "adagrad":
             retval = torch.optim.Adagrad
-        elif name.lower() == "adaw":
+        elif name.lower() == "adamw":
             retval = torch.optim.AdamW
         elif name.lower() == "adamax":
             retval = torch.optim.Adamax
@@ -622,13 +624,19 @@ class AbsTask(ABC):
 
     @classmethod
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = (
-            "cycliclr",
-            "onecyclelr",
-            "CosineAnnealingWarmRestarts".lower(),
-            "noamlr",
-            None,
-        )
+        if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
+            choices = (
+                "cycliclr",
+                "onecyclelr",
+                "CosineAnnealingWarmRestarts".lower(),
+                "noamlr",
+                None
+            )
+        elif LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+            choices = ("noamlr", None)
+        else:
+            choices = (None,)
+
         assert check_return_type(choices)
         return choices
 
@@ -644,6 +652,7 @@ class AbsTask(ABC):
             >>>         train_batch(...)
             >>>         scheduler.step()
         """
+        assert check_argument_types()
         # NOTE(kamo): Don't use getattr or dynamic_import
         # for readability and debuggability as possible
         if name.lower() == "cycliclr":
@@ -663,7 +672,7 @@ class AbsTask(ABC):
         return retval
 
     @classmethod
-    def print_config(cls, file: TextIOBase = sys.stdout) -> None:
+    def print_config(cls, file=sys.stdout) -> None:
         assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()

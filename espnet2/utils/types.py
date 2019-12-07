@@ -7,6 +7,15 @@ def str2bool(value: str) -> bool:
     return bool(strtobool(value))
 
 
+def remove_parenthesis(value: str):
+    value = value.strip()
+    if value.startswith('(') or value.startswith('['):
+        value = value[1:]
+    if value.endswith(')') or value.endswith(']'):
+        value = value[:-1]
+    return value
+
+
 def int_or_none(value: str) -> Optional[int]:
     """
 
@@ -86,6 +95,7 @@ def str2pair_str(value: str) -> Tuple[str, str]:
         Namespace(foo=('abc', 'def'))
 
     """
+    value = remove_parenthesis(value)
     a, b = value.split(",")
     return a.strip(), b.strip()
 
@@ -97,5 +107,6 @@ def str2triple_str(value: str) -> Tuple[str, str, str]:
         >>> str2triple_str('abc,def ,ghi')
         ('abc', 'def', 'ghi')
     """
+    value = remove_parenthesis(value)
     a, b, c = value.split(",")
     return a.strip(), b.strip(), c.strip()

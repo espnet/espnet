@@ -12,7 +12,7 @@ def test_forward():
     layer = Stft(win_length=4, hop_length=2, n_fft=4)
     x = torch.randn(2, 30)
     y, _ = layer(x)
-    assert y.shape == (2, 3, 16, 2)
+    assert y.shape == (2, 16, 3, 2)
     y, ylen = layer(x, torch.tensor([30, 15], dtype=torch.long))
     assert (ylen == torch.tensor((16, 8), dtype=torch.long)).all()
 

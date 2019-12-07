@@ -47,7 +47,7 @@ class DefaultFrontend(AbsFrontend):
 
         self.stft = Stft(n_fft=n_fft, **stft_conf)
         if frontend_conf is not None:
-            self.frontend = Frontend(idim=n_fft, **frontend_conf)
+            self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
         else:
             self.frontend = None
 
@@ -70,15 +70,13 @@ class DefaultFrontend(AbsFrontend):
         assert input_stft.shape[-1] == 2, input_stft.shape
 
         # Change torch.Tensor to ComplexTensor
-        # input_stft: (..., F, T, 2) -> (..., F, T)
+        # input_stft: (..., F, 2) -> (..., F)
         input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
-        # input_stft: (..., F, T) -> (..., T, F)
-        input_stft = input_stft.transpose(-1, -2)
 
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
             assert isinstance(input_stft, ComplexTensor), type(input_stft)
-            # input_stft: (Batch, [Channel,] Length, Freq)
+            # input_stft: (Batch, Length, [Channel], Freq)
             input_stft, _, mask = self.frontend(input_stft, feats_lens)
 
         # 3. [Multi channel case]: Select a channel
