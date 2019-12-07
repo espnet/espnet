@@ -4,8 +4,7 @@ import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.rnn.attentions import AttAdd
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 
@@ -36,6 +35,4 @@ def test_calculate_all_attentions():
     t = calculate_all_attentions(model, batch)
     for k in model.desired:
         for i in range(bs):
-            np.testing.assert_array_equal(
-                t[k][i].numpy(), model.desired[k][i].numpy()
-            )
+            np.testing.assert_array_equal(t[k][i].numpy(), model.desired[k][i].numpy())

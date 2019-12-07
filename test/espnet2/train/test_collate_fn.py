@@ -7,7 +7,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 
 @pytest.mark.parametrize(
     "float_pad_value, int_pad_value, not_sequence",
-    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b")), ],
+    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b"))],
 )
 def test_common_collate_fn(float_pad_value, int_pad_value, not_sequence):
     data = [
@@ -59,7 +59,7 @@ def test_common_collate_fn(float_pad_value, int_pad_value, not_sequence):
 
 @pytest.mark.parametrize(
     "float_pad_value, int_pad_value, not_sequence",
-    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b")), ],
+    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b"))],
 )
 def test_(float_pad_value, int_pad_value, not_sequence):
     _common_collate_fn = CommonCollateFn(
@@ -111,7 +111,7 @@ def test_(float_pad_value, int_pad_value, not_sequence):
 
 @pytest.mark.parametrize(
     "float_pad_value, int_pad_value, not_sequence",
-    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b")), ],
+    [(0.0, -1, ()), (3.0, 2, ("a",)), (np.inf, 100, ("a", "b"))],
 )
 def test_CommonCollateFn_repr(float_pad_value, int_pad_value, not_sequence):
     print(

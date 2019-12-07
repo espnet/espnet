@@ -158,9 +158,7 @@ def test_SoundScpWriter(tmp_path: Path):
         with pytest.raises(RuntimeError):
             y = np.random.randint(-100, 100, [16, 1, 1], dtype=np.int16)
             writer["ghi"] = 16, y
-    target = SoundScpReader(
-        tmp_path / "wav.scp", normalize=False, dtype=np.int16
-    )
+    target = SoundScpReader(tmp_path / "wav.scp", normalize=False, dtype=np.int16)
     desired = {"abc": (16, audio1), "def": (16, audio2)}
 
     for k in desired:
@@ -186,9 +184,7 @@ def test_SoundScpWriter_normalize(tmp_path: Path):
         with pytest.raises(RuntimeError):
             y = np.random.randint(-100, 100, [16, 1, 1], dtype=np.int16)
             writer["ghi"] = 16, y
-    target = SoundScpReader(
-        tmp_path / "wav.scp", normalize=True, dtype=np.float64
-    )
+    target = SoundScpReader(tmp_path / "wav.scp", normalize=True, dtype=np.float64)
     desired = {"abc": (16, audio1), "def": (16, audio2)}
 
     for k in desired:

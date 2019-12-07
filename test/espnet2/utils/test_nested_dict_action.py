@@ -13,12 +13,10 @@ def test_NestedDictAction():
     assert parser.parse_args(["--conf", "a=3", "--conf", "c=4"]) == Namespace(
         conf={"a": 3, "c": 4}
     )
-    assert parser.parse_args(["--conf", "c.d=4"]) == Namespace(
-        conf={"c": {"d": 4}}
+    assert parser.parse_args(["--conf", "c.d=4"]) == Namespace(conf={"c": {"d": 4}})
+    assert parser.parse_args(["--conf", "c.d=4", "--conf", "c=2"]) == Namespace(
+        conf={"c": 2}
     )
-    assert parser.parse_args(
-        ["--conf", "c.d=4", "--conf", "c=2"]
-    ) == Namespace(conf={"c": 2})
     assert parser.parse_args(["--conf", "{d: 5, e: 9}"]) == Namespace(
         conf={"d": 5, "e": 9}
     )

@@ -43,8 +43,25 @@ class Stft(torch.nn.Module, InversibleInterface):
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """
+
+        Args:
+            input: (Batch, Nsamples) or (Batch, Nsample, Channels)
+            ilens: (Batch)
+        Returns:
+            output: (Batch, Freq, Frames, 2) or (Batch, Freq, Frames, 2)
+
+        """
+        bs = input.size(0)
+        if input.dim() == 3:
+            multi_channel = True
+            # input: (Batch, Nsample, Channels) -> (Batch * Channels, Nsample)
+            input = input.transpose(1, 2).reshape(-1, input.size(1))
+        else:
+            multi_channel = False
 
         # output: (Batch, Freq, Frames, 2=real_imag)
+        # or (Batch, Channel, Freq, Frames, 2=real_imag)
         output = torch.stft(
             input,
             n_fft=self.n_fft,
@@ -55,6 +72,14 @@ class Stft(torch.nn.Module, InversibleInterface):
             normalized=self.normalized,
             onesided=self.onesided,
         )
+        # output: (Batch, Freq, Frames, 2=real_imag)
+        # -> (Batch, Frames, Freq, 2=real_imag)
+        output = output.transpose(1, 2)
+        if multi_channel:
+            # output: (Batch * Channel, Frames, Freq, 2=real_imag)
+            # -> (Batch, Frame, Channel, Freq, 2=real_imag)
+            output = output.view(
+                bs, -1, output.size(1), output.size(2), 2).transpose(1, 2)
 
         if ilens is not None:
             if self.center:
@@ -65,6 +90,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None
+
         return output, olens
 
     def inverse(

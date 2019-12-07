@@ -14,9 +14,7 @@ from espnet2.utils.text_converter import Text2WordsConverter
 
 @pytest.fixture(params=[None, " "])
 def word_converter(request):
-    return Text2WordsConverter(
-        ["<unk>", "Hello", "World!!"], delimiter=request.param
-    )
+    return Text2WordsConverter(["<unk>", "Hello", "World!!"], delimiter=request.param)
 
 
 @pytest.fixture
@@ -74,19 +72,12 @@ def test_Text2Sentencepieces(spm_converter: Text2SentencepiecesConverter):
     assert spm_converter.tokens2ids(spm_converter.ids2tokens(ids)) == ids
 
 
-def test_Text2Sentencepieces_text2ids(
-    spm_converter: Text2SentencepiecesConverter,
-):
+def test_Text2Sentencepieces_text2ids(spm_converter: Text2SentencepiecesConverter,):
     assert spm_converter.ids2text(spm_converter.text2ids("Hello")) == "Hello"
 
 
-def test_Text2Sentencepieces_text2tokens(
-    spm_converter: Text2SentencepiecesConverter,
-):
-    assert (
-        spm_converter.tokens2text(spm_converter.text2tokens("Hello")) ==
-        "Hello"
-    )
+def test_Text2Sentencepieces_text2tokens(spm_converter: Text2SentencepiecesConverter,):
+    assert spm_converter.tokens2text(spm_converter.text2tokens("Hello")) == "Hello"
 
 
 def test_Text2Words_repr(word_converter: Text2WordsConverter):
@@ -122,9 +113,7 @@ def test_Text2Words_ids2text(word_converter: Text2WordsConverter):
 
 
 def test_Text2Words_tokens2text(word_converter: Text2WordsConverter):
-    assert (
-        word_converter.tokens2text("Hello World!!".split()) == "Hello World!!"
-    )
+    assert word_converter.tokens2text("Hello World!!".split()) == "Hello World!!"
 
 
 def test_Text2Chars_repr(char_converter: Text2CharsConverter):
@@ -165,9 +154,7 @@ def test_Text2Chars_no_1dim_array(char_converter: Text2CharsConverter):
         char_converter.ids2tokens(np.random.randn(2, 2))
 
 
-def test_Text2Chars_get_num_vocaburary_size(
-    char_converter: Text2CharsConverter,
-):
+def test_Text2Chars_get_num_vocaburary_size(char_converter: Text2CharsConverter,):
     assert char_converter.get_num_vocaburary_size() == 101
 
 
@@ -179,16 +166,12 @@ def test_Text2Chars_get_num_vocaburary_size(
         ("bpe", None),
     ],
 )
-def test_build_text_converter(
-    token_type: str, token_list: List[str], spm_srcs
-):
+def test_build_text_converter(token_type: str, token_list: List[str], spm_srcs):
     model, vocabs = spm_srcs
     if token_list is None:
         token_list = vocabs
 
-    build_text_converter(
-        token_type=token_type, token_list=token_list, bpemodel=model
-    )
+    build_text_converter(token_type=token_type, token_list=token_list, bpemodel=model)
 
 
 def test_build_text_converter_without_model():
