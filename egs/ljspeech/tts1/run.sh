@@ -41,8 +41,9 @@ decode_config=conf/decode.yaml
 # knowledge distillation related
 teacher_model_path=""
 teacher_decode_config=conf/decode_for_knowledge_dist.yaml
-do_filtering=false
-focus_rate_thres=0.65
+do_filtering=false     # whether to do filtering using focus rate
+focus_rate_thres=0.65  # for phn taco2 around 0.65, phn transformer around 0.9
+                       # if you want to do filtering please carefully check this threshold
 
 # decoding related
 model=model.loss.best
@@ -164,6 +165,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         if [ ! -e ${teacher_outdir}/.done ]; then
             local/setup_knowledge_dist.sh \
                 --nj ${nj} \
+                --vernose ${verbose} \
                 --dict ${dict} \
                 --trans_type ${trans_type} \
                 --teacher_model_path ${teacher_model_path} \
