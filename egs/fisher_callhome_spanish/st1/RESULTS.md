@@ -26,8 +26,6 @@
 ### RNN (lc.rm, BPE1k)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
-|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
-|---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_fisher_dev.en_decode_rnn_spm|**30.96**|63.8|39.0|24.3|15.2|1.000|1.034|41550|40188|
 |exp/train_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_fisher_dev2.en_decode_rnn_spm|**31.56**|64.2|39.6|25.1|15.5|1.000|1.044|41442|39711|
 |exp/train_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_fisher_test.en_decode_rnn_spm|**31.31**|65.1|39.4|24.6|15.2|1.000|1.045|41381|39614|
