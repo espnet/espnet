@@ -1069,9 +1069,9 @@ class AbsTask(ABC):
         grad_clip: float,
         log_interval: int,
         keep_n_best_snapshot: int,
-        early_stopping_criterion: Tuple[str, str, str],
-        best_model_criterion: Sequence[Tuple[str, str, str]],
-        val_scheduler_criterion: Tuple[str, str],
+        early_stopping_criterion: Sequence[str],
+        best_model_criterion: Sequence[Sequence[str]],
+        val_scheduler_criterion: Sequence[str],
         no_forward_run: bool,
         no_backward_run: bool,
     ) -> None:
@@ -1460,7 +1460,7 @@ class AbsTask(ABC):
         cls,
         output_dir: Path,
         reporter: Reporter,
-        best_model_criterion: Sequence[Tuple[str, str, str]],
+        best_model_criterion: Sequence[Sequence[str]],
         nbest: int,
     ) -> None:
         assert check_argument_types()
