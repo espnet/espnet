@@ -16,6 +16,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
+    VOXFORGE=
 
 elif [[ "$(hostname -d)" == cslab.kecl.ntt.co.jp ]]; then
     WSJ0=/data/rigel1/corpora/LDC93S6A
@@ -35,6 +36,7 @@ elif [[ "$(hostname -d)" == cslab.kecl.ntt.co.jp ]]; then
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=/data/rigel2/corpora/LibriSpeech
+    VOXFORGE=
 
 else
     WSJ0=
@@ -54,5 +56,6 @@ else
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
+    VOXFORGE=downloads
 
 fi
