@@ -1,0 +1,1 @@
+../../../../../utils/remove_longshortdata.sh
