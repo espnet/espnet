@@ -67,7 +67,7 @@ class Encoder(AbsEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: str = "conv2d",
+        input_layer: Optional[str] = "conv2d",
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
@@ -94,11 +94,6 @@ class Encoder(AbsEncoder):
                 torch.nn.Embedding(
                     idim, attention_dim, padding_idx=padding_idx
                 ),
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
-        elif isinstance(input_layer, torch.nn.Module):
-            self.embed = torch.nn.Sequential(
-                input_layer,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer is None:
