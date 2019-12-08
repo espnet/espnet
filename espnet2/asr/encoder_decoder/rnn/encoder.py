@@ -30,6 +30,7 @@ class Encoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self.eprojs = eprojs
+        self.etype = etype
 
         typ = etype.lstrip("vgg").rstrip("p")
         if typ not in ["lstm", "gru", "blstm", "bgru"]:
@@ -125,8 +126,8 @@ class Encoder(AbsEncoder):
             )
             current_states.append(states)
 
-        xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0),
-        if not isinstance(ilens, torch.Tensor):
-            ilens = torch.tensor(ilens, dtype=torch.long, device=xs_pad.device)
-        # make mask to remove bias value in padded part
+        if self.etype.endswith("p"):
+            xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
+        else:
+            xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
         return xs_pad, ilens, current_states
