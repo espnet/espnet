@@ -495,7 +495,7 @@ class AbsTask(ABC):
         return config
 
     @classmethod
-    def check_required_commmand_args(cls, args: argparse.Namespace):
+    def check_required_command_args(cls, args: argparse.Namespace):
         assert check_argument_types()
         for k in vars(args):
             if "-" in k:
@@ -627,13 +627,12 @@ class AbsTask(ABC):
     def batch_scheduler_choices(cls) -> Tuple[Optional[str], ...]:
         choices = (None,)
         if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-            choices += ("noamlr", None)
+            choices += ("noamlr",)
         if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
             choices += (
                 "cycliclr",
                 "onecyclelr",
                 "CosineAnnealingWarmRestarts".lower(),
-                None
             )
         assert check_return_type(choices)
         return choices
@@ -688,7 +687,7 @@ class AbsTask(ABC):
         if args.print_config:
             cls.print_config()
             sys.exit(0)
-        cls.check_required_commmand_args(args)
+        cls.check_required_command_args(args)
 
         logging.basicConfig(
             level=args.log_level,
