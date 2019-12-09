@@ -1,1 +1,1 @@
-../../mini_an4/asr1/path.sh
+../../TEMPLATE/asr1/path.sh
