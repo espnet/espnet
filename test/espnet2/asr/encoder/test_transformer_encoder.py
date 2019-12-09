@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.encoder_decoder.transformer.encoder import Encoder
+from espnet2.asr.encoder.transformer_encoder import Encoder
 
 
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed", None])

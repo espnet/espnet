@@ -29,7 +29,7 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv2dSubsampling,
 )
-from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class Encoder(AbsEncoder):

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.encoder_decoder.rnn.encoder import Encoder
+from espnet2.asr.encoder.rnn_encoder import Encoder
 
 
 @pytest.mark.parametrize(

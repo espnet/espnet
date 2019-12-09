@@ -17,7 +17,7 @@ from typeguard import check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
-from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -105,7 +105,7 @@ class ASRTask(AbsTask):
         )
 
         group.add_argument(
-            "--encoder_decoder",
+            "--decoder",
             type=lambda x: x.lower(),
             default="rnn",
             choices=cls.encoder_decoder_choices(),
@@ -288,21 +288,21 @@ class ASRTask(AbsTask):
     ) -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
         assert check_argument_types()
         if name.lower() == "transformer":
-            from espnet2.asr.encoder_decoder.transformer.encoder import Encoder
-            from espnet2.asr.encoder_decoder.transformer.decoder import Decoder
+            from espnet2.asr.encoder.transformer_encoder import Encoder
+            from espnet2.asr.encoder_decoder.transformer_decoder import Decoder
 
             retval = Encoder, Decoder
 
         elif name.lower() == "rnn":
-            from espnet2.asr.encoder_decoder.rnn.decoder import Decoder
-            from espnet2.asr.encoder_decoder.rnn.encoder import Encoder
+            from espnet2.asr.encoder_decoder.rnn_decoder import Decoder
+            from espnet2.asr.encoder.rnn_encoder import Encoder
 
             retval = Encoder, Decoder
 
         else:
             raise RuntimeError(
-                f"--encoder_decoder must be one of "
-                f"{cls.encoder_decoder_choices()}: --encoder_decoder {name}"
+                f"--decoder must be one of "
+                f"{cls.encoder_decoder_choices()}: --decoder {name}"
             )
         assert check_return_type(retval)
         return retval
