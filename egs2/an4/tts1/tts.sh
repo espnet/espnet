@@ -1,1 +1,1 @@
-../../mini_an4/tts1/tts.sh
+../../TEMPLATE/tts1/tts.sh
