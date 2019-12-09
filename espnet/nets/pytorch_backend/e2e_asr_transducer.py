@@ -16,13 +16,19 @@ import torch
 from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders_transducer import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
+from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
+
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+
+from espnet.nets.pytorch_backend.transducer.loss import TransLoss
+from espnet.nets.pytorch_backend.transducer.rnn_decoders import decoder_for
+from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 
 from espnet.utils.cli_utils import strtobool
 
@@ -52,6 +58,7 @@ class E2E(ASRInterface, torch.nn.Module):
     def add_arguments(parser):
         """Extend arguments for transducer."""
         group = parser.add_argument_group("transducer model setting")
+
         # encoder
         group.add_argument('--etype', default='blstmp', type=str,
                            choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
@@ -102,15 +109,14 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Number of decoder embeddings dimensions')
         group.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
                            help='Dropout rate for the decoder embeddings')
-        # general
-        group.add_argument('--rnnt_type', default='warp-transducer', type=str,
+        # transducer
+        group.add_argument('--rnnt-type', default='warp-transducer', type=str,
                            choices=['warp-transducer'],
                            help='Type of transducer implementation to calculate loss.')
         group.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
                            help='RNN-Transducing mode')
         group.add_argument('--joint-dim', default=320, type=int,
                            help='Number of dimensions in joint space')
-        # decoding
         group.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
                            default=True,
                            help='Normalize transducer scores by length')
@@ -141,9 +147,9 @@ class E2E(ASRInterface, torch.nn.Module):
         # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
         self.eos = odim - 1
+        self.blank_id = 0
+        self.ignore_id = -1
 
-        # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
         subsample = np.ones(args.elayers + 1, dtype=np.int)
         if args.etype.endswith("p") and not args.etype.startswith("vgg"):
             ss = args.subsample.split("_")
@@ -152,40 +158,24 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             logging.warning(
                 'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+            logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
-        if args.use_frontend:
-            # Relative importing because of using python3 syntax
-            from espnet.nets.pytorch_backend.frontends.feature_transform \
-                import feature_transform_for
-            from espnet.nets.pytorch_backend.frontends.frontend \
-                import frontend_for
-
-            self.frontend = frontend_for(args, idim)
-            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
-            idim = args.n_mels
-        else:
-            self.frontend = None
-
-        # encoder
-        self.enc = encoder_for(args, idim, self.subsample)
+        self.enc = encoder_for(args, idim, subsample)
 
         if args.rnnt_mode == 'rnnt-att':
-            # attention
             self.att = att_for(args)
-            # decoder
             self.dec = decoder_for(args, odim, self.att)
         else:
-            # prediction
             self.dec = decoder_for(args, odim)
-        # weight initialization
+
         self.init_like_chainer()
+
+        self.criterion = TransLoss(args.rnnt_type, self.blank_id)
 
         # options for beam search
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
-            recog_args = {'beam_size': args.beam_size, 'nbest': args.nbest,
-                          'space': args.sym_space,
+            recog_args = {'beam_size': args.beam_size, 'nbest': args.nbest, 'space': args.sym_space,
                           'score_norm_transducer': args.score_norm_transducer}
 
             self.recog_args = argparse.Namespace(**recog_args)
@@ -210,32 +200,6 @@ class E2E(ASRInterface, torch.nn.Module):
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
 
         """
-        def lecun_normal_init_parameters(module):
-            for p in module.parameters():
-                data = p.data
-                if data.dim() == 1:
-                    # bias
-                    data.zero_()
-                elif data.dim() == 2:
-                    # linear weight
-                    n = data.size(1)
-                    stdv = 1. / math.sqrt(n)
-                    data.normal_(0, stdv)
-                elif data.dim() == 4:
-                    # conv weight
-                    n = data.size(1)
-                    for k in data.size()[2:]:
-                        n *= k
-                    stdv = 1. / math.sqrt(n)
-                    data.normal_(0, stdv)
-                else:
-                    raise NotImplementedError
-
-        def set_forget_bias_to_one(bias):
-            n = bias.size(0)
-            start, end = n // 4, n // 2
-            bias.data[start:end].fill_(1.)
-
         lecun_normal_init_parameters(self)
 
         if self.rnnt_mode == 'rnnt-att':
@@ -260,20 +224,23 @@ class E2E(ASRInterface, torch.nn.Module):
                loss (torch.Tensor): transducer loss value
 
         """
-        # 0. Frontend
-        if self.frontend is not None:
-            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
-            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
-        else:
-            hs_pad, hlens = xs_pad, ilens
-
         # 1. encoder
+        hs_pad, hlens = xs_pad, ilens
         hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
-        # 2. decoder
-        loss = self.dec(hs_pad, hlens, ys_pad)
+        # 1.5 transducer preparation related
+        ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hlens)
 
-        # 3. compute cer/wer
+        # 2. decoder
+        if self.rnnt_mode == 'rnnt':
+            z = self.dec(hs_pad, ys_in_pad)
+        else:
+            z = self.dec(hs_pad, ys_in_pad, hlens)
+
+        # 3. loss computation
+        loss = self.criterion(z, target, pred_len, target_len)
+
+        # 4. compute cer/wer
         # note: not recommended outside debugging right now,
         # the training time is hugely impacted.
         if self.training or not (self.report_cer or self.report_wer):
@@ -347,12 +314,7 @@ class E2E(ASRInterface, torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
-        # 0. Frontend
-        if self.frontend is not None:
-            enhanced, hlens, mask = self.frontend(hs, ilens)
-            hs, hlens = self.feature_transform(enhanced, hlens)
-        else:
-            hs, hlens = hs, ilens
+        hs, hlens = hs, ilens
 
         # 1. Encoder
         h, _, _ = self.enc(hs, hlens)
@@ -367,35 +329,6 @@ class E2E(ASRInterface, torch.nn.Module):
             self.train()
 
         return y
-
-    def enhance(self, xs):
-        """Forward only the frontend stage.
-
-        Args:
-            xs (ndarray): input acoustic feature (T, C, F)
-
-        Returns:
-            enhanced (ndarray):
-            mask (torch.Tensor):
-            ilens (torch.Tensor): batch of lengths of input sequences (B)
-
-        """
-        if self.frontend is None:
-            raise RuntimeError('Frontend does\'t exist')
-        prev = self.training
-        self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
-        xs_pad = pad_list(xs, 0.0)
-        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
-
-        if prev:
-            self.train()
-
-        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
@@ -415,12 +348,7 @@ class E2E(ASRInterface, torch.nn.Module):
             return []
 
         with torch.no_grad():
-            # 0. Frontend
-            if self.frontend is not None:
-                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
-                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
-            else:
-                hs_pad, hlens = xs_pad, ilens
+            hs_pad, hlens = xs_pad, ilens
 
             # encoder
             hpad, hlens, _ = self.enc(hs_pad, hlens)
