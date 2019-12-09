@@ -1185,7 +1185,7 @@ class AbsTask(ABC):
                     f"The best model has been updated: " + ", ".join(_improved)
                 )
 
-            # 6. Remove the snapshot files excluding n-best epoch
+            # 6. Remove the snapshot excluding n-best and the current epoch
             _removed = []
             # nbests: List[List[Tuple[epoch, value]]]
             nbests = [
@@ -1200,7 +1200,7 @@ class AbsTask(ABC):
                 nbests = set.union(*[set(i[0] for i in v) for v in nbests])
             else:
                 nbests = set()
-            for e in range(1, iepoch + 1):
+            for e in range(1, iepoch):
                 p = output_dir / f"{e}epoch"
                 if p.exists() and e not in nbests:
                     shutil.rmtree(p)
