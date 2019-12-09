@@ -1,17 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Subsampling layer definition."""
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class Conv2dSubsampling(torch.nn.Module):
-    """Convolutional 2D subsampling (to 1/4 length)
+    """Convolutional 2D subsampling (to 1/4 length).
 
     :param int idim: input dim
     :param int odim: output dim
     :param flaot dropout_rate: dropout rate
+
     """
 
     def __init__(self, idim, odim, dropout_rate):
+        """Construct an Conv2dSubsampling object."""
         super(Conv2dSubsampling, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
@@ -25,7 +35,7 @@ class Conv2dSubsampling(torch.nn.Module):
         )
 
     def forward(self, x, x_mask):
-        """Subsample x
+        """Subsample x.
 
         :param torch.Tensor x: input tensor
         :param torch.Tensor x_mask: input mask

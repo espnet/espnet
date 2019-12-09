@@ -18,7 +18,6 @@ import kaldiio
 import numpy as np
 import torch
 
-from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 
@@ -29,6 +28,8 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.dataset import ChainerDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
@@ -39,8 +40,6 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
 import matplotlib
 
@@ -53,20 +52,18 @@ matplotlib.use('Agg')
 class CustomEvaluator(BaseEvaluator):
     """Custom evaluator."""
 
-    def __init__(self, model, iterator, target, converter, device):
+    def __init__(self, model, iterator, target, device):
         """Initilize module.
 
         Args:
             model (torch.nn.Module): Pytorch model instance.
             iterator (chainer.dataset.Iterator): Iterator for validation.
             target (chainer.Chain): Dummy chain instance.
-            converter (CustomConverter): The batch converter.
             device (torch.device): The device to be used in evaluation.
 
         """
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
-        self.converter = converter
         self.device = device
 
     # The core part of the update routine can be customized by overriding.
@@ -88,10 +85,15 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
+                if isinstance(batch, tuple):
+                    x = tuple(arr.to(self.device) for arr in batch)
+                else:
+                    x = batch
+                    for key in x.keys():
+                        x[key] = x[key].to(self.device)
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
-                    x = self.converter(batch, self.device)
                     if isinstance(x, tuple):
                         self.model(*x)
                     else:
@@ -105,7 +107,7 @@ class CustomEvaluator(BaseEvaluator):
 class CustomUpdater(training.StandardUpdater):
     """Custom updater."""
 
-    def __init__(self, model, grad_clip, iterator, optimizer, converter, device, accum_grad=1):
+    def __init__(self, model, grad_clip, iterator, optimizer, device, accum_grad=1):
         """Initilize module.
 
         Args:
@@ -113,14 +115,12 @@ class CustomUpdater(training.StandardUpdater):
             grad_clip (float) grad_clip : The gradient clipping value.
             iterator (chainer.dataset.Iterator): Iterator for training.
             optimizer (torch.optim.Optimizer) : Pytorch optimizer instance.
-            converter (CustomConverter) : The batch converter.
             device (torch.device): The device to be used in training.
 
         """
         super(CustomUpdater, self).__init__(iterator, optimizer)
         self.model = model
         self.grad_clip = grad_clip
-        self.converter = converter
         self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
         self.accum_grad = accum_grad
@@ -136,7 +136,12 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch (a list of json files)
         batch = train_iter.next()
-        x = self.converter(batch, self.device)
+        if isinstance(batch, tuple):
+            x = tuple(arr.to(self.device) for arr in batch)
+        else:
+            x = batch
+            for key in x.keys():
+                x[key] = x[key].to(self.device)
 
         # compute loss and gradient
         if isinstance(x, tuple):
@@ -175,7 +180,7 @@ class CustomConverter(object):
         # NOTE: keep as class for future development
         pass
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Convert a given batch.
 
         Args:
@@ -305,7 +310,7 @@ def train(args):
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
 
@@ -378,28 +383,20 @@ def train(args):
         keep_all_data_on_mem=args.keep_all_data_on_mem,
     )
 
+    converter = CustomConverter()
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.num_iter_processes > 0:
-        train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train_batchset, load_tr),
-            batch_size=1, n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid_batchset, load_cv),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train_batchset, load_tr),
-            batch_size=1, shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid_batchset, load_cv),
-            batch_size=1, repeat=False, shuffle=False)
+    train_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(train_batchset, lambda data: converter([load_tr(data)])),
+        batch_size=1, num_workers=args.num_iter_processes,
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
+    valid_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(valid_batchset, lambda data: converter([load_cv(data)])),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
+        num_workers=args.num_iter_processes)}
 
     # Set up a trainer
-    converter = CustomConverter()
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device, args.accum_grad)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, device, args.accum_grad)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -407,19 +404,22 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
-
     # set intervals
+    eval_interval = (args.eval_interval_epochs, 'epoch')
     save_interval = (args.save_interval_epochs, 'epoch')
     report_interval = (args.report_interval_iters, 'iteration')
+
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(CustomEvaluator(
+        model, valid_iter, reporter, device), trigger=eval_interval)
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
+                   trigger=training.triggers.MinValueTrigger(
+                       'validation/main/loss', trigger=eval_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
@@ -436,7 +436,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=save_interval)
+        trainer.extend(att_reporter, trigger=eval_interval)
     else:
         att_reporter = None
 
@@ -448,9 +448,11 @@ def train(args):
     plot_keys = []
     for key in base_plot_keys:
         plot_key = ['main/' + key, 'validation/main/' + key]
-        trainer.extend(extensions.PlotReport(plot_key, 'epoch', file_name=key + '.png'))
+        trainer.extend(extensions.PlotReport(
+            plot_key, 'epoch', file_name=key + '.png'), trigger=eval_interval)
         plot_keys += plot_key
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
+    trainer.extend(extensions.PlotReport(
+        plot_keys, 'epoch', file_name='all_loss.png'), trigger=eval_interval)
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=report_interval))
@@ -472,6 +474,7 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
 
+@torch.no_grad()
 def decode(args):
     """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
@@ -549,29 +552,38 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
-    with torch.no_grad(), \
-            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
+    def _calculate_focus_rete(att_ws):
+        if att_ws is None:
+            # fastspeech case -> None
+            return 1.0
+        elif len(att_ws.shape) == 2:
+            # tacotron 2 case -> (L, T)
+            return float(att_ws.max(dim=-1)[0].mean())
+        else:
+            # transformer case -> (#layers, #heads, L, T)
+            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
 
+    # start decoding
+    with kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
+            # setup inputs
             batch = [(utt_id, js[utt_id])]
             data = load_inputs_and_targets(batch)
+            x = torch.LongTensor(data[0][0]).to(device)
+            spemb = None
             if train_args.use_speaker_embedding:
-                spemb = data[1][0]
-                spemb = torch.FloatTensor(spemb).to(device)
-            else:
-                spemb = None
-            x = data[0][0]
-            x = torch.LongTensor(x).to(device)
+                spemb = torch.FloatTensor(data[1][0]).to(device)
 
             # decode and write
             start_time = time.time()
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
-            logging.info("inference speed = %s msec / frame." % (
-                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
+            logging.info("inference speed = %.1f frames / sec." % (
+                int(outs.size(0)) / (time.time() - start_time)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
-            logging.info('(%d/%d) %s (size:%d->%d)' % (
-                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
+            logging.info('(%d/%d) %s (size: %d->%d, focus rate: %.3f)' % (
+                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), _calculate_focus_rete(att_ws)))
             f[utt_id] = outs.cpu().numpy()
 
             # plot prob and att_ws

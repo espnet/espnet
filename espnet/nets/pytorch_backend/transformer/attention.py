@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Multi-Head Attention layer definition."""
+
 import math
 
 import numpy
@@ -6,14 +14,16 @@ from torch import nn
 
 
 class MultiHeadedAttention(nn.Module):
-    """Multi-Head Attention layer
+    """Multi-Head Attention layer.
 
     :param int n_head: the number of head s
     :param int n_feat: the number of features
     :param float dropout_rate: dropout rate
+
     """
 
     def __init__(self, n_head, n_feat, dropout_rate):
+        """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
@@ -27,7 +37,7 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout_rate)
 
     def forward(self, query, key, value, mask):
-        """Compute 'Scaled Dot Product Attention'
+        """Compute 'Scaled Dot Product Attention'.
 
         :param torch.Tensor query: (batch, time1, size)
         :param torch.Tensor key: (batch, time2, size)

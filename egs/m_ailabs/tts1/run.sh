@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
@@ -96,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     # Trim silence parts at the begining and the end of audio
     if ${do_trimming}; then
-        local/trim_silence.sh --cmd "${train_cmd}" \
+        trim_silence.sh --cmd "${train_cmd}" \
             --fs ${fs} \
             --win_length ${trim_win_length} \
             --shift_length ${trim_shift_length} \

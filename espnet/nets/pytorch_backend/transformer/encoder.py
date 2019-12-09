@@ -1,9 +1,18 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Encoder definition."""
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -11,7 +20,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 
 
 class Encoder(torch.nn.Module):
-    """Transformer encoder module
+    """Transformer encoder module.
 
     :param int idim: input dim
     :param int attention_dim: dimention of attention
@@ -47,7 +56,9 @@ class Encoder(torch.nn.Module):
                  positionwise_layer_type="linear",
                  positionwise_conv_kernel_size=1,
                  padding_idx=-1):
+        """Construct an Encoder object."""
         super(Encoder, self).__init__()
+
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(idim, attention_dim),
@@ -81,6 +92,9 @@ class Encoder(torch.nn.Module):
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
             positionwise_layer_args = (attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
+        elif positionwise_layer_type == "conv1d-linear":
+            positionwise_layer = Conv1dLinear
+            positionwise_layer_args = (attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
         else:
             raise NotImplementedError("Support only linear or conv1d.")
         self.encoders = repeat(
@@ -98,7 +112,7 @@ class Encoder(torch.nn.Module):
             self.after_norm = LayerNorm(attention_dim)
 
     def forward(self, xs, masks):
-        """Embed positions in tensor
+        """Embed positions in tensor.
 
         :param torch.Tensor xs: input tensor
         :param torch.Tensor masks: input mask
