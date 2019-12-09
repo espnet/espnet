@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
-from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class Encoder(AbsEncoder):

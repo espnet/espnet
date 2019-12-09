@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
 )
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
-from espnet2.asr.encoder_decoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.train.abs_e2e import AbsE2E
