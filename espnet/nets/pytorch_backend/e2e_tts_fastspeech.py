@@ -13,7 +13,6 @@ import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
@@ -30,6 +29,76 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
+
+
+class FeedForwardTransformerLoss(torch.nn.Module):
+    """Loss function module for feed-forward Transformer."""
+
+    def __init__(self, use_masking=True, use_weighted_masking=False):
+        """Initialize feed-forward Transformer loss module.
+
+        Args:
+            use_masking (bool): Whether to apply masking for padded part in loss calculation.
+            use_weighted_masking (bool): Whether to weighted masking in loss calculation.
+
+        """
+        super(FeedForwardTransformerLoss, self).__init__()
+        assert (use_masking != use_weighted_masking) or not use_masking
+        self.use_masking = use_masking
+        self.use_weighted_masking = use_weighted_masking
+
+        # define criterions
+        reduction = "none" if self.use_weighted_masking else "mean"
+        self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        self.duration_criterion = DurationPredictorLoss(reduction=reduction)
+
+    def forward(self, after_outs, before_outs, d_outs, ys, ds, ilens, olens):
+        """Calculate forward propagation.
+
+        Args:
+            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            d_outs (Tensor): Batch of outputs of duration predictor (B, Tmax).
+            ys (Tensor): Batch of target features (B, Lmax, odim).
+            ds (Tensor): Batch of durations (B, Tmax).
+            ilens (LongTensor): Batch of the lengths of each input (B,).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: L1 loss value.
+            Tensor: Duration predictor loss value.
+
+        """
+        # apply mask to remove padded part
+        if self.use_masking:
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            d_outs = d_outs.masked_select(duration_masks)
+            ds = ds.masked_select(duration_masks)
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            before_outs = before_outs.masked_select(out_masks)
+            after_outs = after_outs.masked_select(out_masks) if after_outs is not None else None
+            ys = ys.masked_select(out_masks)
+
+        # calculate loss
+        l1_loss = self.l1_criterion(before_outs, ys)
+        if after_outs is not None:
+            l1_loss += self.l1_criterion(after_outs, ys)
+        duration_loss = self.duration_criterion(d_outs, ds)
+
+        # make weighted mask and apply it
+        if self.use_weighted_masking:
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            out_weights = out_masks.float() / out_masks.sum(dim=1, keepdim=True).float()
+            out_weights /= ys.size(0) * ys.size(2)
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            duration_weights = duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
+            duration_weights /= ds.size(0)
+
+            # apply weight
+            l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
+            duration_loss = duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
+
+        return l1_loss, duration_loss
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
@@ -138,6 +207,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
+        group.add_argument("--use-weighted-masking", default=False, type=strtobool,
+                           help="Whether to use weighted masking in calculation of loss")
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -175,7 +246,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
                 - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
                 - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
                 - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
@@ -192,7 +264,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.odim = odim
         self.reduction_factor = args.reduction_factor
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
-        self.use_masking = args.use_masking
         self.spk_embed_dim = args.spk_embed_dim
         if self.spk_embed_dim is not None:
             self.spk_embed_integration_type = args.spk_embed_integration_type
@@ -300,7 +371,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             self._transfer_from_teacher(args.transferred_encoder_module)
 
         # define criterions
-        self.duration_criterion = DurationPredictorLoss()
+        self.criterion = FeedForwardTransformerLoss(
+            use_masking=args.use_masking,
+            use_weighted_masking=args.use_weighted_masking
+        )
 
     def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
         # forward encoder
@@ -372,22 +446,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             max_olen = max(olens)
             ys = ys[:, :max_olen]
 
-        # apply mask to remove padded part
-        if self.use_masking:
-            in_masks = make_non_pad_mask(ilens).to(xs.device)
-            d_outs = d_outs.masked_select(in_masks)
-            ds = ds.masked_select(in_masks)
-            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            before_outs = before_outs.masked_select(out_masks)
-            after_outs = after_outs.masked_select(out_masks)
-            ys = ys.masked_select(out_masks)
-
         # calculate loss
         if self.postnet is None:
-            l1_loss = F.l1_loss(after_outs, ys)  # after_outs is the same as before_outs if postnet is None
+            l1_loss, duration_loss = self.criterion(None, before_outs, d_outs, ys, ds, ilens, olens)
         else:
-            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        duration_loss = self.duration_criterion(d_outs, ds)
+            l1_loss, duration_loss = self.criterion(after_outs, before_outs, d_outs, ys, ds, ilens, olens)
         loss = l1_loss + duration_loss
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -537,7 +600,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         assert args.reduction_factor == self.reduction_factor
 
         # load teacher model
-        model = Transformer(idim, odim, args)
+        from espnet.utils.dynamic_import import dynamic_import
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
         torch_load(model_path, model)
 
         # freeze teacher model parameters

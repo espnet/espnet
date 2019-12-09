@@ -8,8 +8,6 @@
 
 import logging
 
-from distutils.util import strtobool
-
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -23,6 +21,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 
 
@@ -160,17 +159,29 @@ class GuidedAttentionLoss(torch.nn.Module):
 class Tacotron2Loss(torch.nn.Module):
     """Loss function module for Tacotron2."""
 
-    def __init__(self, use_masking=True, bce_pos_weight=20.0):
+    def __init__(self, use_masking=True, use_weighted_masking=False, bce_pos_weight=20.0):
         """Initialize Tactoron2 loss module.
 
         Args:
-            use_masking (bool): Whether to mask padded part in loss calculation.
+            use_masking (bool): Whether to apply masking for padded part in loss calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
             bce_pos_weight (float): Weight of positive sample of stop token.
 
         """
         super(Tacotron2Loss, self).__init__()
+        assert (use_masking != use_weighted_masking) or not use_masking
         self.use_masking = use_masking
-        self.bce_pos_weight = bce_pos_weight
+        self.use_weighted_masking = use_weighted_masking
+
+        # define criterions
+        reduction = "none" if self.use_weighted_masking else "mean"
+        self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        self.mse_criterion = torch.nn.MSELoss(reduction=reduction)
+        self.bce_criterion = torch.nn.BCEWithLogitsLoss(reduction=reduction,
+                                                        pos_weight=torch.tensor(bce_pos_weight))
+
+        # NOTE(kan-bayashi): register pre hook function for the compatibility
+        self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Calculate forward propagation.
@@ -189,22 +200,47 @@ class Tacotron2Loss(torch.nn.Module):
             Tensor: Binary cross entropy loss value.
 
         """
-        # perform masking for padded values
+        # make mask and apply it
         if self.use_masking:
-            mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            ys = ys.masked_select(mask)
-            after_outs = after_outs.masked_select(mask)
-            before_outs = before_outs.masked_select(mask)
-            labels = labels.masked_select(mask[:, :, 0])
-            logits = logits.masked_select(mask[:, :, 0])
+            masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            ys = ys.masked_select(masks)
+            after_outs = after_outs.masked_select(masks)
+            before_outs = before_outs.masked_select(masks)
+            labels = labels.masked_select(masks[:, :, 0])
+            logits = logits.masked_select(masks[:, :, 0])
 
         # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(
-            logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
+        l1_loss = self.l1_criterion(after_outs, ys) + self.l1_criterion(before_outs, ys)
+        mse_loss = self.mse_criterion(after_outs, ys) + self.mse_criterion(before_outs, ys)
+        bce_loss = self.bce_criterion(logits, labels)
+
+        # make weighted mask and apply it
+        if self.use_weighted_masking:
+            masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            weights = masks.float() / masks.sum(dim=1, keepdim=True).float()
+            out_weights = weights.div(ys.size(0) * ys.size(2))
+            logit_weights = weights.div(ys.size(0))
+
+            # apply weight
+            l1_loss = l1_loss.mul(out_weights).masked_select(masks).sum()
+            mse_loss = mse_loss.mul(out_weights).masked_select(masks).sum()
+            bce_loss = bce_loss.mul(logit_weights.squeeze(-1)).masked_select(masks.squeeze(-1)).sum()
 
         return l1_loss, mse_loss, bce_loss
+
+    def _load_state_dict_pre_hook(self, state_dict, prefix, local_metadata, strict,
+                                  missing_keys, unexpected_keys, error_msgs):
+        """Apply pre hook fucntion before loading state dict.
+
+        From v.0.6.1 `bce_criterion.pos_weight` param is registered as a parameter but
+        old models do not include it and as a result, it causes missing key error when
+        loading old model parameter. This function solve the issue by adding param in
+        state dict before loading as a pre hook function of the `load_state_dict` method.
+
+        """
+        key = prefix + "bce_criterion.pos_weight"
+        if key not in state_dict:
+            state_dict[key] = self.bce_criterion.pos_weight
 
 
 class Tacotron2(TTSInterface, torch.nn.Module):
@@ -304,6 +340,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument('--use-masking', default=False, type=strtobool,
                            help='Whether to use masking in calculation of loss')
+        group.add_argument('--use-weighted-masking', default=False, type=strtobool,
+                           help='Whether to use weighted masking in calculation of loss')
         group.add_argument('--bce-pos-weight', default=20.0, type=float,
                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
         group.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
@@ -355,7 +393,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
                 - cbhg_highway_units (int): The number of units of highway network in CBHG.
                 - cbhg_gru_units (int): The number of units of GRU in CBHG.
-                - use_masking (bool): Whether to mask padded part in loss calculation.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
                 - use-guided-attn-loss (bool): Whether to use guided attention loss.
                 - guided-attn-loss-sigma (float) Sigma in guided attention loss.
@@ -447,6 +486,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            zoneout_rate=args.zoneout_rate,
                            reduction_factor=args.reduction_factor)
         self.taco2_loss = Tacotron2Loss(use_masking=args.use_masking,
+                                        use_weighted_masking=args.use_weighted_masking,
                                         bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
@@ -572,13 +612,19 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        backward_window = inference_args.backward_window if use_att_constraint else 0
+        forward_window = inference_args.forward_window if use_att_constraint else 0
 
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
             spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
             h = torch.cat([h, spemb], dim=-1)
-        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
+        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio,
+                                                 use_att_constraint=use_att_constraint,
+                                                 backward_window=backward_window,
+                                                 forward_window=forward_window)
 
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)
@@ -586,7 +632,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -595,9 +641,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            keep_tensor (bool, optional): Whether to keep original tensor.
 
         Returns:
-            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).
+            Union[ndarray, Tensor]: Batch of attention weights (B, Lmax, Tmax).
 
         """
         # check ilens type (should be list of int)
@@ -613,7 +660,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         self.train()
 
-        return att_ws.cpu().numpy()
+        if keep_tensor:
+            return att_ws
+        else:
+            return att_ws.cpu().numpy()
 
     @property
     def base_plot_keys(self):

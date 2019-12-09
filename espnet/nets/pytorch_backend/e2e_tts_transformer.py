@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss as TransformerLoss
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
@@ -62,57 +63,6 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
             self._reset_masks()
 
         return self.alpha * loss
-
-
-class TransformerLoss(torch.nn.Module):
-    """Loss function module for TTS-Transformer."""
-
-    def __init__(self, use_masking=True, bce_pos_weight=5.0):
-        """Initialize Transformer loss module.
-
-        Args:
-            use_masking (bool, optional): Whether to mask padded part in loss calculation.
-            bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
-
-        """
-        super(TransformerLoss, self).__init__()
-        # store hyperparameters
-        self.use_masking = use_masking
-        self.bce_pos_weight = bce_pos_weight
-
-    def forward(self, after_outs, before_outs, logits, ys, labels, olens):
-        """Calculate forward propagation.
-
-        Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
-            logits (Tensor): Batch of stop logits (B, Lmax).
-            ys (Tensor): Batch of padded target features (B, Lmax, odim).
-            labels (LongTensor): Batch of the sequences of stop token labels (B, Lmax).
-            olens (LongTensor): Batch of the lengths of each target (B,).
-
-        Returns:
-            Tensor: L1 loss value.
-            Tensor: Mean square error loss value.
-            Tensor: Binary cross entropy loss value.
-
-        """
-        # perform masking for padded values
-        if self.use_masking:
-            mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            ys = ys.masked_select(mask)
-            after_outs = after_outs.masked_select(mask)
-            before_outs = before_outs.masked_select(mask)
-            labels = labels.masked_select(mask[:, :, 0])
-            logits = logits.masked_select(mask[:, :, 0])
-
-        # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        l2_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(
-            logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
-
-        return l1_loss, l2_loss, bce_loss
 
 
 class TTSPlot(PlotAttentionReport):
@@ -255,6 +205,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
+        group.add_argument("--use-weighted-masking", default=False, type=strtobool,
+                           help="Whether to use weighted masking in calculation of loss")
         group.add_argument("--loss-type", default="L1", choices=["L1", "L2", "L1+L2"],
                            help="How to calc loss")
         group.add_argument("--bce-pos-weight", default=5.0, type=float,
@@ -325,7 +277,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
                 - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
                 - postnet_dropout_rate (float): Dropout rate in postnet.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
                 - loss_type (str): How to calculate loss.
                 - use_guided_attn_loss (bool): Whether to use guided attention loss.
@@ -465,6 +418,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define loss function
         self.criterion = TransformerLoss(use_masking=args.use_masking,
+                                         use_weighted_masking=args.use_weighted_masking,
                                          bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
             self.attn_criterion = GuidedMultiHeadAttentionLoss(
@@ -643,6 +597,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        if use_att_constraint:
+            logging.warning("Attention constraint is not yet supported in Transformer. Not enabled.")
 
         # forward encoder
         xs = x.unsqueeze(0)
