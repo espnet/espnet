@@ -45,6 +45,7 @@ def make_transformer_args(**kwargs):
         transformer_enc_dec_attn_dropout_rate=0.0,
         spk_embed_integration_type="add",
         use_masking=True,
+        use_weighted_masking=False,
         bce_pos_weight=1.0,
         use_batch_norm=True,
         use_scaled_pos_enc=True,
@@ -122,6 +123,8 @@ def prepare_inputs(idim, odim, ilens, olens, spk_embed_dim=None,
         ({"loss_type": "L1"}),
         ({"loss_type": "L2"}),
         ({"loss_type": "L1+L2"}),
+        ({"use_masking": False}),
+        ({"use_masking": False, "use_weighted_masking": True}),
         ({"use_guided_attn_loss": True}),
         ({"use_guided_attn_loss": True, "reduction_factor": 3}),
         ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder-decoder"]}),
@@ -182,6 +185,8 @@ def test_transformer_trainable_and_decodable(model_dict):
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"use_masking": False}),
+        ({"use_masking": False, "use_weighted_masking": True}),
     ])
 def test_transformer_gpu_trainable_and_decodable(model_dict):
     # make args
@@ -236,6 +241,8 @@ def test_transformer_gpu_trainable_and_decodable(model_dict):
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
         ({"decoder_concat_after": True}),
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"use_masking": False}),
+        ({"use_masking": False, "use_weighted_masking": True}),
     ])
 def test_transformer_multi_gpu_trainable(model_dict):
     # make args
@@ -387,7 +394,7 @@ def test_forward_and_inference_are_equal(model_dict):
         while True:
             idx += 1
             y_masks = subsequent_mask(idx).unsqueeze(0)
-            z = model.decoder.recognize(ys_in_, y_masks, hs_ir)  # (B, idx, adim)
+            z = model.decoder.forward_one_step(ys_in_, y_masks, hs_ir)[0]  # (B, idx, adim)
             outs += [model.feat_out(z).view(1, -1, model.odim)]  # [(1, r, odim), ...]
             probs += [torch.sigmoid(model.prob_out(z))[0]]  # [(r), ...]
             if idx >= maxlen:

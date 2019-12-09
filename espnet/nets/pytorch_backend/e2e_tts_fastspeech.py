@@ -13,7 +13,6 @@ import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
@@ -21,6 +20,7 @@ from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPr
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
@@ -29,6 +29,76 @@ from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
+
+
+class FeedForwardTransformerLoss(torch.nn.Module):
+    """Loss function module for feed-forward Transformer."""
+
+    def __init__(self, use_masking=True, use_weighted_masking=False):
+        """Initialize feed-forward Transformer loss module.
+
+        Args:
+            use_masking (bool): Whether to apply masking for padded part in loss calculation.
+            use_weighted_masking (bool): Whether to weighted masking in loss calculation.
+
+        """
+        super(FeedForwardTransformerLoss, self).__init__()
+        assert (use_masking != use_weighted_masking) or not use_masking
+        self.use_masking = use_masking
+        self.use_weighted_masking = use_weighted_masking
+
+        # define criterions
+        reduction = "none" if self.use_weighted_masking else "mean"
+        self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        self.duration_criterion = DurationPredictorLoss(reduction=reduction)
+
+    def forward(self, after_outs, before_outs, d_outs, ys, ds, ilens, olens):
+        """Calculate forward propagation.
+
+        Args:
+            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            d_outs (Tensor): Batch of outputs of duration predictor (B, Tmax).
+            ys (Tensor): Batch of target features (B, Lmax, odim).
+            ds (Tensor): Batch of durations (B, Tmax).
+            ilens (LongTensor): Batch of the lengths of each input (B,).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: L1 loss value.
+            Tensor: Duration predictor loss value.
+
+        """
+        # apply mask to remove padded part
+        if self.use_masking:
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            d_outs = d_outs.masked_select(duration_masks)
+            ds = ds.masked_select(duration_masks)
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            before_outs = before_outs.masked_select(out_masks)
+            after_outs = after_outs.masked_select(out_masks) if after_outs is not None else None
+            ys = ys.masked_select(out_masks)
+
+        # calculate loss
+        l1_loss = self.l1_criterion(before_outs, ys)
+        if after_outs is not None:
+            l1_loss += self.l1_criterion(after_outs, ys)
+        duration_loss = self.duration_criterion(d_outs, ds)
+
+        # make weighted mask and apply it
+        if self.use_weighted_masking:
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            out_weights = out_masks.float() / out_masks.sum(dim=1, keepdim=True).float()
+            out_weights /= ys.size(0) * ys.size(2)
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            duration_weights = duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
+            duration_weights /= ds.size(0)
+
+            # apply weight
+            l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
+            duration_loss = duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
+
+        return l1_loss, duration_loss
 
 
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
@@ -61,10 +131,18 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
         group.add_argument("--positionwise-layer-type", default="linear", type=str,
-                           choices=["linear", "conv1d"],
+                           choices=["linear", "conv1d", "conv1d-linear"],
                            help="Positionwise layer type.")
         group.add_argument("--positionwise-conv-kernel-size", default=3, type=int,
                            help="Kernel size of positionwise conv1d layer")
+        group.add_argument("--postnet-layers", default=0, type=int,
+                           help="Number of postnet layers")
+        group.add_argument("--postnet-chans", default=256, type=int,
+                           help="Number of postnet channels")
+        group.add_argument("--postnet-filts", default=5, type=int,
+                           help="Filter size of postnet")
+        group.add_argument("--use-batch-norm", default=True, type=strtobool,
+                           help="Whether to use batch normalization")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
                            help="Use trainable scaled positional encoding instead of the fixed scale one")
         group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
@@ -119,6 +197,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate for transformer encoder-decoder attention")
         group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for duration predictor")
+        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
+                           help="Dropout rate in postnet")
         group.add_argument("--transfer-encoder-from-teacher", default=True, type=strtobool,
                            help="Whether to transfer teacher's parameters")
         group.add_argument("--transferred-encoder-module", default="all", type=str,
@@ -127,6 +207,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
+        group.add_argument("--use-weighted-masking", default=False, type=strtobool,
+                           help="Whether to use weighted masking in calculation of loss")
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -164,7 +246,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
                 - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
                 - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
                 - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
 
@@ -181,14 +264,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.odim = odim
         self.reduction_factor = args.reduction_factor
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
-        self.use_masking = args.use_masking
         self.spk_embed_dim = args.spk_embed_dim
         if self.spk_embed_dim is not None:
             self.spk_embed_integration_type = args.spk_embed_integration_type
-
-        # TODO(kan-bayashi): support reduction_factor > 1
-        if self.reduction_factor != 1:
-            raise NotImplementedError("Support only reduction_factor = 1.")
 
         # use idx 0 as padding idx
         padding_idx = 0
@@ -260,6 +338,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
+        # define postnet
+        self.postnet = None if args.postnet_layers == 0 else Postnet(
+            idim=idim,
+            odim=odim,
+            n_layers=args.postnet_layers,
+            n_chans=args.postnet_chans,
+            n_filts=args.postnet_filts,
+            use_batch_norm=args.use_batch_norm,
+            dropout_rate=args.postnet_dropout_rate
+        )
+
         # initialize parameters
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
@@ -282,9 +371,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             self._transfer_from_teacher(args.transferred_encoder_module)
 
         # define criterions
-        self.duration_criterion = DurationPredictorLoss()
-        # TODO(kan-bayashi): support knowledge distillation loss
-        self.criterion = torch.nn.L1Loss()
+        self.criterion = FeedForwardTransformerLoss(
+            use_masking=args.use_masking,
+            use_weighted_masking=args.use_weighted_masking
+        )
 
     def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
         # forward encoder
@@ -308,16 +398,26 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         if olens is not None:
-            h_masks = self._source_mask(olens)
+            if self.reduction_factor > 1:
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                olens_in = olens
+            h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        # postnet -> (B, Lmax//r * r, odim)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         if is_inference:
-            return outs
+            return before_outs, after_outs
         else:
-            return outs, ds, d_outs
+            return before_outs, after_outs, ds, d_outs
 
     def forward(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
@@ -338,20 +438,19 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         ys = ys[:, :max(olens)]
 
         # forward propagation
-        outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+        before_outs, after_outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
 
-        # apply mask to remove padded part
-        if self.use_masking:
-            in_masks = make_non_pad_mask(ilens).to(xs.device)
-            d_outs = d_outs.masked_select(in_masks)
-            ds = ds.masked_select(in_masks)
-            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            outs = outs.masked_select(out_masks)
-            ys = ys.masked_select(out_masks)
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
+            max_olen = max(olens)
+            ys = ys[:, :max_olen]
 
         # calculate loss
-        l1_loss = self.criterion(outs, ys)
-        duration_loss = self.duration_criterion(d_outs, ds)
+        if self.postnet is None:
+            l1_loss, duration_loss = self.criterion(None, before_outs, d_outs, ys, ds, ilens, olens)
+        else:
+            l1_loss, duration_loss = self.criterion(after_outs, before_outs, d_outs, ys, ds, ilens, olens)
         loss = l1_loss + duration_loss
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -420,7 +519,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spemb (Tensor, optional): Speaker embedding vector (spk_embed_dim).
 
         Returns:
-            Tensor: Output sequence of features (1, L, odim).
+            Tensor: Output sequence of features (L, odim).
             None: Dummy for compatibility.
             None: Dummy for compatibility.
 
@@ -434,9 +533,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spembs = None
 
         # inference
-        outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)[0]  # (L, odim)
+        _, outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (L, odim)
 
-        return outs, None, None
+        return outs[0], None, None
 
     def _integrate_with_spk_embed(self, hs, spembs):
         """Integrate speaker embedding with hidden states.
@@ -464,6 +563,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
     def _source_mask(self, ilens):
         """Make masks for self-attention.
+
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> ilens = [5, 3]
@@ -493,7 +600,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         assert args.reduction_factor == self.reduction_factor
 
         # load teacher model
-        model = Transformer(idim, odim, args)
+        from espnet.utils.dynamic_import import dynamic_import
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
         torch_load(model_path, model)
 
         # freeze teacher model parameters

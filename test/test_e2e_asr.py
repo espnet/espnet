@@ -65,9 +65,7 @@ def make_arg(**kwargs):
         sortagrad=0,
         grad_noise=False,
         context_residual=False,
-        use_frontend=False,
-        replace_sos=False,
-        tgt_lang=False
+        use_frontend=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -246,13 +244,18 @@ def test_window_streaming_e2e_encoder_and_ctc_with_offline_attention():
 def test_segment_streaming_e2e():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
     args = make_arg()
-    args.etype = 'vgglstm'
+    args.etype = 'vgglstm'  # uni-directional
+    args.batchsize = 0
     model = m.E2E(40, 5, args)
     n = importlib.import_module('espnet.nets.pytorch_backend.streaming.segment')
     asr = n.SegmentStreamingE2E(model, args)
 
     in_data = np.random.randn(100, 40)
     r = np.prod(model.subsample)
+    for i in range(0, 100, r):
+        asr.accept_input(in_data[i:i + r])
+
+    args.batchsize = 1
     for i in range(0, 100, r):
         asr.accept_input(in_data[i:i + r])
 

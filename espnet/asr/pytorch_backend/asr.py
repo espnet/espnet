@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+# encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Training/decoding definition for the speech recognition task."""
 
 import copy
 import json
@@ -11,7 +13,6 @@ import math
 import os
 import sys
 
-from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -43,14 +44,14 @@ from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
+from espnet.utils.dataset import ChainerDataLoader
+from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
@@ -74,19 +75,15 @@ class CustomEvaluator(BaseEvaluator):
         target (link | dict[str, link]) :Link object or a dictionary of
             links to evaluate. If this is just a link object, the link is
             registered by the name ``'main'``.
-        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
-            function to build input arrays. Each batch extracted by the main
-            iterator and the ``device`` option are passed to this function.
-            :func:`chainer.dataset.concat_examples` is used by default.
 
         device (torch.device): The device used.
         ngpu (int): The number of GPUs.
+
     """
 
-    def __init__(self, model, iterator, target, converter, device, ngpu=None):
+    def __init__(self, model, iterator, target, device, ngpu=None):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
-        self.converter = converter
         self.device = device
         if ngpu is not None:
             self.ngpu = ngpu
@@ -114,12 +111,13 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
+                x = tuple(arr.to(self.device) if arr is not None else None
+                          for arr in batch)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
                     if self.ngpu == 0:
                         self.model(*x)
                     else:
@@ -141,11 +139,6 @@ class CustomUpdater(StandardUpdater):
         train_iter (chainer.dataset.Iterator): The training iterator.
         optimizer (torch.optim.optimizer): The training optimizer.
 
-        converter (espnet.asr.pytorch_backend.asr.CustomConverter): Converter
-            function to build input arrays. Each batch extracted by the main
-            iterator and the ``device`` option are passed to this function.
-            :func:`chainer.dataset.concat_examples` is used by default.
-
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
         use_apex (bool): The flag to use Apex in backprop.
@@ -153,11 +146,10 @@ class CustomUpdater(StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
+                 optimizer, device, ngpu, grad_noise=False, accum_grad=1, use_apex=False):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
-        self.converter = converter
         self.device = device
         self.ngpu = ngpu
         self.accum_grad = accum_grad
@@ -173,11 +165,18 @@ class CustomUpdater(StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
+        epoch = train_iter.epoch
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = self.converter(batch, self.device)
+        x = tuple(arr.to(self.device) if arr is not None else None
+                  for arr in batch)
+        is_new_epoch = train_iter.epoch != epoch
+        # When the last minibatch in the current epoch is given,
+        # gradient accumulation is turned off in order to evaluate the model
+        # on the validation set in every epoch.
+        # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -201,7 +200,7 @@ class CustomUpdater(StandardUpdater):
 
         # update parameters
         self.forward_count += 1
-        if self.forward_count != self.accum_grad:
+        if not is_new_epoch and self.forward_count != self.accum_grad:
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
@@ -232,12 +231,13 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1, dtype=torch.float32):
+        """Construct a CustomConverter object."""
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype
 
-    def __call__(self, batch, device):
-        """Transforms a batch and send it to a device.
+    def __call__(self, batch, device=torch.device('cpu')):
+        """Transform a batch and send it to a device.
 
         Args:
             batch (list): The batch to transform.
@@ -274,8 +274,8 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
-        # NOTE: this is for multi-task learning (e.g., speech translation)
-        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+        # NOTE: this is for multi-output (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0][:]) if isinstance(y, tuple) else y).long()
                            for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
@@ -381,7 +381,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
     # write model config
@@ -400,7 +400,7 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
         if args.num_encs > 1:
@@ -493,27 +493,21 @@ def train(args):
     )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
-        train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train, load_tr),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid, load_cv),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train, load_tr),
-            batch_size=1, shuffle=not use_sortagrad)
-        valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid, load_cv),
-            batch_size=1, repeat=False, shuffle=False)
+    # default collate function converts numpy array to pytorch tensor
+    # we used an empty collate function instead which returns list
+    train_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
+        batch_size=1, num_workers=args.n_iter_processes,
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
+    valid_iter = {'main': ChainerDataLoader(
+        dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
+        batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
+        num_workers=args.n_iter_processes)}
 
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer,
-        converter, device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
+        device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -527,7 +521,11 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device, args.ngpu))
+    if args.save_interval_iters > 0:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -572,7 +570,11 @@ def train(args):
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    if args.save_interval_iters > 0:
+        trainer.extend(torch_snapshot(filename='snapshot.iter.{.updater.iteration}'),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
@@ -742,7 +744,32 @@ def recog(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0] if args.num_encs == 1 else load_inputs_and_targets(batch)
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                if args.streaming_mode == 'window' and args.num_encs == 1:
+                    raise NotImplementedError
+                elif args.streaming_mode == 'segment' and args.num_encs == 1:
+                    if args.batchsize > 1:
+                        raise NotImplementedError
+                    feat = feats[0]
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
+                    nbest_hyps = [nbest_hyps]
+                else:
+                    nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]

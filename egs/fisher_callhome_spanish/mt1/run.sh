@@ -17,14 +17,12 @@ N=0             # number of minibatches to be used (mainly for debugging). "0" u
 verbose=0       # verbose option
 resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
-# feature configuration
-do_delta=false
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # preprocessing related
 src_case=lc.rm
@@ -56,7 +54,7 @@ set -o pipefail
 train_set=train.en
 train_set_prefix=train
 train_dev=dev.en
-recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+trans_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -73,8 +71,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -100,8 +98,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
+        cut -f 1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
+        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
         comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
 
         for lang in es en; do
@@ -112,11 +110,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict_src=data/lang_1char/${train_set}_units_${src_case}.txt
-dict_tgt=data/lang_1char/${train_set}_units_${tgt_case}.txt
+dict=data/lang_1char/${train_set}_units_${tgt_case}.txt
 nlsyms=data/lang_1char/non_lang_syms_${tgt_case}.txt
-echo "dictionary (src): ${dict_src}"
-echo "dictionary (tgt): ${dict_tgt}"
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
@@ -126,43 +122,37 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     cut -f 2- -d' ' data/${train_set_prefix}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a target dictionary"
-    echo "<unk> 1" > ${dict_tgt} # <unk> must be 1, 0 will be used for "blank" in CTC
+    echo "make a joint source and target dictionary"
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cat data/${train_set_prefix}.*/text.${tgt_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_tgt}
-    wc -l ${dict_tgt}
-
-    echo "make a source dictionary"
-    echo "<unk> 1" > ${dict_src} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set_prefix}.*/text.${src_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_src}
-    wc -l ${dict_src}
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    wc -l ${dict}
 
     echo "make json files"
     local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_set} ${dict_tgt} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
     local/data2json.sh --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_dev} ${dict_tgt} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        local/data2json.sh --text data/${rtask}/text.${tgt_case} --nlsyms ${nlsyms} \
-            data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}; mkdir -p ${feat_trans_dir}
+        local/data2json.sh --text data/${ttask}/text.${tgt_case} --nlsyms ${nlsyms} \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
-    for x in ${train_set} ${train_dev} ${recog_set}; do
-        feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
+    for x in ${train_set} ${train_dev} ${trans_set}; do
+        feat_dir=${dumpdir}/${x}
+        data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
         local/update_json.sh --text ${data_dir}/text.${src_case} --nlsyms ${nlsyms} \
-            ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
+            ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
 
     # Fisher has 4 references per utterance
-    for rtask in fisher_dev.en fisher_dev2.en fisher_test.en; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+    for ttask in fisher_dev.en fisher_dev2.en fisher_test.en; do
+        feat_trans_dir=${dumpdir}/${ttask}
         for no in 1 2 3; do
-            local/data2json.sh --text data/${rtask}/text.${tgt_case}.${no} --nlsyms ${nlsyms} \
-                data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json
+            local/data2json.sh --text data/${ttask}/text.${tgt_case}.${no} --nlsyms ${nlsyms} \
+                data/${ttask} ${dict} > ${feat_trans_dir}/data_${no}.${src_case}_${tgt_case}.json
         done
     done
 fi
@@ -172,7 +162,7 @@ fi
 if [ -z ${tag} ]; then
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})
 else
-    expname=${train_set}_${backend}_${tag}
+    expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -188,8 +178,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
-        --dict-src ${dict_src} \
-        --dict-tgt ${dict_tgt} \
+        --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --seed ${seed} \
@@ -204,35 +193,35 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for ttask in ${trans_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${ttask}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_recog.py \
+            mt_trans.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${trans_model}
 
         # Fisher has 4 references per utterance
-        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
+        if [ ${ttask} = "fisher_dev.en" ] || [ ${ttask} = "fisher_dev2.en" ] || [ ${ttask} = "fisher_test.en" ]; then
             for no in 1 2 3; do
-                cp ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json ${expdir}/${decode_dir}/data_ref${no}.json
+                cp ${feat_trans_dir}/data_${no}.${src_case}_${tgt_case}.json ${expdir}/${decode_dir}/data_ref${no}.json
             done
         fi
 
-        local/score_bleu.sh --case ${tgt_case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict_tgt} ${dict_src}
+        local/score_bleu.sh --case ${tgt_case} --set ${ttask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids

@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Class Declaration of Transformer's Attention."""
 
 import chainer
 
@@ -23,10 +24,12 @@ class MultiHeadAttention(chainer.Chain):
     :param int h: the number of heads
     :param int n_units: the number of features
     :param float dropout_rate: dropout rate
+
     """
 
     def __init__(self, n_units, h=8, dropout=0.1,
                  initialW=None, initial_bias=None):
+        """Initialize MultiHeadAttention."""
         super(MultiHeadAttention, self).__init__()
         assert n_units % h == 0
         stvd = 1. / np.sqrt(n_units)
@@ -48,7 +51,7 @@ class MultiHeadAttention(chainer.Chain):
         self.dropout = dropout
         self.attn = None
 
-    def __call__(self, e_var, s_var=None, mask=None, batch=1):
+    def forward(self, e_var, s_var=None, mask=None, batch=1):
         """Core function of the Multi-head attention layer.
 
         Args:
