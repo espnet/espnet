@@ -39,9 +39,9 @@ cd "${dir}"
 targets=""
 
 # Copy
-for f in cmd.sh; do
+for f in cmd.sh conf; do
     target=../../TEMPLATE/asr1/"${f}"
-    ln -sf "${target}" .
+    cp -r "${target}" .
     targets+="${dir}/${target} "
 done
 

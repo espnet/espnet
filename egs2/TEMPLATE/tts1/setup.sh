@@ -31,7 +31,7 @@ targets=""
 
 # Copy
 for f in cmd.sh conf; do
-    target=../../TEMPLATE/asr1/"${f}"
+    target=../../TEMPLATE/tts1/"${f}"
     cp -r "${target}" .
     targets+="${dir}/${target} "
 done
