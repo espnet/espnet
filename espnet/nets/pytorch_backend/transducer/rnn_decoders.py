@@ -25,13 +25,11 @@ class DecoderRNNT(torch.nn.Module):
         joint_dim (int): dimension of joint space
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
-        rnnt_type (str): type of rnn-t implementation
 
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, blank,
-                 embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0,
-                 rnnt_type='warp-transducer'):
+                 embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0):
         """Transducer initializer."""
         super(DecoderRNNT, self).__init__()
 
@@ -50,13 +48,6 @@ class DecoderRNNT(torch.nn.Module):
             self.decoder += [dec_net(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
 
-        if rnnt_type == 'warp-transducer':
-            from warprnnt_pytorch import RNNTLoss
-
-            self.rnnt_loss = RNNTLoss(blank=blank)
-        else:
-            raise NotImplementedError
-
         self.lin_enc = torch.nn.Linear(eprojs, joint_dim)
         self.lin_dec = torch.nn.Linear(dunits, joint_dim, bias=False)
         self.lin_out = torch.nn.Linear(joint_dim, odim)
@@ -67,8 +58,6 @@ class DecoderRNNT(torch.nn.Module):
         self.embed_dim = embed_dim
         self.joint_dim = joint_dim
         self.odim = odim
-
-        self.rnnt_type = rnnt_type
 
         self.ignore_id = -1
         self.blank = blank
@@ -143,27 +132,17 @@ class DecoderRNNT(torch.nn.Module):
 
         return z
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, ys_in_pad, hlens=None):
         """Forward function for transducer.
 
         Args:
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
-            hlens (torch.Tensor): batch of lengths of hidden state sequences (B)
-            ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
+            ys_in_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax+1)
 
         Returns:
-           loss (float): rnnt loss value
+            z (torch.Tensor): output (B, T, U, odim)
 
         """
-        ys = [y[y != self.ignore_id] for y in ys_pad]
-
-        hlens = list(map(int, hlens))
-
-        blank = ys[0].new([self.blank])
-
-        ys_in = [torch.cat([blank, y], dim=0) for y in ys]
-        ys_in_pad = pad_list(ys_in, self.blank)
-
         olength = ys_in_pad.size(1)
 
         z_list, c_list = self.zero_state(hs_pad)
@@ -179,14 +158,8 @@ class DecoderRNNT(torch.nn.Module):
         h_dec = h_dec.unsqueeze(1)
 
         z = self.joint(h_enc, h_dec)
-        y = pad_list(ys, self.blank).type(torch.int32)
 
-        z_len = to_device(self, torch.IntTensor(hlens))
-        y_len = to_device(self, torch.IntTensor([_y.size(0) for _y in ys]))
-
-        loss = to_device(self, self.rnnt_loss(z, y, z_len, y_len))
-
-        return loss
+        return z
 
     def recognize(self, h, recog_args):
         """Greedy search implementation.
@@ -318,13 +291,11 @@ class DecoderRNNTAtt(torch.nn.Module):
         joint_dim (int): dimension of joint space
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
-        rnnt_type (str): type of rnnt implementation
 
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, blank, att,
-                 embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0,
-                 rnnt_type='warp-transducer'):
+                 embed_dim, joint_dim, dropout=0.0, dropout_embed=0.0):
         """Transducer with attention initializer."""
         super(DecoderRNNTAtt, self).__init__()
 
@@ -343,13 +314,6 @@ class DecoderRNNTAtt(torch.nn.Module):
             self.decoder += [dec_net(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
 
-        if rnnt_type == 'warp-transducer':
-            from warprnnt_pytorch import RNNTLoss
-
-            self.rnnt_loss = RNNTLoss(blank=blank)
-        else:
-            raise NotImplementedError
-
         self.lin_enc = torch.nn.Linear(eprojs, joint_dim)
         self.lin_dec = torch.nn.Linear(dunits, joint_dim, bias=False)
         self.lin_out = torch.nn.Linear(joint_dim, odim)
@@ -362,8 +326,6 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.embed_dim = embed_dim
         self.joint_dim = joint_dim
         self.odim = odim
-
-        self.rnnt_type = rnnt_type
 
         self.ignore_id = -1
         self.blank = blank
@@ -437,28 +399,20 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         return z
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, ys_in_pad, hlens=None):
         """Forward function for transducer with attention.
 
         Args:
             hs_pad (torch.Tensor): batch of padded hidden state sequences (B, Tmax, D)
-            hlens (torch.Tensor): batch of lengths of hidden state sequences (B)
-            ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
+            ys_in_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax+1)
 
         Returns:
-           loss (torch.Tensor): rnnt-att loss value
+            z (torch.Tensor): output (B, T, U, odim)
 
         """
-        ys = [y[y != self.ignore_id] for y in ys_pad]
+        olength = ys_in_pad.size(1)
 
         hlens = list(map(int, hlens))
-
-        blank = ys[0].new([self.blank])
-
-        ys_in = [torch.cat([blank, y], dim=0) for y in ys]
-        ys_in_pad = pad_list(ys_in, self.blank)
-
-        olength = ys_in_pad.size(1)
 
         att_w = None
         self.att[0].reset()
@@ -480,14 +434,8 @@ class DecoderRNNTAtt(torch.nn.Module):
         h_dec = h_dec.unsqueeze(1)
 
         z = self.joint(h_enc, h_dec)
-        y = pad_list(ys, self.blank).type(torch.int32)
 
-        z_len = to_device(self, torch.IntTensor(hlens))
-        y_len = to_device(self, torch.IntTensor([_y.size(0) for _y in ys]))
-
-        loss = to_device(self, self.rnnt_loss(z, y, z_len, y_len))
-
-        return loss
+        return z
 
     def recognize(self, h, recog_args):
         """Greedy search implementation.
@@ -674,10 +622,8 @@ def decoder_for(args, odim, att=None, blank=0):
     if args.rnnt_mode == 'rnnt':
         return DecoderRNNT(args.eprojs, odim, args.dtype, args.dlayers, args.dunits,
                            blank, args.dec_embed_dim, args.joint_dim,
-                           args.dropout_rate_decoder, args.dropout_rate_embed_decoder,
-                           args.rnnt_type)
+                           args.dropout_rate_decoder, args.dropout_rate_embed_decoder)
     elif args.rnnt_mode == 'rnnt-att':
         return DecoderRNNTAtt(args.eprojs, odim, args.dtype, args.dlayers, args.dunits,
                               blank, att, args.dec_embed_dim, args.joint_dim,
-                              args.dropout_rate_decoder, args.dropout_rate_embed_decoder,
-                              args.rnnt_type)
+                              args.dropout_rate_decoder, args.dropout_rate_embed_decoder)
