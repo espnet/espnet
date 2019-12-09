@@ -134,6 +134,26 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
+
+    ### Filter out invalid samples which lead to `loss_ctc=inf` during training
+    ###  with the specified configuration.
+    # (It takes 0.5 ~ 1 hour.)
+    # For consistency, please use the same args as in the training stage.
+    tmpdir=$(mktemp -dp ./)
+    ${cuda_cmd} --gpu ${ngpu} ${tmpdir}/train.log \
+       local/filtering_samples.py \
+        --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --outdir ${tmpdir}/results \
+        --dict ${dict} \
+        --debugdir ${tmpdir} \
+        --minibatches ${N} \
+        --seed ${seed} \
+        --train-json ${feat_tr_dir}/data.json \
+        --output-json-path ${feat_tr_dir}/data.json # overwrite original `data.json`
+    rm -rf $tmpdir
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
