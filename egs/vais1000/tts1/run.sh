@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=8         # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 

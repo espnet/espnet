@@ -59,8 +59,6 @@ def get_parser():
     # model (parameter) related
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
-    parser.add_argument('--model-conf', type=str, default=None,
-                        help='Model config file')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
