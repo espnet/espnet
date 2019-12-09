@@ -31,11 +31,10 @@ class TransLoss(nn.Module):
         """Compute path-aware regularization transducer loss.
 
         Args:
-            pred_pad (torch.Tensor): Batch of predicted sequence (B, T, U+1, odim)
-            target_pad (torch.Tensor): Batch of target sequence (B, U)
-            hs_pad (torch.Tensor): batch of padded input sequences (B, Tmax)
-            ys_pad (torch.Tensor): batch of padded target sequences (B, Lmax)
-            hlens (torch.tensor): batch of lengths of input sequences (B)
+            pred_pad (torch.Tensor): Batch of predicted sequences (batch, maxlen_in, maxlen_out+1, odim)
+            target (torch.Tensor): Batch of target sequences (batch, maxlen_out)
+            pred_len (torch.Tensor): batch of lengths of predicted sequences (batch)
+            target_len (torch.tensor): batch of lengths of target sequences (batch)
 
         Returns:
             loss (torch.Tensor): transducer loss

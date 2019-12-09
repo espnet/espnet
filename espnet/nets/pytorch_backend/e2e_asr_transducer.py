@@ -221,7 +221,7 @@ class E2E(ASRInterface, torch.nn.Module):
             ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
 
         Returns:
-               loss (torch.Tensor): transducer loss value
+            loss (torch.Tensor): transducer loss value
 
         """
         # 1. encoder
