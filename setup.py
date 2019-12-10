@@ -7,9 +7,9 @@ from setuptools import setup
 import sys
 
 
-if LooseVersion(sys.version) < LooseVersion('3.6'):
+if LooseVersion(sys.version) < LooseVersion('3.7'):
     raise RuntimeError(
-        'ESPnet requires Python>=3.6, '
+        'ESPnet requires Python>=3.7, '
         'but your Python is {}'.format(sys.version))
 if LooseVersion(pip.__version__) < LooseVersion('19'):
     raise RuntimeError(
@@ -34,9 +34,8 @@ requirements = {
         'nara_wpe>=0.0.5',
         'museval>=0.2.1',
         'pystoi>=0.2.2',
-        'kaldiio>=2.13.8',
+        'kaldiio>=2.15.0',
         'matplotlib>=3.1.0',
-        'funcsigs>=1.0.2',  # A backport of inspect.signature for python2
         'configargparse>=0.14.0',
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
@@ -45,6 +44,9 @@ requirements = {
         'nnmnkwii',
         'jaconv',
         'g2p_en',
+        'typeguard==2.6.0',  # Exclude 2.6.1
+        'humanfriendly',
+        'resampy',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
