@@ -16,7 +16,7 @@ from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.e2e import ASRE2E
-from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -105,7 +105,7 @@ class ASRTask(AbsTask):
         )
 
         group.add_argument(
-            "--decoder",
+            "--encoder_decoder",
             type=lambda x: x.lower(),
             default="rnn",
             choices=cls.encoder_decoder_choices(),
@@ -289,14 +289,12 @@ class ASRTask(AbsTask):
         assert check_argument_types()
         if name.lower() == "transformer":
             from espnet2.asr.encoder.transformer_encoder import Encoder
-            from espnet2.asr.encoder_decoder.transformer_decoder import Decoder
-
+            from espnet2.asr.decoder.transformer_decoder import Decoder
             retval = Encoder, Decoder
 
         elif name.lower() == "rnn":
-            from espnet2.asr.encoder_decoder.rnn_decoder import Decoder
             from espnet2.asr.encoder.rnn_encoder import Encoder
-
+            from espnet2.asr.decoder.rnn_decoder import Decoder
             retval = Encoder, Decoder
 
         else:
