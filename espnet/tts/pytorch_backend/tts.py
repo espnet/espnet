@@ -474,6 +474,7 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
 
+@torch.no_grad()
 def decode(args):
     """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
@@ -551,29 +552,38 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
-    with torch.no_grad(), \
-            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
+    def _calculate_focus_rete(att_ws):
+        if att_ws is None:
+            # fastspeech case -> None
+            return 1.0
+        elif len(att_ws.shape) == 2:
+            # tacotron 2 case -> (L, T)
+            return float(att_ws.max(dim=-1)[0].mean())
+        else:
+            # transformer case -> (#layers, #heads, L, T)
+            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
 
+    # start decoding
+    with kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
+            # setup inputs
             batch = [(utt_id, js[utt_id])]
             data = load_inputs_and_targets(batch)
+            x = torch.LongTensor(data[0][0]).to(device)
+            spemb = None
             if train_args.use_speaker_embedding:
-                spemb = data[1][0]
-                spemb = torch.FloatTensor(spemb).to(device)
-            else:
-                spemb = None
-            x = data[0][0]
-            x = torch.LongTensor(x).to(device)
+                spemb = torch.FloatTensor(data[1][0]).to(device)
 
             # decode and write
             start_time = time.time()
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
-            logging.info("inference speed = %s msec / frame." % (
-                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
+            logging.info("inference speed = %.1f frames / sec." % (
+                int(outs.size(0)) / (time.time() - start_time)))
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
-            logging.info('(%d/%d) %s (size:%d->%d)' % (
-                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
+            logging.info('(%d/%d) %s (size: %d->%d, focus rate: %.3f)' % (
+                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), _calculate_focus_rete(att_ws)))
             f[utt_id] = outs.cpu().numpy()
 
             # plot prob and att_ws
