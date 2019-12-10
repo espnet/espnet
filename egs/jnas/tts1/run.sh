@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 1, get more log)
+verbose=1    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
