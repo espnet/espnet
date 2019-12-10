@@ -3,6 +3,8 @@
 import six
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import to_device
+
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -73,7 +75,7 @@ class Decoder(torch.nn.Module):
         self.after_norm = LayerNorm(attention_dim)
 
         self.lin_enc = torch.nn.Linear(attention_dim, jdim)
-        self.lin_dec = torch.nn.Linear(attention_dim, jdim)
+        self.lin_dec = torch.nn.Linear(attention_dim, jdim, bias=False)
         self.lin_out = torch.nn.Linear(jdim, odim)
 
         self.attention_dim = attention_dim
@@ -152,7 +154,7 @@ class Decoder(torch.nn.Module):
         """Get an initial state for decoding."""
         return [None for i in range(len(self.decoders))]
 
-    def recognize(self, h, recog_args, blank):
+    def recognize(self, h, recog_args, blank=0):
         """Greedy search implementation.
 
         Args:
@@ -166,11 +168,10 @@ class Decoder(torch.nn.Module):
         """
         hyp = {'score': 0.0, 'yseq': [blank]}
 
-        ys = torch.zeros((1, 1), dtype=torch.long)
-        ys_mask = subsequent_mask(1).unsqueeze(0)
+        ys = to_device(self, torch.zeros((1, 1), dtype=torch.long))
+        ys_mask = to_device(self, subsequent_mask(1).unsqueeze(0))
         y = self.forward_one_step(ys, ys_mask)[0]
 
-        j = 2
         for i, hi in enumerate(h):
             ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
             logp, pred = torch.max(ytu, dim=0)
@@ -179,15 +180,14 @@ class Decoder(torch.nn.Module):
                 hyp['yseq'].append(int(pred))
                 hyp['score'] += float(logp)
 
-                ys = torch.tensor(hyp['yseq']).unsqueeze(0)
-                ys_mask = subsequent_mask(j).unsqueeze(0)
-                j = j + 1
+                ys = to_device(self, torch.tensor(hyp['yseq']).unsqueeze(0))
+                ys_mask = to_device(self, subsequent_mask(len(hyp['yseq'])).unsqueeze(0))
 
                 y = self.forward_one_step(ys, ys_mask)[0]
 
         return [hyp]
 
-    def recognize_beam(self, h, recog_args, blank, rnnlm=None):
+    def recognize_beam(self, h, recog_args, blank=0, rnnlm=None):
         """Beam search implementation.
 
         Args:
@@ -218,8 +218,8 @@ class Decoder(torch.nn.Module):
                 new_hyp = max(hyps, key=lambda x: x['score'])
                 hyps.remove(new_hyp)
 
-                ys = torch.tensor(new_hyp['yseq']).unsqueeze(0)
-                ys_mask = subsequent_mask(len(new_hyp['yseq'])).unsqueeze(0)
+                ys = to_device(self, torch.tensor(new_hyp['yseq']).unsqueeze(0))
+                ys_mask = to_device(self, subsequent_mask(len(new_hyp['yseq'])).unsqueeze(0))
                 y = self.forward_one_step(ys, ys_mask)[0]
 
                 ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)

@@ -155,8 +155,12 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.reset_parameters(args)
 
-        self.report_cer = False
-        self.report_wer = False
+        if args.report_cer or args.report_wer:
+            from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
+
+            self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
+        else:
+            self.error_calculator = None
 
         self.rnnlm = None
 
@@ -198,8 +202,11 @@ class E2E(ASRInterface, torch.nn.Module):
         self.loss = loss
         loss_data = float(self.loss)
 
-        # 3. (pending) compute cer/wer
-        cer, wer = None, None
+        # 4. compute cer/wer
+        if self.training or self.error_calculator is None:
+            cer, wer = None, None
+        else:
+            cer, wer = self.error_calculator(hs_pad, ys_pad)
 
         if not math.isnan(loss_data):
             self.reporter.report(loss_data, cer, wer)
