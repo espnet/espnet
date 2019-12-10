@@ -2,15 +2,11 @@
 
 """Transducer related modules."""
 
-import argparse
 import logging
 import math
 
-import editdistance
-
 import chainer
 import numpy as np
-import six
 import torch
 
 from chainer import reporter
@@ -173,17 +169,12 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.criterion = TransLoss(args.rnnt_type, self.blank_id)
 
-        # options for beam search
-        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
-            recog_args = {'beam_size': args.beam_size, 'nbest': args.nbest, 'space': args.sym_space,
-                          'score_norm_transducer': args.score_norm_transducer}
+        if args.report_cer or args.report_wer:
+            from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
 
-            self.recog_args = argparse.Namespace(**recog_args)
-            self.report_cer = args.report_cer
-            self.report_wer = args.report_wer
+            self.error_calculator = ErrorCalculatorTrans(self.dec, args)
         else:
-            self.report_cer = False
-            self.report_wer = False
+            self.error_calculator = None
 
         self.logzero = -10000000000.0
         self.rnnlm = None
@@ -241,45 +232,10 @@ class E2E(ASRInterface, torch.nn.Module):
         loss = self.criterion(z, target, pred_len, target_len)
 
         # 4. compute cer/wer
-        # note: not recommended outside debugging right now,
-        # the training time is hugely impacted.
-        if self.training or not (self.report_cer or self.report_wer):
-            cer, wer = 0.0, 0.0
+        if self.training or self.error_calculator is None:
+            cer, wer = None, None
         else:
-            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-
-            batchsize = int(hs_pad.size(0))
-            batch_nbest = []
-
-            for b in six.moves.range(batchsize):
-                if self.beam_size == 1:
-                    nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
-                else:
-                    nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
-
-                batch_nbest.append(nbest_hyps)
-
-            y_hats = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]
-
-            for i, y_hat in enumerate(y_hats):
-                y_true = ys_pad[i]
-
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat]
-                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
-                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
-
-                hyp_words = seq_hat_text.split()
-                ref_words = seq_true_text.split()
-                word_eds.append(editdistance.eval(hyp_words, ref_words))
-                word_ref_lens.append(len(ref_words))
-
-                hyp_chars = seq_hat_text.replace(' ', '')
-                ref_chars = seq_true_text.replace(' ', '')
-                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-                char_ref_lens.append(len(ref_chars))
-            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
-            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
+            cer, wer = self.error_calculator(hs_pad, ys_pad)
 
         self.loss = loss
         loss_data = float(self.loss)
