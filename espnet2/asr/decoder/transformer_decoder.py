@@ -21,7 +21,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet2.asr.encoder_decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
 class Decoder(AbsDecoder):
