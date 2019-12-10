@@ -19,15 +19,22 @@ class DecoderLayer(nn.Module):
 
     """
 
-    def __init__(self, size, self_attn, feed_forward, dropout_rate):
+    def __init__(self, size, self_attn, feed_forward, dropout_rate,
+                 normalize_before=True, concat_after=False):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
         self.size = size
         self.self_attn = self_attn
+
         self.feed_forward = feed_forward
         self.norm1 = LayerNorm(size)
         self.norm2 = LayerNorm(size)
         self.dropout = nn.Dropout(dropout_rate)
+
+        self.normalize_before = normalize_before
+        self.concat_after = concat_after
+        if self.concat_after:
+            self.concat = nn.Linear((size + size), size)
 
     def forward(self, tgt, tgt_mask, cache=None):
         """Compute decoded features.
@@ -39,7 +46,8 @@ class DecoderLayer(nn.Module):
 
         """
         residual = tgt
-        tgt = self.norm1(tgt)
+        if self.normalize_before:
+            tgt = self.norm1(tgt)
 
         if cache is None:
             tgt_q = tgt
@@ -56,11 +64,22 @@ class DecoderLayer(nn.Module):
             else:
                 tgt_q_mask = None
 
-        x = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_q_mask))
+        if self.concat_after:
+            tgt_concat = torch.cat((tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_q_mask)), dim=-1)
+            x = residual + self.concat(tgt_concat)
+        else:
+            x = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_q_mask))
+        if not self.normalize_before:
+            x = self.norm1(x)
 
         residual = x
-        x = self.norm2(x)
+        if self.normalize_before:
+            x = self.norm2(x)
+
         x = residual + self.dropout(self.feed_forward(x))
+
+        if not self.normalize_before:
+            x = self.norm2(x)
 
         if cache is not None:
             x = torch.cat([cache, x], dim=1)
