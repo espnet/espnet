@@ -21,6 +21,9 @@ seed=1
 # feature configuration
 do_delta=false
 
+# sample filtering
+min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
+
 # config files
 preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
@@ -135,25 +138,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 
-    ### Filter out invalid samples which lead to `loss_ctc=inf` during training
+    ### Filter out short samples which lead to `loss_ctc=inf` during training
     ###  with the specified configuration.
-    # (It takes 0.5 ~ 1 hour.)
-    # For consistency, please use the same args as in the training stage.
-    tmpdir=$(mktemp -dp ./)
-    ${cuda_cmd} --gpu ${ngpu} ${tmpdir}/train.log \
-       local/filtering_samples.py \
-        --config ${train_config} \
-        --preprocess-conf ${preprocess_config} \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --outdir ${tmpdir}/results \
-        --dict ${dict} \
-        --debugdir ${tmpdir} \
-        --minibatches ${N} \
-        --seed ${seed} \
-        --train-json ${feat_tr_dir}/data.json \
-        --output-json-path ${feat_tr_dir}/data.json # overwrite original `data.json`
-    rm -rf $tmpdir
+    # `subsample` is in ${train_config}
+    min_io_ratio=$(grep -P 'subsample' ${train_config} | grep -Po '[\d_]+' | \
+        awk '{split($0, a, "_"); prod=1; {for (i in a) prod=prod*a[i];} print prod}')
+    # Samples satisfying `len(input) - len(output) * min_io_ratio < min_io_delta` will be pruned.
+    if [ -n "$min_io_ratio" ]; then
+        local/filtering_samples.py ${feat_tr_dir}/data.json \
+            --min-io-ratio $min_io_ratio \
+            ${min_io_delta:+--min-io-delta $min_io_delta} \
+            --output-json-path ${feat_tr_dir}/data.json
+    fi
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
