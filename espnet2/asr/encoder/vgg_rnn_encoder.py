@@ -103,7 +103,7 @@ class VGGRNNEncoder(AbsEncoder):
             current_states.append(states)
 
         if self.use_projection:
-                xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
+            xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
         else:
             xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
         return xs_pad, ilens, current_states
