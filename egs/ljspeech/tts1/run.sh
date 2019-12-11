@@ -165,7 +165,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         if [ ! -e ${teacher_outdir}/.done ]; then
             local/setup_knowledge_dist.sh \
                 --nj ${nj} \
-                --vernose ${verbose} \
+                --verbose ${verbose} \
                 --dict ${dict} \
                 --trans_type ${trans_type} \
                 --teacher_model_path ${teacher_model_path} \
