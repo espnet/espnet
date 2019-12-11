@@ -17,7 +17,12 @@ from typeguard import check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.rnn_encoder import RNNEncoder
+from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -72,7 +77,7 @@ class ASRTask(AbsTask):
 
         excl = group.add_mutually_exclusive_group()
         excl.add_argument(
-            "--idim",
+            "--input_size",
             type=int_or_none,
             default=None,
             help="The number of input dimension of the feature",
@@ -105,11 +110,11 @@ class ASRTask(AbsTask):
         )
 
         group.add_argument(
-            "--encoder_decoder",
+            "--encoder",
             type=lambda x: x.lower(),
-            default="rnn",
-            choices=cls.encoder_decoder_choices(),
-            help="Specify Encoder-Decoder type",
+            default="vgg_rnn",
+            choices=cls.encoder_choices(),
+            help="Specify Encoder type",
         )
         group.add_argument(
             "--encoder_conf",
@@ -117,12 +122,21 @@ class ASRTask(AbsTask):
             default=dict(),
             help="The keyword arguments for Encoder class.",
         )
+
+        group.add_argument(
+            "--decoder",
+            type=lambda x: x.lower(),
+            default="rnn",
+            choices=cls.decoder_choices(),
+            help="Specify Decoder type",
+        )
         group.add_argument(
             "--decoder_conf",
             action=NestedDictAction,
             default=dict(),
             help="The keyword arguments for Decoder class.",
         )
+
         group.add_argument(
             "--ctc_conf",
             action=NestedDictAction,
@@ -173,12 +187,12 @@ class ASRTask(AbsTask):
         args, _ = parser.parse_known_args()
 
         # 1. Get the default values from class.__init__
-        if args.idim is None:
+        if args.input_size is None:
             frontend_class = cls.get_frontend_class(args.frontend)
             frontend_conf = get_default_kwargs(frontend_class)
         else:
             if hasattr(args, "frontend"):
-                # Either one of frontend and idim can be selected
+                # Either one of frontend and input_size can be selected
                 delattr(args, "frontend")
             frontend_conf = {}
         if args.normalize is not None:
@@ -187,11 +201,12 @@ class ASRTask(AbsTask):
         else:
             normalize_conf = None
 
-        encoder_class, decoder_class = cls.get_encoder_decoder_class(
-            args.encoder_decoder
-        )
+        encoder_class = cls.get_encoder_class(args.encoder)
         encoder_conf = get_default_kwargs(encoder_class)
+
+        decoder_class = cls.get_decoder_class(args.decoder)
         decoder_conf = get_default_kwargs(decoder_class)
+
         ctc_conf = get_default_kwargs(CTC)
         e2e_conf = get_default_kwargs(ASRE2E)
 
@@ -278,29 +293,43 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def encoder_decoder_choices(cls) -> Tuple[str, ...]:
+    def encoder_choices(cls) -> Tuple[str, ...]:
+        choices = ("transformer", "vgg_rnn", "rnn")
+        return choices
+
+    @classmethod
+    def get_encoder_class(cls, name: str) -> Type[AbsEncoder]:
+        assert check_argument_types()
+        if name.lower() == "transformer":
+            retval = TransformerEncoder
+        elif name.lower() == "vgg_rnn":
+            retval = VGGRNNEncoder
+        elif name.lower() == "rnn":
+            retval = RNNEncoder
+        else:
+            raise RuntimeError(
+                f"--normalize must be one of "
+                f"{cls.normalize_choices()}: --normalize {name}"
+            )
+        assert check_return_type(retval)
+        return retval
+
+    @classmethod
+    def decoder_choices(cls) -> Tuple[str, ...]:
         choices = ("transformer", "rnn")
         return choices
 
     @classmethod
-    def get_encoder_decoder_class(
-        cls, name: str
-    ) -> Tuple[Type[AbsEncoder], Type[AbsDecoder]]:
+    def get_decoder_class(cls, name: str) -> Type[AbsDecoder]:
         assert check_argument_types()
         if name.lower() == "transformer":
-            from espnet2.asr.encoder.transformer_encoder import Encoder
-            from espnet2.asr.decoder.transformer_decoder import Decoder
-            retval = Encoder, Decoder
-
+            retval = TransformerDecoder
         elif name.lower() == "rnn":
-            from espnet2.asr.encoder.rnn_encoder import Encoder
-            from espnet2.asr.decoder.rnn_decoder import Decoder
-            retval = Encoder, Decoder
-
+            retval = RNNDecoder
         else:
             raise RuntimeError(
-                f"--decoder must be one of "
-                f"{cls.encoder_decoder_choices()}: --decoder {name}"
+                f"--normalize must be one of "
+                f"{cls.normalize_choices()}: --normalize {name}"
             )
         assert check_return_type(retval)
         return retval
@@ -361,17 +390,17 @@ class ASRTask(AbsTask):
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
-        if args.idim is None:
+        if args.input_size is None:
             frontend_class = cls.get_frontend_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
-            idim = frontend.out_dim()
+            input_size = frontend.output_size()
         else:
             if hasattr(args, "frontend"):
-                # Either one of frontend and idim can be selected
+                # Either one of frontend and input_size can be selected
                 delattr(args, "frontend")
             args.frontend_conf = {}
             frontend = None
-            idim = args.idim
+            input_size = args.input_size
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -380,20 +409,22 @@ class ASRTask(AbsTask):
         else:
             normalize = None
 
-        # 3. Encoder, Decoder
-        encoder_class, decoder_class = cls.get_encoder_decoder_class(
-            args.encoder_decoder
-        )
-        encoder = encoder_class(idim=idim, **args.encoder_conf)
+        # 3. Encoder
+        encoder_class = cls.get_encoder_class(args.encoder)
+        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+
+        # 4. Decoder
+        decoder_class = cls.get_decoder_class(args.decoder)
+
         decoder = decoder_class(
-            odim=vocab_size,
-            encoder_out_dim=encoder.out_dim(),
+            vocab_size=vocab_size,
+            encoder_output_size=encoder.output_size(),
             **args.decoder_conf,
         )
 
         # 4. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_out_dim=encoder.out_dim(), **args.ctc_conf
+            odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
         )
 
         # 5. RNN-T Decoder (Not implemented)
