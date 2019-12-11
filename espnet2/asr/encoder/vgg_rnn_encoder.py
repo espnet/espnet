@@ -26,6 +26,7 @@ class VGGRNNEncoder(AbsEncoder):
         dropout: dropout probability
 
     """
+
     def __init__(
         self,
         input_size: int,
