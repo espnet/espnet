@@ -47,28 +47,24 @@ def main():
 
     # define writer
     dirname = os.path.dirname(args.feats_scp)
-    feat_file_id = f"{dirname}/feats_filtered"
-    dur_file_id = f"{dirname}/durations_filtered"
-    feat_writer = kaldiio.WriteHelper(
-        'ark,scp:{o}.ark,{o}.scp'.format(o=feat_file_id))
-    dur_writer = kaldiio.WriteHelper(
-        'ark,scp:{o}.ark,{o}.scp'.format(o=dur_file_id))
+    feat_fid = open(f"{dirname}/feats_filtered.scp", "w")
+    dur_fid = open(f"{dirname}/durations_filtered.scp", "w")
 
     # do filtering
     drop_count = 0
     for utt_id in fr_reader.keys():
         focus_rate = fr_reader[utt_id]
         if focus_rate >= args.threshold:
-            feat_writer[utt_id] = feat_reader[utt_id]
-            dur_writer[utt_id] = dur_reader[utt_id]
+            feat_fid.write(f"{utt_id} {feat_reader._dict[utt_id]}\n")
+            dur_fid.write(f"{utt_id} {dur_reader._dict[utt_id]}\n")
         else:
             drop_count += 1
             logging.info(f"{utt_id} is dropped (focus rate: {focus_rate}).")
     logging.info(f"{drop_count} utts are dropped by filtering.")
 
     # close writer instances
-    feat_writer.close()
-    dur_writer.close()
+    feat_fid.close()
+    dur_fid.close()
 
 
 if __name__ == "__main__":
