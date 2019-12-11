@@ -135,7 +135,7 @@ def tts_decode(
                     minlenratio=minlenratio,
                 )
                 if normalize is not None:
-                    outs, _ = normalize.invserse(outs[None])
+                    outs, _ = normalize.inverse(outs[None])
                 outs = outs.squeeze(0)
 
             insize = next(iter(_data.values())).size(0)
