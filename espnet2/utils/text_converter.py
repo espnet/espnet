@@ -50,7 +50,7 @@ class AbsTextConverter(ABC):
             )
         self.unk_id = self.token2id[self.unk_symbol]
 
-    def get_num_vocaburary_size(self) -> int:
+    def get_num_vocabulary_size(self) -> int:
         return len(self.token_list)
 
     def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) \
@@ -213,7 +213,9 @@ class Text2CharsConverter(AbsTextConverter):
         )
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
+        tokens = [t if t != "<space>" else " " for t in tokens]
         return "".join(tokens)
 
     def text2tokens(self, line: str) -> List[str]:
-        return list(line)
+        tokens = list(line)
+        return [t if t != " " else "<space>" for t in tokens]
