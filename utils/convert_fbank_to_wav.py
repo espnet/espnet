@@ -72,7 +72,8 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
             n_iter=n_iters,
             hop_length=n_shift,
             win_length=win_length,
-            window=window
+            window=window,
+            center=True if spc.shape[1] > 1 else False
         )
     else:
         # use slower version of Grriffin-Lim algorithm
