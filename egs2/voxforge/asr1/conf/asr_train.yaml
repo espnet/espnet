@@ -1,0 +1,19 @@
+optim: adadelta
+init: chainer
+max_epoch: 20
+batch_size: 64
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
+val_scheduler_criterion:
+- eval
+- acc
+escheduler: reducelronplateau
+escheduler_conf:
+    mode: min
+    factor: 0.1
+    patience: 1
+encoder: vgg_rnn
+decoder: rnn

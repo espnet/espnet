@@ -50,6 +50,11 @@ def test_get_normalize_class(name):
         ASRTask.get_normalize_class(name)
 
 
-@pytest.mark.parametrize("name", ASRTask.encoder_decoder_choices())
+@pytest.mark.parametrize("name", ASRTask.encoder_choices())
 def test_get_encoder_decoder_class(name):
-    ASRTask.get_encoder_decoder_class(name)
+    ASRTask.get_encoder_class(name)
+
+
+@pytest.mark.parametrize("name", ASRTask.decoder_choices())
+def test_get_encoder_decoder_class(name):
+    ASRTask.get_decoder_class(name)

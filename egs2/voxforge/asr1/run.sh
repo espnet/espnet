@@ -15,6 +15,7 @@ eval_sets="et_${lang}"
     --local_data_opts "--lang ${lang}" \
     --token_type char \
     --lm_config conf/lm_train.yaml \
+    --asr_config conf/asr_train.yaml \
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_sets}" \
