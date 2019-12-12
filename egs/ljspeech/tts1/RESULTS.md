@@ -1,3 +1,61 @@
+# v.0.6.1 Knowledge distillation FastSpeech
+
+- FTT in points: 1024
+- Shift in points: 256
+- Frequency limit: 80-7600
+- Fast-GL 64 iters
+
+## Models
+
+Teacher model: phn_train_no_dev_pytorch_train_tacotron2.v2 + att-contraint
+
+- model link: https://drive.google.com/open?id=1ReWzefflfDfohan3r9t0s--ofYlJNQOt
+- training config file: `conf/tuning/train_fastspeech.v4.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_tacotron2.v2_fastspeech.v4.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_tacotron2.v2_fastspeech.v4.single/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1Ra96IwV9FaZe224Kwqg-UyL7YQ2l39Vl
+
+
+## Models
+
+Teacher model: phn_train_no_dev_pytorch_train_tacotron2.v3 + att-contraint
+
+- model link: https://drive.google.com/open?id=1P9I4qag8wAcJiTCPawt6WCKBqUfJFtFp
+- training config file: `conf/tuning/train_fastspeech.v4.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_tacotron2.v3_fastspeech.v4.single/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_tacotron2.v3_fastspeech.v4.single/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+## Samples
+
+https://drive.google.com/open?id=1peevNormNPaseTMY_Q9yXDITecPt3Fax
+
+
+## Models
+
+Teacher model: phn_train_no_dev_pytorch_transformer.v3 + focus-rate filtering (thres: 0.9)
+
+- model link: https://drive.google.com/open?id=1ggtkxpI67htyZ3st6jJOeBNwToy2itSp
+- training config file: `conf/tuning/train_fastspeech.v4.single.yaml`
+- decoding config file: `conf/decode.yaml`
+- cmvn file: `data/phn_train_no_dev/cmvn.ark`
+- e2e file: `exp/phn_train_no_dev_pytorch_train_transformer.v3_fastspeech.v4.single_filter_fr_thres0.9/results/model.last1.avg.best`
+- e2e JSON file: `exp/phn_train_no_dev_pytorch_train_transformer.v3_fastspeech.v4.single_filter_fr_thres0.9/results/model.json`
+- dict file: `data/lang_1phn/phn_train_no_dev_units.txt`
+
+# Samples
+
+https://drive.google.com/open?id=188DxbIoOVNhmQnwB3YMovnhCLHa8PorD
+
+
 # v.0.6.0 Tacotron 2 with length-weighted normalized loss
 
 - FTT in points: 1024
