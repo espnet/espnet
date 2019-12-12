@@ -155,7 +155,7 @@ def test_Text2Chars_no_1dim_array(char_converter: Text2CharsConverter):
 
 
 def test_Text2Chars_get_num_vocaburary_size(char_converter: Text2CharsConverter,):
-    assert char_converter.get_num_vocaburary_size() == 101
+    assert char_converter.get_num_vocabulary_size() == 101
 
 
 @pytest.mark.parametrize(
