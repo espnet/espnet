@@ -598,8 +598,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
         use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        backward_window = inference_args.backward_window if use_att_constraint else 0
+        forward_window = inference_args.forward_window if use_att_constraint else 0
+        focus_rate_thres = 0.9
         if use_att_constraint:
-            logging.warning("Attention constraint is not yet supported in Transformer. Not enabled.")
+            logging.warning("Attention constraint is EXPERIMENTAL FEATURE in Transformer. Please be careful.")
 
         # forward encoder
         xs = x.unsqueeze(0)
@@ -619,6 +622,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         ys = hs.new_zeros(1, 1, self.odim)
         outs, probs = [], []
 
+        # setup for attention constraint
+        if use_att_constraint:
+            last_attended_idx = 0
+
         # forward decoder step-by-step
         z_cache = self.decoder.init_state(x)
         while True:
@@ -627,7 +634,18 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, cache=z_cache)  # (B, adim)
+            if use_att_constraint and last_attended_idx is not None:
+                # make mask for attention constraint
+                h_masks = hs.new_ones(hs.shape[:-1], dtype=y_masks.dtype)
+                backward_idx = last_attended_idx - backward_window
+                forward_idx = last_attended_idx + forward_window
+                if backward_idx > 0:
+                    h_masks[:, :backward_idx] = 0
+                if forward_idx < hs.size(1):
+                    h_masks[:, forward_idx:] = 0
+            else:
+                h_masks = None
+            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, h_masks, cache=z_cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
@@ -644,6 +662,21 @@ class Transformer(TTSInterface, torch.nn.Module):
             else:
                 # [(#heads, l, T), ...]
                 att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
+
+            # update last attended idx
+            if use_att_constraint:
+                # (#heads * #layers, T)
+                att_ws_one_step = torch.cat([att_w_.squeeze(1) for att_w_ in att_ws_], dim=0)
+                # filter by focus rate
+                att_ws_one_step = att_ws_one_step[att_ws_one_step.max(dim=-1)[0] > focus_rate_thres]
+                if att_ws_one_step.size(0) == 0:
+                    last_attended_idx += 1
+                else:
+                    # get median idx of diagonal attention
+                    # NOTE(kan-bayashi): it is better to define for each head?
+                    last_attended_idx = max(
+                        last_attended_idx, int(att_ws_one_step.argmax(-1).float().mean()))
+                logging.info(f"last attended idx: {last_attended_idx}")
 
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
