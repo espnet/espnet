@@ -22,9 +22,9 @@ import torch
 
 from chainer import reporter
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
 from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
-from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.initialization import uniform_init_parameters
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
