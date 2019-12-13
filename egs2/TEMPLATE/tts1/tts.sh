@@ -9,10 +9,10 @@ set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts >
+Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts>
 
 Options:
     --nj (int): The number of parallel jobs
@@ -34,6 +34,7 @@ ngpu=0       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=50         # numebr of parallel jobs
 decode_nj=50
 gpu_decode=false
+dumpdir=dump
 
 
 ## The options for feature_extract
@@ -80,10 +81,10 @@ nlsyms_txt=
 
 
 log "$0 $*"
-. utils/parse_options.sh
+. utils/parse_options.sh || exit 1;
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 
 if [ $# -ne 0 ]; then
@@ -94,11 +95,11 @@ fi
 
 
 if [ "${feats_type}" = fbank ]; then
-    data_feats=data_fbank
+    data_feats="${dumpdir}/fbank"
 elif [ "${feats_type}" = stft ]; then
-    data_feats=data_stft
+    data_feats="${dumpdir}/stft"
 elif [ "${feats_type}" = raw ]; then
-    data_feats=data_raw
+    data_feats="${dumpdir}/raw"
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -158,7 +159,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 2. Feature extract
             # TODO(kamo): Wrapp (nj->_nj) in make_fbank.sh
-            _nj=$((${nj}<$(<"${data_feats}/${dset}/utt2spk" wc -l)?${nj}:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fs ${fs} "
@@ -167,6 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 _opts+="--n_mels ${n_mels} "
             fi
 
+            # shellcheck disable=SC2086
             scripts/feats/make_"${feats_type}".sh --cmd "${train_cmd}" --nj "${_nj}" \
                 --n_fft "${n_fft}" \
                 --n_shift "${n_shift}" \
@@ -176,7 +178,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 3. Create feats_shape
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/logs"
+                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/log"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
@@ -198,11 +200,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     echo "<unk>" > "${token_list}"
     if [ -n "${nlsyms}" ]; then
-        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}"  \
+        pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" < "${srctexts}" \
             | cut -f 2- -d" " | tr " " "\n" | sort -u \
             | grep -v -e '^\s*$' >> "${token_list}"
     else
-        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 \
+        pyscripts/text/text2token.py -s 1 -n 1  < "${srctexts}" \
             | cut -f 2- -d" " | tr " " "\n" | sort -u \
             | grep -v -e '^\s*$' >> "${token_list}"
     fi
@@ -248,6 +250,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     log "TTS training started... log: '${tts_exp}/train.log'"
+    # shellcheck disable=SC2086
     ${cuda_cmd} --gpu "${ngpu}" "${tts_exp}"/train.log \
         python3 -m espnet2.bin.tts_train \
             --ngpu "${ngpu}" \
@@ -257,9 +260,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --eval_data_path_and_name_and_type "${_dev_dir}/token_int,text,text_int" \
             --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_train_dir}/token_shape" \
-            --train_shape_file "${_train_dir}/feats_shape" \
+            --train_shape_file "${_train_dir}/${_shape}" \
             --eval_shape_file "${_dev_dir}/token_shape" \
-            --eval_shape_file "${_dev_dir}/feats_shape" \
+            --eval_shape_file "${_dev_dir}/${_shape}" \
             --resume_epoch latest \
             --max_length 150 \
             --max_length ${_max_length} \
@@ -296,14 +299,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # 1. Split the key file
         key_file=${_data}/token_int
         split_scps=""
-        _nj=$((${decode_nj}<$(<${key_file} wc -l)?${decode_nj}:$(<${key_file} wc -l)))
+        _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
         for n in $(seq ${_nj}); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
+        # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_decode.*.log'"
+        # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
             python3 -m espnet2.bin.tts_decode \
                 --ngpu "${_ngpu}" \
@@ -329,13 +334,14 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _dir="${tts_exp}/decode_${dset}${decode_tag}"
 
         # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
-        _nj=$((${nj}<$(<"${_dir}/feats.scp" wc -l)?${nj}:$(<"${_dir}/feats.scp" wc -l)))
+        _nj=$((nj<$(<"${_dir}/feats.scp" wc -l)?nj:$(<"${_dir}/feats.scp" wc -l)))
 
         _feats_type="$(<${_dir}/feats_type)"
         _opts=
         if [ "${_feats_type}" = fbank ] ; then
             _opts+="--n_mels ${n_mels} "
         fi
+        # shellcheck disable=SC2086
         scripts/tts/convert_fbank.sh --nj "${_nj}" --cmd "${train_cmd}" \
             --fs "${fs}" \
             --fmax "${fmax}" \
