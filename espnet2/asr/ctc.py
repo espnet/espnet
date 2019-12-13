@@ -8,7 +8,7 @@ class CTC(torch.nn.Module):
 
     Args:
         odim: dimension of outputs
-        encoder_out_dim: number of encoder projection units
+        encoder_output_sizse: number of encoder projection units
         dropout_rate: dropout rate (0.0 ~ 1.0)
         ctc_type: builtin or warpctc
         reduce: reduce the CTC loss into a scalar
@@ -17,14 +17,14 @@ class CTC(torch.nn.Module):
     def __init__(
         self,
         odim: int,
-        encoder_out_dim: int,
+        encoder_output_sizse: int,
         dropout_rate: float = 0.0,
         ctc_type: str = "warpctc",
         reduce: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
-        eprojs = encoder_out_dim
+        eprojs = encoder_output_sizse
         self.dropout_rate = dropout_rate
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
