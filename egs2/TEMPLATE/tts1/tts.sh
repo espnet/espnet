@@ -76,6 +76,7 @@ train_set=
 dev_set=
 eval_sets=
 srctexts=
+trans_type=char
 # If non-linguistic symbol list if existing
 nlsyms_txt=
 
@@ -105,9 +106,12 @@ else
     log "Error: not supported: --feats_type ${feats_type}"
     exit 2
 fi
-token_list=data/token_list/char/tokens.txt
+token_list="data/token_list/${trans_type}/tokens.txt"
 if [ -z "${tag}" ]; then
-    tag="_${feats_type}"
+    tag="${feats_type}"
+    if [ -n "${train_config}" ]; then
+        tag+="_$(basename "${train_config}" .yaml)"
+    fi
 fi
 
 
@@ -210,13 +214,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-        scripts/text/prepare_token.sh --type char "${data_feats}/${dset}/text" "${token_list}" "${data_feats}/${dset}"
+        scripts/text/prepare_token.sh --type "${trans_type}" \
+            "${data_feats}/${dset}/text" "${token_list}" "${data_feats}/${dset}"
     done
 
 fi
 
 
-tts_exp="${exp}/tts_train${tag}"
+tts_exp="${exp}/tts_train_${tag}"
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
