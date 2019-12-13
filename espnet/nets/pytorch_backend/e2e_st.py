@@ -140,6 +140,10 @@ class E2E(STInterface, torch.nn.Module):
                            help='Dropout rate for the decoder')
         group.add_argument('--sampling-probability', default=0.0, type=float,
                            help='Ratio of predicted labels fed back to decoder')
+        parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
+                            help='Apply label smoothing with a specified distribution type')
+        parser.add_argument('--lsm-weight', default=0.0, type=float,
+                            help='Label smoothing weight')
         return parser
 
     def __init__(self, idim, odim, args):
@@ -284,7 +288,9 @@ class E2E(STInterface, torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad, ys_pad_src):
+    def forward(self, xs_pad, ilens, ys_pad, ys_pad_src,
+                ys_pad_context=None, ys_pad_src_context=None,
+                bert_emb=None):
         """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -466,7 +472,8 @@ class E2E(STInterface, torch.nn.Module):
         hs, _, _ = self.enc(hs, ilens)
         return hs.squeeze(0)
 
-    def translate(self, x, trans_args, char_list, rnnlm=None):
+    def translate(self, x, trans_args, char_list, rnnlm=None,
+                  ensemble_models=[], y_src_context=None, y_tgt_context=None):
         """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
@@ -515,7 +522,9 @@ class E2E(STInterface, torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_src):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_src,
+                                 ys_pad_context=None, ys_pad_src_context=None,
+                                 bert_emb=None):
         """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
