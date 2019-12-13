@@ -71,6 +71,9 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_mt:E2E)')
+    # loss related
+    parser.add_argument('--lsm-weight', default=0.0, type=float,
+                        help='Label smoothing weight')
     # translations options to compute BLEU
     parser.add_argument('--report-bleu', default=True, action='store_true',
                         help='Compute BLEU on development set')

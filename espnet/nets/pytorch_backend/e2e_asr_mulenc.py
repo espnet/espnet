@@ -158,8 +158,6 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Ratio of predicted labels fed back to decoder')
         parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                             help='Apply label smoothing with a specified distribution type')
-        parser.add_argument('--lsm-weight', default=0.0, type=float,
-                            help='Label smoothing weight')
         return parser
 
     @staticmethod

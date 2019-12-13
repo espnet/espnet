@@ -82,6 +82,8 @@ def get_parser(parser=None, required=True):
                         help='Type of CTC implementation to calculate loss.')
     parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
+    parser.add_argument('--lsm-weight', default=0.0, type=float,
+                        help='Label smoothing weight')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')
