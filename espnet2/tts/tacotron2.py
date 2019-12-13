@@ -78,10 +78,12 @@ class Tacotron2(AbsTTS):
         cbhg_highway_units: The number of units of highway network in CBHG.
         cbhg_gru_units: The number of units of GRU in CBHG.
         use_masking: Whether to mask padded part in loss calculation.
+        use_weighted_masking: Whether to apply weighted masking in
+            loss calculation.
         bce_pos_weight: Weight of positive sample of stop token
             (only for use_masking=True).
         use_guided_attn_loss: Whether to use guided attention loss.
-        guided_attn_loss_sigma (float) Sigma in guided attention loss.
+        guided_attn_loss_sigma: Sigma in guided attention loss.
         guided_attn_loss_lamdba: Lambda in guided attention loss.
     """
 
@@ -118,15 +120,16 @@ class Tacotron2(AbsTTS):
         cbhg_gru_units: int = 256,
         use_batch_norm: bool = True,
         use_concate: bool = True,
-        use_residual: bool = True,
+        use_residual: bool = False,
         dropout_rate: float = 0.5,
         zoneout_rate: float = 0.1,
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
         spc_dim: int = None,
-        use_masking: bool = False,
-        bce_pos_weight: float = 20.0,
-        use_guided_attn_loss: bool = False,
+        use_masking: bool = True,
+        use_weighted_masking: bool = False,
+        bce_pos_weight: float = 5.0,
+        use_guided_attn_loss: bool = True,
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
@@ -216,7 +219,9 @@ class Tacotron2(AbsTTS):
             reduction_factor=reduction_factor,
         )
         self.taco2_loss = Tacotron2Loss(
-            use_masking=use_masking, bce_pos_weight=bce_pos_weight
+            use_masking=use_masking,
+            use_weighted_masking=use_weighted_masking,
+            bce_pos_weight=bce_pos_weight
         )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
@@ -345,19 +350,25 @@ class Tacotron2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        threshold: float,
-        minlenratio: float,
-        maxlenratio: float,
         spembs: torch.Tensor = None,
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 10.0,
+        use_att_constraint: bool = False,
+        backward_window: int = 1,
+        forward_window: int = 3,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
             text: Input sequence of characters (T,).
-            spembs: Speaker embedding vector (spk_embed_dim).
+            spembs: Speaker embedding vector (spk_embed_dim,).
             threshold: Threshold in inference.
             minlenratio: Minimum length ratio in inference.
             maxlenratio: Maximum length ratio in inference.
+            use_att_constraint: Whether to apply attention constraint.
+            backward_window: Backward window in attention constraint.
+            forward_window: Forward window in attention constraint.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -376,7 +387,10 @@ class Tacotron2(AbsTTS):
             )
             h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(
-            h, threshold, minlenratio, maxlenratio
+            h, threshold, minlenratio, maxlenratio,
+            use_att_constraint=use_att_constraint,
+            backward_window=backward_window,
+            forward_window=forward_window
         )
 
         if self.use_cbhg:
