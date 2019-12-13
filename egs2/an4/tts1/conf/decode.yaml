@@ -4,7 +4,7 @@
 # `use_att_constraint: true` to make the generation more stable.
 # Note that attention constraint is not supported in Transformer.
 
-# ########################################################
+##########################################################
 #                    DECODING SETTING                    #
 ##########################################################
 threshold: 0.5            # threshold to stop the generation
