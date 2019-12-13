@@ -94,3 +94,14 @@
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_fisher_test.en_decode_pytorch_transformer_bpe|**49.22**|79.5|58.2|42.2|30.1|1.000|1.016|39494|38879|
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_callhome_devtest.en_decode_pytorch_transformer_bpe|**18.91**|48.4|25.2|14.3|8.3|0.971|0.972|36357|37416|
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_callhome_evltest.en_decode_pytorch_transformer_bpe|**18.87**|48.1|24.9|14.2|8.4|0.971|0.972|17938|18457|
+
+- Model files (archived to train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3
+  - training config file: `conf/tuning/train_pytorch_transformer_bpe_short_long.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe.yaml`
+  - preprocess config file: `conf/specaug.yaml`
+  - cmvn file: `data/train_sp.en/cmvn.ark`
+  - e2e file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best`
+  - e2e JSON file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json`
+  - NOTE: This model is initialized with the Transformer ASR model (BPE1k, use SpecAugment) on the encoder side and Transformer MT model (BPE1k) on the decoder side.
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
