@@ -42,6 +42,9 @@ def tts_decode(
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
+    use_att_constraint: bool,
+    backward_window: int,
+    forward_window: int,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
