@@ -1,28 +1,27 @@
-import logging
-from typing import Optional
-from typing import Sequence
 from typing import Tuple
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 
+from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
-class RNNEncoder(AbsEncoder):
+class VGGRNNEncoder(AbsEncoder):
     """
 
     Args:
         input_size: The number of expected features in the input
-        output_size: The number of output features
-        hidden_size: The number of hidden features
         bidirectional: If ``True`` becomes a bidirectional LSTM
         use_projection: Use projection layer or not
         num_layers: Number of recurrent layers
+        hidden_size: The number of hidden features
+        output_size: The number of output features
         dropout: dropout probability
 
     """
@@ -37,49 +36,50 @@ class RNNEncoder(AbsEncoder):
         hidden_size: int = 320,
         output_size: int = 320,
         dropout: float = 0.0,
-        subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
+        in_channel: int = 1,
     ):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type
+        self.rnn_type = rnn_type
         self.bidirectional = bidirectional
         self.use_projection = use_projection
-
         if rnn_type not in {"lstm", "gru"}:
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
-        if subsample is None:
-            subsample = np.ones(num_layers + 1, dtype=np.int)
-        else:
-            subsample = subsample[:num_layers]
-            # Append 1 at the beginning because the second or later is used
-            subsample = np.pad(
-                np.array(subsample, dtype=np.int),
-                [1, num_layers - len(subsample)],
-                mode="constant",
-                constant_values=1,
-            )
-
+        # Subsample is not used for VGGRNN
+        subsample = np.ones(num_layers + 1, dtype=np.int)
         rnn_type = "b" if bidirectional else "" + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(
                 [
+                    VGG2L(in_channel),
                     RNNP(
-                        input_size,
+                        get_vgg2l_odim(input_size, in_channel=in_channel),
                         num_layers,
                         hidden_size,
                         output_size,
                         subsample,
                         dropout,
                         typ=rnn_type,
-                    )
+                    ),
                 ]
             )
 
         else:
             self.enc = torch.nn.ModuleList(
-                [RNN(input_size, num_layers, hidden_size, output_size, dropout, typ=rnn_type)]
+                [
+                    VGG2L(in_channel),
+                    RNN(
+                        get_vgg2l_odim(input_size, in_channel=in_channel),
+                        num_layers,
+                        hidden_size,
+                        output_size,
+                        dropout,
+                        typ=rnn_type,
+                    ),
+                ]
             )
 
     def output_size(self) -> int:

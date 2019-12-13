@@ -81,14 +81,14 @@ def build_attention_list(
     return att_list
 
 
-class Decoder(AbsDecoder):
+class RNNDecoder(AbsDecoder):
     def __init__(
         self,
-        odim: int,
-        encoder_out_dim: int,
-        dtype: str = "lstm",
-        dlayers: int = 1,
-        dunits: int = 320,
+        vocab_size: int,
+        encoder_output_size: int,
+        rnn_type: str = "lstm",
+        num_layers: int = 1,
+        hidden_size: int = 320,
         sampling_probability: float = 0.0,
         dropout: float = 0.0,
         context_residual: bool = False,
@@ -98,16 +98,18 @@ class Decoder(AbsDecoder):
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
         assert check_argument_types()
+        if rnn_type not in {"lstm", "gru"}:
+            raise ValueError(f"Not supported: rnn_type={rnn_type}")
 
         super().__init__()
-        eprojs = encoder_out_dim
-        self.dtype = dtype
-        self.dunits = dunits
-        self.dlayers = dlayers
+        eprojs = encoder_output_size
+        self.dtype = rnn_type
+        self.dunits = hidden_size
+        self.dlayers = num_layers
         self.context_residual = context_residual
-        self.sos = odim - 1
-        self.eos = odim - 1
-        self.odim = odim
+        self.sos = vocab_size - 1
+        self.eos = vocab_size - 1
+        self.odim = vocab_size
         self.sampling_probability = sampling_probability
         self.dropout = dropout
         self.num_encs = num_encs
@@ -115,34 +117,34 @@ class Decoder(AbsDecoder):
         # for multilingual translation
         self.replace_sos = replace_sos
 
-        self.embed = torch.nn.Embedding(odim, dunits)
+        self.embed = torch.nn.Embedding(vocab_size, hidden_size)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
         self.decoder += [
-            torch.nn.LSTMCell(dunits + eprojs, dunits)
+            torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
             if self.dtype == "lstm"
-            else torch.nn.GRUCell(dunits + eprojs, dunits)
+            else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
             self.decoder += [
-                torch.nn.LSTMCell(dunits, dunits)
+                torch.nn.LSTMCell(hidden_size, hidden_size)
                 if self.dtype == "lstm"
-                else torch.nn.GRUCell(dunits, dunits)
+                else torch.nn.GRUCell(hidden_size, hidden_size)
             ]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
 
         if context_residual:
-            self.output = torch.nn.Linear(dunits + eprojs, odim)
+            self.output = torch.nn.Linear(hidden_size + eprojs, vocab_size)
         else:
-            self.output = torch.nn.Linear(dunits, odim)
+            self.output = torch.nn.Linear(hidden_size, vocab_size)
 
         self.att_list = build_attention_list(
-            eprojs=eprojs, dunits=dunits, **att_conf
+            eprojs=eprojs, dunits=hidden_size, **att_conf
         )
 
     def zero_state(self, hs_pad):

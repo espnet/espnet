@@ -76,7 +76,7 @@ asr_args=
 decode_tag=
 decode_config=
 decode_args=
-decode_asr_model=eval.loss.best.pt
+decode_asr_model=eval.acc.best.pt
 decode_lm=eval.loss.best.pt
 # e.g.
 # decode_asr_model=train.loss.best.pt
@@ -393,8 +393,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _shape=feats_shape
         _type=kaldi_ark
         _max_length=800
-        _idim="$(<${_asr_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
-        _opts+="--idim=${_idim} "
+        _input_size="$(<${_asr_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
+        _opts+="--input_size=${_input_size} "
 
         # Default normalization is utterance_mvn and changes to global_mvn
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${_asr_train_dir}/cmvn.npy"

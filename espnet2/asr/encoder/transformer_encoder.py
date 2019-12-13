@@ -32,12 +32,12 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
-class Encoder(AbsEncoder):
+class TransformerEncoder(AbsEncoder):
     """Transformer encoder module.
 
     Args:
-        idim: input dim
-        attention_dim: dimention of attention
+        input_size: input dim
+        output_size: dimention of attention
         attention_heads: the number of heads of multi head attention
         linear_units: the number of units of position-wise feed forward
         num_blocks: the number of decoder blocks
@@ -59,8 +59,8 @@ class Encoder(AbsEncoder):
 
     def __init__(
         self,
-        idim: int,
-        attention_dim: int = 256,
+        input_size: int,
+        output_size: int = 256,
         attention_heads: int = 4,
         linear_units: int = 2048,
         num_blocks: int = 6,
@@ -77,28 +77,28 @@ class Encoder(AbsEncoder):
     ):
         assert check_argument_types()
         super().__init__()
-        self.attention_dim = attention_dim
+        self._output_size = output_size
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
-                torch.nn.Linear(idim, attention_dim),
-                torch.nn.LayerNorm(attention_dim),
+                torch.nn.Linear(input_size, output_size),
+                torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
-                pos_enc_class(attention_dim, positional_dropout_rate),
+                pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
-            self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+            self.embed = Conv2dSubsampling(input_size, output_size, dropout_rate)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(
-                    idim, attention_dim, padding_idx=padding_idx
+                    input_size, output_size, padding_idx=padding_idx
                 ),
-                pos_enc_class(attention_dim, positional_dropout_rate),
+                pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
-                pos_enc_class(attention_dim, positional_dropout_rate)
+                pos_enc_class(output_size, positional_dropout_rate)
             )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
@@ -106,14 +106,14 @@ class Encoder(AbsEncoder):
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
             positionwise_layer_args = (
-                attention_dim,
+                output_size,
                 linear_units,
                 dropout_rate,
             )
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
             positionwise_layer_args = (
-                attention_dim,
+                output_size,
                 linear_units,
                 positionwise_conv_kernel_size,
                 dropout_rate,
@@ -121,7 +121,7 @@ class Encoder(AbsEncoder):
         elif positionwise_layer_type == "conv1d-linear":
             positionwise_layer = Conv1dLinear
             positionwise_layer_args = (
-                attention_dim,
+                output_size,
                 linear_units,
                 positionwise_conv_kernel_size,
                 dropout_rate,
@@ -131,9 +131,9 @@ class Encoder(AbsEncoder):
         self.encoders = repeat(
             num_blocks,
             lambda: EncoderLayer(
-                attention_dim,
+                output_size,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
+                    attention_heads, output_size, attention_dropout_rate
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,
@@ -142,10 +142,10 @@ class Encoder(AbsEncoder):
             ),
         )
         if self.normalize_before:
-            self.after_norm = LayerNorm(attention_dim)
+            self.after_norm = LayerNorm(output_size)
 
-    def out_dim(self) -> int:
-        return self.attention_dim
+    def output_size(self) -> int:
+        return self._output_size
 
     def forward(
         self,
