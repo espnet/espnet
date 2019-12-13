@@ -387,7 +387,10 @@ class Tacotron2(AbsTTS):
             )
             h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(
-            h, threshold, minlenratio, maxlenratio,
+            h,
+            threshold=threshold,
+            minlenratio=minlenratio,
+            maxlenratio=maxlenratio,
             use_att_constraint=use_att_constraint,
             backward_window=backward_window,
             forward_window=forward_window
