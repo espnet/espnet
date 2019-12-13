@@ -17,10 +17,13 @@ import nltk
 
 import chainer
 import numpy as np
+import six
 import torch
 
 from chainer import reporter
 from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
+from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.initialization import uniform_init_parameters
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -123,8 +126,6 @@ class E2E(MTInterface, torch.nn.Module):
         parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?',
                             choices=['', 'unigram'],
                             help='Apply label smoothing with a specified distribution type')
-        parser.add_argument('--lsm-weight', default=0.0, type=float,
-                            help='Label smoothing weight')
         return parser
 
     def __init__(self, idim, odim, args):
@@ -199,6 +200,7 @@ class E2E(MTInterface, torch.nn.Module):
 
         # weight initialization
         self.init_like_fairseq()
+        # self.init_like_chainer()
 
         # options for beam search
         if args.report_bleu:
@@ -232,17 +234,35 @@ class E2E(MTInterface, torch.nn.Module):
         torch.nn.init.uniform_(self.dec.embed.weight, -0.1, 0.1)
         torch.nn.init.constant_(self.dec.embed.weight[self.pad], 0)
 
+    def init_like_chainer(self):
+        """Initialize weight like chainer.
+
+        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
+        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
+        however, there are two exceptions as far as I know.
+        - EmbedID.W ~ Normal(0, 1)
+        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
+        """
+        lecun_normal_init_parameters(self)
+        # exceptions
+        # embed weight ~ Normal(0, 1)
+        self.dec.embed.weight.data.normal_(0, 1)
+        # forget-bias = 1.0
+        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+        for l in six.moves.range(len(self.dec.decoder)):
+            set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+
     def forward(self, xs_pad, ilens, ys_pad):
         """E2E forward.
 
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
         # 1. Encoder
-        xs_pad, ys_pad = self.target_language_biasing(xs_pad, ilens, ys_pad)
+        xs_pad, ys_pad = self.target_forcing(xs_pad, ys_pad)
         hs_pad, hlens, _ = self.enc(self.dropout(self.embed(xs_pad)), ilens)
 
         # 3. attention loss
@@ -286,13 +306,12 @@ class E2E(MTInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def target_language_biasing(self, xs_pad, ilens, ys_pad):
+    def target_forcing(self, xs_pad, ys_pad=None, tgt_lang=None):
         """Prepend target language IDs to source sentences for multilingual NMT.
 
         These tags are prepended in source/target sentences as pre-processing.
 
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
-        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :return: source text without language IDs
         :rtype: torch.Tensor
         :return: target text without language IDs
@@ -301,19 +320,24 @@ class E2E(MTInterface, torch.nn.Module):
         :rtype: torch.Tensor (B, 1)
         """
         if self.multilingual:
-            # remove language ID in the beggining
-            tgt_lang_ids = ys_pad[:, 0].unsqueeze(1)
             xs_pad = xs_pad[:, 1:]  # remove source language IDs here
-            ys_pad = ys_pad[:, 1:]
+            if ys_pad is not None:
+                # remove language ID in the beginning
+                tgt_lang_ids = ys_pad[:, 0].unsqueeze(1)
+                ys_pad = ys_pad[:, 1:]
+            elif tgt_lang is not None:
+                tgt_lang_ids = xs_pad.new_zeros(xs_pad.size(0), 1).fill_(tgt_lang)
+            else:
+                raise ValueError("Set ys_pad or tgt_lang.")
 
             # prepend target language ID to source sentences
             xs_pad = torch.cat([tgt_lang_ids, xs_pad], dim=1)
         return xs_pad, ys_pad
 
     def translate(self, x, trans_args, char_list, rnnlm=None):
-        """E2E beam search.
+        """Translate source speech per utterance (beam search).
 
-        :param ndarray x: input source text feature (B, T, D)
+        :param list x: input source text feature (T,)
         :param Namespace trans_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -322,16 +346,18 @@ class E2E(MTInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        assert isinstance(x, list)
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         if self.multilingual:
-            ilen = [len(x[0][1:])]
+            ilens = [len(x[0][1:])]
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
         else:
-            ilen = [len(x[0])]
+            ilens = [len(x[0])]
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
-        hs, _, _ = self.enc(self.dropout(self.embed(h.unsqueeze(0))), ilen)
+        h, _ = self.target_forcing(h, tgt_lang=char_list.index(trans_args.tgt_lang) if trans_args.tgt_lang else None)
+        hs, _, _ = self.enc(self.dropout(self.embed(h.unsqueeze(0))), ilens)
 
         # 2. decoder
         # decode the first utterance
@@ -342,9 +368,9 @@ class E2E(MTInterface, torch.nn.Module):
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
-        """E2E beam search.
+        """Translate source speech in the batch mode (beam search).
 
-        :param list xs: list of input source text feature arrays [(T_1, D), (T_2, D), ...]
+        :param list xs: list of input source text feature arrays [(T_1), (T_2), ...]
         :param Namespace trans_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -375,7 +401,7 @@ class E2E(MTInterface, torch.nn.Module):
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
 
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
@@ -385,7 +411,7 @@ class E2E(MTInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # 1. Encoder
-            xs_pad, ys_pad = self.target_language_biasing(xs_pad, ilens, ys_pad)
+            xs_pad, ys_pad = self.target_forcing(xs_pad, ys_pad)
             hpad, hlens, _ = self.enc(self.dropout(self.embed(xs_pad)), ilens)
 
             # 2. Decoder
