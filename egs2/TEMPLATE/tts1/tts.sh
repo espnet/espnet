@@ -300,7 +300,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         mkdir -p "${_logdir}"
 
         # 0. Copy feats_type
-        cp ${_data}/feats_type ${_dir}/feats_type
+        cp "${_data}/feats_type" "${_dir}/feats_type"
         # 1. Split the key file
         key_file=${_data}/token_int
         split_scps=""
@@ -341,7 +341,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
         _nj=$((nj<$(<"${_dir}/feats.scp" wc -l)?nj:$(<"${_dir}/feats.scp" wc -l)))
 
-        _feats_type="$(<${_dir}/feats_type)"
+        _feats_type="$(<"${_dir}/feats_type")"
         _opts=
         if [ "${_feats_type}" = fbank ] ; then
             _opts+="--n_mels ${n_mels} "
