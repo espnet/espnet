@@ -288,9 +288,7 @@ class E2E(STInterface, torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad, ys_pad_src,
-                ys_pad_context=None, ys_pad_src_context=None,
-                bert_emb=None):
+    def forward(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E forward.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -472,8 +470,7 @@ class E2E(STInterface, torch.nn.Module):
         hs, _, _ = self.enc(hs, ilens)
         return hs.squeeze(0)
 
-    def translate(self, x, trans_args, char_list, rnnlm=None,
-                  ensemble_models=[], y_src_context=None, y_tgt_context=None):
+    def translate(self, x, trans_args, char_list, rnnlm=None):
         """E2E beam search.
 
         :param ndarray x: input acoustic feature (T, D)
@@ -522,9 +519,7 @@ class E2E(STInterface, torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_src,
-                                 ys_pad_context=None, ys_pad_src_context=None,
-                                 bert_emb=None):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E attention calculation.
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
