@@ -1,0 +1,12 @@
+bscheduler: noamlr
+optim: adam
+optim_conf:
+    lr: 10.0
+batch_size: 64
+accum_grad: 2
+encoder: transformer
+decoder: transformer
+max_epoch: 200
+patience: 0
+e2e_conf:
+    ctc_weight: 0.3
