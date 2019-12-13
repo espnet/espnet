@@ -17,14 +17,12 @@ help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts>
 
 Options:
-    --nj (int): The number of parallel jobs
-    --decode-nj (int): The number of parallel jobs for decoding
-    --ngpu (int): The number of gpus
-    --gpu-decode (bool): Use gpu for decoding.
     --stage (int): Processes starts from the specifed stage.
     --stop-stage (int): Processes is stopped at the specifed stage.
-    --nlsyms: non-linguistic symbol list
-    --oov (str): Out of vocabrary symbol. The default is "<unk>"
+    --ngpu (int): The number of gpus
+    --nj (int): The number of parallel jobs
+    --decode-nj (int): The number of parallel jobs for decoding
+    --gpu-decode (bool): Use gpu for decoding.
 EOF
 )
 SECONDS=0
