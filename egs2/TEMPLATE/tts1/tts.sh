@@ -69,15 +69,15 @@ train_set=      # name of training set
 dev_set=        # name of development set
 eval_sets=      # names of evalaution sets
 srctexts=       # source text
-nlsyms_txt=     # If non-linguistic symbol list if existing
+nlsyms_txt=     # non-linguistic symbol list (needed if existing)
 trans_type=char # transcription type
 
 
 log "$0 $*"
-. utils/parse_options.sh || exit 1;
+. utils/parse_options.sh
 
-. ./path.sh || exit 1;
-. ./cmd.sh || exit 1;
+. ./path.sh
+. ./cmd.sh
 
 
 # check arguments
@@ -204,11 +204,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
     echo "<unk>" > "${token_list}"
     if [ -n "${nlsyms}" ]; then
-        pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" < "${srctexts}" \
+        # shellcheck disable=SC2002
+        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" \
             | cut -f 2- -d" " | tr " " "\n" | sort -u \
             | grep -v -e '^\s*$' >> "${token_list}"
     else
-        pyscripts/text/text2token.py -s 1 -n 1  < "${srctexts}" \
+        # shellcheck disable=SC2002
+        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 \
             | cut -f 2- -d" " | tr " " "\n" | sort -u \
             | grep -v -e '^\s*$' >> "${token_list}"
     fi
@@ -312,10 +314,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_decode.*.log'"
         # shellcheck disable=SC2086
+        # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
             python3 -m espnet2.bin.tts_decode \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_logdir}/keys.JOB.scp,text,text_int" \
+                --data_path_and_name_and_type "${_data}/token_int,text,text_int" \
+                --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
