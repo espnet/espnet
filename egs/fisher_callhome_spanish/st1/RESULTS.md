@@ -77,6 +77,16 @@
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/decode_callhome_devtest.en_decode_pytorch_transformer_bpe|**17.03**|46.2|22.9|12.4|6.9|0.982|0.982|36755|37416|
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/decode_callhome_evltest.en_decode_pytorch_transformer_bpe|**17.22**|46.4|23.2|12.8|7.2|0.970|0.970|17905|18457|
 
+- Model files (archived to train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1b13bYQnLSkloRANflicRfsovL3-tqpX6
+  - training config file: `conf/tuning/train_pytorch_transformer_bpe_short_long.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe.yaml`
+  - cmvn file: `data/train_sp.en/cmvn.ark`
+  - e2e file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/results/model.val5.avg.best`
+  - e2e JSON file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/results/model.json`
+  - NOTE: This model is initialized with the Transformer ASR model (BPE1k) on the encoder side.
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+
 ### Transformer (lc.rm, BPE1k) + ASR pre-training + MT pre-training
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
@@ -85,6 +95,16 @@
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_fisher_test.en_decode_pytorch_transformer_bpe|**48.24**|78.7|57.0|41.1|29.4|1.000|1.013|39370|38862|
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_callhome_devtest.en_decode_pytorch_transformer_bpe|**17.67**|47.1|23.7|13.1|7.4|0.973|0.973|36403|37416|
 |exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_callhome_evltest.en_decode_pytorch_transformer_bpe|**17.66**|46.7|23.6|13.3|7.6|0.966|0.966|17836|18457|
+
+- Model files (archived to train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1rQGmW0zXXzvJdyxQLKyWCG8WEkfKnPO6
+  - training config file: `conf/tuning/train_pytorch_transformer_bpe_short_long.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe.yaml`
+  - cmvn file: `data/train_sp.en/cmvn.ark`
+  - e2e file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/results/model.val5.avg.best`
+  - e2e JSON file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/results/model.json`
+  - NOTE: This model is initialized with the Transformer ASR model (BPE1k) on the encoder side and Transformer MT model (BPE1k) on the decoder side.
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 
 ### Transformer (lc.rm, BPE1k) + ASR pre-training + MT pre-training + SpecAugment
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
