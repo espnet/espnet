@@ -56,7 +56,7 @@ tag=""        # tag for managing experiments.
 # decoding related
 decode_config= # config for decoding
 decode_args=   # arguments for decoding
-decode_tag=    # tag for decoding directory
+decode_tag=""  # tag for decoding directory
 decode_model=eval.loss.best.pt # decode model path like:
                                # decode_model=train.loss.best.pt
                                # decode_model=3epoch/model.pt
@@ -102,9 +102,18 @@ fi
 
 # set tag for naming of model directory
 if [ -z "${tag}" ]; then
-    tag="${feats_type}"
     if [ -n "${train_config}" ]; then
-        tag+="_$(basename "${train_config}" .yaml)"
+        tag="$(basename "${train_config}" .yaml)"
+    else
+        tag=train_default
+    fi
+    tag+="_${feats_type}"
+fi
+if [ -z "${decode_tag}" ]; then
+    if [ -n "${decode_config}" ]; then
+        decode_tag="$(basename "${decode_config}" .yaml)"
+    else
+        decode_tag=decode_default
     fi
 fi
 
@@ -211,7 +220,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-tts_exp="${expdir}/tts_train_${tag}"
+tts_exp="${expdir}/${tag}"
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
@@ -284,7 +293,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${tts_exp}/decode_${dset}${decode_tag}"
+        _dir="${tts_exp}/${decode_tag}_${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
 
