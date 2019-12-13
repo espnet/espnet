@@ -76,7 +76,7 @@ asr_args=
 decode_tag=
 decode_config=
 decode_args=
-decode_asr_model=eval.loss.best.pt
+decode_asr_model=eval.acc.best.pt
 decode_lm=eval.loss.best.pt
 # e.g.
 # decode_asr_model=train.loss.best.pt
