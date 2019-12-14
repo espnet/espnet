@@ -65,6 +65,14 @@ else:
     from itertools import zip_longest as zip_longest
 
 
+def _recur_to(xs, device):
+    if torch.is_tensor(xs):
+        return xs.to(device)
+    if isinstance(xs, tuple):
+        return tuple(_recur_to(x, device) for x in xs)
+    return xs
+
+
 class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Pytorch.
 
@@ -111,8 +119,7 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) if arr is not None else None
-                          for arr in batch)
+                x = _recur_to(batch, self.device)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -170,8 +177,7 @@ class CustomUpdater(StandardUpdater):
         # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) if arr is not None else None
-                  for arr in batch)
+        x = _recur_to(batch, self.device)
         is_new_epoch = train_iter.epoch != epoch
         # When the last minibatch in the current epoch is given,
         # gradient accumulation is turned off in order to evaluate the model
@@ -297,7 +303,7 @@ class CustomConverterMulEnc(object):
         self.dtype = dtype
         self.num_encs = len(subsamping_factors)
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transform a batch and send it to a device.
 
         Args:
