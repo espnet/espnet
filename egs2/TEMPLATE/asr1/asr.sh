@@ -329,7 +329,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _opts=
     if [ -n "${lm_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.lm_train --print_config --optimizer adam --lm transformer
+        #   % python -m espnet2.bin.lm_train --print_config --optim adam
         _opts+="--config ${lm_config} "
     fi
 
@@ -376,7 +376,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _opts=
     if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.asr_train --print_config --optimizer adam --encoder_decoder transformer
+        #   % python -m espnet2.bin.asr_train --print_config --optim adam
         _opts+="--config ${asr_config} "
     fi
 
