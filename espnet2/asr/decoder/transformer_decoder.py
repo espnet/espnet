@@ -29,7 +29,7 @@ class TransformerDecoder(AbsDecoder):
 
     Args:
         vocab_size: output dim
-        encoder_output_size: dimention of attention
+        encoder_output_size: dimension of attention
         attention_heads: the number of heads of multi head attention
         linear_units: the number of units of position-wise feed forward
         num_blocks: the number of decoder blocks
