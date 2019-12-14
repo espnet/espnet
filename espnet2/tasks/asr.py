@@ -222,6 +222,7 @@ class ASRTask(AbsTask):
         encoder_conf.update(config["encoder_conf"])
         decoder_conf.update(config["decoder_conf"])
         ctc_conf.update(config["ctc_conf"])
+        e2e_conf.update(config["e2e_conf"])
 
         # 5. Reassign them to the configuration
         config.update(
