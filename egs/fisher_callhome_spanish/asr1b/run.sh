@@ -11,6 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+nj=4            # numebr of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -310,7 +311,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${recog_model} \
             --num ${n_average}
     fi
-    nj=4
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
