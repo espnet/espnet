@@ -509,7 +509,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if args.pretrained_model is not None:
             self.load_pretrained_model(args.pretrained_model)
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, extras=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -518,7 +518,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
+            extras (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
 
         Returns:
             Tensor: Loss value.
@@ -574,12 +574,12 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         # caluculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
-            if max_out != spcs.shape[1]:
-                spcs = spcs[:, :max_out]
+            if max_out != extras.shape[1]:
+                extras = extras[:, :max_out]
 
             # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
+            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, extras, olens)
             loss = loss + cbhg_l1_loss + cbhg_mse_loss
             report_keys += [
                 {'cbhg_l1_loss': cbhg_l1_loss.item()},
