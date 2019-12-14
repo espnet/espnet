@@ -333,7 +333,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "Stage 6: Synthesis: training_dir=${tts_exp}"
     for dset in "${dev_set}" ${eval_sets}; do
