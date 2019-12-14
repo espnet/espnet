@@ -65,11 +65,11 @@ else:
     from itertools import zip_longest as zip_longest
 
 
-def _recur_to(xs, device):
+def _recursive_to(xs, device):
     if torch.is_tensor(xs):
         return xs.to(device)
     if isinstance(xs, tuple):
-        return tuple(_recur_to(x, device) for x in xs)
+        return tuple(_recursive_to(x, device) for x in xs)
     return xs
 
 
@@ -119,7 +119,7 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = _recur_to(batch, self.device)
+                x = _recursive_to(batch, self.device)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -177,7 +177,7 @@ class CustomUpdater(StandardUpdater):
         # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = _recur_to(batch, self.device)
+        x = _recursive_to(batch, self.device)
         is_new_epoch = train_iter.epoch != epoch
         # When the last minibatch in the current epoch is given,
         # gradient accumulation is turned off in order to evaluate the model
