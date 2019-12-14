@@ -223,7 +223,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _opts=
     if [ -n "${train_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.tts_train --print_config --optimizer adam --encoder_decoder transformer
+        #   % python -m espnet2.bin.tts_train --print_config --optim adam 
         _opts+="--config ${train_config} "
     fi
 
