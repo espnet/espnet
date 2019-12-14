@@ -30,7 +30,7 @@ class LanguageE2E(AbsE2E):
         text = text[:, : text_lengths.max()]
 
         # 1. Create a sentence pair like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
-        # text: (Batch, Length) -> x, y: (Batch, Legnth + 1)
+        # text: (Batch, Length) -> x, y: (Batch, Length + 1)
         x = F.pad(text, [1, 0], "constant", self.eos)
         t = F.pad(text, [0, 1], "constant", self.ignore_id)
         for i, l in enumerate(text_lengths):
