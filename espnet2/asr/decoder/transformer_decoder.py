@@ -24,12 +24,12 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
-class Decoder(AbsDecoder):
+class TransformerDecoder(AbsDecoder):
     """Transfomer decoder module.
 
     Args:
-        odim: output dim
-        encoder_out_dim: dimention of attention
+        vocab_size: output dim
+        encoder_output_size: dimension of attention
         attention_heads: the number of heads of multi head attention
         linear_units: the number of units of position-wise feed forward
         num_blocks: the number of decoder blocks
@@ -48,8 +48,8 @@ class Decoder(AbsDecoder):
 
     def __init__(
         self,
-        odim: int,
-        encoder_out_dim: int,
+        vocab_size: int,
+        encoder_output_size: int,
         attention_heads: int = 4,
         linear_units: int = 2048,
         num_blocks: int = 6,
@@ -65,16 +65,16 @@ class Decoder(AbsDecoder):
     ):
         assert check_argument_types()
         super().__init__()
-        attention_dim = encoder_out_dim
+        attention_dim = encoder_output_size
 
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(odim, attention_dim),
+                torch.nn.Embedding(vocab_size, attention_dim),
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer == "linear":
             self.embed = torch.nn.Sequential(
-                torch.nn.Linear(odim, attention_dim),
+                torch.nn.Linear(vocab_size, attention_dim),
                 torch.nn.LayerNorm(attention_dim),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
@@ -112,7 +112,7 @@ class Decoder(AbsDecoder):
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
         if use_output_layer:
-            self.output_layer = torch.nn.Linear(attention_dim, odim)
+            self.output_layer = torch.nn.Linear(attention_dim, vocab_size)
         else:
             self.output_layer = None
 

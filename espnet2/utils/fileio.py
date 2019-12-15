@@ -15,6 +15,18 @@ from typeguard import check_return_type
 
 
 class DatadirWriter:
+    """
+
+    Examples:
+        >>> with DatadirWriter("output") as writer:
+        ...     # output/sub.txt is created here
+        ...     subwriter = writer["sub.txt"]
+        ...     # Write "uttidA some/where/a.wav"
+        ...     subwriter["uttidA"] = "some/where/a.wav"
+        ...     subwriter["uttidB"] = "some/where/b.wav"
+
+    """
+
     def __init__(self, p: Union[Path, str]):
         assert check_argument_types()
         self.path = Path(p)

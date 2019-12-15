@@ -9,9 +9,9 @@ def test_frontend_repr():
     print(frontend)
 
 
-def test_frontend_out_dim():
+def test_frontend_output_size():
     frontend = DefaultFrontend(fs="16k")
-    frontend.out_dim()
+    frontend.output_size()
 
 
 def test_frontend_backward():

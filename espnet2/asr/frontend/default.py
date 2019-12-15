@@ -56,7 +56,7 @@ class DefaultFrontend(AbsFrontend):
             "n_mels", get_default_kwargs(LogMel).get("n_mels")
         )
 
-    def out_dim(self) -> int:
+    def output_size(self) -> int:
         return self.n_mels
 
     def forward(
