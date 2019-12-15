@@ -107,7 +107,10 @@ if [ -z "${tag}" ]; then
     else
         tag=train_default
     fi
-    tag+="_${feats_type}"
+    # add overwritten arg's info
+    if [ -n "${train_args}" ]; then
+        tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+    fi
 fi
 if [ -z "${decode_tag}" ]; then
     if [ -n "${decode_config}" ]; then
@@ -115,6 +118,11 @@ if [ -z "${decode_tag}" ]; then
     else
         decode_tag=decode_default
     fi
+    # add overwritten arg's info
+    if [ -n "${decode_args}" ]; then
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+    fi
+    decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 
