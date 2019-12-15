@@ -322,7 +322,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${train_args}
+                ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
          for i in $(seq "${_nj}"); do
@@ -354,7 +354,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --n_shift "${n_shift}" \
             --win_length "${win_length}" \
             --iters "${griffin_lim_iters}" \
-            ${_opts} ${decode_args}\
+            ${_opts} \
             "${_dir}" "${_dir}/log" "${_dir}/wav"
     done
 fi
