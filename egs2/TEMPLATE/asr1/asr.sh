@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -11,81 +12,129 @@ log() {
 }
 SECONDS=0
 
-# general configuration
-stage=1
-stop_stage=100
-nj=50
-decode_nj=50
-ngpu=1 # number of gpus ("0" uses cpu, otherwise use gpu)
-gpu_decode=false
-dumpdir=dump
-expdir=exp
+# General configuration
+stage=1          # Processes starts from the specified stage.
+stop_stage=100   # Processes is stopped at the specified stage.
+ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
+nj=50            # The number of parallel jobs.
+decode_nj=50     # The number of parallel jobs in decoding.
+gpu_decode=false # Whether to perform gpu decoding.
+dumpdir=dump     # Directory to dump features.
+expdir=exp       # Directory to save experiments.
 
 # Data preparation related
-local_data_opts= # The options given to local/data.sh
+local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
-feats_type=raw
-audio_format=flac
-fs=16k
+feats_type=raw    # Feature type (raw or fbank_pitch).
+audio_format=flac # Audio format (only in feats_type=raw).
+fs=16k            # Sampling rate.
 
 # Tokenization related
-token_type=bpe # char or bpe.
-nbpe=30
-bpemode=unigram # unigram or bpe.
-bpe_input_sentence_size=100000000
-oov="<unk>"
+token_type=bpe  # Tokenization type (char or bpe).
+nbpe=30         # The number of BPE vocabulary.
+bpemode=unigram # Mode of BPE (unigram or bpe).
+oov="<unk>"     # Out of vocabrary symbol.
+bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 
 # Language model related
-lm_tag= # Suffix to the result dir for lm training
-lm_config=
-lm_args=
-use_word_lm=false
-# NOTE: keep for future development.
+lm_tag=           # Suffix to the result dir for language model training.
+lm_config=        # Config for language model training.
+lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
+                  # Note that it will overwrite args in lm config.
+use_word_lm=false # Whether to use word language model.
 # shellcheck disable=SC2034
-word_vocab_size=10000
+word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
-asr_tag= # Suffix to the result dir for asr training
-asr_config=
-asr_args=
+asr_tag=    # Suffix to the result dir for asr model training.
+asr_config= # Config for asr model training.
+asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
+            # Note that it will overwrite args in asr config.
 
 # Decoding related
-decode_tag= # Add suffix to the result dir for decoding
-decode_config=
-decode_args=
-decode_asr_model=eval.acc.best.pt
-decode_lm=eval.loss.best.pt
-# e.g.
-# decode_asr_model=train.loss.best.pt
-# decode_asr_model=3epoch/model.pt
-# decode_asr_model=eval.acc.best.pt
-# decode_asr_model=eval.loss.ave.pt
+decode_tag=    # Suffix to the result dir for decoding.
+decode_config= # Config for decoding.
+decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
+               # Note that it will overwrite args in decode config.
+decode_lm=eval.loss.best.pt       # Language modle path for decoding.
+decode_asr_model=eval.acc.best.pt # ASR model path for decoding.
+                                  # e.g.
+                                  # decode_asr_model=train.loss.best.pt
+                                  # decode_asr_model=3epoch/model.pt
+                                  # decode_asr_model=eval.acc.best.pt
+                                  # decode_asr_model=eval.loss.ave.pt
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=
-dev_set=
-eval_sets=
-srctexts= # Used for the training of BPE and the creation of a vocabulary list
-lm_train_text=
-lm_dev_text=
-lm_test_text=
-nlsyms_txt= # If non-linguistic symbol list if existing
+train_set=     # Name of training set.
+dev_set=       # Name of development set.
+eval_sets=     # Names of evaluation sets. Multiple items can be specified.
+srctexts=      # Used for the training of BPE and the creation of a vocabulary list
+lm_train_text= # Text file path of language model training set.
+lm_dev_text=   # Text file path of language model development set.
+lm_test_text=  # Text file path of language model evaluation set.
+nlsyms_txt=    # Non-linguistic symbol list if existing.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts >
 
 Options:
-    --nj (int): The number of parallel jobs
-    --decode-nj (int): The number of parallel jobs for decoding
-    --ngpu (int): The number of gpus
-    --gpu-decode (bool): Use gpu for decoding.
-    --stage (int): Processes starts from the specifed stage.
-    --stop-stage (int): Processes is stopped at the specifed stage.
-    --nlsyms: non-linguistic symbol list
-    --oov (str): Out of vocabrary symbol. The default is "<unk>"
-    --token_type (str): The tokenize level. Select either one of "bpe", "char" or "word". The default is "bpe"
-    --nbpe (int):
+    # General configuration
+    --stage      # Processes starts from the specified stage (default="${stage}").
+    --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
+    --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --nj         # The number of parallel jobs (default="${nj}").
+    --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
+    --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
+    --dumpdir    # Directory to dump features (default="${dumpdir}").
+    --expdir     # Directory to save experiments (default="${expdir}").
+
+    # Data preparation related
+    --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
+
+    # Feature extraction related
+    --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
+    --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
+    --fs           # Sampling rate (default="${fs}").
+
+    # Tokenization related
+    --token_type              # Tokenization type (char or bpe, default="${token_type}").
+    --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
+    --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
+    --oov                     # Out of vocabrary symbol (default="${oov}").
+    --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
+
+    # Language model related
+    --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
+    --lm_config       # Config for language model training (default="${lm_config}").
+    --lm_args         # Arguments for language model training, e.g., "--max_epoch 10" (default="${lm_args}").
+                      # Note that it will overwrite args in lm config.
+    --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
+    --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
+
+    # ASR model related
+    --asr_tag    # Suffix to the result dir for asr model training (default="${asr_tag}").
+    --asr_config # Config for asr model training (default="${asr_config}").
+    --asr_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${asr_args}").
+                 # Note that it will overwrite args in asr config.
+
+    # Decoding related
+    --decode_tag       # Suffix to the result dir for decoding (default="${decode_tag}").
+    --decode_config    # Config for decoding (default="${decode_config}").
+    --decode_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${decode_args}").
+                       # Note that it will overwrite args in decode config.
+    --decode_lm        # Language modle path for decoding (default="${decode_lm}").
+    --decode_asr_model # ASR model path for decoding (default="${decode_asr_model}").
+
+    # [Task dependent] Set the datadir name created by local/data.sh
+    --train_set     # Name of training set (required).
+    --dev_set       # Name of development set (required).
+    --eval_sets     # Names of evaluation sets (required).
+    --srctexts      # Used for the training of BPE and the creation of a vocabulary list (required).
+    --lm_train_text # Text file path of language model training set (default="${lm_train_text}").
+    --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
+    --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
+    --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
 EOF
 )
 
@@ -102,6 +151,7 @@ fi
 . ./cmd.sh
 
 
+# Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
 [ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
@@ -112,7 +162,7 @@ fi
 # Use the text of the 1st evaldir if lm_test is not specified
 [ -z "${lm_test_text}" ] && lm_test_text="data/${eval_sets%% *}/text"
 
-
+# Check feature type
 if [ "${feats_type}" = raw ]; then
     data_feats=${dumpdir}/format
 elif [ "${feats_type}" = fbank_pitch ]; then
@@ -125,6 +175,7 @@ else
     exit 2
 fi
 
+# Check tokenization type
 token_listdir=data/token_list
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
 bpeprefix="${bpedir}"/model
