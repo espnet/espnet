@@ -526,7 +526,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
         _dir="${asr_exp}/${decode_tag}_${dset}"
-        _logdir="${_dir}/logdir"
+        _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
 
         _feats_type="$(<${_data}/feats_type)"
