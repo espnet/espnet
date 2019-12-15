@@ -51,7 +51,7 @@ win_length=""     # window length.
 # training related
 train_config= # config for training.
 train_args=   # arguments for training (e.g. "--max_epoch 1").
-              # it will overwrite args in traing config.
+              # it will overwrite args in train config.
 tag=""        # tag for managing experiments.
 
 # decoding related
@@ -69,7 +69,7 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 # [Task depented] set the datadir name created by local/data.sh.
 train_set=      # name of training set.
 dev_set=        # name of development set.
-eval_sets=      # names of evalaution sets. you can specify multiple items.
+eval_sets=      # names of evaluation sets. you can specify multiple items.
 srctexts=       # source texts. you can specify multiple items.
 nlsyms_txt=     # non-linguistic symbol list (needed if existing).
 trans_type=char # transcription type.
@@ -128,7 +128,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
-    # [Task depented] need to create data.sh for new corpus
+    # [Task dependent] need to create data.sh for new corpus
     local/data.sh
 fi
 
