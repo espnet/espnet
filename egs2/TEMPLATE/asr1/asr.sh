@@ -246,6 +246,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
 
