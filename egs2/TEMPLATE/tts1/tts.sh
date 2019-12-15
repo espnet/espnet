@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Set bash to 'debug' mode, it will exit on :
@@ -76,16 +76,14 @@ trans_type=char # transcription type
 log "$0 $*"
 . utils/parse_options.sh
 
-. ./path.sh
-. ./cmd.sh
-
-
-# check arguments
 if [ $# -ne 0 ]; then
     log "${help_message}"
     log "Error: No positional arguments are required."
     exit 2
 fi
+
+. ./path.sh
+. ./cmd.sh
 
 # check feature type
 if [ "${feats_type}" = fbank ]; then
@@ -120,6 +118,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    # [Task depented] need to create data.sh for new corpus
     local/data.sh
 fi
 
