@@ -138,9 +138,9 @@ fi
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag=_"$(basename "${train_config}" .yaml)"
+        tag="$(basename "${train_config}" .yaml)"
     else
-        tag=_train
+        tag=train
     fi
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
