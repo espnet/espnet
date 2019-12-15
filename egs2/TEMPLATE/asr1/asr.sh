@@ -7,8 +7,71 @@ set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+SECONDS=0
+
+# general configuration
+stage=1
+stop_stage=100
+nj=50
+decode_nj=50
+ngpu=1 # number of gpus ("0" uses cpu, otherwise use gpu)
+gpu_decode=false
+dumpdir=dump
+expdir=exp
+
+# Data preparation related
+local_data_opts= # The options given to local/data.sh
+
+# Feature extraction related
+feats_type=raw
+audio_format=flac
+fs=16k
+
+# Tokenization related
+token_type=bpe # char or bpe.
+nbpe=30
+bpemode=unigram # unigram or bpe.
+bpe_input_sentence_size=100000000
+oov="<unk>"
+
+# Language model related
+lm_tag= # Suffix to the result dir for lm training
+lm_config=
+lm_args=
+use_word_lm=false
+# NOTE: keep for future development.
+# shellcheck disable=SC2034
+word_vocab_size=10000
+
+# ASR model related
+asr_tag= # Suffix to the result dir for asr training
+asr_config=
+asr_args=
+
+# Decoding related
+decode_tag= # Add suffix to the result dir for decoding
+decode_config=
+decode_args=
+decode_asr_model=eval.acc.best.pt
+decode_lm=eval.loss.best.pt
+# e.g.
+# decode_asr_model=train.loss.best.pt
+# decode_asr_model=3epoch/model.pt
+# decode_asr_model=eval.acc.best.pt
+# decode_asr_model=eval.loss.ave.pt
+
+# [Task dependent] Set the datadir name created by local/data.sh
+train_set=
+dev_set=
+eval_sets=
+srctexts= # Used for the training of BPE and the creation of a vocabulary list
+lm_train_text=
+lm_dev_text=
+lm_test_text=
+nlsyms_txt= # If non-linguistic symbol list if existing
+
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts >
 
@@ -25,88 +88,19 @@ Options:
     --nbpe (int):
 EOF
 )
-SECONDS=0
-
-
-## general configuration
-stage=1
-stop_stage=100
-
-nj=50
-decode_nj=50
-# number of gpus ("0" uses cpu, otherwise use gpu)
-ngpu=1
-gpu_decode=false
-
-# The options given to local/data.sh
-local_data_opts=
-
-## The options for feature_extract
-feats_type=raw
-audio_format=flac
-fs=16k
-
-
-# token_type=char
-token_type=bpe
-
-nbpe=30
-# bpemode (unigram or bpe)
-bpemode=unigram
-bpe_input_sentence_size=100000000
-oov="<unk>"
-
-
-
-## The options for training
-exp=exp
-
-# Add suffix to the result dir for lm training
-lm_tag=
-lm_config=
-lm_args=
-use_word_lm=false
-word_vocab_size=10000
-
-# Add suffix to the result dir for asr training
-asr_tag=
-asr_config=
-asr_args=
-
-decode_tag=
-decode_config=
-decode_args=
-decode_asr_model=eval.acc.best.pt
-decode_lm=eval.loss.best.pt
-# e.g.
-# decode_asr_model=train.loss.best.pt
-# decode_asr_model=3epoch/model.pt
-# decode_asr_model=eval.acc.best.pt
-# decode_asr_model=eval.loss.ave.pt
-
-
-# [Task depented] Set the datadir name created by local/data.sh
-train_set=
-dev_set=
-eval_sets=
-# Used for the training of BPE and the creation of a vocabulary list
-srctexts=
-lm_train_text=
-lm_dev_text=
-lm_test_text=
-# If non-linguistic symbol list if existing
-nlsyms_txt=
 
 log "$0 $*"
 . utils/parse_options.sh
-. ./path.sh
-. ./cmd.sh
 
 if [ $# -ne 0 ]; then
     log "${help_message}"
     log "Error: No positional arguments are required."
     exit 2
 fi
+
+. ./path.sh
+. ./cmd.sh
+
 
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
@@ -120,24 +114,15 @@ fi
 
 
 if [ "${feats_type}" = raw ]; then
-    data_feats=data_format
+    data_feats=${dumpdir}/format
 elif [ "${feats_type}" = fbank_pitch ]; then
-    data_feats=data_fbank_pitch
+    data_feats=${dumpdir}/fbank_pitch
 elif [ "${feats_type}" = fbank ]; then
-    data_feats=data_fbank
+    data_feats=${dumpdir}/fbank
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
     exit 2
-fi
-
-data_asr="data_asr_${feats_type}_${token_type}"
-if ${use_word_lm}; then
-    data_lm=data_lm_word
-    lm_token_type="word"
-else
-    data_lm="data_lm_${token_type}"
-    lm_token_type="${token_type}"
 fi
 
 token_listdir=data/token_list
@@ -146,14 +131,9 @@ bpeprefix="${bpedir}"/model
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
+# NOTE: keep for future development.
+# shellcheck disable=SC2034
 wordtoken_list="${token_listdir}"/word/tokens.txt
-
-if [ -z "${asr_tag}" ]; then
-    asr_tag="_${feats_type}_${token_type}"
-fi
-if [ -z "${lm_tag}" ]; then
-    lm_tag="_${lm_token_type}"
-fi
 
 if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
@@ -163,6 +143,52 @@ elif [ "${token_type}" = char ]; then
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
+fi
+
+data_asr="data_asr_${feats_type}_${token_type}"
+if ${use_word_lm}; then
+    data_lm=${dumpdir}/lm_word
+    lm_token_type="word"
+else
+    data_lm="${dumpdir}/lm_${token_type}"
+    lm_token_type="${token_type}"
+fi
+
+# Set tag for naming of model directory
+if [ -z "${asr_tag}" ]; then
+    if [ -n "${asr_config}" ]; then
+        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}_${token_type}"
+    else
+        asr_tag="train_${feats_type}_${token_type}"
+    fi
+    # Add overwritten arg's info
+    if [ -n "${asr_args}" ]; then
+        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+    fi
+fi
+if [ -z "${lm_tag}" ]; then
+    if [ -n "${lm_config}" ]; then
+        lm_tag="$(basename "${lm_config}" .yaml)_${lm_token_type}"
+    else
+        lm_tag="train_${feats_type}_${lm_token_type}"
+    fi
+    # Add overwritten arg's info
+    if [ -n "${lm_args}" ]; then
+        lm_args+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+    fi
+fi
+if [ -z "${decode_tag}" ]; then
+    if [ -n "${decode_config}" ]; then
+        decode_tag="$(basename "${decode_config}" .yaml)"
+    else
+        decode_tag=decode
+    fi
+    # Add overwritten arg's info
+    if [ -n "${decode_args}" ]; then
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+    fi
+    decode_tag+="_lm_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 
@@ -241,6 +267,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "stage 3: Generate token_list from ${srctexts} using BPE"
 
         mkdir -p "${bpedir}"
+        # shellcheck disable=SC2002
         cat ${srctexts} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
         spm_train \
@@ -250,7 +277,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --model_prefix="${bpeprefix}" \
             --input_sentence_size="${bpe_input_sentence_size}"
 
-        echo "<unk>" > "${token_list}"
+        echo "${oov}" > "${token_list}"
+        # shellcheck disable=SC2002
         cat ${srctexts} | cut -f 2- -d" " | \
             spm_encode --model="${bpemodel}" --output_format=piece | \
                 tr ' ' '\n' | sort -u >> "${token_list}"
@@ -260,12 +288,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         mkdir -p "$(dirname ${token_list})"
 
 
-        echo "<unk>" > "${token_list}"
+        echo "${oov}" > "${token_list}"
         if [ -n "${nlsyms}" ]; then
+            # shellcheck disable=SC2002
             cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}"  \
                 | cut -f 2- -d" " | tr " " "\n" | sort -u \
                 | grep -v -e '^\s*$' >> "${token_list}"
         else
+            # shellcheck disable=SC2002
             cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 \
                 | cut -f 2- -d" " | tr " " "\n" | sort -u \
                 | grep -v -e '^\s*$' >> "${token_list}"
@@ -322,7 +352,7 @@ fi
 # ========================== Data preparation is done here. ==========================
 
 
-lm_exp="${exp}/lm_train${lm_tag}"
+lm_exp="${expdir}/lm_${lm_tag}"
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "stage 5: LM Training: train_set=${data_lm}/train, dev_set=${data_lm}/dev"
 
@@ -334,6 +364,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     log "LM training started... log: '${lm_exp}/train.log'"
+    # shellcheck disable=SC2086
     ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
         python3 -m espnet2.bin.lm_train \
             --ngpu "${ngpu}" \
@@ -345,7 +376,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --max_length 150 \
             --output_dir "${lm_exp}" \
             ${_opts} ${lm_args}
-
 fi
 
 
@@ -363,11 +393,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --output_dir "${lm_exp}/perplexity_test" \
             ${_opts}
     log "PPL: ${data_lm}/test: $(cat ${lm_exp}/perplexity_test/ppl)"
-
 fi
 
 
-asr_exp="${exp}/asr_train${asr_tag}"
+asr_exp="${expdir}/asr_${asr_tag}"
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _asr_train_dir="${data_asr}/${train_set}"
     _asr_dev_dir="${data_asr}/${dev_set}"
@@ -404,6 +433,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     log "ASR training started... log: '${asr_exp}/train.log'"
+    # shellcheck disable=SC2086
     ${cuda_cmd} --gpu "${ngpu}" "${asr_exp}"/train.log \
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
@@ -421,7 +451,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --max_length 150 \
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
-
 fi
 
 
@@ -443,7 +472,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
-        _dir="${asr_exp}/decode_${dset}${decode_tag}"
+        _dir="${asr_exp}/${decode_tag}_${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -463,12 +492,14 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         for n in $(seq ${_nj}); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
+        # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         _token_type="$(<${_data}/token_type)"
 
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/asr_recog.*.log'"
+        # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
             python3 -m espnet2.bin.asr_recog \
                 --ngpu "${_ngpu}" \
@@ -501,7 +532,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
-        _dir="${asr_exp}/decode_${dset}${decode_tag}"
+        _dir="${asr_exp}/${decode_tag}_${dset}"
 
         _token_type="$(<${_data}/token_type)"
         if [ "${_token_type}" = char ]; then
@@ -545,9 +576,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             log "Write ${_type} result in ${_scoredir}/result.txt"
             grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
         done
-
     done
-
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
