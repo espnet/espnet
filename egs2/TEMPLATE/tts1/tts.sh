@@ -168,6 +168,7 @@ if [ -z "${decode_tag}" ]; then
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
@@ -272,6 +273,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             "${data_feats}/${dset}/text" "${token_list}" "${data_feats}/${dset}"
     done
 fi
+
+# ========================== Data preparation is done here. ==========================
 
 
 tts_exp="${expdir}/tts_${tag}"
