@@ -1287,9 +1287,9 @@ class AbsTask(ABC):
                     model, (), range(ngpu), module_kwargs=batch
                 )
                 # Weighted averaging of loss from torch-data-parallel
-                loss = (loss * weight.to(loss.dtype) / weight.sum()).mean(0)
+                loss = (loss * weight.to(loss.dtype)).sum(0) / weight.sum()
                 stats = {
-                    k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
+                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
                     if v is not None
                     else None
                     for k, v in stats.items()
@@ -1377,7 +1377,7 @@ class AbsTask(ABC):
                     model, (), range(ngpu), module_kwargs=batch
                 )
                 stats = {
-                    k: (v * weight.to(v.dtype) / weight.sum()).mean(0)
+                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
                     if v is not None
                     else None
                     for k, v in stats.items()

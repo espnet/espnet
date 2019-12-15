@@ -90,7 +90,7 @@ def build_text_converter(
     assert check_argument_types()
     if token_type == "bpe":
         if bpemodel is None:
-            raise ValueError('bpemodel is required if token_type = "bpeh"')
+            raise ValueError('bpemodel is required if token_type = "bpe"')
         return Text2SentencepiecesConverter(token_list, bpemodel)
 
     elif token_type == "word":

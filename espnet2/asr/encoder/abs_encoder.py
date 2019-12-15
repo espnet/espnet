@@ -8,7 +8,7 @@ import torch
 
 class AbsEncoder(torch.nn.Module, ABC):
     @abstractmethod
-    def out_dim(self) -> int:
+    def output_size(self) -> int:
         raise NotImplementedError
 
     @abstractmethod

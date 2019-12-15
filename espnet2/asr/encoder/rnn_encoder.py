@@ -7,107 +7,83 @@ import numpy as np
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
-from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
-class Encoder(AbsEncoder):
+class RNNEncoder(AbsEncoder):
+    """
+
+    Args:
+        input_size: The number of expected features in the input
+        output_size: The number of output features
+        hidden_size: The number of hidden features
+        bidirectional: If ``True`` becomes a bidirectional LSTM
+        use_projection: Use projection layer or not
+        num_layers: Number of recurrent layers
+        dropout: dropout probability
+
+    """
+
     def __init__(
         self,
-        idim: int,
-        etype: str = "blstmp",
-        elayers: int = 4,
-        eunits: int = 320,
-        eprojs: int = 320,
+        input_size: int,
+        rnn_type: str = "lstm",
+        bidirectional: bool = True,
+        use_projection: bool = True,
+        num_layers: int = 4,
+        hidden_size: int = 320,
+        output_size: int = 320,
         dropout: float = 0.0,
         subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
-        in_channel: int = 1,
     ):
         assert check_argument_types()
         super().__init__()
-        self.eprojs = eprojs
-        self.etype = etype
+        self._output_size = output_size
+        self.rnn_type = rnn_type
+        self.bidirectional = bidirectional
+        self.use_projection = use_projection
 
-        typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ["lstm", "gru", "blstm", "bgru"]:
-            raise ValueError(
-                "Error: need to specify an appropriate encoder architecture"
-            )
+        if rnn_type not in {"lstm", "gru"}:
+            raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         if subsample is None:
-            subsample = np.ones(elayers + 1, dtype=np.int)
+            subsample = np.ones(num_layers + 1, dtype=np.int)
         else:
-            subsample = subsample[:elayers]
+            subsample = subsample[:num_layers]
             # Append 1 at the beginning because the second or later is used
             subsample = np.pad(
                 np.array(subsample, dtype=np.int),
-                [1, elayers - len(subsample)],
+                [1, num_layers - len(subsample)],
                 mode="constant",
                 constant_values=1,
             )
 
-        if etype.startswith("vgg"):
-            if etype[-1] == "p":
-                self.enc = torch.nn.ModuleList(
-                    [
-                        VGG2L(in_channel),
-                        RNNP(
-                            get_vgg2l_odim(idim, in_channel=in_channel),
-                            elayers,
-                            eunits,
-                            eprojs,
-                            subsample,
-                            dropout,
-                            typ=typ,
-                        ),
-                    ]
-                )
-                logging.info("Use CNN-VGG + " + typ.upper() + "P for encoder")
-            else:
-                self.enc = torch.nn.ModuleList(
-                    [
-                        VGG2L(in_channel),
-                        RNN(
-                            get_vgg2l_odim(idim, in_channel=in_channel),
-                            elayers,
-                            eunits,
-                            eprojs,
-                            dropout,
-                            typ=typ,
-                        ),
-                    ]
-                )
-                logging.info("Use CNN-VGG + " + typ.upper() + " for encoder")
-        else:
-            if etype[-1] == "p":
-                self.enc = torch.nn.ModuleList(
-                    [
-                        RNNP(
-                            idim,
-                            elayers,
-                            eunits,
-                            eprojs,
-                            subsample,
-                            dropout,
-                            typ=typ,
-                        )
-                    ]
-                )
-                logging.info(
-                    typ.upper() + " with every-layer projection for encoder"
-                )
-            else:
-                self.enc = torch.nn.ModuleList(
-                    [RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)]
-                )
-                logging.info(typ.upper() + " without projection for encoder")
+        rnn_type = "b" if bidirectional else "" + rnn_type
+        if use_projection:
+            self.enc = torch.nn.ModuleList(
+                [
+                    RNNP(
+                        input_size,
+                        num_layers,
+                        hidden_size,
+                        output_size,
+                        subsample,
+                        dropout,
+                        typ=rnn_type,
+                    )
+                ]
+            )
 
-    def out_dim(self) -> int:
-        return self.eprojs
+        else:
+            self.enc = torch.nn.ModuleList(
+                [RNN(input_size, num_layers, hidden_size, output_size, dropout, typ=rnn_type)]
+            )
+
+    def output_size(self) -> int:
+        return self._output_size
 
     def forward(
         self,
@@ -126,7 +102,7 @@ class Encoder(AbsEncoder):
             )
             current_states.append(states)
 
-        if self.etype.endswith("p"):
+        if self.use_projection:
             xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
         else:
             xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)

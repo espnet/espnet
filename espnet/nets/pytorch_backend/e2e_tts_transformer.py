@@ -657,7 +657,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # concatenate attention weights
+        # concatenate attention weights -> (#layers, #heads, L, T)
         att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws

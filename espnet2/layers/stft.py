@@ -49,7 +49,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             input: (Batch, Nsamples) or (Batch, Nsample, Channels)
             ilens: (Batch)
         Returns:
-            output: (Batch, Freq, Frames, 2) or (Batch, Freq, Frames, 2)
+            output: (Batch, Frames, Freq, 2) or (Batch, Frames, Channels, Freq, 2)
 
         """
         bs = input.size(0)
