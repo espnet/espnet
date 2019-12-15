@@ -28,49 +28,51 @@ EOF
 SECONDS=0
 
 # general configuration
-stage=1          # stage to start
-stop_stage=100   # stage to stop
-ngpu=0           # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=50            # numebr of parallel jobs
-decode_nj=50     # number of parallel jobs in decoding
-gpu_decode=false # whether to perform gpu decoding
-dumpdir=dump     # directory to dump features
-expdir=exp       # directory to save experiments
+stage=1          # stage to start.
+stop_stage=100   # stage to stop.
+ngpu=0           # number of gpus ("0" uses cpu, otherwise use gpu).
+nj=50            # numebr of parallel jobs.
+decode_nj=50     # number of parallel jobs in decoding.
+gpu_decode=false # whether to perform gpu decoding.
+dumpdir=dump     # directory to dump features.
+expdir=exp       # directory to save experiments.
 
 # feature extraction related
-feats_type=fbank  # fbank or stft or raw
-audio_format=flac # audio format (only in feats_type=raw)
-fs=16000          # sampling rate
-fmax=80           # maximum frequency
-fmin=7600         # minimum frequency
-n_mels=80         # number of mel basis
-n_fft=1024        # number of fft points
-n_shift=256       # number of shift points
-win_length=""     # window length
+feats_type=fbank  # fbank or stft or raw.
+audio_format=flac # audio format (only in feats_type=raw).
+fs=16000          # sampling rate.
+fmax=80           # maximum frequency.
+fmin=7600         # minimum frequency.
+n_mels=80         # number of mel basis.
+n_fft=1024        # number of fft points.
+n_shift=256       # number of shift points.
+win_length=""     # window length.
 
 # training related
-train_config= # config for training
-train_args=   # arguments for training
+train_config= # config for training.
+train_args=   # arguments for training (e.g. "--max_epoch 1").
+              # it will overwrite args in traing config.
 tag=""        # tag for managing experiments.
 
 # decoding related
-decode_config= # config for decoding
-decode_args=   # arguments for decoding
+decode_config= # config for decoding.
+decode_args=   # arguments for decoding (e.g. "--threshold 0.75").
+               # it will overwrite args in decode config.
 decode_tag=""  # tag for decoding directory
-decode_model=eval.loss.best.pt # decode model path like:
+decode_model=eval.loss.best.pt # decode model path e.g.,
                                # decode_model=train.loss.best.pt
                                # decode_model=3epoch/model.pt
                                # decode_model=eval.acc.best.pt
                                # decode_model=eval.loss.ave.pt
-griffin_lim_iters=4 # the number of iterations of Griffin-Lim
+griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
-# [Task depented] set the datadir name created by local/data.sh
-train_set=      # name of training set
-dev_set=        # name of development set
-eval_sets=      # names of evalaution sets
-srctexts=       # source text
-nlsyms_txt=     # non-linguistic symbol list (needed if existing)
-trans_type=char # transcription type
+# [Task depented] set the datadir name created by local/data.sh.
+train_set=      # name of training set.
+dev_set=        # name of development set.
+eval_sets=      # names of evalaution sets.
+srctexts=       # source text.
+nlsyms_txt=     # non-linguistic symbol list (needed if existing).
+trans_type=char # transcription type.
 
 
 log "$0 $*"
@@ -272,7 +274,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --max_length 150 \
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
-            ${_opts}
+            ${_opts} ${train_args}
 fi
 
 
