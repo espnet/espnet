@@ -24,6 +24,9 @@ gpu_decode=false # Whether to perform gpu decoding.
 dumpdir=dump     # Directory to dump features.
 expdir=exp       # Directory to save experiments.
 
+# Data preparation related
+local_data_opts= # Argments to be passed to local/data.sh.
+
 # Feature extraction related
 feats_type=fbank  # Feature type (fbank or stft or raw).
 audio_format=flac # Audio format (only in feats_type=raw).
@@ -74,6 +77,9 @@ Options:
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
     --dumpdir    # Directory to dump features (default="${dumpdir}").
     --expdir     # Directory to save experiments (default="${expdir}").
+
+    # Data prep related
+    --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
     --feats_type   # Feature type (fbank or stft or raw, default="${feats_type}").
@@ -164,7 +170,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh
+    local/data.sh ${local_data_opts}
 fi
 
 
