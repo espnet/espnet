@@ -196,7 +196,7 @@ else
     exit 2
 fi
 
-data_asr="data_asr_${feats_type}_${token_type}"
+data_asr="${dumpdir}/asr_${feats_type}_${token_type}"
 if ${use_word_lm}; then
     data_lm=${dumpdir}/lm_word
     lm_token_type="word"
