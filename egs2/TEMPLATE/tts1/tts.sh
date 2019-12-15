@@ -335,7 +335,7 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "Stage 6: Synthesis: training_dir=${tts_exp}"
     for dset in "${dev_set}" ${eval_sets}; do
-        _dir="${tts_exp}/decode_${dset}${decode_tag}"
+        _dir="${tts_exp}/${decode_tag}_${dset}"
 
         # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
         _nj=$((nj<$(<"${_dir}/feats.scp" wc -l)?nj:$(<"${_dir}/feats.scp" wc -l)))
