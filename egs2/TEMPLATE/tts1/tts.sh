@@ -69,8 +69,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 # [Task depented] set the datadir name created by local/data.sh.
 train_set=      # name of training set.
 dev_set=        # name of development set.
-eval_sets=      # names of evalaution sets.
-srctexts=       # source text.
+eval_sets=      # names of evalaution sets. you can specify multiple items.
+srctexts=       # source texts. you can specify multiple items.
 nlsyms_txt=     # non-linguistic symbol list (needed if existing).
 trans_type=char # transcription type.
 
