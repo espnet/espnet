@@ -69,7 +69,7 @@ decode_asr_model=eval.acc.best.pt # ASR model path for decoding.
 train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
-srctexts=      # Used for the training of BPE and the creation of a vocabulary list
+srctexts=      # Used for the training of BPE and the creation of a vocabulary list.
 lm_train_text= # Text file path of language model training set.
 lm_dev_text=   # Text file path of language model development set.
 lm_test_text=  # Text file path of language model evaluation set.
@@ -242,6 +242,7 @@ if [ -z "${decode_tag}" ]; then
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
