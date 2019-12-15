@@ -66,7 +66,7 @@ decode_model=eval.loss.best.pt # decode model path e.g.,
                                # decode_model=eval.loss.ave.pt
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
-# [Task depented] set the datadir name created by local/data.sh.
+# [Task dependent] set the datadir name created by local/data.sh.
 train_set=      # name of training set.
 dev_set=        # name of development set.
 eval_sets=      # names of evaluation sets. you can specify multiple items.
