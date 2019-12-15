@@ -42,13 +42,13 @@ win_length=""     # Window length.
 train_config= # Config for training.
 train_args=   # Arguments for training, e.g., "--max_epoch 1".
               # Note that it will overwrite args in train config.
-tag=""        # Tag for training directory.
+tag=""        # Suffix for training directory.
 
 # Decoding related
 decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
-decode_tag=""  # Tag for decoding directory.
+decode_tag=""  # Suffix for decoding directory.
 decode_model=eval.loss.best.pt # Model path for decoding e.g.,
                                # decode_model=train.loss.best.pt
                                # decode_model=3epoch/model.pt
@@ -59,8 +59,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=      # Name of training set.
 dev_set=        # Name of development set.
-eval_sets=      # Names of evaluation sets. you can specify multiple items.
-srctexts=       # Source texts. you can specify multiple items.
+eval_sets=      # Names of evaluation sets. Multiple items can be specifed.
+srctexts=       # Texts to create token list. Multiple items can be specifed.
 nlsyms_txt=     # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
 
@@ -96,13 +96,13 @@ Options:
     --train_config # Config for training (default="${train_config}").
     --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
                    # Note that it will overwrite args in train config.
-    --tag          # Tag for training directory (default="${tag}").
+    --tag          # Suffix for training directory (default="${tag}").
 
     # Decoding related
     --decode_config     # Config for decoding (default="${decode_config}").
     --decode_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${decode_args}").
                         # Note that it will overwrite args in decode config.
-    --decode_tag        # Tag for decoding directory (default="${decode_tag}").
+    --decode_tag        # Suffix for decoding directory (default="${decode_tag}").
     --decode_model      # Model path for decoding (default=${decode_model}).
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
 
@@ -110,7 +110,9 @@ Options:
     --train_set  # Name of training set (required).
     --dev_set    # Name of development set (required).
     --eval_sets  # Names of evaluation sets (required).
-    --srctexts   # Source text file paths (required).
+                 # Note that multiple items can be specifed.
+    --srctexts   # Texts to create token list (required).
+                 # Note that multiple items can be specifed.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
 EOF
