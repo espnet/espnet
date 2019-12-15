@@ -15,17 +15,17 @@ log() {
 }
 
 # General configuration
-stage=1          # Processes starts from the specifed stage.
-stop_stage=100   # Processes is stopped at the specifed stage.
+stage=1          # Processes starts from the specified stage.
+stop_stage=100   # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
-nj=50            # The numebr of parallel jobs.
+nj=50            # The number of parallel jobs.
 decode_nj=50     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
 dumpdir=dump     # Directory to dump features.
 expdir=exp       # Directory to save experiments.
 
 # Data preparation related
-local_data_opts= # Argments to be passed to local/data.sh.
+local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=fbank  # Feature type (fbank or stft or raw).
@@ -59,8 +59,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=      # Name of training set.
 dev_set=        # Name of development set.
-eval_sets=      # Names of evaluation sets. Multiple items can be specifed.
-srctexts=       # Texts to create token list. Multiple items can be specifed.
+eval_sets=      # Names of evaluation sets. Multiple items can be specified.
+srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=     # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
 
@@ -69,10 +69,10 @@ Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets 
 
 Options:
     # General configuration
-    --stage      # Processes starts from the specifed stage (default="${stage}").
-    --stop_stage # Processes is stopped at the specifed stage (default="${stop_stage}").
+    --stage      # Processes starts from the specified stage (default="${stage}").
+    --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --nj         # The numebr of parallel jobs (default="${nj}").
+    --nj         # The number of parallel jobs (default="${nj}").
     --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
     --dumpdir    # Directory to dump features (default="${dumpdir}").
@@ -110,9 +110,9 @@ Options:
     --train_set  # Name of training set (required).
     --dev_set    # Name of development set (required).
     --eval_sets  # Names of evaluation sets (required).
-                 # Note that multiple items can be specifed.
+                 # Note that multiple items can be specified.
     --srctexts   # Texts to create token list (required).
-                 # Note that multiple items can be specifed.
+                 # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
 EOF
