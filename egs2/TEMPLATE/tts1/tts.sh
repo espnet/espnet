@@ -13,67 +13,102 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
-help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts>
 
-Options:
-    --stage (int): Processes starts from the specifed stage.
-    --stop-stage (int): Processes is stopped at the specifed stage.
-    --ngpu (int): The number of gpus
-    --nj (int): The number of parallel jobs
-    --decode-nj (int): The number of parallel jobs for decoding
-    --gpu-decode (bool): Use gpu for decoding.
-EOF
-)
-SECONDS=0
+# General configuration
+stage=1          # Processes starts from the specifed stage.
+stop_stage=100   # Processes is stopped at the specifed stage.
+ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
+nj=50            # The numebr of parallel jobs.
+decode_nj=50     # The number of parallel jobs in decoding.
+gpu_decode=false # Whether to perform gpu decoding.
+dumpdir=dump     # Directory to dump features.
+expdir=exp       # Directory to save experiments.
 
-# general configuration
-stage=1          # stage to start.
-stop_stage=100   # stage to stop.
-ngpu=0           # number of gpus ("0" uses cpu, otherwise use gpu).
-nj=50            # numebr of parallel jobs.
-decode_nj=50     # number of parallel jobs in decoding.
-gpu_decode=false # whether to perform gpu decoding.
-dumpdir=dump     # directory to dump features.
-expdir=exp       # directory to save experiments.
+# Feature extraction related
+feats_type=fbank  # Feature type (fbank or stft or raw).
+audio_format=flac # Audio format (only in feats_type=raw).
+fs=16000          # Sampling rate.
+fmax=80           # Maximum frequency of Mel basis.
+fmin=7600         # Minimum frequency of Mel basis.
+n_mels=80         # The number of mel basis.
+n_fft=1024        # The number of fft points.
+n_shift=256       # The number of shift points.
+win_length=""     # Window length.
 
-# feature extraction related
-feats_type=fbank  # fbank or stft or raw.
-audio_format=flac # audio format (only in feats_type=raw).
-fs=16000          # sampling rate.
-fmax=80           # maximum frequency.
-fmin=7600         # minimum frequency.
-n_mels=80         # number of mel basis.
-n_fft=1024        # number of fft points.
-n_shift=256       # number of shift points.
-win_length=""     # window length.
+# Training related
+train_config= # Config for training.
+train_args=   # Arguments for training, e.g., "--max_epoch 1".
+              # Note that it will overwrite args in train config.
+tag=""        # Tag for training directory.
 
-# training related
-train_config= # config for training.
-train_args=   # arguments for training (e.g. "--max_epoch 1").
-              # it will overwrite args in train config.
-tag=""        # tag for managing experiments.
-
-# decoding related
-decode_config= # config for decoding.
-decode_args=   # arguments for decoding (e.g. "--threshold 0.75").
-               # it will overwrite args in decode config.
-decode_tag=""  # tag for decoding directory
-decode_model=eval.loss.best.pt # decode model path e.g.,
+# Decoding related
+decode_config= # Config for decoding.
+decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
+               # Note that it will overwrite args in decode config.
+decode_tag=""  # Tag for decoding directory.
+decode_model=eval.loss.best.pt # Model path for decoding e.g.,
                                # decode_model=train.loss.best.pt
                                # decode_model=3epoch/model.pt
                                # decode_model=eval.acc.best.pt
                                # decode_model=eval.loss.ave.pt
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
-# [Task dependent] set the datadir name created by local/data.sh.
-train_set=      # name of training set.
-dev_set=        # name of development set.
-eval_sets=      # names of evaluation sets. you can specify multiple items.
-srctexts=       # source texts. you can specify multiple items.
-nlsyms_txt=     # non-linguistic symbol list (needed if existing).
-trans_type=char # transcription type.
+# [Task dependent] Set the datadir name created by local/data.sh
+train_set=      # Name of training set.
+dev_set=        # Name of development set.
+eval_sets=      # Names of evaluation sets. you can specify multiple items.
+srctexts=       # Source texts. you can specify multiple items.
+nlsyms_txt=     # Non-linguistic symbol list (needed if existing).
+trans_type=char # Transcription type.
 
+help_message=$(cat << EOF
+Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
+
+Options:
+    # General configuration
+    --stage      # Processes starts from the specifed stage (default="${stage}").
+    --stop_stage # Processes is stopped at the specifed stage (default="${stop_stage}").
+    --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --nj         # The numebr of parallel jobs (default="${nj}").
+    --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
+    --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
+    --dumpdir    # Directory to dump features (default="${dumpdir}").
+    --expdir     # Directory to save experiments (default="${expdir}").
+
+    # Feature extraction related
+    --feats_type   # Feature type (fbank or stft or raw, default="${feats_type}").
+    --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
+    --fs           # Sampling rate (default="${fs}").
+    --fmax         # Maximum frequency of Mel basis (default="${fmax}").
+    --fmin         # Minimum frequency of Mel basis (default="${fmin}").
+    --n_mels       # The number of mel basis (default="${n_mels}").
+    --n_fft        # The number of fft points (default="${n_fft}").
+    --n_shift      # The number of shift points (default="${n_shift}").
+    --win_length   # Window length (default="${win_length}").
+
+    # Training related
+    --train_config # Config for training (default="${train_config}").
+    --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
+                   # Note that it will overwrite args in train config.
+    --tag          # Tag for training directory (default="${tag}").
+
+    # Decoding related
+    --decode_config     # Config for decoding (default="${decode_config}").
+    --decode_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${decode_args}").
+                        # Note that it will overwrite args in decode config.
+    --decode_tag        # Tag for decoding directory (default="${decode_tag}").
+    --decode_model      # Model path for decoding (default=${decode_model}).
+    --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
+
+    # [Task dependent] Set the datadir name created by local/data.sh.
+    --train_set  # Name of training set (required).
+    --dev_set    # Name of development set (required).
+    --eval_sets  # Names of evaluation sets (required).
+    --srctexts   # Source text file paths (required).
+    --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
+    --trans_type # Transcription type (default="${trans_type}").
+EOF
+)
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -87,7 +122,7 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-# check feature type
+# Check feature type
 if [ "${feats_type}" = fbank ]; then
     data_feats="${dumpdir}/fbank"
 elif [ "${feats_type}" = stft ]; then
@@ -100,14 +135,14 @@ else
     exit 2
 fi
 
-# set tag for naming of model directory
+# Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
         tag=_"$(basename "${train_config}" .yaml)"
     else
         tag=_train
     fi
-    # add overwritten arg's info
+    # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
     fi
@@ -118,7 +153,7 @@ if [ -z "${decode_tag}" ]; then
     else
         decode_tag=decode
     fi
-    # add overwritten arg's info
+    # Add overwritten arg's info
     if [ -n "${decode_args}" ]; then
         decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
     fi
@@ -128,7 +163,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
-    # [Task dependent] need to create data.sh for new corpus
+    # [Task dependent] Need to create data.sh for new corpus
     local/data.sh
 fi
 
@@ -191,7 +226,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
 
-        # compute statistics for global mean-variance normalization
+        # Compute statistics for global mean-variance normalization
         # TODO(kamo): Parallelize?
         pyscripts/feats/compute-cmvn-stats.py \
             --out-filetype npy \
@@ -261,7 +296,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _opts+="--odim=${_odim} "
         _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy"
     fi
-
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     log "TTS training started... log: '${tts_exp}/train.log'"
