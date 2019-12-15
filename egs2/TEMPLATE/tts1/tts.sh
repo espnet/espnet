@@ -103,9 +103,9 @@ fi
 # set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag="$(basename "${train_config}" .yaml)"
+        tag=_"$(basename "${train_config}" .yaml)"
     else
-        tag=train_default
+        tag=_train
     fi
     # add overwritten arg's info
     if [ -n "${train_args}" ]; then
@@ -116,7 +116,7 @@ if [ -z "${decode_tag}" ]; then
     if [ -n "${decode_config}" ]; then
         decode_tag="$(basename "${decode_config}" .yaml)"
     else
-        decode_tag=decode_default
+        decode_tag=decode
     fi
     # add overwritten arg's info
     if [ -n "${decode_args}" ]; then
@@ -231,7 +231,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-tts_exp="${expdir}/${tag}"
+tts_exp="${expdir}/tts_${tag}"
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
