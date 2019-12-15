@@ -42,6 +42,9 @@ def tts_decode(
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
+    use_att_constraint: bool,
+    backward_window: int,
+    forward_window: int,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -230,13 +233,13 @@ def get_parser():
     group.add_argument(
         "--maxlenratio",
         type=float,
-        default=5,
+        default=10.0,
         help="Maximum length ratio in decoding",
     )
     group.add_argument(
         "--minlenratio",
         type=float,
-        default=0,
+        default=0.0,
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
@@ -244,6 +247,24 @@ def get_parser():
         type=float,
         default=0.5,
         help="Threshold value in decoding",
+    )
+    group.add_argument(
+        "--use_att_constraint",
+        type=str2bool,
+        default=False,
+        help="Whether to use attention constraint",
+    )
+    group.add_argument(
+        "--backward_window",
+        type=int,
+        default=1,
+        help="Backward window value in attention constraint",
+    )
+    group.add_argument(
+        "--forward_window",
+        type=int,
+        default=3,
+        help="Forward window value in attention constraint",
     )
     return parser
 
