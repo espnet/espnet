@@ -245,7 +245,7 @@ fi
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
@@ -260,7 +260,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
-        log "stage 2: Format wav.scp: data/ -> ${data_feats}/"
+        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -304,7 +304,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             "${data_feats}/${train_set}/cmvn.npy"
 
     elif [ "${feats_type}" = fbank ]; then
-        log "stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
         log "Not yet"
         exit 1
 
@@ -317,7 +317,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${token_type}" = bpe ]; then
-        log "stage 3: Generate token_list from ${srctexts} using BPE"
+        log "Stage 3: Generate token_list from ${srctexts} using BPE"
 
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
@@ -337,7 +337,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 tr ' ' '\n' | sort -u >> "${token_list}"
 
     elif [ "${token_type}" = char ]; then
-        log "stage 3: Generate character level token_list from ${srctexts}"
+        log "Stage 3: Generate character level token_list from ${srctexts}"
         mkdir -p "$(dirname ${token_list})"
 
 
@@ -374,7 +374,7 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 4: Create tokens from text: token_list=${token_list}: ${data_feats} -> ${data_asr}, ${data_lm}"
+    log "Stage 4: Create tokens from text: token_list=${token_list}: ${data_feats} -> ${data_asr}, ${data_lm}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
         # 1. Copy datadir
@@ -407,7 +407,7 @@ fi
 
 lm_exp="${expdir}/lm_${lm_tag}"
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "stage 5: LM Training: train_set=${data_lm}/train, dev_set=${data_lm}/dev"
+    log "Stage 5: LM Training: train_set=${data_lm}/train, dev_set=${data_lm}/dev"
 
     _opts=
     if [ -n "${lm_config}" ]; then
@@ -433,7 +433,7 @@ fi
 
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "stage 6: Calc perplexity: ${data_lm}/test"
+    log "Stage 6: Calc perplexity: ${data_lm}/test"
     _opts=
     # TODO(kamo): Parallelize?
     log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
@@ -453,7 +453,7 @@ asr_exp="${expdir}/asr_${asr_tag}"
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _asr_train_dir="${data_asr}/${train_set}"
     _asr_dev_dir="${data_asr}/${dev_set}"
-    log "stage 7: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
+    log "Stage 7: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
     if [ -n "${asr_config}" ]; then
@@ -508,7 +508,7 @@ fi
 
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "stage 8: Decoding: training_dir=${asr_exp}"
+    log "Stage 8: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -581,7 +581,7 @@ fi
 
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    log "stage 9: Scoring"
+    log "Stage 9: Scoring"
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_asr}/${dset}"
