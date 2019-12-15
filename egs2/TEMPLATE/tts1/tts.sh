@@ -223,7 +223,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _opts=
     if [ -n "${train_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.tts_train --print_config --optim adam 
+        #   % python -m espnet2.bin.tts_train --print_config --optim adam
         _opts+="--config ${train_config} "
     fi
 
@@ -264,7 +264,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --max_length 150 \
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
-            ${_opts}
+            ${_opts} ${train_args}
 
 fi
 
@@ -312,7 +312,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${train_args}
+                ${_opts}
 
         # 3. Concatenates the output files from each jobs
          for i in $(seq "${_nj}"); do
