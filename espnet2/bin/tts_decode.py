@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+
+"""E2E-TTS decoding."""
+
 import argparse
 import logging
 import random
 import sys
 import time
+
 from pathlib import Path
 from typing import Optional
 from typing import Sequence
@@ -13,8 +17,10 @@ from typing import Union
 import configargparse
 import kaldiio
 import numpy as np
+import soundfile as sf
 import torch
 import yaml
+
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
@@ -22,11 +28,13 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.utils.griffin_lim import spectrogram2wav
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+@torch.no_grad()
 def tts_decode(
     output_dir: str,
     batch_size: int,
@@ -46,7 +54,16 @@ def tts_decode(
     backward_window: int,
     forward_window: int,
     allow_variable_data_keys: bool,
+    griffin_lim_iters: int,
+    fs: Union[int, None],
+    n_fft: Union[int, None],
+    n_shift: Union[int, None],
+    win_length: Union[int, None],
+    n_mels: Union[int, None],
+    fmin: Union[int, None],
+    fmax: Union[int, None],
 ):
+    """Perform E2E-TTS decoding."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -103,16 +120,34 @@ def tts_decode(
         num_workers=num_workers,
     )
 
-    # 4. Start for-loop
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # 4. Setup Griffin-Lim params
+    feat_ext_conf = train_args.feats_extract_conf
+    use_frontend = len(feat_ext_conf) != 0
+    spectrogram2wav_params = {
+        "fs": feat_ext_conf["fs"] if use_frontend else fs,
+        "n_fft": feat_ext_conf["n_fft"] if use_frontend else n_fft,
+        "n_shift": feat_ext_conf["stft_conf"]["hop_length"] if use_frontend else n_shift,
+        "win_length": feat_ext_conf["stft_conf"]["win_length"] if use_frontend else win_length,
+        "n_mels": feat_ext_conf["logmel_fbank_conf"]["n_mels"] if use_frontend else n_mels,
+        "fmin": feat_ext_conf["logmel_fbank_conf"]["fmin"] if use_frontend else fmin,
+        "fmax": feat_ext_conf["logmel_fbank_conf"]["fmax"] if use_frontend else fmax,
+        "num_iterations": griffin_lim_iters,
+    }
 
-    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
+    # 5. Start for-loop
+    output_dir = Path(output_dir)
+    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "wav").mkdir(parents=True, exist_ok=True)
+
+    # FIXME(kamo): I think we shouldn"t depend on kaldi-format any more.
     #  How about numpy or HDF5?
     #  >>> with NpyScpWriter() as f:
     with kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "feats")
-    ) as f:
+        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
+    ) as f, kaldiio.WriteHelper(
+        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
+    ) as g:
         for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -129,46 +164,44 @@ def tts_decode(
 
             # TODO(kamo): Use common gathering attention system and plot it
             #  Now att_ws is not used.
-
-            with torch.no_grad():
-                outs, probs, att_ws = tts.inference(
-                    **_data,
-                    threshold=threshold,
-                    maxlenratio=maxlenratio,
-                    minlenratio=minlenratio,
-                )
-                if normalize is not None:
-                    outs, _ = normalize.inverse(outs[None])
-                outs = outs.squeeze(0)
-
+            outs, probs, att_ws = tts.inference(
+                **_data,
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
+            )
+            outs_denorm = normalize.inverse(outs[None])[0][0]
             insize = next(iter(_data.values())).size(0)
             logging.info(
                 "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time)
-                    / (int(outs.size(0)) * 1000)
+                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
                 )
             )
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(
                     f"output length reaches maximum length ({key})."
                 )
-
             logging.info(
                 f"({idx}/{len(batch_sampler)}) {key} "
                 f"(size:{insize}->{outs.size(0)})"
             )
             f[key] = outs.cpu().numpy()
+            g[key] = outs_denorm.cpu().numpy()
+
+            wav = spectrogram2wav(outs_denorm.cpu().numpy(), **spectrogram2wav_params)
+            sf.write(f"{output_dir}/wav/{key}.wav", wav, spectrogram2wav_params["fs"], "PCM_16")
 
 
 def get_parser():
+    """Get argument parser."""
     parser = configargparse.ArgumentParser(
         description="TTS Decode",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Note(kamo): Use '_' instead of '-' as separator.
-    # '-' is confusing if written in yaml.
+    # Note(kamo): Use "_" instead of "-" as separator.
+    # "-" is confusing if written in yaml.
     parser.add_argument(
         "--config", is_config_file=True, help="config file path"
     )
@@ -266,10 +299,61 @@ def get_parser():
         default=3,
         help="Forward window value in attention constraint",
     )
+
+    group = parser.add_argument_group("Griffin-Lim related")
+    parser.add_argument(
+        "--griffin_lim_iters",
+        type=int,
+        default=32,
+        help="Number of iterations in Grriffin Lim"
+    )
+    parser.add_argument(
+        "--fs",
+        type=int,
+        default=None,
+        help="Sampling frequency"
+    )
+    parser.add_argument(
+        "--n_fft",
+        type=int,
+        default=None,
+        help="FFT length in point"
+    )
+    parser.add_argument(
+        "--n_shift",
+        type=int,
+        default=None,
+        help="Shift length in point"
+    )
+    parser.add_argument(
+        "--win_length",
+        type=int,
+        default=None,
+        nargs="?",
+        help="Analisys window length in point"
+    )
+    parser.add_argument(
+        "--n_mels",
+        type=int,
+        default=None,
+        help="The number of Mel basis"
+    )
+    parser.add_argument(
+        "--fmin",
+        type=int,
+        default=None,
+        help="Minimum frequency in Mel basis"
+    )
+    parser.add_argument(
+        "--fmax",
+        type=int,
+        default=None,
+        help="Maximum frequency in Mel basis")
     return parser
 
 
 def main(cmd=None):
+    """Run E2E-TTS decoding."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
