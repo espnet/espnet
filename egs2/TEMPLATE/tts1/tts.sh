@@ -345,9 +345,22 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _ngpu=0
     fi
 
+    _feats_type="$(<"${data_feats}/${train_set}/feats_type")"
     _opts=
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
+    fi
+    if [ "${_feats_type}" != raw ] ; then
+        _opts+="--fs ${fs} "
+        _opts+="--n_fft ${n_fft} "
+        _opts+="--n_shift ${n_shift} "
+        _opts+="--win_length ${win_length} "
+        _opts+="--griffin_lim_iters ${griffin_lim_iters} "
+    fi
+    if [ "${_feats_type}" = fbank ] ; then
+        _opts+="--n_mels ${n_mels} "
+        _opts+="--fmax ${fmax} "
+        _opts+="--fmin ${fmin} "
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
@@ -358,6 +371,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         # 0. Copy feats_type
         cp "${_data}/feats_type" "${_dir}/feats_type"
+
         # 1. Split the key file
         key_file=${_data}/token_int
         split_scps=""
@@ -383,37 +397,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-         for i in $(seq "${_nj}"); do
-              cat "${_logdir}/output.${i}/feats.scp"
-         done | LC_ALL=C sort -k1 >"${_dir}/feats.scp"
-    done
-fi
-
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "Stage 6: Synthesis: training_dir=${tts_exp}"
-    for dset in "${dev_set}" ${eval_sets}; do
-        _dir="${tts_exp}/${decode_tag}_${dset}"
-
-        # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
-        _nj=$((nj<$(<"${_dir}/feats.scp" wc -l)?nj:$(<"${_dir}/feats.scp" wc -l)))
-
-        _feats_type="$(<"${_dir}/feats_type")"
-        _opts=
-        if [ "${_feats_type}" = fbank ] ; then
-            _opts+="--n_mels ${n_mels} "
-        fi
-        # shellcheck disable=SC2086
-        scripts/tts/convert_fbank.sh --nj "${_nj}" --cmd "${train_cmd}" \
-            --fs "${fs}" \
-            --fmax "${fmax}" \
-            --fmin "${fmin}" \
-            --n_fft "${n_fft}" \
-            --n_shift "${n_shift}" \
-            --win_length "${win_length}" \
-            --iters "${griffin_lim_iters}" \
-            ${_opts} \
-            "${_dir}" "${_dir}/log" "${_dir}/wav"
+        mkdir -p "${_dir}"/{norm,denorm,wav}
+        for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/norm/feats.scp"
+        done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+        for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/denorm/feats.scp"
+        done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+        for i in $(seq "${_nj}"); do
+            mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+            rm -rf "${_logdir}/output.${i}/wav"
+        done
     done
 fi
 
