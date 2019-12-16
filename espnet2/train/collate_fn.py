@@ -1,12 +1,14 @@
+from typing import Collection
 from typing import Dict
+from typing import List
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
-from typing import Collection
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -31,7 +33,9 @@ class CommonCollateFn:
             f"int_pad_value={self.float_pad_value})"
         )
 
-    def __call__(self, data: Sequence[Dict[str, np.ndarray]]):
+    def __call__(
+        self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
+    ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
         return common_collate_fn(
             data,
             float_pad_value=self.float_pad_value,
@@ -41,11 +45,11 @@ class CommonCollateFn:
 
 
 def common_collate_fn(
-    data: Sequence[Dict[str, np.ndarray]],
+    data: Collection[Tuple[str, Dict[str, np.ndarray]]],
     float_pad_value: Union[float, int] = 0.0,
     int_pad_value: int = -32768,
     not_sequence: Collection[str] = (),
-) -> Dict[str, torch.Tensor]:
+) -> Tuple[List[str], Dict[str, torch.Tensor]]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
 
     Examples:
@@ -63,6 +67,9 @@ def common_collate_fn(
 
     """
     assert check_argument_types()
+    uttids = [u for u, _ in data]
+    data = [d for _, d in data]
+
     assert all(set(data[0]) == set(d) for d in data), "dict-keys mismatching"
     assert all(
         not k.endswith("_lengths") for k in data[0]
@@ -96,5 +103,6 @@ def common_collate_fn(
             )
             output[key + "_lengths"] = lens
 
+    output = (uttids, output)
     assert check_return_type(output)
     return output

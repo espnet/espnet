@@ -2,9 +2,10 @@ import argparse
 import logging
 from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import Dict
+from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import Type
 
@@ -179,7 +180,8 @@ class LMTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
+    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                  Tuple[List[str], Dict[str, torch.Tensor]]]:
         assert check_argument_types()
         return CommonCollateFn(int_pad_value=0)
 
@@ -192,9 +194,8 @@ class LMTask(AbsTask):
             retval = CommonPreprocessor(
                 train=train,
                 token_type=args.token_type,
-                model_or_token_list=args.bpemodel
-                if args.token_type == "bpe"
-                else args.token_list,
+                token_list=args.token_list,
+                bpemodel=args.bpemodel,
             )
         else:
             retval = None

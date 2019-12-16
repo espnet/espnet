@@ -113,7 +113,7 @@ def tts_decode(
     with kaldiio.WriteHelper(
         "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "feats")
     ) as f:
-        for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
+        for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
