@@ -164,7 +164,7 @@ fi
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
-    data_feats=${dumpdir}/format
+    data_feats=${dumpdir}/raw
 elif [ "${feats_type}" = fbank_pitch ]; then
     data_feats=${dumpdir}/fbank_pitch
 elif [ "${feats_type}" = fbank ]; then
