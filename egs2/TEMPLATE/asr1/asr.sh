@@ -214,7 +214,7 @@ if [ -z "${asr_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -225,7 +225,7 @@ if [ -z "${lm_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
-        lm_args+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 if [ -z "${decode_tag}" ]; then
@@ -236,7 +236,7 @@ if [ -z "${decode_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     decode_tag+="_lm_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
