@@ -221,7 +221,7 @@ if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
         lm_tag="$(basename "${lm_config}" .yaml)_${lm_token_type}"
     else
-        lm_tag="train_${feats_type}_${lm_token_type}"
+        lm_tag="train_${lm_token_type}"
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
