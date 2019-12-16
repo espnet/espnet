@@ -153,7 +153,7 @@ if [ -z "${tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
-        tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 if [ -z "${decode_tag}" ]; then
@@ -164,7 +164,7 @@ if [ -z "${decode_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
@@ -231,7 +231,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 3. Create feats_shape
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/log"
+                "${data_feats}/${dset}/feats.scp" \
+                "${data_feats}/${dset}/feats_shape" \
+                "${data_feats}/${dset}/log"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
