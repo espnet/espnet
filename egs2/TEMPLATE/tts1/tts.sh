@@ -13,16 +13,20 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+SECONDS=0
 
 # General configuration
-stage=1          # Processes starts from the specifed stage.
-stop_stage=100   # Processes is stopped at the specifed stage.
+stage=1          # Processes starts from the specified stage.
+stop_stage=100   # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
-nj=50            # The numebr of parallel jobs.
+nj=50            # The number of parallel jobs.
 decode_nj=50     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
 dumpdir=dump     # Directory to dump features.
 expdir=exp       # Directory to save experiments.
+
+# Data preparation related
+local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=fbank  # Feature type (fbank or stft or raw).
@@ -39,13 +43,13 @@ win_length=""     # Window length.
 train_config= # Config for training.
 train_args=   # Arguments for training, e.g., "--max_epoch 1".
               # Note that it will overwrite args in train config.
-tag=""        # Tag for training directory.
+tag=""        # Suffix for training directory.
 
 # Decoding related
 decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
-decode_tag=""  # Tag for decoding directory.
+decode_tag=""  # Suffix for decoding directory.
 decode_model=eval.loss.best.pt # Model path for decoding e.g.,
                                # decode_model=train.loss.best.pt
                                # decode_model=3epoch/model.pt
@@ -56,8 +60,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=      # Name of training set.
 dev_set=        # Name of development set.
-eval_sets=      # Names of evaluation sets. you can specify multiple items.
-srctexts=       # Source texts. you can specify multiple items.
+eval_sets=      # Names of evaluation sets. Multiple items can be specified.
+srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=     # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
 
@@ -66,14 +70,17 @@ Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets 
 
 Options:
     # General configuration
-    --stage      # Processes starts from the specifed stage (default="${stage}").
-    --stop_stage # Processes is stopped at the specifed stage (default="${stop_stage}").
+    --stage      # Processes starts from the specified stage (default="${stage}").
+    --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --nj         # The numebr of parallel jobs (default="${nj}").
+    --nj         # The number of parallel jobs (default="${nj}").
     --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
     --dumpdir    # Directory to dump features (default="${dumpdir}").
     --expdir     # Directory to save experiments (default="${expdir}").
+
+    # Data prep related
+    --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
     --feats_type   # Feature type (fbank or stft or raw, default="${feats_type}").
@@ -90,13 +97,13 @@ Options:
     --train_config # Config for training (default="${train_config}").
     --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
                    # Note that it will overwrite args in train config.
-    --tag          # Tag for training directory (default="${tag}").
+    --tag          # Suffix for training directory (default="${tag}").
 
     # Decoding related
     --decode_config     # Config for decoding (default="${decode_config}").
     --decode_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${decode_args}").
                         # Note that it will overwrite args in decode config.
-    --decode_tag        # Tag for decoding directory (default="${decode_tag}").
+    --decode_tag        # Suffix for decoding directory (default="${decode_tag}").
     --decode_model      # Model path for decoding (default=${decode_model}).
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
 
@@ -104,7 +111,9 @@ Options:
     --train_set  # Name of training set (required).
     --dev_set    # Name of development set (required).
     --eval_sets  # Names of evaluation sets (required).
-    --srctexts   # Source text file paths (required).
+                 # Note that multiple items can be specified.
+    --srctexts   # Texts to create token list (required).
+                 # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
 EOF
@@ -144,7 +153,7 @@ if [ -z "${tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
-        tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 if [ -z "${decode_tag}" ]; then
@@ -155,16 +164,17 @@ if [ -z "${decode_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/ //g")"
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh
+    local/data.sh ${local_data_opts}
 fi
 
 
@@ -221,7 +231,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 3. Create feats_shape
             scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/log"
+                "${data_feats}/${dset}/feats.scp" \
+                "${data_feats}/${dset}/feats_shape" \
+                "${data_feats}/${dset}/log"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
@@ -264,6 +276,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             "${data_feats}/${dset}/text" "${token_list}" "${data_feats}/${dset}"
     done
 fi
+
+# ========================== Data preparation is done here. ==========================
 
 
 tts_exp="${expdir}/tts_${tag}"
