@@ -10,7 +10,6 @@ from typeguard import check_return_type
 from typing import Iterable
 
 from espnet2.utils.text_converter import build_text_converter
-from espnet2.utils.fileio import DatadirWriter
 
 
 class AbsPreprocessor(ABC):
@@ -34,7 +33,6 @@ class CommonPreprocessor(AbsPreprocessor):
         delimiter: str = None,
         speech_name: str = "speech",
         text_name: str = "text",
-        output_dir: Union[Path, str] = None,
     ):
         super().__init__(train)
         self.train = train
@@ -57,11 +55,6 @@ class CommonPreprocessor(AbsPreprocessor):
         else:
             self.text_converter = None
 
-        if output_dir is not None:
-            self.dir_writer = DatadirWriter(output_dir)
-        else:
-            self.dir_writer = None
-
     def __call__(self, uid: str, data: Dict[str, Union[str, np.ndarray]]) \
             -> Dict[str, np.ndarray]:
         assert check_argument_types()
@@ -78,13 +71,5 @@ class CommonPreprocessor(AbsPreprocessor):
             text = data[self.text_name]
             text_ints = self.text_converter.text2ids(text)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
-
-        # TODO(kamo): I couldn't find clear way to realize this
-        # [Option] Derive the shape
-        if self.dir_writer is not None:
-            for k, v in data.items():
-                shape = ",".join(map(str, v.shape))
-                self.dir_writer[k + "_shape"][uid] = shape
-
         assert check_return_type(data)
         return data

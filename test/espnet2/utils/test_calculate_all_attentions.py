@@ -22,6 +22,9 @@ class Dummy(AbsE2E):
         self.desired["att1"].append(a1)
         self.desired["att2"].append(a2)
 
+    def collect_feats(self, **batch: torch.Tensor):
+        return {}
+
 
 def test_calculate_all_attentions():
     model = Dummy()

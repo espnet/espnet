@@ -2,9 +2,10 @@ import argparse
 import logging
 from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import Dict
+from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import Type
 
@@ -240,7 +241,8 @@ class TTSTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
+    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                  Tuple[List[str], Dict[str, torch.Tensor]]]:
         assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]

@@ -5,6 +5,7 @@ import shutil
 import sys
 from abc import ABC
 from abc import abstractmethod
+from collections import defaultdict
 from datetime import datetime
 from distutils.version import LooseVersion
 from pathlib import Path
@@ -27,7 +28,9 @@ from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
+from typing import List
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
@@ -45,6 +48,7 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.utils.device_funcs import to_device
+from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -175,6 +179,8 @@ class AbsTask(ABC):
             help="The number of gpus. 0 indicates CPU mode",
         )
         group.add_argument("--seed", type=int, default=0, help="Random seed")
+        group.add_argument("--stats_run", type=str2bool, default=False,
+                           help="Perform on statistics mode")
 
         group = parser.add_argument_group("Trainer related")
         group.add_argument(
@@ -775,20 +781,54 @@ class AbsTask(ABC):
                 num_workers=args.num_workers,
             )
         else:
-            plot_attention_sampler = None
             plot_attention_iter = None
 
-        # 5. Build model, optimizer, scheduler
+        # 5. Build model
         model = cls.build_model(args=args)
         if not isinstance(model, AbsE2E):
             raise RuntimeError(
                 f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
             )
 
+        if args.train_dtype in ("float16", "float32", "float64"):
+            dtype = getattr(torch, args.train_dtype)
+        else:
+            dtype = torch.float32
+        model = model.to(
+            dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu"
+        )
+
+        logging.info(f"Model:\n{model}")
+        logging.info(f"Train Dataset: {train_dataset}")
+        logging.info(f"Train BatchSampler: {train_batch_sampler}")
+        logging.info(f"Eval Dataset: {eval_dataset}")
+        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
+
+        # [Stats run]
+        if args.stats_run:
+            output_dir = Path(args.output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with (output_dir / "config.yaml").open("w") as f:
+                logging.info(
+                    f'Saving the configuration in {output_dir / "config.yaml"}'
+                )
+                yaml_no_alias_safe_dump(vars(args), f, indent=4,
+                                        sort_keys=False)
+            cls.stats_run(
+                model=model,
+                train_iter=train_iter,
+                eval_iter=eval_iter,
+                output_dir=args.output_dir,
+                ngpu=args.ngpu,
+                log_interval=args.log_interval,
+            )
+            return
+
+        # 6. Build optimizer
         optimizer_class = cls.get_optimizer_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
 
-        # 6. Build epoch_scheduler: invoked at every epochs
+        # 7. Build epoch_scheduler: invoked at every epochs
         # e.g. torch.optim.lr_scheduler.StepLR
         if args.escheduler is not None:
             epoch_scheduler_class = cls.get_epoch_scheduler_class(
@@ -800,7 +840,7 @@ class AbsTask(ABC):
         else:
             epoch_scheduler = None
 
-        # 7. Build batch_scheduler: invoked after every updating
+        # 8. Build batch_scheduler: invoked after every updating
         # e.g. torch.optim.lr_scheduler.CyclicLR
         if args.bscheduler is not None:
             batch_scheduler_class = cls.get_batch_scheduler_class(
@@ -812,7 +852,11 @@ class AbsTask(ABC):
         else:
             batch_scheduler = None
 
-        # 8. Dump "args" to config.yaml
+        logging.info(f"Optimizer:\n{optimizer}")
+        logging.info(f"Epoch scheduler: {epoch_scheduler}")
+        logging.info(f"Batch scheduler: {batch_scheduler}")
+
+        # 9. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
@@ -822,40 +866,6 @@ class AbsTask(ABC):
                 f'Saving the configuration in {output_dir / "config.yaml"}'
             )
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
-
-        logging.info(f"Model:\n{model}")
-        logging.info(f"Optimizer:\n{optimizer}")
-        logging.info(f"Epoch scheduler: {epoch_scheduler}")
-        logging.info(f"Batch scheduler: {batch_scheduler}")
-        logging.info(f"Train Dataset: {train_dataset}")
-        logging.info(f"Train BatchSampler: {train_batch_sampler}")
-        logging.info(f"Eval Dataset: {eval_dataset}")
-        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
-
-        # 9. Model to device
-        # FIXME(kamo): I wanna move this block into train(),
-        #  but model.to() seems to need to be used before
-        #  optimizer.load_state_dict(). I don't know why.
-        # For apex supporting
-        if args.train_dtype in ("O0", "O1", "O2", "O3"):
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    f"You need to install apex. "
-                    f"See https://github.com/NVIDIA/apex#linux"
-                )
-                raise
-            model, optimizer = amp.initialize(
-                model, optimizer, opt_level=args.train_dtype
-            )
-        if args.train_dtype in ("float16", "float32", "float64"):
-            dtype = getattr(torch, args.train_dtype)
-        else:
-            dtype = torch.float32
-        model = model.to(
-            dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu"
-        )
 
         reporter = Reporter()
 
@@ -875,18 +885,12 @@ class AbsTask(ABC):
         )
 
         # 11. Start training
-        if args.log_interval is None:
-            log_interval = max(len(train_batch_sampler) // 20, 10)
-        else:
-            log_interval = args.log_interval
-
         cls.run(
             model=model,
             optimizer=optimizer,
             train_iter=train_iter,
             eval_iter=eval_iter,
             plot_attention_iter=plot_attention_iter,
-            plot_attention_sampler=plot_attention_sampler,
             reporter=reporter,
             output_dir=output_dir,
             batch_scheduler=batch_scheduler,
@@ -898,7 +902,7 @@ class AbsTask(ABC):
             grad_noise=args.grad_noise,
             accum_grad=args.accum_grad,
             grad_clip=args.grad_clip,
-            log_interval=log_interval,
+            log_interval=args.log_interval,
             keep_n_best_snapshot=args.keep_n_best_snapshot,
             early_stopping_criterion=args.early_stopping_criterion,
             best_model_criterion=args.best_model_criterion,
@@ -1048,14 +1052,89 @@ class AbsTask(ABC):
             obj.load_state_dict(state_dict)
 
     @classmethod
+    @torch.no_grad()
+    def stats_run(
+        cls,
+        model: AbsE2E,
+        train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        output_dir: Union[str, Path],
+        ngpu: Optional[int],
+        log_interval: Optional[int],
+    ) -> None:
+        """Running for deriving the shape information
+        from data and gathering stats
+        """
+        assert check_argument_types()
+        output_dir = Path(output_dir)
+
+        for itr, mode in zip([train_iter, eval_iter], ["train", "eval"]):
+            if log_interval is None:
+                log_interval = max(len(itr) // 20, 10)
+
+            count = 0
+            sum_dict = defaultdict(lambda: 0)
+            sq_dict = defaultdict(lambda: 0)
+
+            with DatadirWriter(output_dir / mode) as writer:
+                for iiter, (keys, batch) in enumerate(itr, 1):
+                    batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+                    count += len(next(iter(batch.values())))
+
+                    # 1. Write shape file
+                    for name in batch:
+                        if name.endswith("_lengths"):
+                            continue
+                        for i, (k, data) in enumerate(zip(keys, batch[name])):
+                            if f"{name}_lengths" in batch:
+                                lg = int(batch[f"{name}_lengths"][i])
+                                shape = ",".join(
+                                    map(str, (lg,) + data.shape[1:])
+                                )
+                            else:
+                                shape = ",".join(map(str, data.shape))
+                            writer[f"{name}_shape"][k] = shape
+
+                    # 2. Extract feats and calc sum and square sum
+                    data = model.collect_feats(**batch)
+                    for k, v in data.items():
+                        if k.endswith("_lengths"):
+                            continue
+                        if f"{k}_lengths" in data:
+                            # value: (Batch, Length, Dim, ...)
+                            ind = (0, 1)
+                        else:
+                            ind = 0
+                        v = v.cpu()
+                        v.masked_fill_(
+                            make_pad_mask(data[f"{k}_lengths"], v, 1), 0.0
+                        )
+                        sum_dict[k] += v.sum(ind).cpu().numpy()
+                        sq_dict[k] += (v ** 2).sum(ind).cpu().numpy()
+
+                    if iiter % log_interval == 0:
+                        logging.info(f"Niter: {iiter}")
+
+            for key in sum_dict:
+                np.savez(
+                    output_dir / mode / f"{key}_stats.npz",
+                    count=count,
+                    sum=sum_dict[key],
+                    sum_square=sq_dict[key]
+                )
+            with (output_dir / mode / "shape_keys").open("w") as f:
+                f.write("\n".join(filter(lambda x: not x.endswith("_lengths"), batch)) + "\n")
+            with (output_dir / mode / "stats_keys").open("w") as f:
+                f.write("\n".join(sum_dict) + "\n")
+
+    @classmethod
     def run(
         cls,
         model: AbsE2E,
         optimizer: torch.optim.Optimizer,
-        train_iter: Iterable[Dict[str, torch.Tensor]],
-        eval_iter: Iterable[Dict[str, torch.Tensor]],
+        train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         plot_attention_iter,
-        plot_attention_sampler: Optional[AbsSampler],
         reporter: Reporter,
         output_dir: Union[str, Path],
         batch_scheduler: Optional[AbsBatchScheduler],
@@ -1067,7 +1146,7 @@ class AbsTask(ABC):
         grad_noise: bool,
         accum_grad: int,
         grad_clip: float,
-        log_interval: int,
+        log_interval: Optional[int],
         keep_n_best_snapshot: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
@@ -1076,6 +1155,20 @@ class AbsTask(ABC):
         no_backward_run: bool,
     ) -> None:
         assert check_argument_types()
+
+        # For apex supporting
+        if train_dtype in ("O0", "O1", "O2", "O3"):
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    f"You need to install apex. "
+                    f"See https://github.com/NVIDIA/apex#linux"
+                )
+                raise
+            model, optimizer = amp.initialize(
+                model, optimizer, opt_level=train_dtype
+            )
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -1119,7 +1212,6 @@ class AbsTask(ABC):
                     cls.plot_attention(
                         model=model,
                         output_dir=output_dir / "att_ws" / f"{iepoch}epoch",
-                        sampler=plot_attention_sampler,
                         iterator=plot_attention_iter,
                         ngpu=ngpu,
                         reporter=sub_reporter,
@@ -1254,7 +1346,7 @@ class AbsTask(ABC):
     def train(
         cls,
         model: AbsE2E,
-        iterator: Iterable[Dict[str, torch.Tensor]],
+        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizer: torch.optim.Optimizer,
         reporter: SubReporter,
         scheduler: Optional[AbsBatchScheduler],
@@ -1263,14 +1355,17 @@ class AbsTask(ABC):
         grad_noise: bool,
         accum_grad: int,
         grad_clip: float,
-        log_interval: int,
+        log_interval: Optional[int],
         no_forward_run: bool,
         no_backward_run: bool,
     ) -> bool:
         assert check_argument_types()
+        if log_interval is None:
+            log_interval = max(len(iterator) // 20, 10)
+
         model.train()
         all_steps_are_invalid = True
-        for iiter, batch in enumerate(iterator, 1):
+        for iiter, (_, batch) in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
@@ -1356,14 +1451,14 @@ class AbsTask(ABC):
     def eval(
         cls,
         model: AbsE2E,
-        iterator: Iterable[Dict[str, torch.Tensor]],
+        iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         ngpu: int,
         no_forward_run: bool,
     ) -> None:
         assert check_argument_types()
         model.eval()
-        for batch in iterator:
+        for (_, batch) in iterator:
             assert isinstance(batch, dict), type(batch)
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
@@ -1392,8 +1487,7 @@ class AbsTask(ABC):
         cls,
         model: AbsE2E,
         output_dir: Path,
-        sampler: AbsSampler,
-        iterator: Iterable[Dict[str, torch.Tensor]],
+        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         ngpu: int,
         reporter: SubReporter,
     ) -> None:
@@ -1406,7 +1500,7 @@ class AbsTask(ABC):
 
         model.eval()
         output_dir = Path(output_dir)
-        for ids, batch in zip(sampler, iterator):
+        for ids, batch in iterator:
             assert isinstance(batch, dict), type(batch)
             assert len(next(iter(batch.values()))) == len(ids), (
                 len(next(iter(batch.values()))),

@@ -155,6 +155,16 @@ class ASRE2E(AbsE2E):
         )
         return loss, stats, weight
 
+    def collect_feats(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        return {"feats": feats, "feats_lengths": feats_lengths}
+
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -164,20 +174,8 @@ class ASRE2E(AbsE2E):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        assert speech_lengths.dim() == 1, speech_lengths.shape
-
-        # for data-parallel
-        speech = speech[:, : speech_lengths.max()]
-
-        if self.frontend is not None:
-            # 1. Frontend
-            #  e.g. STFT and Feature extract
-            #       data_loader may send time-domain signal in this case
-            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            feats, feats_lengths = self.frontend(speech, speech_lengths)
-        else:
-            # 1. No frontend and no feature extract
-            feats, feats_lengths = speech, speech_lengths
+        # 1. Extract feats
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
         # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.normalize is not None:
@@ -198,6 +196,25 @@ class ASRE2E(AbsE2E):
         )
 
         return encoder_out, encoder_out_lens
+
+    def _extract_feats(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert speech_lengths.dim() == 1, speech_lengths.shape
+
+        # for data-parallel
+        speech = speech[:, : speech_lengths.max()]
+
+        if self.frontend is not None:
+            # Frontend
+            #  e.g. STFT and Feature extract
+            #       data_loader may send time-domain signal in this case
+            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            feats, feats_lengths = self.frontend(speech, speech_lengths)
+        else:
+            # No frontend and no feature extract
+            feats, feats_lengths = speech, speech_lengths
+        return feats, feats_lengths
 
     def _calc_att_loss(
         self,

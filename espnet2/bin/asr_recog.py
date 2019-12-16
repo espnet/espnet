@@ -180,7 +180,7 @@ def recog(
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
     with DatadirWriter(output_dir) as writer:
-        for keys, batch in zip(batch_sampler, loader):
+        for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))

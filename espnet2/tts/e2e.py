@@ -35,10 +35,7 @@ class TTSE2E(AbsE2E):
         spcs: torch.Tensor = None,
         spcs_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-        else:
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
         if self.normalize is not None:
             feats, feats_lengths = self.normalize(feats, feats_lengths)
@@ -52,3 +49,25 @@ class TTSE2E(AbsE2E):
             spcs=spcs,
             spcs_lengths=spcs_lengths,
         )
+
+    def collect_feats(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        spembs: torch.Tensor = None,
+        spcs: torch.Tensor = None,
+        spcs_lengths: torch.Tensor = None,
+    ) -> Dict[str, torch.Tensor]:
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        return {"feats": feats, "feats_lengths": feats_lengths}
+
+    def _extract_feats(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        if self.feats_extract is not None:
+            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+        else:
+            feats, feats_lengths = speech, speech_lengths
+        return feats, feats_lengths

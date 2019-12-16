@@ -65,3 +65,8 @@ class LanguageE2E(AbsE2E):
             (loss, stats, ntokens), loss.device
         )
         return loss, stats, weight
+
+    def collect_feats(
+            self, text: torch.Tensor, text_lengths: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
+        return {}

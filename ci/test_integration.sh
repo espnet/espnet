@@ -42,15 +42,7 @@ for t in ${token_types}; do
 done
 for t in ${feats_type}; do
     for t2 in ${token_types}; do
-        ./run.sh --stage 4 --stop-stage 4 --feats-type "${t}" --token-type "${t2}"
-    done
-done
-for t in ${token_types}; do
-    ./run.sh --ngpu 0 --stage 5 --stop-stage 6 --token-type "${t}" --lm-args "--max_epoch=1"
-done
-for t in ${feats_type}; do
-    for t2 in ${token_types}; do
-        ./run.sh --ngpu 0 --stage 7 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 4 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done

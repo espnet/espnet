@@ -2,9 +2,10 @@ import argparse
 import logging
 from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import Dict
+from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import Type
 
@@ -15,13 +16,13 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
-from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -338,7 +339,8 @@ class ASRTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
+    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                  Tuple[List[str], Dict[str, torch.Tensor]]]:
         assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)

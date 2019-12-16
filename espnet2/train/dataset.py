@@ -58,7 +58,7 @@ class ESPnetDataset(Dataset):
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
         ...                         )
-        ... data = dataset['uttid']
+        ... uttid, data = dataset['uttid']
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
@@ -180,7 +180,7 @@ class ESPnetDataset(Dataset):
     # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
-    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
+    def __getitem__(self, uid: str) -> Tuple[str, Dict[str, np.ndarray]]:
         assert check_argument_types()
 
         data = {}
@@ -223,5 +223,6 @@ class ESPnetDataset(Dataset):
                 )
             data[name] = value
 
-        assert check_return_type(data)
-        return data
+        retval = uid, data
+        assert check_return_type(retval)
+        return retval
