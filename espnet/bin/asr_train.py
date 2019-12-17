@@ -184,7 +184,7 @@ def get_parser(parser=None, required=True):
                         help='Decrease learning rate at these epochs.')
     parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied by gamma on schedule.')
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                        help='momentum')    
+                        help='momentum')
     # asr_mix related
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
