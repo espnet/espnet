@@ -82,6 +82,7 @@ def get_std_opt_radam(model, d_model, warmup, factor):
 
 class RAdam(Optimizer):
     """Radam optimzer class."""
+    
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, degenerated_to_sgd=True):
         """__init__."""
         if not 0.0 <= lr:
