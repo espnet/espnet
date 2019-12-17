@@ -350,12 +350,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
               # shellcheck disable=SC2002
               cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}"  \
                   | cut -f 2- -d" " | tr " " "\n" | sort -u \
-                  | grep -v -e '^\s*$' >> "${token_list}"
+                  | grep -v -e '^\s*$'
           else
               # shellcheck disable=SC2002
               cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 \
                   | cut -f 2- -d" " | tr " " "\n" | sort -u \
-                  | grep -v -e '^\s*$' >> "${token_list}"
+                  | grep -v -e '^\s*$'
           fi
           echo "${sos_eos}"
         } > "${token_list}"
@@ -416,6 +416,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     # 2. Submit jobs
     log "LM stats-run started... log: '${lm_exp}/train.log'"
+    # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${lm_exp}"/stats.JOB.log \
         python3 -m espnet2.bin.lm_train \
@@ -543,6 +544,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     # 2. Submit jobs
     log "ASR stats-run started... log: '${asr_exp}/train.log'"
+
+    # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${asr_exp}"/stats.JOB.log \
         python3 -m espnet2.bin.asr_train \
@@ -720,10 +723,15 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                     awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
                         >"${_scoredir}/hyp.trn"
             elif [ "${_type}" = cer ]; then
-                <"${_data}/text" pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" |
+                if [ -n "${nlsyms}" ]; then
+                    _nlsyms="-l ${nlsyms}"
+                else
+                    _nlsyms=
+                fi
+                <"${_data}/text" pyscripts/text/text2token.py -s 1 -n 1 ${_nlsyms} |
                     awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
                         >"${_scoredir}/ref.trn"
-                <"${_dir}/text" pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" |
+                <"${_dir}/text" pyscripts/text/text2token.py -s 1 -n 1 ${_nlsyms} |
                     awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
                         >"${_scoredir}/hyp.trn"
             elif [ "${_type}" = ter ]; then
