@@ -131,7 +131,7 @@ def tts_decode(
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
 
-    # FIXME(kamo): I think we shouldn"t depend on kaldi-format any more.
+    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
     #  How about numpy or HDF5?
     #  >>> with NpyScpWriter() as f:
     with kaldiio.WriteHelper(
@@ -292,7 +292,7 @@ def get_parser():
     )
 
     group = parser.add_argument_group("Griffin-Lim related")
-    parser.add_argument(
+    group.add_argument(
         "--griffin_lim_iters",
         type=int,
         default=32,
