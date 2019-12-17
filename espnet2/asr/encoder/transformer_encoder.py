@@ -96,10 +96,6 @@ class TransformerEncoder(AbsEncoder):
                 ),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer is None:
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate)
-            )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
