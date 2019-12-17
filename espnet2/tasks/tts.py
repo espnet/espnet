@@ -295,7 +295,7 @@ class TTSTask(AbsTask):
                 args.feats_extract
             )
             feats_extract = feats_extract_class(**args.feats_extract_conf)
-            odim = feats_extract.out_dim()
+            odim = feats_extract.output_size()
         else:
             feats_extract = None
             odim = args.odim
