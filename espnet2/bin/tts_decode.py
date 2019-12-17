@@ -28,7 +28,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.griffin_lim import spectrogram2wav
+from espnet2.utils.griffin_lim import Spc2Wav
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -55,13 +55,6 @@ def tts_decode(
     forward_window: int,
     allow_variable_data_keys: bool,
     griffin_lim_iters: int,
-    fs: Union[int, None],
-    n_fft: Union[int, None],
-    n_shift: Union[int, None],
-    win_length: Union[int, None],
-    n_mels: Union[int, None],
-    fmin: Union[int, None],
-    fmax: Union[int, None],
 ):
     """Perform E2E-TTS decoding."""
     assert check_argument_types()
@@ -120,19 +113,17 @@ def tts_decode(
         num_workers=num_workers,
     )
 
-    # 4. Setup Griffin-Lim params
-    feat_ext_conf = train_args.feats_extract_conf
-    use_frontend = len(feat_ext_conf) != 0
-    spectrogram2wav_params = {
-        "fs": feat_ext_conf["fs"] if use_frontend else fs,
-        "n_fft": feat_ext_conf["n_fft"] if use_frontend else n_fft,
-        "n_shift": feat_ext_conf["stft_conf"]["hop_length"] if use_frontend else n_shift,
-        "win_length": feat_ext_conf["stft_conf"]["win_length"] if use_frontend else win_length,
-        "n_mels": feat_ext_conf["logmel_fbank_conf"]["n_mels"] if use_frontend else n_mels,
-        "fmin": feat_ext_conf["logmel_fbank_conf"]["fmin"] if use_frontend else fmin,
-        "fmax": feat_ext_conf["logmel_fbank_conf"]["fmax"] if use_frontend else fmax,
-        "num_iterations": griffin_lim_iters,
-    }
+    # 4. Build converter from spectrogram to waveform
+    spc2wav = Spc2Wav(
+        fs=train_args.feats_extract_conf["fs"],
+        n_fft=train_args.feats_extract_conf["n_fft"],
+        n_shift=train_args.feats_extract_conf["stft_conf"]["hop_length"],
+        win_length=train_args.feats_extract_conf["stft_conf"]["win_length"],
+        n_mels=train_args.feats_extract_conf["logmel_fbank_conf"]["n_mels"],
+        fmin=train_args.feats_extract_conf["logmel_fbank_conf"]["fmin"],
+        fmax=train_args.feats_extract_conf["logmel_fbank_conf"]["fmax"],
+        griffin_lim_iters=griffin_lim_iters,
+    )
 
     # 5. Start for-loop
     output_dir = Path(output_dir)
@@ -188,8 +179,8 @@ def tts_decode(
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 
-            wav = spectrogram2wav(outs_denorm.cpu().numpy(), **spectrogram2wav_params)
-            sf.write(f"{output_dir}/wav/{key}.wav", wav, spectrogram2wav_params["fs"], "PCM_16")
+            wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
+            sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
 
 
 def get_parser():
@@ -307,48 +298,6 @@ def get_parser():
         default=32,
         help="Number of iterations in Grriffin Lim"
     )
-    parser.add_argument(
-        "--fs",
-        type=int,
-        default=None,
-        help="Sampling frequency"
-    )
-    parser.add_argument(
-        "--n_fft",
-        type=int,
-        default=None,
-        help="FFT length in point"
-    )
-    parser.add_argument(
-        "--n_shift",
-        type=int,
-        default=None,
-        help="Shift length in point"
-    )
-    parser.add_argument(
-        "--win_length",
-        type=int,
-        default=None,
-        nargs="?",
-        help="Analisys window length in point"
-    )
-    parser.add_argument(
-        "--n_mels",
-        type=int,
-        default=None,
-        help="The number of Mel basis"
-    )
-    parser.add_argument(
-        "--fmin",
-        type=int,
-        default=None,
-        help="Minimum frequency in Mel basis"
-    )
-    parser.add_argument(
-        "--fmax",
-        type=int,
-        default=None,
-        help="Maximum frequency in Mel basis")
     return parser
 
 
