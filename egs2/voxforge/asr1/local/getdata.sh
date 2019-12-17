@@ -1,0 +1,1 @@
+../../../../egs/voxforge/asr1/local/getdata.sh
