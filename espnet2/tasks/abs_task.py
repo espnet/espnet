@@ -39,7 +39,6 @@ from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.add_gradient_noise import add_gradient_noise
-from espnet2.train.batch_sampler import AbsSampler
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
@@ -180,7 +179,7 @@ class AbsTask(ABC):
         )
         group.add_argument("--seed", type=int, default=0, help="Random seed")
         group.add_argument("--stats_run", type=str2bool, default=False,
-                           help="Perform on statistics mode")
+                           help="Perform stats run")
 
         group = parser.add_argument_group("Trainer related")
         group.add_argument(
@@ -1062,9 +1061,8 @@ class AbsTask(ABC):
         ngpu: Optional[int],
         log_interval: Optional[int],
     ) -> None:
-        """Running for deriving the shape information
-        from data and gathering stats
-        """
+        """Running for deriving the shape information from data
+        and gathering statistis"""
         assert check_argument_types()
         output_dir = Path(output_dir)
 
@@ -1072,14 +1070,13 @@ class AbsTask(ABC):
             if log_interval is None:
                 log_interval = max(len(itr) // 20, 10)
 
-            count = 0
             sum_dict = defaultdict(lambda: 0)
             sq_dict = defaultdict(lambda: 0)
+            count_dict = defaultdict(lambda: 0)
 
             with DatadirWriter(output_dir / mode) as writer:
                 for iiter, (keys, batch) in enumerate(itr, 1):
                     batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
-                    count += len(next(iter(batch.values())))
 
                     # 1. Write shape file
                     for name in batch:
@@ -1102,15 +1099,21 @@ class AbsTask(ABC):
                             continue
                         if f"{k}_lengths" in data:
                             # value: (Batch, Length, Dim, ...)
+                            # -> Summation over batchxlength
                             ind = (0, 1)
+                            count = v.size(0) * v.size(1)
                         else:
+                            # value: (Batch, Dim, ...)
+                            # -> Summation over batch
                             ind = 0
+                            count = v.size(0)
                         v = v.cpu()
                         v.masked_fill_(
                             make_pad_mask(data[f"{k}_lengths"], v, 1), 0.0
                         )
                         sum_dict[k] += v.sum(ind).cpu().numpy()
                         sq_dict[k] += (v ** 2).sum(ind).cpu().numpy()
+                        count_dict[k] += count
 
                     if iiter % log_interval == 0:
                         logging.info(f"Niter: {iiter}")
@@ -1118,7 +1121,7 @@ class AbsTask(ABC):
             for key in sum_dict:
                 np.savez(
                     output_dir / mode / f"{key}_stats.npz",
-                    count=count,
+                    count=count_dict[key],
                     sum=sum_dict[key],
                     sum_square=sq_dict[key]
                 )
@@ -1234,7 +1237,7 @@ class AbsTask(ABC):
 
             # 3. Report the results
             reporter.logging()
-            reporter.save_stats_plot(output_dir / "stats")
+            reporter.save_stats_plot(output_dir / "images")
 
             # 4. Save the snapshot
             for key, obj in [
