@@ -115,14 +115,8 @@ def tts_decode(
 
     # 4. Build converter from spectrogram to waveform
     spc2wav = Spc2Wav(
-        fs=train_args.feats_extract_conf["fs"],
-        n_fft=train_args.feats_extract_conf["n_fft"],
-        n_shift=train_args.feats_extract_conf["stft_conf"]["hop_length"],
-        win_length=train_args.feats_extract_conf["stft_conf"]["win_length"],
-        n_mels=train_args.feats_extract_conf["logmel_fbank_conf"]["n_mels"],
-        fmin=train_args.feats_extract_conf["logmel_fbank_conf"]["fmin"],
-        fmax=train_args.feats_extract_conf["logmel_fbank_conf"]["fmax"],
         griffin_lim_iters=griffin_lim_iters,
+        **train_args.feats_extract_conf
     )
 
     # 5. Start for-loop
