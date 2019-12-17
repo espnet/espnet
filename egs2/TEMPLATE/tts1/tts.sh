@@ -299,25 +299,26 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _shape=utt2num_samples
         # "sound" supports "wav", "flac", etc.
         _type=sound
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=80000
     else
         _scp=feats.scp
         _shape=feats_shape
         _type=kaldi_ark
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=800
         _odim="$(<${_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
         _opts+="--odim=${_odim} "
         _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy "
     fi
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
     _opts+="--feats_extract_conf fs=${fs} "
     _opts+="--feats_extract_conf n_fft=${n_fft} "
-    _opts+="--feats_extract_conf stft_conf.hop_length=${n_shift} "
-    _opts+="--feats_extract_conf stft_conf.win_length=${win_length} "
-    if [ "${_feats_type}" != fbank ]; then
-        _opts+="--feats_extract_conf logmel_fbank_conf.n_mels=${n_mels} "
-        _opts+="--feats_extract_conf logmel_fbank_conf.fmin=${fmin} "
-        _opts+="--feats_extract_conf logmel_fbank_conf.fmax=${fmax} "
+    _opts+="--feats_extract_conf n_shift=${n_shift} "
+    _opts+="--feats_extract_conf win_length=${win_length} "
+    if [ "${_feats_type}" != stft ]; then
+        _opts+="--feats_extract_conf n_mels=${n_mels} "
+        _opts+="--feats_extract_conf fmin=${fmin} "
+        _opts+="--feats_extract_conf fmax=${fmax} "
     fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
