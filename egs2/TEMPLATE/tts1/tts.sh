@@ -37,7 +37,7 @@ fmax=7600         # Maximum frequency of Mel basis.
 n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
-win_length=""     # Window length.
+win_length=null   # Window length.
 
 # Training related
 train_config= # Config for training.
@@ -300,7 +300,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # "sound" supports "wav", "flac", etc.
         _type=sound
         _max_length=80000
-        _opts+="--feats_extract_conf fs=${fs} "
     else
         _scp=feats.scp
         _shape=feats_shape
@@ -308,9 +307,18 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _max_length=800
         _odim="$(<${_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
         _opts+="--odim=${_odim} "
-        _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy"
+        _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy "
     fi
     # FIXME(kamo): max_length is confusing name. How about fold_length?
+    _opts+="--feats_extract_conf fs=${fs} "
+    _opts+="--feats_extract_conf n_fft=${n_fft} "
+    _opts+="--feats_extract_conf stft_conf.hop_length=${n_shift} "
+    _opts+="--feats_extract_conf stft_conf.win_length=${win_length} "
+    if [ "${_feats_type}" != fbank ]; then
+        _opts+="--feats_extract_conf logmel_fbank_conf.n_mels=${n_mels} "
+        _opts+="--feats_extract_conf logmel_fbank_conf.fmin=${fmin} "
+        _opts+="--feats_extract_conf logmel_fbank_conf.fmax=${fmax} "
+    fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -350,18 +358,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
     fi
-    if [ "${_feats_type}" != raw ] ; then
-        _opts+="--fs ${fs} "
-        _opts+="--n_fft ${n_fft} "
-        _opts+="--n_shift ${n_shift} "
-        _opts+="--win_length ${win_length} "
-        _opts+="--griffin_lim_iters ${griffin_lim_iters} "
-    fi
-    if [ "${_feats_type}" = fbank ] ; then
-        _opts+="--n_mels ${n_mels} "
-        _opts+="--fmax ${fmax} "
-        _opts+="--fmin ${fmin} "
-    fi
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
@@ -394,6 +390,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
+                --griffin_lim_iters "${griffin_lim_iters}" \
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
