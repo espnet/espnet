@@ -104,9 +104,9 @@ class BeamSearch(torch.nn.Module):
         for k, d in self.scorers.items():
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
-        return Hypothesis(
+        return [Hypothesis(
             score=0.0, scores=init_scores, states=init_states,
-            yseq=torch.tensor([self.sos], device=x.device))
+            yseq=torch.tensor([self.sos], device=x.device))]
 
     @staticmethod
     def append_token(xs: torch.Tensor, x: int) -> torch.Tensor:
@@ -303,7 +303,7 @@ class BeamSearch(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # main loop of prefix search
-        running_hyps = [self.init_hyp(x)]
+        running_hyps = self.init_hyp(x)
         ended_hyps = []
         for i in range(maxlen):
             logging.debug('position ' + str(i))
@@ -313,12 +313,12 @@ class BeamSearch(torch.nn.Module):
             # end detection
             if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
                 logging.info(f'end detected at {i}')
-                running_hyps = []
-            if len(running_hyps) > 0:
-                logging.debug(f'remeined hypothes: {len(running_hyps)}')
+                break
             if len(running_hyps) == 0:
                 logging.info('no hypothesis. Finish decoding.')
                 break
+            else:
+                logging.debug(f'remeined hypothes: {len(running_hyps)}')
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check number of hypotheis
