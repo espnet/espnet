@@ -433,7 +433,7 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
         optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
     elif args.opt == 'radam':
-        from espnet.nets.pytorch_backend.transformer.optimizer import RAdam, RAdam_4step, AdamW, get_std_opt_radam
+        from espnet.nets.pytorch_backend.transformer.optimizer import RAdam
         optimizer= RAdam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2),weight_decay=args.weight_decay)
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
