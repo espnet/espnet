@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Union
@@ -12,7 +13,14 @@ from espnet.utils.cli_utils import get_commandline_args
 def aggregate_stats_dirs(
     input_dir: Iterable[Union[str, Path]],
     output_dir: Union[str, Path],
+    log_level: str,
 ):
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s (%(module)s:%(lineno)d) "
+               "%(levelname)s: %(message)s",
+    )
+
     input_dirs = [Path(p) for p in input_dir]
     output_dir = Path(output_dir)
 
@@ -35,7 +43,7 @@ def aggregate_stats_dirs(
             for idir in input_dirs:
                 stats = np.load(idir / mode / f"{key}_stats.npz")
                 if sum_stats is None:
-                    sum_stats = stats
+                    sum_stats = dict(**stats)
                 else:
                     for k in stats:
                         sum_stats[k] += stats[k]
@@ -48,6 +56,14 @@ def get_parser() -> argparse.ArgumentParser:
         description="Aggregate statistics directories into one directory",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument(
+        "--log_level",
+        type=lambda x: x.upper(),
+        default="INFO",
+        choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        help="The verbose level of logging",
+    )
+
     parser.add_argument("--input_dir", action="append",
                         help="Input directories")
     parser.add_argument("--output_dir", required=True,
