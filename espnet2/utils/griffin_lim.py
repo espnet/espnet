@@ -8,12 +8,13 @@
 import logging
 
 from distutils.version import LooseVersion
+from functools import partial
+from typeguard import check_argument_types
 from typing import Optional
 from typing import Union
 
 import librosa
 import numpy as np
-
 
 EPS = 1e-10
 
@@ -46,9 +47,7 @@ def logmel2linear(
     mspc = np.power(10.0, lmspc)
     mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
     inv_mel_basis = np.linalg.pinv(mel_basis)
-    spc = np.maximum(EPS, np.dot(inv_mel_basis, mspc.T).T)
-
-    return spc
+    return np.maximum(EPS, np.dot(inv_mel_basis, mspc.T).T)
 
 
 def griffin_lim(
@@ -57,7 +56,7 @@ def griffin_lim(
     n_shift: int,
     win_length: Optional[Union[int, None]] = None,
     window: Optional[str] = 'hann',
-    num_iterations: Optional[int] = 32,
+    n_iter: Optional[int] = 32,
 ) -> np.ndarray:
     """Convert linear spectrogram into waveform using Griffin-Lim.
 
@@ -67,7 +66,7 @@ def griffin_lim(
         n_shift: Shift size in points.
         win_length: Window length in points.
         window: Window function type.
-        num_iterations: The number of iterations.
+        n_iter: The number of iterations.
 
     Returns:
         Reconstructed waveform (N,).
@@ -81,7 +80,7 @@ def griffin_lim(
         spc = np.abs(spc.T)
         y = librosa.griffinlim(
             S=spc,
-            n_iter=num_iterations,
+            n_iter=n_iter,
             hop_length=n_shift,
             win_length=win_length,
             window=window,
@@ -95,29 +94,18 @@ def griffin_lim(
         cspc = np.abs(spc).astype(np.complex).T
         angles = np.exp(2j * np.pi * np.random.rand(*cspc.shape))
         y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
-        for i in range(num_iterations):
+        for i in range(n_iter):
             angles = np.exp(1j * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window)))
             y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
 
     return y
 
 
-def spectrogram2wav(
-    spc: np.ndarray,
-    fs: int,
-    n_fft: int,
-    n_shift: int,
-    n_mels: Union[int, None] = 80,
-    win_length: Optional[Union[int, None]] = None,
-    window: Optional[str] = 'hann',
-    fmin: Optional[Union[int, None]] = None,
-    fmax: Optional[Union[int, None]] = None,
-    num_iterations: Optional[int] = 32,
-) -> np.ndarray:
-    """Convert spectrogram to waveform.
+# TODO(kan-bayashi): write as torch.nn.Module
+class Spec2Wav(object):
+    """Spectrogram to waveform conversion module based on Griffin-Lim.
 
     Args:
-        spc: Log Mel filterbank (T, n_mels) or linear spectrogram (T, n_fft // 2 + 1).
         fs: Sampling frequency.
         n_fft: The number of FFT points.
         n_shift: Shift size in points.
@@ -126,15 +114,54 @@ def spectrogram2wav(
         window: Window function type.
         f_min: Minimum frequency to analyze.
         f_max: Maximum frequency to analyze.
-        num_iterations: The number of iterations.
-
-    Returns:
-        Reconstructed waveform (N,).
+        griffin_lim_iters: The number of iterations.
 
     """
-    if n_mels is None:
-        assert n_fft // 2 + 1 == spc.shape[1]
-    else:
-        assert n_mels == spc.shape[1]
-        spc = logmel2linear(spc, fs, n_fft, n_mels, fmin, fmax)
-    return griffin_lim(spc, n_fft, n_shift, win_length, window, num_iterations)
+
+    def __init__(
+        self,
+        fs: int,
+        n_fft: int,
+        n_shift: int,
+        n_mels: Union[int, None] = 80,
+        win_length: Optional[Union[int, None]] = None,
+        window: Optional[str] = 'hann',
+        fmin: Optional[Union[int, None]] = None,
+        fmax: Optional[Union[int, None]] = None,
+        griffin_lim_iters: Optional[int] = 32,
+    ) -> object:
+        """Initialize."""
+        assert check_argument_types()
+        self.fs = fs
+        self.n_fft = n_fft
+        self.n_mels = n_mels
+        if n_mels is not None:
+            self.logmel2linear = partial(logmel2linear,
+                                         fs=fs,
+                                         n_fft=n_fft,
+                                         n_mels=n_mels,
+                                         fmin=fmin,
+                                         fmax=fmax)
+        self.griffin_lim = partial(griffin_lim,
+                                   n_fft=n_fft,
+                                   n_shift=n_shift,
+                                   win_length=win_length,
+                                   window=window,
+                                   n_iter=griffin_lim_iters)
+
+    def __call__(self, spc):
+        """Convert spectrogram to waveform.
+
+        Args:
+            spc: Log Mel filterbank (T, n_mels) or linear spectrogram (T, n_fft // 2 + 1).
+
+        Returns:
+            Reconstructed waveform (N,).
+
+        """
+        if self.n_mels is None:
+            assert self.n_fft // 2 + 1 == spc.shape[1]
+        else:
+            assert self.n_mels == spc.shape[1]
+            spc = self.logmel2linear(spc)
+        return self.griffin_lim(spc)
