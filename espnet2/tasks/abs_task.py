@@ -178,8 +178,8 @@ class AbsTask(ABC):
             help="The number of gpus. 0 indicates CPU mode",
         )
         group.add_argument("--seed", type=int, default=0, help="Random seed")
-        group.add_argument("--stats_run", type=str2bool, default=False,
-                           help="Perform stats run")
+        group.add_argument("--collect_stats", type=str2bool, default=False,
+                           help='Perform on "collect stats" mode')
 
         group = parser.add_argument_group("Trainer related")
         group.add_argument(
@@ -803,8 +803,8 @@ class AbsTask(ABC):
         logging.info(f"Eval Dataset: {eval_dataset}")
         logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
 
-        # [Stats run]
-        if args.stats_run:
+        # [collect stats mode]
+        if args.collect_stats:
             output_dir = Path(args.output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             with (output_dir / "config.yaml").open("w") as f:
@@ -813,7 +813,7 @@ class AbsTask(ABC):
                 )
                 yaml_no_alias_safe_dump(vars(args), f, indent=4,
                                         sort_keys=False)
-            cls.stats_run(
+            cls.collect_stats(
                 model=model,
                 train_iter=train_iter,
                 eval_iter=eval_iter,
@@ -1052,7 +1052,7 @@ class AbsTask(ABC):
 
     @classmethod
     @torch.no_grad()
-    def stats_run(
+    def collect_stats(
         cls,
         model: AbsE2E,
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
@@ -1062,7 +1062,7 @@ class AbsTask(ABC):
         log_interval: Optional[int],
     ) -> None:
         """Running for deriving the shape information from data
-        and gathering statistis"""
+        and gathering statistics"""
         assert check_argument_types()
         output_dir = Path(output_dir)
 

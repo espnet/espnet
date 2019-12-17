@@ -415,12 +415,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "LM stats-run started... log: '${lm_exp}/train.log'"
+    log "LM collect-stats started... log: '${lm_exp}/train.log'"
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${lm_exp}"/stats.JOB.log \
         python3 -m espnet2.bin.lm_train \
-            --stats_run true \
+            --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${lm_token_type}"\
@@ -543,13 +543,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     # 2. Submit jobs
-    log "ASR stats-run started... log: '${asr_exp}/train.log'"
+    log "ASR collect-stats started... log: '${asr_exp}/train.log'"
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${asr_exp}"/stats.JOB.log \
         python3 -m espnet2.bin.asr_train \
-            --stats_run true \
+            --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
