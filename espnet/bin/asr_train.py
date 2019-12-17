@@ -169,6 +169,23 @@ def get_parser(parser=None, required=True):
                         help='Number of samples of attention to be saved')
     parser.add_argument('--grad-noise', type=strtobool, default=False,
                         help='The flag to switch to use noise injection to gradients during training')
+    ## --- src from https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam.py --- ##
+    parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+                        metavar='LR', help='initial learning rate')
+    parser.add_argument('--beta1', default=0.9, type=float,
+                        help='beta1 for adam')
+    parser.add_argument('--beta2', default=0.999, type=float,
+                        help='beta2 for adam')
+    parser.add_argument('--warmup', default=0, type=float,
+                        help='warmup steps for adam')
+    parser.add_argument('--drop', '--dropout', default=0, type=float,
+                        metavar='Dropout', help='Dropout ratio')
+    parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
+                            help='Decrease learning rate at these epochs.')
+    parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied by gamma on schedule.')
+    parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+                        help='momentum')
+    ##################
     # asr_mix related
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
