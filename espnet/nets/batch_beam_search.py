@@ -1,6 +1,5 @@
 """Parallel beam search module."""
 
-from itertools import chain
 import logging
 from typing import Dict
 from typing import List
@@ -27,6 +26,7 @@ class BatchHypothesis(NamedTuple):
         """Return a batch size."""
         return len(self.length)
 
+
 class BatchBeamSearch(BeamSearch):
     """Batch beam search implementation."""
 
@@ -42,6 +42,7 @@ class BatchBeamSearch(BeamSearch):
             states={k: [h.states[k] for h in hyps] for k in self.scorers}
         )
 
+    def _batch_select(self, hyps: BatchHypothesis, ids: List[int]) -> BatchHypothesis:
         return BatchHypothesis(
             yseq=hyps.yseq[ids],
             score=hyps.score[ids],
@@ -51,7 +52,7 @@ class BatchBeamSearch(BeamSearch):
                     for k, v in hyps.states.items()},
         )
 
-    def select(self, hyps: BatchHypothesis, i: int) -> Hypothesis:
+    def _select(self, hyps: BatchHypothesis, i: int) -> Hypothesis:
         return Hypothesis(
             yseq=hyps.yseq[i, :hyps.length[i]],
             score=hyps.score[i],
@@ -195,15 +196,7 @@ class BatchBeamSearch(BeamSearch):
         # (this will be a probmlem, number of hyps < beam)
         is_eos = running_hyps.yseq[torch.arange(n_batch), running_hyps.length - 1] == self.eos
         for b in torch.nonzero(is_eos).view(-1):
-            hyp = self.select(running_hyps, b)
+            hyp = self._select(running_hyps, b)
             ended_hyps.append(hyp)
         remained_ids = torch.nonzero(is_eos == 0).view(-1)
-        return BatchHypothesis(
-            yseq=running_hyps.yseq[remained_ids],
-            score=running_hyps.score[remained_ids],
-            length=running_hyps.length[remained_ids],
-            scores={k: v[remained_ids] for k, v in running_hyps.scores.items()},
-            states={k: [self.scorers[k].select_state(v, i) for i in remained_ids]
-                    for k, v in running_hyps.states.items()},
-        )
-
+        return self._batch_select(running_hyps, remained_ids)
