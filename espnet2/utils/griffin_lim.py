@@ -133,21 +133,22 @@ class Spc2Wav(object):
         """
         assert check_argument_types()
         self.fs = fs
-        self.n_fft = n_fft
-        self.n_mels = n_mels
-        if n_mels is not None:
-            self.logmel2linear = partial(logmel2linear,
-                                         fs=fs,
-                                         n_fft=n_fft,
-                                         n_mels=n_mels,
-                                         fmin=fmin,
-                                         fmax=fmax)
-        self.griffin_lim = partial(griffin_lim,
-                                   n_fft=n_fft,
-                                   n_shift=n_shift,
-                                   win_length=win_length,
-                                   window=window,
-                                   n_iter=griffin_lim_iters)
+        self.logmel2linear = partial(
+            logmel2linear,
+            fs=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax
+        ) if n_mels is not None else None
+        self.griffin_lim = partial(
+            griffin_lim,
+            n_fft=n_fft,
+            n_shift=n_shift,
+            win_length=win_length,
+            window=window,
+            n_iter=griffin_lim_iters
+        )
 
     def __call__(self, spc):
         """Convert spectrogram to waveform.
@@ -159,9 +160,6 @@ class Spc2Wav(object):
             Reconstructed waveform (N,).
 
         """
-        if self.n_mels is None:
-            assert self.n_fft // 2 + 1 == spc.shape[1]
-        else:
-            assert self.n_mels == spc.shape[1]
+        if self.logmel2linear is not None:
             spc = self.logmel2linear(spc)
         return self.griffin_lim(spc)
