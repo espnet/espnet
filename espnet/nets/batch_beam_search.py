@@ -1,5 +1,7 @@
 """Parallel beam search module."""
 
+from itertools import chain
+import logging
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -15,11 +17,14 @@ from espnet.nets.beam_search import Hypothesis
 class BatchHypothesis(NamedTuple):
     """Batchfied/Vectorized hypothesis data type."""
 
-    yseq: torch.Tensor
-    score: torch.Tensor
-    length: List[int]
+    yseq: torch.Tensor = torch.tensor([])
+    score: torch.Tensor = torch.tensor([])
+    length: List[int] = []
     scores: Dict[str, torch.Tensor] = dict()
     states: Dict[str, Dict] = dict()
+
+    def __len__(self):
+        return len(self.length)
 
 
 class BatchBeamSearch(BeamSearch):
@@ -27,6 +32,8 @@ class BatchBeamSearch(BeamSearch):
 
     def batchfy(self, hyps: List[Hypothesis]) -> BatchHypothesis:
         """Convert list to batch."""
+        if len(hyps) == 0:
+            return BatchHypothesis()
         return BatchHypothesis(
             yseq=pad_sequence([h.yseq for h in hyps], batch_first=True, padding_value=self.eos),
             length=[len(h.yseq) for h in hyps],
@@ -73,19 +80,36 @@ class BatchBeamSearch(BeamSearch):
 
         raise NotImplementedError("batch decoding with PartialScorer is not supported yet.")
 
-    def search(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
+    def init_hyp(self, x: torch.Tensor) -> BatchHypothesis:
+        """Get an initial hypothesis data.
+
+        Args:
+            x (torch.Tensor): The encoder output feature
+
+        Returns:
+            Hypothesis: The initial hypothesis.
+
+        """
+        init_states = dict()
+        init_scores = dict()
+        for k, d in self.scorers.items():
+            init_states[k] = d.init_state(x)
+            init_scores[k] = 0.0
+        return self.batchfy(super().init_hyp(x))
+
+    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
-            running_hyps (List[Hypothesis]): Running hypotheses on beam
+            running_hyps (BatchHypothesis): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature (T, D)
 
         Returns:
-            List[Hypotheses]: Best sorted hypotheses
+            BatchHypothesis: Best sorted hypotheses
 
         """
+        batch_hyps = running_hyps
         n_batch = len(running_hyps)
-        batch_hyps = self.batchfy(running_hyps)
 
         # batch scoring
         scores, states = self.score_full(batch_hyps, x.expand(n_batch, *x.shape))
@@ -103,8 +127,10 @@ class BatchBeamSearch(BeamSearch):
             weighted_scores[part_ids] += self.weights[k] * part_scores[k]
         weighted_scores += batch_hyps.score.unsqueeze(1)
 
+        # TODO(karita): do not use list. use batch instead
         # update hyps
         best_hyps = []
+        running_hyps = self.unbatchfy(batch_hyps)
         for full_prev_hyp_id, full_new_token_id, part_prev_hyp_id, part_new_token_id in zip(
                 *self.batch_beam(weighted_scores, part_ids)):
             prev_hyp = running_hyps[full_prev_hyp_id]
@@ -120,4 +146,44 @@ class BatchBeamSearch(BeamSearch):
                     {k: self.part_scorers[k].select_state(v, part_prev_hyp_id) for k, v in part_states.items()},
                     part_new_token_id)
             ))
-        return best_hyps
+        return self.batchfy(best_hyps)
+
+    def post_process(self, i: int, maxlen: int, maxlenratio: float,
+                     running_hyps: BatchHypothesis, ended_hyps: List[Hypothesis]) -> BatchHypothesis:
+        """Perform post-processing of beam search iterations.
+
+        Args:
+            i (int): The length of hypothesis tokens.
+            maxlen (int): The maximum length of tokens in beam search.
+            maxlenratio (int): The maximum length ratio in beam search.
+            running_hyps (BatchHypothesis): The running hypotheses in beam search.
+            ended_hyps (List[Hypothesis]): The ended hypotheses in beam search.
+
+        Returns:
+            BatchHypothesis: The new running hypotheses.
+
+        """
+        running_hyps = self.unbatchfy(running_hyps)
+        logging.debug(f'the number of running hypothes: {len(running_hyps)}')
+        if self.token_list is not None:
+            logging.debug("best hypo: " + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]]))
+        # add eos in the final loop to avoid that there are no ended hyps
+        if i == maxlen - 1:
+            logging.info("adding <eos> in the last position in the loop")
+            running_hyps = [h._replace(yseq=self.append_token(h.yseq, self.eos)) for h in running_hyps]
+
+        # add ended hypotheses to a final list, and removed them from current hypotheses
+        # (this will be a probmlem, number of hyps < beam)
+        # TODO(karita): inplace batch hypothesis op
+        remained_hyps = []
+        for hyp in running_hyps:
+            if hyp.yseq[-1] == self.eos:
+                # e.g., Word LM needs to add final <eos> score
+                for k, d in chain(self.full_scorers.items(), self.part_scorers.items()):
+                    s = d.final_score(hyp.states[k])
+                    hyp.scores[k] += s
+                    hyp = hyp._replace(score=hyp.score + self.weights[k] * s)
+                ended_hyps.append(hyp)
+            else:
+                remained_hyps.append(hyp)
+        return self.batchfy(remained_hyps)
