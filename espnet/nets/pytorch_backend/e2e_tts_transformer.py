@@ -597,6 +597,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        if use_att_constraint:
+            logging.warning("Attention constraint is not yet supported in Transformer. Not enabled.")
 
         # forward encoder
         xs = x.unsqueeze(0)
@@ -654,7 +657,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # concatenate attention weights
+        # concatenate attention weights -> (#layers, #heads, L, T)
         att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws

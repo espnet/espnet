@@ -13,7 +13,6 @@ import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
@@ -377,7 +376,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             use_weighted_masking=args.use_weighted_masking
         )
 
-    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, is_inference=False):
+    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, ds=None, is_inference=False):
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
@@ -392,8 +391,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
         else:
-            with torch.no_grad():
-                ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
+            if ds is None:
+                with torch.no_grad():
+                    ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
@@ -416,11 +416,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         if is_inference:
-            return before_outs, after_outs
+            return before_outs, after_outs, d_outs
         else:
             return before_outs, after_outs, ds, d_outs
 
-    def forward(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, olens, spembs=None, extras=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -429,6 +429,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            extras (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
             Tensor: Loss value.
@@ -437,9 +438,12 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # remove unnecessary padded part (for multi-gpus)
         xs = xs[:, :max(ilens)]
         ys = ys[:, :max(olens)]
+        if extras is not None:
+            extras = extras[:, :max(ilens)].squeeze(-1)
 
         # forward propagation
-        before_outs, after_outs, ds, d_outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)
+        before_outs, after_outs, ds, d_outs = self._forward(
+            xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
@@ -469,7 +473,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, extras=None, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -478,6 +482,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            extras (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
             dict: Dict of attention weights and outputs.
@@ -487,9 +492,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             # remove unnecessary padded part (for multi-gpus)
             xs = xs[:, :max(ilens)]
             ys = ys[:, :max(olens)]
+            if extras is not None:
+                extras = extras[:, :max(ilens)].squeeze(-1)
 
             # forward propagation
-            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, is_inference=False)[0]
+            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False)[1]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
@@ -534,7 +541,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spembs = None
 
         # inference
-        _, outs = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (L, odim)
+        _, outs, _ = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (1, L, odim)
 
         return outs[0], None, None
 
@@ -601,7 +608,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         assert args.reduction_factor == self.reduction_factor
 
         # load teacher model
-        model = Transformer(idim, odim, args)
+        from espnet.utils.dynamic_import import dynamic_import
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
         torch_load(model_path, model)
 
         # freeze teacher model parameters
