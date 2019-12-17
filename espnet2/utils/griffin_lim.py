@@ -102,21 +102,8 @@ def griffin_lim(
 
 
 # TODO(kan-bayashi): write as torch.nn.Module
-class Spec2Wav(object):
-    """Spectrogram to waveform conversion module based on Griffin-Lim.
-
-    Args:
-        fs: Sampling frequency.
-        n_fft: The number of FFT points.
-        n_shift: Shift size in points.
-        n_mels: The number of mel basis.
-        win_length: Window length in points.
-        window: Window function type.
-        f_min: Minimum frequency to analyze.
-        f_max: Maximum frequency to analyze.
-        griffin_lim_iters: The number of iterations.
-
-    """
+class Spc2Wav(object):
+    """Spectrogram to waveform conversion module."""
 
     def __init__(
         self,
@@ -130,7 +117,20 @@ class Spec2Wav(object):
         fmax: Optional[Union[int, None]] = None,
         griffin_lim_iters: Optional[int] = 32,
     ) -> object:
-        """Initialize."""
+        """Initialize module.
+
+        Args:
+            fs: Sampling frequency.
+            n_fft: The number of FFT points.
+            n_shift: Shift size in points.
+            n_mels: The number of mel basis.
+            win_length: Window length in points.
+            window: Window function type.
+            f_min: Minimum frequency to analyze.
+            f_max: Maximum frequency to analyze.
+            griffin_lim_iters: The number of iterations.
+
+        """
         assert check_argument_types()
         self.fs = fs
         self.n_fft = n_fft
