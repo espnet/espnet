@@ -58,15 +58,18 @@ class BatchBeamSearch(BeamSearch):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-                The topk full (beam, vocab) ids and partial (beam, vocab) ids.
+                The topk full (prev_hyp, new_token) ids and partial (prev_hyp, new_token) ids.
                 Their shapes are all `(self.beam_size,)`
 
         """
         if not self.do_pre_beam:
             top_ids = weighted_scores.view(-1).topk(self.beam_size)[1]
-            beam_ids = top_ids // self.n_vocab
-            vocab_ids = top_ids % self.n_vocab
-            return beam_ids, vocab_ids, beam_ids, vocab_ids
+            # Because of the flatten above, `top_ids` is organized as:
+            # [hyp1 * V + token1, hyp2 * V + token2, ..., hypK * V + tokenK],
+            # where V is `self.n_vocab` and K is `self.beam_size`
+            prev_hyp_ids = top_ids // self.n_vocab
+            new_token_ids = top_ids % self.n_vocab
+            return prev_hyp_ids, new_token_ids, prev_hyp_ids, new_token_ids
 
         raise NotImplementedError("batch decoding with PartialScorer is not supported yet.")
 
@@ -102,18 +105,19 @@ class BatchBeamSearch(BeamSearch):
 
         # update hyps
         best_hyps = []
-        for full_beam, full_vocab, part_beam, part_vocab in zip(*self.batch_beam(weighted_scores, part_ids)):
-            prev_hyp = running_hyps[full_beam]
+        for full_prev_hyp_id, full_new_token_id, part_prev_hyp_id, part_new_token_id in zip(
+                *self.batch_beam(weighted_scores, part_ids)):
+            prev_hyp = running_hyps[full_prev_hyp_id]
             best_hyps.append(Hypothesis(
-                score=weighted_scores[full_beam, full_vocab],
-                yseq=self.append_token(prev_hyp.yseq, full_vocab),
+                score=weighted_scores[full_prev_hyp_id, full_new_token_id],
+                yseq=self.append_token(prev_hyp.yseq, full_new_token_id),
                 scores=self.merge_scores(
                     prev_hyp.scores,
-                    {k: v[full_beam] for k, v in scores.items()}, full_vocab,
-                    {k: v[part_beam] for k, v in part_scores.items()}, part_vocab),
+                    {k: v[full_prev_hyp_id] for k, v in scores.items()}, full_new_token_id,
+                    {k: v[part_prev_hyp_id] for k, v in part_scores.items()}, part_new_token_id),
                 states=self.merge_states(
-                    {k: self.full_scorers[k].select_state(v, full_beam) for k, v in states.items()},
-                    {k: self.part_scorers[k].select_state(v, part_beam) for k, v in part_states.items()},
-                    part_vocab)
+                    {k: self.full_scorers[k].select_state(v, full_prev_hyp_id) for k, v in states.items()},
+                    {k: self.part_scorers[k].select_state(v, part_prev_hyp_id) for k, v in part_states.items()},
+                    part_new_token_id)
             ))
         return best_hyps
