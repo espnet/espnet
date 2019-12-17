@@ -15,7 +15,6 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -23,6 +22,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.e2e import TTSE2E
+from espnet2.tts.frontend.default import DefaultFrontend
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
