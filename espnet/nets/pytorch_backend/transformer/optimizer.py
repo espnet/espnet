@@ -6,9 +6,11 @@
 
 """Optimizer module."""
 
-import torch
 import math
-from torch.optim.optimizer import Optimizer, required
+import torch
+from torch.optim.optimizer import Optimizer
+from torch.optim.optimizer import required
+
 
 class NoamOpt(object):
     """Optim wrapper that implements rate."""
@@ -80,9 +82,8 @@ def get_std_opt_radam(model, d_model, warmup, factor):
 
 
 class RAdam(Optimizer):
-
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, degenerated_to_sgd=True):
-    """__init__"""
+        """__init__"""
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -91,7 +92,7 @@ class RAdam(Optimizer):
             raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
         if not 0.0 <= betas[1] < 1.0:
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
-        
+
         self.degenerated_to_sgd = degenerated_to_sgd
         if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
             for param in params:
@@ -126,8 +127,10 @@ class RAdam(Optimizer):
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_data_fp32)        # -- init. m_t = 0 : exponential moving 1st moment
-                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)     # -- init. v_t = 0 : exponential moving 2nd moment
+                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
+                    # -- init. m_t = 0 : exponential moving 1st moment
+                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
+                    # -- init. v_t = 0 : exponential moving 2nd moment
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
@@ -150,7 +153,7 @@ class RAdam(Optimizer):
                     buffered[0] = state['step']
                     beta2_t = beta2 ** state['step']    # -- b^t_1, b^t_2 : we denote b_1 and b_2 to the power 't'
                     # -- Compute the maximum length of the approximated SMA
-                    # -- rho_infty <-- 2 / (1 - b_2) - 1 
+                    # -- rho_infty <-- 2 / (1 - b_2) - 1
                     N_sma_max = 2 / (1 - beta2) - 1     # rho_infty
                     # -- Compute the length of the approximated SMA
                     # -- rho_t <-- rho_infty - 2 * t * b^t_2 / (1 - b^2 _2)
@@ -160,7 +163,8 @@ class RAdam(Optimizer):
                     # more conservative since it's an approximated value
                     # -- if the variance is tractable, i.e., rho_t > 4 then (in paper)
                     if N_sma >= 5:
-                        step_size = math.sqrt((1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2) / N_sma * N_sma_max / (N_sma_max - 2)) / (1 - beta1 ** state['step'])
+                        step_size = math.sqrt((1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2)
+                                              / N_sma * N_sma_max / (N_sma_max - 2)) / (1 - beta1 ** state['step'])
                     elif self.degenerated_to_sgd:
                         step_size = 1.0 / (1 - beta1 ** state['step'])
                     else:
