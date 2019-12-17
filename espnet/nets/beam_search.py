@@ -310,6 +310,12 @@ class BeamSearch(torch.nn.Module):
             best = self.search(running_hyps, x)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
+            # end detection
+            if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
+                logging.info(f'end detected at {i}')
+                running_hyps = []
+            if len(running_hyps) > 0:
+                logging.debug(f'remeined hypothes: {len(running_hyps)}')
             if len(running_hyps) == 0:
                 logging.info('no hypothesis. Finish decoding.')
                 break
@@ -362,12 +368,6 @@ class BeamSearch(torch.nn.Module):
                 ended_hyps.append(hyp)
             else:
                 remained_hyps.append(hyp)
-        # end detection
-        if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
-            logging.info(f'end detected at {i}')
-            return []
-        if len(remained_hyps) > 0:
-            logging.debug(f'remeined hypothes: {len(remained_hyps)}')
         return remained_hyps
 
 
