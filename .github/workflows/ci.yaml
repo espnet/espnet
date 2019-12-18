@@ -9,7 +9,7 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04]
-        python-version: [3.6, 3.7]
+        python-version: [3.7]
         pytorch-version: [1.0.1, 1.1]
         chainer-version: [6.0.0]
         use-conda: [true, false]
@@ -48,7 +48,3 @@ jobs:
       - name: test integration
         run: |
           ./ci/test_integration.sh
-      - name: codecov
-        run: |
-          source ./tools/venv/bin/activate
-          bash <(curl -s https://codecov.io/bash)
