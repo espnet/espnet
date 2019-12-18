@@ -13,6 +13,10 @@ jobs:
         use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
       - name: install dependencies
         run: |
           sudo apt-get update -qq
