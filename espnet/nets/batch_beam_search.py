@@ -108,11 +108,6 @@ class BatchBeamSearch(BeamSearch):
             Hypothesis: The initial hypothesis.
 
         """
-        init_states = dict()
-        init_scores = dict()
-        for k, d in self.scorers.items():
-            init_states[k] = d.init_state(x)
-            init_scores[k] = 0.0
         return self.batchfy(super().init_hyp(x))
 
     def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
