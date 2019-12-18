@@ -297,9 +297,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
             # 3. Create feats_shape
-            scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape" "${data_feats}/${dset}/logs"
-
+            feat-to-dim "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" ark,t:- | \
+                awk '{ print $2 }' > ${data_feats}/${dset}/feats_dim
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
 
@@ -514,7 +513,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _input_size="$(<${_asr_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
+        _input_size="$(<${_asr_train_dir}/feats_dim)"
         _opts+="--input_size=${_input_size} "
     fi
 
@@ -546,6 +545,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "ASR collect-stats started... log: '${asr_exp}/train.log'"
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
+
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${asr_exp}"/stats.JOB.log \
         python3 -m espnet2.bin.asr_train \
