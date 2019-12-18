@@ -9,7 +9,7 @@ jobs:
       max-parallel: 20
       matrix:
         python-version: [3.6, 3.7]
-        pytorch-version: [1.0.1, 1.1]
+        pytorch-version: [1.0.1]
         use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
@@ -62,4 +62,3 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           path: egs/mini_an4/tts1/exp
-

@@ -20,7 +20,7 @@ jobs:
         environment:
           # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
           ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.3.1
+          TH_VERSION: 1.0.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
@@ -68,8 +68,8 @@ jobs:
         environment:
           # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
           ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          TH_VERSION: 1.0.1
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
           CXX: g++-7
@@ -119,8 +119,8 @@ jobs:
         environment:
           # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
           ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          TH_VERSION: 1.0.1
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
           CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
@@ -175,8 +175,8 @@ jobs:
         environment:
           # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
           ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          TH_VERSION: 1.0.1
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-6
           CXX: g++-6
