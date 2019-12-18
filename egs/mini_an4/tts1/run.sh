@@ -4,7 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
-. ./cmd.sh || exit 1; 
+. ./cmd.sh || exit 1;
+
 # general configuration
 backend=pytorch
 stage=-1
