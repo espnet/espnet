@@ -4,10 +4,11 @@ on: [push, pull_request]
 
 jobs:
   linter_and_test:
-    runs-on: ubuntu-18.04
+    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 20
       matrix:
+        python-version: [ubuntu-16.04, ubuntu-18.04]
         python-version: [3.6, 3.7]
         pytorch-version: [1.0.1, 1.1]
         chainer-version: [6.0.0]
