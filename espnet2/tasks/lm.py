@@ -108,12 +108,7 @@ class LMTask(AbsTask):
         return parser
 
     @classmethod
-    def exclude_opts(cls) -> Tuple[str, ...]:
-        """The options not to be shown by --print_config"""
-        return AbsTask.exclude_opts()
-
-    @classmethod
-    def get_default_config(cls) -> Dict[str, Any]:
+    def get_task_config(cls) -> Dict[str, Any]:
         assert check_argument_types()
         # This method is used only for --print_config
 
