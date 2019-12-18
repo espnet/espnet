@@ -52,18 +52,3 @@ jobs:
         run: |
           source ./tools/venv/bin/activate
           bash <(curl -s https://codecov.io/bash)
-      - name: store_artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: asr1_exp
-          path: egs/mini_an4/asr1/exp
-      - name: store_artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: asr1_mix1_exp
-          path: egs/mini_an4/asr_mix1/exp
-      - name: store_artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: tts1_exp
-          path: egs/mini_an4/tts1/exp
