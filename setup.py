@@ -22,7 +22,7 @@ requirements = {
         'chainer==6.0.0',
         # 'cupy==6.0.0',  # Do not install cupy as default
         'setuptools>=38.5.1',
-        'scipy>=1.3.0',
+        'scipy==1.3.1',
         'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
