@@ -1,5 +1,4 @@
 import pkg_resources
-import torch  # NOQA
 
 try:
     __version__ = pkg_resources.get_distribution('espnet').version
