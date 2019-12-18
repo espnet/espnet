@@ -10,6 +10,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.7]
         pytorch-version: [1.0.1, 1.1]
+        chainer-version: [6.0.0]
         use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
@@ -28,7 +29,7 @@ jobs:
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: 6.0.0
+          CHAINER_VERSION: ${{ matrix.chainer-version }}
           USE_CONDA: ${{ matrix.use-conda }}
           CC: gcc-7
           CXX: g++-7
