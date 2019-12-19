@@ -6,12 +6,10 @@ import random
 import sys
 from abc import ABC
 from abc import abstractmethod
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -27,16 +25,11 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.optimizers.sgd import SGD
-from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
-from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
-from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
-from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
@@ -48,65 +41,11 @@ from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
 
-_classes = dict(
-    adam=torch.optim.Adam,
-    sgd=SGD,
-    adadelta=torch.optim.Adadelta,
-    adagrad=torch.optim.Adagrad,
-    adamax=torch.optim.Adamax,
-    asgd=torch.optim.ASGD,
-    lbfgs=torch.optim.LBFGS,
-    rmsprop=torch.optim.RMSprop,
-    rprop=torch.optim.Rprop,
-)
-if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
-    _classes["adamw"] = torch.optim.AdamW
-optimizer_choices = ClassChoices(
-    "optim", classes=_classes, type_check=torch.optim.Optimizer, default="adagrad"
-)
-
-batch_scheduler_choices = ClassChoices(
-    "bscheduler",
-    dict(
-        ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
-        lambdalr=torch.optim.lr_scheduler.LambdaLR,
-        steplr=torch.optim.lr_scheduler.StepLR,
-        multisteplr=torch.optim.lr_scheduler.MultiStepLR,
-        exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
-        CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
-    ),
-    type_check=AbsEpochScheduler,
-    default=None,
-)
-
-_classes = dict()
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    _classes["noamlr"] = NoamLR
-if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-    _classes.update(
-        cycliclr=torch.optim.lr_scheduler.CyclicLR,
-        onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
-        CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
-    )
-epoch_scheduler_choices = ClassChoices(
-    "escheduler", classes=_classes, type_check=AbsBatchScheduler, default=None
-)
-
-
 class AbsTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
 
-    class_choices_list: List[ClassChoices] = [
-        # --optim and --optim_conf
-        optimizer_choices,
-        # --escheduler and --escheduler_conf
-        epoch_scheduler_choices,
-        # --bscheduler and --bscheduler_conf
-        batch_scheduler_choices,
-    ]
-
-    # If you need to modify train() or eval() procedures, change Trainer class here
+    class_choices_list = []
     trainer: Trainer
 
     def __init__(self):
@@ -453,7 +392,7 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Variable objects")
-        for class_choices in cls.class_choices_list:
+        for class_choices in cls.trainer.class_choices_list + cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --optim and --optim_conf
             class_choices.add_arguments(group)
@@ -478,7 +417,7 @@ class AbsTask(ABC):
         for k in AbsTask.exclude_opts():
             config.pop(k)
 
-        for class_choices in cls.class_choices_list:
+        for class_choices in cls.trainer.class_choices_list + cls.class_choices_list:
             if getattr(args, class_choices.name) is not None:
                 class_obj = class_choices.get_class(getattr(args, class_choices.name))
                 conf = get_default_kwargs(class_obj)
@@ -670,25 +609,14 @@ class AbsTask(ABC):
             dtype = torch.float32
         model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
 
+        logging.info(f"Model:\n{model}")
+        logging.info(f"Train Dataset: {train_dataset}")
+        logging.info(f"Train BatchSampler: {train_batch_sampler}")
+        logging.info(f"Eval Dataset: {eval_dataset}")
+        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
+
         # 6. Build optimizer
-        optimizer_class = optimizer_choices.get_class(args.optim)
-        optimizer = optimizer_class(model.parameters(), **args.optim_conf)
-
-        # 7. Build epoch_scheduler: invoked at every epochs
-        # e.g. torch.optim.lr_scheduler.StepLR
-        if args.escheduler is not None:
-            epoch_scheduler_class = epoch_scheduler_choices.get_class(args.escheduler)
-            epoch_scheduler = epoch_scheduler_class(optimizer, **args.escheduler_conf)
-        else:
-            epoch_scheduler = None
-
-        # 8. Build batch_scheduler: invoked after every updating
-        # e.g. torch.optim.lr_scheduler.CyclicLR
-        if args.bscheduler is not None:
-            batch_scheduler_class = batch_scheduler_choices.get_class(args.bscheduler)
-            batch_scheduler = batch_scheduler_class(optimizer, **args.bscheduler_conf)
-        else:
-            batch_scheduler = None
+        model, optimizer_scheduler = cls.trainer.build_optimizer_and_scheduler(args, model)
 
         # 9. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
@@ -698,15 +626,6 @@ class AbsTask(ABC):
         with (output_dir / "config.yaml").open("w") as f:
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
-
-        logging.info(f"Model:\n{model}")
-        logging.info(f"Train Dataset: {train_dataset}")
-        logging.info(f"Train BatchSampler: {train_batch_sampler}")
-        logging.info(f"Eval Dataset: {eval_dataset}")
-        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
-        logging.info(f"Optimizer:\n{optimizer}")
-        logging.info(f"Epoch scheduler: {epoch_scheduler}")
-        logging.info(f"Batch scheduler: {batch_scheduler}")
 
         # 10. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
@@ -724,11 +643,9 @@ class AbsTask(ABC):
         reporter = Reporter()
         cls.trainer.resume(
             model=model,
-            optimizer=optimizer,
             reporter=reporter,
             output_dir=output_dir,
-            batch_scheduler=batch_scheduler,
-            epoch_scheduler=epoch_scheduler,
+            optimizer_scheduler=optimizer_scheduler,
             resume_epoch=args.resume_epoch,
             resume_path=args.resume_path,
             map_location="cuda" if args.ngpu > 0 else "cpu",
@@ -760,16 +677,14 @@ class AbsTask(ABC):
             # Start training
             cls.trainer.run(
                 model=model,
-                optimizer=optimizer,
+                optimizer_scheduler=optimizer_scheduler,
                 train_iter=train_iter,
                 eval_iter=eval_iter,
                 plot_attention_iter=plot_attention_iter,
                 reporter=reporter,
                 output_dir=output_dir,
-                batch_scheduler=batch_scheduler,
-                epoch_scheduler=epoch_scheduler,
                 max_epoch=args.max_epoch,
-                train_dtype=args.train_dtype,
+                use_apex=args.train_dtype in ("O0", "O1", "O2", "O3"),
                 patience=args.patience,
                 keep_n_best_snapshot=args.keep_n_best_snapshot,
                 early_stopping_criterion=args.early_stopping_criterion,

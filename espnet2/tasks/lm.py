@@ -37,7 +37,7 @@ lm_choices = ClassChoices(
 
 class LMTask(AbsTask):
     # Add variable objects configurations
-    class_choices_list = (AbsTask.class_choices_list + [lm_choices])
+    class_choices_list = [lm_choices]
 
     # If you need to modify train() or eval() procedures change, Trainer class here
     trainer: Trainer

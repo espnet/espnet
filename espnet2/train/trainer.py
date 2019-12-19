@@ -7,6 +7,7 @@ import shutil
 from collections import defaultdict
 from dataclasses import is_dataclass
 from datetime import datetime
+from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Dict
 from typing import Iterable
@@ -26,11 +27,13 @@ from typeguard import check_argument_types
 from typeguard import check_type
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
+from espnet2.train.class_choices import ClassChoices
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
@@ -63,6 +66,24 @@ class PlotAttentionOptions:
     no_forward_run: bool
 
 
+class BaseOptimizerScheduler:
+    epoch_scheduler: Optional[AbsEpochScheduler]
+
+    def state_dict(self):
+        {k: v.state_dict() for k, v in vars(self).items()}
+
+    def load_state_dict(self, state):
+        for k, v in state:
+            obj = getattr(self, k)
+            obj.load_state_dict(v)
+
+
+@dataclasses.dataclass(frozen=True)
+class OptimizerScheduler(BaseOptimizerScheduler):
+    optimizer: torch.optim.Optimizer
+    batch_scheduler: Optional[AbsBatchScheduler]
+
+
 def build_dataclass(dataclass, args: argparse.Namespace):
     """Helper function to build dataclass from 'args'."""
     kwargs = {}
@@ -72,27 +93,121 @@ def build_dataclass(dataclass, args: argparse.Namespace):
     return dataclass(**kwargs)
 
 
+_classes = dict(
+    adam=torch.optim.Adam,
+    sgd=SGD,
+    adadelta=torch.optim.Adadelta,
+    adagrad=torch.optim.Adagrad,
+    adamax=torch.optim.Adamax,
+    asgd=torch.optim.ASGD,
+    lbfgs=torch.optim.LBFGS,
+    rmsprop=torch.optim.RMSprop,
+    rprop=torch.optim.Rprop,
+)
+if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
+    _classes["adamw"] = torch.optim.AdamW
+optimizer_choices = ClassChoices(
+    "optim", classes=_classes, type_check=torch.optim.Optimizer, default="adagrad"
+)
+
+batch_scheduler_choices = ClassChoices(
+    "bscheduler",
+    dict(
+        ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
+        lambdalr=torch.optim.lr_scheduler.LambdaLR,
+        steplr=torch.optim.lr_scheduler.StepLR,
+        multisteplr=torch.optim.lr_scheduler.MultiStepLR,
+        exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
+        CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
+    ),
+    type_check=AbsEpochScheduler,
+    default=None,
+)
+
+_classes = dict()
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    _classes["noamlr"] = NoamLR
+if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
+    _classes.update(
+        cycliclr=torch.optim.lr_scheduler.CyclicLR,
+        onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
+        CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
+    )
+epoch_scheduler_choices = ClassChoices(
+    "escheduler", classes=_classes, type_check=AbsBatchScheduler, default=None
+)
+
+
 class Trainer:
     """Our common Trainer.
 
     This class may be coupled with "AbsTask" class tightly.
     You need to read both to understand.
     
-    TODO(kamo): If I think the design is stable, I'll define abstract class.
     """
+
+    class_choices_list: List[ClassChoices] = [
+        # --optim and --optim_conf
+        optimizer_choices,
+        # --escheduler and --escheduler_conf
+        epoch_scheduler_choices,
+        # --bscheduler and --bscheduler_conf
+        batch_scheduler_choices,
+    ]
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
+    def build_optimizer_and_scheduler(
+        cls, args: argparse.Namespace,
+        model: torch.nn.Module
+    ) -> Tuple[OptimizerScheduler, torch.nn.Module]:
+        # 6. Build optimizer
+        optimizer_class = optimizer_choices.get_class(args.optim)
+        optimizer = optimizer_class(model.parameters(), **args.optim_conf)
+
+        # 7. Build epoch_scheduler: invoked at every epochs
+        # e.g. torch.optim.lr_scheduler.StepLR
+        if args.escheduler is not None:
+            epoch_scheduler_class = epoch_scheduler_choices.get_class(args.escheduler)
+            epoch_scheduler = epoch_scheduler_class(optimizer, **args.escheduler_conf)
+        else:
+            epoch_scheduler = None
+
+        # 8. Build batch_scheduler: invoked after every updating
+        # e.g. torch.optim.lr_scheduler.CyclicLR
+        if args.bscheduler is not None:
+            batch_scheduler_class = batch_scheduler_choices.get_class(args.bscheduler)
+            batch_scheduler = batch_scheduler_class(optimizer, **args.bscheduler_conf)
+        else:
+            batch_scheduler = None
+
+        logging.info(f"Optimizer:\n{optimizer}")
+        logging.info(f"Epoch scheduler: {epoch_scheduler}")
+        logging.info(f"Batch scheduler: {batch_scheduler}")
+
+        use_apex = args.train_dtype in ("O0", "O1", "O2", "O3")
+        if use_apex:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    f"You need to install apex. "
+                    f"See https://github.com/NVIDIA/apex#linux"
+                )
+                raise
+            model, optimizer = amp.initialize(
+                model, optimizer, opt_level=args.train_dtype
+            )
+        return OptimizerScheduler(optimizer, epoch_scheduler, batch_scheduler), model
+
+    @classmethod
     def build_options(
-        cls, args: argparse.Namespace
+            cls, args: argparse.Namespace
     ) -> (Tuple[TrainOptions, EvalOptions, PlotAttentionOptions]):
-        """Build options consumed by train(), eval(), and plot_attention()
-
-        Note(kamo): Only this method is allowed to handle "args" object,
-
-        """
+        """Build options consumed by train(), eval(), and plot_attention()"""
+        assert check_argument_types()
         train_options = build_dataclass(TrainOptions, args)
         eval_options = build_dataclass(EvalOptions, args)
         plot_attention_options = build_dataclass(EvalOptions, args)
@@ -102,11 +217,9 @@ class Trainer:
     def resume(
         cls,
         model: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
+        optimizer_scheduler: BaseOptimizerScheduler,
         reporter: Reporter,
         output_dir: Union[str, Path],
-        batch_scheduler: Optional[AbsBatchScheduler],
-        epoch_scheduler: Optional[AbsEpochScheduler],
         resume_epoch: Optional[Union[int, str]],
         resume_path: Optional[Union[str, Path]],
         map_location: str,
@@ -150,10 +263,8 @@ class Trainer:
 
             for key, obj in [
                 ("model", model),
-                ("optimizer", optimizer),
                 ("reporter", reporter),
-                ("epoch_scheduler", epoch_scheduler),
-                ("batch_scheduler", batch_scheduler),
+                ("optimizer_scheduler", optimizer_scheduler),
             ]:
                 _st = torch.load(resume_path / f"{key}.pt", map_location=map_location)
                 if obj is not None:
@@ -256,20 +367,18 @@ class Trainer:
     def run(
         cls,
         model: AbsE2E,
-        optimizer: torch.optim.Optimizer,
+        optimizer_scheduler: BaseOptimizerScheduler,
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         plot_attention_iter,
         reporter: Reporter,
         output_dir: Union[str, Path],
-        batch_scheduler: Optional[AbsBatchScheduler],
-        epoch_scheduler: Optional[AbsEpochScheduler],
         train_options,
         eval_options,
         plot_attention_options,
         max_epoch: int,
         patience: Optional[int],
-        train_dtype: str,
+        use_apex: bool,
         keep_n_best_snapshot: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
@@ -283,17 +392,7 @@ class Trainer:
         assert is_dataclass(eval_options), type(eval_options)
         assert is_dataclass(plot_attention_options), type(eval_options)
 
-        # For apex supporting
-        if train_dtype in ("O0", "O1", "O2", "O3"):
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    f"You need to install apex. "
-                    f"See https://github.com/NVIDIA/apex#linux"
-                )
-                raise
-            model, optimizer = amp.initialize(model, optimizer, opt_level=train_dtype)
+        epoch_scheduler = optimizer_scheduler.epoch_scheduler
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -310,11 +409,11 @@ class Trainer:
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.train(
                     model=model,
-                    optimizer=optimizer,
+                    optimizer_scheduler=optimizer_scheduler,
                     iterator=train_iter,
                     reporter=sub_reporter,
-                    scheduler=batch_scheduler,
                     options=train_options,
+                    use_apex=use_apex,
                 )
             with reporter.observe("eval") as sub_reporter:
                 cls.eval(
@@ -355,10 +454,8 @@ class Trainer:
             # 4. Save the snapshot
             for key, obj in [
                 ("model", model),
-                ("optimizer", optimizer),
+                ("optimizer_scheduler", optimizer_scheduler),
                 ("reporter", reporter),
-                ("epoch_scheduler", epoch_scheduler),
-                ("batch_scheduler", batch_scheduler),
             ]:
                 (output_dir / f"{iepoch}epoch").mkdir(parents=True, exist_ok=True)
                 p = output_dir / f"{iepoch}epoch" / f"{key}.pt"
@@ -445,15 +542,17 @@ class Trainer:
         cls,
         model: AbsE2E,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        optimizer: torch.optim.Optimizer,
+        optimizer_scheduler: OptimizerScheduler,
         reporter: SubReporter,
-        scheduler: Optional[AbsBatchScheduler],
         options: TrainOptions,
+        use_apex: bool,
     ) -> bool:
         assert check_argument_types()
 
+        optimizer = optimizer_scheduler.optimizer
+        scheduler = optimizer_scheduler.batch_scheduler
+
         ngpu = options.ngpu
-        use_apex = options.use_apex
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
         grad_clip = options.grad_noise

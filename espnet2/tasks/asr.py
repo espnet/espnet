@@ -77,17 +77,16 @@ decoder_choices = ClassChoices(
 
 class ASRTask(AbsTask):
     # Add variable objects configurations
-    class_choices_list = (
-        AbsTask.class_choices_list +
+    class_choices_list = [
         # --frontend and --frontend_conf
-        [frontend_choices,
-         # --normalize and --normalize_conf
-         normalize_choices,
-         # --encoder and --encoder_conf
-         encoder_choices,
-         # --decoder and --decoder_conf
-         decoder_choices]
-    )
+        frontend_choices,
+        # --normalize and --normalize_conf
+        normalize_choices,
+        # --encoder and --encoder_conf
+        encoder_choices,
+        # --decoder and --decoder_conf
+        decoder_choices
+    ]
 
     # If you need to modify train() or eval() procedures change, Trainer class here
     trainer: Trainer
