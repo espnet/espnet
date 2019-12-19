@@ -50,15 +50,14 @@ tts_choices = ClassChoices(
 
 class TTSTask(AbsTask):
     # Add variable objects configurations
-    class_choices_list = (
-        AbsTask.class_choices_list +
+    class_choices_list = [
         # --feats_extractor and --feats_extractor_conf
-        [feats_extractor_choices,
-         # --normalize and --normalize_conf
-         normalize_choices,
-         # --tts and --tts_conf
-         tts_choices]
-    )
+        feats_extractor_choices,
+        # --normalize and --normalize_conf
+        normalize_choices,
+        # --tts and --tts_conf
+        tts_choices
+    ]
 
     # If you need to modify train() or eval() procedures change, Trainer class here
     trainer: Trainer
