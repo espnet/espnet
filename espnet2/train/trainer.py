@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import argparse
+import dataclasses
 import logging
 import shutil
 from collections import defaultdict
+from dataclasses import is_dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -21,25 +23,85 @@ import torch.optim
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
+from typeguard import check_type
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.add_gradient_noise import add_gradient_noise
+from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
-from espnet2.utils.calculate_all_attentions import calculate_all_attentions
-from espnet2.utils.device_funcs import to_device
+from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
+from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
+
+
+@dataclasses.dataclass(frozen=True)
+class TrainOptions:
+    ngpu: int
+    use_apex: bool
+    grad_noise: bool
+    accum_grad: int
+    grad_clip: float
+    log_interval: Optional[int]
+    no_forward_run: bool
+    no_backward_run: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class EvalOptions:
+    ngpu: int
+    no_forward_run: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class PlotAttentionOptions:
+    ngpu: int
+    no_forward_run: bool
+
+
+def build_dataclass(dataclass, args: argparse.Namespace):
+    """Helper function to build dataclass from 'args'."""
+    kwargs = {}
+    for field in dataclasses.fields(dataclass):
+        check_type(field.name, getattr(args, field.name), field.type)
+        kwargs[field.name] = getattr(args, field.name)
+    return dataclass(**kwargs)
 
 
 class Trainer:
+    """Our common Trainer.
+
+    This class may be coupled with "AbsTask" class tightly.
+    You need to read both to understand.
+    
+    TODO(kamo): If I think the design is stable, I'll define abstract class.
+    """
+    
+    def __init__(self):
+        raise RuntimeError("This class can't be instantiated.")
+
     @classmethod
-    def load(
+    def build_options(cls, args: argparse.Namespace) -> (
+        Tuple[TrainOptions, EvalOptions, PlotAttentionOptions]
+    ):
+        """Build options consumed by train(), eval(), and plot_attention()
+
+        Note(kamo): Only this method is allowed to handle "args" object,
+
+        """
+        train_options = build_dataclass(TrainOptions, args)
+        eval_options = build_dataclass(EvalOptions, args)
+        plot_attention_options = build_dataclass(EvalOptions, args)
+        return train_options, eval_options, plot_attention_options
+
+    @classmethod
+    def resume(
         cls,
-        model: AbsE2E,
+        model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         reporter: Reporter,
         output_dir: Union[str, Path],
@@ -47,8 +109,6 @@ class Trainer:
         epoch_scheduler: Optional[AbsEpochScheduler],
         resume_epoch: Optional[Union[int, str]],
         resume_path: Optional[Union[str, Path]],
-        pretrain_path: Optional[Union[str, Path]],
-        pretrain_key: Optional[str],
         map_location: str,
     ) -> None:
         assert check_argument_types()
@@ -83,8 +143,7 @@ class Trainer:
             if resume_path is None:
                 resume_path = output_dir / f"{resume_epoch}epoch"
                 logging.info(
-                    f"--resume_epoch {resume_epoch}: "
-                    f"Loading from {resume_path}"
+                    f"--resume_epoch {resume_epoch}: Loading from {resume_path}"
                 )
             else:
                 logging.info(
@@ -99,48 +158,9 @@ class Trainer:
                 ("epoch_scheduler", epoch_scheduler),
                 ("batch_scheduler", batch_scheduler),
             ]:
-                _st = torch.load(
-                    resume_path / f"{key}.pt", map_location=map_location
-                )
+                _st = torch.load(resume_path / f"{key}.pt", map_location=map_location)
                 if obj is not None:
                     obj.load_state_dict(_st)
-
-        # FIXME(kamo): Should be done in Task.build_model() or in model?
-        # For distillation, fine-tuning, transfer learning, etc.
-        if pretrain_path is not None:
-            if pretrain_key is None:
-                obj = model
-            else:
-
-                def get_attr(obj: Any, key: str):
-                    """
-
-                    >>> class A(torch.nn.Module):
-                    ...     def __init__(self):
-                    ...         super().__init__()
-                    ...         self.linear = torch.nn.Linear(10, 10)
-                    >>> a = A()
-                    >>> assert A.linear.weight is get_attr(A, 'linear.weight')
-
-                    """
-                    if key.strip() == "":
-                        return obj
-                    for k in key.split("."):
-                        obj = getattr(obj, k)
-                    return obj
-
-                obj = get_attr(model, pretrain_key)
-
-            state_dict = obj.state_dict()
-            pretrained_dict = torch.load(
-                pretrain_path, map_location=map_location
-            )
-            # Ignores the parameters not existing in the train-model
-            pretrained_dict = {
-                k: v for k, v in pretrained_dict.items() if k in state_dict
-            }
-            state_dict.update(pretrained_dict)
-            obj.load_state_dict(state_dict)
 
     @classmethod
     @torch.no_grad()
@@ -153,8 +173,13 @@ class Trainer:
         ngpu: Optional[int],
         log_interval: Optional[int],
     ) -> None:
-        """Running for deriving the shape information from data
-        and gathering statistics"""
+        """Perform on collect_stats mode.
+
+        Running for deriving the shape information from data
+        and gathering statistics.
+        This method is used before executing run().
+
+        """
         assert check_argument_types()
         output_dir = Path(output_dir)
 
@@ -183,7 +208,16 @@ class Trainer:
                             writer[f"{name}_shape"][k] = shape
 
                     # 2. Extract feats and calc sum and square sum
-                    data = model.collect_feats(**batch)
+                    if ngpu <= 1:
+                        data = model.collect_feats(**batch)
+                    else:
+                        # Note that data_parallel can parallelize only "forward()"
+                        data = data_parallel(
+                            ForwardAdaptor(model, "collect_feats"),
+                            (),
+                            range(ngpu),
+                            module_kwargs=batch
+                        )
                     for k, v in data.items():
                         if k.endswith("_lengths"):
                             continue
@@ -234,22 +268,24 @@ class Trainer:
         output_dir: Union[str, Path],
         batch_scheduler: Optional[AbsBatchScheduler],
         epoch_scheduler: Optional[AbsEpochScheduler],
+        train_options,
+        eval_options,
+        plot_attention_options,
         max_epoch: int,
         patience: Optional[int],
-        ngpu: int,
         train_dtype: str,
-        grad_noise: bool,
-        accum_grad: int,
-        grad_clip: float,
-        log_interval: Optional[int],
         keep_n_best_snapshot: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
-        no_forward_run: bool,
-        no_backward_run: bool,
     ) -> None:
+        """Perform training. This method performs the main process of training."""
         assert check_argument_types()
+        # FIXME(kamo): Python<=3.8 may not provide typehint for dataclass
+        # NOTE(kamo): Don't check the type more strict as far *_options
+        assert is_dataclass(train_options), type(train_options)
+        assert is_dataclass(eval_options), type(eval_options)
+        assert is_dataclass(plot_attention_options), type(eval_options)
 
         # For apex supporting
         if train_dtype in ("O0", "O1", "O2", "O3"):
@@ -268,8 +304,7 @@ class Trainer:
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
             logging.warning(
-                f"The training has already reached at "
-                f"max_epoch: {start_epoch}"
+                f"The training has already reached at max_epoch: {start_epoch}"
             )
 
         best_epoch_dict = {}
@@ -285,31 +320,23 @@ class Trainer:
                     iterator=train_iter,
                     reporter=sub_reporter,
                     scheduler=batch_scheduler,
-                    ngpu=ngpu,
-                    use_apex=train_dtype in ("O0", "O1", "O2", "O3"),
-                    grad_noise=grad_noise,
-                    accum_grad=accum_grad,
-                    grad_clip=grad_clip,
-                    log_interval=log_interval,
-                    no_forward_run=no_forward_run,
-                    no_backward_run=no_backward_run,
+                    options=train_options,
                 )
             with reporter.observe("eval") as sub_reporter:
                 cls.eval(
                     model=model,
                     iterator=eval_iter,
                     reporter=sub_reporter,
-                    ngpu=ngpu,
-                    no_forward_run=no_forward_run,
+                    options=eval_options,
                 )
-            if plot_attention_iter is not None and not no_forward_run:
+            if plot_attention_iter is not None:
                 with reporter.observe("att_plot") as sub_reporter:
                     cls.plot_attention(
                         model=model,
                         output_dir=output_dir / "att_ws" / f"{iepoch}epoch",
                         iterator=plot_attention_iter,
-                        ngpu=ngpu,
                         reporter=sub_reporter,
+                        options=plot_attention_options,
                     )
 
             # 2. Scheduler step
@@ -393,9 +420,7 @@ class Trainer:
                     shutil.rmtree(p)
                     _removed.append(str(p))
             if len(_removed) != 0:
-                logging.info(
-                    f"The snapshot was removed: " + ", ".join(_removed)
-                )
+                logging.info(f"The snapshot was removed: " + ", ".join(_removed))
 
             # 7. If any updating haven't happen, stops the training
             if all_steps_are_invalid:
@@ -429,14 +454,6 @@ class Trainer:
         else:
             logging.info(f"The training was finished at {max_epoch} epochs ")
 
-        # 9. Average the n-best models
-        cls.average_nbest_models(
-            reporter=reporter,
-            output_dir=output_dir,
-            best_model_criterion=best_model_criterion,
-            nbest=keep_n_best_snapshot,
-        )
-
     @classmethod
     def train(
         cls,
@@ -445,16 +462,19 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         reporter: SubReporter,
         scheduler: Optional[AbsBatchScheduler],
-        ngpu: int,
-        use_apex: bool,
-        grad_noise: bool,
-        accum_grad: int,
-        grad_clip: float,
-        log_interval: Optional[int],
-        no_forward_run: bool,
-        no_backward_run: bool,
+        options: TrainOptions,
     ) -> bool:
         assert check_argument_types()
+
+        ngpu = options.ngpu
+        use_apex = options.use_apex
+        grad_noise = options.grad_noise
+        accum_grad = options.accum_grad
+        grad_clip = options.grad_noise
+        log_interval = options.log_interval
+        no_forward_run = options.no_forward_run
+        no_backward_run = options.no_backward_run
+
         if log_interval is None:
             log_interval = max(len(iterator) // 20, 10)
 
@@ -547,10 +567,12 @@ class Trainer:
         model: AbsE2E,
         iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
-        ngpu: int,
-        no_forward_run: bool,
+        options: EvalOptions,
     ) -> None:
         assert check_argument_types()
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
+
         model.eval()
         for (_, batch) in iterator:
             assert isinstance(batch, dict), type(batch)
@@ -582,11 +604,14 @@ class Trainer:
         model: AbsE2E,
         output_dir: Path,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        ngpu: int,
         reporter: SubReporter,
+        options: PlotAttentionOptions,
     ) -> None:
         assert check_argument_types()
         import matplotlib
+
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
 
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
@@ -601,6 +626,8 @@ class Trainer:
                 len(ids),
             )
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+            if no_forward_run:
+                continue
 
             # 1. Forwarding model and gathering all attentions
             #    calculate_all_attentions() uses single gpu only.

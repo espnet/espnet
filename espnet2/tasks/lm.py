@@ -1,15 +1,12 @@
 import argparse
 import logging
-from typing import Any
 from typing import Callable
 from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Type
 
-import configargparse
 import numpy as np
 import torch
 from typeguard import check_argument_types
@@ -19,30 +16,36 @@ from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.e2e import LanguageE2E
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.class_choices import ClassChoices
+from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
 
-class LMTask(AbsTask):
-    @classmethod
-    def add_arguments(
-        cls, parser: configargparse.ArgumentParser = None
-    ) -> configargparse.ArgumentParser:
-        assert check_argument_types()
-        # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        if parser is None:
-            parser = configargparse.ArgumentParser(
-                description="Train language model",
-                config_file_parser_class=configargparse.YAMLConfigFileParser,
-                formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
-            )
+lm_choices = ClassChoices(
+    "lm",
+    classes=dict(seq_rnn=SequentialRNNLM),
+    type_check=AbsLM,
+    default="seq_rnn"
+)
 
-        AbsTask.add_arguments(parser)
+
+class LMTask(AbsTask):
+    # Add variable objects configurations
+    class_choices_list = (AbsTask.class_choices_list + [lm_choices])
+
+    # If you need to modify train() or eval() procedures change, Trainer class here
+    trainer: Trainer
+
+    @classmethod
+    def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        # NOTE(kamo): Use '_' instead of '-' to avoid confusion
+        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -62,19 +65,6 @@ class LMTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=cls.init_choices(),
-        )
-        group.add_argument(
-            "--lm",
-            type=lambda x: x.lower(),
-            default="seq_rnn",
-            choices=cls.lm_choices(),
-            help="Specify lm class",
-        )
-        group.add_argument(
-            "--lm_conf",
-            action=NestedDictAction,
-            default=dict(),
-            help="The keyword arguments for lm class.",
         )
         group.add_argument(
             "--e2e_conf",
@@ -108,36 +98,10 @@ class LMTask(AbsTask):
         return parser
 
     @classmethod
-    def get_task_config(cls) -> Dict[str, Any]:
-        assert check_argument_types()
+    def get_task_config(cls) -> Dict[str, dict]:
         # This method is used only for --print_config
-
-        # 0. Parse command line arguments
-        parser = LMTask.add_arguments()
-        args, _ = parser.parse_known_args()
-
-        # 1. Get the default values from class.__init__
-        lm_class = cls.get_lm_class(args.lm)
-        lm_conf = get_default_kwargs(lm_class)
         e2e_conf = get_default_kwargs(LanguageE2E)
-
-        # 2. Create configuration-dict from command-arguments
-        config = vars(args)
-
-        # 3. Update the dict using the inherited configuration from BaseTask
-        config.update(AbsTask.get_default_config())
-
-        # 4. Overwrite the default config by the command-arguments
-        lm_conf.update(config["lm_conf"])
-        e2e_conf.update(config["e2e_conf"])
-
-        # 5. Reassign them to the configuration
-        config.update(lm_conf=lm_conf, e2e_conf=e2e_conf)
-
-        # 6. Excludes the options not to be shown
-        for k in cls.exclude_opts():
-            config.pop(k)
-
+        config = dict(e2e_conf=e2e_conf)
         assert check_return_type(config)
         return config
 
@@ -152,25 +116,6 @@ class LMTask(AbsTask):
             None,
         )
         return choices
-
-    @classmethod
-    def lm_choices(cls) -> Tuple[str, ...]:
-        choices = ("seq_rnn",)
-        return choices
-
-    @classmethod
-    def get_lm_class(cls, name: str) -> Type[AbsLM]:
-        assert check_argument_types()
-        # NOTE(kamo): Don't use getattr or dynamic_import
-        # for readability and debuggability as possible
-        if name.lower() == "seq_rnn":
-            retval = SequentialRNNLM
-        else:
-            raise RuntimeError(
-                f"--lm must be one of " f"{cls.lm_choices()}: --lm {name}"
-            )
-        assert check_return_type(retval)
-        return retval
 
     @classmethod
     def build_collate_fn(
@@ -226,7 +171,7 @@ class LMTask(AbsTask):
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. Build LM model
-        lm_class = cls.get_lm_class(args.lm)
+        lm_class = lm_choices.get_class(args.lm)
         lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
 
         # 2. Build E2E
