@@ -80,14 +80,14 @@ class Trainer:
     
     TODO(kamo): If I think the design is stable, I'll define abstract class.
     """
-    
+
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
-    def build_options(cls, args: argparse.Namespace) -> (
-        Tuple[TrainOptions, EvalOptions, PlotAttentionOptions]
-    ):
+    def build_options(
+        cls, args: argparse.Namespace
+    ) -> (Tuple[TrainOptions, EvalOptions, PlotAttentionOptions]):
         """Build options consumed by train(), eval(), and plot_attention()
 
         Note(kamo): Only this method is allowed to handle "args" object,
@@ -146,10 +146,7 @@ class Trainer:
                     f"--resume_epoch {resume_epoch}: Loading from {resume_path}"
                 )
             else:
-                logging.info(
-                    f"--resume_path {resume_path}: "
-                    f"Loading from {resume_path}"
-                )
+                logging.info(f"--resume_path {resume_path}: Loading from {resume_path}")
 
             for key, obj in [
                 ("model", model),
@@ -216,7 +213,7 @@ class Trainer:
                             ForwardAdaptor(model, "collect_feats"),
                             (),
                             range(ngpu),
-                            module_kwargs=batch
+                            module_kwargs=batch,
                         )
                     for k, v in data.items():
                         if k.endswith("_lengths"):
@@ -232,9 +229,7 @@ class Trainer:
                             ind = 0
                             count = v.size(0)
                         v = v.cpu()
-                        v.masked_fill_(
-                            make_pad_mask(data[f"{k}_lengths"], v, 1), 0.0
-                        )
+                        v.masked_fill_(make_pad_mask(data[f"{k}_lengths"], v, 1), 0.0)
                         sum_dict[k] += v.sum(ind).cpu().numpy()
                         sq_dict[k] += (v ** 2).sum(ind).cpu().numpy()
                         count_dict[k] += count
@@ -247,11 +242,12 @@ class Trainer:
                     output_dir / mode / f"{key}_stats.npz",
                     count=count_dict[key],
                     sum=sum_dict[key],
-                    sum_square=sq_dict[key]
+                    sum_square=sq_dict[key],
                 )
             with (output_dir / mode / "shape_keys").open("w") as f:
-                f.write("\n".join(
-                    filter(lambda x: not x.endswith("_lengths"), batch)) + "\n"
+                f.write(
+                    "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
+                    + "\n"
                 )
             with (output_dir / mode / "stats_keys").open("w") as f:
                 f.write("\n".join(sum_dict) + "\n")
@@ -297,9 +293,7 @@ class Trainer:
                     f"See https://github.com/NVIDIA/apex#linux"
                 )
                 raise
-            model, optimizer = amp.initialize(
-                model, optimizer, opt_level=train_dtype
-            )
+            model, optimizer = amp.initialize(model, optimizer, opt_level=train_dtype)
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -366,9 +360,7 @@ class Trainer:
                 ("epoch_scheduler", epoch_scheduler),
                 ("batch_scheduler", batch_scheduler),
             ]:
-                (output_dir / f"{iepoch}epoch").mkdir(
-                    parents=True, exist_ok=True
-                )
+                (output_dir / f"{iepoch}epoch").mkdir(parents=True, exist_ok=True)
                 p = output_dir / f"{iepoch}epoch" / f"{key}.pt"
                 p.parent.mkdir(parents=True, exist_ok=True)
                 torch.save(obj.state_dict() if obj is not None else None, p)
@@ -381,9 +373,7 @@ class Trainer:
             _improved = []
             for _phase, k, _mode in best_model_criterion:
                 if reporter.has(_phase, k):
-                    best_epoch, _ = reporter.sort_epochs_and_values(
-                        _phase, k, _mode
-                    )[0]
+                    best_epoch, _ = reporter.sort_epochs_and_values(_phase, k, _mode)[0]
                     best_epoch_dict[(_phase, k)] = best_epoch
                     # Creates sym links if it's the best result
                     if best_epoch == iepoch:
@@ -403,9 +393,7 @@ class Trainer:
             _removed = []
             # nbests: List[List[Tuple[epoch, value]]]
             nbests = [
-                reporter.sort_epochs_and_values(ph, k, m)[
-                    :keep_n_best_snapshot
-                ]
+                reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_snapshot]
                 for ph, k, m in best_model_criterion
                 if reporter.has(ph, k)
             ]
@@ -425,9 +413,8 @@ class Trainer:
             # 7. If any updating haven't happen, stops the training
             if all_steps_are_invalid:
                 logging.warning(
-                    f"The gradients at all steps are invalid "
-                    f"in this epoch. Something seems wrong. "
-                    f"This training was stopped at {iepoch}epoch"
+                    f"The gradients at all steps are invalid in this epoch. "
+                    f"Something seems wrong. This training was stopped at {iepoch}epoch"
                 )
                 break
 
@@ -444,9 +431,8 @@ class Trainer:
                 )[0]
                 if iepoch - best_epoch > patience:
                     logging.info(
-                        f"[Early stopping] {_phase}.{_criterion} "
-                        f"has not been improved "
-                        f"{iepoch - best_epoch} epochs continuously. "
+                        f"[Early stopping] {_phase}.{_criterion} has not been "
+                        f"improved {iepoch - best_epoch} epochs continuously. "
                         f"The training was stopped at {iepoch}epoch"
                     )
                     break
@@ -531,9 +517,7 @@ class Trainer:
                 )
 
             # compute the gradient norm to check if it is normal or not
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), grad_clip
-            )
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             if iiter % accum_grad == 0:
                 if not np.isfinite(grad_norm):
                     logging.warning(
@@ -644,9 +628,7 @@ class Trainer:
                     if att_w.ndim == 2:
                         att_w = att_w[None]
                     elif att_w.ndim > 3 or att_w.ndim == 1:
-                        raise RuntimeError(
-                            f"Must be 2 or 3 dimension: {att_w.ndim}"
-                        )
+                        raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
 
                     w, h = plt.figaspect(1.0 / len(att_w))
                     fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
@@ -701,8 +683,7 @@ class Trainer:
             for e, _ in epoch_and_values:
                 if e not in _loaded:
                     _loaded[e] = torch.load(
-                        output_dir / f"{e}epoch" / "model.pt",
-                        map_location="cpu",
+                        output_dir / f"{e}epoch" / "model.pt", map_location="cpu",
                     )
                 states = _loaded[e]
 
