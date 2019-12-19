@@ -20,7 +20,7 @@ from espnet2.lm.e2e import LanguageE2E
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.initialize import initialize
+from espnet2.torch_utils.initialize import initialize
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction

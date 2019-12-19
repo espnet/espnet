@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.train.initialize import initialize
+from espnet2.torch_utils.initialize import initialize
 
 initialize_types = {}
 

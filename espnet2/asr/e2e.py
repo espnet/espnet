@@ -16,7 +16,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.utils.device_funcs import force_gatherable
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class ASRE2E(AbsE2E):
