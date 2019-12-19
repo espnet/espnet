@@ -1,5 +1,6 @@
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
 from typeguard import check_argument_types
@@ -12,7 +13,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: int = 512,
+        win_length: Union[int, None] = 512,
         hop_length: int = 128,
         center: bool = True,
         pad_mode: str = "reflect",
@@ -22,7 +23,10 @@ class Stft(torch.nn.Module, InversibleInterface):
         assert check_argument_types()
         super().__init__()
         self.n_fft = n_fft
-        self.win_length = win_length
+        if win_length is None:
+            self.win_length = n_fft
+        else:
+            self.win_length = win_length
         self.hop_length = hop_length
         self.center = center
         self.pad_mode = pad_mode
