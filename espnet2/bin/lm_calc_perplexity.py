@@ -21,29 +21,13 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
+from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-
-
-class ModuleWrapper(torch.nn.Module):
-    """Wrapped module to parallelize specified method
-
-    torch.nn.DataParallel parallelizes only "forward()"
-    and, maybe, the method having the other name can't be applied
-    except for wrapping the module just like this class.
-
-    """
-
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
-
-    def forward(self, *args, **kwargs):
-        return self.module.nll(*args, **kwargs)
 
 
 def calc_perplexity(
@@ -84,7 +68,8 @@ def calc_perplexity(
     train_args = argparse.Namespace(**train_args)
     model = LMTask.build_model(train_args)
     model.load_state_dict(torch.load(model_file, map_location=device))
-    wrapped_model = ModuleWrapper(model)
+    # Wrape model to make model.nll() data-parallel
+    wrapped_model = ForwardAdaptor(model, "nll")
     wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
