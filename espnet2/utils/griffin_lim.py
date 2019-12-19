@@ -110,7 +110,7 @@ class Spc2Wav(object):
         fs: int,
         n_fft: int,
         n_shift: int,
-        n_mels: Union[int, None] = 80,
+        n_mels: Union[int, None] = None,
         win_length: Optional[Union[int, None]] = None,
         window: Optional[str] = 'hann',
         fmin: Optional[Union[int, None]] = None,
