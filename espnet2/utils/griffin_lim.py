@@ -102,7 +102,7 @@ def griffin_lim(
 
 
 # TODO(kan-bayashi): write as torch.nn.Module
-class Spc2Wav(object):
+class Spectrogram2Waveform(object):
     """Spectrogram to waveform conversion module."""
 
     def __init__(
