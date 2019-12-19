@@ -3,20 +3,15 @@ from __future__ import annotations
 import argparse
 import logging
 import random
-import shutil
 import sys
 from abc import ABC
 from abc import abstractmethod
-from collections import defaultdict
-from datetime import datetime
 from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import Iterable
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -27,32 +22,25 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
-from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
 from espnet2.schedulers.noam_lr import NoamLR
+from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.add_gradient_noise import add_gradient_noise
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
+from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.reporter import Reporter
-from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer
-from espnet2.utils.calculate_all_attentions import calculate_all_attentions
-from espnet2.utils.device_funcs import to_device
-from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -60,130 +48,85 @@ from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
 
-class BaseChoices:
-    base_type: type
+_classes = dict(
+    adam=torch.optim.Adam,
+    sgd=SGD,
+    adadelta=torch.optim.Adadelta,
+    adagrad=torch.optim.Adagrad,
+    adamax=torch.optim.Adamax,
+    asgd=torch.optim.ASGD,
+    lbfgs=torch.optim.LBFGS,
+    rmsprop=torch.optim.RMSprop,
+    rprop=torch.optim.Rprop
+)
+if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
+    _classes["adamw"] = torch.optim.AdamW
+optimizer_choices = ClassChoices(
+    "optim",
+    classes=_classes,
+    type_check=torch.optim.Optimizer,
+    default="adagrad")
 
-    def __init__(
-            self,
-            name: str,
-            classes: Mapping[str, type],
-            default: str = None,
-            optional: bool = False
-    ):
-        assert check_argument_types()
-        self.name = name
-        self.classes = {k.lower(): v for k, v in classes.items()}
-        self.optional = optional
-        self.default = default
-        if default is None:
-            self.optional = True
+batch_scheduler_choices = ClassChoices(
+    "eshceduler",
+    dict(
+        ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
+        lambdalr=torch.optim.lr_scheduler.LambdaLR,
+        steplr=torch.optim.lr_scheduler.StepLR,
+        multisteplr=torch.optim.lr_scheduler.MultiStepLR,
+        exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
+        CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
+    ),
+    type_check=AbsEpochScheduler,
+    default=None
+)
 
-    def choices(self) -> Tuple[Optional[str], ...]:
-        retval = tuple(self.classes)
-        if self.optional:
-            return retval + (None,)
-        else:
-            return retval
-
-    def get_class(self, name: str) -> base_type:
-        assert check_argument_types()
-        if name.lower() in self.classes:
-            class_obj = self.classes[name]
-            assert check_return_type(class_obj)
-            return class_obj
-        elif self.optional and name.lower() == ("none", "null", "nil"):
-            return None
-        else:
-            raise ValueError(
-                f"--{self.name} must be one of {self.choices()}: "
-                f"--{self.name} {name.lower()}"
-            )
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            f"--{self.name}",
-            type=lambda x: str_or_none(x.lower()),
-            default=self.default,
-            choices=self.choices(),
-            help=f"The {self.name} type",
-        )
-        parser.add_argument(
-            f"--{self.name}_conf",
-            action=NestedDictAction,
-            default=dict(),
-            help=f"The keyword arguments for {self.name}",
-        )
-
-
-class OptimizerChoices(BaseChoices):
-    base_type = torch.optim.Optimizer
-
-    def __init__(self):
-        kwargs = dict(
-            adam=torch.optim.Adam,
-            sgd=SGD,
-            adadelta=torch.optim.Adadelta,
-            adagrad=torch.optim.Adagrad,
-            adamax=torch.optim.Adamax,
-            asgd=torch.optim.ASGD,
-            lbfgs=torch.optim.LBFGS,
-            rmsprop=torch.optim.RMSprop,
-            rprop=torch.optim.Rprop
-        )
-        if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
-            kwargs["adamw"] = torch.optim.AdamW
-        super().__init__("optim", kwargs, default="adagrad")
-
-
-class EpochSchedulerChoices(BaseChoices):
-    base_type = AbsEpochScheduler
-
-    def __init__(self):
-        kwargs = dict(
-            ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
-            lambdalr=torch.optim.lr_scheduler.LambdaLR,
-            steplr=torch.optim.lr_scheduler.StepLR,
-            multisteplr=torch.optim.lr_scheduler.MultiStepLR,
-            exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
-            CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
-        )
-        super().__init__("eshceduler", kwargs, default=None)
-
-
-class BatchSchedulerChoices(BaseChoices):
-    base_type = AbsBatchScheduler
-
-    def __init__(self):
-        kwargs = dict()
-        if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-            kwargs["noamlr"] = NoamLR
-        if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-            kwargs.update(
-                cycliclr=torch.optim.lr_scheduler.CyclicLR,
-                onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
-                CosineAnnealingWarmRestarts=
-                torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-            )
-        super().__init__("bshceduler", kwargs, default=None)
-
-
-optimizer_choices = OptimizerChoices()
-batch_scheduler_choices = BatchSchedulerChoices()
-epoch_scheduler_choices = EpochSchedulerChoices()
+_classes = dict()
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    _classes["noamlr"] = NoamLR
+if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
+    _classes.update(
+        cycliclr=torch.optim.lr_scheduler.CyclicLR,
+        onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
+        CosineAnnealingWarmRestarts=
+        torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+    )
+epoch_scheduler_choices = ClassChoices(
+    "bshceduler",
+    classes=_classes,
+    type_check=AbsBatchScheduler,
+    default=None
+)
 
 
 class AbsTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
 
-    class_choices_list: List[BaseChoices] = [
+    class_choices_list: List[ClassChoices] = [
+        # --optim and --optim_conf
         optimizer_choices,
-        batch_scheduler_choices,
+        # --escheduler and --escheduler_conf
         epoch_scheduler_choices,
+        # --bscheduler and --bscheduler_conf
+        batch_scheduler_choices,
     ]
+
+    # If you need to modify train() or eval() procedures, change Trainer class here
+    trainer: Trainer
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
+
+    @classmethod
+    @abstractmethod
+    def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_task_config(cls) -> Dict[str, dict]:
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
@@ -459,8 +402,8 @@ class AbsTask(ABC):
         )
         egroup.add_argument("--resume_path", type=str_or_none, default=None)
 
-        group.add_argument("--pretrain_path", type=str_or_none, default=None)
-        group.add_argument("--pretrain_key", type=str_or_none, default=None)
+        group.add_argument("--pretrain_path", type=str, default=[], nargs="+")
+        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="+")
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -543,8 +486,11 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("Variable objects")
         for class_choices in cls.class_choices_list:
+            # Append --<name> and --<name>_conf.
+            # e.g. --optim and --optim_conf
             class_choices.add_arguments(group)
 
+        cls.add_task_arguments(parser)
         assert check_return_type(parser)
         return parser
 
@@ -555,8 +501,9 @@ class AbsTask(ABC):
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
+        # This method is used only for --print_config
         assert check_argument_types()
-        parser = AbsTask.add_arguments()
+        parser = cls.add_arguments()
         args, _ = parser.parse_known_args()
         config = vars(args)
         # Excludes the options not to be shown
@@ -565,13 +512,26 @@ class AbsTask(ABC):
 
         for class_choices in cls.class_choices_list:
             if getattr(args, class_choices.name) is not None:
-                class_obj = class_choices.get_class(args.optim)
+                class_obj = class_choices.get_class(getattr(args, class_choices.name))
                 conf = get_default_kwargs(class_obj)
                 name = class_choices.name
                 # Overwrite the default by the arguments,
                 conf.update(config[f"{name}_conf"])
                 # and set it again
                 config[f"{name}_conf"] = conf
+
+        task_config = cls.get_task_config()
+        for k in task_config:
+            if k not in config:
+                raise RuntimeError(f"{k} is not in argparse options")
+            assert isinstance(task_config[k], dict), (k, type(task_config[k]))
+            if config[k] is not None:
+                if not isinstance(config[k], dict):
+                    raise RuntimeError(f"The default value of --{k} is not dict.")
+                # The default kwargs is overwritten by command line args
+                task_config[k].update(config[k])
+                # Set it again to config
+                config[k] = task_config[k]
         return config
 
     @classmethod
@@ -582,6 +542,10 @@ class AbsTask(ABC):
                 raise RuntimeError(
                     f'Use "_" instead of "-": parser.add_arguments("{k}")'
                 )
+        if len(args.pretrain_path) != len(args.pretrain_key):
+            raise RuntimeError(
+                "The number of --pretrain_path and --pretrain_key must be same"
+            )
 
         required = ", ".join(
             f"--{a}" for a in args.required if getattr(args, a) is None
@@ -600,6 +564,40 @@ class AbsTask(ABC):
             sys.exit(2)
 
     @classmethod
+    def check_task_requirements(
+        cls,
+        dataset: ESPnetDataset,
+        allow_variable_data_keys: bool,
+        train: bool = True,
+    ) -> None:
+        """Check if the dataset satisfy the requirement of current Task"""
+        assert check_argument_types()
+        mes = (
+            f"If you intend to use an additional input, modify "
+            f'"{cls.__name__}.required_data_names()" or '
+            f'"{cls.__name__}.optional_data_names()". '
+            f"Otherwise you need to set --allow_variable_data_keys true "
+        )
+
+        for k in cls.required_data_names(train):
+            if not dataset.has_name(k):
+                raise RuntimeError(
+                    f'"{cls.required_data_names(train)}" are required for'
+                    f' {cls.__name__}. but "{dataset.names()}" are input.\n'
+                    f"{mes}"
+                )
+        if not allow_variable_data_keys:
+            task_keys = cls.required_data_names(
+                train
+            ) + cls.optional_data_names(train)
+            for k in dataset.names():
+                if k not in task_keys:
+                    raise RuntimeError(
+                        f"The data-name must be one of {task_keys} "
+                        f'for {cls.__name__}: "{k}" is not allowed.\n{mes}'
+                    )
+
+    @classmethod
     def print_config(cls, file=sys.stdout) -> None:
         assert check_argument_types()
         # Shows the config: e.g. python train.py asr --print_config
@@ -607,9 +605,7 @@ class AbsTask(ABC):
         file.write(yaml_no_alias_safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
-    def main(
-        cls, args: argparse.Namespace = None, cmd: Sequence[str] = None
-    ) -> None:
+    def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None) -> None:
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
@@ -619,7 +615,6 @@ class AbsTask(ABC):
             cls.print_config()
             sys.exit(0)
         cls.check_required_command_args(args)
-
         logging.basicConfig(
             level=args.log_level,
             format="%(asctime)s (%(module)s:%(lineno)d) "
@@ -719,32 +714,6 @@ class AbsTask(ABC):
             dtype = torch.float32
         model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
 
-        logging.info(f"Model:\n{model}")
-        logging.info(f"Train Dataset: {train_dataset}")
-        logging.info(f"Train BatchSampler: {train_batch_sampler}")
-        logging.info(f"Eval Dataset: {eval_dataset}")
-        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
-
-        # [collect stats mode]
-        if args.collect_stats:
-            output_dir = Path(args.output_dir)
-            output_dir.mkdir(parents=True, exist_ok=True)
-            with (output_dir / "config.yaml").open("w") as f:
-                logging.info(
-                    f'Saving the configuration in {output_dir / "config.yaml"}'
-                )
-                yaml_no_alias_safe_dump(vars(args), f, indent=4,
-                                        sort_keys=False)
-            Trainer.collect_stats(
-                model=model,
-                train_iter=train_iter,
-                eval_iter=eval_iter,
-                output_dir=args.output_dir,
-                ngpu=args.ngpu,
-                log_interval=args.log_interval,
-            )
-            return
-
         # 6. Build optimizer
         optimizer_class = optimizer_choices.get_class(args.optim)
         optimizer = optimizer_class(model.parameters(), **args.optim_conf)
@@ -765,25 +734,39 @@ class AbsTask(ABC):
         else:
             batch_scheduler = None
 
-        logging.info(f"Optimizer:\n{optimizer}")
-        logging.info(f"Epoch scheduler: {epoch_scheduler}")
-        logging.info(f"Batch scheduler: {batch_scheduler}")
-
         # 9. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         with (output_dir / "config.yaml").open("w") as f:
-            logging.info(
-                f'Saving the configuration in {output_dir / "config.yaml"}'
-            )
+            logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        reporter = Reporter()
+        logging.info(f"Model:\n{model}")
+        logging.info(f"Train Dataset: {train_dataset}")
+        logging.info(f"Train BatchSampler: {train_batch_sampler}")
+        logging.info(f"Eval Dataset: {eval_dataset}")
+        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
+        logging.info(f"Optimizer:\n{optimizer}")
+        logging.info(f"Epoch scheduler: {epoch_scheduler}")
+        logging.info(f"Batch scheduler: {batch_scheduler}")
 
-        # 10. Loads states from saved files
-        Trainer.load(
+        # 10. Loads pre-trained model
+        for p, k in zip(args.pretrain_path, args.pretrain_key):
+            # if p is None -> apply the state to the whole model.
+            # elif p is str e.g. "encoder" -> apply the state to model.encoder
+            load_pretrained_model(
+                model=model,
+                pretrain_path=p,
+                pretrain_key=k,
+                map_location="cuda" if args.ngpu > 0 else "cpu",
+            )
+
+        # 11. Resume the state from the previous epoch
+        # Either one of --resume_epoch or --resume_path can be used.
+        reporter = Reporter()
+        cls.trainer.resume(
             model=model,
             optimizer=optimizer,
             reporter=reporter,
@@ -792,68 +775,57 @@ class AbsTask(ABC):
             epoch_scheduler=epoch_scheduler,
             resume_epoch=args.resume_epoch,
             resume_path=args.resume_path,
-            pretrain_path=args.pretrain_path,
-            pretrain_key=args.pretrain_key,
             map_location="cuda" if args.ngpu > 0 else "cpu",
         )
 
-        # 11. Start training
-        Trainer.run(
-            model=model,
-            optimizer=optimizer,
-            train_iter=train_iter,
-            eval_iter=eval_iter,
-            plot_attention_iter=plot_attention_iter,
-            reporter=reporter,
-            output_dir=output_dir,
-            batch_scheduler=batch_scheduler,
-            epoch_scheduler=epoch_scheduler,
-            ngpu=args.ngpu,
-            max_epoch=args.max_epoch,
-            train_dtype=args.train_dtype,
-            patience=args.patience,
-            grad_noise=args.grad_noise,
-            accum_grad=args.accum_grad,
-            grad_clip=args.grad_clip,
-            log_interval=args.log_interval,
-            keep_n_best_snapshot=args.keep_n_best_snapshot,
-            early_stopping_criterion=args.early_stopping_criterion,
-            best_model_criterion=args.best_model_criterion,
-            val_scheduler_criterion=args.val_scheduler_criterion,
-            no_forward_run=args.no_forward_run,
-            no_backward_run=args.no_backward_run,
-        )
+        # 12. Run
+        if args.collect_stats:
+            # Perform on collect_stats mode. This mode has two roles
+            # - Derive the length and dimension of all input data
+            # - Accumulate feats, square values, and the length for whitening
+            cls.trainer.collect_stats(
+                model=model,
+                train_iter=train_iter,
+                eval_iter=eval_iter,
+                output_dir=args.output_dir,
+                ngpu=args.ngpu,
+                log_interval=args.log_interval,
+            )
+        else:
+            # Core design note:
+            #   Don't give args to run() directly!!!
+            #   Instead of it, define give "Options" object and build here.
+            train_options, eval_options, plot_attention_options = (
+                cls.trainer.build_options(args)
+            )
 
-    @classmethod
-    def check_task_requirements(
-        cls,
-        dataset: ESPnetDataset,
-        allow_variable_data_keys: bool,
-        train: bool = True,
-    ) -> None:
-        """Check if the dataset satisfy the requirement of current Task"""
-        assert check_argument_types()
-        mes = (
-            f"If you intend to use an additional input, modify "
-            f'"{cls.__name__}.required_data_names()" or '
-            f'"{cls.__name__}.optional_data_names()". '
-            f"Otherwise you need to set --allow_variable_data_keys true "
-        )
+            # Start training
+            cls.trainer.run(
+                model=model,
+                optimizer=optimizer,
+                train_iter=train_iter,
+                eval_iter=eval_iter,
+                plot_attention_iter=plot_attention_iter,
+                reporter=reporter,
+                output_dir=output_dir,
+                batch_scheduler=batch_scheduler,
+                epoch_scheduler=epoch_scheduler,
+                max_epoch=args.max_epoch,
+                train_dtype=args.train_dtype,
+                patience=args.patience,
+                keep_n_best_snapshot=args.keep_n_best_snapshot,
+                early_stopping_criterion=args.early_stopping_criterion,
+                best_model_criterion=args.best_model_criterion,
+                val_scheduler_criterion=args.val_scheduler_criterion,
+                train_options=train_options,
+                eval_options=eval_options,
+                plot_attention_options=plot_attention_options,
+            )
 
-        for k in cls.required_data_names(train):
-            if not dataset.has_name(k):
-                raise RuntimeError(
-                    f'"{cls.required_data_names(train)}" are required for'
-                    f' {cls.__name__}. but "{dataset.names()}" are input.\n'
-                    f"{mes}"
-                )
-        if not allow_variable_data_keys:
-            task_keys = cls.required_data_names(
-                train
-            ) + cls.optional_data_names(train)
-            for k in dataset.names():
-                if k not in task_keys:
-                    raise RuntimeError(
-                        f"The data-name must be one of {task_keys} "
-                        f'for {cls.__name__}: "{k}" is not allowed.\n{mes}'
-                    )
+            # Generated n-best averaged model
+            cls.trainer.average_nbest_models(
+                reporter=reporter,
+                output_dir=output_dir,
+                best_model_criterion=args.best_model_criterion,
+                nbest=args.keep_n_best_snapshot,
+            )

@@ -1,6 +1,5 @@
 import argparse
 import logging
-from typing import Any
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -8,27 +7,31 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import configargparse
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.e2e import ASRE2E
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.abs_task import BaseChoices
+from espnet2.torch_utils.initialize import initialize
+from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.initialize import initialize
 from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -36,81 +39,61 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
 
-class FrontendChoices(BaseChoices):
-    def __init__(self):
-        super().__init__(
-            name="frontend",
-            classes=dict(default=DefaultFrontend)
-        )
-
-
-class NormalizeChoices(BaseChoices):
-    def __init__(self):
-        super().__init__(
-            "normalize",
-            classes=dict(
-                global_mvn=GlobalMVN,
-                utterance_mvn=UtteranceMVN,
-            ),
-            default="utterance_mvn",
-            optional=True
-        )
-
-
-class EncoderChoices(BaseChoices):
-    def __init__(self):
-        super().__init__(
-            "encoder",
-            classes=dict(
-                transformer=TransformerEncoder,
-                vgg_rnn=VGGRNNEncoder,
-                rnn=RNNEncoder,
-            ),
-            default="rnn"
-        )
-
-
-class DecoderChoices(BaseChoices):
-    def __init__(self):
-        super().__init__(
-            "decoder",
-            classes=dict(
-                transformer=TransformerDecoder,
-                rnn=RNNDecoder
-            ),
-            default="rnn"
-        )
-
-
-frontend_choices = FrontendChoices()
-normalize_choices = NormalizeChoices()
-encoder_choices = EncoderChoices()
-decoder_choices = DecoderChoices()
+frontend_choices = ClassChoices(
+    name="frontend",
+    classes=dict(default=DefaultFrontend),
+    type_check=AbsFrontend
+)
+normalize_choices = ClassChoices(
+    "normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default="utterance_mvn",
+    optional=True
+)
+encoder_choices = ClassChoices(
+    "encoder",
+    classes=dict(
+        transformer=TransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default="rnn"
+)
+decoder_choices = ClassChoices(
+    "decoder",
+    classes=dict(
+        transformer=TransformerDecoder,
+        rnn=RNNDecoder
+    ),
+    type_check=AbsDecoder,
+    default="rnn"
+)
 
 
 class ASRTask(AbsTask):
+    # Add variable objects configurations
     class_choices_list = (
         AbsTask.class_choices_list +
+        # --frontend and --frontend_conf
         [frontend_choices,
+         # --normalize and --normalize_conf
          normalize_choices,
+         # --encoder and --encoder_conf
          encoder_choices,
+         # --decoder and --decoder_conf
          decoder_choices]
     )
 
-    @classmethod
-    def add_arguments(
-            cls, parser: configargparse.ArgumentParser = None
-    ) -> configargparse.ArgumentParser:
-        assert check_argument_types()
-        # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        if parser is None:
-            parser = configargparse.ArgumentParser(
-                description="Train ASR",
-                config_file_parser_class=configargparse.YAMLConfigFileParser,
-                formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
-            )
+    # If you need to modify train() or eval() procedures change, Trainer class here
+    trainer: Trainer
 
-        AbsTask.add_arguments(parser)
+    @classmethod
+    def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -172,10 +155,9 @@ class ASRTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-        return parser
 
     @classmethod
-    def get_task_config(cls) -> Dict[str, Any]:
+    def get_task_config(cls) -> Dict[str, dict]:
         # This method is used only for --print_config
         ctc_conf = get_default_kwargs(CTC)
         e2e_conf = get_default_kwargs(ASRE2E)
