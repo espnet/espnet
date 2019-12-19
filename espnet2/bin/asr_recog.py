@@ -25,7 +25,7 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.text_converter import build_text_converter
 from espnet2.utils.types import str2bool

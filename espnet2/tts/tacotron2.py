@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet2.tts.abs_model import AbsTTS
-from espnet2.utils.device_funcs import force_gatherable
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class Tacotron2(AbsTTS):
