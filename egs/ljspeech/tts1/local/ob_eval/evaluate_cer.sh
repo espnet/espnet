@@ -7,7 +7,6 @@ echo "$0 $*"  # Print the command line for logging
 . ./path.sh
 
 nj=1
-dur=0.1
 do_delta=false
 eval_tts_model=true
 db_root=""
@@ -73,7 +72,6 @@ fi
 
 
 # setting dir
-asr_wav_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.wav"
 asr_data_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.data"
 asr_fbank_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.fbank"
 asr_feat_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.dump"
@@ -81,25 +79,9 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 
 echo "step 1: Data preparation for ASR"
-# Check whether sil will be added
-dur_result=$(echo "${dur} > 0.0" | bc)
-if [ ${dur_result} -eq 1 ]; then
-    # Add sil for ASR
-    local/ob_eval/add_sil.py \
-        --indir ${outdir}_denorm/${name}/wav \
-        --outdir ${asr_wav_dir}/${name} \
-        --dur ${dur} \
-        --hsil true \
-        --tsil true
-    
-    wavdir="${asr_wav_dir}/${name}"
-else
-    wavdir="${outdir}_denorm/${name}/wav"
-fi
-
 # Data preparation for ASR
 local/ob_eval/data_prep_for_asr.sh \
-    ${wavdir} \
+    ${outdir}_denorm/${name}/wav \
     ${asr_data_dir}/${name} \
     ${db_root}/metadata.csv
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
@@ -153,6 +135,3 @@ ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${name}/log/decode.JOB.log \
 
 # calculate CER
 score_sclite_wo_dict.sh --wer ${wer} ${asr_result_dir}.${api}/${name}
-
-# remove tmp files (wav aaded sil)
-rm -rf ${asr_wav_dir}
