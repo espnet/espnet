@@ -28,7 +28,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.griffin_lim import Spc2Wav
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -114,7 +114,7 @@ def tts_decode(
     )
 
     # 4. Build converter from spectrogram to waveform
-    spc2wav = Spc2Wav(
+    spc2wav = Spectrogram2Waveform(
         griffin_lim_iters=griffin_lim_iters,
         **train_args.feats_extract_conf
     )
