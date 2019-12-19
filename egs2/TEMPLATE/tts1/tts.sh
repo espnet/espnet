@@ -32,12 +32,12 @@ local_data_opts= # Options to be passed to local/data.sh.
 feats_type=fbank  # Feature type (fbank or stft or raw).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16000          # Sampling rate.
-fmax=80           # Maximum frequency of Mel basis.
-fmin=7600         # Minimum frequency of Mel basis.
+fmin=80           # Minimum frequency of Mel basis.
+fmax=7600         # Maximum frequency of Mel basis.
 n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
-win_length=""     # Window length.
+win_length=null   # Window length.
 
 # Training related
 train_config= # Config for training.
@@ -299,18 +299,27 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _shape=utt2num_samples
         # "sound" supports "wav", "flac", etc.
         _type=sound
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=80000
-        _opts+="--feats_extract_conf fs=${fs} "
     else
         _scp=feats.scp
         _shape=feats_shape
         _type=kaldi_ark
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=800
         _odim="$(<${_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
         _opts+="--odim=${_odim} "
-        _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy"
+        _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy "
     fi
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
+    _opts+="--feats_extract_conf fs=${fs} "
+    _opts+="--feats_extract_conf n_fft=${n_fft} "
+    _opts+="--feats_extract_conf n_shift=${n_shift} "
+    _opts+="--feats_extract_conf win_length=${win_length} "
+    if [ "${_feats_type}" != stft ]; then
+        _opts+="--feats_extract_conf n_mels=${n_mels} "
+        _opts+="--feats_extract_conf fmin=${fmin} "
+        _opts+="--feats_extract_conf fmax=${fmax} "
+    fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -345,6 +354,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _ngpu=0
     fi
 
+    _feats_type="$(<"${data_feats}/${train_set}/feats_type")"
     _opts=
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
@@ -358,6 +368,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         # 0. Copy feats_type
         cp "${_data}/feats_type" "${_dir}/feats_type"
+
         # 1. Split the key file
         key_file=${_data}/token_int
         split_scps=""
@@ -380,40 +391,21 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
+                --griffin_lim_iters "${griffin_lim_iters}" \
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-         for i in $(seq "${_nj}"); do
-              cat "${_logdir}/output.${i}/feats.scp"
-         done | LC_ALL=C sort -k1 >"${_dir}/feats.scp"
-    done
-fi
-
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "Stage 6: Synthesis: training_dir=${tts_exp}"
-    for dset in "${dev_set}" ${eval_sets}; do
-        _dir="${tts_exp}/${decode_tag}_${dset}"
-
-        # TODO(kamo): Wrapp (nj->_nj) in convert_fbank.sh
-        _nj=$((nj<$(<"${_dir}/feats.scp" wc -l)?nj:$(<"${_dir}/feats.scp" wc -l)))
-
-        _feats_type="$(<"${_dir}/feats_type")"
-        _opts=
-        if [ "${_feats_type}" = fbank ] ; then
-            _opts+="--n_mels ${n_mels} "
-        fi
-        # shellcheck disable=SC2086
-        scripts/tts/convert_fbank.sh --nj "${_nj}" --cmd "${train_cmd}" \
-            --fs "${fs}" \
-            --fmax "${fmax}" \
-            --fmin "${fmin}" \
-            --n_fft "${n_fft}" \
-            --n_shift "${n_shift}" \
-            --win_length "${win_length}" \
-            --iters "${griffin_lim_iters}" \
-            ${_opts} \
-            "${_dir}" "${_dir}/log" "${_dir}/wav"
+        mkdir -p "${_dir}"/{norm,denorm,wav}
+        for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/norm/feats.scp"
+        done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+        for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/denorm/feats.scp"
+        done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+        for i in $(seq "${_nj}"); do
+            mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+            rm -rf "${_logdir}/output.${i}/wav"
+        done
     done
 fi
 

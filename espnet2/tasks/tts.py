@@ -297,12 +297,8 @@ class TTSTask(AbsTask):
                 args.feats_extract
             )
             feats_extract = feats_extract_class(**args.feats_extract_conf)
-            odim = feats_extract.out_dim()
+            odim = feats_extract.output_size()
         else:
-            if hasattr(args, "feats_extract"):
-                # Either one of feats_extract and odim can be selected
-                delattr(args, "feats_extract")
-            args.feats_extract_conf = {}
             feats_extract = None
             odim = args.odim
 
