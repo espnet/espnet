@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+
+"""E2E-TTS decoding."""
+
 import argparse
 import logging
 import random
 import sys
 import time
+
 from pathlib import Path
 from typing import Optional
 from typing import Sequence
@@ -13,8 +17,10 @@ from typing import Union
 import configargparse
 import kaldiio
 import numpy as np
+import soundfile as sf
 import torch
 import yaml
+
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
@@ -22,11 +28,13 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+@torch.no_grad()
 def tts_decode(
     output_dir: str,
     batch_size: int,
@@ -46,7 +54,9 @@ def tts_decode(
     backward_window: int,
     forward_window: int,
     allow_variable_data_keys: bool,
+    griffin_lim_iters: int,
 ):
+    """Perform E2E-TTS decoding."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -103,17 +113,27 @@ def tts_decode(
         num_workers=num_workers,
     )
 
-    # 4. Start for-loop
+    # 4. Build converter from spectrogram to waveform
+    spc2wav = Spectrogram2Waveform(
+        griffin_lim_iters=griffin_lim_iters,
+        **train_args.feats_extract_conf
+    )
+
+    # 5. Start for-loop
     output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "wav").mkdir(parents=True, exist_ok=True)
 
     # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
     #  How about numpy or HDF5?
     #  >>> with NpyScpWriter() as f:
     with kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "feats")
-    ) as f:
-        for idx, (keys, batch) in enumerate(loader, 1):
+        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
+    ) as f, kaldiio.WriteHelper(
+        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
+    ) as g:
+        for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -129,46 +149,44 @@ def tts_decode(
 
             # TODO(kamo): Use common gathering attention system and plot it
             #  Now att_ws is not used.
-
-            with torch.no_grad():
-                outs, probs, att_ws = tts.inference(
-                    **_data,
-                    threshold=threshold,
-                    maxlenratio=maxlenratio,
-                    minlenratio=minlenratio,
-                )
-                if normalize is not None:
-                    outs, _ = normalize.inverse(outs[None])
-                outs = outs.squeeze(0)
-
+            outs, probs, att_ws = tts.inference(
+                **_data,
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
+            )
+            outs_denorm = normalize.inverse(outs[None])[0][0]
             insize = next(iter(_data.values())).size(0)
             logging.info(
                 "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time)
-                    / (int(outs.size(0)) * 1000)
+                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
                 )
             )
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(
                     f"output length reaches maximum length ({key})."
                 )
-
             logging.info(
                 f"({idx}/{len(batch_sampler)}) {key} "
                 f"(size:{insize}->{outs.size(0)})"
             )
             f[key] = outs.cpu().numpy()
+            g[key] = outs_denorm.cpu().numpy()
+
+            wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
+            sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
 
 
 def get_parser():
+    """Get argument parser."""
     parser = configargparse.ArgumentParser(
         description="TTS Decode",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Note(kamo): Use '_' instead of '-' as separator.
-    # '-' is confusing if written in yaml.
+    # Note(kamo): Use "_" instead of "-" as separator.
+    # "-" is confusing if written in yaml.
     parser.add_argument(
         "--config", is_config_file=True, help="config file path"
     )
@@ -266,10 +284,19 @@ def get_parser():
         default=3,
         help="Forward window value in attention constraint",
     )
+
+    group = parser.add_argument_group("Griffin-Lim related")
+    group.add_argument(
+        "--griffin_lim_iters",
+        type=int,
+        default=32,
+        help="Number of iterations in Grriffin Lim"
+    )
     return parser
 
 
 def main(cmd=None):
+    """Run E2E-TTS decoding."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
