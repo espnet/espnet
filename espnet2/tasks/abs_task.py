@@ -57,18 +57,16 @@ _classes = dict(
     asgd=torch.optim.ASGD,
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
-    rprop=torch.optim.Rprop
+    rprop=torch.optim.Rprop,
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     _classes["adamw"] = torch.optim.AdamW
 optimizer_choices = ClassChoices(
-    "optim",
-    classes=_classes,
-    type_check=torch.optim.Optimizer,
-    default="adagrad")
+    "optim", classes=_classes, type_check=torch.optim.Optimizer, default="adagrad"
+)
 
 batch_scheduler_choices = ClassChoices(
-    "eshceduler",
+    "bscheduler",
     dict(
         ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
         lambdalr=torch.optim.lr_scheduler.LambdaLR,
@@ -78,7 +76,7 @@ batch_scheduler_choices = ClassChoices(
         CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     ),
     type_check=AbsEpochScheduler,
-    default=None
+    default=None,
 )
 
 _classes = dict()
@@ -88,14 +86,10 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
     _classes.update(
         cycliclr=torch.optim.lr_scheduler.CyclicLR,
         onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
-        CosineAnnealingWarmRestarts=
-        torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+        CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
     )
 epoch_scheduler_choices = ClassChoices(
-    "bshceduler",
-    classes=_classes,
-    type_check=AbsBatchScheduler,
-    default=None
+    "escheduler", classes=_classes, type_check=AbsBatchScheduler, default=None
 )
 
 
@@ -217,9 +211,7 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("Common configuration")
 
-        group.add_argument(
-            "--config", is_config_file=True, help="config file path"
-        )
+        group.add_argument("--config", is_config_file=True, help="config file path")
         group.add_argument(
             "--print_config",
             action="store_true",
@@ -242,8 +234,12 @@ class AbsTask(ABC):
             help="The number of gpus. 0 indicates CPU mode",
         )
         group.add_argument("--seed", type=int, default=0, help="Random seed")
-        group.add_argument("--collect_stats", type=str2bool, default=False,
-                           help='Perform on "collect stats" mode')
+        group.add_argument(
+            "--collect_stats",
+            type=str2bool,
+            default=False,
+            help='Perform on "collect stats" mode',
+        )
 
         group = parser.add_argument_group("Trainer related")
         group.add_argument(
@@ -256,8 +252,7 @@ class AbsTask(ABC):
             "--train_dtype",
             default="float32",
             choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
-            help="Data type for training. "
-            "O0,O1,.. flags require apex. "
+            help="Data type for training. O0,O1,.. flags require apex. "
             "See https://nvidia.github.io/apex/amp.html#opt-levels",
         )
         group.add_argument(
@@ -272,11 +267,9 @@ class AbsTask(ABC):
             type=str,
             nargs=2,
             default=("eval", "loss"),
-            help="The criterion used for the value given to "
-            "the scheduler. Give a pair referring "
-            'the phase, "train" or "eval",'
-            "and the criterion name. "
-            'The mode specifying "min" or "max" can '
+            help="The criterion used for the value given to the scheduler. "
+            'Give a pair referring the phase, "train" or "eval",'
+            'and the criterion name. The mode specifying "min" or "max" can '
             "be changed by --escheduler_conf",
         )
         group.add_argument(
@@ -284,11 +277,9 @@ class AbsTask(ABC):
             type=str,
             nargs=3,
             default=("eval", "loss", "min"),
-            help="The criterion used for judging of "
-            "early stopping. Give a pair referring "
-            'the phase, "train" or "eval",'
-            "the criterion name and the mode, "
-            '"min" or "max", e.g. "acc,max".',
+            help="The criterion used for judging of early stopping. "
+            'Give a pair referring the phase, "train" or "eval",'
+            'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
             "--best_model_criterion",
@@ -300,11 +291,9 @@ class AbsTask(ABC):
                 ("train", "acc", "max"),
                 ("eval", "acc", "max"),
             ],
-            help="The criterion used for judging of "
-            "the best model. Give a pair referring "
-            'the phase, "train" or "eval",'
-            "the criterion name, and "
-            'the mode, "min" or "max", e.g. "acc,max".',
+            help="The criterion used for judging of the best model. "
+            'Give a pair referring the phase, "train" or "eval",'
+            'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
 
         group.add_argument(
@@ -330,27 +319,22 @@ class AbsTask(ABC):
             "--log_interval",
             type=int_or_none,
             default=None,
-            help="Show the logs every the number iterations in"
-            "each epochs at the training phase. "
-            "If None is given, "
-            "it is decided according the number "
+            help="Show the logs every the number iterations in each epochs at the "
+            "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
         )
         group.add_argument(
             "--keep_n_best_snapshot",
             type=int,
             default=10,
-            help="Remove previous snapshots excluding "
-            "the n-best scored epochs",
+            help="Remove previous snapshots excluding the n-best scored epochs",
         )
         group.add_argument(
             "--num_att_plot",
             type=int,
             default=3,
-            help="The number images to plot the outputs "
-            "from attention. "
-            "This option makes sense "
-            "only when attention-based model",
+            help="The number images to plot the outputs from attention. "
+            "This option makes sense only when attention-based model",
         )
         group.add_argument(
             "--num_workers",
@@ -369,15 +353,11 @@ class AbsTask(ABC):
             "--no_backward_run",
             type=str2bool,
             default=False,
-            help="Performs data loading and "
-            "model forwarding "
-            "without backward operations, "
-            "optimizer updating, etc.",
+            help="Performs data loading and model forwarding without backward "
+            "operations, optimizer updating, etc.",
         )
 
-        group = parser.add_argument_group(
-            "Resuming or transfer learning related"
-        )
+        group = parser.add_argument_group("Resuming or transfer learning related")
 
         def epoch_type(value: str) -> Optional[Union[str, int]]:
             if value == "latest":
@@ -395,9 +375,8 @@ class AbsTask(ABC):
             "--resume_epoch",
             type=epoch_type,
             default=None,
-            help="The training starts from the specified epoch. "
-            '"latest" indicates the latest-epoch file found '
-            "in output_path. If None or 0 are specified, "
+            help='The training starts from the specified epoch. "latest" indicates '
+            "the latest-epoch file found in output_path. If None or 0 are specified, "
             "then training starts from the initial state",
         )
         egroup.add_argument("--resume_path", type=str_or_none, default=None)
@@ -421,10 +400,7 @@ class AbsTask(ABC):
 
         _batch_type_choices = ("const", "seq", "bin", "frame")
         group.add_argument(
-            "--batch_type",
-            type=str,
-            default="seq",
-            choices=_batch_type_choices,
+            "--batch_type", type=str, default="seq", choices=_batch_type_choices,
         )
         group.add_argument(
             "--eval_batch_type",
@@ -434,16 +410,10 @@ class AbsTask(ABC):
             help="If not given, the value of --batch_type is used",
         )
 
-        group.add_argument(
-            "--train_shape_file", type=str, action="append", default=[]
-        )
-        group.add_argument(
-            "--eval_shape_file", type=str, action="append", default=[]
-        )
+        group.add_argument("--train_shape_file", type=str, action="append", default=[])
+        group.add_argument("--eval_shape_file", type=str, action="append", default=[])
 
-        group.add_argument(
-            "--max_length", type=int, action="append", default=[]
-        )
+        group.add_argument("--max_length", type=int, action="append", default=[])
 
         group.add_argument(
             "--sort_in_batch",
@@ -451,8 +421,7 @@ class AbsTask(ABC):
             default="descending",
             choices=["descending", "ascending", None],
             help="Sort the samples in each mini-batches by the sample "
-            "lengths. To enable this, "
-            '"shape_file" must have the length information.',
+            'lengths. To enable this, "shape_file" must have the length information.',
         )
         group.add_argument(
             "--sort_batch",
@@ -479,8 +448,7 @@ class AbsTask(ABC):
             "--allow_variable_data_keys",
             type=str2bool,
             default=False,
-            help="Allow the arbitrary keys "
-            "for mini-batch with ignoring "
+            help="Allow the arbitrary keys for mini-batch with ignoring "
             "the task requirements",
         )
 
@@ -557,18 +525,14 @@ class AbsTask(ABC):
             p = Path(sys.argv[0]).name
             print(file=sys.stderr)
             print(
-                f"{p}: error: the following arguments are required: "
-                f"{required}",
+                f"{p}: error: the following arguments are required: " f"{required}",
                 file=sys.stderr,
             )
             sys.exit(2)
 
     @classmethod
     def check_task_requirements(
-        cls,
-        dataset: ESPnetDataset,
-        allow_variable_data_keys: bool,
-        train: bool = True,
+        cls, dataset: ESPnetDataset, allow_variable_data_keys: bool, train: bool = True,
     ) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
         assert check_argument_types()
@@ -583,13 +547,10 @@ class AbsTask(ABC):
             if not dataset.has_name(k):
                 raise RuntimeError(
                     f'"{cls.required_data_names(train)}" are required for'
-                    f' {cls.__name__}. but "{dataset.names()}" are input.\n'
-                    f"{mes}"
+                    f' {cls.__name__}. but "{dataset.names()}" are input.\n{mes}'
                 )
         if not allow_variable_data_keys:
-            task_keys = cls.required_data_names(
-                train
-            ) + cls.optional_data_names(train)
+            task_keys = cls.required_data_names(train) + cls.optional_data_names(train)
             for k in dataset.names():
                 if k not in task_keys:
                     raise RuntimeError(
@@ -617,8 +578,7 @@ class AbsTask(ABC):
         cls.check_required_command_args(args)
         logging.basicConfig(
             level=args.log_level,
-            format="%(asctime)s (%(module)s:%(lineno)d) "
-            "%(levelname)s: %(message)s",
+            format="%(asctime)s (%(module)s:%(lineno)d) " "%(levelname)s: %(message)s",
         )
 
         # 1. Set random-seed
@@ -659,9 +619,7 @@ class AbsTask(ABC):
             float_dtype=dtype,
             preprocess=cls.build_preprocess_fn(args, False),
         )
-        cls.check_task_requirements(
-            eval_dataset, args.allow_variable_data_keys
-        )
+        cls.check_task_requirements(eval_dataset, args.allow_variable_data_keys)
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
@@ -686,9 +644,7 @@ class AbsTask(ABC):
         if args.num_att_plot != 0:
             plot_attention_sampler = SubsetSampler(
                 ConstantBatchSampler(
-                    key_file=args.eval_shape_file[0],
-                    batch_size=1,
-                    shuffle=False,
+                    key_file=args.eval_shape_file[0], batch_size=1, shuffle=False,
                 ),
                 args.num_att_plot,
             )
@@ -795,9 +751,11 @@ class AbsTask(ABC):
             # Core design note:
             #   Don't give args to run() directly!!!
             #   Instead of it, define give "Options" object and build here.
-            train_options, eval_options, plot_attention_options = (
-                cls.trainer.build_options(args)
-            )
+            (
+                train_options,
+                eval_options,
+                plot_attention_options,
+            ) = cls.trainer.build_options(args)
 
             # Start training
             cls.trainer.run(
