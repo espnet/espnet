@@ -62,11 +62,6 @@ class Trainer:
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        assert check_argument_types()
-        # This method is reserved for future development of another Trainer
-
-    @classmethod
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()"""
         assert check_argument_types()
