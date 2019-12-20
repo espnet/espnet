@@ -117,10 +117,7 @@ class AbsTask(ABC):
         >>> from torch.utils.data import DataLoader
         >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args), ...)
 
-        In many cases, you can use our common collate_fn:
-
-import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.collate_fn import common_collate_fn
-
+        In many cases, you can use our common collate_fn.
         """
         raise NotImplementedError
 
@@ -140,7 +137,7 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.colla
         >>> cls.check_task_requirements()
         If your model is defined as following,
 
-import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e2e import AbsE2E
+        >>> from espnet2.train.abs_e2e import AbsE2E
         >>> class Model(AbsE2E):
         ...     def forward(self, input, output, opt=None):  pass
 
@@ -159,7 +156,7 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e
         >>> cls.check_task_requirements()
         If your model is defined as following,
 
-import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e2e import AbsE2E
+        >>> from espnet2.train.abs_e2e import AbsE2E
         >>> class Model(AbsE2E):
         ...     def forward(self, input, output, opt=None):  pass
 
@@ -466,7 +463,6 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e
                 help=f"The keyword arguments for batch scheduler",
             )
 
-        cls.trainer.add_arguments(parser)
         cls.add_task_arguments(parser)
 
         assert check_return_type(parser)
@@ -477,9 +473,29 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e
         cls,
         args: argparse.Namespace,
         model: torch.nn.Module,
-    ) -> Tuple[torch.nn.Module,
-               Tuple[torch.optim.Optimizer, ...],
-               Tuple[Optional[AbsEpochScheduler], ...],
+    ) -> Tuple[torch.nn.Module, Tuple[torch.optim.Optimizer, ...]]:
+        if cls.num_optimizers != 1:
+            raise RuntimeError("Override build_optimizers() if num_optimizers != 1")
+
+        def get_class_type(name: str, classes: dict):
+            _cls = classes.get(name)
+            if _cls is None:
+                raise ValueError(f"must be one of {list(classes)}: {name}")
+            return _cls
+        optim_class = get_class_type(args.optim, optim_classes)
+        optim = optim_class(model.parameters(), args.optim_conf)
+        optimizers = [optim]
+
+        retval = model, tuple(optimizers)
+        assert check_return_type(retval)
+        return retval
+
+    @classmethod
+    def build_schedulers(
+        cls,
+        args: argparse.Namespace,
+        optimizers: Sequence[torch.optim.Optimizer, ...],
+    ) -> Tuple[Tuple[Optional[AbsEpochScheduler], ...],
                Tuple[Optional[AbsBatchScheduler], ...]]:
         assert check_argument_types()
 
@@ -489,62 +505,33 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e
                 raise ValueError(f"must be one of {list(classes)}: {name}")
             return _cls
 
-        optimizers = []
         epoch_schedulers = []
         batch_schedulers = []
-        for i in range(1, cls.num_optimizers + 1):
+        for i, optim in enumerate(optimizers, 1):
             suf = "" if i == 1 else str(i)
-
-            name = getattr(args, f"optim{suf}")
-            conf = getattr(args, f"optim{suf}_conf")
-            # 1. Optimizer
-            optim_class = get_class_type(name, optim_classes)
-            optim = optim_class(model.parameters(), **conf)
-
-            # 2. Build epoch_scheduler: invoked at every epochs
+            # 1. Build epoch_scheduler: invoked at every epochs
             # e.g. torch.optim.lr_scheduler.StepLR
             name = getattr(args, f"escheduler{suf}")
             conf = getattr(args, f"escheduler{suf}_conf")
             if name is not None:
-                cls_ = get_class_type(name, epoch_schedulers)
+                cls_ = get_class_type(name, escheduler_classes)
                 epoch_scheduler = cls_(optim, **conf)
             else:
                 epoch_scheduler = None
 
-            # 3. Build batch_scheduler: invoked after every updating
+            # 2. Build batch_scheduler: invoked after every updating
             # e.g. torch.optim.lr_scheduler.CyclicLR
             name = getattr(args, f"bscheduler{suf}")
             conf = getattr(args, f"bscheduler{suf}_conf")
             if args.bscheduler is not None:
-                cls_ = get_class_type(name, batch_schedulers)
+                cls_ = get_class_type(name, bscheduler_classes)
                 batch_scheduler = cls_(optim, **conf)
             else:
                 batch_scheduler = None
                 
-            optimizers.append(optim)
             epoch_schedulers.append(epoch_scheduler)
             batch_schedulers.append(batch_scheduler)
-
-        # For apex support
-        use_apex = args.train_dtype in ("O0", "O1", "O2", "O3")
-        if use_apex:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    f"You need to install apex. "
-                    f"See https://github.com/NVIDIA/apex#linux"
-                )
-                raise
-            model, optimizers = amp.initialize(
-                model, optimizers, opt_level=args.train_dtype
-            )
-
-        retval = (
-            model, tuple(optimizers), tuple(epoch_schedulers), tuple(batch_schedulers)
-        )
-        assert check_return_type(retval)
-        return retval
+        return tuple(epoch_schedulers), tuple(batch_schedulers)
 
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
@@ -792,12 +779,24 @@ import espnet2.tasks.abs_task        >>> from espnet2.tasks.abs_task.train.abs_e
         logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
 
         # 6. Build optimizer and schedulers
-        (
-         model,
-         optimizers,
-         epoch_schedulers,
-         batch_schedulers
-        ) = cls.build_optimizers(args, model=model)
+        optimizers = cls.build_optimizers(args, model=model)
+
+        # For apex support
+        use_apex = args.train_dtype in ("O0", "O1", "O2", "O3")
+        if use_apex:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    f"You need to install apex. "
+                    f"See https://github.com/NVIDIA/apex#linux"
+                )
+                raise
+            model, optimizers = amp.initialize(
+                model, optimizers, opt_level=args.train_dtype
+            )
+
+        epoch_schedulers, batch_schedulers = cls.build_schedulers(args, model)
         for i, (o, e, b) in enumerate(
             zip(optimizers, epoch_schedulers, batch_schedulers), 1
         ):
