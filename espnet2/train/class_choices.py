@@ -64,14 +64,14 @@ class ClassChoices:
 
     def get_class(self, name: Optional[str]) -> Optional[type]:
         assert check_argument_types()
-        if name.lower() in self.classes:
-            class_obj = self.classes[name]
-            assert check_return_type(class_obj)
-            retval = class_obj
-        elif name is None or (
+        if name is None or (
             self.optional and name.lower() == ("none", "null", "nil")
         ):
             retval = None
+        elif name.lower() in self.classes:
+            class_obj = self.classes[name]
+            assert check_return_type(class_obj)
+            retval = class_obj
         else:
             raise ValueError(
                 f"--{self.name} must be one of {self.choices()}: "

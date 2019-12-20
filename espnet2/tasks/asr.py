@@ -42,7 +42,8 @@ from espnet2.utils.types import str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(default=DefaultFrontend),
-    type_check=AbsFrontend
+    type_check=AbsFrontend,
+    default="default",
 )
 normalize_choices = ClassChoices(
     "normalize",
@@ -76,6 +77,9 @@ decoder_choices = ClassChoices(
 
 
 class ASRTask(AbsTask):
+    # If you need more than one optimizers, change this value
+    num_optimizers: int = 1
+
     # Add variable objects configurations
     class_choices_list = [
         # --frontend and --frontend_conf
@@ -89,13 +93,13 @@ class ASRTask(AbsTask):
     ]
 
     # If you need to modify train() or eval() procedures change, Trainer class here
-    trainer: Trainer
+    trainer = Trainer
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
 
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
+        # NOTE(kamo): get_parser(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
@@ -111,7 +115,14 @@ class ASRTask(AbsTask):
             type=lambda x: str_or_none(x.lower()),
             default=None,
             help="The initialization method",
-            choices=cls.init_choices(),
+            choices=[
+                "chainer",
+                "xavier_uniform",
+                "xavier_normal",
+                "kaiming_uniform",
+                "kaiming_normal",
+                None,
+            ]
         )
 
         group.add_argument(
@@ -124,13 +135,13 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--ctc_conf",
             action=NestedDictAction,
-            default=dict(),
+            default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
             "--e2e_conf",
             action=NestedDictAction,
-            default=dict(),
+            default=get_default_kwargs(ASRE2E),
             help="The keyword arguments for E2E class.",
         )
 
@@ -154,30 +165,10 @@ class ASRTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-
-    @classmethod
-    def get_task_config(cls) -> Dict[str, dict]:
-        # This method is used only for --print_config
-        ctc_conf = get_default_kwargs(CTC)
-        e2e_conf = get_default_kwargs(ASRE2E)
-        config = dict(
-            ctc_conf=ctc_conf,
-            e2e_conf=e2e_conf,
-        )
-        assert check_return_type(config)
-        return config
-
-    @classmethod
-    def init_choices(cls) -> Tuple[Optional[str], ...]:
-        choices = (
-            "chainer",
-            "xavier_uniform",
-            "xavier_normal",
-            "kaiming_uniform",
-            "kaiming_normal",
-            None,
-        )
-        return choices
+        for class_choices in cls.class_choices_list:
+            # Append --<name> and --<name>_conf.
+            # e.g. --encoder and --encoder_conf
+            class_choices.add_arguments(group)
 
     @classmethod
     def build_collate_fn(

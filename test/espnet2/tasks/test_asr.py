@@ -6,11 +6,11 @@ from espnet2.tasks.asr import ASRTask
 
 @pytest.mark.parametrize("parser", [configargparse.ArgumentParser(), None])
 def test_add_arguments(parser):
-    ASRTask.add_arguments(parser)
+    ASRTask.get_parser(parser)
 
 
 def test_add_arguments_help():
-    parser = ASRTask.add_arguments()
+    parser = ASRTask.get_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--help"])
 
@@ -34,7 +34,7 @@ def test_print_config_and_load_it(tmp_path):
     config_file = tmp_path / "config.yaml"
     with config_file.open("w") as f:
         ASRTask.print_config(f)
-    parser = ASRTask.add_arguments()
+    parser = ASRTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
 
 
