@@ -31,7 +31,7 @@ class ASRE2E(AbsE2E):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: torch.nn.Module = None,
+        rnnt_decoder: None,
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,

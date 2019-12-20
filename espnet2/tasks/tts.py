@@ -49,6 +49,9 @@ tts_choices = ClassChoices(
 
 
 class TTSTask(AbsTask):
+    # If you need more than one optimizers, change this value
+    num_optimizers: int = 1
+
     # Add variable objects configurations
     class_choices_list = [
         # --feats_extractor and --feats_extractor_conf
@@ -60,7 +63,7 @@ class TTSTask(AbsTask):
     ]
 
     # If you need to modify train() or eval() procedures change, Trainer class here
-    trainer: Trainer
+    trainer = Trainer
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -68,7 +71,7 @@ class TTSTask(AbsTask):
         assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
+        # NOTE(kamo): get_parser(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
@@ -88,17 +91,13 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--e2e_conf",
             action=NestedDictAction,
-            default=dict(),
+            default=get_default_kwargs(TTSE2E),
             help="The keyword arguments for E2E class.",
         )
-
-    @classmethod
-    def get_task_config(cls) -> Dict[str, dict]:
-        # This method is used only for --print_config
-        e2e_conf = get_default_kwargs(TTSE2E)
-        config = dict(e2e_conf=e2e_conf)
-        assert check_return_type(config)
-        return config
+        for class_choices in cls.class_choices_list:
+            # Append --<name> and --<name>_conf.
+            # e.g. --encoder and --encoder_conf
+            class_choices.add_arguments(group)
 
     @classmethod
     def build_collate_fn(
