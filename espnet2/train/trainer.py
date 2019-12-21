@@ -20,7 +20,8 @@ from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_type
 
-from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
+from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
+from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
@@ -73,7 +74,7 @@ class Trainer:
         model: AbsE2E,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Tuple[torch.optim.Optimizer],
-        schedulers: Tuple[Optional[AbsBatchScheduler]],
+        schedulers: Tuple[Optional[AbsScheduler]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> bool:
@@ -104,10 +105,7 @@ class Trainer:
                 continue
 
             stats, weight = cls.train_one_batch(
-                model=model,
-                optimizers=optimizers,
-                batch=batch,
-                options=options,
+                model=model, optimizers=optimizers, batch=batch, options=options,
             )
             reporter.register(stats, weight)
 
@@ -132,7 +130,9 @@ class Trainer:
                     all_steps_are_invalid = False
                     optimizer.step()
                 optimizer.zero_grad()
-                if scheduler is not None:
+                if scheduler is not None and isinstance(
+                    scheduler, AbsBatchStepScheduler
+                ):
                     scheduler.step()
 
                 # Register lr
@@ -179,6 +179,7 @@ class Trainer:
             weight = weight.sum()
         if train_dtype in ("O0", "O1", "O2", "O3"):
             from apex import amp
+
             with amp.scale_loss(loss, optimizers) as scaled_loss:
                 scaled_loss.backward()
         else:
