@@ -7,6 +7,7 @@ import shutil
 import sys
 from abc import ABC
 from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import is_dataclass
 from distutils.version import LooseVersion
 from pathlib import Path
@@ -25,29 +26,32 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
+from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.schedulers.noam_lr import NoamLR
-from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
+from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.average_nbest_models import average_nbest_models
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
+from espnet2.train.checkpoint import load_pretrained_model
 from espnet2.train.checkpoint import resume
 from espnet2.train.checkpoint import save_checkpoint
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collect_stats import collect_stats
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
+from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -55,7 +59,6 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -459,50 +462,17 @@ class AbsTask(ABC):
     @classmethod
     def build_optimizers(
         cls, args: argparse.Namespace, model: torch.nn.Module,
-    ) -> Tuple[torch.nn.Module, Tuple[torch.optim.Optimizer, ...]]:
+    ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
-            raise RuntimeError("Override build_optimizers() if num_optimizers != 1")
+            raise RuntimeError(
+                "build_optimizers() must be overridden if num_optimizers != 1")
 
-        def get_class_type(name: str, classes: dict):
-            _cls = classes.get(name)
-            if _cls is None:
-                raise ValueError(f"must be one of {list(classes)}: {name}")
-            return _cls
-
-        optim_class = get_class_type(args.optim, optim_classes)
+        optim_class = optim_classes.get(args.optim)
+        if optim_class is None:
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
         optim = optim_class(model.parameters(), args.optim_conf)
         optimizers = [optim]
-
-        retval = model, tuple(optimizers)
-        assert check_return_type(retval)
-        return retval
-
-    @classmethod
-    def build_schedulers(
-        cls, args: argparse.Namespace, optimizers: Sequence[torch.optim.Optimizer, ...],
-    ) -> Tuple[Optional[AbsScheduler], ...]:
-        assert check_argument_types()
-
-        def get_class_type(name: str, classes: dict):
-            _cls = classes.get(name)
-            if _cls is None:
-                raise ValueError(f"must be one of {list(classes)}: {name}")
-            return _cls
-
-        schedulers = []
-        for i, optim in enumerate(optimizers, 1):
-            suf = "" if i == 1 else str(i)
-            # 1. Build lr scheduler
-            name = getattr(args, f"scheduler{suf}")
-            conf = getattr(args, f"scheduler{suf}_conf")
-            if name is not None:
-                cls_ = get_class_type(name, scheduler_classes)
-                scheduler = cls_(optim, **conf)
-            else:
-                scheduler = None
-
-            schedulers.append(scheduler)
-        return tuple(schedulers)
+        return optimizers
 
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
@@ -739,7 +709,7 @@ class AbsTask(ABC):
         logging.info(f"Eval Dataset: {eval_dataset}")
         logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
 
-        # 6. Build optimizer and schedulers
+        # 6. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
 
         # For apex support
@@ -757,13 +727,27 @@ class AbsTask(ABC):
                 model, optimizers, opt_level=args.train_dtype
             )
 
-        schedulers = cls.build_schedulers(args, model)
+        # 7. Build schedulers
+        schedulers = []
+        for i, optim in enumerate(optimizers, 1):
+            suf = "" if i == 1 else str(i)
+            name = getattr(args, f"scheduler{suf}")
+            conf = getattr(args, f"scheduler{suf}_conf")
+            if name is not None:
+                cls_ = scheduler_classes.get(name)
+                if cls_ is None:
+                    raise ValueError(f"must be one of {list(scheduler_classes)}: {name}")
+                scheduler = cls_(optim, **conf)
+            else:
+                scheduler = None
+
+            schedulers.append(scheduler)
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
             logging.info(f"Scheduler{suf}: {s}")
 
-        # 7. Dump "args" to config.yaml
+        # 8. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
@@ -772,18 +756,18 @@ class AbsTask(ABC):
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 8. Loads pre-trained model
+        # 9. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
             # if p is None -> apply the state to the whole model.
             # elif p is str e.g. "encoder" -> apply the state to model.encoder
             load_pretrained_model(
-                model=model,
                 pretrain_path=p,
+                model=model,
                 pretrain_key=k,
                 map_location="cuda" if args.ngpu > 0 else "cpu",
             )
 
-        # 9. Resume the state from the previous epoch
+        # 10. Resume the state from the previous epoch
         # Either one of --resume_epoch or --resume_path can be used.
         reporter = Reporter()
         resume(
@@ -797,12 +781,12 @@ class AbsTask(ABC):
             map_location="cuda" if args.ngpu > 0 else "cpu",
         )
 
-        # 10. Run
+        # 11. Run
         if args.collect_stats:
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
-            collect_stats(
+            cls.collect_stats(
                 model=model,
                 train_iter=train_iter,
                 eval_iter=eval_iter,
@@ -811,16 +795,15 @@ class AbsTask(ABC):
                 log_interval=args.log_interval,
             )
         else:
-            # Core design note:
-            #   Don't give args to train() directly!!!
-            #   Instead of it, define give "Options" object and build here.
+            # Don't give args to run() directly!!!
+            # Instead of it, define give "Options" object and build here.
             trainer_options = cls.trainer.build_options(args)
 
             # Start training
-            cls.train(
+            cls.run(
                 model=model,
                 optimizers=optimizers,
-                schedulers=tuple(schedulers),
+                schedulers=schedulers,
                 train_iter=train_iter,
                 eval_iter=eval_iter,
                 plot_attention_iter=plot_attention_iter,
@@ -836,7 +819,7 @@ class AbsTask(ABC):
             )
 
             # Generated n-best averaged model
-            average_nbest_models(
+            cls.average_nbest_models(
                 reporter=reporter,
                 output_dir=output_dir,
                 best_model_criterion=args.best_model_criterion,
@@ -844,11 +827,103 @@ class AbsTask(ABC):
             )
 
     @classmethod
-    def train(
+    @torch.no_grad()
+    def collect_stats(
         cls,
         model: AbsE2E,
-        optimizers: Iterable[torch.optim.Optimizer],
-        schedulers: Tuple[Optional[AbsScheduler]],
+        train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        output_dir: Union[str, Path],
+        ngpu: Optional[int],
+        log_interval: Optional[int],
+    ) -> None:
+        """Perform on collect_stats mode.
+
+        Running for deriving the shape information from data
+        and gathering statistics.
+        This method is used before executing train().
+
+        """
+        assert check_argument_types()
+        output_dir = Path(output_dir)
+
+        for itr, mode in zip([train_iter, eval_iter], ["train", "eval"]):
+            if log_interval is None:
+                log_interval = max(len(itr) // 20, 10)
+
+            sum_dict = defaultdict(lambda: 0)
+            sq_dict = defaultdict(lambda: 0)
+            count_dict = defaultdict(lambda: 0)
+
+            with DatadirWriter(output_dir / mode) as writer:
+                for iiter, (keys, batch) in enumerate(itr, 1):
+                    batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+
+                    # 1. Write shape file
+                    for name in batch:
+                        if name.endswith("_lengths"):
+                            continue
+                        for i, (k, data) in enumerate(zip(keys, batch[name])):
+                            if f"{name}_lengths" in batch:
+                                lg = int(batch[f"{name}_lengths"][i])
+                                shape = ",".join(map(str, (lg,) + data.shape[1:]))
+                            else:
+                                shape = ",".join(map(str, data.shape))
+                            writer[f"{name}_shape"][k] = shape
+
+                    # 2. Extract feats and calc sum and square sum
+                    if ngpu <= 1:
+                        data = model.collect_feats(**batch)
+                    else:
+                        # Note that data_parallel can parallelize only "forward()"
+                        data = data_parallel(
+                            ForwardAdaptor(model, "collect_feats"),
+                            (),
+                            range(ngpu),
+                            module_kwargs=batch,
+                        )
+                    for k, v in data.items():
+                        if k.endswith("_lengths"):
+                            continue
+                        if f"{k}_lengths" in data:
+                            # value: (Batch, Length, Dim, ...)
+                            # -> Summation over batchxlength
+                            ind = (0, 1)
+                            count = v.size(0) * v.size(1)
+                        else:
+                            # value: (Batch, Dim, ...) -> Summation over batch
+                            ind = 0
+                            count = v.size(0)
+                        v = v.cpu()
+                        v.masked_fill_(make_pad_mask(data[f"{k}_lengths"], v, 1), 0.0)
+                        sum_dict[k] += v.sum(ind).cpu().numpy()
+                        sq_dict[k] += (v ** 2).sum(ind).cpu().numpy()
+                        count_dict[k] += count
+
+                    if iiter % log_interval == 0:
+                        logging.info(f"Niter: {iiter}")
+
+            for key in sum_dict:
+                np.savez(
+                    output_dir / mode / f"{key}_stats.npz",
+                    count=count_dict[key],
+                    sum=sum_dict[key],
+                    sum_square=sq_dict[key],
+                    )
+            with (output_dir / mode / "shape_keys").open("w") as f:
+                f.write(
+                    "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
+                    + "\n"
+                )
+            with (output_dir / mode / "stats_keys").open("w") as f:
+                f.write("\n".join(sum_dict) + "\n")
+
+    @classmethod
+    def run(
+        cls,
+        model: AbsE2E,
+        optimizers: Sequence[torch.optim.Optimizer],
+        schedulers: Sequence[Optional[AbsScheduler]],
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         plot_attention_iter,
@@ -882,8 +957,8 @@ class AbsTask(ABC):
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.trainer.train_one_epoch(
                     model=model,
-                    optimizers=tuple(optimizers),
-                    schedulers=tuple(schedulers),
+                    optimizers=optimizers,
+                    schedulers=schedulers,
                     iterator=train_iter,
                     reporter=sub_reporter,
                     options=trainer_options,
@@ -907,18 +982,17 @@ class AbsTask(ABC):
 
             # 2. LR Scheduler step
             for scheduler in schedulers:
-                if scheduler is not None:
-                    if isinstance(scheduler, AbsValEpochStepScheduler):
-                        _phase, _criterion = val_scheduler_criterion
-                        if not reporter.has(_phase, _criterion):
-                            raise RuntimeError(
-                                f"{_phase}.{_criterion} is not found in stats"
-                                f"{reporter.get_all_keys()}"
-                            )
-                        val = reporter.get_value(_phase, _criterion)
-                        scheduler.step(val)
-                    elif isinstance(scheduler, AbsEpochStepScheduler):
-                        scheduler.step()
+                if isinstance(scheduler, AbsValEpochStepScheduler):
+                    _phase, _criterion = val_scheduler_criterion
+                    if not reporter.has(_phase, _criterion):
+                        raise RuntimeError(
+                            f"{_phase}.{_criterion} is not found in stats: "
+                            f"{reporter.get_all_keys()}"
+                        )
+                    val = reporter.get_value(_phase, _criterion)
+                    scheduler.step(val)
+                elif isinstance(scheduler, AbsEpochStepScheduler):
+                    scheduler.step()
 
             # 3. Report the results
             reporter.logging()
@@ -1003,3 +1077,55 @@ class AbsTask(ABC):
 
         else:
             logging.info(f"The training was finished at {max_epoch} epochs ")
+
+    @classmethod
+    @torch.no_grad()
+    def average_nbest_models(
+        cls,
+        output_dir: Path,
+        reporter: Reporter,
+        best_model_criterion: Sequence[Sequence[str]],
+        nbest: int,
+    ) -> None:
+        assert check_argument_types()
+        # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
+        nbest_epochs = [
+            (ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])
+            for ph, k, m in best_model_criterion
+            if reporter.has(ph, k)
+        ]
+
+        _loaded = {}
+        for ph, cr, epoch_and_values in nbest_epochs:
+            # Note that len(epoch_and_values) doesn't always equal to nbest.
+
+            op = output_dir / f"{ph}.{cr}.ave_{len(epoch_and_values)}best.pth"
+            logging.info(
+                f"Averaging {len(epoch_and_values)}best models: "
+                f'criterion="{ph}.{cr}": {op}'
+            )
+
+            avg = None
+            # 2.a Averaging model
+            for e, _ in epoch_and_values:
+                if e not in _loaded:
+                    _loaded[e] = torch.load(
+                        output_dir / f"{e}epoch" / "model.pth", map_location="cpu",
+                        )
+                states = _loaded[e]
+
+                if avg is None:
+                    avg = states
+                else:
+                    # Accumulated
+                    for k in avg:
+                        avg[k] += states[k]
+            for k in avg:
+                avg[k] /= len(epoch_and_values)
+
+            # 2.b Save the ave model and create a symlink
+            torch.save(avg, op)
+            sym_op = output_dir / f"{ph}.{cr}.ave.pth"
+            if sym_op.is_symlink() or sym_op.exists():
+                sym_op.unlink()
+            sym_op.symlink_to(op.name)
