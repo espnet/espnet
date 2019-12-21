@@ -54,7 +54,14 @@ def build_dataclass(dataclass, args: argparse.Namespace):
 
 
 class Trainer:
-    """Trainer having a optimizer"""
+    """Trainer having a optimizer.
+
+    Trainer have a role to define the procedure for an epoch.
+    >>> for epoch in range(max_epoch):
+    ...     Trainer.train_one_epoch(...)
+    ...     Trainer.eval_one_epoch(...)
+
+    """
 
     # If you need more than one optimizers, change this value in inheritance
     num_optimizers: int = 1
@@ -73,23 +80,26 @@ class Trainer:
         cls,
         model: AbsE2E,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        optimizers: Tuple[torch.optim.Optimizer],
-        schedulers: Tuple[Optional[AbsScheduler]],
+        optimizers: Sequence[torch.optim.Optimizer],
+        schedulers: Sequence[Optional[AbsScheduler]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> bool:
         assert check_argument_types()
 
         # Note(kamo): assumes one optimizer
+        assert cls.num_optimizers == 1, cls.num_optimizers
+        assert len(optimizers) == 0, len(optimizers)
         optimizer = optimizers[0]
         scheduler = schedulers[0]
 
-        ngpu = options.ngpu
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
         grad_clip = options.grad_noise
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
+        ngpu = options.ngpu
+        train_dtype = options.train_dtype
 
         if log_interval is None:
             log_interval = max(len(iterator) // 20, 10)
@@ -104,10 +114,32 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            stats, weight = cls.train_one_batch(
-                model=model, optimizers=optimizers, batch=batch, options=options,
-            )
+            if ngpu <= 1:
+                # NOTE(kamo): data_parallel also should work with ngpu=1,
+                # but for debuggability it's better to keep this block.
+                loss, stats, weight = model(**batch)
+            else:
+                loss, stats, weight = data_parallel(
+                    model, (), range(ngpu), module_kwargs=batch
+                )
+                # Weighted averaging of loss from torch-data-parallel
+                loss = (loss * weight.to(loss.dtype)).sum(0) / weight.sum()
+                stats = {
+                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
+                    if v is not None
+                    else None
+                    for k, v in stats.items()
+                }
+                weight = weight.sum()
             reporter.register(stats, weight)
+
+            if train_dtype in ("O0", "O1", "O2", "O3"):
+                from apex import amp
+
+                with amp.scale_loss(loss, optimizers) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
 
             # gradient noise injection
             if grad_noise:
@@ -130,9 +162,7 @@ class Trainer:
                     all_steps_are_invalid = False
                     optimizer.step()
                 optimizer.zero_grad()
-                if scheduler is not None and isinstance(
-                    scheduler, AbsBatchStepScheduler
-                ):
+                if isinstance(scheduler, AbsBatchStepScheduler):
                     scheduler.step()
 
                 # Register lr
@@ -148,43 +178,6 @@ class Trainer:
             if iiter % log_interval == 0:
                 reporter.logging(nlatest=log_interval)
         return all_steps_are_invalid
-
-    @classmethod
-    def train_one_batch(
-        cls,
-        model: AbsE2E,
-        optimizers: Sequence[torch.nn.Optimizer],
-        batch: Dict[str, torch.Tesnor],
-        options: TrainerOptions,
-    ):
-        ngpu = options.ngpu
-        train_dtype = options.train_dtype
-
-        if ngpu <= 1:
-            # NOTE(kamo): data_parallel also should work with ngpu=1,
-            # but for debuggability it's better to keep this block.
-            loss, stats, weight = model(**batch)
-        else:
-            loss, stats, weight = data_parallel(
-                model, (), range(ngpu), module_kwargs=batch
-            )
-            # Weighted averaging of loss from torch-data-parallel
-            loss = (loss * weight.to(loss.dtype)).sum(0) / weight.sum()
-            stats = {
-                k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
-                if v is not None
-                else None
-                for k, v in stats.items()
-            }
-            weight = weight.sum()
-        if train_dtype in ("O0", "O1", "O2", "O3"):
-            from apex import amp
-
-            with amp.scale_loss(loss, optimizers) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.backward()
-        return stats, weight
 
     @classmethod
     @torch.no_grad()
