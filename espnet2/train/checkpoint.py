@@ -10,16 +10,14 @@ import torch.nn
 import torch.optim
 from typeguard import check_argument_types
 
-from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
-from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
+from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.train.reporter import Reporter
 
 
 def resume(
     model: torch.nn.Module,
     optimizers: Iterable[torch.optim.Optimizer],
-    epoch_schedulers: Iterable[AbsEpochScheduler],
-    batch_schedulers: Iterable[AbsBatchScheduler],
+    schedulers: Iterable[AbsScheduler],
     reporter: Reporter,
     output_dir: Union[str, Path],
     resume_epoch: Optional[Union[int, str]],
@@ -57,9 +55,7 @@ def resume(
     if resume_epoch is not None or resume_path is not None:
         if resume_path is None:
             resume_path = output_dir / f"{resume_epoch}epoch"
-            logging.info(
-                f"--resume_epoch {resume_epoch}: Loading from {resume_path}"
-            )
+            logging.info(f"--resume_epoch {resume_epoch}: Loading from {resume_path}")
         else:
             logging.info(f"--resume_path {resume_path}: Loading from {resume_path}")
         load_checkpoint(
@@ -67,8 +63,7 @@ def resume(
             model=model,
             reporter=reporter,
             optimizers=optimizers,
-            epoch_schedulers=epoch_schedulers,
-            batch_schedulers=batch_schedulers,
+            schedulers=schedulers,
             map_location=map_location,
         )
 
@@ -78,32 +73,26 @@ def load_checkpoint(
     model: torch.nn.Module,
     reporter: Reporter,
     optimizers: Iterable[torch.optim.Optimizer],
-    epoch_schedulers: Iterable[Optional[AbsEpochScheduler]],
-    batch_schedulers: Iterable[Optional[AbsBatchScheduler]],
-    map_location: str
+    schedulers: Iterable[Optional[AbsScheduler]],
+    map_location: str,
 ):
     for key, obj in [("model", model), ("reporter", reporter)]:
         _st = torch.load(resume_path / f"{key}.pth", map_location=map_location)
         if obj is not None:
             obj.load_state_dict(_st)
     states = torch.load(resume_path / f"optim.pth")
-    for o, e, b, state in zip(
-        optimizers, epoch_schedulers, batch_schedulers, states
-    ):
+    for o, s, state in zip(optimizers, schedulers, states):
         o.load_state_dict(state["optim"])
-        if e is not None:
-            e.load_state_dict(state["escheduler"])
-        if b is not None:
-            b.load_state_dict(state["bscheduler"])
+        if s is not None:
+            s.load_state_dict(state["scheduler"])
 
 
 def save_checkpoint(
-        save_path: Union[str, Path],
-        model: torch.nn.Module,
-        reporter: Reporter,
-        optimizers: Iterable[torch.optim.Optimizer],
-        epoch_schedulers: Iterable[Optional[AbsEpochScheduler]],
-        batch_schedulers: Iterable[Optional[AbsBatchScheduler]],
+    save_path: Union[str, Path],
+    model: torch.nn.Module,
+    reporter: Reporter,
+    optimizers: Iterable[torch.optim.Optimizer],
+    schedulers: Iterable[Optional[AbsScheduler]],
 ):
     for key, obj in [("model", model), ("reporter", reporter)]:
         save_path.mkdir(parents=True, exist_ok=True)
@@ -113,9 +102,9 @@ def save_checkpoint(
     states = tuple(
         {
             "optim": o.state_dict(),
-            "escheduler": e.state_dict() if e is not None else None,
-            "bscheduler": b.state_dict() if b is not None else None,
-        } for o, e, b in zip(optimizers, epoch_schedulers, batch_schedulers)
+            "scheduler": s.state_dict() if s is not None else None,
+        }
+        for o, s in zip(optimizers, schedulers)
     )
     torch.save(states, save_path / f"optim.pth")
 

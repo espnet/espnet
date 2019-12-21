@@ -31,9 +31,9 @@ from typeguard import check_return_type
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.optimizers.sgd import SGD
-from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
-from espnet2.schedulers.abs_scheduler import AbsEpochScheduler
-from espnet2.schedulers.abs_scheduler import AbsValEpochScheduler
+from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
+from espnet2.schedulers.abs_scheduler import AbsScheduler
+from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_e2e import AbsE2E
@@ -70,19 +70,19 @@ optim_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
-escheduler_classes = dict(
+scheduler_classes = dict(
     ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
     lambdalr=torch.optim.lr_scheduler.LambdaLR,
     steplr=torch.optim.lr_scheduler.StepLR,
     multisteplr=torch.optim.lr_scheduler.MultiStepLR,
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
-    CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR)
-bscheduler_classes = dict()
+    CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
+)
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    bscheduler_classes["noamlr"] = NoamLR
-CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+    scheduler_classes["noamlr"] = NoamLR
 if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-    bscheduler_classes.update(
+    CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+    scheduler_classes.update(
         cycliclr=torch.optim.lr_scheduler.CyclicLR,
         onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
         CosineAnnealingWarmRestarts=CosineAnnealingWarmRestarts,
@@ -228,22 +228,22 @@ class AbsTask(ABC):
             type=int,
             default=3,
             help="The number images to plot the outputs from attention. "
-                 "This option makes sense only when attention-based model",
+            "This option makes sense only when attention-based model",
         )
         group.add_argument(
             "--train_dtype",
             default="float32",
             choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
             help="Data type for training. O0,O1,.. flags require apex. "
-                 "See https://nvidia.github.io/apex/amp.html#opt-levels",
+            "See https://nvidia.github.io/apex/amp.html#opt-levels",
         )
         group.add_argument(
             "--log_interval",
             type=int_or_none,
             default=None,
             help="Show the logs every the number iterations in each epochs at the "
-                 "training phase. If None is given, it is decided according the number "
-                 "of training samples automatically .",
+            "training phase. If None is given, it is decided according the number "
+            "of training samples automatically .",
         )
 
         group = parser.add_argument_group("train() related")
@@ -258,17 +258,17 @@ class AbsTask(ABC):
             type=int_or_none,
             default=None,
             help="Number of epochs to wait without improvement "
-                 "before stopping the training",
+            "before stopping the training",
         )
         group.add_argument(
             "--val_scheduler_criterion",
             type=str,
             nargs=2,
             default=("eval", "loss"),
-            help="The criterion used for the value given to the scheduler. "
-                 'Give a pair referring the phase, "train" or "eval",'
-                 'and the criterion name. The mode specifying "min" or "max" can '
-                 "be changed by --escheduler_conf",
+            help="The criterion used for the value given to the lr scheduler. "
+            'Give a pair referring the phase, "train" or "eval",'
+            'and the criterion name. The mode specifying "min" or "max" can '
+            "be changed by --scheduler_conf",
         )
         group.add_argument(
             "--early_stopping_criterion",
@@ -276,8 +276,8 @@ class AbsTask(ABC):
             nargs=3,
             default=("eval", "loss", "min"),
             help="The criterion used for judging of early stopping. "
-                 'Give a pair referring the phase, "train" or "eval",'
-                 'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
+            'Give a pair referring the phase, "train" or "eval",'
+            'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
             "--best_model_criterion",
@@ -290,8 +290,8 @@ class AbsTask(ABC):
                 ("eval", "acc", "max"),
             ],
             help="The criterion used for judging of the best model. "
-                 'Give a pair referring the phase, "train" or "eval",'
-                 'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
+            'Give a pair referring the phase, "train" or "eval",'
+            'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
             "--keep_n_best_snapshot",
@@ -310,7 +310,7 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="The flag to switch to use noise injection to "
-                 "gradients during training",
+            "gradients during training",
         )
         group.add_argument(
             "--accum_grad",
@@ -324,13 +324,13 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Just only iterating data loading without "
-                 "model forwarding and training",
+            "model forwarding and training",
         )
-        
+
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", type=str, default=[], nargs="+")
         group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="+")
-        
+
         group = parser.add_argument_group("Resuming related")
 
         def epoch_type(value: str) -> Optional[Union[str, int]]:
@@ -343,6 +343,7 @@ class AbsTask(ABC):
                 if v < 0:
                     raise TypeError("must be 0 or more integer")
                 return v
+
         egroup = group.add_mutually_exclusive_group()
         egroup.add_argument(
             "--resume_epoch",
@@ -437,30 +438,17 @@ class AbsTask(ABC):
                 help=f"The keyword arguments for optimizer",
             )
             group.add_argument(
-                f"--escheduler{suf}",
+                f"--scheduler{suf}",
                 type=lambda x: str_or_none(x.lower()),
                 default=None,
-                choices=list(map(lambda x: x.lower(), escheduler_classes)) + [None],
-                help=f"The epoch scheduler type",
+                choices=list(map(lambda x: x.lower(), scheduler_classes)) + [None],
+                help=f"The lr scheduler type",
             )
             group.add_argument(
-                f"--escheduler{suf}_conf",
+                f"--scheduler{suf}_conf",
                 action=NestedDictAction,
                 default=dict(),
-                help=f"The keyword arguments for epoch scheduler",
-            )
-            group.add_argument(
-                f"--bscheduler{suf}",
-                type=lambda x: str_or_none(x.lower()),
-                default=None,
-                choices=list(map(lambda x: x.lower(), bscheduler_classes)) + [None],
-                help=f"The batch scheduler type",
-            )
-            group.add_argument(
-                f"--bscheduler{suf}_conf",
-                action=NestedDictAction,
-                default=dict(),
-                help=f"The keyword arguments for batch scheduler",
+                help=f"The keyword arguments for lr scheduler",
             )
 
         cls.add_task_arguments(parser)
@@ -470,9 +458,7 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls,
-        args: argparse.Namespace,
-        model: torch.nn.Module,
+        cls, args: argparse.Namespace, model: torch.nn.Module,
     ) -> Tuple[torch.nn.Module, Tuple[torch.optim.Optimizer, ...]]:
         if cls.num_optimizers != 1:
             raise RuntimeError("Override build_optimizers() if num_optimizers != 1")
@@ -482,6 +468,7 @@ class AbsTask(ABC):
             if _cls is None:
                 raise ValueError(f"must be one of {list(classes)}: {name}")
             return _cls
+
         optim_class = get_class_type(args.optim, optim_classes)
         optim = optim_class(model.parameters(), args.optim_conf)
         optimizers = [optim]
@@ -492,11 +479,8 @@ class AbsTask(ABC):
 
     @classmethod
     def build_schedulers(
-        cls,
-        args: argparse.Namespace,
-        optimizers: Sequence[torch.optim.Optimizer, ...],
-    ) -> Tuple[Tuple[Optional[AbsEpochScheduler], ...],
-               Tuple[Optional[AbsBatchScheduler], ...]]:
+        cls, args: argparse.Namespace, optimizers: Sequence[torch.optim.Optimizer, ...],
+    ) -> Tuple[Optional[AbsScheduler], ...]:
         assert check_argument_types()
 
         def get_class_type(name: str, classes: dict):
@@ -505,33 +489,20 @@ class AbsTask(ABC):
                 raise ValueError(f"must be one of {list(classes)}: {name}")
             return _cls
 
-        epoch_schedulers = []
-        batch_schedulers = []
+        schedulers = []
         for i, optim in enumerate(optimizers, 1):
             suf = "" if i == 1 else str(i)
-            # 1. Build epoch_scheduler: invoked at every epochs
-            # e.g. torch.optim.lr_scheduler.StepLR
-            name = getattr(args, f"escheduler{suf}")
-            conf = getattr(args, f"escheduler{suf}_conf")
+            # 1. Build lr scheduler
+            name = getattr(args, f"scheduler{suf}")
+            conf = getattr(args, f"scheduler{suf}_conf")
             if name is not None:
-                cls_ = get_class_type(name, escheduler_classes)
-                epoch_scheduler = cls_(optim, **conf)
+                cls_ = get_class_type(name, scheduler_classes)
+                scheduler = cls_(optim, **conf)
             else:
-                epoch_scheduler = None
+                scheduler = None
 
-            # 2. Build batch_scheduler: invoked after every updating
-            # e.g. torch.optim.lr_scheduler.CyclicLR
-            name = getattr(args, f"bscheduler{suf}")
-            conf = getattr(args, f"bscheduler{suf}_conf")
-            if args.bscheduler is not None:
-                cls_ = get_class_type(name, bscheduler_classes)
-                batch_scheduler = cls_(optim, **conf)
-            else:
-                batch_scheduler = None
-                
-            epoch_schedulers.append(epoch_scheduler)
-            batch_schedulers.append(batch_scheduler)
-        return tuple(epoch_schedulers), tuple(batch_schedulers)
+            schedulers.append(scheduler)
+        return tuple(schedulers)
 
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
@@ -544,12 +515,13 @@ class AbsTask(ABC):
 
         This method is used print_config()
         """
+
         def get_class_type(name: str, classes: dict):
             _cls = classes.get(name)
             if _cls is None:
                 raise ValueError(f"must be one of {list(classes)}: {name}")
             return _cls
-        
+
         # This method is used only for --print_config
         assert check_argument_types()
         parser = cls.get_parser()
@@ -558,7 +530,7 @@ class AbsTask(ABC):
         # Excludes the options not to be shown
         for k in AbsTask.exclude_opts():
             config.pop(k)
-            
+
         for i in range(1, cls.num_optimizers + 1):
             suf = "" if i == 1 else str(i)
             name = config[f"optim{suf}"]
@@ -569,23 +541,14 @@ class AbsTask(ABC):
             # and set it again
             config[f"optim{suf}_conf"] = conf
 
-            name = config[f"escheduler{suf}"]
+            name = config[f"scheduler{suf}"]
             if name is not None:
-                escheduler_class = get_class_type(name, escheduler_classes)
-                conf = get_default_kwargs(escheduler_class)
+                scheduler_class = get_class_type(name, scheduler_classes)
+                conf = get_default_kwargs(scheduler_class)
                 # Overwrite the default by the arguments,
-                conf.update(config[f"escheduler{suf}_conf"])
+                conf.update(config[f"scheduler{suf}_conf"])
                 # and set it again
-                config[f"escheduler{suf}_conf"] = conf
-
-            name = config[f"bscheduler{suf}"]
-            if name is not None:
-                bscheduler_class = get_class_type(name, bscheduler_classes)
-                conf = get_default_kwargs(bscheduler_class)
-                # Overwrite the default by the arguments,
-                conf.update(config[f"bscheduler{suf}_conf"])
-                # and set it again
-                config[f"bscheduler{suf}_conf"] = conf
+                config[f"scheduler{suf}_conf"] = conf
 
         for class_choices in cls.class_choices_list:
             if getattr(args, class_choices.name) is not None:
@@ -603,9 +566,7 @@ class AbsTask(ABC):
         assert check_argument_types()
         for k in vars(args):
             if "-" in k:
-                raise RuntimeError(
-                    f'Use "_" instead of "-": parser.get_parser("{k}")'
-                )
+                raise RuntimeError(f'Use "_" instead of "-": parser.get_parser("{k}")')
         if len(args.pretrain_path) != len(args.pretrain_key):
             raise RuntimeError(
                 "The number of --pretrain_path and --pretrain_key must be same"
@@ -796,14 +757,11 @@ class AbsTask(ABC):
                 model, optimizers, opt_level=args.train_dtype
             )
 
-        epoch_schedulers, batch_schedulers = cls.build_schedulers(args, model)
-        for i, (o, e, b) in enumerate(
-            zip(optimizers, epoch_schedulers, batch_schedulers), 1
-        ):
+        schedulers = cls.build_schedulers(args, model)
+        for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
-            logging.info(f"Epoch scheduler{suf}: {e}")
-            logging.info(f"Batch scheduler{suf}: {b}")
+            logging.info(f"Scheduler{suf}: {s}")
 
         # 7. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
@@ -833,8 +791,7 @@ class AbsTask(ABC):
             reporter=reporter,
             output_dir=output_dir,
             optimizers=optimizers,
-            epoch_schedulers=epoch_schedulers,
-            batch_schedulers=batch_schedulers,
+            schedulers=schedulers,
             resume_epoch=args.resume_epoch,
             resume_path=args.resume_path,
             map_location="cuda" if args.ngpu > 0 else "cpu",
@@ -863,8 +820,7 @@ class AbsTask(ABC):
             cls.train(
                 model=model,
                 optimizers=optimizers,
-                epoch_schedulers=tuple(epoch_schedulers),
-                batch_schedulers=tuple(batch_schedulers),
+                schedulers=tuple(schedulers),
                 train_iter=train_iter,
                 eval_iter=eval_iter,
                 plot_attention_iter=plot_attention_iter,
@@ -892,8 +848,7 @@ class AbsTask(ABC):
         cls,
         model: AbsE2E,
         optimizers: Iterable[torch.optim.Optimizer],
-        epoch_schedulers: Tuple[Optional[AbsEpochScheduler]],
-        batch_schedulers: Tuple[Optional[AbsBatchScheduler]],
+        schedulers: Tuple[Optional[AbsScheduler]],
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         plot_attention_iter,
@@ -928,7 +883,7 @@ class AbsTask(ABC):
                 all_steps_are_invalid = cls.trainer.train_one_epoch(
                     model=model,
                     optimizers=tuple(optimizers),
-                    schedulers=tuple(batch_schedulers),
+                    schedulers=tuple(schedulers),
                     iterator=train_iter,
                     reporter=sub_reporter,
                     options=trainer_options,
@@ -950,11 +905,10 @@ class AbsTask(ABC):
                         options=trainer_options,
                     )
 
-            # 2. Scheduler step
-            #   Controls opt-params by scheduler e.g. learning rate decay
-            for epoch_scheduler in epoch_schedulers:
-                if epoch_scheduler is not None:
-                    if isinstance(epoch_scheduler, AbsValEpochScheduler):
+            # 2. LR Scheduler step
+            for scheduler in schedulers:
+                if scheduler is not None:
+                    if isinstance(scheduler, AbsValEpochStepScheduler):
                         _phase, _criterion = val_scheduler_criterion
                         if not reporter.has(_phase, _criterion):
                             raise RuntimeError(
@@ -962,9 +916,9 @@ class AbsTask(ABC):
                                 f"{reporter.get_all_keys()}"
                             )
                         val = reporter.get_value(_phase, _criterion)
-                        epoch_scheduler.step(val)
-                    else:
-                        epoch_scheduler.step()
+                        scheduler.step(val)
+                    elif isinstance(scheduler, AbsEpochStepScheduler):
+                        scheduler.step()
 
             # 3. Report the results
             reporter.logging()
@@ -976,8 +930,7 @@ class AbsTask(ABC):
                 model=model,
                 reporter=reporter,
                 optimizers=optimizers,
-                epoch_schedulers=epoch_schedulers,
-                batch_schedulers=batch_schedulers
+                schedulers=schedulers,
             )
 
             # 5. Saves the best model
