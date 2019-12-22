@@ -4,9 +4,8 @@ import pytest
 from espnet2.tasks.tts import TTSTask
 
 
-@pytest.mark.parametrize("parser", [configargparse.ArgumentParser(), None])
-def test_add_arguments(parser):
-    TTSTask.get_parser(parser)
+def test_add_arguments():
+    TTSTask.get_parser()
 
 
 def test_add_arguments_help():
@@ -36,20 +35,3 @@ def test_print_config_and_load_it(tmp_path):
         TTSTask.print_config(f)
     parser = TTSTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
-
-
-@pytest.mark.parametrize("name", TTSTask.feats_extract_choices())
-def test_get_feats_extract_class(name):
-    if name is not None:
-        TTSTask.get_feats_extract_class(name)
-
-
-@pytest.mark.parametrize("name", TTSTask.normalize_choices())
-def test_get_normalize_class(name):
-    if name is not None:
-        TTSTask.get_normalize_class(name)
-
-
-@pytest.mark.parametrize("name", TTSTask.tts_choices())
-def test_get_tts_class(name):
-    TTSTask.get_tts_class(name)

@@ -4,9 +4,8 @@ import pytest
 from espnet2.tasks.asr import ASRTask
 
 
-@pytest.mark.parametrize("parser", [configargparse.ArgumentParser(), None])
-def test_add_arguments(parser):
-    ASRTask.get_parser(parser)
+def test_add_arguments():
+    ASRTask.get_parser()
 
 
 def test_add_arguments_help():
@@ -36,25 +35,3 @@ def test_print_config_and_load_it(tmp_path):
         ASRTask.print_config(f)
     parser = ASRTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
-
-
-@pytest.mark.parametrize("name", ASRTask.frontend_choices())
-def test_get_frontend_class(name):
-    if name is not None:
-        ASRTask.get_frontend_class(name)
-
-
-@pytest.mark.parametrize("name", ASRTask.normalize_choices())
-def test_get_normalize_class(name):
-    if name is not None:
-        ASRTask.get_normalize_class(name)
-
-
-@pytest.mark.parametrize("name", ASRTask.encoder_choices())
-def test_get_encoder_class(name):
-    ASRTask.get_encoder_class(name)
-
-
-@pytest.mark.parametrize("name", ASRTask.decoder_choices())
-def test_get_decoder_class(name):
-    ASRTask.get_decoder_class(name)
