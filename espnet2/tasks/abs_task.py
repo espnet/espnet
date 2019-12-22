@@ -470,7 +470,7 @@ class AbsTask(ABC):
         optim_class = optim_classes.get(args.optim)
         if optim_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
-        optim = optim_class(model.parameters(), args.optim_conf)
+        optim = optim_class(model.parameters(), **args.optim_conf)
         optimizers = [optim]
         return optimizers
 

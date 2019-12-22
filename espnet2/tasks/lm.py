@@ -103,6 +103,8 @@ class LMTask(AbsTask):
             default=None,
             help="The model file fo sentencepiece",
         )
+        parser.add_argument("--non_language_symbols", type=str_or_none,
+                            help="non_language_symbols file path")
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf

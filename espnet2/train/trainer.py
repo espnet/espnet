@@ -89,7 +89,7 @@ class Trainer:
 
         # Note(kamo): assumes one optimizer
         assert cls.num_optimizers == 1, cls.num_optimizers
-        assert len(optimizers) == 0, len(optimizers)
+        assert len(optimizers) == 1, len(optimizers)
         optimizer = optimizers[0]
         scheduler = schedulers[0]
 

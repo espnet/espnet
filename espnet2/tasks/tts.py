@@ -19,6 +19,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.e2e import TTSE2E
@@ -26,6 +27,7 @@ from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
@@ -94,6 +96,29 @@ class TTSTask(AbsTask):
             default=get_default_kwargs(TTSE2E),
             help="The keyword arguments for E2E class.",
         )
+
+        group = parser.add_argument_group(description="Preprocess related")
+        group.add_argument(
+            "--use_preprocessor",
+            type=str2bool,
+            default=False,
+            help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--token_type",
+            type=str,
+            default="bpe",
+            choices=["bpe", "char", "word"],
+            help="The text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
+            "--bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece",
+        )
+        parser.add_argument("--non_language_symbols", type=str_or_none,
+                            help="non_language_symbols file path")
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -111,10 +136,21 @@ class TTSTask(AbsTask):
 
     @classmethod
     def build_preprocess_fn(
-        cls, args: argparse.Namespace, train: bool
+            cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        return None
+        if args.use_preprocessor:
+            retval = CommonPreprocessor(
+                train=train,
+                token_type=args.token_type,
+                token_list=args.token_list,
+                bpemodel=args.bpemodel,
+                non_language_symbols=args.non_language_symbols,
+            )
+        else:
+            retval = None
+        assert check_return_type(retval)
+        return retval
 
     @classmethod
     def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:

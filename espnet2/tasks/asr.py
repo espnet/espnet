@@ -165,6 +165,9 @@ class ASRTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
+        parser.add_argument("--non_language_symbols", type=str_or_none,
+                            help="non_language_symbols file path")
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -189,7 +192,9 @@ class ASRTask(AbsTask):
                 train=train,
                 token_type=args.token_type,
                 token_list=args.token_list,
-                bpemodel=args.bpemodel)
+                bpemodel=args.bpemodel,
+                non_language_symbols=args.non_language_symbols,
+            )
         else:
             retval = None
         assert check_return_type(retval)
