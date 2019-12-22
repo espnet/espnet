@@ -23,6 +23,7 @@ def build_tokenizer(
     token_type: str,
     bpemodel: Union[Path, str, Iterable[str]] = None,
     non_language_symbols: Union[Path, str, Iterable[str]] = None,
+    remove_non_language_symbols: bool = False,
     space_symbol: str = "<space>",
     delimiter: str = None,
 ) -> AbsTokenizer:
@@ -39,7 +40,8 @@ def build_tokenizer(
     elif token_type == "char":
         return CharTokenizer(
             non_language_symbols=non_language_symbols,
-            space_symbol=space_symbol
+            space_symbol=space_symbol,
+            remove_non_language_symbols=remove_non_language_symbols,
         )
 
     else:
@@ -89,6 +91,7 @@ class CharTokenizer(AbsTokenizer):
         self,
         non_language_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
+        remove_non_language_symbols: bool = False,
     ):
         assert check_argument_types()
         self.space_symbol = space_symbol
@@ -100,6 +103,7 @@ class CharTokenizer(AbsTokenizer):
                 self.non_language_symbols = [line.rstrip() for line in f]
         else:
             self.non_language_symbols = list(non_language_symbols)
+        self.remove_non_language_symbols = remove_non_language_symbols
 
     def __repr__(self):
         return (
@@ -114,7 +118,8 @@ class CharTokenizer(AbsTokenizer):
         while len(line) != 0:
             for w in self.non_language_symbols:
                 if line.startswith(w):
-                    tokens.append(line[:len(w)])
+                    if not self.remove_non_language_symbols:
+                        tokens.append(line[:len(w)])
                     line = line[len(w):]
                     break
             else:
