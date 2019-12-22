@@ -12,8 +12,6 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -23,6 +21,9 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_model import AbsTTS
 from espnet2.tts.e2e import TTSE2E
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
+from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -32,9 +33,9 @@ from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(default=DefaultFrontend),
-    type_check=AbsFrontend,
-    default="default"
+    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    type_check=AbsFeatsExtract,
+    default="fbank"
 )
 normalize_choices = ClassChoices(
     "normalize",

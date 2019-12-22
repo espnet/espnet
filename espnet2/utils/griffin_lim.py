@@ -24,8 +24,8 @@ def logmel2linear(
     fs: int,
     n_fft: int,
     n_mels: int,
-    fmin: Optional[Union[int, None]] = None,
-    fmax: Optional[Union[int, None]] = None,
+    fmin: int = None,
+    fmax: int = None,
 ) -> np.ndarray:
     """Convert log Mel filterbank to linear spectrogram.
 
@@ -54,7 +54,7 @@ def griffin_lim(
     spc: np.ndarray,
     n_fft: int,
     n_shift: int,
-    win_length: Optional[Union[int, None]] = None,
+    win_length: int = None,
     window: Optional[str] = 'hann',
     n_iter: Optional[int] = 32,
 ) -> np.ndarray:
@@ -110,13 +110,13 @@ class Spectrogram2Waveform(object):
         fs: int,
         n_fft: int,
         n_shift: int,
-        n_mels: Union[int, None] = None,
-        win_length: Optional[Union[int, None]] = None,
+        n_mels: int = None,
+        win_length: int = None,
         window: Optional[str] = 'hann',
-        fmin: Optional[Union[int, None]] = None,
-        fmax: Optional[Union[int, None]] = None,
+        fmin: int = None,
+        fmax: int = None,
         griffin_lim_iters: Optional[int] = 32,
-    ) -> object:
+    ):
         """Initialize module.
 
         Args:
