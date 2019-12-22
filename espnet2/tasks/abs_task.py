@@ -331,8 +331,8 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Pretraining model related")
-        group.add_argument("--pretrain_path", type=str, default=[], nargs="+")
-        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="+")
+        group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
+        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
 
         group = parser.add_argument_group("Resuming related")
 

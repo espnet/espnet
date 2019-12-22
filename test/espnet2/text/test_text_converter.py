@@ -6,10 +6,10 @@ import pytest
 import sentencepiece as spm
 from typing import List
 
-from espnet2.utils.text_converter import build_text_converter
-from espnet2.utils.text_converter import Text2CharsConverter
-from espnet2.utils.text_converter import Text2SentencepiecesConverter
-from espnet2.utils.text_converter import Text2WordsConverter
+from espnet2.text.text_converter import build_text_converter
+from espnet2.text.text_converter import Text2CharsConverter
+from espnet2.text.text_converter import Text2SentencepiecesConverter
+from espnet2.text.text_converter import Text2WordsConverter
 
 
 @pytest.fixture(params=[None, " "])

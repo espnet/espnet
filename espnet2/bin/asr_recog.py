@@ -23,11 +23,12 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
+from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.text.tokenizer import build_tokenizer
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.text_converter import build_text_converter
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -71,8 +72,7 @@ def recog(
 
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:
@@ -159,23 +159,18 @@ def recog(
         token_type = asr_train_args.token_type
     if bpemodel is None:
         bpemodel = asr_train_args.bpemodel
+
     if token_type is None:
-        converter = None
+        tokenizer = None
     elif token_type == "bpe":
         if bpemodel is not None:
-            converter = build_text_converter(
-                token_type=token_type,
-                token_list=token_list,
-                bpemodel=bpemodel
-            )
+            tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
         else:
-            converter = None
+            tokenizer = None
     else:
-        converter = build_text_converter(
-            token_type=token_type,
-            token_list=token_list,
-        )
-    logging.info(f"Text converter: {converter}")
+        tokenizer = build_tokenizer(token_type=token_type)
+    converter = TokenIDConverter(token_list=token_list)
+    logging.info(f"Text tokenizer: {tokenizer}")
 
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
@@ -209,7 +204,7 @@ def recog(
                 # remove sos/eos and get results
                 token_int = hyp.yseq[1:-1].tolist()
                 # Change integer-ids to tokens
-                token = [token_list[idx] for idx in token_int]
+                token = converter.ids2tokens(token_int)
 
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
@@ -221,8 +216,8 @@ def recog(
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
-                if converter is not None:
-                    text = converter.tokens2text(token)
+                if tokenizer is not None:
+                    text = tokenizer.tokens2text(token)
                     ibest_writer["text"][key] = text
 
 
