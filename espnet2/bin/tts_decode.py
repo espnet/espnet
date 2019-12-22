@@ -114,10 +114,10 @@ def tts_decode(
     )
 
     # 4. Build converter from spectrogram to waveform
-    spc2wav = Spectrogram2Waveform(
-        griffin_lim_iters=griffin_lim_iters,
-        **train_args.feats_extract_conf
-    )
+    if model.feats_extract is not None:
+        spc2wav = model.feats_extract.build_griffin_lim_vocoder(griffin_lim_iters=griffin_lim_iters)
+    else:
+        spc2wav = None
 
     # 5. Start for-loop
     output_dir = Path(output_dir)
@@ -133,7 +133,7 @@ def tts_decode(
     ) as f, kaldiio.WriteHelper(
         "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
     ) as g:
-        for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
+        for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -173,8 +173,9 @@ def tts_decode(
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 
-            wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
-            sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
+            if spc2wav is not None:
+                wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
+                sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
 
 
 def get_parser():
