@@ -341,7 +341,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
       echo "${oov}"
       # shellcheck disable=SC2002
       cat ${srctexts} | cut -f 2- -d" " \
-          | python -m espnet2.bin.tokenize \
+          | python -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" --input - --output - ${_opts} \
                 --write_vocabulary true
       echo "${sos_eos}"
@@ -356,7 +356,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
           echo "${oov}"
           # shellcheck disable=SC2002
           cat ${srctexts} | cut -f 2- -d" " \
-              | python -m espnet2.bin.tokenize \
+              | python -m espnet2.bin.tokenize_text \
                     --token_type word --input - --output - \
                     --write_vocabulary true \
                     --vocabrary_size "${word_vocab_size}"
@@ -723,7 +723,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             elif [ "${_type}" = cer ]; then
                 paste \
                     <(<"${_data}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize \
+                        | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type char \
                               --non_language_symbols "${nlsyms_txt}" \
@@ -733,7 +733,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 
                 paste \
                     <(<"${_dir}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize \
+                        | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type char \
                               --non_language_symbols "${nlsyms_txt}" \
@@ -744,7 +744,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             elif [ "${_type}" = ter ]; then
                 paste \
                     <(<"${_data}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize \
+                        | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type bpe \
                               --bpemodel "${bpemodel}") \
@@ -753,7 +753,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 
                 paste \
                     <(<"${_dir}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize \
+                        | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type bpe \
                               --bpemodel "${bpemodel}") \
