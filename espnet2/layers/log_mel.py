@@ -4,10 +4,9 @@ import torch
 from typing import Tuple
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.layers.inversible_interface import InversibleInterface
 
 
-class LogMel(torch.nn.Module, InversibleInterface):
+class LogMel(torch.nn.Module):
     """Convert STFT to fbank feats
 
     The arguments is same as librosa.filters.mel
@@ -61,21 +60,18 @@ class LogMel(torch.nn.Module, InversibleInterface):
         return ', '.join(f'{k}={v}' for k, v in self.mel_options.items())
 
     def forward(
-        self, feat: torch.Tensor, ilens: torch.Tensor
+        self, feat: torch.Tensor, ilens: torch.Tensor=None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)
 
         logmel_feat = (mel_feat + 1e-20).log()
         # Zero padding
-        logmel_feat = logmel_feat.masked_fill(
-            make_pad_mask(ilens, logmel_feat, 1), 0.0)
+        if ilens is not None:
+            logmel_feat = logmel_feat.masked_fill(
+                make_pad_mask(ilens, logmel_feat, 1), 0.0)
+        else:
+            ilens = feat.new_full(
+                [feat.size(0)], fill_value=feat.size(1), dtype=torch.long
+            )
         return logmel_feat, ilens
-
-    def inverse(
-        self, feat: torch.Tensor, ilens: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        feat = torch.exp(feat)
-        # feat: (B, T, D1) x inv_melmat: (D1, D2) -> spec: (B, T, D2)
-        feat = torch.matmul(feat, self.inv_melmat)
-        return feat, ilens
