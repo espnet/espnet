@@ -10,9 +10,8 @@ train_set="tr_${lang}"
 dev_set="dt_${lang}"
 eval_sets="et_${lang}"
 
-# lm_config=conf/lm_rnn/train.yaml
-asr_config=conf/train_rnn.yaml
-decode_config=conf/decode.yaml
+asr_config=conf/train_asr_rnn.yaml
+decode_config=conf/decode_asr.yaml
 
 # FIXME(kamo):
 # The results with norm_vars=True is odd.
