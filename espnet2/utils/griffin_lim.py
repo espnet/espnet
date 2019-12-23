@@ -107,9 +107,9 @@ class Spectrogram2Waveform(object):
 
     def __init__(
         self,
-        fs: int,
         n_fft: int,
         n_shift: int,
+        fs: int = None,
         n_mels: int = None,
         win_length: int = None,
         window: Optional[str] = 'hann',
@@ -149,6 +149,25 @@ class Spectrogram2Waveform(object):
             window=window,
             n_iter=griffin_lim_iters
         )
+        self.params = dict(
+            n_fft=n_fft,
+            n_shift=n_shift,
+            win_length=win_length,
+            window=window,
+            n_iter=griffin_lim_iters)
+        if n_mels is not None:
+            self.params.update(
+                fs=fs,
+                n_mels=n_mels,
+                fmin=fmin,
+                fmax=fmax)
+
+    def __repr__(self):
+        retval = f"{self.__class__.__name__}("
+        for k, v in self.params.items():
+            retval += f"{k}={v}, "
+        retval += ")"
+        return retval
 
     def __call__(self, spc):
         """Convert spectrogram to waveform.

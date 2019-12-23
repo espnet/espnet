@@ -1,3 +1,5 @@
+from typing import Any
+from typing import Dict
 from typing import Tuple
 from typing import Union
 
@@ -8,7 +10,6 @@ from typeguard import check_argument_types
 from espnet2.layers.log_mel import LogMel
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
 
 
 class LogMelFbank(AbsFeatsExtract):
@@ -69,10 +70,10 @@ class LogMelFbank(AbsFeatsExtract):
     def output_size(self) -> int:
         return self.n_mels
 
-    def build_griffin_lim_vocoder(self, griffin_lim_iters) -> Spectrogram2Waveform:
-        return Spectrogram2Waveform(
+    def get_parameters(self) -> Dict[str, Any]:
+        """Return the parameters required by Vocoder"""
+        return dict(
             fs=self.fs,
-            griffin_lim_iters=griffin_lim_iters,
             n_fft=self.n_fft,
             n_shift=self.hop_length,
             n_mels=self.n_mels,

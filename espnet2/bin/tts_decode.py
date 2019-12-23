@@ -28,6 +28,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -53,7 +56,7 @@ def tts_decode(
     backward_window: int,
     forward_window: int,
     allow_variable_data_keys: bool,
-    griffin_lim_iters: int,
+    vocoder_conf: dict,
 ):
     """Perform E2E-TTS decoding."""
     assert check_argument_types()
@@ -114,11 +117,12 @@ def tts_decode(
 
     # 4. Build converter from spectrogram to waveform
     if model.feats_extract is not None:
-        spc2wav = model.feats_extract.build_griffin_lim_vocoder(
-            griffin_lim_iters=griffin_lim_iters
-        )
+        vocoder_conf.update(model.feats_extract.get_parameters())
+    if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf:
+        spc2wav = Spectrogram2Waveform(**vocoder_conf)
     else:
         spc2wav = None
+    logging.info(f"Vocoder: {spc2wav}")
 
     # 5. Start for-loop
     output_dir = Path(output_dir)
@@ -287,12 +291,12 @@ def get_parser():
         help="Forward window value in attention constraint",
     )
 
-    group = parser.add_argument_group("Griffin-Lim related")
+    group = parser.add_argument_group(" Grriffin Lim related")
     group.add_argument(
-        "--griffin_lim_iters",
-        type=int,
-        default=32,
-        help="Number of iterations in Grriffin Lim"
+        "--vocoder_conf",
+        action=NestedDictAction,
+        default=get_default_kwargs(Spectrogram2Waveform),
+        help="The configuration for Grriffin Lim"
     )
     return parser
 
