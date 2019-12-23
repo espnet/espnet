@@ -65,7 +65,7 @@ class TTSTask(AbsTask):
         tts_choices
     ]
 
-    # If you need to modify train() or eval() procedures change, Trainer class here
+    # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
     @classmethod

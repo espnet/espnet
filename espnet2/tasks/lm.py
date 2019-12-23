@@ -42,7 +42,7 @@ class LMTask(AbsTask):
     # Add variable objects configurations
     class_choices_list = [lm_choices]
 
-    # If you need to modify train() or eval() procedures change, Trainer class here
+    # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
     @classmethod
