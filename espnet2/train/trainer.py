@@ -100,7 +100,7 @@ class Trainer:
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
-        grad_clip = options.grad_noise
+        grad_clip = options.grad_clip
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
