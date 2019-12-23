@@ -48,8 +48,7 @@ def calc_perplexity(
     assert check_argument_types()
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:

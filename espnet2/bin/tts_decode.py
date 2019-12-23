@@ -66,8 +66,7 @@ def tts_decode(
         raise NotImplementedError("only single GPU decoding is supported")
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:

@@ -17,8 +17,7 @@ def aggregate_stats_dirs(
 ):
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-               "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) (levelname)s: %(message)s",
     )
 
     input_dirs = [Path(p) for p in input_dir]
