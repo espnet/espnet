@@ -117,7 +117,7 @@ def tts_decode(
     # 4. Build converter from spectrogram to waveform
     if model.feats_extract is not None:
         vocoder_conf.update(model.feats_extract.get_parameters())
-    if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf:
+    if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf and "fs" in vocoder_conf:
         spc2wav = Spectrogram2Waveform(**vocoder_conf)
         logging.info(f"Vocoder: {spc2wav}")
     else:
