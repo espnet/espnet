@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from typing import Any
+from typing import Dict
 
 import torch
 from typing import Tuple
@@ -10,7 +12,7 @@ class AbsFeatsExtract(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def build_griffin_lim_vocoder(self, griffin_lim_iters):
+    def get_parameters(self) -> Dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
