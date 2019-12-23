@@ -487,6 +487,9 @@ if "${use_lm}"; then
       log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
 
   fi
+
+else
+    log "Stage 4-6: Skip lm-related stages use_lm=${use_lm}"
 fi
 
 
