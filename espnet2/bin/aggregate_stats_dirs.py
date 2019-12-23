@@ -24,13 +24,13 @@ def aggregate_stats_dirs(
     output_dir = Path(output_dir)
 
     for mode in ["train", "eval"]:
-        with (input_dirs[0] / mode / "shape_keys").open("r") as f:
-            shape_keys = [l.strip() for l in f if l.strip() != ""]
+        with (input_dirs[0] / mode / "batch_keys").open("r") as f:
+            batch_keys = [l.strip() for l in f if l.strip() != ""]
         with (input_dirs[0] / mode / "stats_keys").open("r") as f:
             stats_keys = [l.strip() for l in f if l.strip() != ""]
         (output_dir / mode).mkdir(parents=True, exist_ok=True)
 
-        for key in shape_keys:
+        for key in batch_keys:
             with (output_dir / mode / f"{key}_shape").open("w") as fout:
                 for idir in input_dirs:
                     with (idir / mode / f"{key}_shape").open("r") as fin:
@@ -48,6 +48,17 @@ def aggregate_stats_dirs(
                         sum_stats[k] += stats[k]
 
             np.savez(output_dir / mode / f"{key}_stats.npz", **sum_stats)
+
+            # if --write_collected_feats=true
+            p = Path(mode) / "collect_feats" / f"{key}.scp"
+            scp = input_dirs[0] / p
+            if scp.exists():
+                (output_dir / p).parent.mkdir(parents=True, exist_ok=True)
+                with (output_dir / p).open("w") as fout:
+                    for idir in input_dirs:
+                        with (idir / p).open("r") as fin:
+                            for line in fin:
+                                fout.write(line)
 
 
 def get_parser() -> argparse.ArgumentParser:
