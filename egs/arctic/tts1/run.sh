@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
+# [stage 6] 2019 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -37,6 +38,11 @@ decode_config=conf/decode.yaml
 model=model.loss.best
 n_average=1           # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
+
+# objective evaluation related
+asr_model="librispeech.transformer.ngpu4"
+eval_tts_model=true                            # true: evaluate tts model, false: evaluate ground truth
+wer=true                                       # true: evaluate CER & WER, false: evaluate only CER
 
 # pretrained model related
 download_dir=downloads
@@ -225,6 +231,29 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${outdir}_denorm/${name} \
             ${outdir}_denorm/${name}/log \
             ${outdir}_denorm/${name}/wav
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished."
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Objective Evaluation"
+    pids=() # initialize pids
+    for name in ${dev_set} ${eval_set}; do
+    (
+        local/ob_eval/evaluate_cer.sh --nj ${nj} \
+            --do_delta false \
+            --eval_tts_model ${eval_tts_model} \
+            --db_root ${download_dir}/cmu_us_${spk}_arctic \
+            --backend pytorch \
+            --wer ${wer} \
+            --api v2 \
+            ${asr_model} \
+            ${outdir} \
+            ${name}
     ) &
     pids+=($!) # store background pids
     done
