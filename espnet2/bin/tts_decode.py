@@ -120,9 +120,10 @@ def tts_decode(
         vocoder_conf.update(model.feats_extract.get_parameters())
     if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf:
         spc2wav = Spectrogram2Waveform(**vocoder_conf)
+        logging.info(f"Vocoder: {spc2wav}")
     else:
         spc2wav = None
-    logging.info(f"Vocoder: {spc2wav}")
+        logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
     # 5. Start for-loop
     output_dir = Path(output_dir)
