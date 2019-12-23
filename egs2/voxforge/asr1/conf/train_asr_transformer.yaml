@@ -1,4 +1,4 @@
-bscheduler: noamlr
+scheduler: noamlr
 optim: adam
 optim_conf:
     lr: 10.0
