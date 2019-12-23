@@ -92,7 +92,7 @@ class ASRTask(AbsTask):
         decoder_choices
     ]
 
-    # If you need to modify train() or eval() procedures change, Trainer class here
+    # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
     @classmethod

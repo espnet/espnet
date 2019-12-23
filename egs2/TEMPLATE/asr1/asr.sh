@@ -489,7 +489,7 @@ if "${use_lm}"; then
   fi
 
 else
-    log "Stage 4-6: Skip lm-related stages use_lm=${use_lm}"
+    log "Stage 4-6: Skip lm-related stages: use_lm=${use_lm}"
 fi
 
 

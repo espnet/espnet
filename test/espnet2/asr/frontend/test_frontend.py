@@ -10,13 +10,12 @@ def test_frontend_repr():
 
 
 def test_frontend_output_size():
-    frontend = DefaultFrontend(fs="16k")
-    frontend.output_size()
+    frontend = DefaultFrontend(fs="16k", n_mels=40)
+    assert frontend.output_size() == 40
 
 
 def test_frontend_backward():
-    frontend = DefaultFrontend(fs=160, n_fft=128, stft_conf={"win_length": 32},
-                               frontend_conf=None)
+    frontend = DefaultFrontend(fs=160, n_fft=128, win_length=32, frontend_conf=None)
     x = torch.randn(2, 300, requires_grad=True)
     x_lengths = torch.LongTensor([300, 89])
     y, y_lengths = frontend(x, x_lengths)
@@ -30,7 +29,7 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
     frontend = DefaultFrontend(
         fs=300,
         n_fft=128,
-        stft_conf={"win_length": 128},
+        win_length=128,
         frontend_conf={"use_wpe": use_wpe, "use_beamformer": use_beamformer}
     )
     if train:
