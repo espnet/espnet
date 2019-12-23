@@ -59,4 +59,17 @@ for t in ${feats_type}; do
 done
 cd "${cwd}" || exit 1
 
+
+# [ESPnet2] Validate configuration files
+for f in egs2/*/asr1/conf/train_asr*.yaml; do
+    python -m espnet2.bin.asr_train --config "${f}" --print_config 
+done
+for f in egs2/*/asr1/conf/train_lm*.yaml; do
+    python -m espnet2.bin.lm_train --config "${f}" --print_config 
+done
+for f in egs2/*/tts1/conf/train_*.yaml; do
+    python -m espnet2.bin.tts_train --config "${f}" --print_config 
+done
+
+
 # TODO(karita): test mt, st?
