@@ -457,6 +457,7 @@ class AbsTask(ABC):
                 help=f"The keyword arguments for lr scheduler",
             )
 
+        cls.trainer.add_arguments(parser)
         cls.add_task_arguments(parser)
 
         assert check_return_type(parser)

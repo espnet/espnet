@@ -76,6 +76,11 @@ class Trainer:
         return build_dataclass(TrainerOptions, args)
 
     @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser):
+        """Reserved for future development of another Trainer"""
+        pass
+
+    @classmethod
     def train_one_epoch(
         cls,
         model: AbsE2E,
