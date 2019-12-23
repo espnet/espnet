@@ -11,8 +11,8 @@ patience: 4
 val_scheduler_criterion:
 - eval
 - loss
-escheduler: reducelronplateau
-escheduler_conf:
+scheduler: reducelronplateau
+scheduler_conf:
     mode: min
     factor: 0.5
     patience: 1

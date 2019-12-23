@@ -29,7 +29,7 @@ expdir=exp       # Directory to save experiments.
 local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=fbank  # Feature type (fbank or stft or raw).
+feats_type=raw    # Feature type (fbank or stft or raw).
 audio_format=flac # Audio format (only in feats_type=raw).
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
@@ -178,6 +178,12 @@ if [ -z "${decode_tag}" ]; then
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# The directory used for collect-stats mode
+tts_stats_dir="${expdir}/tts_stats"
+# The directory used for training commands
+tts_exp="${expdir}/tts_${tag}"
+
+
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -264,7 +270,6 @@ fi
 
 
 
-tts_exp="${expdir}/tts_${tag}"
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
@@ -294,7 +299,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     fi
 
     # 1. Split the key file
-    _logdir="${tts_exp}/stats/logdir"
+    _logdir="${tts_stats_dir}/logdir"
     mkdir -p "${_logdir}"
     key_file="${_train_dir}/${_scp}"
     split_scps=""
@@ -317,7 +322,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 2. Submit jobs
     log "TTS collect_stats started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
-    ${train_cmd} JOB=1:"${_nj}" "${tts_exp}"/stats.JOB.log \
+    ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
             --collect_stats true \
             --use_preprocessor true \
@@ -341,7 +346,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     for i in $(seq "${_nj}"); do
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
-    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_exp}/stats"
+    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
 fi
 
 
@@ -384,15 +389,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --token_list "${token_list}" \
             --non_language_symbols "${nlsyms_txt}" \
             --normalize global_mvn \
-            --normalize_conf stats_file=${tts_exp}/stats/train/feats_stats.npz \
+            --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
             --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${tts_exp}/stats/train/speech_shape" \
-            --train_shape_file "${tts_exp}/stats/train/text_shape" \
-            --eval_shape_file "${tts_exp}/stats/eval/speech_shape" \
-            --eval_shape_file "${tts_exp}/stats/eval/text_shape" \
+            --train_shape_file "${tts_stats_dir}/train/speech_shape" \
+            --train_shape_file "${tts_stats_dir}/train/text_shape" \
+            --eval_shape_file "${tts_stats_dir}/eval/speech_shape" \
+            --eval_shape_file "${tts_stats_dir}/eval/text_shape" \
             --resume_epoch latest \
             --max_length 150 \
             --max_length ${_max_length} \
