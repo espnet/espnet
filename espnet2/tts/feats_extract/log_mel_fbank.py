@@ -1,5 +1,6 @@
 from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -15,22 +16,22 @@ from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 class LogMelFbank(AbsFeatsExtract):
     """Conventional frontend structure for ASR
 
-    Stft -> Power-spec -> Log-Mel-Fbank
+    Stft -> amplitude-spec -> Log-Mel-Fbank
     """
 
     def __init__(
         self,
         fs: Union[int, str] = 16000,
-        n_fft: int = 512,
-        win_length: Union[int, None] = 512,
-        hop_length: int = 128,
+        n_fft: int = 1024,
+        win_length: int = None,
+        hop_length: int = 256,
         center: bool = True,
         pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
         n_mels: int = 80,
-        fmin: int = None,
-        fmax: int = None,
+        fmin: Optional[int] = 80,
+        fmax: Optional[int] = 7600,
         htk: bool = False,
         norm=1
     ):

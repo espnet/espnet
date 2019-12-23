@@ -58,12 +58,14 @@ def tokenize(
         if not write_vocabulary:
             fout.write(" ".join(tokens) + "\n")
         else:
+            # If write_vocabulary mode, count the number of occurrences
             for t in tokens:
                 counter[t] += 1
 
     if not write_vocabulary:
         return
 
+    # write_vocabulary mode from here
     total_count = sum(counter.values())
     invocab_count = 0
     for nvocab, (w, c) in enumerate(sorted(counter.items(), key=lambda x: x[1]), 1):

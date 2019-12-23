@@ -427,9 +427,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--vocoder_conf n_fft=${n_fft} "
         _opts+="--vocoder_conf n_shift=${n_shift} "
         _opts+="--vocoder_conf win_length=${win_length} "
+        _opts+="--vocoder_conf fs=${fs} "
     fi
     if [ "${_feats_type}" == fbank ]; then
-        _opts+="--vocoder_conf fs=${fs} "
         _opts+="--vocoder_conf n_mels=${n_mels} "
         _opts+="--vocoder_conf fmin=${fmin} "
         _opts+="--vocoder_conf fmax=${fmax} "

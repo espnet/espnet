@@ -116,11 +116,7 @@ def calc_perplexity(
                         wrapped_model, (), range(ngpu), module_kwargs=batch
                     )
 
-            assert _bs == len(nll) == len(lengths), (
-                _bs,
-                len(nll),
-                len(lengths),
-            )
+            assert _bs == len(nll) == len(lengths), (_bs, len(nll), len(lengths))
             # nll: (B, L) -> (B,)
             nll = nll.detach().cpu().numpy().sum(1)
             # lengths: (B,)
