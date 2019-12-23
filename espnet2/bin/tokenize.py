@@ -75,7 +75,7 @@ def tokenize(
         invocab_count += c
 
     logging.info(
-        f"OOV rate = {float(total_count - invocab_count) / total_count * 100} %% ")
+        f"OOV rate = {float(total_count - invocab_count) / total_count * 100} %")
 
 
 def get_parser() -> argparse.ArgumentParser:
