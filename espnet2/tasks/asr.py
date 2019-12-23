@@ -233,10 +233,12 @@ class ASRTask(AbsTask):
 
         # 1. frontend
         if args.input_size is None:
+            # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
+            # Give features from data-loader
             args.frontend = None
             args.frontend_conf = {}
             frontend = None
