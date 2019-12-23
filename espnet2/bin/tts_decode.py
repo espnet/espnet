@@ -28,7 +28,6 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -115,7 +114,9 @@ def tts_decode(
 
     # 4. Build converter from spectrogram to waveform
     if model.feats_extract is not None:
-        spc2wav = model.feats_extract.build_griffin_lim_vocoder(griffin_lim_iters=griffin_lim_iters)
+        spc2wav = model.feats_extract.build_griffin_lim_vocoder(
+            griffin_lim_iters=griffin_lim_iters
+        )
     else:
         spc2wav = None
 

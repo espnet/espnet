@@ -191,10 +191,12 @@ class TTSTask(AbsTask):
 
         # 1. feats_extract
         if args.odim is None:
+            # Extract features in the model
             feats_extract_class = feats_extractor_choices.get_class(args.feats_extract)
             feats_extract = feats_extract_class(**args.feats_extract_conf)
             odim = feats_extract.output_size()
         else:
+            # Give features from data-loader
             args.feats_extract = None
             args.feats_extract_conf = None
             feats_extract = None
