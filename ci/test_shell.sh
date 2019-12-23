@@ -21,7 +21,7 @@ fi
 set -euo pipefail
 
 echo "=== run shellcheck ==="
-find ci utils doc egs/TEMPLATE/*/scripts -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
+find ci utils doc egs2/TEMPLATE/*/scripts -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
 find egs egs2 -name "run.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
 if grep -q "SC[0-9]\{4\}" check_shellcheck; then
     echo "[ERROR] shellcheck failed"
