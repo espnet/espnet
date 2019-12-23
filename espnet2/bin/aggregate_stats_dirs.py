@@ -74,10 +74,8 @@ def get_parser() -> argparse.ArgumentParser:
         help="The verbose level of logging",
     )
 
-    parser.add_argument("--input_dir", action="append",
-                        help="Input directories")
-    parser.add_argument("--output_dir", required=True,
-                        help="Output directory")
+    parser.add_argument("--input_dir", action="append", help="Input directories")
+    parser.add_argument("--output_dir", required=True, help="Output directory")
     return parser
 
 

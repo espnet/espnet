@@ -290,13 +290,9 @@ def get_parser():
         default=1,
         help="The batch size for inference",
     )
-    group.add_argument(
-        "--nbest", type=int, default=1, help="Output N-best hypotheses"
-    )
+    group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
-    group.add_argument(
-        "--penalty", type=float, default=0.0, help="Insertion penalty"
-    )
+    group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
     group.add_argument(
         "--maxlenratio",
         type=float,
@@ -318,9 +314,7 @@ def get_parser():
         default=0.5,
         help="CTC weight in joint decoding",
     )
-    group.add_argument(
-        "--lm_weight", type=float, default=1.0, help="RNNLM weight"
-    )
+    group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument(
         "--blank_symbol",
         type=str,

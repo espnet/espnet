@@ -179,8 +179,8 @@ def tts_decode(
             g[key] = outs_denorm.cpu().numpy()
 
             if spc2wav is not None:
-                wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
-                sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
+                wav = spc2wav(outs_denorm.cpu().numpy())
+                sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
 
 
 def get_parser():
@@ -193,9 +193,7 @@ def get_parser():
 
     # Note(kamo): Use "_" instead of "-" as separator.
     # "-" is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
