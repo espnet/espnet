@@ -168,7 +168,7 @@ class ESPnetDataset(Dataset):
         _mes += f"("
         for name, (path, _type) in self.debug_info.items():
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
-        _mes += f"\n preprocess: {self.preprocess})"
+        _mes += f"\n  preprocess: {self.preprocess})"
         return _mes
 
     def __len__(self):
