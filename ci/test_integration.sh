@@ -53,7 +53,7 @@ cd "${cwd}" || exit 1
 cd ./egs2/mini_an4/tts1 || exit 1
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --stage 1 --stop-stage 1
-feats_type="fbank stft"
+feats_type="raw fbank stft"
 for t in ${feats_type}; do
     ./run.sh --stage 2 --feats-type "${t}" --train-args "--max_epoch 1"
 done
