@@ -29,8 +29,17 @@ expdir=exp       # Directory to save experiments.
 local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
-audio_format=flac # Audio format
+feats_type=fbank  # Feature type (fbank or stft or raw).
+audio_format=flac # Audio format (only in feats_type=raw).
+# Only used for feats_type != raw
 fs=16000          # Sampling rate.
+fmin=80           # Minimum frequency of Mel basis.
+fmax=7600         # Maximum frequency of Mel basis.
+n_mels=80         # The number of mel basis.
+n_fft=1024        # The number of fft points.
+n_shift=256       # The number of shift points.
+win_length=null   # Window length.
+
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
@@ -79,8 +88,15 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --audio_format # Audio format (default="${audio_format}").
+    --feats_type   # Feature type (fbank or stft or raw, default="${feats_type}").
+    --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
+    --fmax         # Maximum frequency of Mel basis (default="${fmax}").
+    --fmin         # Minimum frequency of Mel basis (default="${fmin}").
+    --n_mels       # The number of mel basis (default="${n_mels}").
+    --n_fft        # The number of fft points (default="${n_fft}").
+    --n_shift      # The number of shift points (default="${n_shift}").
+    --win_length   # Window length (default="${win_length}").
     --oov          # Out of vocabrary symbol (default="${oov}").
     --blank        # CTC blank symbol (default="${blank}").
     --sos_eos=     # sos and eos symbole (default="${sos_eos}").
@@ -123,14 +139,26 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-data_feats="${dumpdir}/raw"
+# Check feature type
+if [ "${feats_type}" = fbank ]; then
+    data_feats="${dumpdir}/fbank"
+elif [ "${feats_type}" = stft ]; then
+    data_feats="${dumpdir}/stft"
+elif [ "${feats_type}" = raw ]; then
+    data_feats="${dumpdir}/raw"
+else
+    log "${help_message}"
+    log "Error: not supported: --feats_type ${feats_type}"
+    exit 2
+fi
+
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag="$(basename "${train_config}" .yaml)"
+        tag="$(basename "${train_config}" .yaml)_${feats_type}"
     else
-        tag="train"
+        tag="train_${feats_type}"
     fi
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
@@ -170,13 +198,47 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # If nothing is need, then format_wav_scp.sh does nothing:
     # i.e. the input file format and rate is same as the output.
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-        utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
-        scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-            --audio-format "${audio_format}" --fs "${fs}" \
-            "data/${dset}/wav.scp" "${data_feats}/${dset}"
-    done
+    if [ "${feats_type}" = raw ]; then
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" \
+                "data/${dset}/wav.scp" "${data_feats}/${dset}"
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        done
 
+    elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+
+        # Generate the fbank features; by default 80-dimensional fbanks on each frame
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            # 1. Copy datadir
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+
+            # 2. Feature extract
+            # TODO(kamo): Wrapp (nj->_nj) in make_fbank.sh
+            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _opts=
+            if [ "${feats_type}" = fbank ] ; then
+                _opts+="--fs ${fs} "
+                _opts+="--fmax ${fmax} "
+                _opts+="--fmin ${fmin} "
+                _opts+="--n_mels ${n_mels} "
+            fi
+
+            # shellcheck disable=SC2086
+            scripts/feats/make_"${feats_type}".sh --cmd "${train_cmd}" --nj "${_nj}" \
+                --n_fft "${n_fft}" \
+                --n_shift "${n_shift}" \
+                --win_length "${win_length}" \
+                ${_opts} \
+                "${data_feats}/${dset}"
+
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        done
+    fi
 fi
 
 
@@ -215,11 +277,21 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _opts+="--config ${train_config} "
     fi
 
-    _scp=wav.scp
-    # "sound" supports "wav", "flac", etc.
-    _type=sound
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
-    _max_length=80000
+    _feats_type="$(<${_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=80000
+    else
+        _scp=feats.scp
+        _type=kaldi_ark
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=800
+        _odim="$(<${_train_dir}/feats_dim)"
+        _opts+="--odim=${_odim} "
+    fi
 
     # 1. Split the key file
     _logdir="${tts_exp}/stats/logdir"
@@ -256,9 +328,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --batch_type const \
             --sort_in_batch none \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-            --train_data_path_and_name_and_type "${_train_dir}/wav.scp,speech,${_type}" \
+            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/wav.scp,speech,${_type}" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --eval_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
@@ -285,10 +357,21 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _opts+="--config ${train_config} "
     fi
 
-    # "sound" supports "wav", "flac", etc.
-    _type=sound
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
-    _max_length=80000
+    _feats_type="$(<${_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=80000
+    else
+        _scp=feats.scp
+        _type=kaldi_ark
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=800
+        _odim="$(<${_train_dir}/feats_dim)"
+        _opts+="--odim=${_odim} "
+    fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -334,11 +417,27 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${decode_config} "
     fi
 
+    _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
+        _opts+="--vocoder_conf n_fft=${n_fft} "
+        _opts+="--vocoder_conf n_shift=${n_shift} "
+        _opts+="--vocoder_conf win_length=${win_length} "
+    fi
+    if [ "${_feats_type}" == fbank ]; then
+        _opts+="--vocoder_conf fs=${fs} "
+        _opts+="--vocoder_conf n_mels=${n_mels} "
+        _opts+="--vocoder_conf fmin=${fmin} "
+        _opts+="--vocoder_conf fmax=${fmax} "
+    fi
+
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${tts_exp}/${decode_tag}_${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
+
+        # 0. Copy feats_type
+        cp "${_data}/feats_type" "${_dir}/feats_type"
 
         # 1. Split the key file
         key_file=${_data}/text
@@ -362,7 +461,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
-                --griffin_lim_iters "${griffin_lim_iters}" \
+                --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
