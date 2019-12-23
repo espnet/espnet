@@ -913,7 +913,7 @@ class AbsTask(ABC):
                     count=count_dict[key],
                     sum=sum_dict[key],
                     sum_square=sq_dict[key],
-                    )
+                )
             with (output_dir / mode / "shape_keys").open("w") as f:
                 f.write(
                     "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
@@ -1115,7 +1115,7 @@ class AbsTask(ABC):
                 if e not in _loaded:
                     _loaded[e] = torch.load(
                         output_dir / f"{e}epoch" / "model.pth", map_location="cpu",
-                        )
+                    )
                 states = _loaded[e]
 
                 if avg is None:

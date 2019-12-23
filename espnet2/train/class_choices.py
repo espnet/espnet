@@ -31,6 +31,7 @@ class ClassChoices:
     >>> a_object = class_obj(**args.var_conf)
 
     """
+
     def __init__(
             self,
             name: str,
