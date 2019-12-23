@@ -700,7 +700,6 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
             )
-
         if args.train_dtype in ("float16", "float32", "float64"):
             dtype = getattr(torch, args.train_dtype)
         else:
@@ -740,7 +739,8 @@ class AbsTask(ABC):
             if name is not None:
                 cls_ = scheduler_classes.get(name)
                 if cls_ is None:
-                    raise ValueError(f"must be one of {list(scheduler_classes)}: {name}")
+                    raise ValueError(
+                        f"must be one of {list(scheduler_classes)}: {name}")
                 scheduler = cls_(optim, **conf)
             else:
                 scheduler = None
