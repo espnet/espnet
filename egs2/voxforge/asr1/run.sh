@@ -16,7 +16,7 @@ decode_config=conf/decode.yaml
 
 # FIXME(kamo):
 # The results with norm_vars=True is odd.
-# I'm not sure this is whetherl this bug or not now:
+# I'm not sure this is due to bug.
 
 ./asr.sh \
     --local_data_opts "--lang ${lang}" \

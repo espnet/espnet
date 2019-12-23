@@ -884,7 +884,7 @@ class AbsTask(ABC):
                                 data = data[:lg]
                             datadir_writer[f"{name}_shape"][key] = (
                                 ",".join(map(str, data.shape))
-                             )
+                            )
 
                     # 2. Extract feats
                     if ngpu <= 1:
