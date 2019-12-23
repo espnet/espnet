@@ -90,6 +90,9 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
         onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
         CosineAnnealingWarmRestarts=CosineAnnealingWarmRestarts,
     )
+# To lower keys
+optim_classes = {k.lower(): v for k, v in optim_classes.items()}
+scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
 class AbsTask(ABC):
@@ -431,7 +434,7 @@ class AbsTask(ABC):
                 f"--optim{suf}",
                 type=lambda x: x.lower(),
                 default="adadelta",
-                choices=list(map(lambda x: x.lower(), optim_classes)),
+                choices=list(optim_classes),
                 help=f"The optimizer type",
             )
             group.add_argument(
@@ -444,7 +447,7 @@ class AbsTask(ABC):
                 f"--scheduler{suf}",
                 type=lambda x: str_or_none(x.lower()),
                 default=None,
-                choices=list(map(lambda x: x.lower(), scheduler_classes)) + [None],
+                choices=list(scheduler_classes) + [None],
                 help=f"The lr scheduler type",
             )
             group.add_argument(
