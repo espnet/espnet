@@ -1,10 +1,8 @@
 from pathlib import Path
 import string
 
-import numpy as np
 import pytest
 import sentencepiece as spm
-from typing import List
 
 from espnet2.text.tokenizer import CharTokenizer
 from espnet2.text.tokenizer import SentencepiecesTokenizer

@@ -1,4 +1,3 @@
-import configargparse
 import pytest
 
 from espnet2.tasks.tts import TTSTask

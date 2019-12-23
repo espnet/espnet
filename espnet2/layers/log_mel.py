@@ -60,7 +60,7 @@ class LogMel(torch.nn.Module):
         return ', '.join(f'{k}={v}' for k, v in self.mel_options.items())
 
     def forward(
-        self, feat: torch.Tensor, ilens: torch.Tensor=None,
+        self, feat: torch.Tensor, ilens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)
