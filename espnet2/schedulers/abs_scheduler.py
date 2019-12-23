@@ -39,7 +39,7 @@ class AbsEpochStepScheduler(AbsScheduler):
         pass
 
 
-class AbsValEpochStepScheduler(AbsBatchStepScheduler):
+class AbsValEpochStepScheduler(AbsEpochStepScheduler):
     @abstractmethod
     def step(self, val, epoch: int = None):
         pass
