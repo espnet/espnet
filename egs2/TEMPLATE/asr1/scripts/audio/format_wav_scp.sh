@@ -88,7 +88,7 @@ elif [ -n "${ref_channels}" ]; then
 fi
 
 
-if [ ! -z ${segments} ]; then
+if [ -n "${segments}" ]; then
     log "[info]: using ${segments}"
     split_segments=""
     for n in $(seq ${nj}); do
