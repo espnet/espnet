@@ -33,7 +33,7 @@ https://drive.google.com/open?id=1dp8ZzDcgEVzsCLTseM5ZThRFgw5yWOBN
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v4/char_dev/result.txt:|250|22316|99.5|0.3|0.2|0.2|0.7|27.2|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v4/char_eval/result.txt:|250|21518|99.1|0.5|0.4|0.6|1.5|30.0|
@@ -63,7 +63,7 @@ https://drive.google.com/open?id=1o6AGB-4A4ZLZ-T1LCZlcfEpBHkofgLPC
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v4/phn_dev/result.txt:|250|22316|99.4|0.4|0.2|0.2|0.8|28.4|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v4/phn_eval/result.txt:|250|21518|99.2|0.4|0.4|0.4|1.2|31.6|
@@ -111,7 +111,7 @@ https://drive.google.com/open?id=1eHppNe-m15yIHadxUxt8bScqBBvSgOeT
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_fastspeech.v3.single/char_dev/result.txt:|250|22316|99.6|0.2|0.2|0.2|0.6|25.2|
 char_train_no_dev_pytorch_train_fastspeech.v3.single/char_eval/result.txt:|250|21518|99.3|0.4|0.4|0.3|1.0|30.0|
@@ -141,7 +141,7 @@ https://drive.google.com/open?id=1wUlnQwFIJeSG7kYHv0NR_U-lvGBX-5HW
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_fastspeech.v3.single/phn_dev/result.txt:|250|22316|99.5|0.3|0.2|0.2|0.6|25.6|
 phn_train_no_dev_pytorch_train_fastspeech.v3.single/phn_eval/result.txt:|250|21518|99.3|0.4|0.3|0.4|1.1|31.6|
@@ -189,7 +189,7 @@ https://drive.google.com/open?id=1q9Ln5tFb0qNeU65MD3aUShqnKcLGLloo
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v2/char_dev/result.txt:|250|22316|99.5|0.3|0.2|0.3|0.8|27.6|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v2/char_eval/result.txt:|250|21518|99.2|0.4|0.4|1.6|2.4|34.4|
@@ -219,7 +219,7 @@ https://drive.google.com/open?id=1Ao_tEZ9f9EQVe9F4r8wcqplFwip1PlWs
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v3/char_dev/result.txt:|250|22316|99.4|0.3|0.3|0.2|0.8|30.0|
 char_train_no_dev_pytorch_train_pytorch_tacotron2.v3/char_eval/result.txt:|250|21518|99.3|0.5|0.3|0.6|1.4|31.6|
@@ -249,7 +249,7 @@ https://drive.google.com/open?id=1FRjlVrfv-IoYvRweX0AOEVYtJnpA7vjp
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_pytorch_transformer.v1.single/char_dev/result.txt:|250|22316|98.5|0.4|1.1|0.6|2.1|37.6|
 char_train_no_dev_pytorch_train_pytorch_transformer.v1.single/char_eval/result.txt:|250|21518|98.1|0.6|1.3|0.7|2.6|44.8|
@@ -280,7 +280,7 @@ https://drive.google.com/open?id=12O4txCOx1guowz6MSH7iEYjB7ALfcSB0
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 char_train_no_dev_pytorch_train_pytorch_transformer.v3.single/char_dev/result.txt:|250|22316|98.6|0.4|0.9|0.5|1.9|38.0|
 char_train_no_dev_pytorch_train_pytorch_transformer.v3.single/char_eval/result.txt:|250|21518|98.5|0.5|1.0|0.5|2.0|39.2|
@@ -310,7 +310,7 @@ https://drive.google.com/open?id=1u_v8kF8YsDPTNVCaDxQ7QSJbD2P6koGx
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v2/phn_dev/result.txt:|250|22316|99.5|0.3|0.3|0.2|0.7|26.0|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v2/phn_eval/result.txt:|250|21518|99.3|0.4|0.3|0.4|1.1|31.2|
@@ -340,7 +340,7 @@ https://drive.google.com/open?id=1JFNZapygWsHiP2CXMjTraLzf98h-tEBF
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/phn_dev/result.txt:|250|22316|99.5|0.3|0.2|0.2|0.8|29.6|
 phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/phn_eval/result.txt:|250|21518|99.3|0.4|0.3|0.4|1.2|30.4|
@@ -370,7 +370,7 @@ https://drive.google.com/open?id=1Ob743unOppZ2JfWDtBn9mR8oPpzFfqF-
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v1.single/phn_dev/result.txt:|250|22316|98.9|0.3|0.8|0.4|1.5|39.2|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v1.single/phn_eval/result.txt:|250|21518|98.5|0.5|1.1|0.5|2.0|38.8|
@@ -400,7 +400,7 @@ https://drive.google.com/open?id=1vXcexlhhadvIsZj4ATJYvKbpsIbOuzUU
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/phn_dev/result.txt:|250|22316|99.2|0.3|0.5|0.5|1.4|30.8|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/phn_eval/result.txt:|250|21518|98.9|0.5|0.6|0.7|1.8|38.8|
@@ -444,7 +444,7 @@ https://drive.google.com/open?id=1EHuIHmmb0ft563P-rNaMvsEjRjlR3Jv5
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_fastspeech.v3/phn_dev/result.txt:|250|22316|99.5|0.3|0.2|0.2|0.7|24.8|
 phn_train_no_dev_pytorch_train_fastspeech.v3/phn_eval/result.txt:|250|21518|99.3|0.4|0.3|0.3|1.0|29.6|
@@ -487,7 +487,7 @@ https://drive.google.com/open?id=1UMv2CVfZPlE3o8gOHSflZgGqhS48UsJQ
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v3/phn_dev/result.txt:|250|22316|98.9|0.4|0.7|0.6|1.7|40.0|
 phn_train_no_dev_pytorch_train_pytorch_transformer.v3/phn_eval/result.txt:|250|21518|98.5|0.5|1.0|0.6|2.1|40.4|
@@ -528,7 +528,7 @@ https://drive.google.com/open?id=1PSxs1VauIndwi8d5hJmZlppGRVu2zuy5
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_fastspeech.v2/dev/result.txt:|250|22316|99.5|0.3|0.3|0.2|0.7|26.0|
 train_no_dev_pytorch_train_fastspeech.v2/eval/result.txt:|250|21518|99.3|0.4|0.3|0.3|1.0|29.6|
@@ -569,7 +569,7 @@ https://drive.google.com/open?id=1tnTQjpz3vrYwnhLufL8iFqVo89lAzdHT
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_fastspeech.v1/dev/result.txt:|250|22316|99.4|0.3|0.3|0.2|0.8|29.2|
 train_no_dev_pytorch_train_fastspeech.v1/eval/result.txt:|250|21518|99.1|0.5|0.4|0.4|1.3|29.2|
@@ -610,7 +610,7 @@ https://drive.google.com/open?id=1TqY5cvA2azhl7Xi3E1LFRpsTajlHxO_P
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_pytorch_transformer.v2/dev/result.txt:|250|22316|98.5|0.3|1.2|0.7|2.1|38.8|
 train_no_dev_pytorch_train_pytorch_transformer.v2/eval/result.txt:|250|21518|98.5|0.5|1.1|0.8|2.4|38.8|
@@ -652,7 +652,7 @@ https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_pytorch_transformer.v1/dev/result.txt:|250|22316|98.6|0.4|1.0|0.4|1.9|38.0|
 train_no_dev_pytorch_train_pytorch_transformer.v1/eval/result.txt:|250|21518|98.5|0.6|0.9|0.5|2.1|38.8|
@@ -693,7 +693,7 @@ https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_pytorch_tacotron2.v3/dev/result.txt:|250|22316|99.5|0.3|0.2|0.1|0.6|24.4|
 train_no_dev_pytorch_train_pytorch_tacotron2.v3/eval/result.txt:|250|21518|99.2|0.5|0.3|0.4|1.2|32.4|
@@ -735,7 +735,7 @@ https://drive.google.com/open?id=1cKPDQjLGs7OD8xopSK3YWIGGth37GRSm
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_pytorch_tacotron2.v2/dev/result.txt:|250|22316|99.5|0.3|0.2|0.2|0.8|28.0|
 train_no_dev_pytorch_train_pytorch_tacotron2.v2/eval/result.txt:|250|21518|99.3|0.4|0.3|1.3|2.0|30.4|
@@ -776,7 +776,7 @@ https://drive.google.com/open?id=1ZIDPpb1Bt9V8mrnJCCptMcpIH3SpuyrD
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 train_no_dev_pytorch_train_pytorch_tacotron2.v1/dev/result.txt:|250|22316|99.4|0.3|0.3|0.2|0.8|30.8|
 train_no_dev_pytorch_train_pytorch_tacotron2.v1/eval/result.txt:|250|21518|99.2|0.4|0.4|0.4|1.2|31.2|
@@ -800,7 +800,7 @@ https://drive.google.com/open?id=1NclM7_WaoL_Joy71e1bAUfsn_Hcy6HZD
 
 ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 ground_truth/dev/result.txt:|250|22316|99.7|0.2|0.1|0.1|0.5|21.2|
 ground_truth/eval/result.txt:|250|21518|99.6|0.2|0.2|0.2|0.7|21.6|
