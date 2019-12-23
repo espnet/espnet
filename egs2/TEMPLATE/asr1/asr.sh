@@ -250,6 +250,13 @@ if [ -z "${decode_tag}" ]; then
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# The directory used for collect-stats mode
+asr_stats_dir="${expdir}/asr_stats"
+lm_stats_dir="${expdir}/lm_stats"
+# The directory used for training commands
+asr_exp="${expdir}/asr_${asr_tag}"
+lm_exp="${expdir}/lm_${lm_tag}"
+
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -371,7 +378,6 @@ fi
 
 
 if "${use_lm}"; then
-  lm_exp="${expdir}/lm_${lm_tag}"
   if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
@@ -383,7 +389,7 @@ if "${use_lm}"; then
       fi
 
       # 1. Split the key file
-      _logdir="${lm_exp}/stats/logdir"
+      _logdir="${lm_stats_dir}/logdir"
       mkdir -p "${_logdir}"
       key_file="${lm_train_text}"
       split_scps=""
@@ -407,7 +413,7 @@ if "${use_lm}"; then
       log "LM collect-stats started... log: '${lm_exp}/train.log'"
       # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
       # shellcheck disable=SC2086
-      ${train_cmd} JOB=1:"${_nj}" "${lm_exp}"/stats.JOB.log \
+      ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
           python3 -m espnet2.bin.lm_train \
               --collect_stats true \
               --use_preprocessor true \
@@ -429,8 +435,9 @@ if "${use_lm}"; then
       for i in $(seq "${_nj}"); do
           _opts+="--input_dir ${_logdir}/stats.${i} "
       done
-      python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_exp}/stats"
+      python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
   fi
+
 
   if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
       log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
@@ -454,8 +461,8 @@ if "${use_lm}"; then
               --non_language_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
               --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --train_shape_file "${lm_exp}/stats/train/text_shape" \
-              --eval_shape_file "${lm_exp}/stats/eval/text_shape" \
+              --train_shape_file "${lm_stats_dir}/train/text_shape" \
+              --eval_shape_file "${lm_stats_dir}/eval/text_shape" \
               --max_length 150 \
               --resume_epoch latest \
               --output_dir "${lm_exp}" \
@@ -483,7 +490,6 @@ if "${use_lm}"; then
 fi
 
 
-asr_exp="${expdir}/asr_${asr_tag}"
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
@@ -510,7 +516,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     fi
 
     # 1. Split the key file
-    _logdir="${asr_exp}/stats/logdir"
+    _logdir="${asr_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
     key_file="${_asr_train_dir}/${_scp}"
@@ -539,7 +545,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
 
     # shellcheck disable=SC2086
-    ${train_cmd} JOB=1:"${_nj}" "${asr_exp}"/stats.JOB.log \
+    ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.asr_train \
             --collect_stats true \
             --use_preprocessor true \
@@ -563,7 +569,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     for i in $(seq "${_nj}"); do
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
-    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_exp}/stats"
+    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
 fi
 
 
@@ -596,7 +602,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
-        _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_exp}/stats/train/feats_stats.npz"
+        _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
     fi
 
     # FIXME(kamo): max_length is confusing name. How about fold_length?
@@ -615,10 +621,10 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
             --eval_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
-            --train_shape_file "${asr_exp}/stats/train/speech_shape" \
-            --train_shape_file "${asr_exp}/stats/train/text_shape" \
-            --eval_shape_file "${asr_exp}/stats/eval/speech_shape" \
-            --eval_shape_file "${asr_exp}/stats/eval/text_shape" \
+            --train_shape_file "${asr_stats_dir}/train/speech_shape" \
+            --train_shape_file "${asr_stats_dir}/train/text_shape" \
+            --eval_shape_file "${asr_stats_dir}/eval/speech_shape" \
+            --eval_shape_file "${asr_stats_dir}/eval/text_shape" \
             --resume_epoch latest \
             --max_length "${_max_length}" \
             --max_length 150 \
