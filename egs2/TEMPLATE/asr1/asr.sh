@@ -40,6 +40,7 @@ sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 
 # Language model related
+use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
@@ -243,7 +244,9 @@ if [ -z "${decode_tag}" ]; then
     if [ -n "${decode_args}" ]; then
         decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
-    decode_tag+="_lm_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    if "${use_lm}"; then
+        decode_tag+="_lm_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
@@ -290,7 +293,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
             # 3. Derive the feature dimension
-            scripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" ark,t:- | \
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
                 awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
@@ -367,115 +370,116 @@ fi
 # ========================== Data preparation is done here. ==========================
 
 
-lm_exp="${expdir}/lm_${lm_tag}"
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+if "${use_lm}"; then
+  lm_exp="${expdir}/lm_${lm_tag}"
+  if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+      log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
-    _opts=
-    if [ -n "${lm_config}" ]; then
-        # To generate the config file: e.g.
-        #   % python -m espnet2.bin.lm_train --print_config --optim adam
-        _opts+="--config ${lm_config} "
-    fi
+      _opts=
+      if [ -n "${lm_config}" ]; then
+          # To generate the config file: e.g.
+          #   % python -m espnet2.bin.lm_train --print_config --optim adam
+          _opts+="--config ${lm_config} "
+      fi
 
-    # 1. Split the key file
-    _logdir="${lm_exp}/stats/logdir"
-    mkdir -p "${_logdir}"
-    key_file="${lm_train_text}"
-    split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
-        split_scps+=" ${_logdir}/train.${n}.scp"
-    done
-    # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+      # 1. Split the key file
+      _logdir="${lm_exp}/stats/logdir"
+      mkdir -p "${_logdir}"
+      key_file="${lm_train_text}"
+      split_scps=""
+      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
+      for n in $(seq ${_nj}); do
+          split_scps+=" ${_logdir}/train.${n}.scp"
+      done
+      # shellcheck disable=SC2086
+      utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${lm_dev_text}"
-    split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
-        split_scps+=" ${_logdir}/dev.${n}.scp"
-    done
-    # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+      key_file="${lm_dev_text}"
+      split_scps=""
+      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
+      for n in $(seq ${_nj}); do
+          split_scps+=" ${_logdir}/dev.${n}.scp"
+      done
+      # shellcheck disable=SC2086
+      utils/split_scp.pl "${key_file}" ${split_scps}
 
-    # 2. Submit jobs
-    log "LM collect-stats started... log: '${lm_exp}/train.log'"
-    # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
-    # shellcheck disable=SC2086
-    ${train_cmd} JOB=1:"${_nj}" "${lm_exp}"/stats.JOB.log \
-        python3 -m espnet2.bin.lm_train \
-            --collect_stats true \
-            --use_preprocessor true \
-            --bpemodel "${bpemodel}" \
-            --token_type "${lm_token_type}"\
-            --token_list "${lm_token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
-            --train_data_path_and_name_and_type "${lm_train_text},text,text" \
-            --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
-            --batch_type const \
-            --sort_in_batch none \
-            --train_shape_file "${_logdir}/train.JOB.scp" \
-            --eval_shape_file "${_logdir}/dev.JOB.scp" \
-            --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${lm_args}
+      # 2. Submit jobs
+      log "LM collect-stats started... log: '${lm_exp}/train.log'"
+      # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
+      # shellcheck disable=SC2086
+      ${train_cmd} JOB=1:"${_nj}" "${lm_exp}"/stats.JOB.log \
+          python3 -m espnet2.bin.lm_train \
+              --collect_stats true \
+              --use_preprocessor true \
+              --bpemodel "${bpemodel}" \
+              --token_type "${lm_token_type}"\
+              --token_list "${lm_token_list}" \
+              --non_language_symbols "${nlsyms_txt}" \
+              --train_data_path_and_name_and_type "${lm_train_text},text,text" \
+              --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
+              --batch_type const \
+              --sort_in_batch none \
+              --train_shape_file "${_logdir}/train.JOB.scp" \
+              --eval_shape_file "${_logdir}/dev.JOB.scp" \
+              --output_dir "${_logdir}/stats.JOB" \
+              ${_opts} ${lm_args}
 
-    # 3. Aggregate shape files
-    _opts=
-    for i in $(seq "${_nj}"); do
-        _opts+="--input_dir ${_logdir}/stats.${i} "
-    done
-    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_exp}/stats"
-fi
+      # 3. Aggregate shape files
+      _opts=
+      for i in $(seq "${_nj}"); do
+          _opts+="--input_dir ${_logdir}/stats.${i} "
+      done
+      python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_exp}/stats"
+  fi
+
+  if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+      log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+
+      _opts=
+      if [ -n "${lm_config}" ]; then
+          # To generate the config file: e.g.
+          #   % python -m espnet2.bin.lm_train --print_config --optim adam
+          _opts+="--config ${lm_config} "
+      fi
+
+      log "LM training started... log: '${lm_exp}/train.log'"
+      # shellcheck disable=SC2086
+      ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
+          python3 -m espnet2.bin.lm_train \
+              --ngpu "${ngpu}" \
+              --use_preprocessor true \
+              --bpemodel "${bpemodel}" \
+              --token_type "${lm_token_type}"\
+              --token_list "${lm_token_list}" \
+              --non_language_symbols "${nlsyms_txt}" \
+              --train_data_path_and_name_and_type "${lm_train_text},text,text" \
+              --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
+              --train_shape_file "${lm_exp}/stats/train/text_shape" \
+              --eval_shape_file "${lm_exp}/stats/eval/text_shape" \
+              --max_length 150 \
+              --resume_epoch latest \
+              --output_dir "${lm_exp}" \
+              ${_opts} ${lm_args}
+
+  fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+  if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+      log "Stage 6: Calc perplexity: ${lm_test_text}"
+      _opts=
+      # TODO(kamo): Parallelize?
+      log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
+      ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
+          python3 -m espnet2.bin.lm_calc_perplexity \
+              --ngpu "${ngpu}" \
+              --data_path_and_name_and_type "${lm_test_text},text,text" \
+              --train_config "${lm_exp}"/config.yaml \
+              --model_file "${lm_exp}/${decode_lm}" \
+              --output_dir "${lm_exp}/perplexity_test" \
+              ${_opts}
+      log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
 
-    _opts=
-    if [ -n "${lm_config}" ]; then
-        # To generate the config file: e.g.
-        #   % python -m espnet2.bin.lm_train --print_config --optim adam
-        _opts+="--config ${lm_config} "
-    fi
-
-    log "LM training started... log: '${lm_exp}/train.log'"
-    # shellcheck disable=SC2086
-    ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
-        python3 -m espnet2.bin.lm_train \
-            --ngpu "${ngpu}" \
-            --use_preprocessor true \
-            --bpemodel "${bpemodel}" \
-            --token_type "${lm_token_type}"\
-            --token_list "${lm_token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
-            --train_data_path_and_name_and_type "${lm_train_text},text,text" \
-            --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
-            --train_shape_file "${lm_exp}/stats/train/text_shape" \
-            --eval_shape_file "${lm_exp}/stats/eval/text_shape" \
-            --max_length 150 \
-            --resume_epoch latest \
-            --output_dir "${lm_exp}" \
-            ${_opts} ${lm_args}
-
-fi
-
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "Stage 6: Calc perplexity: ${lm_test_text}"
-    _opts=
-    # TODO(kamo): Parallelize?
-    log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
-    ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
-        python3 -m espnet2.bin.lm_calc_perplexity \
-            --ngpu "${ngpu}" \
-            --data_path_and_name_and_type "${lm_test_text},text,text" \
-            --train_config "${lm_exp}"/config.yaml \
-            --model_file "${lm_exp}/${decode_lm}" \
-            --output_dir "${lm_exp}/perplexity_test" \
-            ${_opts}
-    log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
-
+  fi
 fi
 
 
@@ -639,6 +643,10 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
     fi
+    if "${use_lm}"; then
+        _opts+="--lm_train_config ${lm_exp}/config.yaml "
+        _opts+="--lm_file ${lm_exp}/${decode_lm} "
+    fi
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
@@ -669,14 +677,12 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Decoding started... log: '${_logdir}/asr_recog.*.log'"
         # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
-            python3 -m espnet2.bin.asr_recog \
+            python3 -m espnet2.bin.asr_decode \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
-                --lm_train_config "${lm_exp}"/config.yaml \
-                --lm_file "${lm_exp}"/"${decode_lm}" \
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${decode_args}
 
