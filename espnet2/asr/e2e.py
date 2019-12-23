@@ -168,7 +168,7 @@ class ASRE2E(AbsE2E):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_recog.py
+        """Frontend + Encoder. Note that this method is used by asr_decode.py
 
         Args:
             speech: (Batch, Length, ...)
