@@ -252,7 +252,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
       echo "${oov}"
       # shellcheck disable=SC2002
       cat ${srctexts} | cut -f 2- -d" " \
-          | python -m espnet2.bin.tokenize \
+          | python -m espnet2.bin.tokenize_text  \
                 --token_type char --input - --output - \
                 --non_language_symbols ${nlsyms_txt} \
                 --write_vocabulary true
