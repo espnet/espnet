@@ -70,7 +70,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/swbd1_data_prep.sh ${swbd1_dir}
     local/eval2000_data_prep.sh ${eval2000_dir}
     local/rt03_data_prep.sh ${rt03_dir}
-    if [ -n "${fisner_dir}" ]; then
+    if [ -n "${fisher_dir}" ]; then
         local/fisher_data_prep.sh ${fisher_dir}
     fi
     # upsample audio from 8k to 16k to make a recipe consistent with others
