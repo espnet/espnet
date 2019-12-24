@@ -25,7 +25,7 @@ EOF
 )
 . utils/parse_options.sh
 
-if [ $# < 4 ]; then
+if [ $# -lt 4 ]; then
     echo "${help_message}"
     exit 1
 fi
