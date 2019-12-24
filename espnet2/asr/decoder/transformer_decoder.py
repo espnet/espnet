@@ -77,9 +77,7 @@ class TransformerDecoder(AbsDecoder):
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         else:
-            raise ValueError(
-                f"only 'embed' or 'linear' is supported: {input_layer}"
-            )
+            raise ValueError(f"only 'embed' or 'linear' is supported: {input_layer}")
 
         self.normalize_before = normalize_before
         self.decoders = repeat(
