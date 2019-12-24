@@ -5,11 +5,14 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 
 
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed", None])
-@pytest.mark.parametrize("positionwise_layer_type",
-                         ["conv1d", "conv1d-linear"])
+@pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 def test_Encoder_forward_backward(input_layer, positionwise_layer_type):
-    encoder = TransformerEncoder(20, output_size=40, input_layer=input_layer,
-                                 positionwise_layer_type=positionwise_layer_type)
+    encoder = TransformerEncoder(
+        20,
+        output_size=40,
+        input_layer=input_layer,
+        positionwise_layer_type=positionwise_layer_type,
+    )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 10])
     elif input_layer is None:
@@ -28,4 +31,4 @@ def test_Encoder_output_size():
 
 def test_Encoder_invalid_type():
     with pytest.raises(ValueError):
-        TransformerEncoder(20, input_layer='fff')
+        TransformerEncoder(20, input_layer="fff")

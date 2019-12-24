@@ -308,7 +308,7 @@ class AbsTask(ABC):
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
-            "--keep_n_best_snapshot",
+            "--keep_n_best_checkpoints",
             type=int,
             default=10,
             help="Remove previous snapshots excluding the n-best scored epochs",
@@ -477,7 +477,8 @@ class AbsTask(ABC):
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
-                "build_optimizers() must be overridden if num_optimizers != 1")
+                "build_optimizers() must be overridden if num_optimizers != 1"
+            )
 
         optim_class = optim_classes.get(args.optim)
         if optim_class is None:
@@ -748,7 +749,8 @@ class AbsTask(ABC):
                 cls_ = scheduler_classes.get(name)
                 if cls_ is None:
                     raise ValueError(
-                        f"must be one of {list(scheduler_classes)}: {name}")
+                        f"must be one of {list(scheduler_classes)}: {name}"
+                    )
                 scheduler = cls_(optim, **conf)
             else:
                 scheduler = None
@@ -824,7 +826,7 @@ class AbsTask(ABC):
                 output_dir=output_dir,
                 max_epoch=args.max_epoch,
                 patience=args.patience,
-                keep_n_best_snapshot=args.keep_n_best_snapshot,
+                keep_n_best_checkpoints=args.keep_n_best_checkpoints,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
@@ -836,7 +838,7 @@ class AbsTask(ABC):
                 reporter=reporter,
                 output_dir=output_dir,
                 best_model_criterion=args.best_model_criterion,
-                nbest=args.keep_n_best_snapshot,
+                nbest=args.keep_n_best_checkpoints,
             )
 
     @classmethod
@@ -882,8 +884,8 @@ class AbsTask(ABC):
                             if f"{name}_lengths" in batch:
                                 lg = int(batch[f"{name}_lengths"][i])
                                 data = data[:lg]
-                            datadir_writer[f"{name}_shape"][key] = (
-                                ",".join(map(str, data.shape))
+                            datadir_writer[f"{name}_shape"][key] = ",".join(
+                                map(str, data.shape)
                             )
 
                     # 2. Extract feats
@@ -956,7 +958,7 @@ class AbsTask(ABC):
         output_dir: Union[str, Path],
         max_epoch: int,
         patience: Optional[int],
-        keep_n_best_snapshot: int,
+        keep_n_best_checkpoints: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
@@ -1056,7 +1058,7 @@ class AbsTask(ABC):
             _removed = []
             # nbests: List[List[Tuple[epoch, value]]]
             nbests = [
-                reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_snapshot]
+                reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
                 for ph, k, m in best_model_criterion
                 if reporter.has(ph, k)
             ]

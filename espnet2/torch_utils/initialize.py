@@ -36,12 +36,12 @@ def initialize(model: torch.nn.Module, init: str):
             # 3. forget-bias = 1.0
             elif isinstance(mod, torch.nn.RNNCellBase):
                 n = mod.bias_ih.size(0)
-                mod.bias_ih.data[n // 4: n // 2].fill_(1.0)
+                mod.bias_ih.data[n // 4 : n // 2].fill_(1.0)
             elif isinstance(mod, torch.nn.RNNBase):
                 for name, param in mod.named_parameters():
                     if "bias" in name:
                         n = param.size(0)
-                        param.data[n // 4: n // 2].fill_(1.0)
+                        param.data[n // 4 : n // 2].fill_(1.0)
 
     else:
         # weight init

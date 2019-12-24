@@ -126,18 +126,14 @@ class ASRE2E(AbsE2E):
 
         # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text, text_lengths)
 
         if self.ctc_weight == 0.0:
             loss = loss_att
         elif self.ctc_weight == 1.0:
             loss = loss_ctc
         else:
-            loss = (
-                self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
-            )
+            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
         stats = dict(
             loss=loss.detach(),
@@ -150,9 +146,7 @@ class ASRE2E(AbsE2E):
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def collect_feats(
@@ -223,9 +217,7 @@ class ASRE2E(AbsE2E):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(
-            ys_pad, self.sos, self.eos, self.ignore_id
-        )
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -246,9 +238,7 @@ class ASRE2E(AbsE2E):
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(
-                ys_hat.cpu(), ys_pad.cpu()
-            )
+            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
 
@@ -266,9 +256,7 @@ class ASRE2E(AbsE2E):
         cer_ctc = None
         if self.error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(
-                ys_hat.cpu(), ys_pad.cpu(), is_ctc=True
-            )
+            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
 
     def _calc_rnnt_loss(

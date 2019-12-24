@@ -90,20 +90,14 @@ e.g.
                 value = eval(values, {}, {})
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
-                    mes = (
-                        f"must be interpreted as dict: but got {values}"
-                        f"{syntax}"
-                    )
+                    mes = f"must be interpreted as dict: but got {values}\n{syntax}"
                     raise argparse.ArgumentTypeError(self, mes)
             except Exception:
                 # and the second, try yaml.load
                 value = yaml.load(values, Loader=yaml.Loader)
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
-                    mes = (
-                        f"must be interpreted as dict: but got {values}\n"
-                        f"{syntax}"
-                    )
+                    mes = f"must be interpreted as dict: but got {values}\n{syntax}"
                     raise argparse.ArgumentError(self, mes)
             # Remove existing params, and overwrite
             setattr(namespace, self.dest, value)

@@ -47,32 +47,24 @@ frontend_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
+    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
     type_check=AbsNormalize,
     default="utterance_mvn",
-    optional=True
+    optional=True,
 )
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        transformer=TransformerEncoder,
-        vgg_rnn=VGGRNNEncoder,
-        rnn=RNNEncoder,
+        transformer=TransformerEncoder, vgg_rnn=VGGRNNEncoder, rnn=RNNEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn"
+    default="rnn",
 )
 decoder_choices = ClassChoices(
     "decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        rnn=RNNDecoder
-    ),
+    classes=dict(transformer=TransformerDecoder, rnn=RNNDecoder),
     type_check=AbsDecoder,
-    default="rnn"
+    default="rnn",
 )
 
 
@@ -89,7 +81,7 @@ class ASRTask(AbsTask):
         # --encoder and --encoder_conf
         encoder_choices,
         # --decoder and --decoder_conf
-        decoder_choices
+        decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -122,7 +114,7 @@ class ASRTask(AbsTask):
                 "kaiming_uniform",
                 "kaiming_normal",
                 None,
-            ]
+            ],
         )
 
         group.add_argument(
@@ -165,8 +157,11 @@ class ASRTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-        parser.add_argument("--non_linguistic_symbols", type=str_or_none,
-                            help="non_linguistic_symbols file path")
+        parser.add_argument(
+            "--non_linguistic_symbols",
+            type=str_or_none,
+            help="non_linguistic_symbols file path",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -176,8 +171,10 @@ class ASRTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
-                  Tuple[List[str], Dict[str, torch.Tensor]]]:
+    ) -> Callable[
+        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]],
+    ]:
         assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)

@@ -25,6 +25,7 @@ def resume(
     resume_path: Optional[Union[str, Path]],
     map_location: str = "cpu",
 ) -> None:
+    """Resume training from the specified epoch."""
     assert check_argument_types()
     # For resuming: Specify either resume_epoch or resume_path.
     #     - resume_epoch: Load from outdir/{}epoch/.
@@ -96,7 +97,7 @@ def save_checkpoint(
     optimizers: Iterable[torch.optim.Optimizer],
     schedulers: Iterable[Optional[AbsScheduler]],
 ):
-    """Save training states in a directory"""
+    """Save training states in a directory."""
     for key, obj in [("model", model), ("reporter", reporter)]:
         save_path.mkdir(parents=True, exist_ok=True)
         p = save_path / f"{key}.pth"
@@ -157,8 +158,6 @@ def load_pretrained_model(
     pretrained_dict = torch.load(pretrain_path, map_location=map_location)
     if ignore_not_existing_keys:
         # Ignores the parameters not existing in the train-model
-        pretrained_dict = {
-            k: v for k, v in pretrained_dict.items() if k in state_dict
-        }
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in state_dict}
     state_dict.update(pretrained_dict)
     obj.load_state_dict(state_dict)

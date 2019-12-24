@@ -174,11 +174,7 @@ class SoundScpReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self,
-        fname,
-        dtype=np.int16,
-        always_2d: bool = False,
-        normalize: bool = False,
+        self, fname, dtype=np.int16, always_2d: bool = False, normalize: bool = False,
     ):
         assert check_argument_types()
         self.fname = fname
@@ -236,7 +232,7 @@ class SoundScpWriter:
         outdir: Union[Path, str],
         scpfile: Union[Path, str],
         format="wav",
-        dtype=None
+        dtype=None,
     ):
         assert check_argument_types()
         self.dir = Path(outdir)
@@ -254,9 +250,7 @@ class SoundScpWriter:
         assert isinstance(rate, int), type(rate)
         assert isinstance(signal, np.ndarray), type(signal)
         if signal.ndim not in (1, 2):
-            raise RuntimeError(
-                f"Input signal must be 1 or 2 dimension: {signal.ndim}"
-            )
+            raise RuntimeError(f"Input signal must be 1 or 2 dimension: {signal.ndim}")
         if signal.ndim == 1:
             signal = signal[:, None]
 

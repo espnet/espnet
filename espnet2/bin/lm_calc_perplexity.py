@@ -159,9 +159,7 @@ def get_parser():
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
@@ -173,10 +171,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -192,10 +187,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
     parser.add_argument(
         "--log_base",
@@ -213,9 +205,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--train_config", type=str)

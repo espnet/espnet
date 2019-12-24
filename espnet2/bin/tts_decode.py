@@ -147,9 +147,7 @@ def tts_decode(
             key = keys[0]
             # Change to single sequence and remove *_length
             # because inference() requires 1-seq, not mini-batch.
-            _data = {
-                k: v[0] for k, v in batch.items() if not k.endswith("_lengths")
-            }
+            _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
 
             # TODO(kamo): Use common gathering attention system and plot it
@@ -168,9 +166,7 @@ def tts_decode(
                 )
             )
             if outs.size(0) == insize * maxlenratio:
-                logging.warning(
-                    f"output length reaches maximum length ({key})."
-                )
+                logging.warning(f"output length reaches maximum length ({key}).")
             logging.info(
                 f"({idx}/{len(batch_sampler)}) {key} "
                 f"(size:{insize}->{outs.size(0)})"
@@ -204,16 +200,10 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        required=True,
-        help="The path of output directory",
+        "--output_dir", type=str, required=True, help="The path of output directory",
     )
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -229,10 +219,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -243,9 +230,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--train_config", type=str)
@@ -265,10 +250,7 @@ def get_parser():
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
-        "--threshold",
-        type=float,
-        default=0.5,
-        help="Threshold value in decoding",
+        "--threshold", type=float, default=0.5, help="Threshold value in decoding",
     )
     group.add_argument(
         "--use_att_constraint",
@@ -289,12 +271,12 @@ def get_parser():
         help="Forward window value in attention constraint",
     )
 
-    group = parser.add_argument_group(" Grriffin Lim related")
+    group = parser.add_argument_group(" Grriffin-Lim related")
     group.add_argument(
         "--vocoder_conf",
         action=NestedDictAction,
         default=get_default_kwargs(Spectrogram2Waveform),
-        help="The configuration for Grriffin Lim"
+        help="The configuration for Grriffin-Lim",
     )
     return parser
 

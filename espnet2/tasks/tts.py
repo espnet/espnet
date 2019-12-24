@@ -35,20 +35,18 @@ feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
     type_check=AbsFeatsExtract,
-    default="fbank"
+    default="fbank",
 )
 normalize_choices = ClassChoices(
     "normalize",
     classes=dict(global_mvn=GlobalMVN),
     type_check=AbsNormalize,
     default="global_mvn",
-    optional=True
+    optional=True,
 )
 tts_choices = ClassChoices(
-    "tts",
-    classes=dict(tacotron2=Tacotron2),
-    type_check=AbsTTS,
-    default="tacotron2")
+    "tts", classes=dict(tacotron2=Tacotron2), type_check=AbsTTS, default="tacotron2"
+)
 
 
 class TTSTask(AbsTask):
@@ -62,7 +60,7 @@ class TTSTask(AbsTask):
         # --normalize and --normalize_conf
         normalize_choices,
         # --tts and --tts_conf
-        tts_choices
+        tts_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -118,8 +116,11 @@ class TTSTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-        parser.add_argument("--non_linguistic_symbols", type=str_or_none,
-                            help="non_linguistic_symbols file path")
+        parser.add_argument(
+            "--non_linguistic_symbols",
+            type=str_or_none,
+            help="non_linguistic_symbols file path",
+        )
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -128,8 +129,10 @@ class TTSTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
-                  Tuple[List[str], Dict[str, torch.Tensor]]]:
+    ) -> Callable[
+        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]],
+    ]:
         assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
@@ -137,7 +140,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def build_preprocess_fn(
-            cls, args: argparse.Namespace, train: bool
+        cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
@@ -215,10 +218,7 @@ class TTSTask(AbsTask):
 
         # 4. Build model
         model = TTSE2E(
-            feats_extract=feats_extract,
-            normalize=normalize,
-            tts=tts,
-            **args.e2e_conf,
+            feats_extract=feats_extract, normalize=normalize, tts=tts, **args.e2e_conf,
         )
         assert check_return_type(model)
         return model

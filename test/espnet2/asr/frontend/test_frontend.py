@@ -22,15 +22,15 @@ def test_frontend_backward():
     y.sum().backward()
 
 
-@pytest.mark.parametrize('use_wpe', [True, False])
-@pytest.mark.parametrize('use_beamformer', [True, False])
-@pytest.mark.parametrize('train', [True, False])
+@pytest.mark.parametrize("use_wpe", [True, False])
+@pytest.mark.parametrize("use_beamformer", [True, False])
+@pytest.mark.parametrize("train", [True, False])
 def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
     frontend = DefaultFrontend(
         fs=300,
         n_fft=128,
         win_length=128,
-        frontend_conf={"use_wpe": use_wpe, "use_beamformer": use_beamformer}
+        frontend_conf={"use_wpe": use_wpe, "use_beamformer": use_beamformer},
     )
     if train:
         frontend.train()

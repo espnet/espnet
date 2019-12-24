@@ -8,13 +8,9 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,
-)
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-)
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -82,13 +78,10 @@ class TransformerDecoder(AbsDecoder):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(attention_dim, positional_dropout_rate),
+                input_layer, pos_enc_class(attention_dim, positional_dropout_rate),
             )
         else:
-            raise NotImplementedError(
-                "only `embed` or torch.nn.Module is supported."
-            )
+            raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
 
         self.normalize_before = normalize_before
         self.decoders = repeat(
@@ -101,9 +94,7 @@ class TransformerDecoder(AbsDecoder):
                 MultiHeadedAttention(
                     attention_heads, attention_dim, src_attention_dropout_rate
                 ),
-                PositionwiseFeedForward(
-                    attention_dim, linear_units, dropout_rate
-                ),
+                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
                 normalize_before,
                 concat_after,

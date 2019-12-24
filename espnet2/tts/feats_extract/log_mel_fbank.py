@@ -33,7 +33,7 @@ class LogMelFbank(AbsFeatsExtract):
         fmin: Optional[int] = 80,
         fmax: Optional[int] = 7600,
         htk: bool = False,
-        norm=1
+        norm=1,
     ):
         assert check_argument_types()
         super().__init__()
@@ -55,17 +55,11 @@ class LogMelFbank(AbsFeatsExtract):
             center=center,
             pad_mode=pad_mode,
             normalized=normalized,
-            onesided=onesided
+            onesided=onesided,
         )
 
         self.logmel = LogMel(
-            fs=fs,
-            n_fft=n_fft,
-            n_mels=n_mels,
-            fmin=fmin,
-            fmax=fmax,
-            htk=htk,
-            norm=norm
+            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
         )
 
     def output_size(self) -> int:
@@ -95,6 +89,6 @@ class LogMelFbank(AbsFeatsExtract):
 
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
-        input_amp = torch.sqrt(input_power + 1.e-20)
+        input_amp = torch.sqrt(input_power + 1.0e-20)
         input_feats, _ = self.logmel(input_amp, feats_lens)
         return input_feats, feats_lens

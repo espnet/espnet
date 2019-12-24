@@ -82,8 +82,9 @@ class Stft(torch.nn.Module, InversibleInterface):
         if multi_channel:
             # output: (Batch * Channel, Frames, Freq, 2=real_imag)
             # -> (Batch, Frame, Channel, Freq, 2=real_imag)
-            output = output.view(
-                bs, -1, output.size(1), output.size(2), 2).transpose(1, 2)
+            output = output.view(bs, -1, output.size(1), output.size(2), 2).transpose(
+                1, 2
+            )
 
         if ilens is not None:
             if self.center:

@@ -18,8 +18,9 @@ class AbsPreprocessor(ABC):
         self.train = train
 
     @abstractmethod
-    def __call__(self, uid: str, data: Dict[str, Union[str, np.ndarray]]) \
-            -> Dict[str, np.ndarray]:
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
         raise NotImplementedError
 
 
@@ -44,9 +45,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if token_type is not None:
             if token_list is None:
-                raise ValueError(
-                    "token_list is required if token_type is not None"
-                )
+                raise ValueError("token_list is required if token_type is not None")
 
             self.tokenizer = build_tokenizer(
                 token_type=token_type,
@@ -56,8 +55,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 non_linguistic_symbols=non_linguistic_symbols,
             )
             self.token_id_converter = TokenIDConverter(
-                token_list=token_list,
-                unk_symbol=unk_symbol,
+                token_list=token_list, unk_symbol=unk_symbol,
             )
         else:
             self.tokenizer = None
