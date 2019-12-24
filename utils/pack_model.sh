@@ -15,17 +15,16 @@ outfile="model"
 preprocess_conf=""
 
 help_message=$(cat <<EOF
-Usage: $0 --lm <lm> --dict <dict> <tr_conf> <dec_conf> <cmvn> <e2e> [<spm>], for example:
+Usage: $0 --lm <lm> --dict <dict> <tr_conf> <dec_conf> <cmvn> <e2e>, for example:
 <tr_conf>:  conf/train.yaml
 <dec_conf>: conf/decode.yaml
 <cmvn>:     data/tr_it/cmvn.ark
 <e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best
-<spm>:      data/lang_char/train_bpe2000.model (if SentencePiece is used for BPE)
 EOF
 )
 . utils/parse_options.sh
 
-if [ $# < 4 ]; then
+if [ $# != 4 ]; then
     echo "${help_message}"
     exit 1
 fi
@@ -34,7 +33,6 @@ tr_conf=$1
 dec_conf=$2
 cmvn=$3
 e2e=$4
-spm=$5
 
 echo "  - Model files (archived to ${outfile}.tar.gz by \`\$ pack_model.sh\`)"
 echo "    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)"
@@ -91,13 +89,6 @@ if [ -e ${e2e} ]; then
 else
     echo "missing ${e2e}"
     exit 1
-fi
-
-# spm
-if [ -n "${spm}" ]; then
-    tar rfh ${outfile}.tar ${spm}
-    echo -n "    - spm file: \`"
-    echo ${spm} | sed -e "s/$/\`/"
 fi
 
 # lm
