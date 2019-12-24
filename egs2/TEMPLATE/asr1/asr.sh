@@ -336,7 +336,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     elif [ "${token_type}" = char ]; then
         log "Stage 3: Generate character level token_list from ${srctexts}"
-        _opts="--non_language_symbols ${nlsyms_txt}"
+        _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
     else
         log "Error: not supported --token_type '${token_type}'"
@@ -420,7 +420,7 @@ if "${use_lm}"; then
               --bpemodel "${bpemodel}" \
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
-              --non_language_symbols "${nlsyms_txt}" \
+              --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
               --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --batch_type const \
@@ -458,7 +458,7 @@ if "${use_lm}"; then
               --bpemodel "${bpemodel}" \
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
-              --non_language_symbols "${nlsyms_txt}" \
+              --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
               --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --train_shape_file "${lm_stats_dir}/train/text_shape" \
@@ -555,7 +555,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
             --token_list "${token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
             --batch_type const \
             --sort_in_batch none \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
@@ -619,7 +619,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
             --token_list "${token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
@@ -735,8 +735,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                         | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type char \
-                              --non_language_symbols "${nlsyms_txt}" \
-                              --remove_non_language_symbols true) \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
                     <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
@@ -745,8 +745,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                         | python -m espnet2.bin.tokenize_text  \
                               --input - --output - \
                               --token_type char \
-                              --non_language_symbols "${nlsyms_txt}" \
-                              --remove_non_language_symbols true) \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
                     <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
 

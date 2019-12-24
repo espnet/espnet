@@ -17,12 +17,12 @@ def tokenize(
     token_type: str,
     space_symbol: str,
     delimiter: Optional[str],
-    non_language_symbols: Optional[str],
+    non_linguistic_symbols: Optional[str],
     bpemodel: Optional[str],
     log_level: str,
     write_vocabulary: bool,
     vocabulary_size: int,
-    remove_non_language_symbols: bool,
+    remove_non_linguistic_symbols: bool,
     cutoff: int,
 ):
     logging.basicConfig(
@@ -45,8 +45,8 @@ def tokenize(
         bpemodel=bpemodel,
         delimiter=delimiter,
         space_symbol=space_symbol,
-        non_language_symbols=non_language_symbols,
-        remove_non_language_symbols=remove_non_language_symbols,
+        non_linguistic_symbols=non_linguistic_symbols,
+        remove_non_linguistic_symbols=remove_non_linguistic_symbols,
     )
 
     if write_vocabulary:
@@ -105,9 +105,9 @@ def get_parser() -> argparse.ArgumentParser:
                         help="The space symbol")
     parser.add_argument("--bpemodel", default=None,
                         help="The bpemodel file path")
-    parser.add_argument("--non_language_symbols", type=str_or_none,
-                        help="non_language_symbols file path")
-    parser.add_argument("--remove_non_language_symbols",
+    parser.add_argument("--non_linguistic_symbols", type=str_or_none,
+                        help="non_linguistic_symbols file path")
+    parser.add_argument("--remove_non_linguistic_symbols",
                         type=str2bool, default=False,
                         help="Remove non-language-symbols from tokens")
     parser.add_argument("--write_vocabulary",
