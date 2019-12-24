@@ -779,7 +779,7 @@ class AbsTask(ABC):
                 map_location="cuda" if args.ngpu > 0 else "cpu",
             )
 
-        # 10. Resume the state from the previous epoch
+        # 10. Resume the training state from the previous epoch
         # Either one of --resume_epoch or --resume_path can be used.
         reporter = Reporter()
         resume(

@@ -23,7 +23,7 @@ def resume(
     output_dir: Union[str, Path],
     resume_epoch: Optional[Union[int, str]],
     resume_path: Optional[Union[str, Path]],
-    map_location: str,
+    map_location: str = "cpu",
 ) -> None:
     assert check_argument_types()
     # For resuming: Specify either resume_epoch or resume_path.
@@ -42,7 +42,7 @@ def resume(
                 # Read the timestamp and comparing
                 date = f.read().strip()
                 try:
-                    date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                    date = datetime.fromtimestamp(float(date))
                 except ValueError:
                     continue
             if latest is None or date > latest:
@@ -75,8 +75,9 @@ def load_checkpoint(
     reporter: Reporter,
     optimizers: Iterable[torch.optim.Optimizer],
     schedulers: Iterable[Optional[AbsScheduler]],
-    map_location: str,
+    map_location: str = "cpu",
 ):
+    """Load training states from checkpoint dir."""
     for key, obj in [("model", model), ("reporter", reporter)]:
         _st = torch.load(resume_path / f"{key}.pth", map_location=map_location)
         if obj is not None:
@@ -95,6 +96,7 @@ def save_checkpoint(
     optimizers: Iterable[torch.optim.Optimizer],
     schedulers: Iterable[Optional[AbsScheduler]],
 ):
+    """Save training states in a directory"""
     for key, obj in [("model", model), ("reporter", reporter)]:
         save_path.mkdir(parents=True, exist_ok=True)
         p = save_path / f"{key}.pth"
@@ -112,7 +114,7 @@ def save_checkpoint(
     # Write the datetime in "timestamp"
     with (save_path / "timestamp").open("w") as f:
         dt = datetime.now()
-        f.write(dt.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+        f.write(str(dt.timestamp()) + "\n")
 
 
 def load_pretrained_model(
@@ -120,8 +122,9 @@ def load_pretrained_model(
     model: torch.nn.Module,
     pretrain_key: str = None,
     map_location: str = "cpu",
+    ignore_not_existing_keys: bool = True,
 ):
-    """Load pre-trained model
+    """Load a model state and set it to the model.
 
     Examples:
         >>> load_pretrained_model("somewhere/model.pth", model)
@@ -152,9 +155,10 @@ def load_pretrained_model(
 
     state_dict = obj.state_dict()
     pretrained_dict = torch.load(pretrain_path, map_location=map_location)
-    # Ignores the parameters not existing in the train-model
-    pretrained_dict = {
-        k: v for k, v in pretrained_dict.items() if k in state_dict
-    }
+    if ignore_not_existing_keys:
+        # Ignores the parameters not existing in the train-model
+        pretrained_dict = {
+            k: v for k, v in pretrained_dict.items() if k in state_dict
+        }
     state_dict.update(pretrained_dict)
     obj.load_state_dict(state_dict)
