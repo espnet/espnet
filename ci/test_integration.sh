@@ -33,16 +33,17 @@ cd "${cwd}" || exit 1
 cd ./egs2/mini_an4/asr1 || exit 1
 echo "==== [ESPnet2] ASR ==="
 ./run.sh --stage 1 --stop-stage 1
-feats_type="raw fbank_pitch"
+feats_types="raw fbank_pitch"
 token_types="bpe char"
-for t in ${feats_type}; do
+for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 2 --feats-type "${t}"
 done
 for t in ${token_types}; do
     ./run.sh --stage 3 --stop-stage 3 --token-type "${t}"
 done
-for t in ${feats_type}; do
+for t in ${feats_types}; do
     for t2 in ${token_types}; do
+        echo "==== feats_type=${t}, token_types=${t2} ==="
         ./run.sh --ngpu 0 --stage 4 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
@@ -53,23 +54,25 @@ cd "${cwd}" || exit 1
 cd ./egs2/mini_an4/tts1 || exit 1
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --stage 1 --stop-stage 1
-feats_type="raw fbank stft"
-for t in ${feats_type}; do
+feats_types="raw fbank stft"
+for t in ${feats_types}; do
+    echo "==== feats_type=${t} ==="
     ./run.sh --stage 2 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 cd "${cwd}" || exit 1
 
 
 # [ESPnet2] Validate configuration files
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("2.1.0")' &> /dev/null;  then
+echo "==== [ESPnet2] Validation configuration files ==="
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        python -m espnet2.bin.asr_train --config "${f}" --print_config 
+        python -m espnet2.bin.asr_train --config "${f}" --print_config
     done
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
-        python -m espnet2.bin.lm_train --config "${f}" --print_config 
+        python -m espnet2.bin.lm_train --config "${f}" --print_config
     done
     for f in egs2/*/tts1/conf/train_*.yaml; do
-        python -m espnet2.bin.tts_train --config "${f}" --print_config 
+        python -m espnet2.bin.tts_train --config "${f}" --print_config
     done
 fi
 
