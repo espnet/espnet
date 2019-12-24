@@ -10,7 +10,7 @@ from espnet2.utils.types import str_or_none
 
 
 class ClassChoices:
-    """Helper class to manage the options for variable objects and its configuration
+    """Helper class to manage the options for variable objects and its configuration.
 
     Example:
 
@@ -33,12 +33,12 @@ class ClassChoices:
     """
 
     def __init__(
-            self,
-            name: str,
-            classes: Mapping[str, type],
-            type_check: type = None,
-            default: str = None,
-            optional: bool = False
+        self,
+        name: str,
+        classes: Mapping[str, type],
+        type_check: type = None,
+        default: str = None,
+        optional: bool = False,
     ):
         assert check_argument_types()
         self.name = name
@@ -65,9 +65,7 @@ class ClassChoices:
 
     def get_class(self, name: Optional[str]) -> Optional[type]:
         assert check_argument_types()
-        if name is None or (
-            self.optional and name.lower() == ("none", "null", "nil")
-        ):
+        if name is None or (self.optional and name.lower() == ("none", "null", "nil")):
             retval = None
         elif name.lower() in self.classes:
             class_obj = self.classes[name]

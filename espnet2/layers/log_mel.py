@@ -40,24 +40,20 @@ class LogMel(torch.nn.Module):
 
         fmin = 0 if fmin is None else fmin
         fmax = fs / 2 if fmax is None else fmax
-        _mel_options = dict(sr=fs,
-                            n_fft=n_fft,
-                            n_mels=n_mels,
-                            fmin=fmin,
-                            fmax=fmax,
-                            htk=htk,
-                            norm=norm)
+        _mel_options = dict(
+            sr=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
+        )
         self.mel_options = _mel_options
 
         # Note(kamo): The mel matrix of librosa is different from kaldi.
         melmat = librosa.filters.mel(**_mel_options)
         # melmat: (D2, D1) -> (D1, D2)
-        self.register_buffer('melmat', torch.from_numpy(melmat.T).float())
+        self.register_buffer("melmat", torch.from_numpy(melmat.T).float())
         inv_mel = np.linalg.pinv(melmat)
-        self.register_buffer('inv_melmat', torch.from_numpy(inv_mel.T).float())
+        self.register_buffer("inv_melmat", torch.from_numpy(inv_mel.T).float())
 
     def extra_repr(self):
-        return ', '.join(f'{k}={v}' for k, v in self.mel_options.items())
+        return ", ".join(f"{k}={v}" for k, v in self.mel_options.items())
 
     def forward(
         self, feat: torch.Tensor, ilens: torch.Tensor = None,
@@ -69,7 +65,8 @@ class LogMel(torch.nn.Module):
         # Zero padding
         if ilens is not None:
             logmel_feat = logmel_feat.masked_fill(
-                make_pad_mask(ilens, logmel_feat, 1), 0.0)
+                make_pad_mask(ilens, logmel_feat, 1), 0.0
+            )
         else:
             ilens = feat.new_full(
                 [feat.size(0)], fill_value=feat.size(1), dtype=torch.long

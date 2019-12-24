@@ -119,8 +119,8 @@ class CharTokenizer(AbsTokenizer):
             for w in self.non_linguistic_symbols:
                 if line.startswith(w):
                     if not self.remove_non_linguistic_symbols:
-                        tokens.append(line[:len(w)])
-                    line = line[len(w):]
+                        tokens.append(line[: len(w)])
+                    line = line[len(w) :]
                     break
             else:
                 t = line[0]

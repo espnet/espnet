@@ -38,7 +38,7 @@ class LogSpectrogram(AbsFeatsExtract):
             center=center,
             pad_mode=pad_mode,
             normalized=normalized,
-            onesided=onesided
+            onesided=onesided,
         )
         self.n_fft = n_fft
 
@@ -48,9 +48,7 @@ class LogSpectrogram(AbsFeatsExtract):
     def get_parameters(self) -> Dict[str, Any]:
         """Return the parameters required by Vocoder"""
         return dict(
-            n_fft=self.n_fft,
-            n_shift=self.hop_length,
-            win_length=self.win_length,
+            n_fft=self.n_fft, n_shift=self.hop_length, win_length=self.win_length,
         )
 
     def forward(
@@ -66,5 +64,5 @@ class LogSpectrogram(AbsFeatsExtract):
         # STFT -> Power spectrum
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
-        log_amp = 0.5 * torch.log(input_power + 1.e-20)
+        log_amp = 0.5 * torch.log(input_power + 1.0e-20)
         return log_amp, feats_lens

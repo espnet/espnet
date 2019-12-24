@@ -60,12 +60,7 @@ class DefaultFrontend(AbsFrontend):
             self.frontend = None
 
         self.logmel = LogMel(
-            fs=fs,
-            n_fft=n_fft,
-            fmin=fmin,
-            fmax=fmax,
-            htk=htk,
-            norm=norm,
+            fs=fs, n_fft=n_fft, fmin=fmin, fmax=fmax, htk=htk, norm=norm,
         )
         self.n_mels = n_mels
 

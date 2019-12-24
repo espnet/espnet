@@ -1,11 +1,13 @@
 import torch
 
 
-def add_gradient_noise(model: torch.nn.Module,
-                       iteration: int,
-                       duration: float = 100,
-                       eta: float = 1.0,
-                       scale_factor: float = 0.55):
+def add_gradient_noise(
+    model: torch.nn.Module,
+    iteration: int,
+    duration: float = 100,
+    eta: float = 1.0,
+    scale_factor: float = 0.55,
+):
     """Adds noise from a standard normal distribution to the gradients.
 
     The standard deviation (`sigma`) is controlled

@@ -111,10 +111,7 @@ def recog(
 
     # 4. Build BeamSearch object
     weights = dict(
-        decoder=1.0 - ctc_weight,
-        ctc=ctc_weight,
-        lm=lm_weight,
-        length_bonus=penalty,
+        decoder=1.0 - ctc_weight, ctc=ctc_weight, lm=lm_weight, length_bonus=penalty,
     )
     beam_search = BeamSearch(
         beam_size=beam_size,
@@ -210,9 +207,7 @@ def recog(
                 ibest_writer = writer[f"{n}best_recog"]
 
                 # Write the result to each files
-                ibest_writer["token"][key] = " ".join(token).replace(
-                    blank_symbol, ""
-                )
+                ibest_writer["token"][key] = " ".join(token).replace(blank_symbol, "")
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
@@ -230,9 +225,7 @@ def get_parser():
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
@@ -244,10 +237,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -271,9 +261,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
@@ -285,10 +273,7 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -309,10 +294,7 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight",
-        type=float,
-        default=0.5,
-        help="CTC weight in joint decoding",
+        "--ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument(

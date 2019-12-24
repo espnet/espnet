@@ -28,10 +28,7 @@ from espnet2.utils.types import str_or_none
 
 
 lm_choices = ClassChoices(
-    "lm",
-    classes=dict(seq_rnn=SequentialRNNLM),
-    type_check=AbsLM,
-    default="seq_rnn"
+    "lm", classes=dict(seq_rnn=SequentialRNNLM), type_check=AbsLM, default="seq_rnn"
 )
 
 
@@ -74,7 +71,7 @@ class LMTask(AbsTask):
                 "kaiming_uniform",
                 "kaiming_normal",
                 None,
-            ]
+            ],
         )
         group.add_argument(
             "--e2e_conf",
@@ -103,8 +100,11 @@ class LMTask(AbsTask):
             default=None,
             help="The model file fo sentencepiece",
         )
-        parser.add_argument("--non_linguistic_symbols", type=str_or_none,
-                            help="non_linguistic_symbols file path")
+        parser.add_argument(
+            "--non_linguistic_symbols",
+            type=str_or_none,
+            help="non_linguistic_symbols file path",
+        )
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -116,8 +116,10 @@ class LMTask(AbsTask):
     @classmethod
     def build_collate_fn(
         cls, args: argparse.Namespace
-    ) -> Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
-                  Tuple[List[str], Dict[str, torch.Tensor]]]:
+    ) -> Callable[
+        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]],
+    ]:
         assert check_argument_types()
         return CommonCollateFn(int_pad_value=0)
 

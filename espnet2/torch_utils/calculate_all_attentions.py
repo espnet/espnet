@@ -4,9 +4,7 @@ from typing import List
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,
-)
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet2.layers.abs_attention import AbsAttention
 from espnet2.train.abs_e2e import AbsE2E
 

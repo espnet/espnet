@@ -10,9 +10,7 @@ from typeguard import check_argument_types
 
 class TokenIDConverter:
     def __init__(
-        self,
-        token_list: Union[Path, str, Iterable[str]],
-        unk_symbol: str = "<unk>",
+        self, token_list: Union[Path, str, Iterable[str]], unk_symbol: str = "<unk>",
     ):
         assert check_argument_types()
 
@@ -44,16 +42,14 @@ class TokenIDConverter:
         self.unk_symbol = unk_symbol
         if self.unk_symbol not in self.token2id:
             raise RuntimeError(
-                f'Unknown symbol "{unk_symbol}" '
-                f"doesn't exist in the token_list"
+                f"Unknown symbol '{unk_symbol}' doesn't exist in the token_list"
             )
         self.unk_id = self.token2id[self.unk_symbol]
 
     def get_num_vocabulary_size(self) -> int:
         return len(self.token_list)
 
-    def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) \
-            -> List[str]:
+    def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) -> List[str]:
         if isinstance(integers, np.ndarray) and integers.ndim != 1:
             raise ValueError(f"Must be 1 dim ndarray, but got {integers.ndim}")
         return [self.token_list[i] for i in integers]

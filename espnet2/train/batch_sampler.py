@@ -97,17 +97,13 @@ class AbsSampler(Sampler, ABC):
 
 class SubsetSampler(AbsSampler):
     def __init__(
-        self,
-        sampler: AbsSampler,
-        indices_or_nsamples: Union[int, Iterable[int]],
+        self, sampler: AbsSampler, indices_or_nsamples: Union[int, Iterable[int]],
     ):
         assert check_argument_types()
         self.sampler = sampler
         if isinstance(indices_or_nsamples, int):
             indices_or_nsamples = range(indices_or_nsamples)
-        self.indices = {
-            idx for idx in indices_or_nsamples if idx < len(sampler)
-        }
+        self.indices = {idx for idx in indices_or_nsamples if idx < len(sampler)}
 
     def __len__(self):
         return len(self.sampler)
@@ -169,8 +165,7 @@ class ConstantSortedBatchSampler(AbsSampler):
 
         # batch_list: List[Tuple[str, ...]]
         self.batch_list = [
-            tuple(keys[i: i + batch_size])
-            for i in range(0, len(keys), batch_size)
+            tuple(keys[i : i + batch_size]) for i in range(0, len(keys), batch_size)
         ]
 
         if len(self.batch_list) == 0:
@@ -179,8 +174,7 @@ class ConstantSortedBatchSampler(AbsSampler):
         if sort_in_batch != sort_batch:
             if sort_batch not in ("ascending", "descending"):
                 raise ValueError(
-                    f"sort_batch must be ascending or "
-                    f"descending: {sort_batch}"
+                    f"sort_batch must be ascending or descending: {sort_batch}"
                 )
             self.batch_list.reverse()
 
@@ -251,7 +245,7 @@ class ConstantBatchSampler(AbsSampler):
             np.random.shuffle(self.keys)
         # batch_list: List[Tuple[str, ...]]
         batch_list = [
-            tuple(self.keys[i: i + self.batch_size])
+            tuple(self.keys[i : i + self.batch_size])
             for i in range(0, len(self.keys), self.batch_size)
         ]
         for batch in batch_list:
@@ -280,8 +274,7 @@ class SequenceBatchSampler(AbsSampler):
         #    uttA 100,...
         #    uttB 201,...
         utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int")
-            for s in shape_files
+            load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
         ]
 
         first_utt2shape = utt2shapes[0]
@@ -299,19 +292,16 @@ class SequenceBatchSampler(AbsSampler):
         self.batch_list = []
         while True:
             k = keys[start]
-            factor = max(
-                int(d[k][0] / m) for d, m in zip(utt2shapes, max_lengths)
-            )
+            factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, max_lengths))
             bs = max(min_batch_size, int(batch_size / (1 + factor)))
-            minibatch_keys = keys[start: start + bs]
+            minibatch_keys = keys[start : start + bs]
             if sort_in_batch == "descending":
                 minibatch_keys.reverse()
             elif sort_in_batch == "ascending":
                 pass
             else:
                 raise ValueError(
-                    f"sort_in_batch must be ascending or "
-                    f"descending: {sort_in_batch}"
+                    f"sort_in_batch must be ascending or descending: {sort_in_batch}"
                 )
             self.batch_list.append(tuple(minibatch_keys))
             start += bs
@@ -324,7 +314,7 @@ class SequenceBatchSampler(AbsSampler):
             self.batch_list.reverse()
         else:
             raise ValueError(
-                f"sort_batch must be ascending or " f"descending: {sort_batch}"
+                f"sort_batch must be ascending or descending: {sort_batch}"
             )
 
     def __repr__(self):

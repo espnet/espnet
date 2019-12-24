@@ -89,4 +89,11 @@ def test_Text2Chars_repr(char_converter: CharTokenizer):
 
 
 def test_Text2Chars_text2tokens(char_converter: CharTokenizer):
-    assert char_converter.text2tokens("He[foo]llo") == ["H", "e", "[foo]", "l", "l", "o"]
+    assert char_converter.text2tokens("He[foo]llo") == [
+        "H",
+        "e",
+        "[foo]",
+        "l",
+        "l",
+        "o",
+    ]

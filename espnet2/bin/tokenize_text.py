@@ -77,7 +77,8 @@ def tokenize(
         invocab_count += c
 
     logging.info(
-        f"OOV rate = {float(total_count - invocab_count) / total_count * 100} %")
+        f"OOV rate = {float(total_count - invocab_count) / total_count * 100} %"
+    )
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -93,30 +94,48 @@ def get_parser() -> argparse.ArgumentParser:
         help="The verbose level of logging",
     )
 
-    parser.add_argument("--input", "-i", required=True,
-                        help="Input text. - indicates sys.stdin")
-    parser.add_argument("--output", "-o", required=True,
-                        help="Output text. - indicates sys.stdout")
-    parser.add_argument("--token_type", "-t", default="char",
-                        choices=["char", "bpe", "word"], help="Token type")
-    parser.add_argument("--delimiter", "-d", default=None,
-                        help="The delimiter")
-    parser.add_argument("--space_symbol", default="<space>",
-                        help="The space symbol")
-    parser.add_argument("--bpemodel", default=None,
-                        help="The bpemodel file path")
-    parser.add_argument("--non_linguistic_symbols", type=str_or_none,
-                        help="non_linguistic_symbols file path")
-    parser.add_argument("--remove_non_linguistic_symbols",
-                        type=str2bool, default=False,
-                        help="Remove non-language-symbols from tokens")
-    parser.add_argument("--write_vocabulary",
-                        type=str2bool, default=False,
-                        help="Write tokens list instead of tokenized text per line")
-    parser.add_argument("--vocabulary_size", type=int, default=0,
-                        help="Vocabulary size")
-    parser.add_argument("--cutoff", default=0, type=int,
-                        help="cut-off frequency used for write-vocabulary mode")
+    parser.add_argument(
+        "--input", "-i", required=True, help="Input text. - indicates sys.stdin"
+    )
+    parser.add_argument(
+        "--output", "-o", required=True, help="Output text. - indicates sys.stdout"
+    )
+    parser.add_argument(
+        "--token_type",
+        "-t",
+        default="char",
+        choices=["char", "bpe", "word"],
+        help="Token type",
+    )
+    parser.add_argument("--delimiter", "-d", default=None, help="The delimiter")
+    parser.add_argument("--space_symbol", default="<space>", help="The space symbol")
+    parser.add_argument("--bpemodel", default=None, help="The bpemodel file path")
+    parser.add_argument(
+        "--non_linguistic_symbols",
+        type=str_or_none,
+        help="non_linguistic_symbols file path",
+    )
+    parser.add_argument(
+        "--remove_non_linguistic_symbols",
+        type=str2bool,
+        default=False,
+        help="Remove non-language-symbols from tokens",
+    )
+    parser.add_argument(
+        "--write_vocabulary",
+        type=str2bool,
+        default=False,
+        help="Write tokens list instead of tokenized text per line",
+    )
+    parser.add_argument(
+        "--vocabulary_size", type=int, default=0, help="Vocabulary size"
+    )
+    parser.add_argument(
+        "--cutoff",
+        default=0,
+        type=int,
+        help="cut-off frequency used for write-vocabulary mode",
+    )
     return parser
 
 
