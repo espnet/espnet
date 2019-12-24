@@ -56,10 +56,10 @@ decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
 decode_model=eval.loss.best.pth # Model path for decoding e.g.,
-                                # decode_model=train.loss.best.pt
-                                # decode_model=3epoch/model.pt
-                                # decode_model=eval.acc.best.pt
-                                # decode_model=eval.loss.ave.pt
+                                # decode_model=train.loss.best.pth
+                                # decode_model=3epoch/model.pth
+                                # decode_model=eval.acc.best.pth
+                                # decode_model=eval.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
