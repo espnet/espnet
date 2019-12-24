@@ -22,8 +22,8 @@ class AbsTokenizer(ABC):
 def build_tokenizer(
     token_type: str,
     bpemodel: Union[Path, str, Iterable[str]] = None,
-    non_language_symbols: Union[Path, str, Iterable[str]] = None,
-    remove_non_language_symbols: bool = False,
+    non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+    remove_non_linguistic_symbols: bool = False,
     space_symbol: str = "<space>",
     delimiter: str = None,
 ) -> AbsTokenizer:
@@ -39,9 +39,9 @@ def build_tokenizer(
 
     elif token_type == "char":
         return CharTokenizer(
-            non_language_symbols=non_language_symbols,
+            non_linguistic_symbols=non_linguistic_symbols,
             space_symbol=space_symbol,
-            remove_non_language_symbols=remove_non_language_symbols,
+            remove_non_linguistic_symbols=remove_non_linguistic_symbols,
         )
 
     else:
@@ -89,36 +89,36 @@ class WordTokenizer(AbsTokenizer):
 class CharTokenizer(AbsTokenizer):
     def __init__(
         self,
-        non_language_symbols: Union[Path, str, Iterable[str]] = None,
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
-        remove_non_language_symbols: bool = False,
+        remove_non_linguistic_symbols: bool = False,
     ):
         assert check_argument_types()
         self.space_symbol = space_symbol
-        if non_language_symbols is None:
-            self.non_language_symbols = []
-        elif isinstance(non_language_symbols, (Path, str)):
-            non_language_symbols = Path(non_language_symbols)
-            with non_language_symbols.open("r") as f:
-                self.non_language_symbols = [line.rstrip() for line in f]
+        if non_linguistic_symbols is None:
+            self.non_linguistic_symbols = []
+        elif isinstance(non_linguistic_symbols, (Path, str)):
+            non_linguistic_symbols = Path(non_linguistic_symbols)
+            with non_linguistic_symbols.open("r") as f:
+                self.non_linguistic_symbols = [line.rstrip() for line in f]
         else:
-            self.non_language_symbols = list(non_language_symbols)
-        self.remove_non_language_symbols = remove_non_language_symbols
+            self.non_linguistic_symbols = list(non_linguistic_symbols)
+        self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
             f'space_symbol="{self.space_symbol}"'
-            f'non_language_symbols="{self.non_language_symbols}"'
+            f'non_linguistic_symbols="{self.non_linguistic_symbols}"'
             f")"
         )
 
     def text2tokens(self, line: str) -> List[str]:
         tokens = []
         while len(line) != 0:
-            for w in self.non_language_symbols:
+            for w in self.non_linguistic_symbols:
                 if line.startswith(w):
-                    if not self.remove_non_language_symbols:
+                    if not self.remove_non_linguistic_symbols:
                         tokens.append(line[:len(w)])
                     line = line[len(w):]
                     break

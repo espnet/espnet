@@ -260,7 +260,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
       cat ${srctexts} | cut -f 2- -d" " \
           | python -m espnet2.bin.tokenize_text  \
                 --token_type char --input - --output - \
-                --non_language_symbols ${nlsyms_txt} \
+                --non_linguistic_symbols ${nlsyms_txt} \
                 --write_vocabulary true
       echo "${sos_eos}"
     } > "${token_list}"
@@ -328,7 +328,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --use_preprocessor true \
             --token_type char \
             --token_list "${token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
             --batch_type const \
             --sort_in_batch none \
@@ -387,7 +387,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --use_preprocessor true \
             --token_type char \
             --token_list "${token_list}" \
-            --non_language_symbols "${nlsyms_txt}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize global_mvn \
             --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \

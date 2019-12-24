@@ -165,8 +165,8 @@ class ASRTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-        parser.add_argument("--non_language_symbols", type=str_or_none,
-                            help="non_language_symbols file path")
+        parser.add_argument("--non_linguistic_symbols", type=str_or_none,
+                            help="non_linguistic_symbols file path")
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -193,7 +193,7 @@ class ASRTask(AbsTask):
                 token_type=args.token_type,
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
-                non_language_symbols=args.non_language_symbols,
+                non_linguistic_symbols=args.non_linguistic_symbols,
             )
         else:
             retval = None

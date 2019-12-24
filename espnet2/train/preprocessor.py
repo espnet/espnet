@@ -32,7 +32,7 @@ class CommonPreprocessor(AbsPreprocessor):
         bpemodel: Union[Path, str, Iterable[str]] = None,
         unk_symbol: str = "<unk>",
         space_symbol: str = "<space>",
-        non_language_symbols: Union[Path, str, Iterable[str]] = None,
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: str = None,
         speech_name: str = "speech",
         text_name: str = "text",
@@ -53,7 +53,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 bpemodel=bpemodel,
                 delimiter=delimiter,
                 space_symbol=space_symbol,
-                non_language_symbols=non_language_symbols,
+                non_linguistic_symbols=non_linguistic_symbols,
             )
             self.token_id_converter = TokenIDConverter(
                 token_list=token_list,
