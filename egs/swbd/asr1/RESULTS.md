@@ -1,15 +1,14 @@
 # transformer with BPE 2000, specaug, LM decoding
 ## Models
-- model link: https://drive.google.com/open?id=1DI-B6l9T3F-mBPWzkVSD9Drx6NUho580
+- model link: https://drive.google.com/open?id=10AeST49tCFOHQul4rVETBHISwaN4PwuU
 - training config file: `conf/tuning/train_pytorch_transformer.yaml`
 - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
 - cmvn file: `data/train_nodup/cmvn.ark`
 - e2e file: `exp/train_nodup_pytorch_train_specaug/results/model.last10.avg.best`
 - e2e JSON file: `exp/train_nodup_pytorch_train_specaug/results/model.json`
-- spm file: `data/lang_char/train_nodup_bpe2000.model`
 - lm file: `exp/train_rnnlm_pytorch_swbd+fisher_bpe2000/rnnlm.model.best`
 - lm JSON file: `exp/train_rnnlm_pytorch_swbd+fisher_bpe2000/model.json`
-- dict file: `data/lang_char/train_nodup_bpe2000_units.txt`
+- dict file: `data/lang_char`
 
 ## Environments
 - date: `Tue Dec 24 12:01:51 JST 2019`
