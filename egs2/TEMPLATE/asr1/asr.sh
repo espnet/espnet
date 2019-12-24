@@ -64,10 +64,10 @@ decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
 decode_lm=eval.loss.best.pth       # Language modle path for decoding.
 decode_asr_model=eval.acc.best.pth # ASR model path for decoding.
                                    # e.g.
-                                   # decode_asr_model=train.loss.best.pt
-                                   # decode_asr_model=3epoch/model.pt
-                                   # decode_asr_model=eval.acc.best.pt
-                                   # decode_asr_model=eval.loss.ave.pt
+                                   # decode_asr_model=train.loss.best.pth
+                                   # decode_asr_model=3epoch/model.pth
+                                   # decode_asr_model=eval.acc.best.pth
+                                   # decode_asr_model=eval.loss.ave.pth
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
