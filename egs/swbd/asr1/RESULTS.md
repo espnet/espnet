@@ -1,3 +1,13 @@
+# transformer with BPE 2000, specaug, LM decoding
+```
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.callhm.ctm.filt.sys:|    SPK          |    # Snt       # Wrd     |    Corr          Sub          Del          Ins           Err        S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.callhm.ctm.filt.sys:|    SumAvg       |    2628        21594     |    85.2         11.2          3.6          2.6          17.3         53.7    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.ctm.filt.sys:|   SPKR          |    # Snt      # Wrd    |    Corr         Sub          Del         Ins          Err       S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.ctm.filt.sys:|   Sum/Avg       |    4459       42989    |    88.9         8.2          2.9         1.8         12.9        48.0    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.swbd.ctm.filt.sys:|    SPKR         |    # Snt       # Wrd    |    Corr          Sub           Del          Ins          Err        S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.swbd.ctm.filt.sys:|    Sum/Avg      |    1831        21395    |    92.5          5.3           2.2          1.0          8.5         40.0    |
+```
+
 # transformer with BPE 2000, specaug
 
 ```
