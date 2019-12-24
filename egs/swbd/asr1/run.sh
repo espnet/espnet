@@ -40,7 +40,7 @@ swbd1_dir=/export/corpora3/LDC/LDC97S62
 eval2000_dir="/export/corpora2/LDC/LDC2002S09/hub5e_00 /export/corpora2/LDC/LDC2002T43"
 rt03_dir=/export/corpora/LDC/LDC2007S10
 # path to the Fisher corpus LDC2004T19 LDC2005T19 LDC2004S13 LDC2005S13 for LM training (optional)
-fisher_dir=""
+fisher_dir="/export/corpora3/LDC/LDC2004T19 /export/corpora3/LDC/LDC2005T19 /export/corpora3/LDC/LDC2004S13 /export/corpora3/LDC/LDC2005S13"
 
 # bpemode (unigram or bpe)
 nbpe=2000
