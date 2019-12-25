@@ -344,31 +344,37 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
 
     mkdir -p "$(dirname ${token_list})"
-    { echo "${blank}"
-      echo "${oov}"
-      # shellcheck disable=SC2002
-      cat ${srctexts} | cut -f 2- -d" " \
-          | python -m espnet2.bin.tokenize_text  \
-                --token_type "${token_type}" --input - --output - ${_opts} \
-                --write_vocabulary true
-      echo "${sos_eos}"
-    } > "${token_list}"
+
+    # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+    # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+
+    # shellcheck disable=SC2002
+    cat ${srctexts} | \
+        python3 -m espnet2.bin.tokenize_text  \
+            --token_type "${token_type}" -f 2- --input - --output - ${_opts} \
+            --field 2- \
+            --write_vocabulary true \
+            --add_symbol "${blank}:0" \
+            --add_symbol "${oov}:1" \
+            --add_symbol "${sos_eos}:-1" \
+        > "${token_list}"
 
 
     # Create word-list for word-LM training
     if ${use_word_lm}; then
         log "Generate word level token_list from ${srctexts}"
         mkdir -p "$(dirname ${lm_token_list})"
-        { echo "${blank}"
-          echo "${oov}"
-          # shellcheck disable=SC2002
-          cat ${srctexts} | cut -f 2- -d" " \
-              | python -m espnet2.bin.tokenize_text \
-                    --token_type word --input - --output - \
-                    --write_vocabulary true \
-                    --vocabrary_size "${word_vocab_size}"
-          echo "${sos_eos}"
-        } > "${lm_token_list}"
+        # shellcheck disable=SC2002
+        cat ${srctexts} |
+            python3 -m espnet2.bin.tokenize_text \
+                --token_type word -f 2- --input - --output - \
+                --field 2- \
+                --write_vocabulary true \
+                --vocabrary_size "${word_vocab_size}" \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1" \
+            > "${lm_token_list}"
     fi
 
 fi
@@ -384,7 +390,7 @@ if "${use_lm}"; then
       _opts=
       if [ -n "${lm_config}" ]; then
           # To generate the config file: e.g.
-          #   % python -m espnet2.bin.lm_train --print_config --optim adam
+          #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
           _opts+="--config ${lm_config} "
       fi
 
@@ -435,7 +441,8 @@ if "${use_lm}"; then
       for i in $(seq "${_nj}"); do
           _opts+="--input_dir ${_logdir}/stats.${i} "
       done
-      python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+      # shellcheck disable=SC2086
+      python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
   fi
 
 
@@ -445,7 +452,7 @@ if "${use_lm}"; then
       _opts=
       if [ -n "${lm_config}" ]; then
           # To generate the config file: e.g.
-          #   % python -m espnet2.bin.lm_train --print_config --optim adam
+          #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
           _opts+="--config ${lm_config} "
       fi
 
@@ -476,6 +483,7 @@ if "${use_lm}"; then
       _opts=
       # TODO(kamo): Parallelize?
       log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
+      # shellcheck disable=SC2086
       ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
           python3 -m espnet2.bin.lm_calc_perplexity \
               --ngpu "${ngpu}" \
@@ -501,7 +509,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _opts=
     if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.asr_train --print_config --optim adam
+        #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
         _opts+="--config ${asr_config} "
     fi
 
@@ -572,7 +580,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     for i in $(seq "${_nj}"); do
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
-    python -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
+    # shellcheck disable=SC2086
+    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
 fi
 
 
@@ -584,7 +593,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     _opts=
     if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.asr_train --print_config --optim adam
+        #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
         _opts+="--config ${asr_config} "
     fi
 
@@ -701,8 +710,6 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
                 cat "${_logdir}/output.${i}/1best_recog/${f}"
             done | LC_ALL=C sort -k1 >"${_dir}/${f}"
         done
-
-        # TODO(kamo): Calc WER in asr_recog.py?
     done
 fi
 
@@ -720,8 +727,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             _scoredir="${_dir}/score_${_type}"
             mkdir -p "${_scoredir}"
 
-            # 1. Covert text to "trn" format
             if [ "${_type}" = wer ]; then
+                # Covert text to "trn" format
                 <"${_data}/text" \
                     awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
                         >"${_scoredir}/ref.trn"
@@ -730,47 +737,48 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                         >"${_scoredir}/hyp.trn"
 
             elif [ "${_type}" = cer ]; then
+                # Tokenize text to char level
                 paste \
-                    <(<"${_data}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize_text  \
-                              --input - --output - \
+                    <(<"${_data}/text" \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
                               --token_type char \
                               --non_linguistic_symbols "${nlsyms_txt}" \
                               --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
                 paste \
-                    <(<"${_dir}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize_text  \
-                              --input - --output - \
+                    <(<"${_dir}/text"  \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
                               --token_type char \
                               --non_linguistic_symbols "${nlsyms_txt}" \
                               --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
 
             elif [ "${_type}" = ter ]; then
+                # Tokenize text using BPE
                 paste \
-                    <(<"${_data}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize_text  \
-                              --input - --output - \
+                    <(<"${_data}/text" \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
                               --token_type bpe \
                               --bpemodel "${bpemodel}") \
-                    <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
                 paste \
-                    <(<"${_dir}/text" cut -f 2- -d" " \
-                        | python -m espnet2.bin.tokenize_text  \
-                              --input - --output - \
+                    <(<"${_dir}/text" \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
                               --token_type bpe \
                               --bpemodel "${bpemodel}") \
-                    <(<"${_data}/text" cut -f 1 -d" " | awk '{ print "(" $1 ")" }') \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
             fi
 
-            # 2. Sclite
             sclite \
                 -r "${_scoredir}/ref.trn" trn \
                 -h "${_scoredir}/hyp.trn" trn \
