@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import argparse
 import logging
 import random
@@ -189,7 +187,7 @@ class AbsTask(ABC):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion.
         #  I think '-' looks really confusing if it's written in yaml.
 
-        # NOTE(kamo): get_parser(..., required=True) can't be used
+        # NOTE(kamo): add_arguments(..., required=True) can't be used
         #  to provide --print_config mode. Instead of it, do as
         parser.set_defaults(required=["output_dir"])
 
@@ -812,7 +810,7 @@ class AbsTask(ABC):
             )
         else:
             # Don't give args to run() directly!!!
-            # Instead of it, define give "Options" object and build here.
+            # Instead of it, define "Options" object and build here.
             trainer_options = cls.trainer.build_options(args)
 
             # Start training
