@@ -362,7 +362,7 @@ def test_forward_and_inference_are_equal(model_dict):
     with torch.no_grad():
         # --------- forward calculation ---------
         x_masks = model._source_mask(ilens)
-        hs_fp, _ = model.encoder(xs, x_masks)
+        hs_fp, h_masks = model.encoder(xs, x_masks)
         if model.reduction_factor > 1:
             ys_in = ys[:, model.reduction_factor - 1::model.reduction_factor]
             olens_in = olens.new([olen // model.reduction_factor for olen in olens])
@@ -370,8 +370,7 @@ def test_forward_and_inference_are_equal(model_dict):
             ys_in, olens_in = ys, olens
         ys_in = model._add_first_frame_and_remove_last_frame(ys_in)
         y_masks = model._target_mask(olens_in)
-        xy_masks = model._source_to_target_mask(ilens, olens_in)
-        zs, _ = model.decoder(ys_in, y_masks, hs_fp, xy_masks)
+        zs, _ = model.decoder(ys_in, y_masks, hs_fp, h_masks)
         before_outs = model.feat_out(zs).view(zs.size(0), -1, model.odim)
         logits = model.prob_out(zs).view(zs.size(0), -1)
         after_outs = before_outs + model.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
