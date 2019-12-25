@@ -10,7 +10,7 @@ from typeguard import check_return_type
 from typing import Iterable
 
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet2.text.tokenizer import build_tokenizer
+from espnet2.text.build_tokenizer import build_tokenizer
 
 
 class AbsPreprocessor(ABC):
