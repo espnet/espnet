@@ -150,8 +150,7 @@ def tts_decode(
             _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
 
-            # TODO(kamo): Use common gathering attention system and plot it
-            #  Now att_ws is not used.
+            # TODO(kamo): Now att_ws is not used.
             outs, probs, att_ws = tts.inference(
                 **_data,
                 threshold=threshold,
@@ -174,6 +173,7 @@ def tts_decode(
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 
+            # TODO(kamo): Write scp
             if spc2wav is not None:
                 wav = spc2wav(outs_denorm.cpu().numpy())
                 sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
