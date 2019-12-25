@@ -24,7 +24,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet2.text.tokenizer import build_tokenizer
+from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.torch_utils.device_funcs import to_device
@@ -88,7 +88,7 @@ def recog(
     # 2. Build ASR model
     scorers = {}
     with Path(asr_train_config).open("r") as f:
-        asr_train_args = yaml.load(f, Loader=yaml.Loader)
+        asr_train_args = yaml.safe_load(f)
     asr_train_args = argparse.Namespace(**asr_train_args)
     asr_model = ASRTask.build_model(asr_train_args)
     asr_model.load_state_dict(torch.load(asr_model_file, map_location=device))
@@ -103,7 +103,7 @@ def recog(
     # 3. Build Language model
     if lm_train_config is not None:
         with Path(lm_train_config).open("r") as f:
-            lm_train_args = yaml.load(f, Loader=yaml.Loader)
+            lm_train_args = yaml.safe_load(f)
         lm_train_args = argparse.Namespace(**lm_train_args)
         lm = LMTask.build_model(lm_train_args)
         lm.load_state_dict(torch.load(lm_file, map_location=device))
