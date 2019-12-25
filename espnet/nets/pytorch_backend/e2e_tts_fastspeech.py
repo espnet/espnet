@@ -584,19 +584,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
             tensor([[[1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1]],
-                    [[1, 1, 1, 0, 0],
-                     [1, 1, 1, 0, 0],
-                     [1, 1, 1, 0, 0],
-                     [0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                     [1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2) & x_masks.unsqueeze(-1)
+        return x_masks.unsqueeze(-2)
 
     def _load_teacher_model(self, model_path):
         # get teacher model config
