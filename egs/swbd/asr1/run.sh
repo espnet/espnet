@@ -205,6 +205,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
     if [ -n "${fisher_dir}" ]; then
         cut -f 2- -d" " data/train_fisher/text | gzip -c > data/local/lm_train/train_fisher_text.gz
+        # combine swbd and fisher texts
         zcat data/local/lm_train/${train_set}_text.gz data/local/lm_train/train_fisher_text.gz |\
             spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
     else
