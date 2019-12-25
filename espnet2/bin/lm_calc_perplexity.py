@@ -63,7 +63,7 @@ def calc_perplexity(
 
     # 2. Build LM
     with Path(train_config).open("r") as f:
-        train_args = yaml.load(f, Loader=yaml.Loader)
+        train_args = yaml.safe_load(f)
     train_args = argparse.Namespace(**train_args)
     model = LMTask.build_model(train_args)
     model.load_state_dict(torch.load(model_file, map_location=device))
