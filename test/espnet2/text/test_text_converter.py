@@ -4,9 +4,9 @@ import string
 import pytest
 import sentencepiece as spm
 
-from espnet2.text.tokenizer import CharTokenizer
-from espnet2.text.tokenizer import SentencepiecesTokenizer
-from espnet2.text.tokenizer import WordTokenizer
+from espnet2.text.char_tokenizer import CharTokenizer
+from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+from espnet2.text.word_tokenizer import WordTokenizer
 
 
 @pytest.fixture(params=[None, " "])
