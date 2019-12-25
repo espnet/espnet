@@ -772,11 +772,12 @@ class AbsTask(ABC):
 
         # 9. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
-            # if p is None -> apply the state to the whole model.
-            # elif p is str e.g. "encoder" -> apply the state to model.encoder
             load_pretrained_model(
-                pretrain_path=p,
                 model=model,
+                # Directly specify the model path e.g. exp/train/loss.best.pt
+                pretrain_path=p,
+                # if pretrain_key is None -> model
+                # elif pretrain_key is str e.g. "encoder" -> model.encoder
                 pretrain_key=k,
                 map_location="cuda" if args.ngpu > 0 else "cpu",
             )
