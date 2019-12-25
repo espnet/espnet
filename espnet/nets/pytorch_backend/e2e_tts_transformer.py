@@ -681,7 +681,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
-            hs, _ = self.encoder(xs, x_masks)
+            hs, h_masks = self.encoder(xs, x_masks)
 
             # integrate speaker embedding
             if self.spk_embed_dim is not None:
@@ -699,8 +699,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # forward decoder
             y_masks = self._target_mask(olens_in)
-            xy_masks = self._source_to_target_mask(ilens, olens_in)
-            zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
+            zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
 
             # calculate final outputs
             if not skip_output:
@@ -821,38 +820,6 @@ class Transformer(TTSInterface, torch.nn.Module):
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
-
-    def _source_to_target_mask(self, ilens, olens):
-        """Make masks for encoder-decoder attention.
-
-        Args:
-            ilens (LongTensor or List): Batch of lengths (B,).
-            olens (LongTensor or List): Batch of lengths (B,).
-
-        Returns:
-            Tensor: Mask tensor for encoder-decoder attention.
-                    dtype=torch.uint8 in PyTorch 1.2-
-                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
-
-        Examples:
-            >>> ilens = [4, 2]
-            >>> olens = [5, 3]
-            >>> self._source_to_target_mask(ilens)
-            tensor([[[1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1]],
-                    [[1, 1, 0, 0],
-                     [1, 1, 0, 0],
-                     [1, 1, 0, 0],
-                     [0, 0, 0, 0],
-                     [0, 0, 0, 0]]], dtype=torch.uint8)
-
-        """
-        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2) & y_masks.unsqueeze(-1)
 
     @property
     def base_plot_keys(self):
