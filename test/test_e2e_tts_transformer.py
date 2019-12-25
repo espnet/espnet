@@ -323,7 +323,6 @@ def test_attention_masking(model_dict):
     a = model.decoder.decoders[0].self_attn
     a(ys, ys, ys, y_masks)
     aws = a.attn.detach().numpy()
-    raise ValueError()
     for aw, olen in zip(aws, batch["olens"]):
         assert not np.isnan(aw[:, :olen, :olen]).any()
         np.testing.assert_almost_equal(aw[:, :olen, :olen].sum(), float(aw.shape[0] * olen), decimal=4)
