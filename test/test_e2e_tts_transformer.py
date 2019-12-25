@@ -301,32 +301,31 @@ def test_attention_masking(model_dict):
     a = model.encoder.encoders[0].self_attn
     a(xs, xs, xs, x_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
     for aw, ilen in zip(aws, batch["ilens"]):
+        assert not np.isnan(aw[:, :ilen, :ilen]).any()
         np.testing.assert_almost_equal(aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4)
         assert aw[:, ilen:, ilen:].sum() == 0.0
 
     # test encoder-decoder attention
     ys = model.decoder.embed(batch["ys"])
     ys[1, olens[1]:] = float("nan")
-    xy_masks = model._source_to_target_mask(batch["ilens"], batch["olens"])
+    xy_masks = x_masks
     a = model.decoder.decoders[0].src_attn
     a(ys, xs, xs, xy_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
+        assert not np.isnan(aw[:, :olen, :ilen]).any()
         np.testing.assert_almost_equal(aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, ilen:].sum() == 0.0
 
     # test decoder self-attention
-    ys = model.decoder.embed(batch["ys"])
-    ys[1, olens[1]:] = float("nan")
     y_masks = model._target_mask(batch["olens"])
     a = model.decoder.decoders[0].self_attn
     a(ys, ys, ys, y_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
+    raise ValueError()
     for aw, olen in zip(aws, batch["olens"]):
+        assert not np.isnan(aw[:, :olen, :olen]).any()
         np.testing.assert_almost_equal(aw[:, :olen, :olen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, olen:].sum() == 0.0
 
