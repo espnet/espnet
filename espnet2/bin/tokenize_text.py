@@ -129,7 +129,7 @@ def tokenize(
     for symbol_and_id in add_symbol:
         # e.g symbol="<blank>:0"
         try:
-            symbol, idx = symbol_and_id .split(":")
+            symbol, idx = symbol_and_id.split(":")
             idx = int(idx)
         except ValueError:
             raise RuntimeError(f"Format error: e.g. '<blank>:0': {symbol_and_id}")
@@ -154,9 +154,7 @@ def tokenize(
         if nvocab >= vocabulary_size > 0:
             break
 
-    logging.info(
-        f"OOV rate = {(total_count - invocab_count) / total_count * 100} %"
-    )
+    logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -181,7 +179,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--field",
         "-f",
-        help="The target columns of the input text as 1-based integer. e.g 2-"
+        help="The target columns of the input text as 1-based integer. e.g 2-",
     )
     parser.add_argument(
         "--token_type",
@@ -212,9 +210,7 @@ def get_parser() -> argparse.ArgumentParser:
         default=False,
         help="Write tokens list instead of tokenized text per line",
     )
-    group.add_argument(
-        "--vocabulary_size", type=int, default=0, help="Vocabulary size"
-    )
+    group.add_argument("--vocabulary_size", type=int, default=0, help="Vocabulary size")
     group.add_argument(
         "--cutoff",
         default=0,
