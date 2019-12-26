@@ -1,0 +1,8 @@
+layer: 2
+unit: 650
+opt: adam
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+batchsize: 1024
+epoch: 20
+patience: 3
+maxlen: 150
