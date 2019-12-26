@@ -23,13 +23,15 @@ class DecoderLayer(nn.Module):
                  normalize_before=True, concat_after=False):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
-        self.size = size
         self.self_attn = self_attn
-
         self.feed_forward = feed_forward
+
         self.norm1 = LayerNorm(size)
         self.norm2 = LayerNorm(size)
+
         self.dropout = nn.Dropout(dropout_rate)
+
+        self.size = size
 
         self.normalize_before = normalize_before
         self.concat_after = concat_after
@@ -40,8 +42,8 @@ class DecoderLayer(nn.Module):
         """Compute decoded features.
 
         Args:
-            tgt (torch.Tensor): decoded previous target features (B, Lmax, idim)
-            tgt_mask (torch.Tensor): mask for tgt (batch, Lmax)
+            x (torch.Tensor): decoded previous target features (B, Lmax, idim)
+            mask (torch.Tensor): mask for x (batch, Lmax)
             cache (torch.Tensor): cached output (B, Lmax-1, idim)
 
         """
@@ -51,7 +53,6 @@ class DecoderLayer(nn.Module):
 
         if cache is None:
             tgt_q = tgt
-            tgt_q_mask = tgt_mask
         else:
             assert cache.shape == (tgt.shape[0], tgt.shape[1] - 1, self.size), \
                 f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
@@ -60,28 +61,26 @@ class DecoderLayer(nn.Module):
             residual = residual[:, -1, :]
 
             if tgt_mask is not None:
-                tgt_q_mask = tgt_mask[:, -1:, :]
-            else:
-                tgt_q_mask = None
+                tgt_mask = tgt_mask[:, -1:, :]
 
         if self.concat_after:
-            tgt_concat = torch.cat((tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_q_mask)), dim=-1)
-            x = residual + self.concat(tgt_concat)
+            tgt_concat = torch.cat((tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_mask)), dim=-1)
+            tgt = residual + self.concat(tgt_concat)
         else:
-            x = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_q_mask))
+            tgt = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_mask))
         if not self.normalize_before:
-            x = self.norm1(x)
+            tgt = self.norm1(tgt)
 
-        residual = x
+        residual = tgt
         if self.normalize_before:
-            x = self.norm2(x)
+            tgt = self.norm2(tgt)
 
-        x = residual + self.dropout(self.feed_forward(x))
+        tgt = residual + self.dropout(self.feed_forward(tgt))
 
         if not self.normalize_before:
-            x = self.norm2(x)
+            tgt = self.norm2(tgt)
 
         if cache is not None:
-            x = torch.cat([cache, x], dim=1)
+            tgt = torch.cat([cache, tgt], dim=1)
 
-        return x, tgt_mask
+        return tgt, tgt_mask

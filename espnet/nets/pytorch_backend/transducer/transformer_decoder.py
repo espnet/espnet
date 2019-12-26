@@ -5,14 +5,14 @@ import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
+from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import DecoderLayer
+
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-
-from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import DecoderLayer
 
 
 class Decoder(torch.nn.Module):
@@ -26,23 +26,26 @@ class Decoder(torch.nn.Module):
         linear_units (int): number of units in position-wise feed forward
         num_blocks (int): number of decoder blocks
         dropout_rate (float): dropout rate for decoder
+        positional_dropout_rate (float): dropout rate for positional encoding
         attention_dropout_rate (float): dropout rate for attention
         input_layer (str or torch.nn.Module): input layer type
+        padding_idx (int): padding value for embedding
         pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
+        blank (int): blank symbol ID
 
     """
 
-    def __init__(self, odim,
-                 jdim=512,
+    def __init__(self, odim, jdim,
                  attention_dim=512,
                  attention_heads=4,
                  linear_units=2048,
                  num_blocks=6,
                  dropout_rate=0.1,
                  positional_dropout_rate=0.0,
-                 self_attention_dropout_rate=0.0,
+                 attention_dropout_rate=0.0,
                  input_layer="embed",
-                 pos_enc_class=PositionalEncoding):
+                 pos_enc_class=PositionalEncoding,
+                 blank=0):
         """Construct a Decoder object for SA Transducer."""
         torch.nn.Module.__init__(self)
 
@@ -68,7 +71,7 @@ class Decoder(torch.nn.Module):
             num_blocks,
             lambda: DecoderLayer(
                 attention_dim,
-                MultiHeadedAttention(attention_heads, attention_dim, self_attention_dropout_rate),
+                MultiHeadedAttention(attention_heads, attention_dim, attention_dropout_rate),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate))
 
@@ -80,6 +83,8 @@ class Decoder(torch.nn.Module):
 
         self.attention_dim = attention_dim
         self.odim = odim
+
+        self.blank = blank
 
     def forward(self, tgt, tgt_mask, memory):
         """Forward self-attention transducer joint-decoder.
@@ -97,13 +102,13 @@ class Decoder(torch.nn.Module):
             tgt_mask (torch.Tensor): score mask before softmax (batch, maxlen_out)
 
         """
-        x = self.embed(tgt)
-        x, tgt_mask = self.decoders(x, tgt_mask)
+        tgt = self.embed(tgt)
 
-        x = self.after_norm(x)
+        tgt, tgt_mask = self.decoders(tgt, tgt_mask)
+        tgt = self.after_norm(tgt)
 
         h_enc = memory.unsqueeze(2)
-        h_dec = x.unsqueeze(1)
+        h_dec = tgt.unsqueeze(1)
 
         z = self.joint(h_enc, h_dec)
 
@@ -154,46 +159,44 @@ class Decoder(torch.nn.Module):
         """Get an initial state for decoding."""
         return [None for i in range(len(self.decoders))]
 
-    def recognize(self, h, recog_args, blank=0):
+    def recognize(self, h, recog_args):
         """Greedy search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
             recog_args (Namespace): argument Namespace containing options
-            blank (int): blank ID
 
         Returns:
             hyp (list of dicts): 1-best decoding results
 
         """
-        hyp = {'score': 0.0, 'yseq': [blank]}
+        hyp = {'score': 0.0, 'yseq': [self.blank]}
 
-        ys = to_device(self, torch.zeros((1, 1), dtype=torch.long))
+        ys = to_device(self, torch.tensor(hyp['yseq'], dtype=torch.long)).unsqueeze(0)
         ys_mask = to_device(self, subsequent_mask(1).unsqueeze(0))
-        y = self.forward_one_step(ys, ys_mask)[0]
+        y, c = self.forward_one_step(ys, ys_mask, None)
 
         for i, hi in enumerate(h):
             ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
             logp, pred = torch.max(ytu, dim=0)
 
-            if pred != blank:
+            if pred != self.blank:
                 hyp['yseq'].append(int(pred))
                 hyp['score'] += float(logp)
 
                 ys = to_device(self, torch.tensor(hyp['yseq']).unsqueeze(0))
                 ys_mask = to_device(self, subsequent_mask(len(hyp['yseq'])).unsqueeze(0))
 
-                y = self.forward_one_step(ys, ys_mask)[0]
+                y, c = self.forward_one_step(ys, ys_mask, c)
 
         return [hyp]
 
-    def recognize_beam(self, h, recog_args, blank=0, rnnlm=None):
+    def recognize_beam(self, h, recog_args, rnnlm=None):
         """Beam search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
             recog_args (Namespace): argument Namespace containing options
-            blank (int): blank ID
             rnnlm (torch.nn.Module): language model module
 
         Returns:
@@ -206,9 +209,9 @@ class Decoder(torch.nn.Module):
         normscore = recog_args.score_norm_transducer
 
         if rnnlm:
-            kept_hyps = [{'score': 0.0, 'yseq': [blank], 'lm_state': None}]
+            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'cache': None, 'lm_state': None}]
         else:
-            kept_hyps = [{'score': 0.0, 'yseq': [blank]}]
+            kept_hyps = [{'score': 0.0, 'yseq': [self.blank], 'cache': None}]
 
         for i, hi in enumerate(h):
             hyps = kept_hyps
@@ -220,7 +223,7 @@ class Decoder(torch.nn.Module):
 
                 ys = to_device(self, torch.tensor(new_hyp['yseq']).unsqueeze(0))
                 ys_mask = to_device(self, subsequent_mask(len(new_hyp['yseq'])).unsqueeze(0))
-                y = self.forward_one_step(ys, ys_mask)[0]
+                y, c = self.forward_one_step(ys, ys_mask, new_hyp['cache'])
 
                 ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
 
@@ -229,15 +232,17 @@ class Decoder(torch.nn.Module):
 
                 for k in six.moves.range(self.odim):
                     beam_hyp = {'score': new_hyp['score'] + float(ytu[k]),
-                                'yseq': new_hyp['yseq'][:]}
+                                'yseq': new_hyp['yseq'][:],
+                                'cache': new_hyp['cache']}
 
                     if rnnlm:
                         beam_hyp['lm_state'] = new_hyp['lm_state']
 
-                    if k == blank:
+                    if k == self.blank:
                         kept_hyps.append(beam_hyp)
                     else:
                         beam_hyp['yseq'].append(int(k))
+                        beam_hyp['cache'] = c
 
                         if rnnlm:
                             beam_hyp['lm_state'] = rnnlm_state

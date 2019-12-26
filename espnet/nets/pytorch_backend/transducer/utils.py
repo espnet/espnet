@@ -10,7 +10,7 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
 
     Args:
         ys_pad (torch.Tensor): batch of padded target sequences (B, Lmax)
-        hlens (torch.Tensor): batch of hidden sequence lengthts (B) or (B, 1, Tmax)
+        hlens (torch.Tensor): batch of hidden sequence lengthts (B) or batch of masks (B, 1, Tmax)
         blank_id (int): index of blank label
         ignore_id (int): index of initial padding
 
