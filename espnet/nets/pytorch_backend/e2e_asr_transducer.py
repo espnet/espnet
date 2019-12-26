@@ -404,6 +404,5 @@ class E2E(ASRInterface, torch.nn.Module):
                 for name, m in self.named_modules():
                     if isinstance(m, MultiHeadedAttention):
                         ret[name] = m.attn.cpu().numpy()
-        print(ret.shape)
-        exit(1)
+
         return ret
