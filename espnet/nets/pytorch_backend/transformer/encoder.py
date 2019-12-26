@@ -8,6 +8,8 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
@@ -69,6 +71,8 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+        elif input_layer == 'vgg2l':
+            self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
@@ -119,7 +123,7 @@ class Encoder(torch.nn.Module):
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.embed, Conv2dSubsampling):
+        if isinstance(self.embed, (Conv2dSubsampling, VGG2L)):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
