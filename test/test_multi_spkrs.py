@@ -126,7 +126,6 @@ def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, 
         in_data = data[0][1]["feat"]
         nbest_hyps = model.recognize(in_data, args, args.char_list)
 
-        seq_hat_text_sd = []
         for i in range(num_spkrs):
             y_hat = nbest_hyps[i][0]['yseq'][1:]
             seq_hat = [args.char_list[int(idx)] for idx in y_hat]
