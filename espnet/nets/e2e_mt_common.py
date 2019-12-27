@@ -1,24 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Common functions for MT."""
 
 import nltk
 import numpy as np
 
 
 class ErrorCalculator(object):
-    """Calculate BLEU for E2E_ST and NMT models during training
+    """Calculate BLEU for E2E_ST and NMT models during training.
 
     :param y_hats: numpy array with predicted text
     :param y_pads: numpy array with true (target) text
-    :param char_list:
-    :param sym_space:
-    :return:
+    :param char_list: vocabulary list
+    :param sym_space: space symbol
+    :param sym_pad: pad symbol
+    :param report_bleu: report BLUE score if True
     """
 
-    def __init__(self, char_list, sym_space, sym_pad,
-                 report_bleu=False):
+    def __init__(self, char_list, sym_space, sym_pad, report_bleu=False):
+        """Initialize this class."""
         super(ErrorCalculator, self).__init__()
         self.char_list = char_list
         self.space = sym_space
@@ -30,6 +33,12 @@ class ErrorCalculator(object):
             self.idx_space = None
 
     def __call__(self, ys_hat, ys_pad):
+        """Calculate sentence-level BLEU score.
+        :param torch.Tensor ys_hat: prediction (batch, seqlen)
+        :param torch.Tensor ys_pad: reference (batch, seqlen)
+        :return: BLEU score
+        :rtype float
+        """
         bleu = None
         if not self.report_bleu:
             return bleu
@@ -40,6 +49,14 @@ class ErrorCalculator(object):
         return bleu
 
     def convert_to_char(self, ys_hat, ys_pad):
+        """Convert index to character.
+        :param torch.Tensor seqs_hat: prediction (batch, seqlen)
+        :param torch.Tensor seqs_true: reference (batch, seqlen)
+        :return: token list of prediction
+        :rtype list
+        :return: token list of reference
+        :rtype list
+        """
         seqs_hat, seqs_true = [], []
         for i, y_hat in enumerate(ys_hat):
             y_true = ys_pad[i]
@@ -58,6 +75,12 @@ class ErrorCalculator(object):
         return seqs_hat, seqs_true
 
     def calculate_bleu(self, seqs_hat, seqs_true):
+        """Calculate average sentence-level BLEU score.
+        :param list seqs_hat: prediction
+        :param list seqs_true: reference
+        :return: average sentence-level BLEU score
+        :rtype float
+        """
         bleus = []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
