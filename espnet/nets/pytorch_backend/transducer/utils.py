@@ -1,4 +1,4 @@
-"""Utility functions for self-attention Transducer."""
+"""Utility functions for transducer models."""
 
 import torch
 
@@ -10,7 +10,8 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
 
     Args:
         ys_pad (torch.Tensor): batch of padded target sequences (B, Lmax)
-        hlens (torch.Tensor): batch of hidden sequence lengthts (B) or batch of masks (B, 1, Tmax)
+        hlens (torch.Tensor): batch of hidden sequence lengthts (B)
+                              or batch of masks (B, 1, Tmax)
         blank_id (int): index of blank label
         ignore_id (int): index of initial padding
 
@@ -33,11 +34,12 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     target = pad_list(ys, blank_id).type(torch.int32)
     target_len = torch.IntTensor([y.size(0) for y in ys])
 
-    if hlens.dim() > 1:
-        hs = [h[h != 0] for h in hlens]
-        hlens = list(map(int, [h.size(0) for h in hs]))
-    else:
-        hlens = list(map(int, hlens))
+    if torch.is_tensor(hlens):
+        if hlens.dim() > 1:
+            hs = [h[h != 0] for h in hlens]
+            hlens = list(map(int, [h.size(0) for h in hs]))
+        else:
+            hlens = list(map(int, hlens))
 
     pred_len = torch.IntTensor(hlens)
 
