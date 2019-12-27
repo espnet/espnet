@@ -30,7 +30,7 @@ use_valbest_average=true     # if true, the validation `n_average`-best NMT mode
                              # if false, the last `n_average` NMT models will be averaged.
 
 # preprocessing related
-src_case=tc
+src_case=lc.rm
 tgt_case=tc
 # tc: truecase
 # lc: lowercase
@@ -190,8 +190,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
 
-trans_set="tst-HE.en-${tgt_lang}.${tgt_lang}"
-
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
@@ -209,8 +207,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${trans_model} \
             --num ${n_average}
-
-        decode_config=conf/tuning/decode_pytorch_transformer.yaml
     fi
     nj=16
 
