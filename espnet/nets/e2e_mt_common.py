@@ -34,9 +34,10 @@ class ErrorCalculator(object):
 
     def __call__(self, ys_hat, ys_pad):
         """Calculate sentence-level BLEU score.
+
         :param torch.Tensor ys_hat: prediction (batch, seqlen)
         :param torch.Tensor ys_pad: reference (batch, seqlen)
-        :return: BLEU score
+        :return: sentence-level BLEU score
         :rtype float
         """
         bleu = None
@@ -50,6 +51,7 @@ class ErrorCalculator(object):
 
     def convert_to_char(self, ys_hat, ys_pad):
         """Convert index to character.
+
         :param torch.Tensor seqs_hat: prediction (batch, seqlen)
         :param torch.Tensor seqs_true: reference (batch, seqlen)
         :return: token list of prediction
@@ -76,6 +78,7 @@ class ErrorCalculator(object):
 
     def calculate_bleu(self, seqs_hat, seqs_true):
         """Calculate average sentence-level BLEU score.
+
         :param list seqs_hat: prediction
         :param list seqs_true: reference
         :return: average sentence-level BLEU score
