@@ -105,8 +105,8 @@ class ErrorCalculator(object):
     :return:
     """
 
-    def __init__(self, char_list, sym_space, sym_blank,
-                 report_cer=False, report_wer=False):
+    def __init__(self, char_list, sym_space, sym_blank, report_cer=False, report_wer=False):
+        """Construct an ErrorCalculator object."""
         super(ErrorCalculator, self).__init__()
         self.char_list = char_list
         self.space = sym_space
