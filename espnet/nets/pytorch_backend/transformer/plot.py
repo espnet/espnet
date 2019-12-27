@@ -94,6 +94,10 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def plotfn(self, *args, **kwargs):
+        kwargs['ikey'] = self.ikey
+        kwargs['iaxis'] = self.iaxis
+        kwargs['okey'] = self.okey
+        kwargs['oaxis'] = self.oaxis
         plot_multi_head_attention(*args, **kwargs)
 
     def __call__(self, trainer):
