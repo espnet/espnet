@@ -18,10 +18,10 @@ echo "==== ASR (backend=pytorch num-encs 2) ==="
 
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
-./run.sh --stage 3 --train-config conf/train_transducer.yaml \
+./run.sh --stage 2 --train-config conf/train_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
-./run.sh --stage 3 --train-config conf/train_transformer_transducer.yaml \
+./run.sh --stage 2 --train-config conf/train_transformer_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
 
 cd ${cwd} || exit 1

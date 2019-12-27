@@ -32,8 +32,6 @@ aconv-filts: 3
 joint-dim: 30
 
 # transducer related
-## mtlalpha should be set to 1.0 (CTC) to use transducer
 mtlalpha: 1.0
-## switch to 'rnnt-att' to use transducer with attention
 rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
