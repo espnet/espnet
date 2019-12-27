@@ -242,20 +242,18 @@ class ErrorCalculator(object):
 
 
 class ErrorCalculatorTrans(object):
-    """Calculate CER and WER for transducer models
+    """Calculate CER and WER for transducer models.
 
     Args:
         decoder (nn.Module): decoder module
-        y_hats (np.array): predicted text
-        y_pads (np.array): target text
-        char_list (np.array): list of characters
-        sym_space (str): space symbol
-        sym_space (str): blank symbol
+        args (Namespace): argument Namespace containing options
+        report_cer (boolean): compute CER option
+        report_wer (boolean): compute WER option
 
     """
 
-    def __init__(self, decoder, args,
-                 report_cer=False, report_wer=False):
+    def __init__(self, decoder, args, report_cer=False, report_wer=False):
+        """Construct an ErrorCalculator object for transducer model."""
         super(ErrorCalculatorTrans, self).__init__()
 
         self.dec = decoder
@@ -275,6 +273,17 @@ class ErrorCalculatorTrans(object):
         self.report_wer = args.report_wer
 
     def __call__(self, hs_pad, ys_pad):
+        """Calculate sentence-level WER/CER score for transducer models.
+
+        Args:
+            hs_pad (torch.Tensor): batch of padded input sequence (batch, T, D)
+            ys_pad (torch.Tensor): reference (batch, seqlen)
+
+        Returns:
+            (float): sentence-level CER score
+            (float): sentence-level WER score
+
+        """
         cer, wer = None, None
 
         if not self.report_cer and not self.report_wer:
@@ -303,6 +312,17 @@ class ErrorCalculatorTrans(object):
         return cer, wer
 
     def convert_to_char(self, ys_hat, ys_pad):
+        """Convert index to character.
+
+        Args:
+            ys_hat (torch.Tensor): prediction (batch, seqlen)
+            ys_pad (torch.Tensor): reference (batch, seqlen)
+
+        Returns:
+            (list): token list of prediction
+            (list): token list of reference
+
+        """
         seqs_hat, seqs_true = [], []
 
         for i, y_hat in enumerate(ys_hat):
@@ -324,6 +344,16 @@ class ErrorCalculatorTrans(object):
         return seqs_hat, seqs_true
 
     def calculate_cer(self, seqs_hat, seqs_true):
+        """Calculate sentence-level CER score for transducer model.
+
+        Args:
+            seqs_hat (torch.Tensor): prediction (batch, seqlen)
+            seqs_true (torch.Tensor): reference (batch, seqlen)
+
+        Returns:
+            (float): average sentence-level CER score
+
+        """
         char_eds, char_ref_lens = [], []
 
         for i, seq_hat_text in enumerate(seqs_hat):
@@ -337,6 +367,16 @@ class ErrorCalculatorTrans(object):
         return float(sum(char_eds)) / sum(char_ref_lens)
 
     def calculate_wer(self, seqs_hat, seqs_true):
+        """Calculate sentence-level WER score for transducer model.
+
+        Args:
+            seqs_hat (torch.Tensor): prediction (batch, seqlen)
+            seqs_true (torch.Tensor): reference (batch, seqlen)
+
+        Returns:
+            (float): average sentence-level WER score
+
+        """
         word_eds, word_ref_lens = [], []
 
         for i, seq_hat_text in enumerate(seqs_hat):
