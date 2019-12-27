@@ -21,7 +21,7 @@ class ErrorCalculator(object):
     """
 
     def __init__(self, char_list, sym_space, sym_pad, report_bleu=False):
-        """Initialize this class."""
+        """Construct an ErrorCalculator object."""
         super(ErrorCalculator, self).__init__()
         self.char_list = char_list
         self.space = sym_space
