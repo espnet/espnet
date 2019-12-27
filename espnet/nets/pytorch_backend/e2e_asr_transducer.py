@@ -33,7 +33,7 @@ from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper for transducer-based models."""
+    """A chainer reporter wrapper for transducer models."""
 
     def report(self, loss, cer, wer):
         """Instantiate reporter attributes."""
@@ -55,7 +55,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def add_arguments(parser):
-        """Extend arguments for self-attention transducer.
+        """Extend arguments for transducer models.
 
         Both Transformer and RNN modules are supported.
         General options encapsulate both modules options.
@@ -150,7 +150,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return parser
 
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0):
-        """Construct an E2E object for self-attention transducer model.
+        """Construct an E2E object for transducer model.
 
         Args:
             idim (int): dimension of inputs

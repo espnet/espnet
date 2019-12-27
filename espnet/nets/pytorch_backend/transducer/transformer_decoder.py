@@ -1,4 +1,4 @@
-"""Joint decoder definition for self-attention transducer."""
+"""Decoder definition for transformer-transducer models."""
 
 import six
 import torch
@@ -16,7 +16,7 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class Decoder(torch.nn.Module):
-    """Joint-decoder module for self-attention transduction.
+    """Decoder module for transformer-transducer models.
 
     Args:
         odim (int): dimension of outputs
@@ -46,7 +46,7 @@ class Decoder(torch.nn.Module):
                  input_layer="embed",
                  pos_enc_class=PositionalEncoding,
                  blank=0):
-        """Construct a Decoder object for SA Transducer."""
+        """Construct a Decoder object for transformer-transducer models."""
         torch.nn.Module.__init__(self)
 
         if input_layer == "embed":
@@ -87,7 +87,7 @@ class Decoder(torch.nn.Module):
         self.blank = blank
 
     def forward(self, tgt, tgt_mask, memory):
-        """Forward self-attention transducer joint-decoder.
+        """Forward transformer-transducer decoder.
 
         Args:
             tgt (torch.Tensor): input token ids, int64 (batch, maxlen_out) if input_layer == "embed"
@@ -160,7 +160,7 @@ class Decoder(torch.nn.Module):
         return [None for i in range(len(self.decoders))]
 
     def recognize(self, h, recog_args):
-        """Greedy search implementation.
+        """Greedy search implementation for transformer-transducer.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
@@ -192,7 +192,7 @@ class Decoder(torch.nn.Module):
         return [hyp]
 
     def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search implementation.
+        """Beam search implementation for transformer-transducer.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
@@ -228,7 +228,7 @@ class Decoder(torch.nn.Module):
                 ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
 
                 if rnnlm:
-                    rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], ys[0])
+                    rnnlm_state, rnnlm_scores = rnnlm.predict(new_hyp['lm_state'], ys[:, -1])
 
                 for k in six.moves.range(self.odim):
                     beam_hyp = {'score': new_hyp['score'] + float(ytu[k]),
