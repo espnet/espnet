@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import logging
 
 import matplotlib.pyplot as plt
@@ -6,7 +12,7 @@ import numpy
 from espnet.asr import asr_utils
 
 
-def _plot_and_save_attention(att_w, filename):
+def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
     # dynamically import matplotlib due to not found error
     from matplotlib.ticker import MaxNLocator
     import os
@@ -25,6 +31,15 @@ def _plot_and_save_attention(att_w, filename):
         ax.set_ylabel("Output")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        # Labels for major ticks
+        if xtokens is not None:
+            ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, len(xtokens)))
+            ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, 1), minor=True)
+            ax.set_xticklabels(xtokens + [''])
+        if ytokens is not None:
+            ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, len(ytokens)))
+            ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, 1), minor=True)
+            ax.set_yticklabels(ytokens + [''])
     fig.tight_layout()
     return fig
 
@@ -34,8 +49,9 @@ def savefig(plot, filename):
     plt.clf()
 
 
-def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
-    """Plot multi head attentions
+def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig,
+                              ikey="input", iaxis=0, okey="output", oaxis=0):
+    """Plot multi head attentions (orignal).
 
     :param dict data: utts info from json file
     :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
@@ -43,13 +59,19 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
     :param str outdir: dir to save fig
     :param str suffix: filename suffix including image type (e.g., png)
     :param savefn: function to save
+    :param ikey str: Key to access input (for ASR ikey="input", for MT ikey="output".)
+    :param iaxis int: Dimension to access input (for ASR iaxis=0, for MT iaxis=1.)
+    :param okey str: Key to access output (for ASR okey="input", MT okay="output".)
+    :param oaxis int: Dimension to access output (for ASR oaxis=0, for MT oaxis=0.)
+
     """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (
                 outdir, data[idx][0], name, suffix)
-            dec_len = int(data[idx][1]['output'][0]['shape'][0])
-            enc_len = int(data[idx][1]['input'][0]['shape'][0])
+            dec_len = int(data[idx][1][okey][oaxis]['shape'][0])
+            enc_len = int(data[idx][1][ikey][iaxis]['shape'][0])
+            # enc_len = int(data[idx][1]["output"][1]['shape'][0])
             if "encoder" in name:
                 att_w = att_w[:, :enc_len, :enc_len]
             elif "decoder" in name:
@@ -65,7 +87,48 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def plotfn(self, *args, **kwargs):
-        plot_multi_head_attention(*args, **kwargs)
+        self.plot_multi_head_attention(*args, **kwargs)
+
+    def plot_multi_head_attention(self, data, attn_dict, outdir, suffix="png", savefn=savefig):
+        """Plot multi head attentions
+
+        :param dict data: utts info from json file
+        :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
+            values should be torch.Tensor (head, input_length, output_length)
+        :param str outdir: dir to save fig
+        :param str suffix: filename suffix including image type (e.g., png)
+        :param savefn: function to save
+
+        """
+        for name, att_ws in attn_dict.items():
+            for idx, att_w in enumerate(att_ws):
+                filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
+                dec_len = int(data[idx][1][self.okey][self.oaxis]['shape'][0])
+                enc_len = int(data[idx][1][self.ikey][self.iaxis]['shape'][0])
+                xtokens, ytokens = None, None
+                if "encoder" in name:
+                    att_w = att_w[:, :enc_len, :enc_len]
+                    # for MT
+                    if 'token' in data[idx][1][self.ikey][self.iaxis].keys():
+                        xtokens = data[idx][1][self.ikey][self.iaxis]['token'].split()
+                        ytokens = xtokens[:]
+                elif "decoder" in name:
+                    if "self" in name:
+                        att_w = att_w[:, :dec_len + 1, :dec_len + 1]  # +1 for <sos>
+                    else:
+                        att_w = att_w[:, :dec_len + 1, :enc_len]  # +1 for <sos>
+                        # for MT
+                        if 'token' in data[idx][1][self.ikey][self.iaxis].keys():
+                            xtokens = data[idx][1][self.ikey][self.iaxis]['token'].split()
+                    # for ASR/ST/MT
+                    if 'token' in data[idx][1][self.okey][self.oaxis].keys():
+                        ytokens = ['<sos>'] + data[idx][1][self.okey][self.oaxis]['token'].split()
+                        if "self" in name:
+                            xtokens = ytokens[:]
+                else:
+                    logging.warning("unknown name for shaping attention")
+                fig = _plot_and_save_attention(att_w, filename, xtokens, ytokens)
+                savefn(fig, filename)
 
     def __call__(self, trainer):
         attn_dict = self.get_attention_weights()
