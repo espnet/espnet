@@ -3,6 +3,8 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Common functions for ASR."""
+
 import editdistance
 import json
 import logging
@@ -111,6 +113,15 @@ class ErrorCalculator(object):
             self.idx_space = None
 
     def __call__(self, ys_hat, ys_pad, is_ctc=False):
+        """Calculate sentence-level WER/CER score.
+        :param torch.Tensor ys_hat: prediction (batch, seqlen)
+        :param torch.Tensor ys_pad: reference (batch, seqlen)
+        :param bool is_ctc: calculate CER score for CTC
+        :return: WER score
+        :rtype float
+        :return: CER score
+        :rtype float
+        """
         cer, wer = None, None
         if is_ctc:
             return self.calculate_cer_ctc(ys_hat, ys_pad)
@@ -126,6 +137,12 @@ class ErrorCalculator(object):
         return cer, wer
 
     def calculate_cer_ctc(self, ys_hat, ys_pad):
+        """Calculate CER score for the CTC branch.
+        :param torch.Tensor ys_hat: prediction (batch, seqlen)
+        :param torch.Tensor ys_pad: reference (batch, seqlen)
+        :return: average sentence-level CER score
+        :rtype float
+        """
         cers, char_ref_lens = [], []
         for i, y in enumerate(ys_hat):
             y_hat = [x[0] for x in groupby(y)]
@@ -151,6 +168,14 @@ class ErrorCalculator(object):
         return cer_ctc
 
     def convert_to_char(self, ys_hat, ys_pad):
+        """Convert index to character.
+        :param torch.Tensor seqs_hat: prediction (batch, seqlen)
+        :param torch.Tensor seqs_true: reference (batch, seqlen)
+        :return: token list of prediction
+        :rtype list
+        :return: token list of reference
+        :rtype list
+        """
         seqs_hat, seqs_true = [], []
         for i, y_hat in enumerate(ys_hat):
             y_true = ys_pad[i]
@@ -169,6 +194,12 @@ class ErrorCalculator(object):
         return seqs_hat, seqs_true
 
     def calculate_cer(self, seqs_hat, seqs_true):
+        """Calculate CER score.
+        :param list seqs_hat: prediction
+        :param list seqs_true: reference
+        :return: average sentence-level CER score
+        :rtype float
+        """
         char_eds, char_ref_lens = [], []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
@@ -179,6 +210,12 @@ class ErrorCalculator(object):
         return float(sum(char_eds)) / sum(char_ref_lens)
 
     def calculate_wer(self, seqs_hat, seqs_true):
+        """Calculate WER score.
+        :param list seqs_hat: prediction
+        :param list seqs_true: reference
+        :return: average sentence-level WER score
+        :rtype float
+        """
         word_eds, word_ref_lens = [], []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
