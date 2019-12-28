@@ -58,6 +58,11 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    from torch.utils.tensorboard import SummaryWriter
+else:
+    from tensorboardX import SummaryWriter
+
 optim_classes = dict(
     adam=torch.optim.Adam,
     sgd=SGD,
@@ -847,7 +852,7 @@ class AbsTask(ABC):
         model: AbsE2E,
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        output_dir: Union[str, Path],
+        output_dir: Path,
         ngpu: Optional[int],
         log_interval: Optional[int],
         write_collected_feats: bool,
@@ -860,7 +865,6 @@ class AbsTask(ABC):
 
         """
         assert check_argument_types()
-        output_dir = Path(output_dir)
 
         npy_scp_writers = {}
         for itr, mode in zip([train_iter, eval_iter], ["train", "eval"]):
@@ -954,7 +958,7 @@ class AbsTask(ABC):
         eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         plot_attention_iter,
         reporter: Reporter,
-        output_dir: Union[str, Path],
+        output_dir: Path,
         max_epoch: int,
         patience: Optional[int],
         keep_n_best_checkpoints: int,
@@ -974,6 +978,7 @@ class AbsTask(ABC):
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
 
+        summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         best_epoch_dict = {}
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f"{iepoch}epoch started")
@@ -1000,7 +1005,8 @@ class AbsTask(ABC):
                 with reporter.observe("att_plot") as sub_reporter:
                     cls.trainer.plot_attention(
                         model=model,
-                        output_dir=output_dir / "att_ws" / f"{iepoch}epoch",
+                        output_dir=None,
+                        summary_writer=summary_writer,
                         iterator=plot_attention_iter,
                         reporter=sub_reporter,
                         options=trainer_options,
@@ -1022,7 +1028,8 @@ class AbsTask(ABC):
 
             # 3. Report the results
             reporter.logging()
-            reporter.save_stats_plot(output_dir / "images")
+            reporter.matplotlib_plot(output_dir / "images")
+            reporter.tensorboard_add_scalar(summary_writer)
 
             # 4. Save the snapshot
             save_checkpoint(
@@ -1036,6 +1043,7 @@ class AbsTask(ABC):
             # 5. Saves the best model
             _improved = []
             for _phase, k, _mode in best_model_criterion:
+                # e.g. _phase, k, _mode = "train", "loss", "min"
                 if reporter.has(_phase, k):
                     best_epoch, _ = reporter.sort_epochs_and_values(_phase, k, _mode)[0]
                     best_epoch_dict[(_phase, k)] = best_epoch

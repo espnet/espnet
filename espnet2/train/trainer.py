@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import logging
+from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Dict
 from typing import Iterable
@@ -27,6 +28,11 @@ from espnet2.torch_utils.calculate_all_attentions import calculate_all_attention
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.reporter import SubReporter
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    from torch.utils.tensorboard import SummaryWriter
+else:
+    from tensorboardX import SummaryWriter
 
 
 @dataclasses.dataclass(frozen=True)
@@ -226,7 +232,8 @@ class Trainer:
     def plot_attention(
         cls,
         model: AbsE2E,
-        output_dir: Path,
+        output_dir: Optional[Path],
+        summary_writer: Optional[SummaryWriter],
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -242,7 +249,6 @@ class Trainer:
         from matplotlib.ticker import MaxNLocator
 
         model.eval()
-        output_dir = Path(output_dir)
         for ids, batch in iterator:
             assert isinstance(batch, dict), type(batch)
             assert len(next(iter(batch.values()))) == len(ids), (
@@ -284,9 +290,15 @@ class Trainer:
                         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
                         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-                    p = output_dir / id_ / (k + ".png")
-                    p.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(p)
+                    if output_dir is not None:
+                        p = output_dir / id_ / (k + ".png")
+                        p.parent.mkdir(parents=True, exist_ok=True)
+                        fig.savefig(p)
+
+                    if summary_writer is not None:
+                        summary_writer.add_figure(
+                            f"{k}_{id_}", fig, reporter.get_epoch()
+                        )
 
                     # Dummy register() stimulates to increment the counter
                     reporter.register({})
