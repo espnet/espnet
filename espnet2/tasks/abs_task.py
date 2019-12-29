@@ -1,7 +1,6 @@
 import argparse
 import logging
 import random
-import shutil
 import sys
 from abc import ABC
 from abc import abstractmethod
@@ -17,7 +16,6 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
-from typing import Union
 
 import configargparse
 import numpy as np
@@ -37,13 +35,11 @@ from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
+from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
-from espnet2.train.checkpoint import load_pretrained_model
-from espnet2.train.checkpoint import resume
-from espnet2.train.checkpoint import save_checkpoint
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.reporter import Reporter
@@ -343,34 +339,15 @@ class AbsTask(ABC):
             help="Just only iterating data loading without "
             "model forwarding and training",
         )
-
+        group.add_argument(
+            "--resume",
+            type=str2bool,
+            default=None,
+            help="Enable resuming if checkpoint is existing",
+        )
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
         group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
-
-        group = parser.add_argument_group("Resuming related")
-
-        def epoch_type(value: str) -> Optional[Union[str, int]]:
-            if value == "latest":
-                return value
-            elif value.lower() in ("none", "null", "nil"):
-                return None
-            else:
-                v = int(value)
-                if v < 0:
-                    raise TypeError("must be 0 or more integer")
-                return v
-
-        egroup = group.add_mutually_exclusive_group()
-        egroup.add_argument(
-            "--resume_epoch",
-            type=epoch_type,
-            default=None,
-            help='The training starts from the specified epoch. "latest" indicates '
-            "the latest-epoch file found in output_path. If None or 0 are specified, "
-            "then training starts from the initial state",
-        )
-        egroup.add_argument("--resume_path", type=str_or_none, default=None)
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -786,18 +763,23 @@ class AbsTask(ABC):
             )
 
         # 10. Resume the training state from the previous epoch
-        # Either one of --resume_epoch or --resume_path can be used.
         reporter = Reporter()
-        resume(
-            model=model,
-            reporter=reporter,
-            output_dir=output_dir,
-            optimizers=optimizers,
-            schedulers=schedulers,
-            resume_epoch=args.resume_epoch,
-            resume_path=args.resume_path,
-            map_location="cuda" if args.ngpu > 0 else "cpu",
-        )
+        if args.resume and (output_dir / "checkpoint.pth").exists():
+            states = torch.load(
+                output_dir / "checkpoint.pth",
+                map_location="cuda" if args.ngpu > 0 else "cpu",
+            )
+            model.load_state_dict(states["model"])
+            reporter.load_state_dict(states["reporter"])
+            for optimizer, state in zip(optimizers, states["optimizers"]):
+                optimizer.load_state_dict(state)
+            for scheduler, state in zip(schedulers, states["schedulers"]):
+                if scheduler is not None:
+                    scheduler.load_state_dict(state)
+
+            logging.info(
+                f"The training was resumed using {output_dir / 'checkpoint.pth'}"
+            )
 
         # 11. Run
         if args.collect_stats:
@@ -979,7 +961,6 @@ class AbsTask(ABC):
             )
 
         summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
-        best_epoch_dict = {}
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f"{iepoch}epoch started")
 
@@ -1031,28 +1012,32 @@ class AbsTask(ABC):
             reporter.matplotlib_plot(output_dir / "images")
             reporter.tensorboard_add_scalar(summary_writer)
 
-            # 4. Save the snapshot
-            save_checkpoint(
-                save_path=output_dir / f"{iepoch}epoch",
-                model=model,
-                reporter=reporter,
-                optimizers=optimizers,
-                schedulers=schedulers,
+            # 4. Save/Update the checkpoint
+            torch.save(
+                {
+                    "model": model.state_dict(),
+                    "reporter": reporter.state_dict(),
+                    "optimizers": [o.state_dict() for o in optimizers],
+                    "schedulers": [
+                        s.state_dict() if s is not None else None for s in schedulers
+                    ],
+                },
+                output_dir / "checkpoint.pth",
             )
 
-            # 5. Saves the best model
+            # 5. Save the model and update the link to the best model
+            torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
             _improved = []
             for _phase, k, _mode in best_model_criterion:
                 # e.g. _phase, k, _mode = "train", "loss", "min"
                 if reporter.has(_phase, k):
                     best_epoch, _ = reporter.sort_epochs_and_values(_phase, k, _mode)[0]
-                    best_epoch_dict[(_phase, k)] = best_epoch
                     # Creates sym links if it's the best result
                     if best_epoch == iepoch:
                         p = output_dir / f"{_phase}.{k}.best.pth"
                         if p.is_symlink() or p.exists():
                             p.unlink()
-                        p.symlink_to(Path(f"{iepoch}epoch") / f"model.pth")
+                        p.symlink_to(f"{iepoch}epoch.pth")
                         _improved.append(f"{_phase}.{k}")
             if len(_improved) == 0:
                 logging.info(f"There are no improvements in this epoch")
@@ -1061,9 +1046,8 @@ class AbsTask(ABC):
                     f"The best model has been updated: " + ", ".join(_improved)
                 )
 
-            # 6. Remove the snapshot excluding n-best and the current epoch
+            # 6. Remove the model files excluding n-best epoch
             _removed = []
-            # nbests: List[List[Tuple[epoch, value]]]
             nbests = [
                 reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
                 for ph, k, m in best_model_criterion
@@ -1074,13 +1058,13 @@ class AbsTask(ABC):
                 nbests = set.union(*[set(i[0] for i in v) for v in nbests])
             else:
                 nbests = set()
-            for e in range(1, iepoch):
-                p = output_dir / f"{e}epoch"
+            for e in range(1, iepoch + 1):
+                p = output_dir / f"{e}epoch.pth"
                 if p.exists() and e not in nbests:
-                    shutil.rmtree(p)
+                    p.unlink()
                     _removed.append(str(p))
             if len(_removed) != 0:
-                logging.info(f"The snapshot was removed: " + ", ".join(_removed))
+                logging.info(f"The model files were removed: " + ", ".join(_removed))
 
             # 7. If any updating haven't happen, stops the training
             if all_steps_are_invalid:
@@ -1144,7 +1128,7 @@ class AbsTask(ABC):
             for e, _ in epoch_and_values:
                 if e not in _loaded:
                     _loaded[e] = torch.load(
-                        output_dir / f"{e}epoch" / "model.pth", map_location="cpu",
+                        output_dir / f"{e}epoch.pth", map_location="cpu",
                     )
                 states = _loaded[e]
 
