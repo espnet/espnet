@@ -81,9 +81,7 @@ def calc_perplexity(
     if key_file is None:
         key_file, _, _ = data_path_and_name_and_type[0]
 
-    batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, key_file=key_file, shuffle=False
-    )
+    batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file,)
 
     logging.info(f"Model:\n{model}")
     logging.info(f"Batch sampler: {batch_sampler}")

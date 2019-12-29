@@ -16,6 +16,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import Union
 
 import configargparse
 import numpy as np
@@ -37,11 +38,11 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.batch_sampler import SubsetSampler
 from espnet2.train.batch_sampler import build_batch_sampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.train.epoch_iter_factory import AbsIterFactory
+from espnet2.train.epoch_iter_factory import EpochIterFactory
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.fileio import DatadirWriter
@@ -351,6 +352,12 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
+            "--num_batches_per_epoch",
+            type=int_or_none,
+            default=None,
+            help="Restrict the number of iterations for training per epoch",
+        )
+        group.add_argument(
             "--batch_size",
             type=int,
             default=20,
@@ -612,78 +619,44 @@ class AbsTask(ABC):
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
 
-        # 2. Build train-data-iterator
-        if args.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
-        else:
-            dtype = args.train_dtype
-        train_dataset = ESPnetDataset(
-            args.train_data_path_and_name_and_type,
-            float_dtype=dtype,
-            preprocess=cls.build_preprocess_fn(args, True),
-        )
-        cls.check_task_requirements(train_dataset, args.allow_variable_data_keys)
-        train_batch_sampler = build_batch_sampler(
-            type=args.batch_type,
+        # 2. Build iterator factories
+        train_iter_factory = cls.build_iter_factory(
+            args=args,
+            data_path_and_name_and_type=args.train_data_path_and_name_and_type,
             shape_files=args.train_shape_file,
-            max_lengths=args.max_length,
+            batch_type=args.batch_type,
             batch_size=args.batch_size,
-            shuffle=True,
             sort_in_batch=args.sort_in_batch,
-            sort_batch=args.sort_batch,
+            train=True,
         )
-        train_iter = DataLoader(
-            dataset=train_dataset,
-            batch_sampler=train_batch_sampler,
-            collate_fn=cls.build_collate_fn(args),
-            num_workers=args.num_workers,
-        )
-
-        # 3. Build eval-data-iterator
-        eval_dataset = ESPnetDataset(
-            args.eval_data_path_and_name_and_type,
-            float_dtype=dtype,
-            preprocess=cls.build_preprocess_fn(args, False),
-        )
-        cls.check_task_requirements(eval_dataset, args.allow_variable_data_keys)
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
         if args.eval_batch_size is None:
             args.eval_batch_size = args.batch_size
-        eval_batch_sampler = build_batch_sampler(
-            type=args.eval_batch_type,
+        eval_iter_factory = cls.build_iter_factory(
+            args=args,
+            data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
             shape_files=args.eval_shape_file,
-            max_lengths=args.max_length,
+            batch_type=args.eval_batch_type,
             batch_size=args.eval_batch_size,
-            shuffle=False,
             sort_in_batch=args.sort_in_batch,
-            sort_batch=args.sort_batch,
+            train=False,
         )
-        eval_iter = DataLoader(
-            dataset=eval_dataset,
-            batch_sampler=eval_batch_sampler,
-            collate_fn=cls.build_collate_fn(args),
-            num_workers=args.num_workers,
-        )
-
-        # 4. Build a iterator used for attention plot
         if args.num_att_plot != 0:
-            plot_attention_sampler = SubsetSampler(
-                ConstantBatchSampler(
-                    key_file=args.eval_shape_file[0], batch_size=1, shuffle=False,
-                ),
-                args.num_att_plot,
-            )
-            plot_attention_iter = DataLoader(
-                dataset=eval_dataset,
-                batch_sampler=plot_attention_sampler,
-                collate_fn=cls.build_collate_fn(args),
-                num_workers=args.num_workers,
+            plot_attention_iter_factory = cls.build_iter_factory(
+                args=args,
+                data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
+                shape_files=[args.eval_shape_file[0]],
+                batch_type="const",
+                batch_size=1,
+                sort_in_batch=None,
+                train=False,
+                num_batches=args.num_att_plot,
             )
         else:
-            plot_attention_iter = None
+            plot_attention_iter_factory = None
 
-        # 5. Build model
+        # 3. Build model
         model = cls.build_model(args=args)
         if not isinstance(model, AbsE2E):
             raise RuntimeError(
@@ -694,14 +667,9 @@ class AbsTask(ABC):
         else:
             dtype = torch.float32
         model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
-
         logging.info(f"Model:\n{model}")
-        logging.info(f"Train Dataset: {train_dataset}")
-        logging.info(f"Train BatchSampler: {train_batch_sampler}")
-        logging.info(f"Eval Dataset: {eval_dataset}")
-        logging.info(f"Eval BatchSampler: {eval_batch_sampler}")
 
-        # 6. Build optimizer
+        # 4. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
 
         # For apex support
@@ -719,7 +687,7 @@ class AbsTask(ABC):
                 model, optimizers, opt_level=args.train_dtype
             )
 
-        # 7. Build schedulers
+        # 5. Build schedulers
         schedulers = []
         for i, optim in enumerate(optimizers, 1):
             suf = "" if i == 1 else str(i)
@@ -741,7 +709,7 @@ class AbsTask(ABC):
             logging.info(f"Optimizer{suf}:\n{o}")
             logging.info(f"Scheduler{suf}: {s}")
 
-        # 8. Dump "args" to config.yaml
+        # 6. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
@@ -750,7 +718,7 @@ class AbsTask(ABC):
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 9. Loads pre-trained model
+        # 7. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
             load_pretrained_model(
                 model=model,
@@ -762,7 +730,7 @@ class AbsTask(ABC):
                 map_location="cuda" if args.ngpu > 0 else "cpu",
             )
 
-        # 10. Resume the training state from the previous epoch
+        # 8. Resume the training state from the previous epoch
         reporter = Reporter()
         if args.resume and (output_dir / "checkpoint.pth").exists():
             states = torch.load(
@@ -781,15 +749,15 @@ class AbsTask(ABC):
                 f"The training was resumed using {output_dir / 'checkpoint.pth'}"
             )
 
-        # 11. Run
+        # 9. Run
         if args.collect_stats:
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
             cls.collect_stats(
                 model=model,
-                train_iter=train_iter,
-                eval_iter=eval_iter,
+                train_iter=train_iter_factory.build_iter(1, shuffle=False),
+                eval_iter=eval_iter_factory.build_iter(1, shuffle=False),
                 output_dir=args.output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
@@ -805,9 +773,9 @@ class AbsTask(ABC):
                 model=model,
                 optimizers=optimizers,
                 schedulers=schedulers,
-                train_iter=train_iter,
-                eval_iter=eval_iter,
-                plot_attention_iter=plot_attention_iter,
+                train_iter_factory=train_iter_factory,
+                eval_iter_factory=eval_iter_factory,
+                plot_attention_iter_factory=plot_attention_iter_factory,
                 reporter=reporter,
                 output_dir=output_dir,
                 max_epoch=args.max_epoch,
@@ -826,6 +794,60 @@ class AbsTask(ABC):
                 best_model_criterion=args.best_model_criterion,
                 nbest=args.keep_n_best_checkpoints,
             )
+
+    @classmethod
+    def build_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        data_path_and_name_and_type,
+        shape_files: Union[Tuple[str, ...], List[str]],
+        batch_type: str,
+        batch_size: int,
+        sort_in_batch: Optional[str],
+        train: bool = True,
+        num_batches: int = None,
+    ) -> AbsIterFactory:
+        assert check_argument_types()
+        if args.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
+            dtype = "float32"
+        else:
+            dtype = args.train_dtype
+
+        dataset = ESPnetDataset(
+            data_path_and_name_and_type,
+            float_dtype=dtype,
+            preprocess=cls.build_preprocess_fn(args, train),
+        )
+        cls.check_task_requirements(dataset, args.allow_variable_data_keys)
+
+        if train:
+            num_batches_per_epoch = args.num_batches_per_epoch
+            shuffle = True
+        else:
+            num_batches_per_epoch = None
+            shuffle = False
+
+        batch_sampler = build_batch_sampler(
+            type=batch_type,
+            shape_files=shape_files,
+            max_lengths=args.max_length,
+            batch_size=batch_size,
+            sort_in_batch=sort_in_batch,
+            sort_batch=args.sort_batch,
+        )
+
+        batches = list(batch_sampler)
+        if num_batches is not None:
+            batches = batches[:num_batches]
+        return EpochIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            num_batches_per_epoch=num_batches_per_epoch,
+            shuffle=shuffle,
+            num_workers=args.num_workers,
+            collate_fn=cls.build_collate_fn(args),
+        )
 
     @classmethod
     @torch.no_grad()
@@ -936,9 +958,9 @@ class AbsTask(ABC):
         model: AbsE2E,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
-        train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        plot_attention_iter,
+        train_iter_factory: AbsIterFactory,
+        eval_iter_factory: AbsIterFactory,
+        plot_attention_iter_factory: AbsIterFactory,
         reporter: Reporter,
         output_dir: Path,
         max_epoch: int,
@@ -971,24 +993,24 @@ class AbsTask(ABC):
                     model=model,
                     optimizers=optimizers,
                     schedulers=schedulers,
-                    iterator=train_iter,
+                    iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
             with reporter.observe("eval") as sub_reporter:
                 cls.trainer.eval_one_epoch(
                     model=model,
-                    iterator=eval_iter,
+                    iterator=eval_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            if plot_attention_iter is not None:
+            if plot_attention_iter_factory is not None:
                 with reporter.observe("att_plot") as sub_reporter:
                     cls.trainer.plot_attention(
                         model=model,
                         output_dir=None,
                         summary_writer=summary_writer,
-                        iterator=plot_attention_iter,
+                        iterator=plot_attention_iter_factory.build_iter(iepoch),
                         reporter=sub_reporter,
                         options=trainer_options,
                     )
