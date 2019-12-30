@@ -38,6 +38,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import build_batch_sampler
 from espnet2.train.class_choices import ClassChoices
@@ -630,9 +631,7 @@ class AbsTask(ABC):
         )
 
         # 1. Set random-seed
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-        torch.random.manual_seed(args.seed)
+        set_all_random_seed(args.seed)
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
@@ -798,6 +797,7 @@ class AbsTask(ABC):
                 reporter=reporter,
                 output_dir=output_dir,
                 max_epoch=args.max_epoch,
+                seed=args.seed,
                 patience=args.patience,
                 keep_n_best_checkpoints=args.keep_n_best_checkpoints,
                 early_stopping_criterion=args.early_stopping_criterion,
@@ -983,6 +983,7 @@ class AbsTask(ABC):
         reporter: Reporter,
         output_dir: Path,
         max_epoch: int,
+        seed: int,
         patience: Optional[int],
         keep_n_best_checkpoints: int,
         early_stopping_criterion: Sequence[str],
@@ -1004,6 +1005,7 @@ class AbsTask(ABC):
         summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f"{iepoch}epoch started")
+            set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
             # 1. Train and eval for one-epoch
@@ -1095,10 +1097,7 @@ class AbsTask(ABC):
                 if reporter.has(ph, k)
             ]
             # nbests: Set[epoch]
-            if len(nbests) != 0:
-                nbests = set.union(*[set(i[0] for i in v) for v in nbests])
-            else:
-                nbests = set()
+            nbests = set().union(*[set(i[0] for i in v) for v in nbests])
             for e in range(1, iepoch + 1):
                 p = output_dir / f"{e}epoch.pth"
                 if p.exists() and e not in nbests:
