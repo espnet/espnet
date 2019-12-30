@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import random
 import sys
 from pathlib import Path
 from typing import Optional
@@ -10,7 +9,6 @@ from typing import Tuple
 from typing import Union
 
 import configargparse
-import numpy as np
 import torch
 import yaml
 from torch.utils.data.dataloader import DataLoader
@@ -23,11 +21,12 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
-from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -81,9 +80,7 @@ def recog(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build ASR model
     scorers = {}

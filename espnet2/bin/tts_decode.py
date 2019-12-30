@@ -4,10 +4,8 @@
 
 import argparse
 import logging
-import random
 import sys
 import time
-
 from pathlib import Path
 from typing import Optional
 from typing import Sequence
@@ -16,16 +14,15 @@ from typing import Union
 
 import configargparse
 import kaldiio
-import numpy as np
 import soundfile as sf
 import torch
 import yaml
-
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -75,9 +72,7 @@ def tts_decode(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build model
     with Path(train_config).open("r") as f:
