@@ -37,6 +37,7 @@ from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
+from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import build_batch_sampler
 from espnet2.train.class_choices import ClassChoices
@@ -230,20 +231,19 @@ class AbsTask(ABC):
             help="The number images to plot the outputs from attention. "
             "This option makes sense only when attention-based model",
         )
+
+        group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
-            "--train_dtype",
-            default="float32",
-            choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
-            help="Data type for training. O0,O1,.. flags require apex. "
-            "See https://nvidia.github.io/apex/amp.html#opt-levels",
+            "--cudnn_benchmark",
+            type=str2bool,
+            default=False,
+            help="Enable cudnn-benchmark mode",
         )
         group.add_argument(
-            "--log_interval",
-            type=int_or_none,
-            default=None,
-            help="Show the logs every the number iterations in each epochs at the "
-            "training phase. If None is given, it is decided according the number "
-            "of training samples automatically .",
+            "--cudnn_deterministic",
+            type=str2bool,
+            default=False,
+            help="Enable cudnn-deterministic mode",
         )
 
         group = parser.add_argument_group("collect stats mode related")
@@ -332,7 +332,6 @@ class AbsTask(ABC):
             default=1,
             help="The number of gradient accumulation",
         )
-
         group.add_argument(
             "--no_forward_run",
             type=str2bool,
@@ -346,6 +345,22 @@ class AbsTask(ABC):
             default=None,
             help="Enable resuming if checkpoint is existing",
         )
+        group.add_argument(
+            "--train_dtype",
+            default="float32",
+            choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
+            help="Data type for training. O0,O1,.. flags require apex. "
+            "See https://nvidia.github.io/apex/amp.html#opt-levels",
+        )
+        group.add_argument(
+            "--log_interval",
+            type=int_or_none,
+            default=None,
+            help="Show the logs every the number iterations in each epochs at the "
+            "training phase. If None is given, it is decided according the number "
+            "of training samples automatically .",
+        )
+
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
         group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
@@ -618,6 +633,8 @@ class AbsTask(ABC):
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.random.manual_seed(args.seed)
+        torch.backends.cudnn.benchmark = args.cudnn_benchmark
+        torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
         # 2. Build iterator factories
         train_iter_factory = cls.build_iter_factory(
@@ -667,7 +684,6 @@ class AbsTask(ABC):
         else:
             dtype = torch.float32
         model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
-        logging.info(f"Model:\n{model}")
 
         # 4. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
@@ -704,6 +720,9 @@ class AbsTask(ABC):
                 scheduler = None
 
             schedulers.append(scheduler)
+
+        logging.info(pytorch_cudnn_version())
+        logging.info(f"Model:\n{model}")
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
