@@ -1,7 +1,7 @@
 # Summary (BLEU)
 |model               |De   |Pt   |Fr   |Es   |Ro   |Ru   |Nl   |It   |
 |--------------------|-----|-----|-----|-----|-----|-----|-----|-----|
-|Transformer-E2E [[Di Gangi et al.]](https://www.isca-speech.org/archive/Interspeech_2019/pdfs/3045.pdf)|17.30|20.10|26.90|20.80|16.50|10.50|18.80|16.80|
+|Transformer + ASR-PT [[Di Gangi et al.]](https://www.isca-speech.org/archive/Interspeech_2019/pdfs/3045.pdf)|17.30|20.10|26.90|20.80|16.50|10.50|18.80|16.80|
 |Pipeline [[Di Gangi et al.]](https://www.isca-speech.org/archive/Interspeech_2019/pdfs/3045.pdf)|18.50|21.50|27.90|22.50|16.80|11.10|22.20|18.90|
 |RNN                 |15.97|N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |
 |Transformer         |16.40|N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |
