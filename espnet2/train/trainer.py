@@ -19,15 +19,14 @@ import torch.optim
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
-from typeguard import check_type
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
-from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.reporter import SubReporter
+from espnet2.utils.build_dataclass import build_dataclass
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
@@ -35,7 +34,7 @@ else:
     from tensorboardX import SummaryWriter
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class TrainerOptions:
     ngpu: int
     train_dtype: str
@@ -44,19 +43,49 @@ class TrainerOptions:
     grad_clip: float
     log_interval: Optional[int]
     no_forward_run: bool
+    distributed: bool
 
 
-def build_dataclass(dataclass, args: argparse.Namespace):
-    """Helper function to build dataclass from 'args'."""
-    kwargs = {}
-    for field in dataclasses.fields(dataclass):
-        if not hasattr(args, field.name):
-            raise RuntimeError(
-                f"args doesn't have {field.name}. You need to set it to ArgumentsParser"
-            )
-        check_type(field.name, getattr(args, field.name), field.type)
-        kwargs[field.name] = getattr(args, field.name)
-    return dataclass(**kwargs)
+def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
+    assert weight.dim() == 1, weight.size()
+    if isinstance(obj, (tuple, list)):
+        return type(obj)(recursive_sum(v, weight) for v in obj)
+    elif isinstance(obj, dict):
+        return {k: recursive_sum(v, weight) for k, v in obj.items()}
+    elif isinstance(obj, torch.Tensor):
+        assert obj.size() == weight.size(), (obj.size(), weight.size())
+        obj = (obj * weight).sum()
+        if distributed:
+            torch.distributed.all_reduce(obj, op=torch.distributed.reduce_op.SUM)
+        return obj
+    elif obj is None:
+        return None
+    else:
+        raise ValueError(type(obj))
+
+
+def recursive_divide(a, b: torch.Tensor):
+    if isinstance(a, (tuple, list)):
+        return type(a)(recursive_divide(v, b) for v in a)
+    elif isinstance(a, dict):
+        return {k: recursive_divide(v, b) for k, v in a.items()}
+    elif isinstance(a, torch.Tensor):
+        assert a.size() == b.size(), (a.size(), b.size())
+        return a / b
+    elif a is None:
+        return None
+    else:
+        raise ValueError(type(a))
+
+
+def recursive_average(obj, weight: torch.Tensor, distributed: bool = False):
+    obj = recursive_sum(obj, weight, distributed)
+    weight = weight.sum()
+    if distributed:
+        torch.distributed.all_reduce(weight, op=torch.distributed.ReduceOP.SUM)
+    # Normalize weight to be sum-to-1
+    obj = recursive_divide(obj, weight)
+    return obj, weight
 
 
 class Trainer:
@@ -89,7 +118,7 @@ class Trainer:
     @classmethod
     def train_one_epoch(
         cls,
-        model: AbsE2E,
+        model: torch.nn.Module,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
@@ -133,15 +162,11 @@ class Trainer:
                 loss, stats, weight = data_parallel(
                     model, (), range(ngpu), module_kwargs=batch
                 )
-                # Weighted averaging of loss from torch-data-parallel
-                loss = (loss * weight.to(loss.dtype)).sum(0) / weight.sum()
-                stats = {
-                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
-                    if v is not None
-                    else None
-                    for k, v in stats.items()
-                }
-                weight = weight.sum()
+            if ngpu > 1 or options.distributed:
+                # Weighted averaging
+                loss = (loss * weight).sum() / weight.sum()
+                stats, weight = recursive_average(stats, weight, options.distributed)
+
             reporter.register(stats, weight)
 
             if train_dtype in ("O0", "O1", "O2", "O3"):
@@ -183,6 +208,7 @@ class Trainer:
                         for i, pg in enumerate(optimizer.param_groups)
                         if "lr" in pg
                     },
+                    # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
 
@@ -194,7 +220,7 @@ class Trainer:
     @torch.no_grad()
     def eval_one_epoch(
         cls,
-        model: AbsE2E,
+        model: torch.nn.Module,
         iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -231,7 +257,7 @@ class Trainer:
     @torch.no_grad()
     def plot_attention(
         cls,
-        model: AbsE2E,
+        model: torch.nn.Module,
         output_dir: Optional[Path],
         summary_writer: Optional[SummaryWriter],
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],

@@ -1,6 +1,6 @@
 import argparse
+import dataclasses
 import logging
-import random
 import sys
 from abc import ABC
 from abc import abstractmethod
@@ -47,6 +47,7 @@ from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.epoch_iter_factory import EpochIterFactory
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
+from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.fileio import NpyScpWriter
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -95,6 +96,30 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
+
+
+@dataclasses.dataclass
+class DistributedOption:
+    # Enable distributed Training
+    distributed: bool = False
+    # torch.distributed.Backend: "nccl", "mpi", "gloo", or "tcp"
+    dist_backend: str = "nccl"
+    # if init_method="env://",
+    # env values of "MASTER_PORT", "MASTER_ADDR", "WORLD_SIZE", and "RANK" are referred.
+    dist_init_method: str = "env://"
+    dist_world_size: int = -1
+    dist_rank: int = -1
+
+    def init(self):
+        if self.distributed:
+            torch.distributed.init_process_group(
+                backend=self.dist_backend,
+                init_method=self.dist_init_method,
+                world_size=self.dist_world_size,
+                rank=self.dist_rank,
+            )
+            self.dist_world_size = torch.distributed.get_world_size()
+            self.dist_rank = torch.distributed.get_rank()
 
 
 class AbsTask(ABC):
@@ -231,6 +256,36 @@ class AbsTask(ABC):
             default=3,
             help="The number images to plot the outputs from attention. "
             "This option makes sense only when attention-based model",
+        )
+
+        group = parser.add_argument_group("distributed training related")
+        group.add_argument(
+            "--distributed",
+            type=str2bool,
+            default=False,
+            help="Enable distributed training",
+        )
+        group.add_argument(
+            "--dist_backend", default="nccl", type=str, help="distributed backend",
+        )
+        group.add_argument(
+            "--dist_init_method",
+            type=str,
+            default="env://",
+            help='if init_method="env://", env values of "MASTER_PORT", "MASTER_ADDR", '
+            '"WORLD_SIZE", and "RANK" are referred.',
+        )
+        group.add_argument(
+            "--dist_world_size",
+            default=-1,
+            type=int,
+            help="number of nodes for distributed training",
+        )
+        group.add_argument(
+            "--dist_rank",
+            type=int,
+            default=-1,
+            help="node rank for distributed training",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -625,10 +680,20 @@ class AbsTask(ABC):
             cls.print_config()
             sys.exit(0)
         cls.check_required_command_args(args)
-        logging.basicConfig(
-            level=args.log_level,
-            format="%(asctime)s (%(module)s:%(lineno)d) " "%(levelname)s: %(message)s",
-        )
+
+        # 0. Init distributed process
+        distributed_option = build_dataclass(DistributedOption, args)
+        distributed_option.init()
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            logging.basicConfig(
+                level=args.log_level,
+                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+            )
+        else:
+            logging.basicConfig(
+                level="ERROR",
+                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+            )
 
         # 1. Set random-seed
         set_all_random_seed(args.seed)
@@ -644,6 +709,7 @@ class AbsTask(ABC):
             batch_size=args.batch_size,
             sort_in_batch=args.sort_in_batch,
             train=True,
+            distributed=args.distributed,
         )
         if args.eval_batch_type is None:
             args.eval_batch_type = args.batch_type
@@ -804,6 +870,7 @@ class AbsTask(ABC):
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
+                distributed_option=distributed_option,
             )
 
             # Generated n-best averaged model
@@ -825,6 +892,7 @@ class AbsTask(ABC):
         sort_in_batch: Optional[str],
         train: bool = True,
         num_batches: int = None,
+        distributed: bool = False,
     ) -> AbsIterFactory:
         assert check_argument_types()
         if args.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
@@ -858,6 +926,12 @@ class AbsTask(ABC):
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
+
+        if distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            batches = [batch[rank::world_size] for batch in batches]
+
         return EpochIterFactory(
             dataset=dataset,
             batches=batches,
@@ -963,6 +1037,8 @@ class AbsTask(ABC):
                     sum=sum_dict[key],
                     sum_square=sq_dict[key],
                 )
+
+            # batch_keys and stats_keys are used by aggregate_stats_dirs.py
             with (output_dir / mode / "batch_keys").open("w") as f:
                 f.write(
                     "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
@@ -990,10 +1066,11 @@ class AbsTask(ABC):
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
         trainer_options,
+        distributed_option: DistributedOption,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
-        # NOTE(kamo): Don't check the type more strict as far *_options
+        # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
 
         start_epoch = reporter.get_epoch() + 1
@@ -1001,6 +1078,15 @@ class AbsTask(ABC):
             logging.warning(
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
+
+        if distributed_option.distributed:
+            # Use torch DDP instead of apex DDP
+            # https://github.com/NVIDIA/apex/issues/494
+            ddp_model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=list(range(trainer_options.ngpu))
+            )
+        else:
+            ddp_model = model
 
         summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         for iepoch in range(start_epoch, max_epoch + 1):
@@ -1011,30 +1097,36 @@ class AbsTask(ABC):
             # 1. Train and eval for one-epoch
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.trainer.train_one_epoch(
-                    model=model,
+                    model=ddp_model,
                     optimizers=optimizers,
                     schedulers=schedulers,
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            with reporter.observe("eval") as sub_reporter:
-                cls.trainer.eval_one_epoch(
-                    model=model,
-                    iterator=eval_iter_factory.build_iter(iepoch),
-                    reporter=sub_reporter,
-                    options=trainer_options,
-                )
-            if plot_attention_iter_factory is not None:
-                with reporter.observe("att_plot") as sub_reporter:
-                    cls.trainer.plot_attention(
+
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # Eval and att_plot don't support distributed (It can)
+                with reporter.observe("eval") as sub_reporter:
+                    cls.trainer.eval_one_epoch(
                         model=model,
-                        output_dir=None,
-                        summary_writer=summary_writer,
-                        iterator=plot_attention_iter_factory.build_iter(iepoch),
+                        iterator=eval_iter_factory.build_iter(iepoch),
                         reporter=sub_reporter,
                         options=trainer_options,
                     )
+
+                if plot_attention_iter_factory is not None:
+                    with reporter.observe("att_plot") as sub_reporter:
+                        cls.trainer.plot_attention(
+                            model=model,
+                            # Disable saving as png
+                            output_dir=None,
+                            # Enable saving in tensorboard logs
+                            summary_writer=summary_writer,
+                            iterator=plot_attention_iter_factory.build_iter(iepoch),
+                            reporter=sub_reporter,
+                            options=trainer_options,
+                        )
 
             # 2. LR Scheduler step
             for scheduler in schedulers:
@@ -1050,61 +1142,67 @@ class AbsTask(ABC):
                 elif isinstance(scheduler, AbsEpochStepScheduler):
                     scheduler.step()
 
-            # 3. Report the results
-            reporter.logging()
-            reporter.matplotlib_plot(output_dir / "images")
-            reporter.tensorboard_add_scalar(summary_writer)
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # 3. Report the results
+                reporter.logging()
+                reporter.matplotlib_plot(output_dir / "images")
+                reporter.tensorboard_add_scalar(summary_writer)
 
-            # 4. Save/Update the checkpoint
-            torch.save(
-                {
-                    "model": model.state_dict(),
-                    "reporter": reporter.state_dict(),
-                    "optimizers": [o.state_dict() for o in optimizers],
-                    "schedulers": [
-                        s.state_dict() if s is not None else None for s in schedulers
-                    ],
-                },
-                output_dir / "checkpoint.pth",
-            )
-
-            # 5. Save the model and update the link to the best model
-            torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
-            _improved = []
-            for _phase, k, _mode in best_model_criterion:
-                # e.g. _phase, k, _mode = "train", "loss", "min"
-                if reporter.has(_phase, k):
-                    best_epoch, _ = reporter.sort_epochs_and_values(_phase, k, _mode)[0]
-                    # Creates sym links if it's the best result
-                    if best_epoch == iepoch:
-                        p = output_dir / f"{_phase}.{k}.best.pth"
-                        if p.is_symlink() or p.exists():
-                            p.unlink()
-                        p.symlink_to(f"{iepoch}epoch.pth")
-                        _improved.append(f"{_phase}.{k}")
-            if len(_improved) == 0:
-                logging.info(f"There are no improvements in this epoch")
-            else:
-                logging.info(
-                    f"The best model has been updated: " + ", ".join(_improved)
+                # 4. Save/Update the checkpoint
+                torch.save(
+                    {
+                        "model": model.state_dict(),
+                        "reporter": reporter.state_dict(),
+                        "optimizers": [o.state_dict() for o in optimizers],
+                        "schedulers": [
+                            s.state_dict() if s is not None else None
+                            for s in schedulers
+                        ],
+                    },
+                    output_dir / "checkpoint.pth",
                 )
 
-            # 6. Remove the model files excluding n-best epoch
-            _removed = []
-            nbests = [
-                reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
-                for ph, k, m in best_model_criterion
-                if reporter.has(ph, k)
-            ]
-            # nbests: Set[epoch]
-            nbests = set().union(*[set(i[0] for i in v) for v in nbests])
-            for e in range(1, iepoch + 1):
-                p = output_dir / f"{e}epoch.pth"
-                if p.exists() and e not in nbests:
-                    p.unlink()
-                    _removed.append(str(p))
-            if len(_removed) != 0:
-                logging.info(f"The model files were removed: " + ", ".join(_removed))
+                # 5. Save the model and update the link to the best model
+                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
+                _improved = []
+                for _phase, k, _mode in best_model_criterion:
+                    # e.g. _phase, k, _mode = "train", "loss", "min"
+                    if reporter.has(_phase, k):
+                        best_epoch, _ = reporter.sort_epochs_and_values(
+                            _phase, k, _mode
+                        )[0]
+                        # Creates sym links if it's the best result
+                        if best_epoch == iepoch:
+                            p = output_dir / f"{_phase}.{k}.best.pth"
+                            if p.is_symlink() or p.exists():
+                                p.unlink()
+                            p.symlink_to(f"{iepoch}epoch.pth")
+                            _improved.append(f"{_phase}.{k}")
+                if len(_improved) == 0:
+                    logging.info(f"There are no improvements in this epoch")
+                else:
+                    logging.info(
+                        f"The best model has been updated: " + ", ".join(_improved)
+                    )
+
+                # 6. Remove the model files excluding n-best epoch
+                _removed = []
+                nbests = [
+                    reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
+                    for ph, k, m in best_model_criterion
+                    if reporter.has(ph, k)
+                ]
+                # nbests: Set[epoch]
+                nbests = set().union(*[set(i[0] for i in v) for v in nbests])
+                for e in range(1, iepoch + 1):
+                    p = output_dir / f"{e}epoch.pth"
+                    if p.exists() and e not in nbests:
+                        p.unlink()
+                        _removed.append(str(p))
+                if len(_removed) != 0:
+                    logging.info(
+                        f"The model files were removed: " + ", ".join(_removed)
+                    )
 
             # 7. If any updating haven't happen, stops the training
             if all_steps_are_invalid:
