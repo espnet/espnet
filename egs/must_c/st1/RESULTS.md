@@ -1,7 +1,8 @@
 # Summary (BLEU)
 |model               |De   |Pt   |Fr   |Es   |Ro   |Ru   |Nl   |It   |
 |--------------------|-----|-----|-----|-----|-----|-----|-----|-----|
-|Transformer [[Gangiet et al.]]()         |16.40|N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |
+|Transformer-E2E [[Di Gangi et al.]](https://www.isca-speech.org/archive/Interspeech_2019/pdfs/3045.pdf)|17.30|20.10|26.90|20.80|16.50|10.50|18.80|16.80|
+|Pipeline [[Di Gangi et al.]](https://www.isca-speech.org/archive/Interspeech_2019/pdfs/3045.pdf)|18.50|21.50|27.90|22.50|16.80|11.10|22.20|18.90|
 |RNN                 |15.97|N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |
 |Transformer         |16.40|N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |N/A  |
 |Transformer + ASR-PT|[21.77](https://drive.google.com/open?id=18zlGTLcwgr0PF1b6eZIANwJSMyOqqEjd)|[26.84](https://drive.google.com/open?id=1-vdZDN0YimYcrx3yearGgp5ismcVcIYr)|[31.56](https://drive.google.com/open?id=1GvUdGbBP2w7vPxIAD1i1r22oa_qABJev)|[26.41](https://drive.google.com/open?id=1ecd7FwWzc0p2HBHIvBUn7ImlL3bdjfMt)|[20.53](https://drive.google.com/open?id=1PZ-oqbrgBttUp8SyZy38zS_B07UW8GTG)|[14.31](https://drive.google.com/open?id=1IFG8TT_Shx3eJld3d7pNI5GrIHhTaIly)|[25.22](https://drive.google.com/open?id=19RbO7xkXBgGFXFXskqjpMrTr467ltuh2)|[21.46](https://drive.google.com/open?id=19Rf6DgibGJ8WTpVZcslmLPxTLl56FB-s)|
