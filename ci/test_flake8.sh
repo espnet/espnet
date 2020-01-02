@@ -74,7 +74,10 @@ cov=$(echo "scale = 4; 100 * ${n_ok} / ${n_all}" | bc)
 echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 
 # --extend-ignore for wip files for flake8-docstrings
-flake8 --extend-ignore=D expnet2 test utils doc ${flake8_black_list}
+flake8 --extend-ignore=D --show-source test utils doc ${flake8_black_list} --exclude=test/espnet2
 
 # white list of files that should support flake8-docstrings
-flake8 espnet --exclude=${flake8_black_list//$'\n'/,}
+flake8 espnet --show-source --exclude=${flake8_black_list//$'\n'/,}
+
+# espnet2 follows "black" style.
+flake8 --extend-ignore=D --show-source --max-line-length 88 --ignore E203,W503 espnet2 test/espnet2
