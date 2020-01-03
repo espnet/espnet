@@ -290,6 +290,9 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
+            "--cudnn_enabled", type=str2bool, default=True, help="Enable CUDNN",
+        )
+        group.add_argument(
             "--cudnn_benchmark",
             type=str2bool,
             default=False,
@@ -697,6 +700,7 @@ class AbsTask(ABC):
 
         # 1. Set random-seed
         set_all_random_seed(args.seed)
+        torch.backends.cudnn.enabled = args.cudnn_enabled
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
