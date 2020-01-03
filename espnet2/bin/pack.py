@@ -56,6 +56,9 @@ def get_parser() -> argparse.ArgumentParser:
 def main(cmd=None):
     parser = get_parser()
     args = parser.parse_args(cmd)
+    if not hasattr(args, "contents"):
+        parser.print_help()
+        parser.exit()
 
     yaml_files = {
         y: getattr(args, y)
