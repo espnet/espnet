@@ -96,13 +96,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                                   data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
-    # Remove features with too long frames in training data
-    max_len=3000
-    mv data/${train_set}/utt2num_frames data/${train_set}/utt2num_frames.bak
-    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${train_set}/utt2num_frames.bak > data/${train_set}/utt2num_frames
-    utils/filter_scp.pl data/${train_set}/utt2num_frames data/${train_set}/utt2spk > data/${train_set}/utt2spk.new
-    mv data/${train_set}/utt2spk.new data/${train_set}/utt2spk
-    utils/fix_data_dir.sh data/${train_set}
+
+    for x in ${train_set} ${recog_set}; do
+      # Remove features with too long frames in training data
+      max_len=3000
+      mv data/${x}/utt2num_frames data/${x}/utt2num_frames.bak
+      awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${x}/utt2num_frames.bak > data/${x}/utt2num_frames
+      utils/filter_scp.pl data/${x}/utt2num_frames data/${x}/utt2spk > data/${x}/utt2spk.new
+      mv data/${x}/utt2spk.new data/${x}/utt2spk
+      utils/fix_data_dir.sh data/${x}
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
