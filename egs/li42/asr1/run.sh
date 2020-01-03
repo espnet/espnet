@@ -10,7 +10,7 @@
 
 # general configuration
 backend=pytorch
-stage=3       # start from -1 if you need to start from data download
+stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -39,7 +39,7 @@ aurora4="-"
 babel="-"
 chime4="-"
 chime5="-"
-commonvoice="data"
+commonvoice="-"
 csj="-"
 fisher_callhome_spanish="-"
 fisher_swbd="-"
