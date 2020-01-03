@@ -375,7 +375,7 @@ class E2E(ASRInterface, torch.nn.Module):
         Args:
             xs_pad (torch.Tensor): batch of padded input sequences (B, Tmax, idim)
             ilens (torch.Tensor): batch of lengths of input sequences (B)
-            ys_pad (torc.Tensor): batch of padded character id sequence tensor (B, Lmax)
+            ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
 
         Returns:
             ret (ndarray): attention weights with the following shape,
