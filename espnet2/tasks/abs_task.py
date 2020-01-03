@@ -846,7 +846,7 @@ class AbsTask(ABC):
                 model=model,
                 train_iter=train_iter_factory.build_iter(1, shuffle=False),
                 eval_iter=eval_iter_factory.build_iter(1, shuffle=False),
-                output_dir=args.output_dir,
+                output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
                 write_collected_feats=args.write_collected_feats,
