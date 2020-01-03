@@ -1119,9 +1119,7 @@ class AbsTask(ABC):
                     with reporter.observe("att_plot") as sub_reporter:
                         cls.trainer.plot_attention(
                             model=model,
-                            # Disable saving as png
-                            output_dir=None,
-                            # Enable saving in tensorboard logs
+                            output_dir=output_dir / "att_ws",
                             summary_writer=summary_writer,
                             iterator=plot_attention_iter_factory.build_iter(iepoch),
                             reporter=sub_reporter,
