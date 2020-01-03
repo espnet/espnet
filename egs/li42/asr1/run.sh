@@ -38,20 +38,11 @@ aishell="-"
 aurora4="-"
 babel="-"
 chime4="-"
-chime5="-"
 commonvoice="-"
 csj="-"
 fisher_callhome_spanish="-"
 fisher_swbd="-"
 hkust="-"
-how2="-"
-jsut="-"
-librispeech="-"
-must_c="-"
-reverb="-"
-swbd="-"
-tedlium2="-"
-tedlium3="-"
 voxforge="-"
 wsj="-"
 
@@ -263,7 +254,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 # new data adding language ID tag
-if [ $lid!="" ]
+if [ "$lid" != "" ]
 then
     train_set_org="${train_set}"
     train_dev_org="${train_dev}"
@@ -279,7 +270,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # utils/copy_data_dir.sh --validate_opts --no-spk-sort data/${train_set_org} data/${train_set}
     # utils/copy_data_dir.sh --validate_opts --no-spk-sort data/${train_dev_org} data/${train_dev}
     # add lid
-    if [ $lid!="" ]
+    if [ "$lid" != "" ]
     then
         paste -d " " \
 	      <(cut -f 1 -d" " data/${train_set_org}/text) \
