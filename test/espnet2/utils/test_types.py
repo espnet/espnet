@@ -45,8 +45,7 @@ def test_int_or_none(value: str, desired: Any):
 
 
 @pytest.mark.parametrize(
-    "value, desired",
-    [("3.5", 3.5), ("3.5 ", 3.5), ("none", None), ("aa", ValueError)],
+    "value, desired", [("3.5", 3.5), ("3.5 ", 3.5), ("none", None), ("aa", ValueError)],
 )
 def test_float_or_none(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):

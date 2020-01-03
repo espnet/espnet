@@ -16,9 +16,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadDot
 from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadLoc
 from espnet.nets.pytorch_backend.rnn.attentions import AttMultiHeadMultiResLoc
 from espnet.nets.pytorch_backend.rnn.attentions import NoAtt
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,
-)
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 
 class AbsAttention(torch.nn.Module, ABC):

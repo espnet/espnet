@@ -45,9 +45,7 @@ class SequentialRNNLM(AbsLM):
             )
         else:
             try:
-                nonlinearity = {"RNN_TANH": "tanh", "RNN_RELU": "relu"}[
-                    rnn_type
-                ]
+                nonlinearity = {"RNN_TANH": "tanh", "RNN_RELU": "relu"}[rnn_type]
             except KeyError:
                 raise ValueError(
                     """An invalid option for `--model` was supplied,
@@ -88,9 +86,7 @@ class SequentialRNNLM(AbsLM):
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
         decoded = self.decoder(
-            output.contiguous().view(
-                output.size(0) * output.size(1), output.size(2)
-            )
+            output.contiguous().view(output.size(0) * output.size(1), output.size(2))
         )
         return (
             decoded.view(output.size(0), output.size(1), decoded.size(1)),
@@ -121,9 +117,7 @@ class SequentialRNNLM(AbsLM):
         y: torch.Tensor,
         state: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
         x: torch.Tensor,
-    ) -> Tuple[
-        torch.Tensor, Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
-    ]:
+    ) -> Tuple[torch.Tensor, Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]]:
         """Score new token.
 
         Args:
