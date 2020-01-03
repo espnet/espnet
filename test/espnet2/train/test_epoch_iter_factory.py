@@ -10,7 +10,7 @@ def test_EpochIterFactory():
     dataset = Dataset()
     batches = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
     iter_factory = EpochIterFactory(
-        dataset=dataset, batches=batches, num_batches_per_epoch=3
+        dataset=dataset, batches=batches, num_iters_per_epoch=3
     )
 
     seq = [
@@ -28,7 +28,7 @@ def test_EpochIterFactory_deterministic():
     dataset = Dataset()
     batches = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
     iter_factory = EpochIterFactory(
-        dataset=dataset, batches=batches, num_batches_per_epoch=3, shuffle=True
+        dataset=dataset, batches=batches, num_iters_per_epoch=3, shuffle=True
     )
 
     for i in range(1, 10):

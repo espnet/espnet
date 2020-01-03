@@ -423,7 +423,7 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
-            "--num_batches_per_epoch",
+            "--num_iters_per_epoch",
             type=int_or_none,
             default=None,
             help="Restrict the number of iterations for training per epoch",
@@ -908,10 +908,10 @@ class AbsTask(ABC):
         cls.check_task_requirements(dataset, args.allow_variable_data_keys)
 
         if train:
-            num_batches_per_epoch = args.num_batches_per_epoch
+            num_iters_per_epoch = args.num_iters_per_epoch
             shuffle = True
         else:
-            num_batches_per_epoch = None
+            num_iters_per_epoch = None
             shuffle = False
 
         batch_sampler = build_batch_sampler(
@@ -936,7 +936,7 @@ class AbsTask(ABC):
             dataset=dataset,
             batches=batches,
             seed=args.seed,
-            num_batches_per_epoch=num_batches_per_epoch,
+            num_iters_per_epoch=num_iters_per_epoch,
             shuffle=shuffle,
             num_workers=args.num_workers,
             collate_fn=cls.build_collate_fn(args),
