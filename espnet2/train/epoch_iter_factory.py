@@ -81,10 +81,16 @@ class EpochIterFactory(AbsIterFactory):
             if shuffle:
                 np.random.RandomState(epoch + self.seed).shuffle(batches)
 
+        # For backward compatibility for pytorch DataLoader
+        if self.collate_fn is not None:
+            kwargs = dict(collate_fn=self.collate_fn)
+        else:
+            kwargs = {}
+
         return DataLoader(
             dataset=self.dataset,
             batch_sampler=batches,
-            collate_fn=self.collate_fn,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
+            **kwargs,
         )
