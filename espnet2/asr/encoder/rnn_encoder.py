@@ -79,7 +79,16 @@ class RNNEncoder(AbsEncoder):
 
         else:
             self.enc = torch.nn.ModuleList(
-                [RNN(input_size, num_layers, hidden_size, output_size, dropout, typ=rnn_type)]
+                [
+                    RNN(
+                        input_size,
+                        num_layers,
+                        hidden_size,
+                        output_size,
+                        dropout,
+                        typ=rnn_type,
+                    )
+                ]
             )
 
     def output_size(self) -> int:
@@ -97,9 +106,7 @@ class RNNEncoder(AbsEncoder):
 
         current_states = []
         for module, prev_state in zip(self.enc, prev_states):
-            xs_pad, ilens, states = module(
-                xs_pad, ilens, prev_state=prev_state
-            )
+            xs_pad, ilens, states = module(xs_pad, ilens, prev_state=prev_state)
             current_states.append(states)
 
         if self.use_projection:

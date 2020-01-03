@@ -5,10 +5,10 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from typeguard import check_argument_types
 
-from espnet2.schedulers.abs_scheduler import AbsBatchScheduler
+from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
 
-class NoamLR(_LRScheduler, AbsBatchScheduler):
+class NoamLR(_LRScheduler, AbsBatchStepScheduler):
     """The LR scheduler proposed by Noam
 
     FIXME(kamo): PyTorch doesn't provide _LRScheduler as public class,
@@ -26,9 +26,7 @@ class NoamLR(_LRScheduler, AbsBatchScheduler):
         last_epoch: int = -1,
     ):
         if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
-            raise NotImplementedError(
-                f"Require PyTorch>=1.1.0: {torch.__version__}"
-            )
+            raise NotImplementedError(f"Require PyTorch>=1.1.0: {torch.__version__}")
 
         assert check_argument_types()
         self.model_size = model_size

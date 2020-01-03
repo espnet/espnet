@@ -58,7 +58,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     if not hasattr(args, "contents"):
         parser.print_help()
-        parser.exit()
+        parser.exit(2)
 
     yaml_files = {
         y: getattr(args, y)
