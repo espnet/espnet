@@ -401,7 +401,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--resume",
             type=str2bool,
-            default=None,
+            default=False,
             help="Enable resuming if checkpoint is existing",
         )
         group.add_argument(
