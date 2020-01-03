@@ -100,11 +100,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in ${train_set} ${recog_set}; do
       # Remove features with too long frames in training data
       max_len=3000
-      mv data/${x}/utt2num_frames data/${x}/utt2num_frames.bak
-      awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${x}/utt2num_frames.bak > data/${x}/utt2num_frames
-      utils/filter_scp.pl data/${x}/utt2num_frames data/${x}/utt2spk > data/${x}/utt2spk.new
-      mv data/${x}/utt2spk.new data/${x}/utt2spk
-      utils/fix_data_dir.sh data/${x}
+      max_chars=10000
+      remove_longshortdata.sh  --maxframes $max_len --maxchars $max_chars data/${x} data/${x}_temp
+      mv data/${x}_temp data/${x}
     done
 
     # compute global CMVN
