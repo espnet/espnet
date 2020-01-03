@@ -21,29 +21,13 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils.fileio import DatadirWriter
+from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-
-
-class ModuleWrapper(torch.nn.Module):
-    """Wrapped module to parallelize specified method
-
-    torch.nn.DataParallel parallelizes only "forward()"
-    and, maybe, the method having the other name can't be applied
-    except for wrapping the module just like this class.
-
-    """
-
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
-
-    def forward(self, *args, **kwargs):
-        return self.module.nll(*args, **kwargs)
 
 
 def calc_perplexity(
@@ -64,8 +48,7 @@ def calc_perplexity(
     assert check_argument_types()
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:
@@ -80,11 +63,12 @@ def calc_perplexity(
 
     # 2. Build LM
     with Path(train_config).open("r") as f:
-        train_args = yaml.load(f, Loader=yaml.Loader)
+        train_args = yaml.safe_load(f)
     train_args = argparse.Namespace(**train_args)
     model = LMTask.build_model(train_args)
     model.load_state_dict(torch.load(model_file, map_location=device))
-    wrapped_model = ModuleWrapper(model)
+    # Wrape model to make model.nll() data-parallel
+    wrapped_model = ForwardAdaptor(model, "nll")
     wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
 
     # 3. Build data-iterator
@@ -115,7 +99,7 @@ def calc_perplexity(
     with DatadirWriter(output_dir) as writer:
         total_nll = 0.0
         total_ntokens = 0
-        for keys, batch in zip(batch_sampler, loader):
+        for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -132,11 +116,7 @@ def calc_perplexity(
                         wrapped_model, (), range(ngpu), module_kwargs=batch
                     )
 
-            assert _bs == len(nll) == len(lengths), (
-                _bs,
-                len(nll),
-                len(lengths),
-            )
+            assert _bs == len(nll) == len(lengths), (_bs, len(nll), len(lengths))
             # nll: (B, L) -> (B,)
             nll = nll.detach().cpu().numpy().sum(1)
             # lengths: (B,)
@@ -179,9 +159,7 @@ def get_parser():
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
@@ -193,10 +171,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -212,10 +187,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
     parser.add_argument(
         "--log_base",
@@ -233,9 +205,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--train_config", type=str)

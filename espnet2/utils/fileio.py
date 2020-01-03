@@ -174,11 +174,7 @@ class SoundScpReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self,
-        fname,
-        dtype=np.int16,
-        always_2d: bool = False,
-        normalize: bool = False,
+        self, fname, dtype=np.int16, always_2d: bool = False, normalize: bool = False,
     ):
         assert check_argument_types()
         self.fname = fname
@@ -225,17 +221,25 @@ class SoundScpWriter:
         key4 /some/path/d.wav
         ...
 
-        >>> writer = SoundScpWriter('./data/', 'feat')
+        >>> writer = SoundScpWriter('./data/', './data/feat.scp')
         >>> writer['aa'] = 16000, numpy_array
         >>> writer['bb'] = 16000, numpy_array
 
     """
 
-    def __init__(self, basedir, name, format="wav", dtype=None):
+    def __init__(
+        self,
+        outdir: Union[Path, str],
+        scpfile: Union[Path, str],
+        format="wav",
+        dtype=None,
+    ):
         assert check_argument_types()
-        self.dir = Path(basedir) / f"data_{name}"
+        self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.fscp = (Path(basedir) / f"{name}.scp").open("w")
+        scpfile = Path(scpfile)
+        scpfile.parent.mkdir(parents=True, exist_ok=True)
+        self.fscp = scpfile.open("w")
         self.format = format
         self.dtype = dtype
 
@@ -246,9 +250,7 @@ class SoundScpWriter:
         assert isinstance(rate, int), type(rate)
         assert isinstance(signal, np.ndarray), type(signal)
         if signal.ndim not in (1, 2):
-            raise RuntimeError(
-                f"Input signal must be 1 or 2 dimension: {signal.ndim}"
-            )
+            raise RuntimeError(f"Input signal must be 1 or 2 dimension: {signal.ndim}")
         if signal.ndim == 1:
             signal = signal[:, None]
 
@@ -284,17 +286,19 @@ class NpyScpWriter:
         key4 /some/path/d.npy
         ...
 
-        >>> writer = NpyScpWriter('./data/', 'feat')
+        >>> writer = NpyScpWriter('./data/', './data/feat.scp')
         >>> writer['aa'] = numpy_array
         >>> writer['bb'] = numpy_array
 
     """
 
-    def __init__(self, basedir: Union[Path, str], name: str):
+    def __init__(self, outdir: Union[Path, str], scpfile: Union[Path, str]):
         assert check_argument_types()
-        self.dir = Path(basedir) / f"data_{name}"
+        self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.fscp = (Path(basedir) / f"{name}.scp").open("w")
+        scpfile = Path(scpfile)
+        scpfile.parent.mkdir(parents=True, exist_ok=True)
+        self.fscp = scpfile.open("w")
 
         self.data = {}
 
