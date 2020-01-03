@@ -13,7 +13,7 @@ def test_TransformerDecoder_backward(input_layer, normalize_before, use_output_l
         12,
         input_layer=input_layer,
         normalize_before=normalize_before,
-        use_output_layer=use_output_layer
+        use_output_layer=use_output_layer,
     )
     x = torch.randn(2, 9, 12)
     x_lens = torch.tensor([9, 7], dtype=torch.long)

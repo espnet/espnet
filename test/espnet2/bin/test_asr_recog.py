@@ -2,8 +2,8 @@ from argparse import ArgumentParser
 
 import pytest
 
-from espnet2.bin.asr_recog import get_parser
-from espnet2.bin.asr_recog import main
+from espnet2.bin.asr_decode import get_parser
+from espnet2.bin.asr_decode import main
 
 
 def test_get_parser():

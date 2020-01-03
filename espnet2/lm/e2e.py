@@ -8,7 +8,7 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_model import AbsLM
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.utils.device_funcs import force_gatherable
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class LanguageE2E(AbsE2E):
@@ -43,9 +43,7 @@ class LanguageE2E(AbsE2E):
 
         # 3. Calc negative log likelihood
         # nll: (BxL,)
-        nll = F.cross_entropy(
-            y.view(-1, y.shape[-1]), t.view(-1), reduction="none"
-        )
+        nll = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         # nll: (BxL,) -> (BxL,)
         nll.masked_fill_(make_pad_mask(x_lengths).to(nll.device).view(-1), 0.0)
         # nll: (BxL,) -> (B, L)
@@ -61,7 +59,10 @@ class LanguageE2E(AbsE2E):
         stats = dict(loss=loss.detach())
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        loss, stats, weight = force_gatherable(
-            (loss, stats, ntokens), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
         return loss, stats, weight
+
+    def collect_feats(
+        self, text: torch.Tensor, text_lengths: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
+        return {}

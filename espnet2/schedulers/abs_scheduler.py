@@ -6,11 +6,12 @@ import torch
 import torch.optim.lr_scheduler as L
 
 
-# FIXME(kamo): EpochScheduler and BatchScheduler are confusing names.
+class AbsScheduler(ABC):
+    pass
 
 
 # If you need to define custom scheduler, please inherit these classes
-class AbsBatchScheduler(ABC):
+class AbsBatchStepScheduler(AbsScheduler):
     @abstractmethod
     def step(self, epoch: int = None):
         pass
@@ -24,7 +25,7 @@ class AbsBatchScheduler(ABC):
         pass
 
 
-class AbsEpochScheduler(ABC):
+class AbsEpochStepScheduler(AbsScheduler):
     @abstractmethod
     def step(self, epoch: int = None):
         pass
@@ -38,7 +39,7 @@ class AbsEpochScheduler(ABC):
         pass
 
 
-class AbsValEpochScheduler(AbsBatchScheduler):
+class AbsValEpochStepScheduler(AbsEpochStepScheduler):
     @abstractmethod
     def step(self, val, epoch: int = None):
         pass
@@ -55,15 +56,17 @@ class AbsValEpochScheduler(AbsBatchScheduler):
 # Create alias type to check the type
 # Note(kamo): Currently PyTorch doesn't provide the base class
 # to judge these classes.
-AbsValEpochScheduler.register(L.ReduceLROnPlateau)
-AbsEpochScheduler.register(L.ReduceLROnPlateau)
-AbsEpochScheduler.register(L.LambdaLR)
-AbsEpochScheduler.register(L.StepLR)
-AbsEpochScheduler.register(L.MultiStepLR)
-AbsEpochScheduler.register(L.ExponentialLR)
-AbsEpochScheduler.register(L.CosineAnnealingLR)
-
+AbsValEpochStepScheduler.register(L.ReduceLROnPlateau)
+for s in [
+    L.ReduceLROnPlateau,
+    L.LambdaLR,
+    L.StepLR,
+    L.MultiStepLR,
+    L.MultiStepLR,
+    L.ExponentialLR,
+    L.CosineAnnealingLR,
+]:
+    AbsEpochStepScheduler.register(s)
 if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-    AbsBatchScheduler.register(L.CyclicLR)
-    AbsBatchScheduler.register(L.OneCycleLR)
-    AbsBatchScheduler.register(L.CosineAnnealingWarmRestarts)
+    for s in [L.CyclicLR, L.OneCycleLR, L.CosineAnnealingWarmRestarts]:
+        AbsBatchStepScheduler.register(s)

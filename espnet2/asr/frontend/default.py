@@ -7,18 +7,11 @@ import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.frontends.feature_transform import LogMel
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.layers.log_mel import LogMel
 from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-
-_stft_conf = get_default_kwargs(Stft)
-_stft_conf.pop("n_fft")
-
-_logmel_kwargs = get_default_kwargs(LogMel)
-_logmel_kwargs.pop("fs")
-_logmel_kwargs.pop("n_fft")
 
 
 class DefaultFrontend(AbsFrontend):
@@ -31,9 +24,18 @@ class DefaultFrontend(AbsFrontend):
         self,
         fs: Union[int, str] = 16000,
         n_fft: int = 512,
-        stft_conf: dict = _stft_conf.copy(),
+        win_length: Union[int, None] = 512,
+        hop_length: int = 128,
+        center: bool = True,
+        pad_mode: str = "reflect",
+        normalized: bool = False,
+        onesided: bool = True,
+        n_mels: int = 80,
+        fmin: int = None,
+        fmax: int = None,
+        htk: bool = False,
+        norm=1,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
-        logmel_fbank_conf: dict = _logmel_kwargs.copy(),
     ):
         assert check_argument_types()
         super().__init__()
@@ -41,20 +43,26 @@ class DefaultFrontend(AbsFrontend):
             fs = humanfriendly.parse_size(fs)
 
         # Deepcopy (In general, dict shouldn't be used as default arg)
-        stft_conf = copy.deepcopy(stft_conf)
         frontend_conf = copy.deepcopy(frontend_conf)
-        logmel_fbank_conf = copy.deepcopy(logmel_fbank_conf)
 
-        self.stft = Stft(n_fft=n_fft, **stft_conf)
+        self.stft = Stft(
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+            center=center,
+            pad_mode=pad_mode,
+            normalized=normalized,
+            onesided=onesided,
+        )
         if frontend_conf is not None:
             self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
         else:
             self.frontend = None
 
-        self.logmel = LogMel(fs=fs, n_fft=n_fft, **logmel_fbank_conf)
-        self.n_mels = logmel_fbank_conf.get(
-            "n_mels", get_default_kwargs(LogMel).get("n_mels")
+        self.logmel = LogMel(
+            fs=fs, n_fft=n_fft, fmin=fmin, fmax=fmax, htk=htk, norm=norm,
         )
+        self.n_mels = n_mels
 
     def output_size(self) -> int:
         return self.n_mels

@@ -40,9 +40,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
     def __getitem__(self, key: str) -> np.ndarray:
         rate, array = self.loader[key]
         if self.rate is not None and self.rate != rate:
-            raise RuntimeError(
-                f"Sampling rates are mismatched: {self.rate} != {rate}"
-            )
+            raise RuntimeError(f"Sampling rates are mismatched: {self.rate} != {rate}")
         self.rate = rate
         # Multichannel wave fie
         # array: (NSample, Channel) or (Nsample)
@@ -58,7 +56,7 @@ class ESPnetDataset(Dataset):
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
         ...                         )
-        ... data = dataset['uttid']
+        ... uttid, data = dataset['uttid']
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
@@ -168,19 +166,18 @@ class ESPnetDataset(Dataset):
         _mes += f"("
         for name, (path, _type) in self.debug_info.items():
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
-        _mes += f"\n preprocess: {self.preprocess})"
+        _mes += f"\n  preprocess: {self.preprocess})"
         return _mes
 
     def __len__(self):
         raise RuntimeError(
-            "This method doesn't be needed because "
-            "we use custom BatchSampler "
+            "This method doesn't be needed because " "we use custom BatchSampler "
         )
 
     # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
-    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
+    def __getitem__(self, uid: str) -> Tuple[str, Dict[str, np.ndarray]]:
         assert check_argument_types()
 
         data = {}
@@ -218,10 +215,9 @@ class ESPnetDataset(Dataset):
             elif value.dtype.kind == "i":
                 value = value.astype(self.int_dtype)
             else:
-                raise NotImplementedError(
-                    f"Not supported dtype: {value.dtype}"
-                )
+                raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
 
-        assert check_return_type(data)
-        return data
+        retval = uid, data
+        assert check_return_type(retval)
+        return retval

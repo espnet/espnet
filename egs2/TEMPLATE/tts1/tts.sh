@@ -19,8 +19,8 @@ SECONDS=0
 stage=1          # Processes starts from the specified stage.
 stop_stage=100   # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
-nj=50            # The number of parallel jobs.
-decode_nj=50     # The number of parallel jobs in decoding.
+nj=32            # The number of parallel jobs.
+decode_nj=32     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
 dumpdir=dump     # Directory to dump features.
 expdir=exp       # Directory to save experiments.
@@ -29,8 +29,9 @@ expdir=exp       # Directory to save experiments.
 local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=fbank  # Feature type (fbank or stft or raw).
+feats_type=raw    # Feature type (fbank or stft or raw).
 audio_format=flac # Audio format (only in feats_type=raw).
+# Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
 fmax=7600         # Maximum frequency of Mel basis.
@@ -38,6 +39,10 @@ n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
 win_length=null   # Window length.
+
+oov="<unk>"         # Out of vocabrary symbol.
+blank="<blank>"     # CTC blank symbol
+sos_eos="<sos/eos>" # sos and eos symbole
 
 # Training related
 train_config= # Config for training.
@@ -50,11 +55,11 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=eval.loss.best.pt # Model path for decoding e.g.,
-                               # decode_model=train.loss.best.pt
-                               # decode_model=3epoch/model.pt
-                               # decode_model=eval.acc.best.pt
-                               # decode_model=eval.loss.ave.pt
+decode_model=eval.loss.best.pth # Model path for decoding e.g.,
+                                # decode_model=train.loss.best.pth
+                                # decode_model=3epoch/model.pth
+                                # decode_model=eval.acc.best.pth
+                                # decode_model=eval.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -62,7 +67,7 @@ train_set=      # Name of training set.
 dev_set=        # Name of development set.
 eval_sets=      # Names of evaluation sets. Multiple items can be specified.
 srctexts=       # Texts to create token list. Multiple items can be specified.
-nlsyms_txt=     # Non-linguistic symbol list (needed if existing).
+nlsyms_txt=none # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
 
 help_message=$(cat << EOF
@@ -92,6 +97,9 @@ Options:
     --n_fft        # The number of fft points (default="${n_fft}").
     --n_shift      # The number of shift points (default="${n_shift}").
     --win_length   # Window length (default="${win_length}").
+    --oov          # Out of vocabrary symbol (default="${oov}").
+    --blank        # CTC blank symbol (default="${blank}").
+    --sos_eos=     # sos and eos symbole (default="${sos_eos}").
 
     # Training related
     --train_config # Config for training (default="${train_config}").
@@ -144,6 +152,7 @@ else
     exit 2
 fi
 
+
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
@@ -169,6 +178,12 @@ if [ -z "${decode_tag}" ]; then
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+# The directory used for collect-stats mode
+tts_stats_dir="${expdir}/tts_stats"
+# The directory used for training commands
+tts_exp="${expdir}/tts_${tag}"
+
+
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -180,25 +195,21 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # TODO(kamo): Change kaldi-ark to npy or HDF5?
+    log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
+    # ====== Recreating "wav.scp" ======
+    # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
+    # shouldn't be used in training process.
+    # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
+    # and also it can also change the audio-format and sampling rate.
+    # If nothing is need, then format_wav_scp.sh does nothing:
+    # i.e. the input file format and rate is same as the output.
+
     if [ "${feats_type}" = raw ]; then
-        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
-        log "Not yet"
-        exit 1
-
-        # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
-        # shouldn't be used in training process.
-        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
-        # If nothing is need, then format_wav_scp.sh does nothing:
-        # i.e. the input file format and rate is same as the output.
-
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
                 "data/${dset}/wav.scp" "${data_feats}/${dset}"
-
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
 
@@ -211,7 +222,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
             # 2. Feature extract
-            # TODO(kamo): Wrapp (nj->_nj) in make_fbank.sh
+            # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
             _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
             _opts=
             if [ "${feats_type}" = fbank ] ; then
@@ -229,21 +240,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ${_opts} \
                 "${data_feats}/${dset}"
 
-            # 3. Create feats_shape
-            scripts/feats/feat_to_shape.sh --nj "${nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" \
-                "${data_feats}/${dset}/feats_shape" \
-                "${data_feats}/${dset}/log"
-
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
-
-        # Compute statistics for global mean-variance normalization
-        # TODO(kamo): Parallelize?
-        pyscripts/feats/compute-cmvn-stats.py \
-            --out-filetype npy \
-            scp:"cat ${data_feats}/${train_set}/feats.scp ${data_feats}/${dev_set}/feats.scp |" \
-            "${data_feats}/${train_set}/cmvn.npy"
     fi
 fi
 
@@ -253,34 +253,106 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Generate character level token_list from ${srctexts}"
     mkdir -p "$(dirname ${token_list})"
     # "nlsyms_txt" should be generated by local/data.sh if need
-    if [ -n "${nlsyms_txt}" ]; then
-        nlsyms="$(<${nlsyms_txt})"
-    else
-        nlsyms=
-    fi
-    echo "<unk>" > "${token_list}"
-    if [ -n "${nlsyms}" ]; then
-        # shellcheck disable=SC2002
-        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 -l "${nlsyms}" \
-            | cut -f 2- -d" " | tr " " "\n" | sort -u \
-            | grep -v -e '^\s*$' >> "${token_list}"
-    else
-        # shellcheck disable=SC2002
-        cat ${srctexts} | pyscripts/text/text2token.py -s 1 -n 1 \
-            | cut -f 2- -d" " | tr " " "\n" | sort -u \
-            | grep -v -e '^\s*$' >> "${token_list}"
-    fi
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-        scripts/text/prepare_token.sh --type "${trans_type}" \
-            "${data_feats}/${dset}/text" "${token_list}" "${data_feats}/${dset}"
-    done
+    # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+    # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+
+    # shellcheck disable=SC2002
+    cat ${srctexts} | \
+        python3 -m espnet2.bin.tokenize_text  \
+              --token_type char -f 2- --input - --output - \
+              --non_linguistic_symbols ${nlsyms_txt} \
+              --write_vocabulary true \
+              --add_symbol "${blank}:0" \
+              --add_symbol "${oov}:1" \
+              --add_symbol "${sos_eos}:-1" \
+        > "${token_list}"
 fi
 
 # ========================== Data preparation is done here. ==========================
 
 
-tts_exp="${expdir}/tts_${tag}"
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    _train_dir="${data_feats}/${train_set}"
+    _dev_dir="${data_feats}/${dev_set}"
+    log "Stage 4: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
+
+    _opts=
+    if [ -n "${train_config}" ]; then
+        # To generate the config file: e.g.
+        #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+        _opts+="--config ${train_config} "
+    fi
+
+    _feats_type="$(<${_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=80000
+    else
+        _scp=feats.scp
+        _type=kaldi_ark
+        # FIXME(kamo): max_length is confusing name. How about fold_length?
+        _max_length=800
+        _odim="$(<${_train_dir}/feats_dim)"
+        _opts+="--odim=${_odim} "
+    fi
+
+    # 1. Split the key file
+    _logdir="${tts_stats_dir}/logdir"
+    mkdir -p "${_logdir}"
+    key_file="${_train_dir}/${_scp}"
+    split_scps=""
+    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
+    for n in $(seq ${_nj}); do
+        split_scps+=" ${_logdir}/train.${n}.scp"
+    done
+    # shellcheck disable=SC2086
+    utils/split_scp.pl "${key_file}" ${split_scps}
+
+    key_file="${_dev_dir}/${_scp}"
+    split_scps=""
+    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
+    for n in $(seq ${_nj}); do
+        split_scps+=" ${_logdir}/dev.${n}.scp"
+    done
+    # shellcheck disable=SC2086
+    utils/split_scp.pl "${key_file}" ${split_scps}
+
+    # 2. Submit jobs
+    log "TTS collect_stats started... log: '${tts_exp}/train.log'"
+    # shellcheck disable=SC2086
+    ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+        python3 -m espnet2.bin.tts_train \
+            --collect_stats true \
+            --use_preprocessor true \
+            --token_type char \
+            --token_list "${token_list}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
+            --normalize none \
+            --batch_type const \
+            --sort_in_batch none \
+            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
+            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --train_shape_file "${_logdir}/train.JOB.scp" \
+            --eval_shape_file "${_logdir}/dev.JOB.scp" \
+            --output_dir "${_logdir}/stats.JOB" \
+            ${_opts} ${train_args}
+
+    # 3. Aggregate shape files
+    _opts=
+    for i in $(seq "${_nj}"); do
+        _opts+="--input_dir ${_logdir}/stats.${i} "
+    done
+    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+fi
+
+
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
@@ -289,36 +361,24 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     _opts=
     if [ -n "${train_config}" ]; then
         # To generate the config file: e.g.
-        #   % python -m espnet2.bin.tts_train --print_config --optim adam
+        #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
         _opts+="--config ${train_config} "
     fi
 
     _feats_type="$(<${_train_dir}/feats_type)"
     if [ "${_feats_type}" = raw ]; then
         _scp=wav.scp
-        _shape=utt2num_samples
         # "sound" supports "wav", "flac", etc.
         _type=sound
         # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=80000
     else
         _scp=feats.scp
-        _shape=feats_shape
         _type=kaldi_ark
         # FIXME(kamo): max_length is confusing name. How about fold_length?
         _max_length=800
-        _odim="$(<${_train_dir}/feats_shape head -n1 | cut -d ' ' -f 2 | cut -d',' -f 2)"
+        _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
-        _opts+="--normalize_conf stats_file=${_train_dir}/cmvn.npy "
-    fi
-    _opts+="--feats_extract_conf fs=${fs} "
-    _opts+="--feats_extract_conf n_fft=${n_fft} "
-    _opts+="--feats_extract_conf n_shift=${n_shift} "
-    _opts+="--feats_extract_conf win_length=${win_length} "
-    if [ "${_feats_type}" != stft ]; then
-        _opts+="--feats_extract_conf n_mels=${n_mels} "
-        _opts+="--feats_extract_conf fmin=${fmin} "
-        _opts+="--feats_extract_conf fmax=${fmax} "
     fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
@@ -327,14 +387,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         python3 -m espnet2.bin.tts_train \
             --ngpu "${ngpu}" \
             --token_list "${_train_dir}/tokens.txt" \
-            --train_data_path_and_name_and_type "${_train_dir}/token_int,text,text_int" \
+            --use_preprocessor true \
+            --token_type char \
+            --token_list "${token_list}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
+            --normalize global_mvn \
+            --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
+            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/token_int,text,text_int" \
+            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
             --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${_train_dir}/token_shape" \
-            --train_shape_file "${_train_dir}/${_shape}" \
-            --eval_shape_file "${_dev_dir}/token_shape" \
-            --eval_shape_file "${_dev_dir}/${_shape}" \
+            --train_shape_file "${tts_stats_dir}/train/speech_shape" \
+            --train_shape_file "${tts_stats_dir}/train/text_shape" \
+            --eval_shape_file "${tts_stats_dir}/eval/speech_shape" \
+            --eval_shape_file "${tts_stats_dir}/eval/text_shape" \
             --resume_epoch latest \
             --max_length 150 \
             --max_length ${_max_length} \
@@ -354,10 +420,22 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _ngpu=0
     fi
 
-    _feats_type="$(<"${data_feats}/${train_set}/feats_type")"
     _opts=
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
+    fi
+
+    _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
+        _opts+="--vocoder_conf n_fft=${n_fft} "
+        _opts+="--vocoder_conf n_shift=${n_shift} "
+        _opts+="--vocoder_conf win_length=${win_length} "
+        _opts+="--vocoder_conf fs=${fs} "
+    fi
+    if [ "${_feats_type}" == fbank ]; then
+        _opts+="--vocoder_conf n_mels=${n_mels} "
+        _opts+="--vocoder_conf fmin=${fmin} "
+        _opts+="--vocoder_conf fmax=${fmax} "
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
@@ -370,7 +448,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         cp "${_data}/feats_type" "${_dir}/feats_type"
 
         # 1. Split the key file
-        key_file=${_data}/token_int
+        key_file=${_data}/text
         split_scps=""
         _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
         for n in $(seq ${_nj}); do
@@ -386,12 +464,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
             python3 -m espnet2.bin.tts_decode \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/token_int,text,text_int" \
+                --data_path_and_name_and_type "${_data}/text,text,text" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
-                --griffin_lim_iters "${griffin_lim_iters}" \
+                --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs

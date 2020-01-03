@@ -37,9 +37,7 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
 
     if isinstance(weight, (torch.Tensor, np.ndarray)):
         if np.prod(weight.shape) != 1:
-            raise ValueError(
-                f"weight must be 0 or 1 dimension: {len(weight.shape)}"
-            )
+            raise ValueError(f"weight must be 0 or 1 dimension: {len(weight.shape)}")
         weight = weight.item()
 
     if weight is not None:
@@ -149,9 +147,7 @@ class SubReporter:
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def logging(
-        self, logger=None, level: str = "INFO", nlatest: int = None
-    ) -> None:
+    def logging(self, logger=None, level: str = "INFO", nlatest: int = None) -> None:
         if self._finished:
             raise RuntimeError("Already finished")
         if logger is None:
@@ -212,9 +208,7 @@ class Reporter:
         self.epoch = epoch
 
     @contextmanager
-    def observe(
-        self, key: str, epoch: int = None
-    ) -> ContextManager[SubReporter]:
+    def observe(self, key: str, epoch: int = None) -> ContextManager[SubReporter]:
         sub_reporter = self.start_epoch(key, epoch)
         yield sub_reporter
         # Receive the stats from sub_reporter
@@ -226,10 +220,7 @@ class Reporter:
                 raise ValueError(f"epoch must be 0 or more: {epoch}")
             self.epoch = epoch
 
-        if (
-            self.epoch - 1 not in self.stats
-            or key not in self.stats[self.epoch - 1]
-        ):
+        if self.epoch - 1 not in self.stats or key not in self.stats[self.epoch - 1]:
             # If the previous epoch doesn't exist for some reason,
             # maybe due to bug, this case also indicates 0-count.
             if self.epoch - 1 != 0:
@@ -392,9 +383,7 @@ class Reporter:
         plt.legend()
         plt.title(f"epoch vs {key2}")
         # Force integer tick for x-axis
-        plt.gca().get_xaxis().set_major_locator(
-            ticker.MaxNLocator(integer=True)
-        )
+        plt.gca().get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
         plt.xlabel("epoch")
         plt.ylabel(key2)
         plt.grid()
