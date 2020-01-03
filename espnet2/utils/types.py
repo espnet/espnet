@@ -9,9 +9,9 @@ def str2bool(value: str) -> bool:
 
 def remove_parenthesis(value: str):
     value = value.strip()
-    if value.startswith('(') or value.startswith('['):
+    if value.startswith("(") or value.startswith("["):
         value = value[1:]
-    if value.endswith(')') or value.endswith(']'):
+    if value.endswith(")") or value.endswith("]"):
         value = value[:-1]
     return value
 
