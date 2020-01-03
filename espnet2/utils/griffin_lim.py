@@ -11,7 +11,6 @@ from distutils.version import LooseVersion
 from functools import partial
 from typeguard import check_argument_types
 from typing import Optional
-from typing import Union
 
 import librosa
 import numpy as np
@@ -24,8 +23,8 @@ def logmel2linear(
     fs: int,
     n_fft: int,
     n_mels: int,
-    fmin: Optional[Union[int, None]] = None,
-    fmax: Optional[Union[int, None]] = None,
+    fmin: int = None,
+    fmax: int = None,
 ) -> np.ndarray:
     """Convert log Mel filterbank to linear spectrogram.
 
@@ -54,8 +53,8 @@ def griffin_lim(
     spc: np.ndarray,
     n_fft: int,
     n_shift: int,
-    win_length: Optional[Union[int, None]] = None,
-    window: Optional[str] = 'hann',
+    win_length: int = None,
+    window: Optional[str] = "hann",
     n_iter: Optional[int] = 32,
 ) -> np.ndarray:
     """Convert linear spectrogram into waveform using Griffin-Lim.
@@ -75,7 +74,7 @@ def griffin_lim(
     # assert the size of input linear spectrogram
     assert spc.shape[1] == n_fft // 2 + 1
 
-    if LooseVersion(librosa.__version__) >= LooseVersion('0.7.0'):
+    if LooseVersion(librosa.__version__) >= LooseVersion("0.7.0"):
         # use librosa's fast Grriffin-Lim algorithm
         spc = np.abs(spc.T)
         y = librosa.griffinlim(
@@ -84,18 +83,23 @@ def griffin_lim(
             hop_length=n_shift,
             win_length=win_length,
             window=window,
-            center=True if spc.shape[1] > 1 else False
+            center=True if spc.shape[1] > 1 else False,
         )
     else:
         # use slower version of Grriffin-Lim algorithm
-        logging.warning("librosa version is old. use slow version of Grriffin-Lim algorithm."
-                        "if you want to use fast Griffin-Lim, please update librosa via "
-                        "`source ./path.sh && pip install librosa==0.7.0`.")
+        logging.warning(
+            "librosa version is old. use slow version of Grriffin-Lim algorithm."
+            "if you want to use fast Griffin-Lim, please update librosa via "
+            "`source ./path.sh && pip install librosa==0.7.0`."
+        )
         cspc = np.abs(spc).astype(np.complex).T
         angles = np.exp(2j * np.pi * np.random.rand(*cspc.shape))
         y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
         for i in range(n_iter):
-            angles = np.exp(1j * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window)))
+            angles = np.exp(
+                1j
+                * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window))
+            )
             y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
 
     return y
@@ -107,16 +111,16 @@ class Spectrogram2Waveform(object):
 
     def __init__(
         self,
-        fs: int,
         n_fft: int,
         n_shift: int,
-        n_mels: Union[int, None] = None,
-        win_length: Optional[Union[int, None]] = None,
-        window: Optional[str] = 'hann',
-        fmin: Optional[Union[int, None]] = None,
-        fmax: Optional[Union[int, None]] = None,
+        fs: int = None,
+        n_mels: int = None,
+        win_length: int = None,
+        window: Optional[str] = "hann",
+        fmin: int = None,
+        fmax: int = None,
         griffin_lim_iters: Optional[int] = 32,
-    ) -> object:
+    ):
         """Initialize module.
 
         Args:
@@ -133,28 +137,44 @@ class Spectrogram2Waveform(object):
         """
         assert check_argument_types()
         self.fs = fs
-        self.logmel2linear = partial(
-            logmel2linear,
-            fs=fs,
-            n_fft=n_fft,
-            n_mels=n_mels,
-            fmin=fmin,
-            fmax=fmax
-        ) if n_mels is not None else None
+        self.logmel2linear = (
+            partial(
+                logmel2linear, fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax
+            )
+            if n_mels is not None
+            else None
+        )
         self.griffin_lim = partial(
             griffin_lim,
             n_fft=n_fft,
             n_shift=n_shift,
             win_length=win_length,
             window=window,
-            n_iter=griffin_lim_iters
+            n_iter=griffin_lim_iters,
         )
+        self.params = dict(
+            n_fft=n_fft,
+            n_shift=n_shift,
+            win_length=win_length,
+            window=window,
+            n_iter=griffin_lim_iters,
+        )
+        if n_mels is not None:
+            self.params.update(fs=fs, n_mels=n_mels, fmin=fmin, fmax=fmax)
+
+    def __repr__(self):
+        retval = f"{self.__class__.__name__}("
+        for k, v in self.params.items():
+            retval += f"{k}={v}, "
+        retval += ")"
+        return retval
 
     def __call__(self, spc):
         """Convert spectrogram to waveform.
 
         Args:
-            spc: Log Mel filterbank (T, n_mels) or linear spectrogram (T, n_fft // 2 + 1).
+            spc: Log Mel filterbank (T, n_mels)
+                or linear spectrogram (T, n_fft // 2 + 1).
 
         Returns:
             Reconstructed waveform (N,).
