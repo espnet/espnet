@@ -44,7 +44,7 @@ done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 4 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 4 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
@@ -57,7 +57,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --stage 2 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 cd "${cwd}" || exit 1
 

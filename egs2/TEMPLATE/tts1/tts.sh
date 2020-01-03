@@ -17,7 +17,7 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-stop_stage=100   # Processes is stopped at the specified stage.
+stop_stage=5     # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
@@ -485,6 +485,20 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             rm -rf "${_logdir}/output.${i}/wav"
         done
     done
+
 fi
+
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "[Option] Stage 6: Pack model: ${tts_exp}/packed.tgz"
+
+    python -m espnet2.bin.pack tts \
+        --train_config.yaml "${tts_exp}"/config.yaml \
+        --model_file.pth "${tts_exp}"/"${decode_model}" \
+        --option ${tts_stats_dir}/train/feats_stats.npz  \
+        --outpath "${tts_exp}/packed.tgz"
+
+fi
+
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
