@@ -18,7 +18,7 @@ class EpochIterFactory(AbsIterFactory):
         self,
         dataset,
         batches: Sequence[Sequence[Any]],
-        num_batches_per_epoch: int = None,
+        num_iters_per_epoch: int = None,
         seed: int = 0,
         shuffle: bool = False,
         num_workers: int = 0,
@@ -36,10 +36,10 @@ class EpochIterFactory(AbsIterFactory):
         """
         self.batches = list(batches)
         self.dataset = dataset
-        if num_batches_per_epoch is not None and num_batches_per_epoch < len(batches):
-            self.num_samples_per_epoch = num_batches_per_epoch
+        if num_iters_per_epoch is not None and num_iters_per_epoch < len(batches):
+            self.num_iters_per_epoch = num_iters_per_epoch
         else:
-            self.num_samples_per_epoch = None
+            self.num_iters_per_epoch = None
         self.shuffle = shuffle
         self.seed = seed
         self.num_workers = num_workers
@@ -51,17 +51,17 @@ class EpochIterFactory(AbsIterFactory):
         if shuffle is None:
             shuffle = self.shuffle
 
-        if self.num_samples_per_epoch is not None:
+        if self.num_iters_per_epoch is not None:
             N = len(self.batches)
-            real_epoch, offset = divmod(self.num_samples_per_epoch * epoch, N)
+            real_epoch, offset = divmod(self.num_iters_per_epoch * epoch, N)
 
-            if offset >= self.num_samples_per_epoch:
+            if offset >= self.num_iters_per_epoch:
                 current_batches = list(self.batches)
                 if shuffle:
                     np.random.RandomState(real_epoch + self.seed).shuffle(
                         current_batches
                     )
-                batches = current_batches[offset - self.num_samples_per_epoch : offset]
+                batches = current_batches[offset - self.num_iters_per_epoch : offset]
             else:
                 prev_batches = list(self.batches)
                 current_batches = list(self.batches)
@@ -73,7 +73,7 @@ class EpochIterFactory(AbsIterFactory):
                         current_batches
                     )
                 batches = (
-                    prev_batches[offset - self.num_samples_per_epoch :]
+                    prev_batches[offset - self.num_iters_per_epoch :]
                     + current_batches[:offset]
                 )
         else:
