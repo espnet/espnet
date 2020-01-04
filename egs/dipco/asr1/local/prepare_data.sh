@@ -52,7 +52,7 @@ done | \
 
 echo "$0: Creating datadir $dir for type=\"$mictype\""
 
-if [ "$mictype" != "worn" ] || [ "$mictype" != "ref" ]; then
+if [ "$mictype" != "worn" ] && [ "$mictype" != "ref" ]; then
   mictype=ref
 fi
 
