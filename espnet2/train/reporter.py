@@ -279,6 +279,8 @@ class Reporter:
         """
         if mode not in ("min", "max"):
             raise ValueError(f"mode must min or max: {mode}")
+        if not self.has(key, key2):
+            raise KeyError(f"{key}.{key2} is not found: {self.get_all_keys()}")
 
         # iterate from the last epoch
         values = [(e, self.stats[e][key][key2]) for e in self.stats]
@@ -288,6 +290,15 @@ class Reporter:
         else:
             values = sorted(values, key=lambda x: -x[1])
         return values
+
+    def sort_epochs(self, key: str, key2: str, mode: str) -> List[int]:
+        return [e for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def sort_values(self, key: str, key2: str, mode: str) -> List[float]:
+        return [v for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def get_best_epoch(self, key: str, key2: str, mode: str, nbest: int = 0) -> int:
+        return self.sort_epochs(key, key2, mode)[nbest]
 
     def has(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
