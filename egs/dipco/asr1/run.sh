@@ -41,7 +41,7 @@ bpemode=unigram
 tag="" # tag for managing experiments.
 
 dipco_corpus=${PWD}/db/DiPCo
-chime5_dir=${PWD}../../chime5/asr1
+chime5_dir=${PWD}/../../chime5/asr1
 
 . utils/parse_options.sh || exit 1;
 
@@ -50,10 +50,6 @@ chime5_dir=${PWD}../../chime5/asr1
 set -e
 set -u
 set -o pipefail
-
-train_set=train_trim_sp
-train_dev=dev_trim
-recog_set="dev test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -64,9 +60,9 @@ json_dir=${dipco_corpus}/transcriptions
 audio_dir=${dipco_corpus}/audio
 
 enhancement=beamformit
+
+train_set=train_worn_u200k  # based on CHiME5 recipe
 train_dev=dev_${enhancement}_ref
-# use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
-#eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
 recog_set="dev_worn dev_${enhancement}_ref eval_worn eval_${enhancement}_ref"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -75,22 +71,22 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     mictype=worn
     
-    # for dset in dev eval; do
-    #     local/prepare_data.sh --mictype ${mictype} \
-    #         ${audio_dir}/${dset} ${json_dir}/${dset} \
-    #         data/${dset}_${mictype}
-    # done
+    for dset in dev eval; do
+        local/prepare_data.sh --mictype ${mictype} \
+            ${audio_dir}/${dset} ${json_dir}/${dset} \
+            data/${dset}_${mictype}
+    done
 
     enhandir=enhan
-    # for dset in dev eval; do
-    #     for mictype in u01 u02 u03 u04 u05; do
-    #         local/run_beamformit.sh --cmd "$train_cmd" \
-    #                     ${audio_dir}/${dset} \
-    #                     ${enhandir}/${dset}_${enhancement}_${mictype} \
-    #                     ${mictype} &
-    #     done
-    #     wait
-    # done
+    for dset in dev eval; do
+        for mictype in u01 u02 u03 u04 u05; do
+            local/run_beamformit.sh --cmd "$train_cmd" \
+                        ${audio_dir}/${dset} \
+                        ${enhandir}/${dset}_${enhancement}_${mictype} \
+                        ${mictype} &
+        done
+        wait
+    done
 
     for dset in dev eval; do
         # The ref mic is the same as the worn: close-talk
@@ -127,18 +123,19 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Use CHiME 5 CMVN
     # compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 fi
-# dict=data/lang_1char/${train_set}_units.txt
-# nlsyms=data/lang_1char/non_lang_syms.txt
+
+dict=${chime5_dir}/data/lang_1char/${train_set}_units.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    # mkdir -p data/lang_1char/
+    mkdir -p data/lang_1char/
 
-    # echo "make a non-linguistic symbol list"
-    # cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms}
-    # cat ${nlsyms}
+    echo "make a non-linguistic symbol list"
+    cut -f 2- data/${train_dev}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms}
+    cat ${nlsyms}
 
     # echo "make a dictionary"
     # echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
@@ -150,33 +147,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
     # remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
 
-    # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
-    fi
+    # dump features 
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_recog_dir}
+            data/${rtask}/feats.scp ${chime5_dir}/data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_recog_dir}
     done
 
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
@@ -191,7 +175,9 @@ if [ -z ${lmtag} ]; then
 fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
-mkdir -p ${lmexpdir}
+if [ -d ${chime5_dir}/${lmexpdir} ]; then
+    ln -s ${chime5_dir}/${lmexpdir} ${lmexpdir}
+fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
@@ -207,7 +193,10 @@ else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
-mkdir -p ${expdir}
+
+if [ -d ${chime5_dir}/${expdir} ]; then
+    ln -s ${chime5_dir}/${expdir} ${expdir}
+fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
@@ -227,7 +216,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
+        decode_dir=decode_dipco_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
