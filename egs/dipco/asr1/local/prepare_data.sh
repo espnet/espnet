@@ -52,6 +52,10 @@ done | \
 
 echo "$0: Creating datadir $dir for type=\"$mictype\""
 
+if [ "$mictype" != "worn" ] || [ "$mictype" != "ref" ]; then
+  mictype=ref
+fi
+
 if [ $mictype == "worn" ]; then
   # convert the filenames to wav.scp format, use the basename of the file
   # as a the wav.scp key, add .L and .R for left and right channel
@@ -81,9 +85,9 @@ elif [ $mictype == "ref" ]; then
   # first get a text, which will be used to extract reference arrays
   perl -ne 's/-/.ENH-/;print;' $dir/text.orig | sort > $dir/text
 
-  find $adir | grep "\.wav" | sort > $dir/wav.flist
+  find $adir | grep "\.wav" | sort > $dir/wav.flist2
   # following command provide the argument for grep to extract only reference arrays
-  grep `cut -f 1 -d"-" $dir/text | awk -F"_" '{print $2 "_" $3}' | sed -e "s/\.ENH//" | sort | uniq | sed -e "s/^/ -e /" | tr "\n" " "` $dir/wav.flist > $dir/wav.flist2
+  # grep `cut -f 1 -d"-" $dir/text | awk -F"_" '{print $2 "_" $3}' | sed -e "s/\.ENH//" | sort | uniq | sed -e "s/^/ -e /" | tr "\n" " "` $dir/wav.flist > $dir/wav.flist2
   paste -d" " \
 	<(awk -F "/" '{print $NF}' $dir/wav.flist2 | sed -e "s/\.wav/.ENH/") \
 	$dir/wav.flist2 | sort > $dir/wav.scp
@@ -120,7 +124,7 @@ elif [ $mictype == "ref" ]; then
   cut -d" " -f 1 $dir/text | \
     awk -F"-" '{printf("%s %s %08.2f %08.2f\n", $0, $1, $2/100.0, $3/100.0)}' |\
     sed -e "s/_[A-Z]*\././2" |\
-    sed -e "s/ P.._/ /" > $dir/segments
+    sed -e 's/ P.._/ /' > $dir/segments
 else
   cut -d" " -f 1 $dir/text | \
     awk -F"-" '{printf("%s %s %08.2f %08.2f\n", $0, $1, $2/100.0, $3/100.0)}' |\
