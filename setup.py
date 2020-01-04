@@ -30,8 +30,8 @@ requirements = {
         "unidecode>=1.0.22",
         "editdistance==0.5.2",
         "h5py==2.9.0",
-        "tensorboard>=1.14",
-        "tensorboardX>=1.8",
+        "tensorboard>=1.14",  # For pytorch>=1.1.0
+        "tensorboardX>=1.8",  # For pytorch<1.1.0
         "pillow>=6.1.0",
         "nara_wpe>=0.0.5",
         "museval>=0.2.1",
