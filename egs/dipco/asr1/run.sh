@@ -94,12 +94,17 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     for dset in dev eval; do
         # The ref mic is the same as the worn: close-talk
-        local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
-                ${json_dir}/${dset} data/${dset}_${enhancement}_ref
+        for mictype in u01 u02 u03 u04 u05; do
+            local/prepare_data.sh --mictype ${mictype} "$PWD/${enhandir}/${dset}_${enhancement}_${mictype}" \
+                    ${json_dir}/${dset} data/${dset}_${enhancement}_ref_${mictype}
+        done
+        ddirs=$(ls -d data/${dset}_${enhancement}_ref_u0*)
+        utils/combine_data.sh data/${dset}_${enhancement}_ref ${ddirs}
+        rm -rf data/${dset}_${enhancement}_ref_u0*
     done
     # only use left channel for worn mic recognition
     # you can use both left and right channels for training
-    for dset in train dev eval; do
+    for dset in dev eval; do
         utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
         grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
         utils/fix_data_dir.sh data/${dset}_worn
