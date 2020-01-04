@@ -75,23 +75,25 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     mictype=worn
     
-    for dset in dev eval; do
-        local/prepare_data.sh --mictype ${mictype} \
-            ${audio_dir}/${dset} ${json_dir}/${dset} \
-            data/${dset}_${mictype}
-    done
+    # for dset in dev eval; do
+    #     local/prepare_data.sh --mictype ${mictype} \
+    #         ${audio_dir}/${dset} ${json_dir}/${dset} \
+    #         data/${dset}_${mictype}
+    # done
 
     enhandir=enhan
+    # for dset in dev eval; do
+    #     for mictype in u01 u02 u03 u04 u05; do
+    #         local/run_beamformit.sh --cmd "$train_cmd" \
+    #                     ${audio_dir}/${dset} \
+    #                     ${enhandir}/${dset}_${enhancement}_${mictype} \
+    #                     ${mictype} &
+    #     done
+    #     wait
+    # done
+
     for dset in dev eval; do
-        for mictype in u01 u02 u03 u04 u05 u06; do
-        local/run_beamformit.sh --cmd "$train_cmd" \
-                    ${audio_dir}/${dset} \
-                    ${enhandir}/${dset}_${enhancement}_${mictype} \
-                    ${mictype} &
-        done
-        wait
-    done
-    for dset in dev eval; do
+        # The ref mic is the same as the worn: close-talk
         local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
                 ${json_dir}/${dset} data/${dset}_${enhancement}_ref
     done

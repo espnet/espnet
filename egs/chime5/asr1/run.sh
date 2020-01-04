@@ -59,26 +59,26 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for mictype in worn u01 u02 u04 u05 u06; do
-        local/prepare_data.sh --mictype ${mictype} \
-			      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
-    done
-    #eval#for dset in dev eval; do
-    dset=dev
-    mictype=worn
-    local/prepare_data.sh --mictype ${mictype} \
-		  ${audio_dir}/${dset} ${json_dir}/${dset} \
-		  data/${dset}_${mictype}
+    # for mictype in worn u01 u02 u04 u05 u06; do
+    #     local/prepare_data.sh --mictype ${mictype} \
+	# 		      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
+    # done
+    # #eval#for dset in dev eval; do
+    # dset=dev
+    # mictype=worn
+    # local/prepare_data.sh --mictype ${mictype} \
+	# 	  ${audio_dir}/${dset} ${json_dir}/${dset} \
+	# 	  data/${dset}_${mictype}
     enhandir=enhan
-    #eval#for dset in dev eval; do
-    dset=dev
-    for mictype in u01 u02 u03 u04 u05 u06; do
-	local/run_beamformit.sh --cmd "$train_cmd" \
-			    ${audio_dir}/${dset} \
-			    ${enhandir}/${dset}_${enhancement}_${mictype} \
-			    ${mictype} &
-    done
-    wait
+    # #eval#for dset in dev eval; do
+    # dset=dev
+    # for mictype in u01 u02 u03 u04 u05 u06; do
+	# local/run_beamformit.sh --cmd "$train_cmd" \
+	# 		    ${audio_dir}/${dset} \
+	# 		    ${enhandir}/${dset}_${enhancement}_${mictype} \
+	# 		    ${mictype} &
+    # done
+    # wait
     #eval#for dset in dev eval; do
     dset=dev
     local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
@@ -87,18 +87,18 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # only use left channel for worn mic recognition
     # you can use both left and right channels for training
     #eval#for dset in train dev eval; do
-    dset=dev
-    utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
-    grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
-    utils/fix_data_dir.sh data/${dset}_worn
+    # dset=dev
+    # utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
+    # grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
+    # utils/fix_data_dir.sh data/${dset}_worn
 
-    # combine mix array and worn mics
-    # randomly extract first 100k utterances from all mics
-    # if you want to include more training data, you can increase the number of array mic utterances
-    utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
-    utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
-    utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
-    utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
+    # # combine mix array and worn mics
+    # # randomly extract first 100k utterances from all mics
+    # # if you want to include more training data, you can increase the number of array mic utterances
+    # utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
+    # utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
+    # utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
+    # utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}

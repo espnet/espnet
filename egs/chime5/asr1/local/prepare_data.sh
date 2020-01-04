@@ -87,6 +87,7 @@ elif [ $mictype == "ref" ]; then
   paste -d" " \
 	<(awk -F "/" '{print $NF}' $dir/wav.flist2 | sed -e "s/\.wav/.ENH/") \
 	$dir/wav.flist2 | sort > $dir/wav.scp
+  exit 1
 else
   # array mic case
   # convert the filenames to wav.scp format, use the basename of the file
