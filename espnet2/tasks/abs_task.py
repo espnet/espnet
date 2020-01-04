@@ -1170,9 +1170,7 @@ class AbsTask(ABC):
                 for _phase, k, _mode in best_model_criterion:
                     # e.g. _phase, k, _mode = "train", "loss", "min"
                     if reporter.has(_phase, k):
-                        best_epoch, _ = reporter.sort_epochs_and_values(
-                            _phase, k, _mode
-                        )[0]
+                        best_epoch = reporter.get_best_epoch(_phase, k, _mode)
                         # Creates sym links if it's the best result
                         if best_epoch == iepoch:
                             p = output_dir / f"{_phase}.{k}.best.pth"
@@ -1189,13 +1187,14 @@ class AbsTask(ABC):
 
                 # 6. Remove the model files excluding n-best epoch
                 _removed = []
-                nbests = [
-                    reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
-                    for ph, k, m in best_model_criterion
-                    if reporter.has(ph, k)
-                ]
-                # nbests: Set[epoch]
-                nbests = set().union(*[set(i[0] for i in v) for v in nbests])
+                # Get the union set of the n-best among multiple criterion
+                nbests = set().union(
+                    *[
+                        set(reporter.sort_epochs(ph, k, m)[:keep_n_best_checkpoints])
+                        for ph, k, m in best_model_criterion
+                        if reporter.has(ph, k)
+                    ]
+                )
                 for e in range(1, iepoch + 1):
                     p = output_dir / f"{e}epoch.pth"
                     if p.exists() and e not in nbests:
@@ -1217,14 +1216,7 @@ class AbsTask(ABC):
             # 8. Check early stopping
             if patience is not None:
                 _phase, _criterion, _mode = early_stopping_criterion
-                if not reporter.has(_phase, _criterion):
-                    raise RuntimeError(
-                        f"{_phase}.{_criterion} is not found in stats: "
-                        f"{reporter.get_all_keys()}"
-                    )
-                best_epoch, _ = reporter.sort_epochs_and_values(
-                    _phase, _criterion, _mode
-                )[0]
+                best_epoch = reporter.get_best_epoch(_phase, _criterion, _mode)
                 if iepoch - best_epoch > patience:
                     logging.info(
                         f"[Early stopping] {_phase}.{_criterion} has not been "
