@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import sys
 from pathlib import Path
+import sys
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -11,10 +11,10 @@ from typing import Union
 import configargparse
 import numpy as np
 import torch
-import yaml
 from torch.nn.parallel import data_parallel
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
