@@ -1,9 +1,9 @@
 import argparse
 import logging
-import sys
 from pathlib import Path
-from typing import Union
+import sys
 from typing import Iterable
+from typing import Union
 
 import numpy as np
 

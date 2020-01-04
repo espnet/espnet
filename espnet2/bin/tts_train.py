@@ -8,7 +8,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    """
+    """TTS training
 
     Example:
 

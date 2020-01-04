@@ -25,7 +25,7 @@ def load_pretrained_model(
     else:
 
         def get_attr(obj: Any, key: str):
-            """
+            """Get an nested attribute.
 
             >>> class A(torch.nn.Module):
             ...     def __init__(self):
