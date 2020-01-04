@@ -11,31 +11,21 @@ backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=1
 dumpdir=dump   # directory to dump full features
-N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
-resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
 
-preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
-lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
-
-# bpemode (unigram or bpe)
-nbpe=500
-bpemode=unigram
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -69,8 +59,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    mictype=worn
     
+    mictype=worn
     for dset in dev eval; do
         local/prepare_data.sh --mictype ${mictype} \
             ${audio_dir}/${dset} ${json_dir}/${dset} \
@@ -80,7 +70,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     enhandir=enhan
     for dset in dev eval; do
         for mictype in u01 u02 u03 u04 u05; do
-            local/run_beamformit.sh --cmd "$train_cmd" \
+            local/run_beamformit.sh --cmd "$train_cmd" --bmf "1 2 3 4 5 6 7"\
                         ${audio_dir}/${dset} \
                         ${enhandir}/${dset}_${enhancement}_${mictype} \
                         ${mictype} &
@@ -148,12 +138,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
 
     # dump features 
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
-    fi
-
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
