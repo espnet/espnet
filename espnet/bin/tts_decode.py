@@ -64,6 +64,11 @@ def get_parser():
                         help='Backward window size in the attention constraint')
     parser.add_argument('--forward-window', type=int, default=3,
                         help='Forward window size in the attention constraint')
+    # save related
+    parser.add_argument('--save-durations', default=False, type=strtobool,
+                        help='Whether to save durations converted from attentions')
+    parser.add_argument('--save-focus-rates', default=False, type=strtobool,
+                        help='Whether to save focus rates of attentions')
     return parser
 
 
