@@ -14,7 +14,7 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-stop_stage=100   # Processes is stopped at the specified stage.
+stop_stage=10    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
@@ -789,6 +789,35 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         done
 
     done
+
+    # Show results in Markdown syntax
+    scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
+    cat "${asr_exp}"/RESULTS.md
+
+fi
+
+
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    log "[Option] Stage 11: Pack model: ${asr_exp}/packed.tgz"
+
+    _opts=
+    if "${use_lm}"; then
+        _opts+="--lm_train_config.yaml ${lm_exp}/config.yaml "
+        _opts+="--lm_file.pth ${lm_exp}/${decode_lm} " 
+    fi
+    if [ "${feats_normalize}" = global_mvn ]; then
+        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+    fi
+    if [ "${token_type}" = bpe ]; then
+        _opts+="--option ${bpemodel} "
+    fi
+    # shellcheck disable=SC2086
+    python -m espnet2.bin.pack asr \
+        --asr_train_config.yaml "${asr_exp}"/config.yaml \
+        --asr_model_file.pth "${asr_exp}"/"${decode_asr_model}" \
+        ${_opts} \
+        --option "${asr_exp}"/RESULTS.md \
+        --outpath "${asr_exp}/packed.tgz"
 
 fi
 
