@@ -289,18 +289,21 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
-            "--cudnn_enabled", type=str2bool, default=True, help="Enable CUDNN",
+            "--cudnn_enabled",
+            type=str2bool,
+            default=torch.backends.cudnn.enabled,
+            help="Enable CUDNN",
         )
         group.add_argument(
             "--cudnn_benchmark",
             type=str2bool,
-            default=False,
+            default=torch.backends.cudnn.benchmark,
             help="Enable cudnn-benchmark mode",
         )
         group.add_argument(
             "--cudnn_deterministic",
             type=str2bool,
-            default=False,
+            default=torch.backends.cudnn.deterministic,
             help="Enable cudnn-deterministic mode",
         )
 
