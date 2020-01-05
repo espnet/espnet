@@ -20,6 +20,7 @@ from espnet.nets.chainer_backend.rnn.decoders import decoder_for
 from espnet.nets.chainer_backend.rnn.encoders import encoder_for
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -63,17 +64,7 @@ class E2E(ChainerASRInterface):
         self.eos = odim - 1
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
-        subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype.endswith("p") and not args.etype.startswith("vgg"):
-            ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
-                subsample[j] = int(ss[j])
-        else:
-            logging.warning(
-                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
-        self.subsample = subsample
+        self.subsample = get_subsample(args, mode='asr', arch='rnn')
 
         # label smoothing info
         if args.lsm_type:

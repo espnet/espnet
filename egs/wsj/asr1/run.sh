@@ -140,16 +140,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     ### Filter out short samples which lead to `loss_ctc=inf` during training
     ###  with the specified configuration.
-    # `subsample` is in ${train_config}
-    min_io_ratio=$(grep -P 'subsample' ${train_config} | grep -Po '[\d_]+' | \
-        awk '{split($0, a, "_"); prod=1; {for (i in a) prod=prod*a[i];} print prod}')
     # Samples satisfying `len(input) - len(output) * min_io_ratio < min_io_delta` will be pruned.
-    if [ -n "$min_io_ratio" ]; then
-        local/filtering_samples.py ${feat_tr_dir}/data.json \
-            --min-io-ratio $min_io_ratio \
-            ${min_io_delta:+--min-io-delta $min_io_delta} \
-            --output-json-path ${feat_tr_dir}/data.json
-    fi
+    local/filtering_samples.py \
+        --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
+        --data-json ${feat_tr_dir}/data.json \
+        --mode-subsample "asr" \
+        --arch-subsample "rnn" \
+        ${min_io_delta:+--min-io-delta $min_io_delta} \
+        --output-json-path ${feat_tr_dir}/data.json
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
