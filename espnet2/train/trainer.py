@@ -25,6 +25,7 @@ from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 
@@ -44,48 +45,6 @@ class TrainerOptions:
     log_interval: Optional[int]
     no_forward_run: bool
     distributed: bool
-
-
-def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
-    assert weight.dim() == 1, weight.size()
-    if isinstance(obj, (tuple, list)):
-        return type(obj)(recursive_sum(v, weight) for v in obj)
-    elif isinstance(obj, dict):
-        return {k: recursive_sum(v, weight) for k, v in obj.items()}
-    elif isinstance(obj, torch.Tensor):
-        assert obj.size() == weight.size(), (obj.size(), weight.size())
-        obj = (obj * weight).sum()
-        if distributed:
-            torch.distributed.all_reduce(obj, op=torch.distributed.reduce_op.SUM)
-        return obj
-    elif obj is None:
-        return None
-    else:
-        raise ValueError(type(obj))
-
-
-def recursive_divide(a, b: torch.Tensor):
-    if isinstance(a, (tuple, list)):
-        return type(a)(recursive_divide(v, b) for v in a)
-    elif isinstance(a, dict):
-        return {k: recursive_divide(v, b) for k, v in a.items()}
-    elif isinstance(a, torch.Tensor):
-        assert a.size() == b.size(), (a.size(), b.size())
-        return a / b
-    elif a is None:
-        return None
-    else:
-        raise ValueError(type(a))
-
-
-def recursive_average(obj, weight: torch.Tensor, distributed: bool = False):
-    obj = recursive_sum(obj, weight, distributed)
-    weight = weight.sum()
-    if distributed:
-        torch.distributed.all_reduce(weight, op=torch.distributed.ReduceOP.SUM)
-    # Normalize weight to be sum-to-1
-    obj = recursive_divide(obj, weight)
-    return obj, weight
 
 
 class Trainer:
@@ -154,7 +113,7 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            if ngpu <= 1:
+            if ngpu <= 1 or options.distributed:
                 # NOTE(kamo): data_parallel also should work with ngpu=1,
                 # but for debuggability it's better to keep this block.
                 loss, stats, weight = model(**batch)
@@ -162,9 +121,9 @@ class Trainer:
                 loss, stats, weight = data_parallel(
                     model, (), range(ngpu), module_kwargs=batch
                 )
-            if ngpu > 1 or options.distributed:
                 # Weighted averaging
                 loss = (loss * weight).sum() / weight.sum()
+            if ngpu > 1 or options.distributed:
                 stats, weight = recursive_average(stats, weight, options.distributed)
 
             reporter.register(stats, weight)
