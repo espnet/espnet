@@ -71,9 +71,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_mt:E2E)')
     # loss related
-    parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?',
-                        choices=['', 'unigram'],
-                        help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     # translations options to compute BLEU
