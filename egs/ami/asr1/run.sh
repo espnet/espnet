@@ -91,7 +91,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
     # common data prep
-    if [ ! -d data/local/downloads ]; then
+    if [ ! -d data/local/downloads/annotations ]; then
 	local/ami_text_prep.sh data/local/downloads
     fi
 
