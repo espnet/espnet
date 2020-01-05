@@ -42,6 +42,8 @@ if [ $# -lt 1 ] || [ $# -gt 3 ]; then
     exit 1;
 fi
 
+set -euo pipefail
+
 data=$1
 if [ $# -ge 2 ]; then
   logdir=$2

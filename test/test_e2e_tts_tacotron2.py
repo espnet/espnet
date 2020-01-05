@@ -109,7 +109,7 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
     if spc_dim is not None:
         spcs = [np.random.randn(l, spc_dim) for l in olens]
         spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
-        batch["spcs"] = spcs
+        batch["extras"] = spcs
 
     return batch
 
