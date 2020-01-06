@@ -6,11 +6,12 @@
 
 import json
 import sys
+from functools import reduce
+from operator import mul
+
 from espnet.bin.asr_train import get_parser
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.utils.dynamic_import import dynamic_import
-from functools import reduce
-from operator import mul
 
 if __name__ == '__main__':
     cmd_args = sys.argv[1:]
