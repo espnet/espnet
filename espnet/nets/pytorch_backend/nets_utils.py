@@ -392,8 +392,8 @@ def get_subsample(train_args, mode, arch):
         return subsample
 
     elif (mode == 'asr' and arch in ('rnn', 'rnn-t')) or \
-       (mode == 'mt' and arch == 'rnn') or \
-       (mode == 'st' and arch == 'rnn'):
+         (mode == 'mt' and arch == 'rnn') or \
+         (mode == 'st' and arch == 'rnn'):
         subsample = np.ones(train_args.elayers + 1, dtype=np.int)
         if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
             ss = train_args.subsample.split("_")
@@ -427,8 +427,8 @@ def get_subsample(train_args, mode, arch):
                     subsample[j] = int(ss[j])
             else:
                 logging.warning(
-                    'Encoder {}: Subsampling is not performed for vgg*. '
-                    'It is performed in max pooling layers at CNN.'.format(idx + 1))
+                    'Encoder %d: Subsampling is not performed for vgg*. '
+                    'It is performed in max pooling layers at CNN.', idx + 1)
             logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
             subsample_list.append(subsample)
         return subsample_list
