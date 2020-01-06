@@ -8,6 +8,15 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1jrMtp3opu6Vq5v9IltCt8p1t-b-OAw0Q
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_ca/cmvn.ark`
+    - e2e file: `exp/valid_train_ca_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_ca_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -33,6 +42,15 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1mJ1Hc1eklkLJRXrZYG87FzfPO5PHDVoQ
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_cy/cmvn.ark`
+    - e2e file: `exp/valid_train_cy_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_cy_pytorch_train/results/model.json`
 
 ### CER
 ```
@@ -60,6 +78,15 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1VG7h_myFFyLMZPUsNk2Ym-_4VVcyAoTP
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_de/cmvn.ark`
+    - e2e file: `exp/valid_train_de_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_de_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -85,6 +112,15 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1R8H9xYEd82b3B0i5YTXUsja8_KVJ_l4d
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_en/cmvn.ark`
+    - e2e file: `exp/valid_train_en_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_en_pytorch_train/results/model.json`
 
 ### CER
 ```
@@ -112,6 +148,16 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=13OpZ_Krnv4gR9C_jkynfZioa6y7sj3Ts
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_es/cmvn.ark`
+    - e2e file: `exp/valid_train_es_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_es_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -137,6 +183,16 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1nt0uAYBHf1LmkJSRaDnT5pjjj859Li-X
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_eu/cmvn.ark`
+    - e2e file: `exp/valid_train_eu_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_eu_pytorch_train/results/model.json`
 
 ### CER
 ```
@@ -164,6 +220,16 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=10I3Cj9NxkLZyBP2rrGgmvbHpO3Keie6y
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_fa/cmvn.ark`
+    - e2e file: `exp/valid_train_fa_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_fa_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -189,6 +255,16 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1QijqBttQz8EPy_EUVZpvfjCBteBiF4QY
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_fr/cmvn.ark`
+    - e2e file: `exp/valid_train_fr_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_fr_pytorch_train/results/model.json`
 
 ### CER
 ```
@@ -217,6 +293,15 @@
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
 
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=12oV2Tn9D3Q_T2DwUjGXjwx4m2g1xZp6C
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_it/cmvn.ark`
+    - e2e file: `exp/valid_train_it_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_it_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -242,6 +327,15 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1ylT4WazFn_mCujMnl0DZYKdFtzpSrqew
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_kab/cmvn.ark`
+    - e2e file: `exp/valid_train_kab_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_kab_pytorch_train/results/model.json`
 
 ### CER
 ```
@@ -269,6 +363,16 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1sC9VT1OuPcjNBsjT2yNtTo0c_A8-6mRo
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_ru/cmvn.ark`
+    - e2e file: `exp/valid_train_ru_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_ru_pytorch_train/results/model.json`
+
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -295,6 +399,16 @@
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
 
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=131s1Z6GHRFWGr5QFsGQEgQfMjhLHKlyS
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_tt/cmvn.ark`
+    - e2e file: `exp/valid_train_tt_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_tt_pytorch_train/results/model.json`
+    
 ### CER
 ```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -320,6 +434,16 @@
 - pytorch version: `pytorch 1.0.1`
 - Git hash: `a2181ad10929ae980c228f40533defa6904d9db0`
   - Commit date: `Mon Sep 23 22:33:20 2019 +0900`
+
+
+## Model Information
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1hkN1y8d87DN_wiGxFvZwvERd3wKpRTLd
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/valid_train_zh_TW/cmvn.ark`
+    - e2e file: `exp/valid_train_zh_TW_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/valid_train_zh_TW_pytorch_train/results/model.json`
 
 ### CER
 ```

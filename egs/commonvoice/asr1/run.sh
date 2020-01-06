@@ -100,8 +100,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in ${train_set} ${recog_set}; do
       # Remove features with too long frames in training data
       max_len=3000
-      max_chars=10000
-      remove_longshortdata.sh  --maxframes $max_len --maxchars $max_chars data/${x} data/${x}_temp
+      remove_longshortdata.sh  --maxframes $max_len data/${x} data/${x}_temp
       mv data/${x}_temp data/${x}
     done
 
