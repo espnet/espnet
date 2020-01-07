@@ -401,7 +401,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --train_shape_file "${tts_stats_dir}/train/text_shape" \
             --eval_shape_file "${tts_stats_dir}/eval/speech_shape" \
             --eval_shape_file "${tts_stats_dir}/eval/text_shape" \
-            --resume_epoch latest \
+            --resume true \
             --max_length 150 \
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
