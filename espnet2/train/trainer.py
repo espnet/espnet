@@ -124,6 +124,8 @@ class Trainer:
                 # Weighted averaging
                 loss = (loss * weight).sum() / weight.sum()
             if ngpu > 1 or options.distributed:
+                # Apply weighted averaging for stats.
+                # if distributed, this method can also apply all_reduce()
                 stats, weight = recursive_average(stats, weight, options.distributed)
 
             reporter.register(stats, weight)
