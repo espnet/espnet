@@ -9,7 +9,7 @@ def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
         return {k: recursive_sum(v, weight) for k, v in obj.items()}
     elif isinstance(obj, torch.Tensor):
         assert obj.size() == weight.size(), (obj.size(), weight.size())
-        obj = (obj * weight).sum()
+        obj = (obj * weight.type(obj.dtype)).sum()
         if distributed:
             torch.distributed.all_reduce(obj, op=torch.distributed.reduce_op.SUM)
         return obj
@@ -26,7 +26,7 @@ def recursive_divide(a, b: torch.Tensor):
         return {k: recursive_divide(v, b) for k, v in a.items()}
     elif isinstance(a, torch.Tensor):
         assert a.size() == b.size(), (a.size(), b.size())
-        return a / b
+        return a / b.type(a.dtype)
     elif a is None:
         return None
     else:
@@ -37,7 +37,7 @@ def recursive_average(obj, weight: torch.Tensor, distributed: bool = False):
     obj = recursive_sum(obj, weight, distributed)
     weight = weight.sum()
     if distributed:
-        torch.distributed.all_reduce(weight, op=torch.distributed.ReduceOP.SUM)
+        torch.distributed.all_reduce(weight, op=torch.distributed.reduce_op.SUM)
     # Normalize weight to be sum-to-1
     obj = recursive_divide(obj, weight)
     return obj, weight
