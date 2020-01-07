@@ -153,7 +153,7 @@ def test_save_stats_plot(tmp_path: Path):
         stats1 = {"aa": 0.6}
         sub.register(stats1)
 
-    reporter.save_stats_plot(tmp_path)
+    reporter.matplotlib_plot(tmp_path)
     assert (tmp_path / "aa.png").exists()
 
 

@@ -7,7 +7,17 @@ import torch.optim.lr_scheduler as L
 
 
 class AbsScheduler(ABC):
-    pass
+    @abstractmethod
+    def step(self, epoch: int = None):
+        pass
+
+    @abstractmethod
+    def state_dict(self):
+        pass
+
+    @abstractmethod
+    def load_state_dict(self, state):
+        pass
 
 
 # If you need to define custom scheduler, please inherit these classes

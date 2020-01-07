@@ -471,7 +471,7 @@ if "${use_lm}"; then
               --train_shape_file "${lm_stats_dir}/train/text_shape" \
               --eval_shape_file "${lm_stats_dir}/eval/text_shape" \
               --max_length 150 \
-              --resume_epoch latest \
+              --resume true \
               --output_dir "${lm_exp}" \
               ${_opts} ${lm_args}
 
@@ -637,7 +637,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --train_shape_file "${asr_stats_dir}/train/text_shape" \
             --eval_shape_file "${asr_stats_dir}/eval/speech_shape" \
             --eval_shape_file "${asr_stats_dir}/eval/text_shape" \
-            --resume_epoch latest \
+            --resume true \
             --max_length "${_max_length}" \
             --max_length 150 \
             --output_dir "${asr_exp}" \
