@@ -2,7 +2,6 @@
 
 """E2E-TTS decoding."""
 
-import argparse
 import logging
 from pathlib import Path
 import sys
@@ -16,15 +15,11 @@ import configargparse
 import kaldiio
 import soundfile as sf
 import torch
-from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
-import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPnetDataset
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -75,36 +70,23 @@ def tts_decode(
     set_all_random_seed(seed)
 
     # 2. Build model
-    with Path(train_config).open("r") as f:
-        train_args = yaml.safe_load(f)
-    train_args = argparse.Namespace(**train_args)
-    model = TTSTask.build_model(train_args)
-    model.load_state_dict(torch.load(model_file, map_location=device))
-    model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    model, train_args = TTSTask.build_model_from_file(train_config, model_file, device)
+    model.to(dtype=getattr(torch, dtype)).eval()
     tts = model.tts
     normalize = model.normalize
-
-    # 3. Build data-iterator
-    dataset = ESPnetDataset(
-        data_path_and_name_and_type,
-        float_dtype=dtype,
-        preprocess=TTSTask.build_preprocess_fn(train_args, False),
-    )
-    TTSTask.check_task_requirements(dataset, allow_variable_data_keys, False)
-    if key_file is None:
-        key_file, _, _ = data_path_and_name_and_type[0]
-
-    batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file,)
-
     logging.info(f"Normalization:\n{normalize}")
     logging.info(f"TTS:\n{tts}")
-    logging.info(f"Batch sampler: {batch_sampler}")
-    logging.info(f"dataset:\n{dataset}")
-    loader = DataLoader(
-        dataset=dataset,
-        batch_sampler=batch_sampler,
-        collate_fn=TTSTask.build_collate_fn(train_args),
+
+    # 3. Build data-iterator
+    loader, _, batch_sampler = TTSTask.build_non_sorted_iterator(
+        data_path_and_name_and_type,
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
         num_workers=num_workers,
+        preprocess_fn=TTSTask.build_preprocess_fn(train_args, False),
+        collate_fn=TTSTask.build_collate_fn(train_args),
+        allow_variable_data_keys=allow_variable_data_keys,
     )
 
     # 4. Build converter from spectrogram to waveform
