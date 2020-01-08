@@ -94,7 +94,7 @@ class Trainer:
     Trainer have a role to define the procedure for an epoch.
     >>> for epoch in range(max_epoch):
     ...     Trainer.train_one_epoch(...)
-    ...     Trainer.eval_one_epoch(...)
+    ...     Trainer.validate_one_epoch(...)
 
     """
 
@@ -218,7 +218,7 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
-    def eval_one_epoch(
+    def validate_one_epoch(
         cls,
         model: torch.nn.Module,
         iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],

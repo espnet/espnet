@@ -61,13 +61,13 @@ decode_tag=    # Suffix to the result dir for decoding.
 decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                # Note that it will overwrite args in decode config.
-decode_lm=eval.loss.best.pth       # Language modle path for decoding.
-decode_asr_model=eval.acc.best.pth # ASR model path for decoding.
-                                   # e.g.
-                                   # decode_asr_model=train.loss.best.pth
-                                   # decode_asr_model=3epoch/model.pth
-                                   # decode_asr_model=eval.acc.best.pth
-                                   # decode_asr_model=eval.loss.ave.pth
+decode_lm=valid.loss.best.pth       # Language modle path for decoding.
+decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
+                                    # e.g.
+                                    # decode_asr_model=train.loss.best.pth
+                                    # decode_asr_model=3epoch/model.pth
+                                    # decode_asr_model=valid.acc.best.pth
+                                    # decode_asr_model=valid.loss.ave.pth
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
@@ -428,11 +428,11 @@ if "${use_lm}"; then
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
-              --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
+              --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --batch_type const \
               --sort_in_batch none \
               --train_shape_file "${_logdir}/train.JOB.scp" \
-              --eval_shape_file "${_logdir}/dev.JOB.scp" \
+              --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
               ${_opts} ${lm_args}
 
@@ -467,9 +467,9 @@ if "${use_lm}"; then
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
-              --eval_data_path_and_name_and_type "${lm_dev_text},text,text" \
+              --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --train_shape_file "${lm_stats_dir}/train/text_shape" \
-              --eval_shape_file "${lm_stats_dir}/eval/text_shape" \
+              --valid_shape_file "${lm_stats_dir}/valid/text_shape" \
               --max_length 150 \
               --resume true \
               --output_dir "${lm_exp}" \
@@ -568,10 +568,10 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --sort_in_batch none \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --eval_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${asr_args}
 
@@ -631,12 +631,12 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --non_linguistic_symbols "${nlsyms_txt}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
             --train_shape_file "${asr_stats_dir}/train/speech_shape" \
             --train_shape_file "${asr_stats_dir}/train/text_shape" \
-            --eval_shape_file "${asr_stats_dir}/eval/speech_shape" \
-            --eval_shape_file "${asr_stats_dir}/eval/text_shape" \
+            --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
+            --valid_shape_file "${asr_stats_dir}/valid/text_shape" \
             --resume true \
             --max_length "${_max_length}" \
             --max_length 150 \
