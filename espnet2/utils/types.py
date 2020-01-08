@@ -17,7 +17,7 @@ def remove_parenthesis(value: str):
 
 
 def int_or_none(value: str) -> Optional[int]:
-    """
+    """int_or_none.
 
     Examples:
         >>> import argparse
@@ -39,7 +39,7 @@ def int_or_none(value: str) -> Optional[int]:
 
 
 def float_or_none(value: str) -> Optional[float]:
-    """
+    """float_or_none.
 
     Examples:
         >>> import argparse
@@ -61,7 +61,7 @@ def float_or_none(value: str) -> Optional[float]:
 
 
 def str_or_none(value: str) -> Optional[str]:
-    """
+    """str_or_none.
 
     Examples:
         >>> import argparse
@@ -83,7 +83,7 @@ def str_or_none(value: str) -> Optional[str]:
 
 
 def str2pair_str(value: str) -> Tuple[str, str]:
-    """
+    """str2pair_str.
 
     Examples:
         >>> import argparse
@@ -101,7 +101,7 @@ def str2pair_str(value: str) -> Tuple[str, str]:
 
 
 def str2triple_str(value: str) -> Tuple[str, str, str]:
-    """
+    """str2triple_str.
 
     Examples:
         >>> str2triple_str('abc,def ,ghi')

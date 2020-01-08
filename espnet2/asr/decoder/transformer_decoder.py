@@ -2,7 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
-from typing import Tuple, List
+from typing import List
+from typing import Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -14,7 +15,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,
+    PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
