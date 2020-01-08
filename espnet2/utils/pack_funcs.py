@@ -1,11 +1,11 @@
-import os
-import sys
-import tarfile
 from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 from io import TextIOWrapper
+import os
 from pathlib import Path
+import sys
+import tarfile
 from typing import Dict
 from typing import Iterable
 from typing import Union

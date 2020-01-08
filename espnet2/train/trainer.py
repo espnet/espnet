@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import logging
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
 from typing import Dict
 from typing import Iterable
@@ -15,8 +15,8 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn
-import torch.optim
 from torch.nn.parallel import data_parallel
+import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 

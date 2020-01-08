@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import logging
 from abc import ABC
 from abc import abstractmethod
+import logging
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -90,7 +90,7 @@ class AbsSampler(Sampler, ABC):
 
 
 class ConstantSortedBatchSampler(AbsSampler):
-    """
+    """BatchSampler with sorted samples by length.
 
     Args:
         batch_size:
@@ -162,7 +162,7 @@ class ConstantSortedBatchSampler(AbsSampler):
 
 
 class ConstantBatchSampler(AbsSampler):
-    """
+    """BatchSampler with constant batch-size.
 
     Any sorting is not done in this class,
     so no length information is required,

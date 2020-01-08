@@ -15,10 +15,10 @@ from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.utils.fileio import NpyScpReader
-from espnet2.utils.fileio import SoundScpReader
 from espnet2.utils.fileio import load_num_sequence_text
+from espnet2.utils.fileio import NpyScpReader
 from espnet2.utils.fileio import read_2column_text
+from espnet2.utils.fileio import SoundScpReader
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -50,7 +50,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 
 
 class ESPnetDataset(Dataset):
-    """
+    """Pytorch Dataset class for ESPNet.
 
     Examples:
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
@@ -104,6 +104,7 @@ class ESPnetDataset(Dataset):
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc
         """
+
         if loader_type == "sound":
             # path looks like:
             #   utta /some/where/a.wav

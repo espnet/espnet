@@ -1,13 +1,13 @@
-import argparse
-import dataclasses
-import logging
-import sys
 from abc import ABC
 from abc import abstractmethod
+import argparse
 from collections import defaultdict
+import dataclasses
 from dataclasses import is_dataclass
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
+import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -22,8 +22,8 @@ import configargparse
 import numpy as np
 import torch
 import torch.nn
-import torch.optim
 from torch.nn.parallel import data_parallel
+import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
@@ -144,8 +144,7 @@ class AbsTask(ABC):
     def build_collate_fn(
         cls, args: argparse.Namespace
     ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
-        """Return "collate_fn", which is a callable object and
-        will be given to pytorch DataLoader.
+        """Return "collate_fn", which is a callable object and given to DataLoader.
 
         >>> from torch.utils.data import DataLoader
         >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args), ...)
