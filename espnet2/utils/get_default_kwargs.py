@@ -6,7 +6,7 @@ class Invalid:
 
 
 def get_default_kwargs(func):
-    """
+    """Get the default values of the input function.
 
     Examples:
         >>> def func(a, b=3):  pass
