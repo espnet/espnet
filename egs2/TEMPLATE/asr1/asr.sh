@@ -307,7 +307,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     elif [ "${feats_type}" = fbank ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
-        log "Not yet"
+        log "${feats_type} is not supported yet."
         exit 1
 
     else
