@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import sys
 from pathlib import Path
+import sys
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -10,9 +10,9 @@ from typing import Union
 
 import configargparse
 import torch
-import yaml
 from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
+import yaml
 
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
