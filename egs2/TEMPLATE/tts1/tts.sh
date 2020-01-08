@@ -323,7 +323,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${tts_exp}/train.log'"
+    log "TTS collect_stats started... log: '${_logdir}/stats.JOB.log'"
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
@@ -333,8 +333,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type const \
-            --sort_in_batch none \
+            --batch_type const_no_sort \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \

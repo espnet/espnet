@@ -416,7 +416,7 @@ if "${use_lm}"; then
       utils/split_scp.pl "${key_file}" ${split_scps}
 
       # 2. Submit jobs
-      log "LM collect-stats started... log: '${lm_exp}/train.log'"
+      log "LM collect-stats started... log: '${_logdir}/stats.JOB.log'"
       # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
       # shellcheck disable=SC2086
       ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -429,8 +429,7 @@ if "${use_lm}"; then
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${lm_train_text},text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --batch_type const \
-              --sort_in_batch none \
+              --batch_type const_no_sort \
               --train_shape_file "${_logdir}/train.JOB.scp" \
               --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
@@ -551,7 +550,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     # 2. Submit jobs
-    log "ASR collect-stats started... log: '${asr_exp}/train.log'"
+    log "ASR collect-stats started... log: '${_logdir}/stats.JOB.log'"
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
 
@@ -564,8 +563,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --batch_type const \
-            --sort_in_batch none \
+            --batch_type const_no_sort \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
@@ -803,7 +801,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     _opts=
     if "${use_lm}"; then
         _opts+="--lm_train_config.yaml ${lm_exp}/config.yaml "
-        _opts+="--lm_file.pth ${lm_exp}/${decode_lm} " 
+        _opts+="--lm_file.pth ${lm_exp}/${decode_lm} "
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
