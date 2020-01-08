@@ -323,7 +323,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${_logdir}/stats.JOB.log'"
+    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
