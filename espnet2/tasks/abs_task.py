@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 import argparse
+import dataclasses
 from distutils.version import LooseVersion
 import logging
 from pathlib import Path
@@ -86,6 +87,18 @@ optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
+@dataclasses.dataclass
+class IteratorOption:
+    train_dtype: str
+    max_length: Sequence[int]
+    num_workers: int
+    sort_in_batch: str
+    sort_batch: str
+    distributed: bool
+    seed: int
+    allow_variable_data_keys: bool
+
+
 class AbsTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
@@ -94,6 +107,7 @@ class AbsTask(ABC):
     num_optimizers: int = 1
     trainer = Trainer
     class_choices_list: List[ClassChoices] = []
+    iterator_option = IteratorOption
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
@@ -126,7 +140,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         """Define the required names by Task
 
         This function is used by
@@ -145,7 +159,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         """Define the optional names by Task
 
         This function is used by
@@ -410,7 +424,7 @@ class AbsTask(ABC):
             help="If not given, the value of --batch_size is used",
         )
 
-        _batch_type_choices = ("const", "seq", "bin", "frame")
+        _batch_type_choices = ("const_no_sort", "const", "seq", "bin", "frame")
         group.add_argument(
             "--batch_type", type=str, default="seq", choices=_batch_type_choices,
         )
@@ -427,15 +441,15 @@ class AbsTask(ABC):
         group.add_argument("--max_length", type=int, action="append", default=[])
         group.add_argument(
             "--sort_in_batch",
-            type=str_or_none,
+            type=str,
             default="descending",
-            choices=["descending", "ascending", None],
+            choices=["descending", "ascending"],
             help="Sort the samples in each mini-batches by the sample "
             'lengths. To enable this, "shape_file" must have the length information.',
         )
         group.add_argument(
             "--sort_batch",
-            type=str_or_none,
+            type=str,
             default="descending",
             choices=["descending", "ascending"],
             help="Sort mini-batches by the sample lengths",
@@ -599,7 +613,10 @@ class AbsTask(ABC):
 
     @classmethod
     def check_task_requirements(
-        cls, dataset: ESPnetDataset, allow_variable_data_keys: bool, train: bool = True,
+        cls,
+        dataset: ESPnetDataset,
+        allow_variable_data_keys: bool,
+        inference: bool = False,
     ) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
         assert check_argument_types()
@@ -610,14 +627,16 @@ class AbsTask(ABC):
             f"Otherwise you need to set --allow_variable_data_keys true "
         )
 
-        for k in cls.required_data_names(train):
+        for k in cls.required_data_names(inference):
             if not dataset.has_name(k):
                 raise RuntimeError(
-                    f'"{cls.required_data_names(train)}" are required for'
+                    f'"{cls.required_data_names(inference)}" are required for'
                     f' {cls.__name__}. but "{dataset.names()}" are input.\n{mes}'
                 )
         if not allow_variable_data_keys:
-            task_keys = cls.required_data_names(train) + cls.optional_data_names(train)
+            task_keys = cls.required_data_names(inference) + cls.optional_data_names(
+                inference
+            )
             for k in dataset.names():
                 if k not in task_keys:
                     raise RuntimeError(
@@ -672,39 +691,46 @@ class AbsTask(ABC):
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
         # 2. Build iterator factories
-        train_iter_factory = cls.build_iter_factory(
-            args=args,
+        iterator_option = build_dataclass(cls.iterator_option, args)
+
+        train_iter_factory, _, _ = cls.build_iter_factory(
+            iterator_option=iterator_option,
             data_path_and_name_and_type=args.train_data_path_and_name_and_type,
             shape_files=args.train_shape_file,
             batch_type=args.batch_type,
             batch_size=args.batch_size,
-            sort_in_batch=args.sort_in_batch,
             train=True,
-            distributed=args.distributed,
+            preprocess_fn=cls.build_preprocess_fn(args, train=True),
+            collate_fn=cls.build_collate_fn(args),
+            num_iters_per_epoch=args.num_iters_per_epoch,
         )
         if args.valid_batch_type is None:
             args.valid_batch_type = args.batch_type
         if args.valid_batch_size is None:
             args.valid_batch_size = args.batch_size
-        valid_iter_factory = cls.build_iter_factory(
-            args=args,
+        valid_iter_factory, _, _ = cls.build_iter_factory(
+            iterator_option=iterator_option,
             data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
             shape_files=args.valid_shape_file,
             batch_type=args.valid_batch_type,
             batch_size=args.valid_batch_size,
-            sort_in_batch=args.sort_in_batch,
             train=False,
+            preprocess_fn=cls.build_preprocess_fn(args, train=False),
+            collate_fn=cls.build_collate_fn(args),
+            num_iters_per_epoch=None,
         )
         if args.num_att_plot != 0:
-            plot_attention_iter_factory = cls.build_iter_factory(
-                args=args,
+            plot_attention_iter_factory, _, _ = cls.build_iter_factory(
+                iterator_option=iterator_option,
                 data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
                 shape_files=[args.valid_shape_file[0]],
-                batch_type="const",
+                batch_type="const_no_sort",
                 batch_size=1,
-                sort_in_batch=None,
                 train=False,
+                preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                collate_fn=cls.build_collate_fn(args),
                 num_batches=args.num_att_plot,
+                num_iters_per_epoch=None,
             )
         else:
             plot_attention_iter_factory = None
@@ -855,31 +881,73 @@ class AbsTask(ABC):
     @classmethod
     def build_iter_factory(
         cls,
-        args: argparse.Namespace,
+        iterator_option: IteratorOption,
         data_path_and_name_and_type,
         shape_files: Union[Tuple[str, ...], List[str]],
         batch_type: str,
+        train: bool,
+        preprocess_fn,
         batch_size: int,
-        sort_in_batch: Optional[str],
-        train: bool = True,
+        collate_fn,
         num_batches: int = None,
-        distributed: bool = False,
-    ) -> AbsIterFactory:
+        num_iters_per_epoch: int = None,
+    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+        """Build a factory object of mini-batch iterator.
+
+        This object is invoked at every epochs to build the iterator for each epoch
+        as following:
+
+        >>> iter_factory, _, _ = cls.build_iter_factory(...)
+        >>> for epoch in range(1, max_epoch):
+        ...     for keys, batch in iter_fatory.build_iter(epoch):
+        ...         model(**batch)
+
+        The mini-batches for each epochs are fully controlled by this class.
+        Note that the random seed used for shuffling is decided as "seed + epoch" and
+        the generated mini-batches can be reproduces even when resuming.
+
+        Note that the definition of "epoch" doesn't always indicate
+        to run out of the whole training corpus.
+        "--num_iters_per_epoch" option restricts the number of iterations for each epoch
+        and the rest of samples for the originally epoch are left for the next epoch.
+        e.g. If The number of mini-batches equals to 4, the following two are same:
+
+        - 1 epoch without "--num_iters_per_epoch"
+        - 4 epoch with "--num_iters_per_epoch" == 4
+
+        Note that this iterators highly assumes seq2seq training fashion,
+        so the mini-batch includes the variable length sequences with padding.
+        If you need to use custom iterators, e.g. LM training with truncated-BPTT uses
+        fixed-length data cut off from concatenated sequences and in such case,
+        your new task may need to override this method and "IteratorOption" class
+        as following:
+
+        >>> @dataclasses.dataclass
+        ... class YourIteratorOption:
+        ...     foo: int
+        ...     bar: str
+        >>> class YourTask(AbsTask):
+        ...    iterator_option: YourIteratorOption
+        ...
+        ...    @classmethod
+        ...    def build_iter_factory(cls, ...):
+
+
+        """
         assert check_argument_types()
-        if args.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
+        if iterator_option.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
+            train_dtype = "float32"
         else:
-            dtype = args.train_dtype
+            train_dtype = iterator_option.train_dtype
 
         dataset = ESPnetDataset(
             data_path_and_name_and_type,
-            float_dtype=dtype,
-            preprocess=cls.build_preprocess_fn(args, train),
+            float_dtype=train_dtype,
+            preprocess=preprocess_fn,
         )
-        cls.check_task_requirements(dataset, args.allow_variable_data_keys)
+        cls.check_task_requirements(dataset, iterator_option.allow_variable_data_keys)
 
         if train:
-            num_iters_per_epoch = args.num_iters_per_epoch
             shuffle = True
         else:
             num_iters_per_epoch = None
@@ -888,29 +956,33 @@ class AbsTask(ABC):
         batch_sampler = build_batch_sampler(
             type=batch_type,
             shape_files=shape_files,
-            max_lengths=args.max_length,
+            max_lengths=iterator_option.max_length,
             batch_size=batch_size,
-            sort_in_batch=sort_in_batch,
-            sort_batch=args.sort_batch,
+            sort_in_batch=iterator_option.sort_in_batch,
+            sort_batch=iterator_option.sort_batch,
         )
 
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
 
-        if distributed:
+        if iterator_option.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             batches = [batch[rank::world_size] for batch in batches]
 
-        return EpochIterFactory(
-            dataset=dataset,
-            batches=batches,
-            seed=args.seed,
-            num_iters_per_epoch=num_iters_per_epoch,
-            shuffle=shuffle,
-            num_workers=args.num_workers,
-            collate_fn=cls.build_collate_fn(args),
+        return (
+            EpochIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=iterator_option.seed,
+                num_iters_per_epoch=num_iters_per_epoch,
+                shuffle=shuffle,
+                num_workers=iterator_option.num_workers,
+                collate_fn=collate_fn,
+            ),
+            dataset,
+            batches,
         )
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
@@ -957,23 +1029,26 @@ class AbsTask(ABC):
         pin_memory: bool = False,
         preprocess_fn=None,
         collate_fn=None,
-        train: bool = False,
+        inference: bool = True,
         allow_variable_data_keys: bool = False,
     ) -> Tuple[DataLoader, ESPnetDataset, ConstantBatchSampler]:
+        """Create mini-batch iterator w/o shuffling and sorting by sequence lengths.
+
+        Note that unlike the iterator for training, the shape files are not required
+        for this iterator because any sorting is not done here.
+
+        """
         assert check_argument_types()
         if dtype in ("float32", "O0", "O1", "O2", "O3"):
             dtype = "float32"
-        else:
-            dtype = dtype
 
         dataset = ESPnetDataset(
             data_path_and_name_and_type, float_dtype=dtype, preprocess=preprocess_fn,
         )
-        cls.check_task_requirements(dataset, allow_variable_data_keys, train)
+        cls.check_task_requirements(dataset, allow_variable_data_keys, inference)
 
         if key_file is None:
             key_file, _, _ = data_path_and_name_and_type[0]
-
         batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
 
         logging.info(f"Batch sampler: {batch_sampler}")
