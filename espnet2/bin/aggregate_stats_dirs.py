@@ -21,7 +21,7 @@ def aggregate_stats_dirs(
     input_dirs = [Path(p) for p in input_dir]
     output_dir = Path(output_dir)
 
-    for mode in ["train", "eval"]:
+    for mode in ["train", "valid"]:
         with (input_dirs[0] / mode / "batch_keys").open("r") as f:
             batch_keys = [l.strip() for l in f if l.strip() != ""]
         with (input_dirs[0] / mode / "stats_keys").open("r") as f:

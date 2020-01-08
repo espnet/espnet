@@ -336,9 +336,9 @@ class AbsTask(ABC):
             "--val_scheduler_criterion",
             type=str,
             nargs=2,
-            default=("eval", "loss"),
+            default=("valid", "loss"),
             help="The criterion used for the value given to the lr scheduler. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'and the criterion name. The mode specifying "min" or "max" can '
             "be changed by --scheduler_conf",
         )
@@ -346,9 +346,9 @@ class AbsTask(ABC):
             "--early_stopping_criterion",
             type=str,
             nargs=3,
-            default=("eval", "loss", "min"),
+            default=("valid", "loss", "min"),
             help="The criterion used for judging of early stopping. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
@@ -357,12 +357,12 @@ class AbsTask(ABC):
             action="append",
             default=[
                 ("train", "loss", "min"),
-                ("eval", "loss", "min"),
+                ("valid", "loss", "min"),
                 ("train", "acc", "max"),
-                ("eval", "acc", "max"),
+                ("valid", "acc", "max"),
             ],
             help="The criterion used for judging of the best model. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
@@ -437,7 +437,7 @@ class AbsTask(ABC):
             help="The mini-batch size used for training",
         )
         group.add_argument(
-            "--eval_batch_size",
+            "--valid_batch_size",
             type=int_or_none,
             default=None,
             help="If not given, the value of --batch_size is used",
@@ -448,7 +448,7 @@ class AbsTask(ABC):
             "--batch_type", type=str, default="seq", choices=_batch_type_choices,
         )
         group.add_argument(
-            "--eval_batch_type",
+            "--valid_batch_type",
             type=str_or_none,
             default=None,
             choices=_batch_type_choices + (None,),
@@ -456,7 +456,7 @@ class AbsTask(ABC):
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
-        group.add_argument("--eval_shape_file", type=str, action="append", default=[])
+        group.add_argument("--valid_shape_file", type=str, action="append", default=[])
         group.add_argument("--max_length", type=int, action="append", default=[])
         group.add_argument(
             "--sort_in_batch",
@@ -482,7 +482,7 @@ class AbsTask(ABC):
             default=[],
         )
         group.add_argument(
-            "--eval_data_path_and_name_and_type",
+            "--valid_data_path_and_name_and_type",
             type=str2triple_str,
             action="append",
             default=[],
@@ -714,24 +714,24 @@ class AbsTask(ABC):
             train=True,
             distributed=args.distributed,
         )
-        if args.eval_batch_type is None:
-            args.eval_batch_type = args.batch_type
-        if args.eval_batch_size is None:
-            args.eval_batch_size = args.batch_size
-        eval_iter_factory = cls.build_iter_factory(
+        if args.valid_batch_type is None:
+            args.valid_batch_type = args.batch_type
+        if args.valid_batch_size is None:
+            args.valid_batch_size = args.batch_size
+        valid_iter_factory = cls.build_iter_factory(
             args=args,
-            data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
-            shape_files=args.eval_shape_file,
-            batch_type=args.eval_batch_type,
-            batch_size=args.eval_batch_size,
+            data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+            shape_files=args.valid_shape_file,
+            batch_type=args.valid_batch_type,
+            batch_size=args.valid_batch_size,
             sort_in_batch=args.sort_in_batch,
             train=False,
         )
         if args.num_att_plot != 0:
             plot_attention_iter_factory = cls.build_iter_factory(
                 args=args,
-                data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
-                shape_files=[args.eval_shape_file[0]],
+                data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                shape_files=[args.valid_shape_file[0]],
                 batch_type="const",
                 batch_size=1,
                 sort_in_batch=None,
@@ -844,7 +844,7 @@ class AbsTask(ABC):
             cls.collect_stats(
                 model=model,
                 train_iter=train_iter_factory.build_iter(1, shuffle=False),
-                eval_iter=eval_iter_factory.build_iter(1, shuffle=False),
+                valid_iter=valid_iter_factory.build_iter(1, shuffle=False),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
@@ -861,7 +861,7 @@ class AbsTask(ABC):
                 optimizers=optimizers,
                 schedulers=schedulers,
                 train_iter_factory=train_iter_factory,
-                eval_iter_factory=eval_iter_factory,
+                valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
                 reporter=reporter,
                 output_dir=output_dir,
@@ -951,7 +951,7 @@ class AbsTask(ABC):
         cls,
         model: AbsE2E,
         train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        valid_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         output_dir: Path,
         ngpu: Optional[int],
         log_interval: Optional[int],
@@ -967,7 +967,7 @@ class AbsTask(ABC):
         assert check_argument_types()
 
         npy_scp_writers = {}
-        for itr, mode in zip([train_iter, eval_iter], ["train", "eval"]):
+        for itr, mode in zip([train_iter, valid_iter], ["train", "valid"]):
             if log_interval is None:
                 log_interval = max(len(itr) // 20, 10)
 
@@ -1057,7 +1057,7 @@ class AbsTask(ABC):
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
-        eval_iter_factory: AbsIterFactory,
+        valid_iter_factory: AbsIterFactory,
         plot_attention_iter_factory: AbsIterFactory,
         reporter: Reporter,
         output_dir: Path,
@@ -1097,7 +1097,7 @@ class AbsTask(ABC):
             set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
-            # 1. Train and eval for one-epoch
+            # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.trainer.train_one_epoch(
                     model=ddp_model,
@@ -1110,10 +1110,10 @@ class AbsTask(ABC):
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # Eval and att_plot don't support distributed (It can)
-                with reporter.observe("eval") as sub_reporter:
-                    cls.trainer.eval_one_epoch(
+                with reporter.observe("valid") as sub_reporter:
+                    cls.trainer.validate_one_epoch(
                         model=model,
-                        iterator=eval_iter_factory.build_iter(iepoch),
+                        iterator=valid_iter_factory.build_iter(iepoch),
                         reporter=sub_reporter,
                         options=trainer_options,
                     )
