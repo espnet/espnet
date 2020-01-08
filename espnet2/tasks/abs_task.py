@@ -22,6 +22,7 @@ import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -33,6 +34,7 @@ from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import build_batch_sampler
+from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
@@ -48,7 +50,6 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -910,4 +911,88 @@ class AbsTask(ABC):
             shuffle=shuffle,
             num_workers=args.num_workers,
             collate_fn=cls.build_collate_fn(args),
+        )
+
+    # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
+    @classmethod
+    def build_model_from_file(
+        cls,
+        config_file: Union[Path, str],
+        model_file: Union[Path, str] = None,
+        device: str = "cpu",
+    ) -> Tuple[AbsE2E, argparse.Namespace]:
+        """This method is used for inference or fine-tuning.
+
+        Args:
+            config_file: The yaml file saved when training.
+            model_file: The model file saved when training.
+            device:
+
+        """
+        assert check_argument_types()
+        config_file = Path(config_file)
+
+        with config_file.open("r") as f:
+            args = yaml.safe_load(f)
+        args = argparse.Namespace(**args)
+        model = cls.build_model(args)
+        if not isinstance(model, AbsE2E):
+            raise RuntimeError(
+                f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
+            )
+        model.to(device)
+        if model_file is not None:
+            model.load_state_dict(torch.load(model_file, map_location=device))
+
+        return model, args
+
+    @classmethod
+    def build_non_sorted_iterator(
+        cls,
+        data_path_and_name_and_type,
+        batch_size: int = 1,
+        dtype: str = "float32",
+        key_file: str = None,
+        num_workers: int = 1,
+        pin_memory: bool = False,
+        preprocess_fn=None,
+        collate_fn=None,
+        train: bool = False,
+        allow_variable_data_keys: bool = False,
+    ) -> Tuple[DataLoader, ESPnetDataset, ConstantBatchSampler]:
+        assert check_argument_types()
+        if dtype in ("float32", "O0", "O1", "O2", "O3"):
+            dtype = "float32"
+        else:
+            dtype = dtype
+
+        dataset = ESPnetDataset(
+            data_path_and_name_and_type, float_dtype=dtype, preprocess=preprocess_fn,
+        )
+        cls.check_task_requirements(dataset, allow_variable_data_keys, train)
+
+        if key_file is None:
+            key_file, _, _ = data_path_and_name_and_type[0]
+
+        batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
+
+        logging.info(f"Batch sampler: {batch_sampler}")
+        logging.info(f"dataset:\n{dataset}")
+
+        # For backward compatibility for pytorch DataLoader
+        if collate_fn is not None:
+            kwargs = dict(collate_fn=collate_fn)
+        else:
+            kwargs = {}
+
+        return (
+            DataLoader(
+                dataset=dataset,
+                batch_sampler=batch_sampler,
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                **kwargs,
+            ),
+            dataset,
+            batch_sampler,
         )

@@ -14,8 +14,8 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn
-import torch.optim
 from torch.nn.parallel import data_parallel
+import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
