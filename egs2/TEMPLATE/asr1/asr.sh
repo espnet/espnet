@@ -416,7 +416,7 @@ if "${use_lm}"; then
       utils/split_scp.pl "${key_file}" ${split_scps}
 
       # 2. Submit jobs
-      log "LM collect-stats started... log: '${_logdir}/stats.JOB.log'"
+      log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
       # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
       # shellcheck disable=SC2086
       ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -550,7 +550,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     # 2. Submit jobs
-    log "ASR collect-stats started... log: '${_logdir}/stats.JOB.log'"
+    log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
 
