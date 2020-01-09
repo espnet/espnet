@@ -1,0 +1,10 @@
+optim: sgd
+max_length: 40
+max_epoch: 20
+batch_size: 300
+lm: seq_rnn
+lm_conf:
+    rnn_type: lstm
+    nlayers: 1
+    unit: 1000
+    tie_weights: False
