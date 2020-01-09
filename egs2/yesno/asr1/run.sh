@@ -9,9 +9,9 @@ stop_stage=11
 nj=16
 decode_asr_model=eval.acc.best.pth 
 
-train_set=train_nodev
-train_dev=train_dev
-eval_set=test_yesno
+train_set="train_nodev"
+train_dev="train_dev"
+eval_set="test_yesno"
 
 asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
