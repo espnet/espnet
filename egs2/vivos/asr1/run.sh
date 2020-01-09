@@ -4,8 +4,8 @@ set -e
 set -u
 set -o pipefail
 
-stage=4
-stop_stage=6
+stage=1
+stop_stage=11
 nj=16
 decode_asr_model=eval.loss.best.pth
 
@@ -16,7 +16,7 @@ eval_set=test
 asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
-lm_config=conf/lm_word.yaml
+lm_config=conf/lm_char.yaml
 use_lm=true
 use_wordlm=false
 word_vocab_size=7184
