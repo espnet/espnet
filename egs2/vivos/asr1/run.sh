@@ -9,9 +9,9 @@ stop_stage=11
 nj=16
 decode_asr_model=eval.loss.best.pth
 
-train_set=train_nodev
-train_dev=train_dev
-eval_set=test
+train_set="train_nodev"
+train_dev="train_dev"
+eval_set="test"
 
 asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
