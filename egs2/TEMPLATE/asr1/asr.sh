@@ -34,7 +34,7 @@ fs=16k            # Sampling rate.
 token_type=bpe      # Tokenization type (char or bpe).
 nbpe=30             # The number of BPE vocabulary.
 bpemode=unigram     # Mode of BPE (unigram or bpe).
-oov="<unk>"         # Out of vocabrary symbol.
+oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
@@ -105,7 +105,7 @@ Options:
     --token_type              # Tokenization type (char or bpe, default="${token_type}").
     --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
     --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
-    --oov                     # Out of vocabrary symbol (default="${oov}").
+    --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos=                # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
@@ -370,7 +370,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --token_type word -f 2- --input - --output - \
                 --field 2- \
                 --write_vocabulary true \
-                --vocabrary_size "${word_vocab_size}" \
+                --vocabulary_size "${word_vocab_size}" \
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1" \
