@@ -15,6 +15,7 @@ from typeguard import check_return_type
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.tasks.abs_task import IteratorOption
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -65,6 +66,7 @@ class TTSTask(AbsTask):
 
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
+    iterator_option = IteratorOption
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -157,8 +159,8 @@ class TTSTask(AbsTask):
         return retval
 
     @classmethod
-    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
-        if train:
+    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+        if not inference:
             retval = ("text", "speech")
         else:
             # Inference mode
@@ -166,8 +168,8 @@ class TTSTask(AbsTask):
         return retval
 
     @classmethod
-    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
-        if train:
+    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+        if not inference:
             retval = ("spembs", "spcs")
         else:
             # Inference mode

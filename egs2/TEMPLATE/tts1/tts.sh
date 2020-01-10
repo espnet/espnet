@@ -55,11 +55,11 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=eval.loss.best.pth # Model path for decoding e.g.,
-                                # decode_model=train.loss.best.pth
-                                # decode_model=3epoch/model.pth
-                                # decode_model=eval.acc.best.pth
-                                # decode_model=eval.loss.ave.pth
+decode_model=valid.loss.best.pth # Model path for decoding e.g.,
+                                 # decode_model=train.loss.best.pth
+                                 # decode_model=3epoch/model.pth
+                                 # decode_model=valid.acc.best.pth
+                                 # decode_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -323,7 +323,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${tts_exp}/train.log'"
+    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
@@ -333,14 +333,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type const \
-            --sort_in_batch none \
+            --batch_type const_no_sort \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --eval_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${train_args}
 
@@ -395,12 +394,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${tts_stats_dir}/train/speech_shape" \
             --train_shape_file "${tts_stats_dir}/train/text_shape" \
-            --eval_shape_file "${tts_stats_dir}/eval/speech_shape" \
-            --eval_shape_file "${tts_stats_dir}/eval/text_shape" \
+            --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
+            --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
             --max_length 150 \
             --max_length ${_max_length} \
