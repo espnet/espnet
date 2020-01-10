@@ -8,7 +8,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    r"""
+    r"""ASR training.
 
     Example:
 
