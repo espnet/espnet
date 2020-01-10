@@ -202,7 +202,6 @@ class CustomUpdater(StandardUpdater):
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
             add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
-        loss.detach()  # Truncate the graph
 
         # update parameters
         self.forward_count += 1

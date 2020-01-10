@@ -17,6 +17,7 @@ import torch
 
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_mt import Reporter
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -119,7 +120,7 @@ class E2E(MTInterface, torch.nn.Module):
         self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
-        self.subsample = [1]
+        self.subsample = get_subsample(args, mode='mt', arch='transformer')
         self.reporter = Reporter()
 
         # tie source and target emeddings
