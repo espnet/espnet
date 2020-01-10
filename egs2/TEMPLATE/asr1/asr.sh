@@ -203,6 +203,9 @@ else
     exit 2
 fi
 if ${use_word_lm}; then
+    log "Error: Word LM is not supported yet"
+    exit 2
+
     lm_token_list="${wordtoken_list}"
     lm_token_type=word
 else
@@ -660,8 +663,13 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         _opts+="--config ${decode_config} "
     fi
     if "${use_lm}"; then
-        _opts+="--lm_train_config ${lm_exp}/config.yaml "
-        _opts+="--lm_file ${lm_exp}/${decode_lm} "
+        if "${use_word_lm}"; then
+            _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--word_lm_file ${lm_exp}/${decode_lm} "
+        else
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${decode_lm} "
+        fi
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
