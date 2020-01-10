@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 from distutils.version import LooseVersion
 import logging
+import os
 from pathlib import Path
 import sys
 from typing import Any
@@ -18,6 +19,7 @@ from typing import Union
 import configargparse
 import numpy as np
 import torch
+import torch.multiprocessing
 import torch.nn
 import torch.optim
 from torch.utils.data import DataLoader
@@ -39,6 +41,11 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.distributed_utils import get_master_port
+from espnet2.train.distributed_utils import get_node_rank
+from espnet2.train.distributed_utils import get_num_nodes
+from espnet2.train.distributed_utils import recommended_port
+from espnet2.train.distributed_utils import resolve_distributed_mode
 from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.epoch_iter_factory import EpochIterFactory
 from espnet2.train.reporter import Reporter
@@ -51,6 +58,12 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+    from torch.multiprocessing.spawn import ProcessContext
+else:
+    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
+
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -209,7 +222,7 @@ class AbsTask(ABC):
             "--log_level",
             type=lambda x: x.upper(),
             default="INFO",
-            choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+            choices=("ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
             help="The verbose level of logging",
         )
 
@@ -237,12 +250,6 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("distributed training related")
         group.add_argument(
-            "--distributed",
-            type=str2bool,
-            default=False,
-            help="Enable distributed training",
-        )
-        group.add_argument(
             "--dist_backend", default="nccl", type=str, help="distributed backend",
         )
         group.add_argument(
@@ -254,15 +261,52 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--dist_world_size",
-            default=-1,
+            default=1,
             type=int,
             help="number of nodes for distributed training",
         )
         group.add_argument(
             "--dist_rank",
-            type=int,
-            default=-1,
+            type=int_or_none,
+            default=None,
             help="node rank for distributed training",
+        )
+        group.add_argument(
+            # Don't start with "dist_" for compatibility to launch.py
+            "--local_rank",
+            type=int_or_none,
+            default=None,
+            help="local rank for distributed training",
+        )
+        group.add_argument(
+            "--dist_master_addr",
+            default=None,
+            type=str_or_none,
+            help="The master address for distributed training. "
+            "This value is used when dist_init_method == 'env://'",
+        )
+        group.add_argument(
+            "--dist_master_port",
+            default=None,
+            type=int_or_none,
+            help="The master port for distributed training"
+            "This value is used when dist_init_method == 'env://'",
+        )
+        group.add_argument(
+            "--dist_launcher",
+            default=None,
+            type=str_or_none,
+            choices=["slurm", "mpi", None],
+            help="The launcher type for distributed training",
+        )
+        group.add_argument(
+            "--multiprocessing_distributed",
+            default=True,
+            type=str2bool,
+            help="Use multi-processing distributed training to launch "
+            "N processes per node, which has N GPUs. This is the "
+            "fastest way to use PyTorch for either single node or "
+            "multi node data parallel training",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -652,7 +696,7 @@ class AbsTask(ABC):
         file.write(yaml_no_alias_safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
-    def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None) -> None:
+    def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
         if cls.num_optimizers != cls.trainer.num_optimizers:
             raise RuntimeError(
                 f"Task.num_optimizers != Task.trainer.num_optimizers: "
@@ -669,19 +713,83 @@ class AbsTask(ABC):
             sys.exit(0)
         cls.check_required_command_args(args)
 
+        # "distributed" is set using the other command args
+        args.distributed = resolve_distributed_mode(args)
+        if not args.distributed or not args.multiprocessing_distributed:
+            cls.main_worker(args)
+
+        else:
+            # Multi-processing distributed mode: e.g. 2node-4process-4GPU
+            # |   Host1     |    Host2    |
+            # |   Process1  |   Process2  |  <= Spawn processes
+            # |Child1|Child2|Child1|Child2|
+            # |GPU1  |GPU2  |GPU1  |GPU2  |
+
+            # See also the usage of --multiprocessing-distributed:
+            # https://github.com/pytorch/examples/blob/master/imagenet/main.py
+            num_nodes = get_num_nodes(args.dist_world_size, args.dist_launcher)
+            if num_nodes == 1:
+                args.dist_master_addr = "localhost"
+                args.dist_rank = 0
+                # Single node distributed training with multi-GPUs
+                if (
+                    args.dist_init_method == "env://"
+                    and get_master_port(args.dist_master_port) is None
+                ):
+                    # Get the unused port
+                    args.dist_master_port = recommended_port()
+
+            # Assume that nodes use same number of GPUs each other
+            args.dist_world_size = args.ngpu * num_nodes
+            node_rank = get_node_rank(args.dist_rank, args.dist_launcher)
+
+            # The following block is copied from:
+            # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
+            error_queues = []
+            processes = []
+            mp = torch.multiprocessing.get_context("spawn")
+            for i in range(args.ngpu):
+                # Copy args
+                local_args = argparse.Namespace(**vars(args))
+
+                local_args.local_rank = i
+                local_args.dist_rank = args.ngpu * node_rank + i
+                local_args.ngpu = 1
+
+                process = mp.Process(
+                    target=cls.main_worker, args=(local_args,), daemon=False,
+                )
+                process.start()
+                processes.append(process)
+                error_queues.append(mp.SimpleQueue())
+            # Loop on join until it returns True or raises an exception.
+            while not ProcessContext(processes, error_queues).join():
+                pass
+
+    @classmethod
+    def main_worker(cls, args: argparse.Namespace):
+        assert check_argument_types()
+
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
         distributed_option.init()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            if not distributed_option.distributed:
+                _rank = ""
+            else:
+                _rank = f":{distributed_option.dist_rank}"
+
             logging.basicConfig(
                 level=args.log_level,
-                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1]}{_rank}] "
+                f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
         else:
             # Suppress logging if RANK != 0
             logging.basicConfig(
                 level="ERROR",
-                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1]}:{distributed_option.dist_rank}] "
+                f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
 
         # 1. Set random-seed
@@ -699,7 +807,7 @@ class AbsTask(ABC):
             shape_files=args.train_shape_file,
             batch_type=args.batch_type,
             batch_size=args.batch_size,
-            train=True,
+            train=not args.collect_stats,
             preprocess_fn=cls.build_preprocess_fn(args, train=True),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=args.num_iters_per_epoch,
@@ -837,8 +945,8 @@ class AbsTask(ABC):
             # - Accumulate feats, square values, and the length for whitening
             collect_stats(
                 model=model,
-                train_iter=train_iter_factory.build_iter(1, shuffle=False),
-                valid_iter=valid_iter_factory.build_iter(1, shuffle=False),
+                train_iter=train_iter_factory.build_iter(1),
+                valid_iter=valid_iter_factory.build_iter(1),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
@@ -870,13 +978,14 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
             )
 
-            # Generated n-best averaged model
-            average_nbest_models(
-                reporter=reporter,
-                output_dir=output_dir,
-                best_model_criterion=args.best_model_criterion,
-                nbest=args.keep_n_best_checkpoints,
-            )
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # Generated n-best averaged model
+                average_nbest_models(
+                    reporter=reporter,
+                    output_dir=output_dir,
+                    best_model_criterion=args.best_model_criterion,
+                    nbest=args.keep_n_best_checkpoints,
+                )
 
     @classmethod
     def build_iter_factory(
@@ -947,12 +1056,6 @@ class AbsTask(ABC):
         )
         cls.check_task_requirements(dataset, iterator_option.allow_variable_data_keys)
 
-        if train:
-            shuffle = True
-        else:
-            num_iters_per_epoch = None
-            shuffle = False
-
         batch_sampler = build_batch_sampler(
             type=batch_type,
             shape_files=shape_files,
@@ -960,15 +1063,22 @@ class AbsTask(ABC):
             batch_size=batch_size,
             sort_in_batch=iterator_option.sort_in_batch,
             sort_batch=iterator_option.sort_batch,
+            drop_last=train,
         )
 
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
 
-        if iterator_option.distributed:
+        if train and iterator_option.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
             batches = [batch[rank::world_size] for batch in batches]
 
         return (
@@ -977,7 +1087,7 @@ class AbsTask(ABC):
                 batches=batches,
                 seed=iterator_option.seed,
                 num_iters_per_epoch=num_iters_per_epoch,
-                shuffle=shuffle,
+                shuffle=train,
                 num_workers=iterator_option.num_workers,
                 collate_fn=collate_fn,
             ),

@@ -1,4 +1,11 @@
+from distutils.version import LooseVersion
+
 import torch
+
+if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
+    from torch.distributed import ReduceOp
+else:
+    from torch.distributed import reduce_op as ReduceOp
 
 
 def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
@@ -11,7 +18,7 @@ def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
         assert obj.size() == weight.size(), (obj.size(), weight.size())
         obj = (obj * weight.type(obj.dtype)).sum()
         if distributed:
-            torch.distributed.all_reduce(obj, op=torch.distributed.reduce_op.SUM)
+            torch.distributed.all_reduce(obj, op=ReduceOp.SUM)
         return obj
     elif obj is None:
         return None
@@ -37,7 +44,7 @@ def recursive_average(obj, weight: torch.Tensor, distributed: bool = False):
     obj = recursive_sum(obj, weight, distributed)
     weight = weight.sum()
     if distributed:
-        torch.distributed.all_reduce(weight, op=torch.distributed.reduce_op.SUM)
+        torch.distributed.all_reduce(weight, op=ReduceOp.SUM)
     # Normalize weight to be sum-to-1
     obj = recursive_divide(obj, weight)
     return obj, weight

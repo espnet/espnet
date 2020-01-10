@@ -24,6 +24,7 @@ def build_batch_sampler(
     max_lengths: Sequence[int] = (),
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
+    drop_last: bool = False,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler
 
@@ -35,11 +36,14 @@ def build_batch_sampler(
         max_lengths: Used for "seq" mode
         sort_in_batch:
         sort_batch:
+        drop_last:
     """
     assert check_argument_types()
 
     if type == "const_no_sort":
-        retval = ConstantBatchSampler(batch_size=batch_size, key_file=shape_files[0])
+        retval = ConstantBatchSampler(
+            batch_size=batch_size, key_file=shape_files[0], drop_last=drop_last
+        )
 
     elif type == "const":
         retval = ConstantSortedBatchSampler(
@@ -47,6 +51,7 @@ def build_batch_sampler(
             shape_file=shape_files[0],
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
+            drop_last=drop_last,
         )
 
     elif type == "seq":
@@ -62,6 +67,7 @@ def build_batch_sampler(
             max_lengths=max_lengths,
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
+            drop_last=drop_last,
         )
 
     elif type == "bin":
@@ -102,12 +108,15 @@ class ConstantSortedBatchSampler(AbsSampler):
         shape_file: str,
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
+        drop_last: bool = False,
     ):
         assert check_argument_types()
+        assert batch_size > 0
         self.batch_size = batch_size
         self.shape_file = shape_file
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
+        self.drop_last = drop_last
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -124,10 +133,17 @@ class ConstantSortedBatchSampler(AbsSampler):
                 f"sort_in_batch must be either one of "
                 f"ascending, descending, or None: {sort_in_batch}"
             )
+        if len(keys) == 0:
+            raise RuntimeError(f"0 lines found: {shape_file}")
 
         # batch_list: List[Tuple[str, ...]]
+        if not self.drop_last and len(keys) % batch_size != 0:
+            N = len(keys) // batch_size + 1
+        else:
+            # Apply max() to avoid 0-batches even if drop_last=True
+            N = max(len(keys) // batch_size, 1)
         self.batch_list = [
-            tuple(keys[i : i + batch_size]) for i in range(0, len(keys), batch_size)
+            tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
         ]
 
         if len(self.batch_list) == 0:
@@ -139,6 +155,9 @@ class ConstantSortedBatchSampler(AbsSampler):
                     f"sort_batch must be ascending or descending: {sort_batch}"
                 )
             self.batch_list.reverse()
+
+        if len(self.batch_list) == 0:
+            raise RuntimeError("0 batches")
 
     def __repr__(self):
         return (
@@ -171,10 +190,12 @@ class ConstantBatchSampler(AbsSampler):
         key_file:
     """
 
-    def __init__(self, batch_size: int, key_file: str):
+    def __init__(self, batch_size: int, key_file: str, drop_last: bool = False):
         assert check_argument_types()
+        assert batch_size > 0
         self.batch_size = batch_size
         self.key_file = key_file
+        self.drop_last = drop_last
 
         # utt2shape:
         #    uttA <anything is o.k>
@@ -183,7 +204,19 @@ class ConstantBatchSampler(AbsSampler):
         if len(utt2any) == 0:
             logging.warning(f"{key_file} is empty")
         # In this case the, the first column in only used
-        self.keys = list(utt2any)
+        keys = list(utt2any)
+        if len(keys) == 0:
+            raise RuntimeError(f"0 lines found: {key_file}")
+
+        # batch_list: List[Tuple[str, ...]]
+        if not self.drop_last and len(keys) % batch_size != 0:
+            N = len(keys) // batch_size + 1
+        else:
+            # Apply max() to avoid 0-batches even if drop_last=True
+            N = max(len(keys) // batch_size, 1)
+        self.batch_list = [
+            tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+        ]
 
     def __repr__(self):
         return (
@@ -194,15 +227,10 @@ class ConstantBatchSampler(AbsSampler):
         )
 
     def __len__(self):
-        return len(self.keys)
+        return len(self.batch_list)
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
-        # batch_list: List[Tuple[str, ...]]
-        batch_list = [
-            tuple(self.keys[i : i + self.batch_size])
-            for i in range(0, len(self.keys), self.batch_size)
-        ]
-        for batch in batch_list:
+        for batch in self.batch_list:
             yield batch
 
 
@@ -215,12 +243,15 @@ class SequenceBatchSampler(AbsSampler):
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
+        drop_last: bool = False,
     ):
         assert check_argument_types()
+        assert batch_size > 0
         self.batch_size = batch_size
         self.shape_files = shape_files
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
+        self.drop_last = drop_last
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -239,6 +270,8 @@ class SequenceBatchSampler(AbsSampler):
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
         keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
+        if len(keys) == 0:
+            raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
         start = 0
         self.batch_list = []
@@ -246,6 +279,10 @@ class SequenceBatchSampler(AbsSampler):
             k = keys[start]
             factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, max_lengths))
             bs = max(min_batch_size, int(batch_size / (1 + factor)))
+
+            if self.drop_last and start + bs > len(keys) and len(self.batch_list) > 0:
+                break
+
             minibatch_keys = keys[start : start + bs]
             if sort_in_batch == "descending":
                 minibatch_keys.reverse()
@@ -259,6 +296,9 @@ class SequenceBatchSampler(AbsSampler):
             start += bs
             if start >= len(keys):
                 break
+
+        if len(self.batch_list) == 0:
+            raise RuntimeError("0 batches")
 
         if sort_batch == "ascending":
             pass

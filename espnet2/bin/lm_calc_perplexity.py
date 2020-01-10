@@ -77,7 +77,10 @@ def calc_perplexity(
     with DatadirWriter(output_dir) as writer:
         total_nll = 0.0
         total_ntokens = 0
+
+        more_than_one_iteration = False
         for keys, batch in loader:
+            more_than_one_iteration = True
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -111,6 +114,9 @@ def calc_perplexity(
                 # Write PPL of each utts for debugging or analysis
                 writer["utt2ppl"][key] = str(utt_ppl)
                 writer["utt2ntokens"][key] = str(ntoken)
+
+        if not more_than_one_iteration:
+            raise RuntimeError("DataLoader must have more than one batches")
 
         if log_base is None:
             ppl = np.exp(total_nll / total_ntokens)
