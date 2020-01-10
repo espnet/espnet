@@ -5,7 +5,7 @@ import yaml
 
 
 class NestedDictAction(argparse.Action):
-    """
+    """Action class to append items to dict object.
 
     Examples:
         >>> parser = argparse.ArgumentParser()

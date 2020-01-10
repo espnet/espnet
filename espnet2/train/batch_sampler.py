@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import logging
 from abc import ABC
 from abc import abstractmethod
+import logging
 from typing import Iterator
 from typing import List
-from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
@@ -23,7 +22,7 @@ def build_batch_sampler(
     batch_size: int,
     shape_files: Union[Tuple[str, ...], List[str]],
     max_lengths: Sequence[int] = (),
-    sort_in_batch: Optional[str] = "descending",
+    sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler
@@ -38,19 +37,17 @@ def build_batch_sampler(
         sort_batch:
     """
     assert check_argument_types()
-    if type == "const":
-        if sort_in_batch is None:
-            retval = ConstantBatchSampler(
-                batch_size=batch_size, key_file=shape_files[0],
-            )
 
-        else:
-            retval = ConstantSortedBatchSampler(
-                batch_size=batch_size,
-                shape_file=shape_files[0],
-                sort_in_batch=sort_in_batch,
-                sort_batch=sort_batch,
-            )
+    if type == "const_no_sort":
+        retval = ConstantBatchSampler(batch_size=batch_size, key_file=shape_files[0])
+
+    elif type == "const":
+        retval = ConstantSortedBatchSampler(
+            batch_size=batch_size,
+            shape_file=shape_files[0],
+            sort_in_batch=sort_in_batch,
+            sort_batch=sort_batch,
+        )
 
     elif type == "seq":
         if len(max_lengths) != len(shape_files):
@@ -90,7 +87,7 @@ class AbsSampler(Sampler, ABC):
 
 
 class ConstantSortedBatchSampler(AbsSampler):
-    """
+    """BatchSampler with sorted samples by length.
 
     Args:
         batch_size:
@@ -162,7 +159,7 @@ class ConstantSortedBatchSampler(AbsSampler):
 
 
 class ConstantBatchSampler(AbsSampler):
-    """
+    """BatchSampler with constant batch-size.
 
     Any sorting is not done in this class,
     so no length information is required,

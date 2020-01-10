@@ -13,7 +13,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class RNNEncoder(AbsEncoder):
-    """
+    """RNNEncoder class.
 
     Args:
         input_size: The number of expected features in the input

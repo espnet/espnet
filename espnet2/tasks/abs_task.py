@@ -1,17 +1,14 @@
-import argparse
-import dataclasses
-import logging
-import sys
 from abc import ABC
 from abc import abstractmethod
-from collections import defaultdict
-from dataclasses import is_dataclass
+import argparse
+import dataclasses
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
+import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -23,33 +20,30 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.main_funcs.average_nbest_models import average_nbest_models
+from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
-from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
-from espnet2.schedulers.abs_scheduler import AbsScheduler
-from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.schedulers.noam_lr import NoamLR
-from espnet2.torch_utils.device_funcs import to_device
-from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.batch_sampler import build_batch_sampler
+from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.epoch_iter_factory import EpochIterFactory
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
-from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.fileio import NpyScpWriter
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -57,11 +51,6 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -99,27 +88,15 @@ scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
 @dataclasses.dataclass
-class DistributedOption:
-    # Enable distributed Training
-    distributed: bool = False
-    # torch.distributed.Backend: "nccl", "mpi", "gloo", or "tcp"
-    dist_backend: str = "nccl"
-    # if init_method="env://",
-    # env values of "MASTER_PORT", "MASTER_ADDR", "WORLD_SIZE", and "RANK" are referred.
-    dist_init_method: str = "env://"
-    dist_world_size: int = -1
-    dist_rank: int = -1
-
-    def init(self):
-        if self.distributed:
-            torch.distributed.init_process_group(
-                backend=self.dist_backend,
-                init_method=self.dist_init_method,
-                world_size=self.dist_world_size,
-                rank=self.dist_rank,
-            )
-            self.dist_world_size = torch.distributed.get_world_size()
-            self.dist_rank = torch.distributed.get_rank()
+class IteratorOption:
+    train_dtype: str
+    max_length: Sequence[int]
+    num_workers: int
+    sort_in_batch: str
+    sort_batch: str
+    distributed: bool
+    seed: int
+    allow_variable_data_keys: bool
 
 
 class AbsTask(ABC):
@@ -130,6 +107,7 @@ class AbsTask(ABC):
     num_optimizers: int = 1
     trainer = Trainer
     class_choices_list: List[ClassChoices] = []
+    iterator_option = IteratorOption
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
@@ -144,8 +122,7 @@ class AbsTask(ABC):
     def build_collate_fn(
         cls, args: argparse.Namespace
     ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
-        """Return "collate_fn", which is a callable object and
-        will be given to pytorch DataLoader.
+        """Return "collate_fn", which is a callable object and given to DataLoader.
 
         >>> from torch.utils.data import DataLoader
         >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args), ...)
@@ -163,7 +140,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def required_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         """Define the required names by Task
 
         This function is used by
@@ -182,7 +159,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def optional_data_names(cls, train: bool = True) -> Tuple[str, ...]:
+    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         """Define the optional names by Task
 
         This function is used by
@@ -290,18 +267,21 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
-            "--cudnn_enabled", type=str2bool, default=True, help="Enable CUDNN",
+            "--cudnn_enabled",
+            type=str2bool,
+            default=torch.backends.cudnn.enabled,
+            help="Enable CUDNN",
         )
         group.add_argument(
             "--cudnn_benchmark",
             type=str2bool,
-            default=False,
+            default=torch.backends.cudnn.benchmark,
             help="Enable cudnn-benchmark mode",
         )
         group.add_argument(
             "--cudnn_deterministic",
             type=str2bool,
-            default=False,
+            default=torch.backends.cudnn.deterministic,
             help="Enable cudnn-deterministic mode",
         )
 
@@ -337,9 +317,9 @@ class AbsTask(ABC):
             "--val_scheduler_criterion",
             type=str,
             nargs=2,
-            default=("eval", "loss"),
+            default=("valid", "loss"),
             help="The criterion used for the value given to the lr scheduler. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'and the criterion name. The mode specifying "min" or "max" can '
             "be changed by --scheduler_conf",
         )
@@ -347,9 +327,9 @@ class AbsTask(ABC):
             "--early_stopping_criterion",
             type=str,
             nargs=3,
-            default=("eval", "loss", "min"),
+            default=("valid", "loss", "min"),
             help="The criterion used for judging of early stopping. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
@@ -358,12 +338,12 @@ class AbsTask(ABC):
             action="append",
             default=[
                 ("train", "loss", "min"),
-                ("eval", "loss", "min"),
+                ("valid", "loss", "min"),
                 ("train", "acc", "max"),
-                ("eval", "acc", "max"),
+                ("valid", "acc", "max"),
             ],
             help="The criterion used for judging of the best model. "
-            'Give a pair referring the phase, "train" or "eval",'
+            'Give a pair referring the phase, "train" or "valid",'
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
@@ -438,18 +418,18 @@ class AbsTask(ABC):
             help="The mini-batch size used for training",
         )
         group.add_argument(
-            "--eval_batch_size",
+            "--valid_batch_size",
             type=int_or_none,
             default=None,
             help="If not given, the value of --batch_size is used",
         )
 
-        _batch_type_choices = ("const", "seq", "bin", "frame")
+        _batch_type_choices = ("const_no_sort", "const", "seq", "bin", "frame")
         group.add_argument(
             "--batch_type", type=str, default="seq", choices=_batch_type_choices,
         )
         group.add_argument(
-            "--eval_batch_type",
+            "--valid_batch_type",
             type=str_or_none,
             default=None,
             choices=_batch_type_choices + (None,),
@@ -457,19 +437,19 @@ class AbsTask(ABC):
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
-        group.add_argument("--eval_shape_file", type=str, action="append", default=[])
+        group.add_argument("--valid_shape_file", type=str, action="append", default=[])
         group.add_argument("--max_length", type=int, action="append", default=[])
         group.add_argument(
             "--sort_in_batch",
-            type=str_or_none,
+            type=str,
             default="descending",
-            choices=["descending", "ascending", None],
+            choices=["descending", "ascending"],
             help="Sort the samples in each mini-batches by the sample "
             'lengths. To enable this, "shape_file" must have the length information.',
         )
         group.add_argument(
             "--sort_batch",
-            type=str_or_none,
+            type=str,
             default="descending",
             choices=["descending", "ascending"],
             help="Sort mini-batches by the sample lengths",
@@ -483,7 +463,7 @@ class AbsTask(ABC):
             default=[],
         )
         group.add_argument(
-            "--eval_data_path_and_name_and_type",
+            "--valid_data_path_and_name_and_type",
             type=str2triple_str,
             action="append",
             default=[],
@@ -633,7 +613,10 @@ class AbsTask(ABC):
 
     @classmethod
     def check_task_requirements(
-        cls, dataset: ESPnetDataset, allow_variable_data_keys: bool, train: bool = True,
+        cls,
+        dataset: ESPnetDataset,
+        allow_variable_data_keys: bool,
+        inference: bool = False,
     ) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
         assert check_argument_types()
@@ -644,14 +627,16 @@ class AbsTask(ABC):
             f"Otherwise you need to set --allow_variable_data_keys true "
         )
 
-        for k in cls.required_data_names(train):
+        for k in cls.required_data_names(inference):
             if not dataset.has_name(k):
                 raise RuntimeError(
-                    f'"{cls.required_data_names(train)}" are required for'
+                    f'"{cls.required_data_names(inference)}" are required for'
                     f' {cls.__name__}. but "{dataset.names()}" are input.\n{mes}'
                 )
         if not allow_variable_data_keys:
-            task_keys = cls.required_data_names(train) + cls.optional_data_names(train)
+            task_keys = cls.required_data_names(inference) + cls.optional_data_names(
+                inference
+            )
             for k in dataset.names():
                 if k not in task_keys:
                     raise RuntimeError(
@@ -693,6 +678,7 @@ class AbsTask(ABC):
                 format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
         else:
+            # Suppress logging if RANK != 0
             logging.basicConfig(
                 level="ERROR",
                 format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
@@ -705,39 +691,46 @@ class AbsTask(ABC):
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
         # 2. Build iterator factories
-        train_iter_factory = cls.build_iter_factory(
-            args=args,
+        iterator_option = build_dataclass(cls.iterator_option, args)
+
+        train_iter_factory, _, _ = cls.build_iter_factory(
+            iterator_option=iterator_option,
             data_path_and_name_and_type=args.train_data_path_and_name_and_type,
             shape_files=args.train_shape_file,
             batch_type=args.batch_type,
             batch_size=args.batch_size,
-            sort_in_batch=args.sort_in_batch,
             train=True,
-            distributed=args.distributed,
+            preprocess_fn=cls.build_preprocess_fn(args, train=True),
+            collate_fn=cls.build_collate_fn(args),
+            num_iters_per_epoch=args.num_iters_per_epoch,
         )
-        if args.eval_batch_type is None:
-            args.eval_batch_type = args.batch_type
-        if args.eval_batch_size is None:
-            args.eval_batch_size = args.batch_size
-        eval_iter_factory = cls.build_iter_factory(
-            args=args,
-            data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
-            shape_files=args.eval_shape_file,
-            batch_type=args.eval_batch_type,
-            batch_size=args.eval_batch_size,
-            sort_in_batch=args.sort_in_batch,
+        if args.valid_batch_type is None:
+            args.valid_batch_type = args.batch_type
+        if args.valid_batch_size is None:
+            args.valid_batch_size = args.batch_size
+        valid_iter_factory, _, _ = cls.build_iter_factory(
+            iterator_option=iterator_option,
+            data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+            shape_files=args.valid_shape_file,
+            batch_type=args.valid_batch_type,
+            batch_size=args.valid_batch_size,
             train=False,
+            preprocess_fn=cls.build_preprocess_fn(args, train=False),
+            collate_fn=cls.build_collate_fn(args),
+            num_iters_per_epoch=None,
         )
         if args.num_att_plot != 0:
-            plot_attention_iter_factory = cls.build_iter_factory(
-                args=args,
-                data_path_and_name_and_type=args.eval_data_path_and_name_and_type,
-                shape_files=[args.eval_shape_file[0]],
-                batch_type="const",
+            plot_attention_iter_factory, _, _ = cls.build_iter_factory(
+                iterator_option=iterator_option,
+                data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                shape_files=[args.valid_shape_file[0]],
+                batch_type="const_no_sort",
                 batch_size=1,
-                sort_in_batch=None,
                 train=False,
+                preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                collate_fn=cls.build_collate_fn(args),
                 num_batches=args.num_att_plot,
+                num_iters_per_epoch=None,
             )
         else:
             plot_attention_iter_factory = None
@@ -842,10 +835,10 @@ class AbsTask(ABC):
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
-            cls.collect_stats(
+            collect_stats(
                 model=model,
                 train_iter=train_iter_factory.build_iter(1, shuffle=False),
-                eval_iter=eval_iter_factory.build_iter(1, shuffle=False),
+                valid_iter=valid_iter_factory.build_iter(1, shuffle=False),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
@@ -857,12 +850,12 @@ class AbsTask(ABC):
             trainer_options = cls.trainer.build_options(args)
 
             # Start training
-            cls.run(
+            cls.trainer.run(
                 model=model,
                 optimizers=optimizers,
                 schedulers=schedulers,
                 train_iter_factory=train_iter_factory,
-                eval_iter_factory=eval_iter_factory,
+                valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
                 reporter=reporter,
                 output_dir=output_dir,
@@ -878,7 +871,7 @@ class AbsTask(ABC):
             )
 
             # Generated n-best averaged model
-            cls.average_nbest_models(
+            average_nbest_models(
                 reporter=reporter,
                 output_dir=output_dir,
                 best_model_criterion=args.best_model_criterion,
@@ -888,31 +881,73 @@ class AbsTask(ABC):
     @classmethod
     def build_iter_factory(
         cls,
-        args: argparse.Namespace,
+        iterator_option: IteratorOption,
         data_path_and_name_and_type,
         shape_files: Union[Tuple[str, ...], List[str]],
         batch_type: str,
+        train: bool,
+        preprocess_fn,
         batch_size: int,
-        sort_in_batch: Optional[str],
-        train: bool = True,
+        collate_fn,
         num_batches: int = None,
-        distributed: bool = False,
-    ) -> AbsIterFactory:
+        num_iters_per_epoch: int = None,
+    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+        """Build a factory object of mini-batch iterator.
+
+        This object is invoked at every epochs to build the iterator for each epoch
+        as following:
+
+        >>> iter_factory, _, _ = cls.build_iter_factory(...)
+        >>> for epoch in range(1, max_epoch):
+        ...     for keys, batch in iter_fatory.build_iter(epoch):
+        ...         model(**batch)
+
+        The mini-batches for each epochs are fully controlled by this class.
+        Note that the random seed used for shuffling is decided as "seed + epoch" and
+        the generated mini-batches can be reproduces even when resuming.
+
+        Note that the definition of "epoch" doesn't always indicate
+        to run out of the whole training corpus.
+        "--num_iters_per_epoch" option restricts the number of iterations for each epoch
+        and the rest of samples for the originally epoch are left for the next epoch.
+        e.g. If The number of mini-batches equals to 4, the following two are same:
+
+        - 1 epoch without "--num_iters_per_epoch"
+        - 4 epoch with "--num_iters_per_epoch" == 4
+
+        Note that this iterators highly assumes seq2seq training fashion,
+        so the mini-batch includes the variable length sequences with padding.
+        If you need to use custom iterators, e.g. LM training with truncated-BPTT uses
+        fixed-length data cut off from concatenated sequences and in such case,
+        your new task may need to override this method and "IteratorOption" class
+        as following:
+
+        >>> @dataclasses.dataclass
+        ... class YourIteratorOption:
+        ...     foo: int
+        ...     bar: str
+        >>> class YourTask(AbsTask):
+        ...    iterator_option: YourIteratorOption
+        ...
+        ...    @classmethod
+        ...    def build_iter_factory(cls, ...):
+
+
+        """
         assert check_argument_types()
-        if args.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
+        if iterator_option.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
+            train_dtype = "float32"
         else:
-            dtype = args.train_dtype
+            train_dtype = iterator_option.train_dtype
 
         dataset = ESPnetDataset(
             data_path_and_name_and_type,
-            float_dtype=dtype,
-            preprocess=cls.build_preprocess_fn(args, train),
+            float_dtype=train_dtype,
+            preprocess=preprocess_fn,
         )
-        cls.check_task_requirements(dataset, args.allow_variable_data_keys)
+        cls.check_task_requirements(dataset, iterator_option.allow_variable_data_keys)
 
         if train:
-            num_iters_per_epoch = args.num_iters_per_epoch
             shuffle = True
         else:
             num_iters_per_epoch = None
@@ -921,369 +956,118 @@ class AbsTask(ABC):
         batch_sampler = build_batch_sampler(
             type=batch_type,
             shape_files=shape_files,
-            max_lengths=args.max_length,
+            max_lengths=iterator_option.max_length,
             batch_size=batch_size,
-            sort_in_batch=sort_in_batch,
-            sort_batch=args.sort_batch,
+            sort_in_batch=iterator_option.sort_in_batch,
+            sort_batch=iterator_option.sort_batch,
         )
 
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
 
-        if distributed:
+        if iterator_option.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             batches = [batch[rank::world_size] for batch in batches]
 
-        return EpochIterFactory(
-            dataset=dataset,
-            batches=batches,
-            seed=args.seed,
-            num_iters_per_epoch=num_iters_per_epoch,
-            shuffle=shuffle,
-            num_workers=args.num_workers,
-            collate_fn=cls.build_collate_fn(args),
+        return (
+            EpochIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=iterator_option.seed,
+                num_iters_per_epoch=num_iters_per_epoch,
+                shuffle=shuffle,
+                num_workers=iterator_option.num_workers,
+                collate_fn=collate_fn,
+            ),
+            dataset,
+            batches,
         )
 
+    # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
     @classmethod
-    @torch.no_grad()
-    def collect_stats(
+    def build_model_from_file(
         cls,
-        model: AbsE2E,
-        train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        eval_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        output_dir: Path,
-        ngpu: Optional[int],
-        log_interval: Optional[int],
-        write_collected_feats: bool,
-    ) -> None:
-        """Perform on collect_stats mode.
+        config_file: Union[Path, str],
+        model_file: Union[Path, str] = None,
+        device: str = "cpu",
+    ) -> Tuple[AbsE2E, argparse.Namespace]:
+        """This method is used for inference or fine-tuning.
 
-        Running for deriving the shape information from data
-        and gathering statistics.
-        This method is used before executing train().
+        Args:
+            config_file: The yaml file saved when training.
+            model_file: The model file saved when training.
+            device:
 
         """
         assert check_argument_types()
+        config_file = Path(config_file)
 
-        npy_scp_writers = {}
-        for itr, mode in zip([train_iter, eval_iter], ["train", "eval"]):
-            if log_interval is None:
-                log_interval = max(len(itr) // 20, 10)
+        with config_file.open("r") as f:
+            args = yaml.safe_load(f)
+        args = argparse.Namespace(**args)
+        model = cls.build_model(args)
+        if not isinstance(model, AbsE2E):
+            raise RuntimeError(
+                f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
+            )
+        model.to(device)
+        if model_file is not None:
+            model.load_state_dict(torch.load(model_file, map_location=device))
 
-            sum_dict = defaultdict(lambda: 0)
-            sq_dict = defaultdict(lambda: 0)
-            count_dict = defaultdict(lambda: 0)
-
-            with DatadirWriter(output_dir / mode) as datadir_writer:
-                for iiter, (keys, batch) in enumerate(itr, 1):
-                    batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
-
-                    # 1. Write shape file
-                    for name in batch:
-                        if name.endswith("_lengths"):
-                            continue
-                        for i, (key, data) in enumerate(zip(keys, batch[name])):
-                            if f"{name}_lengths" in batch:
-                                lg = int(batch[f"{name}_lengths"][i])
-                                data = data[:lg]
-                            datadir_writer[f"{name}_shape"][key] = ",".join(
-                                map(str, data.shape)
-                            )
-
-                    # 2. Extract feats
-                    if ngpu <= 1:
-                        data = model.collect_feats(**batch)
-                    else:
-                        # Note that data_parallel can parallelize only "forward()"
-                        data = data_parallel(
-                            ForwardAdaptor(model, "collect_feats"),
-                            (),
-                            range(ngpu),
-                            module_kwargs=batch,
-                        )
-
-                    # 3. Calculate sum and square sum
-                    for key, v in data.items():
-                        for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
-                            # Truncate zero-padding region
-                            if f"{key}_lengths" in data:
-                                length = data[f"{key}_lengths"][i]
-                                # seq: (Length, Dim, ...)
-                                seq = seq[:length]
-                            else:
-                                # seq: (Dim, ...) -> (1, Dim, ...)
-                                seq = seq[None]
-                            # Accumulate value, its square, and count
-                            sum_dict[key] += seq.sum(0)
-                            sq_dict[key] += (seq ** 2).sum(0)
-                            count_dict[key] += len(seq)
-
-                            # 4. [Option] Write derived features as npy format file.
-                            if write_collected_feats:
-                                # Instantiate NpyScpWriter for the first iteration
-                                if (key, mode) not in npy_scp_writers:
-                                    p = output_dir / mode / "collect_feats"
-                                    npy_scp_writers[(key, mode)] = NpyScpWriter(
-                                        p / f"data_{key}", p / f"{key}.scp"
-                                    )
-                                # Save array as npy file
-                                npy_scp_writers[(key, mode)][uttid] = seq
-
-                    if iiter % log_interval == 0:
-                        logging.info(f"Niter: {iiter}")
-
-            for key in sum_dict:
-                np.savez(
-                    output_dir / mode / f"{key}_stats.npz",
-                    count=count_dict[key],
-                    sum=sum_dict[key],
-                    sum_square=sq_dict[key],
-                )
-
-            # batch_keys and stats_keys are used by aggregate_stats_dirs.py
-            with (output_dir / mode / "batch_keys").open("w") as f:
-                f.write(
-                    "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
-                    + "\n"
-                )
-            with (output_dir / mode / "stats_keys").open("w") as f:
-                f.write("\n".join(sum_dict) + "\n")
+        return model, args
 
     @classmethod
-    def run(
+    def build_non_sorted_iterator(
         cls,
-        model: AbsE2E,
-        optimizers: Sequence[torch.optim.Optimizer],
-        schedulers: Sequence[Optional[AbsScheduler]],
-        train_iter_factory: AbsIterFactory,
-        eval_iter_factory: AbsIterFactory,
-        plot_attention_iter_factory: AbsIterFactory,
-        reporter: Reporter,
-        output_dir: Path,
-        max_epoch: int,
-        seed: int,
-        patience: Optional[int],
-        keep_n_best_checkpoints: int,
-        early_stopping_criterion: Sequence[str],
-        best_model_criterion: Sequence[Sequence[str]],
-        val_scheduler_criterion: Sequence[str],
-        trainer_options,
-        distributed_option: DistributedOption,
-    ) -> None:
-        """Perform training. This method performs the main process of training."""
+        data_path_and_name_and_type,
+        batch_size: int = 1,
+        dtype: str = "float32",
+        key_file: str = None,
+        num_workers: int = 1,
+        pin_memory: bool = False,
+        preprocess_fn=None,
+        collate_fn=None,
+        inference: bool = True,
+        allow_variable_data_keys: bool = False,
+    ) -> Tuple[DataLoader, ESPnetDataset, ConstantBatchSampler]:
+        """Create mini-batch iterator w/o shuffling and sorting by sequence lengths.
+
+        Note that unlike the iterator for training, the shape files are not required
+        for this iterator because any sorting is not done here.
+
+        """
         assert check_argument_types()
-        # NOTE(kamo): Don't check the type more strictly as far trainer_options
-        assert is_dataclass(trainer_options), type(trainer_options)
+        if dtype in ("float32", "O0", "O1", "O2", "O3"):
+            dtype = "float32"
 
-        start_epoch = reporter.get_epoch() + 1
-        if start_epoch == max_epoch + 1:
-            logging.warning(
-                f"The training has already reached at max_epoch: {start_epoch}"
-            )
+        dataset = ESPnetDataset(
+            data_path_and_name_and_type, float_dtype=dtype, preprocess=preprocess_fn,
+        )
+        cls.check_task_requirements(dataset, allow_variable_data_keys, inference)
 
-        if distributed_option.distributed:
-            # Use torch DDP instead of apex DDP
-            # https://github.com/NVIDIA/apex/issues/494
-            ddp_model = torch.nn.parallel.DistributedDataParallel(
-                model, device_ids=list(range(trainer_options.ngpu))
-            )
+        if key_file is None:
+            key_file, _, _ = data_path_and_name_and_type[0]
+        batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
+
+        logging.info(f"Batch sampler: {batch_sampler}")
+        logging.info(f"dataset:\n{dataset}")
+
+        # For backward compatibility for pytorch DataLoader
+        if collate_fn is not None:
+            kwargs = dict(collate_fn=collate_fn)
         else:
-            ddp_model = model
+            kwargs = {}
 
-        summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
-        for iepoch in range(start_epoch, max_epoch + 1):
-            logging.info(f"{iepoch}epoch started")
-            set_all_random_seed(seed + iepoch)
-
-            reporter.set_epoch(iepoch)
-            # 1. Train and eval for one-epoch
-            with reporter.observe("train") as sub_reporter:
-                all_steps_are_invalid = cls.trainer.train_one_epoch(
-                    model=ddp_model,
-                    optimizers=optimizers,
-                    schedulers=schedulers,
-                    iterator=train_iter_factory.build_iter(iepoch),
-                    reporter=sub_reporter,
-                    options=trainer_options,
-                )
-
-            if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # Eval and att_plot don't support distributed (It can)
-                with reporter.observe("eval") as sub_reporter:
-                    cls.trainer.eval_one_epoch(
-                        model=model,
-                        iterator=eval_iter_factory.build_iter(iepoch),
-                        reporter=sub_reporter,
-                        options=trainer_options,
-                    )
-
-                if plot_attention_iter_factory is not None:
-                    with reporter.observe("att_plot") as sub_reporter:
-                        cls.trainer.plot_attention(
-                            model=model,
-                            output_dir=output_dir / "att_ws",
-                            summary_writer=summary_writer,
-                            iterator=plot_attention_iter_factory.build_iter(iepoch),
-                            reporter=sub_reporter,
-                            options=trainer_options,
-                        )
-
-            # 2. LR Scheduler step
-            for scheduler in schedulers:
-                if isinstance(scheduler, AbsValEpochStepScheduler):
-                    _phase, _criterion = val_scheduler_criterion
-                    if not reporter.has(_phase, _criterion):
-                        raise RuntimeError(
-                            f"{_phase}.{_criterion} is not found in stats: "
-                            f"{reporter.get_all_keys()}"
-                        )
-                    val = reporter.get_value(_phase, _criterion)
-                    scheduler.step(val)
-                elif isinstance(scheduler, AbsEpochStepScheduler):
-                    scheduler.step()
-
-            if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # 3. Report the results
-                reporter.logging()
-                reporter.matplotlib_plot(output_dir / "images")
-                reporter.tensorboard_add_scalar(summary_writer)
-
-                # 4. Save/Update the checkpoint
-                torch.save(
-                    {
-                        "model": model.state_dict(),
-                        "reporter": reporter.state_dict(),
-                        "optimizers": [o.state_dict() for o in optimizers],
-                        "schedulers": [
-                            s.state_dict() if s is not None else None
-                            for s in schedulers
-                        ],
-                    },
-                    output_dir / "checkpoint.pth",
-                )
-
-                # 5. Save the model and update the link to the best model
-                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
-                _improved = []
-                for _phase, k, _mode in best_model_criterion:
-                    # e.g. _phase, k, _mode = "train", "loss", "min"
-                    if reporter.has(_phase, k):
-                        best_epoch, _ = reporter.sort_epochs_and_values(
-                            _phase, k, _mode
-                        )[0]
-                        # Creates sym links if it's the best result
-                        if best_epoch == iepoch:
-                            p = output_dir / f"{_phase}.{k}.best.pth"
-                            if p.is_symlink() or p.exists():
-                                p.unlink()
-                            p.symlink_to(f"{iepoch}epoch.pth")
-                            _improved.append(f"{_phase}.{k}")
-                if len(_improved) == 0:
-                    logging.info(f"There are no improvements in this epoch")
-                else:
-                    logging.info(
-                        f"The best model has been updated: " + ", ".join(_improved)
-                    )
-
-                # 6. Remove the model files excluding n-best epoch
-                _removed = []
-                nbests = [
-                    reporter.sort_epochs_and_values(ph, k, m)[:keep_n_best_checkpoints]
-                    for ph, k, m in best_model_criterion
-                    if reporter.has(ph, k)
-                ]
-                # nbests: Set[epoch]
-                nbests = set().union(*[set(i[0] for i in v) for v in nbests])
-                for e in range(1, iepoch + 1):
-                    p = output_dir / f"{e}epoch.pth"
-                    if p.exists() and e not in nbests:
-                        p.unlink()
-                        _removed.append(str(p))
-                if len(_removed) != 0:
-                    logging.info(
-                        f"The model files were removed: " + ", ".join(_removed)
-                    )
-
-            # 7. If any updating haven't happen, stops the training
-            if all_steps_are_invalid:
-                logging.warning(
-                    f"The gradients at all steps are invalid in this epoch. "
-                    f"Something seems wrong. This training was stopped at {iepoch}epoch"
-                )
-                break
-
-            # 8. Check early stopping
-            if patience is not None:
-                _phase, _criterion, _mode = early_stopping_criterion
-                if not reporter.has(_phase, _criterion):
-                    raise RuntimeError(
-                        f"{_phase}.{_criterion} is not found in stats: "
-                        f"{reporter.get_all_keys()}"
-                    )
-                best_epoch, _ = reporter.sort_epochs_and_values(
-                    _phase, _criterion, _mode
-                )[0]
-                if iepoch - best_epoch > patience:
-                    logging.info(
-                        f"[Early stopping] {_phase}.{_criterion} has not been "
-                        f"improved {iepoch - best_epoch} epochs continuously. "
-                        f"The training was stopped at {iepoch}epoch"
-                    )
-                    break
-
-        else:
-            logging.info(f"The training was finished at {max_epoch} epochs ")
-
-    @classmethod
-    @torch.no_grad()
-    def average_nbest_models(
-        cls,
-        output_dir: Path,
-        reporter: Reporter,
-        best_model_criterion: Sequence[Sequence[str]],
-        nbest: int,
-    ) -> None:
-        assert check_argument_types()
-        # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
-        nbest_epochs = [
-            (ph, k, reporter.sort_epochs_and_values(ph, k, m)[:nbest])
-            for ph, k, m in best_model_criterion
-            if reporter.has(ph, k)
-        ]
-
-        _loaded = {}
-        for ph, cr, epoch_and_values in nbest_epochs:
-            # Note that len(epoch_and_values) doesn't always equal to nbest.
-
-            op = output_dir / f"{ph}.{cr}.ave_{len(epoch_and_values)}best.pth"
-            logging.info(
-                f"Averaging {len(epoch_and_values)}best models: "
-                f'criterion="{ph}.{cr}": {op}'
-            )
-
-            avg = None
-            # 2.a Averaging model
-            for e, _ in epoch_and_values:
-                if e not in _loaded:
-                    _loaded[e] = torch.load(
-                        output_dir / f"{e}epoch.pth", map_location="cpu",
-                    )
-                states = _loaded[e]
-
-                if avg is None:
-                    avg = states
-                else:
-                    # Accumulated
-                    for k in avg:
-                        avg[k] += states[k]
-            for k in avg:
-                avg[k] /= len(epoch_and_values)
-
-            # 2.b Save the ave model and create a symlink
-            torch.save(avg, op)
-            sym_op = output_dir / f"{ph}.{cr}.ave.pth"
-            if sym_op.is_symlink() or sym_op.exists():
-                sym_op.unlink()
-            sym_op.symlink_to(op.name)
+        return (
+            DataLoader(
+                dataset=dataset,
+                batch_sampler=batch_sampler,
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                **kwargs,
+            ),
+            dataset,
+            batch_sampler,
+        )

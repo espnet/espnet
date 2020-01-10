@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import dataclasses
-import datetime
-import logging
-import time
-import warnings
 from collections import defaultdict
 from contextlib import contextmanager
+import dataclasses
+import datetime
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
+import time
 from typing import ContextManager
 from typing import Dict
 from typing import List
@@ -16,6 +15,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+import warnings
 
 import humanfriendly
 import numpy as np
@@ -114,7 +114,7 @@ class WeightedAverage(ReportedValue):
 
 
 class SubReporter:
-    """This class is used in Reporter
+    """This class is used in Reporter.
 
     See the docstring of Reporter for the usage.
     """
@@ -129,7 +129,7 @@ class SubReporter:
         self._finished = False
 
     def get_total_count(self) -> int:
-        """Returns the number of iterations over all epochs"""
+        """Returns the number of iterations over all epochs."""
         return self.total_count
 
     def get_epoch(self) -> int:
@@ -187,7 +187,7 @@ class SubReporter:
 
 
 class Reporter:
-    """
+    """Reporter class.
 
     Examples:
 
@@ -279,6 +279,8 @@ class Reporter:
         """
         if mode not in ("min", "max"):
             raise ValueError(f"mode must min or max: {mode}")
+        if not self.has(key, key2):
+            raise KeyError(f"{key}.{key2} is not found: {self.get_all_keys()}")
 
         # iterate from the last epoch
         values = [(e, self.stats[e][key][key2]) for e in self.stats]
@@ -288,6 +290,15 @@ class Reporter:
         else:
             values = sorted(values, key=lambda x: -x[1])
         return values
+
+    def sort_epochs(self, key: str, key2: str, mode: str) -> List[int]:
+        return [e for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def sort_values(self, key: str, key2: str, mode: str) -> List[float]:
+        return [v for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def get_best_epoch(self, key: str, key2: str, mode: str, nbest: int = 0) -> int:
+        return self.sort_epochs(key, key2, mode)[nbest]
 
     def has(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
