@@ -18,6 +18,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LIBRISPEECH=
     VOXFORGE=
     VIVOS=
+    YESNO=
 
 else
     WSJ0=
@@ -38,6 +39,7 @@ else
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
     VOXFORGE=downloads
-    VIVOS=
+    VIVOS=downloads
+    YESNO=downloads
 
 fi
