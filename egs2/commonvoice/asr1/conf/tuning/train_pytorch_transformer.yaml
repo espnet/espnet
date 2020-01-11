@@ -44,4 +44,4 @@ scheduler_conf:
     warmup_steps: 25000
 
 # others:
-init: "xavier_normal" # previous version uses pytorch normalization
+init: chainer
