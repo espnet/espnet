@@ -21,8 +21,6 @@ use_lm=true
 use_wordlm=false
 word_vocab_size=7184
 
-nlsyms_txt=data/nlsyms.txt
-
 ./asr.sh                                        \
     --stage ${stage}                            \
     --stop_stage ${stop_stage}                  \
@@ -30,7 +28,6 @@ nlsyms_txt=data/nlsyms.txt
     --decode_asr_model ${decode_asr_model}      \
     --feats_type fbank_pitch                    \
     --token_type char                           \
-    --nlsyms_txt ${nlsyms_txt}                  \
     --use_lm ${use_lm}                          \
     --use_word_lm ${use_wordlm}                 \
     --word_vocab_size ${word_vocab_size}        \

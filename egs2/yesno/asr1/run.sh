@@ -16,8 +16,6 @@ eval_set="test_yesno"
 asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
-nlsyms_txt=data/nlsyms.txt
-
 ./asr.sh                                        \
     --stage ${stage}                            \
     --stop_stage ${stop_stage}                  \
@@ -25,7 +23,6 @@ nlsyms_txt=data/nlsyms.txt
     --decode_asr_model ${decode_asr_model}      \
     --feats_type fbank_pitch                    \
     --token_type char                           \
-    --nlsyms_txt ${nlsyms_txt}                  \
     --use_lm false                              \
     --asr_config "${asr_config}"                \
     --decode_config "${decode_config}"          \

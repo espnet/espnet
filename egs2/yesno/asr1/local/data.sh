@@ -13,12 +13,6 @@ SECONDS=0
 stage=-1
 stop_stage=1
 
-datadir=./downloads
-yesno_root=${datadir}/waves_yesno
-data_url=http://www.openslr.org/resources/1/waves_yesno.tar.gz
-
-ndev_utt=2
-
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -27,8 +21,15 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
+. ./db.sh
 . ./path.sh
 . ./cmd.sh
+
+datadir=${YESNO}
+yesno_root=${datadir}/waves_yesno
+data_url=http://www.openslr.org/resources/1/waves_yesno.tar.gz
+
+ndev_utt=2
 
 train_yesno="train_yesno"
 train_set="train_nodev"
@@ -95,8 +96,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cat data/$x/text | awk '{printf("%s global\n", $1);}' > data/$x/utt2spk
         utils/utt2spk_to_spk2utt.pl <data/$x/utt2spk >data/$x/spk2utt
     done
-
-    echo "<blank>" > data/nlsyms.txt
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
