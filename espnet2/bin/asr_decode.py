@@ -193,8 +193,10 @@ def recog(
                 hyp = nbest_hyps[n - 1]
                 assert isinstance(hyp, Hypothesis), type(hyp)
 
-                # remove sos/eos, blank and get results
+                # remove sos/eos and get results
                 token_int = hyp.yseq[1:-1].tolist()
+
+                # remove blank symbol id, which is assumed to be 0
                 token_int = list(filter(lambda x: x != 0, token_int))
 
                 # Change integer-ids to tokens
