@@ -1,0 +1,1 @@
+../../../../egs/babel/asr1/local/run_all.sh

@@ -1,0 +1,42 @@
+# network architecture
+# encoder related
+ecnoder: rnn
+encoder_conf:
+    rnn_type: lstm
+    bidirectional: True
+    use_projection: True
+    num_layers: 6
+    hidden_size: 320
+    output_size: 320
+subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
+# decoder related
+decoder: rnn
+decoder_conf:
+    num_layers: 1
+    hidden_size: 300
+    sampling_probability: 0.0
+    aheads: 4
+    atype: location
+    awin: 5
+    adim: 320
+    aconv_chans: 10
+    aconv_filts: 100
+
+
+# hybrid CTC/attention
+e2e_conf:
+    ctc_weight: 1.0i
+    lsm_weight: 0.05
+
+
+# minibatch related
+batch_size: 30
+max_length:
+    - 800
+    - 150
+
+# optimization related
+optim: adadelta
+max_epoch: 15
+patience: 3
+
