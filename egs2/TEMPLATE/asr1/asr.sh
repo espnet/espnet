@@ -105,7 +105,7 @@ Options:
     --token_type              # Tokenization type (char or bpe, default="${token_type}").
     --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
     --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
-    --oov                     # Out of vocabulary symbol (default="${oov}").
+    --oov                     # Out of vocabrary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos=                # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
@@ -300,7 +300,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
             # 3. Derive the feature dimension
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+            head -n 1 ${data_feats}/${dset}/feats.scp > ${data_feats}/${dset}/feats_eg.scp
+            pyscripts/feats/feat-to-shape.py "scp:${data_feats}/${dset}/feats_eg.scp" - | \
                 awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done

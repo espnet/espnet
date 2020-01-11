@@ -1,0 +1,1 @@
+../../../../egs/babel/asr1/local/setup_languages.sh
