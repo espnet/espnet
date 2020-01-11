@@ -205,7 +205,6 @@ def recog(
 
                 # Write the result to each files
                 ibest_writer["token"][key] = " ".join(token)
-
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
