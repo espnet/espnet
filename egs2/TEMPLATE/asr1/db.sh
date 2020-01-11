@@ -19,6 +19,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
     COMMONVOICE=downloads
+    BABEL=
 else
     WSJ0=
     WSJ1=
@@ -38,6 +39,7 @@ else
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
     VOXFORGE=downloads
-    AMI=wav_db
-    COMMONVOICE=downloads
+    AMI=
+    COMMONVOICE=
+    BABEL=
 fi
