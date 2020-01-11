@@ -193,8 +193,10 @@ def recog(
                 hyp = nbest_hyps[n - 1]
                 assert isinstance(hyp, Hypothesis), type(hyp)
 
-                # remove sos/eos and get results
+                # remove sos/eos, blank and get results
                 token_int = hyp.yseq[1:-1].tolist()
+                token_int = list(filter(lambda x: x != 0, token_int))
+
                 # Change integer-ids to tokens
                 token = converter.ids2tokens(token_int)
 
@@ -202,7 +204,8 @@ def recog(
                 ibest_writer = writer[f"{n}best_recog"]
 
                 # Write the result to each files
-                ibest_writer["token"][key] = " ".join(token).replace(blank_symbol, "")
+                ibest_writer["token"][key] = " ".join(token)
+
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
