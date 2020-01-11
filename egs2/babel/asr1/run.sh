@@ -31,7 +31,7 @@ decode_config=conf/decode.yaml
     --use_lm true \
     --lm_config "${lm_config}" \
     --token_type char \
-    --feats_type fbank_pitch \
+    --feats_type raw \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
