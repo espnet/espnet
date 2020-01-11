@@ -13,12 +13,6 @@ SECONDS=0
 stage=-1
 stop_stage=1
 
-datadir=./downloads
-vivos_root=${datadir}/vivos
-data_url=https://ailab.hcmus.edu.vn/assets/vivos.tar.gz
-
-ndev_utt=100
-
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -27,8 +21,15 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
+. ./db.sh
 . ./path.sh
 . ./cmd.sh
+
+datadir=${VIVOS}
+vivos_root=${datadir}/vivos
+data_url=https://ailab.hcmus.edu.vn/assets/vivos.tar.gz
+
+ndev_utt=100
 
 train_vivos="train"
 train_set="train_nodev"
@@ -86,8 +87,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         sort ${vivos_root}/$x/prompts.txt > data/$x/text
         utils/utt2spk_to_spk2utt.pl data/$x/utt2spk > data/$x/spk2utt
     done
-
-    echo "<blank>" > data/nlsyms.txt
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
