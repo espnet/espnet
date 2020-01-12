@@ -397,9 +397,12 @@ if "${use_lm}"; then
       # 1. Split the key file
       _logdir="${lm_stats_dir}/logdir"
       mkdir -p "${_logdir}"
+      _nj="${nj}"
+      _nj=$((_nj<$(<${lm_train_text} wc -l)?_nj:$(<${lm_train_text} wc -l)))
+      _nj=$((_nj<$(<${lm_dev_text} wc -l)?_nj:$(<${lm_dev_text} wc -l)))
+
       key_file="${lm_train_text}"
       split_scps=""
-      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
       for n in $(seq ${_nj}); do
           split_scps+=" ${_logdir}/train.${n}.scp"
       done
@@ -408,7 +411,6 @@ if "${use_lm}"; then
 
       key_file="${lm_dev_text}"
       split_scps=""
-      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
       for n in $(seq ${_nj}); do
           split_scps+=" ${_logdir}/dev.${n}.scp"
       done
@@ -529,9 +531,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _logdir="${asr_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
+    _nj="${nj}"
+    _nj=$((_nj<$(<${_asr_train_dir}/${_scp} wc -l)?_nj:$(<${_asr_train_dir}/${_scp} wc -l)))
+    _nj=$((_nj<$(<${_asr_dev_dir}/${_scp} wc -l)?_nj:$(<${_asr_dev_dir}/${_scp} wc -l)))
+
     key_file="${_asr_train_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
     for n in $(seq ${_nj}); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
@@ -540,7 +545,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     key_file="${_asr_dev_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
     for n in $(seq ${_nj}); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
