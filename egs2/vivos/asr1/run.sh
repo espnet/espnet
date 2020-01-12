@@ -26,7 +26,7 @@ word_vocab_size=7184
     --stop_stage ${stop_stage}                  \
     --nj ${nj}                                  \
     --decode_asr_model ${decode_asr_model}      \
-    --feats_type fbank_pitch                    \
+    --feats_type raw                            \
     --token_type char                           \
     --use_lm ${use_lm}                          \
     --use_word_lm ${use_wordlm}                 \

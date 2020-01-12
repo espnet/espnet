@@ -21,7 +21,7 @@ decode_config=conf/decode.yaml
     --stop_stage ${stop_stage}                  \
     --nj ${nj}                                  \
     --decode_asr_model ${decode_asr_model}      \
-    --feats_type fbank_pitch                    \
+    --feats_type raw                            \
     --token_type char                           \
     --use_lm false                              \
     --asr_config "${asr_config}"                \
