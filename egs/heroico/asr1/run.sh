@@ -103,7 +103,6 @@ if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
     echo "$0 Stage 4: Dump features for training."
     mkdir -vp $feat_tr_dir
     mkdir -vp $feat_dt_dir
-    split_dir=$(echo $PWD | awk -F "/" '{print $NF "/" $(NF-1)}')
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/$train_set/feats.scp data/$train_set/cmvn.ark exp/dump_feats/train \
         $feat_tr_dir || exit 1;
