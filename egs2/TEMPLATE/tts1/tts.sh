@@ -304,9 +304,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 1. Split the key file
     _logdir="${tts_stats_dir}/logdir"
     mkdir -p "${_logdir}"
+
+    _nj="${nj}"
+    _nj=$((_nj<$(<${_train_dir}/${_scp} wc -l)?_nj:$(<${_train_dir}/${_scp} wc -l)))
+    _nj=$((_nj<$(<${_dev_dir}/${_scp} wc -l)?_nj:$(<${_dev_dir}/${_scp} wc -l)))
+
     key_file="${_train_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
     for n in $(seq ${_nj}); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
@@ -315,7 +319,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     key_file="${_dev_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
     for n in $(seq ${_nj}); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
