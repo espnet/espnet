@@ -8,24 +8,25 @@ encoder_conf:
     num_layers: 6
     hidden_size: 320
     output_size: 320
-subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
 # decoder related
 decoder: rnn
 decoder_conf:
+    rnn_type: lstm
     num_layers: 1
     hidden_size: 300
     sampling_probability: 0.0
-    aheads: 4
-    atype: location
-    awin: 5
-    adim: 320
-    aconv_chans: 10
-    aconv_filts: 100
+    att_conf:
+        aheads: 4
+        atype: location
+        awin: 5
+        adim: 320
+        aconv_chans: 10
+        aconv_filts: 100
 
 
 # hybrid CTC/attention
 e2e_conf:
-    ctc_weight: 1.0i
+    ctc_weight: 1.0
     lsm_weight: 0.05
 
 
