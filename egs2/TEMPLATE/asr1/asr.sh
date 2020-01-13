@@ -10,6 +10,16 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+min() {
+  local a b
+  a=$1
+  for b in "$@"; do
+      if [ "${b}" -le "${a}" ]; then
+          a="${b}"
+      fi
+  done
+  echo "${a}"
+}
 SECONDS=0
 
 # General configuration
@@ -299,7 +309,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
             # 2. Feature extract
-            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _nj=$(min "${nj}" "$(<"${data_feats}/${dset}/utt2spk" wc -l)")
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
 
             # 3. Derive the feature dimension
@@ -400,9 +410,11 @@ if "${use_lm}"; then
       # 1. Split the key file
       _logdir="${lm_stats_dir}/logdir"
       mkdir -p "${_logdir}"
+      # Get the minimum number among ${nj} and the number lines of input files
+      _nj=$(min "${nj}" "$(<${lm_train_text} wc -l)" "$(<${lm_dev_text} wc -l)")
+
       key_file="${lm_train_text}"
       split_scps=""
-      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
       for n in $(seq ${_nj}); do
           split_scps+=" ${_logdir}/train.${n}.scp"
       done
@@ -411,7 +423,6 @@ if "${use_lm}"; then
 
       key_file="${lm_dev_text}"
       split_scps=""
-      _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
       for n in $(seq ${_nj}); do
           split_scps+=" ${_logdir}/dev.${n}.scp"
       done
@@ -532,10 +543,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _logdir="${asr_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
+    # Get the minimum number among ${nj} and the number lines of input files
+    _nj=$(min "${nj}" "$(<${_asr_train_dir}/${_scp} wc -l)" "$(<${_asr_dev_dir}/${_scp} wc -l)")
+
     key_file="${_asr_train_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -543,8 +556,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     key_file="${_asr_dev_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -690,8 +702,8 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
-        _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-        for n in $(seq ${_nj}); do
+        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+        for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
         # shellcheck disable=SC2086
