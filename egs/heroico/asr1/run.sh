@@ -75,18 +75,14 @@ if [ $stage -le 1 ] && [ $stop_stage -ge 1 ]; then
             --write_utt2num_frames true data/$f exp/make_fbank/$f ${fbankdir} || exit 1;
         utils/fix_data_dir.sh data/$f || exit 1;
     done
-fi
 
-if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
-    echo "$0: Stage 2: Speed-perturb."
+    echo "$0: Speed-perturb."
     utils/perturb_data_dir_speed.sh 0.9 data/train data/temp1
     utils/perturb_data_dir_speed.sh 1.0 data/train data/temp2
     utils/perturb_data_dir_speed.sh 1.1 data/train data/temp3
     utils/combine_data.sh --extra-files utt2uniq data/$train_set data/temp1 data/temp2 data/temp3
-fi
 
-if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
-    echo "$0: Stage 3: Filterbanks with pitch."
+    echo "$0: Extract Filterbanks with pitch."
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 \
         --write_utt2num_frames true data/$train_set exp/make_fbank/$train_set \
         $fbankdir || exit 1;
@@ -94,23 +90,20 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
 
     echo "$0: compute global CMVN."
     compute-cmvn-stats scp:data/$train_set/feats.scp data/$train_set/cmvn.ark
-fi
 
-feat_tr_dir=$dumpdir/${train_set}/delta${do_delta}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
-if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
-    echo "$0 Stage 4: Dump features for training."
+    feat_tr_dir=$dumpdir/${train_set}/delta${do_delta}
+    feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
+
+    echo "$0: Dump features for training."
     mkdir -vp $feat_tr_dir
     mkdir -vp $feat_dt_dir
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/$train_set/feats.scp data/$train_set/cmvn.ark exp/dump_feats/train \
         $feat_tr_dir || exit 1;
-fi
 
-if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
     for rtask in $recog_set; do
-        echo "$0 Stage 5: Dumping for task $rtask."
+        echo "$0: Dumping for task $rtask."
         feat_recog_dir=$dumpdir/$rtask/delta${do_delta}
     mkdir -vp $feat_recog_dir
     dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
@@ -119,7 +112,7 @@ if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
     done
 fi
 
-if [ $stage -le 6 ] && [ $stop_stage -ge 6 ]; then
+if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
     #check non-linguistic symbols used in the corpus.
     echo "$0 Stage 6: Dictionary   Preparation."
     mkdir -vp data/lang_1char
@@ -127,10 +120,8 @@ if [ $stage -le 6 ] && [ $stop_stage -ge 6 ]; then
     text2token.py -s 1 -n 1 data/$train_set/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> $dict
     wc -l $dict
-fi
 
-if [ $stage -le 7 ] && [ $stop_stage -ge 7 ]; then
-    echo "$0 Stage 7: Make json files."
+    echo "$0: Make json files."
     data2json.sh --feat $feat_tr_dir/feats.scp --filetype mat \
         data/$train_set $dict > $feat_tr_dir/data.json
     for rtask in $recog_set; do
@@ -148,8 +139,8 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/$lmexpname
 mkdir -vp $lmexpdir
 
-if [ $stage -le 8 ] && [ $stop_stage -ge 8 ]; then
-    echo "$0 Stage 8: LM Preparation"
+if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
+    echo "$0 Stage 3: LM Preparation."
     mkdir -vp $lmdatadir
     text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " \
         > $lmdatadir/train.txt
@@ -181,8 +172,8 @@ fi
 expdir=exp/$expname
 mkdir -vp $expdir
 
-if [ $stage -le 9 ] && [ $stop_stage -ge 9 ]; then
-    echo "$0 Stage 9: Network Training."
+if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
+    echo "$0 Stage 4: Network Training."
     ${cuda_cmd} --gpu $ngpu $expdir/train.log \
     asr_train.py \
     --config $train_config \
@@ -200,8 +191,8 @@ if [ $stage -le 9 ] && [ $stop_stage -ge 9 ]; then
     --valid-json $feat_dt_dir/data.json
 fi
 
-if [ $stage -le 10 ] && [ $stop_stage -ge 10 ]; then
-    echo "$0 Stage 10: Decoding."
+if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
+    echo "$0 Stage 5: Decoding."
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         recog_model=model.last${n_average}.avg.best
