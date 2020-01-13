@@ -26,6 +26,8 @@ lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
+use_wordlm=true     # false means to train/use a character LM
+lm_vocabsize=65000  # effective only for word LMs
 lm_resume= # specify a snapshot file to resume LM training
 lmtag=             # tag for managing LMs
 
@@ -134,6 +136,9 @@ fi
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z $lmtag ]; then
     lmtag=$(basename ${lm_config%.*})
+    if [ ${use_wordlm} = true ]; then
+        lmtag=${lmtag}_word${lm_vocabsize}
+    fi
 fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/$lmexpname
@@ -141,11 +146,22 @@ mkdir -vp $lmexpdir
 
 if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
     echo "$0 Stage 3: LM Preparation."
-    mkdir -vp $lmdatadir
-    text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " \
+    if [ ${use_wordlm} = true ]; then
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+        mkdir -p ${lmdatadir}
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
+        cat ${lmdatadir}/train_trans.txt > ${lmdatadir}/train.txt
+        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+	mkdir -vp $lmdatadir
+	text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " \
         > $lmdatadir/train.txt
     text2token.py -s 1 -n 1 data/$train_dev/text | cut -f 2- -d" " \
         > $lmdatadir/valid.txt
+fi
 
     ${cuda_cmd} --gpu $ngpu $lmexpdir/train.log \
         lm_train.py \
