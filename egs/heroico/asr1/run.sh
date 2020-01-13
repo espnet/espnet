@@ -52,6 +52,7 @@ set -o pipefail
 
 train_set=train_sp
 train_dev=devtest
+train_test="devtest test native nonnative"
 recog_set="devtest test native nonnative"
 fbankdir=fbank
 lmdatadir=data/local/lm_train
