@@ -2,6 +2,8 @@ from distutils.util import strtobool
 from typing import Optional
 from typing import Tuple
 
+import humanfriendly
+
 
 def str2bool(value: str) -> bool:
     return bool(strtobool(value))
@@ -58,6 +60,12 @@ def float_or_none(value: str) -> Optional[float]:
     if value.strip().lower() in ("none", "null", "nil"):
         return None
     return float(value)
+
+
+def humanfriendly_parse_size_or_none(value) -> Optional[float]:
+    if value.strip().lower() in ("none", "null", "nil"):
+        return None
+    return humanfriendly.parse_size(value)
 
 
 def str_or_none(value: str) -> Optional[str]:

@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from espnet2.utils.types import float_or_none
+from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import remove_parenthesis
 from espnet2.utils.types import str2bool
@@ -50,6 +51,14 @@ def test_int_or_none(value: str, desired: Any):
 def test_float_or_none(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
         assert float_or_none(value) == desired
+
+
+@pytest.mark.parametrize(
+    "value, desired", [("3k", 3000), ("2m ", 2000000), ("none", None)],
+)
+def test_humanfriendly_parse_size_or_none(value: str, desired: Any):
+    with pytest_raise_or_nothing(desired):
+        assert humanfriendly_parse_size_or_none(value) == desired
 
 
 @pytest.mark.parametrize("value, desired", [("none", None), ("aa", "aa")])
