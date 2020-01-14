@@ -25,6 +25,7 @@ def build_batch_sampler(
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
     drop_last: bool = False,
+    min_batch_size: int = 1,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler
 
@@ -37,6 +38,7 @@ def build_batch_sampler(
         sort_in_batch:
         sort_batch:
         drop_last:
+        min_batch_size: Used for "seq" mode
     """
     assert check_argument_types()
 
@@ -68,6 +70,7 @@ def build_batch_sampler(
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
             drop_last=drop_last,
+            min_batch_size=min_batch_size,
         )
 
     elif type == "bin":
@@ -136,15 +139,18 @@ class ConstantSortedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_file}")
 
-        # batch_list: List[Tuple[str, ...]]
-        if not self.drop_last and len(keys) % batch_size != 0:
-            N = len(keys) // batch_size + 1
+        # Apply max(, 1) to avoid 0-batches
+        N = max(len(keys) // batch_size, 1)
+        if not self.drop_last:
+            # Split keys evenly as possible as. Note that If N != 1,
+            # the these batches always have size of batch_size at minimum.
+            self.batch_list = [
+                keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
+            ]
         else:
-            # Apply max() to avoid 0-batches even if drop_last=True
-            N = max(len(keys) // batch_size, 1)
-        self.batch_list = [
-            tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
-        ]
+            self.batch_list = [
+                tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+            ]
 
         if len(self.batch_list) == 0:
             logging.warning(f"{shape_file} is empty")
@@ -208,15 +214,18 @@ class ConstantBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {key_file}")
 
-        # batch_list: List[Tuple[str, ...]]
-        if not self.drop_last and len(keys) % batch_size != 0:
-            N = len(keys) // batch_size + 1
+        # Apply max(, 1) to avoid 0-batches
+        N = max(len(keys) // batch_size, 1)
+        if not self.drop_last:
+            # Split keys evenly as possible as. Note that If N != 1,
+            # the these batches always have size of batch_size at minimum.
+            self.batch_list = [
+                keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
+            ]
         else:
-            # Apply max() to avoid 0-batches even if drop_last=True
-            N = max(len(keys) // batch_size, 1)
-        self.batch_list = [
-            tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
-        ]
+            self.batch_list = [
+                tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+            ]
 
     def __repr__(self):
         return (
@@ -273,32 +282,55 @@ class SequenceBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
+        # Decide batch-sizes
         start = 0
-        self.batch_list = []
+        batch_sizes = []
         while True:
             k = keys[start]
             factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, max_lengths))
             bs = max(min_batch_size, int(batch_size / (1 + factor)))
+            if self.drop_last and start + bs > len(keys):
+                # This if-block avoids 0-batches
+                if len(self.batch_list) > 0:
+                    break
 
-            if self.drop_last and start + bs > len(keys) and len(self.batch_list) > 0:
+            bs = min(len(keys) - start, bs)
+            batch_sizes.append(bs)
+            start += bs
+            if start >= len(keys):
                 break
 
+        if len(batch_sizes) == 0:
+            # Maybe we can't reach here
+            raise RuntimeError("0 batches")
+
+        # If the last batch-size is smaller than minimum batch_size,
+        # the samples are redistributed to the other mini-batches
+        if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
+            for i in range(batch_sizes.pop(-1)):
+                batch_sizes[-(i % len(batch_sizes)) - 2] += 1
+
+        if not self.drop_last:
+            # Bug check
+            assert sum(batch_sizes) == len(keys), f"{sum(batch_sizes)} != {len(keys)}"
+
+        # Set mini-batch
+        self.batch_list = []
+        start = 0
+        for bs in batch_sizes:
+            assert len(keys) >= start + bs, "Bug"
             minibatch_keys = keys[start : start + bs]
+            start += bs
             if sort_in_batch == "descending":
                 minibatch_keys.reverse()
             elif sort_in_batch == "ascending":
+                # Key are already sorted in ascending
                 pass
             else:
                 raise ValueError(
                     f"sort_in_batch must be ascending or descending: {sort_in_batch}"
                 )
             self.batch_list.append(tuple(minibatch_keys))
-            start += bs
-            if start >= len(keys):
-                break
-
-        if len(self.batch_list) == 0:
-            raise RuntimeError("0 batches")
 
         if sort_batch == "ascending":
             pass
