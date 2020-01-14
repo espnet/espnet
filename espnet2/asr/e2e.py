@@ -1,5 +1,8 @@
-from typing import Dict, List, Union, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
 from typeguard import check_argument_types
@@ -8,15 +11,15 @@ from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,
+    LabelSmoothingLoss,  # noqa: H301
 )
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_e2e import AbsE2E
-from espnet2.utils.device_funcs import force_gatherable
 
 
 class ASRE2E(AbsE2E):
@@ -31,7 +34,7 @@ class ASRE2E(AbsE2E):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: torch.nn.Module = None,
+        rnnt_decoder: None,
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
@@ -126,18 +129,14 @@ class ASRE2E(AbsE2E):
 
         # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text, text_lengths)
 
         if self.ctc_weight == 0.0:
             loss = loss_att
         elif self.ctc_weight == 1.0:
             loss = loss_ctc
         else:
-            loss = (
-                self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
-            )
+            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
         stats = dict(
             loss=loss.detach(),
@@ -150,34 +149,30 @@ class ASRE2E(AbsE2E):
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def collect_feats(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_recog.py
+        """Frontend + Encoder. Note that this method is used by asr_decode.py
 
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        assert speech_lengths.dim() == 1, speech_lengths.shape
-
-        # for data-parallel
-        speech = speech[:, : speech_lengths.max()]
-
-        if self.frontend is not None:
-            # 1. Frontend
-            #  e.g. STFT and Feature extract
-            #       data_loader may send time-domain signal in this case
-            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            feats, feats_lengths = self.frontend(speech, speech_lengths)
-        else:
-            # 1. No frontend and no feature extract
-            feats, feats_lengths = speech, speech_lengths
+        # 1. Extract feats
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
         # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.normalize is not None:
@@ -199,6 +194,25 @@ class ASRE2E(AbsE2E):
 
         return encoder_out, encoder_out_lens
 
+    def _extract_feats(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert speech_lengths.dim() == 1, speech_lengths.shape
+
+        # for data-parallel
+        speech = speech[:, : speech_lengths.max()]
+
+        if self.frontend is not None:
+            # Frontend
+            #  e.g. STFT and Feature extract
+            #       data_loader may send time-domain signal in this case
+            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            feats, feats_lengths = self.frontend(speech, speech_lengths)
+        else:
+            # No frontend and no feature extract
+            feats, feats_lengths = speech, speech_lengths
+        return feats, feats_lengths
+
     def _calc_att_loss(
         self,
         encoder_out: torch.Tensor,
@@ -206,9 +220,7 @@ class ASRE2E(AbsE2E):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(
-            ys_pad, self.sos, self.eos, self.ignore_id
-        )
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -229,9 +241,7 @@ class ASRE2E(AbsE2E):
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(
-                ys_hat.cpu(), ys_pad.cpu()
-            )
+            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
 
@@ -249,9 +259,7 @@ class ASRE2E(AbsE2E):
         cer_ctc = None
         if self.error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(
-                ys_hat.cpu(), ys_pad.cpu(), is_ctc=True
-            )
+            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
 
     def _calc_rnnt_loss(

@@ -2,13 +2,10 @@
 
 """E2E-TTS decoding."""
 
-import argparse
 import logging
-import random
+from pathlib import Path
 import sys
 import time
-
-from pathlib import Path
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -16,19 +13,16 @@ from typing import Union
 
 import configargparse
 import kaldiio
-import numpy as np
 import soundfile as sf
 import torch
-import yaml
-
-from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPnetDataset
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -54,7 +48,7 @@ def tts_decode(
     backward_window: int,
     forward_window: int,
     allow_variable_data_keys: bool,
-    griffin_lim_iters: int,
+    vocoder_conf: dict,
 ):
     """Perform E2E-TTS decoding."""
     assert check_argument_types()
@@ -64,8 +58,7 @@ def tts_decode(
         raise NotImplementedError("only single GPU decoding is supported")
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:
@@ -74,50 +67,37 @@ def tts_decode(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build model
-    with Path(train_config).open("r") as f:
-        train_args = yaml.load(f, Loader=yaml.Loader)
-    train_args = argparse.Namespace(**train_args)
-    model = TTSTask.build_model(train_args)
-    model.load_state_dict(torch.load(model_file, map_location=device))
-    model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    model, train_args = TTSTask.build_model_from_file(train_config, model_file, device)
+    model.to(dtype=getattr(torch, dtype)).eval()
     tts = model.tts
     normalize = model.normalize
-
-    # 3. Build data-iterator
-    dataset = ESPnetDataset(
-        data_path_and_name_and_type,
-        float_dtype=dtype,
-        preprocess=TTSTask.build_preprocess_fn(train_args, False),
-    )
-    TTSTask.check_task_requirements(dataset, allow_variable_data_keys, False)
-    if key_file is None:
-        key_file, _, _ = data_path_and_name_and_type[0]
-
-    batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, key_file=key_file, shuffle=False
-    )
-
     logging.info(f"Normalization:\n{normalize}")
     logging.info(f"TTS:\n{tts}")
-    logging.info(f"Batch sampler: {batch_sampler}")
-    logging.info(f"dataset:\n{dataset}")
-    loader = DataLoader(
-        dataset=dataset,
-        batch_sampler=batch_sampler,
-        collate_fn=TTSTask.build_collate_fn(train_args),
+
+    # 3. Build data-iterator
+    loader, _, batch_sampler = TTSTask.build_non_sorted_iterator(
+        data_path_and_name_and_type,
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
         num_workers=num_workers,
+        preprocess_fn=TTSTask.build_preprocess_fn(train_args, False),
+        collate_fn=TTSTask.build_collate_fn(train_args),
+        allow_variable_data_keys=allow_variable_data_keys,
     )
 
     # 4. Build converter from spectrogram to waveform
-    spc2wav = Spectrogram2Waveform(
-        griffin_lim_iters=griffin_lim_iters,
-        **train_args.feats_extract_conf
-    )
+    if model.feats_extract is not None:
+        vocoder_conf.update(model.feats_extract.get_parameters())
+    if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf and "fs" in vocoder_conf:
+        spc2wav = Spectrogram2Waveform(**vocoder_conf)
+        logging.info(f"Vocoder: {spc2wav}")
+    else:
+        spc2wav = None
+        logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
     # 5. Start for-loop
     output_dir = Path(output_dir)
@@ -133,7 +113,7 @@ def tts_decode(
     ) as f, kaldiio.WriteHelper(
         "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
     ) as g:
-        for idx, (keys, batch) in enumerate(zip(batch_sampler, loader), 1):
+        for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -142,13 +122,10 @@ def tts_decode(
             key = keys[0]
             # Change to single sequence and remove *_length
             # because inference() requires 1-seq, not mini-batch.
-            _data = {
-                k: v[0] for k, v in batch.items() if not k.endswith("_lengths")
-            }
+            _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
 
-            # TODO(kamo): Use common gathering attention system and plot it
-            #  Now att_ws is not used.
+            # TODO(kamo): Now att_ws is not used.
             outs, probs, att_ws = tts.inference(
                 **_data,
                 threshold=threshold,
@@ -163,9 +140,7 @@ def tts_decode(
                 )
             )
             if outs.size(0) == insize * maxlenratio:
-                logging.warning(
-                    f"output length reaches maximum length ({key})."
-                )
+                logging.warning(f"output length reaches maximum length ({key}).")
             logging.info(
                 f"({idx}/{len(batch_sampler)}) {key} "
                 f"(size:{insize}->{outs.size(0)})"
@@ -173,8 +148,10 @@ def tts_decode(
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 
-            wav, fs = spc2wav(outs_denorm.cpu().numpy()), spc2wav.fs
-            sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
+            # TODO(kamo): Write scp
+            if spc2wav is not None:
+                wav = spc2wav(outs_denorm.cpu().numpy())
+                sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
 
 
 def get_parser():
@@ -187,9 +164,7 @@ def get_parser():
 
     # Note(kamo): Use "_" instead of "-" as separator.
     # "-" is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
@@ -200,16 +175,10 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        required=True,
-        help="The path of output directory",
+        "--output_dir", type=str, required=True, help="The path of output directory",
     )
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -225,10 +194,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -239,9 +205,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--train_config", type=str)
@@ -261,10 +225,7 @@ def get_parser():
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
-        "--threshold",
-        type=float,
-        default=0.5,
-        help="Threshold value in decoding",
+        "--threshold", type=float, default=0.5, help="Threshold value in decoding",
     )
     group.add_argument(
         "--use_att_constraint",
@@ -285,12 +246,12 @@ def get_parser():
         help="Forward window value in attention constraint",
     )
 
-    group = parser.add_argument_group("Griffin-Lim related")
+    group = parser.add_argument_group(" Grriffin-Lim related")
     group.add_argument(
-        "--griffin_lim_iters",
-        type=int,
-        default=32,
-        help="Number of iterations in Grriffin Lim"
+        "--vocoder_conf",
+        action=NestedDictAction,
+        default=get_default_kwargs(Spectrogram2Waveform),
+        help="The configuration for Grriffin-Lim",
     )
     return parser
 
