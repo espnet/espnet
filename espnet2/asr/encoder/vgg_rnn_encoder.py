@@ -13,7 +13,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class VGGRNNEncoder(AbsEncoder):
-    """
+    """VGGRNNEncoder class.
 
     Args:
         input_size: The number of expected features in the input
@@ -97,9 +97,7 @@ class VGGRNNEncoder(AbsEncoder):
 
         current_states = []
         for module, prev_state in zip(self.enc, prev_states):
-            xs_pad, ilens, states = module(
-                xs_pad, ilens, prev_state=prev_state
-            )
+            xs_pad, ilens, states = module(xs_pad, ilens, prev_state=prev_state)
             current_states.append(states)
 
         if self.use_projection:

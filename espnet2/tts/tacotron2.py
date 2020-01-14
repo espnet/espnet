@@ -21,8 +21,8 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_model import AbsTTS
-from espnet2.utils.device_funcs import force_gatherable
 
 
 class Tacotron2(AbsTTS):
@@ -153,8 +153,7 @@ class Tacotron2(AbsTTS):
             self.output_activation_fn = getattr(F, output_activation)
         else:
             raise ValueError(
-                f"there is no such an activation function. "
-                f"({output_activation})"
+                f"there is no such an activation function. " f"({output_activation})"
             )
 
         # set padding idx
@@ -188,9 +187,7 @@ class Tacotron2(AbsTTS):
                 )
                 self.cumulate_att_w = False
         elif atype == "forward_ta":
-            att = AttForwardTA(
-                dec_idim, dunits, adim, aconv_chans, aconv_filts, odim
-            )
+            att = AttForwardTA(dec_idim, dunits, adim, aconv_chans, aconv_filts, odim)
             if self.cumulate_att_w:
                 logging.warning(
                     "cumulation of attention weights is disabled "
@@ -221,7 +218,7 @@ class Tacotron2(AbsTTS):
         self.taco2_loss = Tacotron2Loss(
             use_masking=use_masking,
             use_weighted_masking=use_weighted_masking,
-            bce_pos_weight=bce_pos_weight
+            bce_pos_weight=bce_pos_weight,
         )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
@@ -281,17 +278,13 @@ class Tacotron2(AbsTTS):
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
-            spembs = (
-                F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            )
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = olens.new(
-                [olen - olen % self.reduction_factor for olen in olens]
-            )
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
@@ -304,9 +297,7 @@ class Tacotron2(AbsTTS):
         loss = l1_loss + mse_loss + bce_loss
 
         stats = dict(
-            l1_loss=l1_loss.item(),
-            mse_loss=mse_loss.item(),
-            bce_loss=bce_loss.item(),
+            l1_loss=l1_loss.item(), mse_loss=mse_loss.item(), bce_loss=bce_loss.item(),
         )
 
         # calculate attention loss
@@ -314,9 +305,7 @@ class Tacotron2(AbsTTS):
             # NOTE(kan-bayashi): length of output for auto-regressive
             # input will be changed when r > 1
             if self.reduction_factor > 1:
-                olens_in = olens.new(
-                    [olen // self.reduction_factor for olen in olens]
-                )
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             else:
                 olens_in = olens
             attn_loss = self.attn_loss(att_ws, ilens, olens_in)
@@ -331,20 +320,15 @@ class Tacotron2(AbsTTS):
 
             # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(
-                cbhg_outs, spcs, olens
-            )
+            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
             loss = loss + cbhg_l1_loss + cbhg_mse_loss
             stats.update(
-                cbhg_l1_loss=cbhg_l1_loss.item(),
-                cbhg_mse_loss=cbhg_mse_loss.item(),
+                cbhg_l1_loss=cbhg_l1_loss.item(), cbhg_mse_loss=cbhg_mse_loss.item(),
             )
 
         stats.update(loss=loss.item())
 
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def inference(
@@ -382,9 +366,7 @@ class Tacotron2(AbsTTS):
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
-            spemb = (
-                F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
-            )
+            spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
             h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(
             h,
@@ -393,7 +375,7 @@ class Tacotron2(AbsTTS):
             maxlenratio=maxlenratio,
             use_att_constraint=use_att_constraint,
             backward_window=backward_window,
-            forward_window=forward_window
+            forward_window=forward_window,
         )
 
         if self.use_cbhg:
