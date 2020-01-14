@@ -17,6 +17,7 @@ from typing import Tuple
 from typing import Union
 
 import configargparse
+import humanfriendly
 import numpy as np
 import torch
 import torch.multiprocessing
@@ -53,6 +54,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -522,6 +524,19 @@ class AbsTask(ABC):
             help="Allow the arbitrary keys for mini-batch with ignoring "
             "the task requirements",
         )
+        group.add_argument(
+            "--max_cache_size",
+            type=humanfriendly.parse_size,
+            default=0.0,
+            help="The maximum cache size for data loader. e.g. 10MB, 20GB.",
+        )
+        group.add_argument(
+            "--valid_max_cache_size",
+            type=humanfriendly_parse_size_or_none,
+            default=None,
+            help="The maximum cache size for validation data loader. e.g. 10MB, 20GB. "
+            "If None, the 5% size of --max_cache_size",
+        )
 
         group = parser.add_argument_group("Optimizer related")
         for i in range(1, cls.num_optimizers + 1):
@@ -819,6 +834,7 @@ class AbsTask(ABC):
             preprocess_fn=cls.build_preprocess_fn(args, train=True),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=args.num_iters_per_epoch,
+            max_cache_size=args.max_cache_size,
             distributed=distributed_option.distributed,
             name="train",
         )
@@ -826,6 +842,9 @@ class AbsTask(ABC):
             args.valid_batch_type = args.batch_type
         if args.valid_batch_size is None:
             args.valid_batch_size = args.batch_size
+        if args.valid_max_cache_size is None:
+            # Cache 5% of maximum size for validation loader
+            args.valid_max_cache_size = 0.05 * args.max_cache_size
         valid_iter_factory, _, _ = cls.build_iter_factory(
             iterator_option=iterator_option,
             data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -836,6 +855,7 @@ class AbsTask(ABC):
             preprocess_fn=cls.build_preprocess_fn(args, train=False),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=None,
+            max_cache_size=args.valid_max_cache_size,
             distributed=distributed_option.distributed,
             name="valid",
         )
@@ -851,6 +871,8 @@ class AbsTask(ABC):
                 collate_fn=cls.build_collate_fn(args),
                 num_batches=args.num_att_plot,
                 num_iters_per_epoch=None,
+                # num_att_plot should be a few sample ~ 3, so cache all data.
+                max_cache_size=np.inf if args.max_cache_size != 0.0 else 0.0,
                 # always False because plot_attention performs on RANK0
                 distributed=False,
                 name="plot_att",
@@ -1015,6 +1037,7 @@ class AbsTask(ABC):
         collate_fn,
         num_batches: int = None,
         num_iters_per_epoch: int = None,
+        max_cache_size: float = 0,
         distributed: bool = False,
         name: str = "",
     ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
@@ -1070,6 +1093,7 @@ class AbsTask(ABC):
             data_path_and_name_and_type,
             float_dtype=train_dtype,
             preprocess=preprocess_fn,
+            max_cache_size=max_cache_size,
         )
         cls.check_task_requirements(dataset, iterator_option.allow_variable_data_keys)
 

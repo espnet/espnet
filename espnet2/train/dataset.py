@@ -9,6 +9,7 @@ from typing import Tuple
 from typing import Union
 
 import h5py
+import humanfriendly
 import kaldiio
 import numpy as np
 from torch.utils.data.dataset import Dataset
@@ -19,6 +20,7 @@ from espnet2.utils.fileio import load_num_sequence_text
 from espnet2.utils.fileio import NpyScpReader
 from espnet2.utils.fileio import read_2column_text
 from espnet2.utils.fileio import SoundScpReader
+from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -68,6 +70,7 @@ class ESPnetDataset(Dataset):
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
+        max_cache_size: Union[float, int, str] = 0.0,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -94,6 +97,14 @@ class ESPnetDataset(Dataset):
                 raise RuntimeError(f"{path} has no samples")
 
             # TODO(kamo): Should check consistency of each utt-keys?
+
+        if isinstance(max_cache_size, str):
+            max_cache_size = humanfriendly.parse_size(max_cache_size)
+        self.max_cache_size = max_cache_size
+        if max_cache_size > 0:
+            self.cache = SizedDict(shared=True)
+        else:
+            self.cache = None
 
     def _create_loader(
         self, path: str, loader_type: str
@@ -181,6 +192,10 @@ class ESPnetDataset(Dataset):
     def __getitem__(self, uid: str) -> Tuple[str, Dict[str, np.ndarray]]:
         assert check_argument_types()
 
+        if self.cache is not None and uid in self.cache:
+            data = self.cache[uid]
+            return uid, data
+
         data = {}
         # 1. Load data from each loaders
         for name, loader in self.loader_dict.items():
@@ -218,6 +233,9 @@ class ESPnetDataset(Dataset):
             else:
                 raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
+
+        if self.cache is not None and self.cache.size < self.max_cache_size:
+            self.cache[uid] = data
 
         retval = uid, data
         assert check_return_type(retval)

@@ -13,6 +13,16 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+min() {
+  local a b
+  a=$1
+  for b in "$@"; do
+      if [ "${b}" -le "${a}" ]; then
+          a="${b}"
+      fi
+  done
+  echo "${a}"
+}
 SECONDS=0
 
 # General configuration
@@ -223,7 +233,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 2. Feature extract
             # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _nj=$(min "${nj}" "$(<${data_feats}/${dset}/utt2spk wc -l)")
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fs ${fs} "
@@ -304,10 +314,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 1. Split the key file
     _logdir="${tts_stats_dir}/logdir"
     mkdir -p "${_logdir}"
+
+    # Get the minimum number among ${nj} and the number lines of input files
+    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_dev_dir}/${_scp} wc -l)")
+
     key_file="${_train_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -315,15 +328,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     key_file="${_dev_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${_logdir}/stats.JOB.log'"
+    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
@@ -449,8 +461,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # 1. Split the key file
         key_file=${_data}/text
         split_scps=""
-        _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-        for n in $(seq ${_nj}); do
+        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+        for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
         # shellcheck disable=SC2086
