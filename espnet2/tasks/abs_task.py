@@ -310,9 +310,6 @@ class AbsTask(ABC):
             "fastest way to use PyTorch for either single node or "
             "multi node data parallel training",
         )
-        group.add_argument(
-            "--valid_", default=False, type=str2bool, help="Enable validation if ",
-        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
