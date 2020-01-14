@@ -260,14 +260,7 @@ class Trainer:
 
             # 8. Check early stopping
             if patience is not None:
-                _phase, _criterion, _mode = early_stopping_criterion
-                best_epoch = reporter.get_best_epoch(_phase, _criterion, _mode)
-                if iepoch - best_epoch > patience:
-                    logging.info(
-                        f"[Early stopping] {_phase}.{_criterion} has not been "
-                        f"improved {iepoch - best_epoch} epochs continuously. "
-                        f"The training was stopped at {iepoch}epoch"
-                    )
+                if reporter.check_early_stopping(patience, *early_stopping_criterion):
                     break
 
         else:
