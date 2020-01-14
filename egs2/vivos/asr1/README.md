@@ -32,9 +32,9 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_testdecode_asr_model_eval.loss.best|760|7722|16.1|83.2|0.6|0.6|84.4|100.0|
+|decode_testdecode_asr_model_eval.loss.best|760|7722|48.3|50.9|0.8|0.6|52.3|98.3|
 |decode_testdecode_lm_eval.loss.best_asr_model_eval.loss.best|760|7722|61.1|38.3|0.6|0.6|39.4|92.9|
-|decode_train_devdecode_asr_model_eval.loss.best|100|927|13.9|86.0|0.1|0.2|86.3|100.0|
+|decode_train_devdecode_asr_model_eval.loss.best|100|927|44.9|55.0|0.1|0.1|55.2|100.0|
 |decode_train_devdecode_lm_eval.loss.best_asr_model_eval.loss.best|100|927|57.6|42.4|0.0|0.1|42.5|99.0|
 
 ### CER
