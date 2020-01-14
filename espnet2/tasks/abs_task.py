@@ -107,7 +107,6 @@ class IteratorOption:
     num_workers: int
     sort_in_batch: str
     sort_batch: str
-    distributed: bool
     seed: int
     allow_variable_data_keys: bool
 
@@ -261,8 +260,8 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--dist_world_size",
-            default=1,
-            type=int,
+            default=None,
+            type=int_or_none,
             help="number of nodes for distributed training",
         )
         group.add_argument(
@@ -272,11 +271,12 @@ class AbsTask(ABC):
             help="node rank for distributed training",
         )
         group.add_argument(
-            # Don't start with "dist_" for compatibility to launch.py
+            # Not starting with "dist_" for compatibility to launch.py
             "--local_rank",
             type=int_or_none,
             default=None,
-            help="local rank for distributed training",
+            help="local rank for distributed training. This option is used if "
+            "--multiprocessing_distributed=false",
         )
         group.add_argument(
             "--dist_master_addr",
@@ -307,6 +307,9 @@ class AbsTask(ABC):
             "N processes per node, which has N GPUs. This is the "
             "fastest way to use PyTorch for either single node or "
             "multi node data parallel training",
+        )
+        group.add_argument(
+            "--valid_", default=False, type=str2bool, help="Enable validation if ",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -713,7 +716,7 @@ class AbsTask(ABC):
             sys.exit(0)
         cls.check_required_command_args(args)
 
-        # "distributed" is set using the other command args
+        # "distributed" is decided using the other command args
         args.distributed = resolve_distributed_mode(args)
         if not args.distributed or not args.multiprocessing_distributed:
             cls.main_worker(args)
@@ -773,23 +776,28 @@ class AbsTask(ABC):
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
         distributed_option.init()
+
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             if not distributed_option.distributed:
                 _rank = ""
             else:
                 _rank = f":{distributed_option.dist_rank}"
 
+            # NOTE(kamo):
+            # logging.basicConfig() is invoked in main_worker() instead of main()
+            # because it can be invoked only once in a process.
+            # FIXME(kamo): Should we use logger instead of logging?
             logging.basicConfig(
                 level=args.log_level,
-                format=f"[{os.uname()[1]}{_rank}] "
-                f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1].split('.')[0]}{_rank}]"
+                f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
         else:
             # Suppress logging if RANK != 0
             logging.basicConfig(
                 level="ERROR",
-                format=f"[{os.uname()[1]}:{distributed_option.dist_rank}] "
-                f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1].split('.')[0]}:{distributed_option.dist_rank}]"
+                f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
 
         # 1. Set random-seed
@@ -811,6 +819,8 @@ class AbsTask(ABC):
             preprocess_fn=cls.build_preprocess_fn(args, train=True),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=args.num_iters_per_epoch,
+            distributed=distributed_option.distributed,
+            name="train",
         )
         if args.valid_batch_type is None:
             args.valid_batch_type = args.batch_type
@@ -826,6 +836,8 @@ class AbsTask(ABC):
             preprocess_fn=cls.build_preprocess_fn(args, train=False),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=None,
+            distributed=distributed_option.distributed,
+            name="valid",
         )
         if args.num_att_plot != 0:
             plot_attention_iter_factory, _, _ = cls.build_iter_factory(
@@ -839,6 +851,9 @@ class AbsTask(ABC):
                 collate_fn=cls.build_collate_fn(args),
                 num_batches=args.num_att_plot,
                 num_iters_per_epoch=None,
+                # always False because plot_attention performs on RANK0
+                distributed=False,
+                name="plot_att",
             )
         else:
             plot_attention_iter_factory = None
@@ -1000,6 +1015,8 @@ class AbsTask(ABC):
         collate_fn,
         num_batches: int = None,
         num_iters_per_epoch: int = None,
+        distributed: bool = False,
+        name: str = "",
     ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
         """Build a factory object of mini-batch iterator.
 
@@ -1063,14 +1080,24 @@ class AbsTask(ABC):
             batch_size=batch_size,
             sort_in_batch=iterator_option.sort_in_batch,
             sort_batch=iterator_option.sort_batch,
-            drop_last=train,
+            drop_last=False,
+            min_batch_size=torch.distributed.get_world_size() if distributed else 1,
         )
 
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
 
-        if train and iterator_option.distributed:
+        bs_list = [len(batch) for batch in batches]
+
+        logging.info(f"[{name}] dataset:\n{dataset}")
+        logging.info(f"[{name}] Batch sampler: {batch_sampler}")
+        logging.info(
+            f"[{name}] mini-batch sizes summary: N-batch={len(bs_list)}, "
+            f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
+        )
+
+        if distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             for batch in batches:
@@ -1161,8 +1188,8 @@ class AbsTask(ABC):
             key_file, _, _ = data_path_and_name_and_type[0]
         batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
 
-        logging.info(f"Batch sampler: {batch_sampler}")
         logging.info(f"dataset:\n{dataset}")
+        logging.info(f"Batch sampler: {batch_sampler}")
 
         # For backward compatibility for pytorch DataLoader
         if collate_fn is not None:
