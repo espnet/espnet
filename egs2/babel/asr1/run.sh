@@ -6,6 +6,8 @@ set -u
 set -o pipefail
 
 stage=0
+stop_stage=10
+nj=32
 ngpu=1
 
 train_set=train
@@ -26,7 +28,9 @@ decode_config=conf/decode.yaml
 
 ./asr.sh \
     --stage ${stage} \
+    --stop_stage ${stop_stage} \
     --ngpu ${ngpu} \
+    --nj ${nj} \
     --local_data_opts "--langs ${langs} --recog ${recog}" \
     --use_lm true \
     --lm_config "${lm_config}" \
