@@ -30,7 +30,7 @@ e2e_conf:
 
 # optimization related
 optim: adadelta
-init: pytorch
+init: chainer
 max_epoch: 8
 patience: 3
 
