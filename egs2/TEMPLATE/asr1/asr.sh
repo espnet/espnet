@@ -293,8 +293,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            _opts=
+            if [ -e data/"${dset}"/segments ]; then
+                _opts+="--segments data/${dset}/segments "
+            fi
+            # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                --audio-format "${audio_format}" --fs "${fs}" \
+                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                 "data/${dset}/wav.scp" "${data_feats}/${dset}"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
