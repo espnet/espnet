@@ -77,7 +77,7 @@ def main():
     if args.segments is not None:
         # Note: kaldiio supports only wav-pcm-int16le file.
         loader = kaldiio.load_scp(args.scp, segments=args.segments)
-        with SoundScpWriter(args.outdir, Path(args.outdir) / f'{args.name}.scp', \
+        with SoundScpWriter(args.outdir, args.name,
                             format=args.audio_format) as writer, \
                 out_num_samples.open('w') as fnum_samples:
             for uttid in tqdm(loader):

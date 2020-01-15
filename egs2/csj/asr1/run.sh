@@ -15,7 +15,7 @@ lm_config=conf/lm.yaml
 
 ./asr.sh \
     --token_type char \
-    --feats_type raw \
+    --feats_type fbank_pitch \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --lm_config "${lm_config}" \

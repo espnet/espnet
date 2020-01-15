@@ -23,10 +23,8 @@ sampling_rate=48000
 do_delta=false
 
 lm_config=conf/lm.yaml
-# train_config=conf/train.yaml
-train_config=conf/tuning/train_pytorch_transformer.v2.yaml
-# decode_config=conf/decode.yaml
-decode_config=conf/tuning/decode_rnn.yaml
+train_config=conf/train.yaml
+decode_config=conf/decode.yaml
 
 lm_resume=
 lmtag=
