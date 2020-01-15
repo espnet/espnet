@@ -299,7 +299,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             fi
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                --audio-format "${audio_format}" --fs "${fs}" ${opts} \
+                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                 "data/${dset}/wav.scp" "${data_feats}/${dset}"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
