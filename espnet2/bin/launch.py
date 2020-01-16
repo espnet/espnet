@@ -2,12 +2,11 @@
 import argparse
 import logging
 import os
-import sys
-import subprocess
-import shutil
-import shlex
-import uuid
 from pathlib import Path
+import shlex
+import shutil
+import subprocess
+import uuid
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.utils.types import str2bool
