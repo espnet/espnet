@@ -303,7 +303,7 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--multiprocessing_distributed",
-            default=True,
+            default=False,
             type=str2bool,
             help="Use multi-processing distributed training to launch "
             "N processes per node, which has N GPUs. This is the "
@@ -737,6 +737,7 @@ class AbsTask(ABC):
             cls.main_worker(args)
 
         else:
+            assert args.ngpu > 1, args.ngpu
             # Multi-processing distributed mode: e.g. 2node-4process-4GPU
             # |   Host1     |    Host2    |
             # |   Process1  |   Process2  |  <= Spawn processes
@@ -792,6 +793,7 @@ class AbsTask(ABC):
         distributed_option = build_dataclass(DistributedOption, args)
         distributed_option.init()
 
+        # Warning! Don't use logging before invoking logging.basicConfig()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             if not distributed_option.distributed:
                 _rank = ""

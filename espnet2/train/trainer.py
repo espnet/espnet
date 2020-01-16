@@ -139,7 +139,11 @@ class Trainer:
                     # Perform single-Process with multi-GPUs
                     else None
                 ),
-                output_device=torch.cuda.current_device(),
+                output_device=(
+                    torch.cuda.current_device()
+                    if distributed_option.ngpu == 1
+                    else None
+                ),
             )
         else:
             ddp_model = model

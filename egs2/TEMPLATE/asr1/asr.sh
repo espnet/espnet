@@ -26,6 +26,7 @@ SECONDS=0
 stage=1          # Processes starts from the specified stage.
 stop_stage=10    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
@@ -97,6 +98,7 @@ Options:
     --stage      # Processes starts from the specified stage (default="${stage}").
     --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes  # The number of nodes
     --nj         # The number of parallel jobs (default="${nj}").
     --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
@@ -397,82 +399,88 @@ fi
 
 
 if "${use_lm}"; then
-  if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-      log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
-      _opts=
-      if [ -n "${lm_config}" ]; then
-          # To generate the config file: e.g.
-          #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
-          _opts+="--config ${lm_config} "
-      fi
+        _opts=
+        if [ -n "${lm_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+            _opts+="--config ${lm_config} "
+        fi
 
-      # 1. Split the key file
-      _logdir="${lm_stats_dir}/logdir"
-      mkdir -p "${_logdir}"
-      # Get the minimum number among ${nj} and the number lines of input files
-      _nj=$(min "${nj}" "$(<${lm_train_text} wc -l)" "$(<${lm_dev_text} wc -l)")
+        # 1. Split the key file
+        _logdir="${lm_stats_dir}/logdir"
+        mkdir -p "${_logdir}"
+        # Get the minimum number among ${nj} and the number lines of input files
+        _nj=$(min "${nj}" "$(<${lm_train_text} wc -l)" "$(<${lm_dev_text} wc -l)")
 
-      key_file="${lm_train_text}"
-      split_scps=""
-      for n in $(seq ${_nj}); do
-          split_scps+=" ${_logdir}/train.${n}.scp"
-      done
-      # shellcheck disable=SC2086
-      utils/split_scp.pl "${key_file}" ${split_scps}
+        key_file="${lm_train_text}"
+        split_scps=""
+        for n in $(seq ${_nj}); do
+            split_scps+=" ${_logdir}/train.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
 
-      key_file="${lm_dev_text}"
-      split_scps=""
-      for n in $(seq ${_nj}); do
-          split_scps+=" ${_logdir}/dev.${n}.scp"
-      done
-      # shellcheck disable=SC2086
-      utils/split_scp.pl "${key_file}" ${split_scps}
+        key_file="${lm_dev_text}"
+        split_scps=""
+        for n in $(seq ${_nj}); do
+            split_scps+=" ${_logdir}/dev.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
 
-      # 2. Submit jobs
-      log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
-      # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
-      # shellcheck disable=SC2086
-      ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-          python3 -m espnet2.bin.lm_train \
-              --collect_stats true \
-              --use_preprocessor true \
-              --bpemodel "${bpemodel}" \
-              --token_type "${lm_token_type}"\
-              --token_list "${lm_token_list}" \
-              --non_linguistic_symbols "${nlsyms_txt}" \
-              --train_data_path_and_name_and_type "${lm_train_text},text,text" \
-              --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --batch_type const_no_sort \
-              --train_shape_file "${_logdir}/train.JOB.scp" \
-              --valid_shape_file "${_logdir}/dev.JOB.scp" \
-              --output_dir "${_logdir}/stats.JOB" \
-              ${_opts} ${lm_args}
+        # 2. Submit jobs
+        log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
+        # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
+        # shellcheck disable=SC2086
+        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+            python3 -m espnet2.bin.lm_train \
+                --collect_stats true \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${lm_token_type}"\
+                --token_list "${lm_token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --train_data_path_and_name_and_type "${lm_train_text},text,text" \
+                --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
+                --batch_type const_no_sort \
+                --train_shape_file "${_logdir}/train.JOB.scp" \
+                --valid_shape_file "${_logdir}/dev.JOB.scp" \
+                --output_dir "${_logdir}/stats.JOB" \
+                ${_opts} ${lm_args}
 
-      # 3. Aggregate shape files
-      _opts=
-      for i in $(seq "${_nj}"); do
-          _opts+="--input_dir ${_logdir}/stats.${i} "
-      done
-      # shellcheck disable=SC2086
-      python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
-  fi
+        # 3. Aggregate shape files
+        _opts=
+        for i in $(seq "${_nj}"); do
+            _opts+="--input_dir ${_logdir}/stats.${i} "
+        done
+        # shellcheck disable=SC2086
+        python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+    fi
 
 
-  if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-      log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
-      _opts=
-      if [ -n "${lm_config}" ]; then
-          # To generate the config file: e.g.
-          #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
-          _opts+="--config ${lm_config} "
-      fi
+        _opts=
+        if [ -n "${lm_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+            _opts+="--config ${lm_config} "
+        fi
 
-      log "LM training started... log: '${lm_exp}/train.log'"
-      # shellcheck disable=SC2086
-      ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
-          python3 -m espnet2.bin.lm_train \
+        log "LM training started... log: '${lm_exp}/train.log'"
+        # shellcheck disable=SC2086
+        python3 -m espnet2.bin.launch \
+            --cmd "${cuda_cmd}" \
+            --log "${lm_exp}"/train.log \
+            --ngpu "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            python3 -m espnet2.bin.lm_train \
               --ngpu "${ngpu}" \
               --use_preprocessor true \
               --bpemodel "${bpemodel}" \
@@ -488,7 +496,7 @@ if "${use_lm}"; then
               --output_dir "${lm_exp}" \
               ${_opts} ${lm_args}
 
-  fi
+    fi
 
 
   if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -634,7 +642,13 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
-    ${cuda_cmd} --gpu "${ngpu}" "${asr_exp}"/train.log \
+    python3 -m espnet2.bin.launch \
+        --cmd "${cuda_cmd}" \
+        --log "${asr_exp}"/train.log \
+        --ngpu "${ngpu}" \
+        --num_nodes "${num_nodes}" \
+        --init_file_prefix "${asr_exp}"/.dist_init_ \
+        --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.asr_train \
             --ngpu "${ngpu}" \
             --use_preprocessor true \
