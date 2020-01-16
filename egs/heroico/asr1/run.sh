@@ -24,10 +24,11 @@ do_delta=false
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
+preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
-lm_vocabsize=65000  # effective only for word LMs
+lm_vocabsize=4000  # effective only for word LMs
 lm_resume= # specify a snapshot file to resume LM training
 lmtag=             # tag for managing LMs
 
@@ -52,12 +53,13 @@ set -o pipefail
 
 train_set=train_sp
 train_dev=devtest
-train_test="devtest test native nonnative"
+train_test=test
 recog_set="devtest test native nonnative"
 fbankdir=fbank
 lmdatadir=data/local/lm_train
 dict=data/lang_1char/${train_set}_units.txt
-
+feat_tr_dir=$dumpdir/${train_set}/delta${do_delta}
+feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
 if [ $stage -le -1 ] && [ $stop_stage -ge -1 ]; then
     echo "$0 Stage -1: Data download."
@@ -94,10 +96,6 @@ if [ $stage -le 1 ] && [ $stop_stage -ge 1 ]; then
     echo "$0: compute global CMVN."
     compute-cmvn-stats scp:data/$train_set/feats.scp data/$train_set/cmvn.ark
 
-
-    feat_tr_dir=$dumpdir/${train_set}/delta${do_delta}
-    feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
-
     echo "$0: Dump features for training."
     mkdir -vp $feat_tr_dir
     mkdir -vp $feat_dt_dir
@@ -115,22 +113,32 @@ if [ $stage -le 1 ] && [ $stop_stage -ge 1 ]; then
     done
 fi
 
+nlsyms=data/lang_1char/non_lang_syms.txt
+
 if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
-    #check non-linguistic symbols used in the corpus.
-    echo "$0 Stage 6: Dictionary   Preparation."
+    echo "$0 Stage 2: Dictionary   Preparation."
     mkdir -vp data/lang_1char
+    echo "$0: Making a non-linguistic symbol list."
+    set +e
+    cut -f 2- data/$train_set/text | tr " " "\n" | sort | uniq | grep "<" > $nlsyms
+    set -e
+    cat $nlsyms
+
     echo "<unk> 1" > $dict # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/$train_set/text | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> $dict
-    wc -l $dict
+
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    wc -l ${dict}
 
     echo "$0: Make json files."
-    data2json.sh --feat $feat_tr_dir/feats.scp --filetype mat \
-        data/$train_set $dict > $feat_tr_dir/data.json
-    for rtask in $recog_set; do
-        feat_recog_dir=$dumpdir/$rtask/delta${do_delta}
-        data2json.sh --feat $feat_recog_dir/feats.scp \
-            data/$rtask $dict > $feat_recog_dir/data.json
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
@@ -149,19 +157,30 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
     echo "$0 Stage 3: LM Preparation."
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
-        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
-        mkdir -p ${lmdatadir}
-        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
-        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
-        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt > ${lmdatadir}/train.txt
-        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+        lmdict=$lmdatadir/wordlist_${lm_vocabsize}.txt
+        mkdir -vp $lmdatadir
+        cut -f 2- -d" " data/$train_set/text > $lmdatadir/train_trans.txt
+        cut -f 2- -d" " data/$train_dev/text > $lmdatadir/valid.txt
+        cut -f 2- -d" " data/$train_test/text > $lmdatadir/test.txt
+        cat $lmdatadir/train_trans.txt > $lmdatadir/train.txt
+        text2vocabulary.py -s $lm_vocabsize -o $lmdict $lmdatadir/train.txt
     else
 	mkdir -vp $lmdatadir
 	text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " \
-        > $lmdatadir/train.txt
-    text2token.py -s 1 -n 1 data/$train_dev/text | cut -f 2- -d" " \
-        > $lmdatadir/valid.txt
+						      > $lmdatadir/train.txt
+
+	        lmdatadir=data/local/lm_train
+        lmdict=$dict
+        mkdir -p $lmdatadir
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+
+
+	        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
+
 fi
 
     ${cuda_cmd} --gpu $ngpu $lmexpdir/train.log \
@@ -222,6 +241,12 @@ if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
     for rtask in $recog_set; do
         (
             decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
+	            if [ ${use_wordlm} = true ]; then
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+
             feat_recog_dir=$dumpdir/$rtask/delta${do_delta}
 
         echo "$0: Split data."
@@ -239,9 +264,9 @@ if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
             --recog-json $feat_recog_dir/split${nj}utt/data.JOB.json \
             --result-label $expdir/$decode_dir/data.JOB.json \
             --model $expdir/results/$recog_model  \
-            --rnnlm $lmexpdir/rnnlm.model.best
+	    ${recog_opts}
 
-        score_sclite.sh $expdir/$decode_dir $dict
+        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
