@@ -36,7 +36,7 @@ class DistributedOption:
                 if get_master_port(self.dist_master_port) is None:
                     raise RuntimeError(
                         "--dist_master_port or MASTER_PORT must be set "
-                        "if --dist_init_method == 'env://'"
+                        "if --dist_init_port == 'env://'"
                     )
 
             # About priority order:
@@ -50,8 +50,17 @@ class DistributedOption:
             )
             self.local_rank = get_local_rank(self.local_rank, self.dist_launcher)
 
-            if self.local_rank is not None and self.ngpu != 1:
+            if self.local_rank is not None and self.ngpu > 1:
                 raise RuntimeError(f"Assuming 1GPU in this case: ngpu={self.ngpu}")
+
+            if (
+                self.dist_rank is not None
+                and self.dist_world_size is not None
+                and self.dist_rank >= self.dist_world_size
+            ):
+                raise RuntimeError(
+                    f"RANK >= WORLD_SIZE: {self.dist_rank} >= {self.dist_world_size}"
+                )
 
             if self.dist_init_method == "env://":
                 self.dist_master_addr = get_master_addr(
@@ -59,7 +68,7 @@ class DistributedOption:
                 )
                 self.dist_master_port = get_master_port(self.dist_master_port)
                 if (
-                    self.dist_master_port is not None
+                    self.dist_master_addr is not None
                     and self.dist_master_port is not None
                 ):
                     self.dist_init_method = (
@@ -82,8 +91,15 @@ class DistributedOption:
             #    => Distributed with n-Process and n-GPU
             # if self.local_rank is None and ngpu >= 1
             #    => Distributed with 1-Process and n-GPU
-            if self.local_rank is not None:
+            if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
+
+                if "CUDA_VISIBLE_DEVICES" in os.environ:
+                    cvd = os.environ["CUDA_VISIBLE_DEVICES"]
+                    if len(cvd) == 1:
+                        # Unset CUDA_VISIBLE_DEVICES
+                        # because the other device must be visible to communicate
+                        del os.environ["CUDA_VISIBLE_DEVICES"]
 
 
 def resolve_distributed_mode(args) -> bool:
@@ -98,6 +114,10 @@ def resolve_distributed_mode(args) -> bool:
         # c. single-node and single-gpu
         else:
             distributed = False
+
+        if args.ngpu <= 1:
+            # Disable multiprocessing_distributed mode
+            args.multiprocessing_distributed = False
 
         if num_nodes > 1 and get_node_rank(args.dist_rank, args.dist_launcher) is None:
             raise RuntimeError(
@@ -163,9 +183,7 @@ def recommended_port():
 
 def get_rank(prior=None, launcher: str = None) -> Optional[int]:
     if prior is None:
-        if torch.distributed.is_initialized():
-            prior = torch.distributed.get_rank()
-        elif launcher == "slurm":
+        if launcher == "slurm":
             if not is_in_slurm_step():
                 raise RuntimeError("This process seems not to be launched by 'srun'")
             prior = os.environ["SLURM_PROCID"]
@@ -178,6 +196,7 @@ def get_rank(prior=None, launcher: str = None) -> Optional[int]:
 
     if prior is not None:
         # prior is not None -> set it to RANK
+        # (This is not required actually. Set it just in case)
         os.environ["RANK"] = str(prior)
         return int(prior)
     else:
@@ -187,9 +206,7 @@ def get_rank(prior=None, launcher: str = None) -> Optional[int]:
 
 def get_world_size(prior=None, launcher: str = None) -> int:
     if prior is None:
-        if torch.distributed.is_initialized():
-            prior = torch.distributed.get_world_size()
-        elif launcher == "slurm":
+        if launcher == "slurm":
             if not is_in_slurm_step():
                 raise RuntimeError("This process seems not to be launched by 'srun'")
             prior = int(os.environ["SLURM_NTASKS"])
@@ -202,11 +219,12 @@ def get_world_size(prior=None, launcher: str = None) -> int:
 
     if prior is not None:
         # prior is not None -> set it to WORLD_SIZE
+        # (This is not required actually. Set it just in case)
         os.environ["WORLD_SIZE"] = str(prior)
         return int(prior)
     else:
         # prior is None and WORLD_SIZE is None -> WORLD_SIZE = 1
-        return os.environ.setdefault("WORLD_SIZE", 1)
+        return int(os.environ.setdefault("WORLD_SIZE", "1"))
 
 
 def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
@@ -224,10 +242,31 @@ def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
             raise RuntimeError(f"launcher='{launcher}' is not supported")
 
     if prior is not None:
+        # prior is not None -> set it to LOCAL_RANK
+        # (This is not required actually. Set it just in case)
         os.environ["LOCAL_RANk"] = str(prior)
         return int(prior)
+
+    elif "LOCAL_RANK" in os.environ:
+        return int(os.environ["LOCAL_RANK"])
+
+    elif "CUDA_VISIBLE_DEVICES" in os.environ:
+        # There are two possibility:
+        # - "CUDA_VISIBLE_DEVICES" is set to multiple GPU ids. e.g. "0.1,2"
+        #   => This intends to specify multiple devices to to be used exactly
+        #      and local_rank information is possibly insufficient.
+        # - "CUDA_VISIBLE_DEVICES" is set to an id. e.g. "0"
+        #   => This could be used for LOCAL_RANK
+        cvd = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
+        if len(cvd) == 1 and "LOCAL_RANK" not in os.environ:
+            # If CUDA_VISIBLE_DEVICES is set and LOCAL_RANK is not set,
+            # then use it as LOCAL_RANK.
+            os.environ["LOCAL_RANk"] = os.environ["CUDA_VISIBLE_DEVICES"]
+            return int(os.environ["LOCAL_RANk"])
+        else:
+            return None
     else:
-        return _int_or_none(os.environ.get("LOCAL_RANK"))
+        return None
 
 
 def get_master_addr(prior=None, launcher: str = None) -> Optional[str]:
