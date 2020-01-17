@@ -12,11 +12,16 @@ import random
 import subprocess
 import sys
 
+from distutils.version import LooseVersion
+
 import configargparse
 import numpy as np
+import torch
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -62,6 +67,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
+    parser.add_argument('--save-interval-iters', default=0, type=int,
+                        help="Save snapshot interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -222,6 +229,9 @@ def main(cmd_args):
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
     else:
+        if is_torch_1_2_plus:
+            assert args.ngpu == 1, "There are some bugs with multi-GPU processing in PyTorch 1.2+" \
+                                   " (see https://github.com/pytorch/pytorch/issues/21108)"
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 
