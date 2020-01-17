@@ -77,7 +77,6 @@ def calc_perplexity(
     with DatadirWriter(output_dir) as writer:
         total_nll = 0.0
         total_ntokens = 0
-
         for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
