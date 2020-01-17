@@ -486,7 +486,6 @@ if "${use_lm}"; then
             --init_file_prefix "${asr_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             python3 -m espnet2.bin.lm_train \
-              --ngpu "${ngpu}" \
               --use_preprocessor true \
               --bpemodel "${bpemodel}" \
               --token_type "${lm_token_type}"\
@@ -655,7 +654,6 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         --init_file_prefix "${asr_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.asr_train \
-            --ngpu "${ngpu}" \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
