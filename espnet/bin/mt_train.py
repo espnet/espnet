@@ -164,6 +164,17 @@ def get_parser(parser=None, required=True):
                         help='Tie parameters of source embedding and target embedding.')
     parser.add_argument('--tie-classifier', default=False, type=strtobool, nargs='?',
                         help='Tie parameters of target embedding and output projection layer.')
+    # finetuning related
+    parser.add_argument('--enc-init', default=None, type=str, nargs='?',
+                        help='Pre-trained ASR model to initialize encoder.')
+    parser.add_argument('--enc-init-mods', default='enc.enc.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of encoder modules to initialize, separated by a comma.')
+    parser.add_argument('--dec-init', default=None, type=str, nargs='?',
+                        help='Pre-trained ASR, MT or LM model to initialize decoder.')
+    parser.add_argument('--dec-init-mods', default='att., dec.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of decoder modules to initialize, separated by a comma.')
     # multilingual related
     parser.add_argument('--multilingual', default=False, type=strtobool,
                         help='Prepend target language ID to the source sentence. \
