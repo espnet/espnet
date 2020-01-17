@@ -409,7 +409,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --init_file_prefix "${tts_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.tts_train \
-            --ngpu "${ngpu}" \
             --token_list "${_train_dir}/tokens.txt" \
             --use_preprocessor true \
             --token_type char \
