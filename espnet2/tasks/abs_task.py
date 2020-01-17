@@ -42,10 +42,10 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.distributed_utils import free_port
 from espnet2.train.distributed_utils import get_master_port
 from espnet2.train.distributed_utils import get_node_rank
 from espnet2.train.distributed_utils import get_num_nodes
-from espnet2.train.distributed_utils import recommended_port
 from espnet2.train.distributed_utils import resolve_distributed_mode
 from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.epoch_iter_factory import EpochIterFactory
@@ -596,7 +596,7 @@ class AbsTask(ABC):
     def get_default_config(cls) -> Dict[str, Any]:
         """Return the configuration as dict.
 
-        This method is used print_config()
+        This method is used by print_config()
         """
 
         def get_class_type(name: str, classes: dict):
@@ -729,7 +729,7 @@ class AbsTask(ABC):
         cls.check_required_command_args(args)
 
         # "distributed" is decided using the other command args
-        args.distributed = resolve_distributed_mode(args)
+        resolve_distributed_mode(args)
         if not args.distributed or not args.multiprocessing_distributed:
             cls.main_worker(args)
 
@@ -741,7 +741,7 @@ class AbsTask(ABC):
             # |Child1|Child2|Child1|Child2|
             # |GPU1  |GPU2  |GPU1  |GPU2  |
 
-            # See also the usage of --multiprocessing-distributed:
+            # See also the following usage of --multiprocessing-distributed:
             # https://github.com/pytorch/examples/blob/master/imagenet/main.py
             num_nodes = get_num_nodes(args.dist_world_size, args.dist_launcher)
             if num_nodes == 1:
@@ -753,7 +753,7 @@ class AbsTask(ABC):
                     and get_master_port(args.dist_master_port) is None
                 ):
                     # Get the unused port
-                    args.dist_master_port = recommended_port()
+                    args.dist_master_port = free_port()
 
             # Assume that nodes use same number of GPUs each other
             args.dist_world_size = args.ngpu * num_nodes
@@ -790,7 +790,7 @@ class AbsTask(ABC):
         distributed_option = build_dataclass(DistributedOption, args)
         distributed_option.init()
 
-        # Warning! Don't use logging before invoking logging.basicConfig()
+        # NOTE(kamo): Don't use logging before invoking logging.basicConfig()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             if not distributed_option.distributed:
                 _rank = ""
@@ -800,7 +800,7 @@ class AbsTask(ABC):
             # NOTE(kamo):
             # logging.basicConfig() is invoked in main_worker() instead of main()
             # because it can be invoked only once in a process.
-            # FIXME(kamo): Should we use logger instead of logging?
+            # FIXME(kamo): Should we use logging.getLogger()?
             logging.basicConfig(
                 level=args.log_level,
                 format=f"[{os.uname()[1].split('.')[0]}{_rank}]"

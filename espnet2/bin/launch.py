@@ -86,6 +86,7 @@ def main(cmd=None):
             # Try "shared-file system initialization" if master_port is not specified
             # Give random name to avoid reusing previous file
             init_file = args.init_file_prefix + str(uuid.uuid4())
+            init_file = Path(init_file).absolute()
             Path(init_file).parent.mkdir(exist_ok=True, parents=True)
             init_method = ["--dist_init_method", f"file://{init_file}"]
         else:
@@ -104,7 +105,7 @@ def main(cmd=None):
                 # -> Distributed mode, which is multi-process and Multi-GPUs.
                 #    and TCP initializetion is used if single-node case:
                 #      e.g. init_method="tcp://localhost:20000"
-                logging.info(f"single-node with ngpu={args.ngpu} on distributed mode")
+                logging.info(f"single-node with {args.ngpu}gpu on distributed mode")
             else:
                 # NOTE:
                 #   If multiprocessing_distributed=false
@@ -112,7 +113,7 @@ def main(cmd=None):
                 #    and Multi-GPUs with threading.
                 # See:
                 # https://discuss.pytorch.org/t/why-torch-nn-parallel-distributeddataparallel-runs-faster-than-torch-nn-dataparallel-on-single-machine-with-multi-gpu/32977/2
-                logging.info(f"single-node with ngpu={args.ngpu} using DataParallel")
+                logging.info(f"single-node with {args.ngpu}gpu using DataParallel")
 
         # Using cmd as it is simply
         cmd = (
@@ -140,7 +141,7 @@ def main(cmd=None):
         # NOTE:
         #   Assume same number of GPUs for each nodes.
 
-        logging.info(f"{args.num_nodes}-nodes and ngpu={args.ngpu} using srun")
+        logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu using srun")
         cmd = (
             args.cmd
             # arguments for ${cmd}
