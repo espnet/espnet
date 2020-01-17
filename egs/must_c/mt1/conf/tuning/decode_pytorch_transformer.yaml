@@ -1,5 +1,1 @@
-batchsize: 0
-beam-size: 10
-penalty: 0.7
-maxlenratio: 1.3
-minlenratio: 0.0
+decode_pytorch_transformer.en-de.yaml
