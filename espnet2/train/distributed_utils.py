@@ -50,8 +50,16 @@ class DistributedOption:
             )
             self.local_rank = get_local_rank(self.local_rank, self.dist_launcher)
 
-            if self.local_rank is not None and self.ngpu > 1:
-                raise RuntimeError(f"Assuming 1GPU in this case: ngpu={self.ngpu}")
+            if self.local_rank is not None:
+                if self.ngpu > 1:
+                    raise RuntimeError(f"Assuming 1GPU in this case: ngpu={self.ngpu}")
+                if "CUDA_VISIBLE_DEVICES" in os.environ:
+                    cvd = os.environ["CUDA_VISIBLE_DEVICES"]
+                    if self.local_rank >= len(cvd.split(",")):
+                        raise RuntimeError(
+                            f"LOCAL_RANK={self.local_rank} is bigger "
+                            f"than the number of visible devices: {cvd}"
+                        )
 
             if (
                 self.dist_rank is not None
@@ -94,60 +102,62 @@ class DistributedOption:
             if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
 
-                if "CUDA_VISIBLE_DEVICES" in os.environ:
-                    cvd = os.environ["CUDA_VISIBLE_DEVICES"]
-                    if len(cvd) == 1:
-                        # Unset CUDA_VISIBLE_DEVICES
-                        # because the other device must be visible to communicate
-                        del os.environ["CUDA_VISIBLE_DEVICES"]
 
+def resolve_distributed_mode(args):
+    # Note that args.distributed is set by only this function.
+    # and ArgumentParser doesn't have such option
 
-def resolve_distributed_mode(args) -> bool:
     if args.multiprocessing_distributed:
         num_nodes = get_num_nodes(args.dist_world_size, args.dist_launcher)
         # a. multi-node
         if num_nodes > 1:
-            distributed = True
+            args.distributed = True
         # b. single-node and multi-gpu with multiprocessing_distributed mode
         elif args.ngpu > 1:
-            distributed = True
+            args.distributed = True
         # c. single-node and single-gpu
         else:
-            distributed = False
+            args.distributed = False
 
         if args.ngpu <= 1:
-            # Disable multiprocessing_distributed mode
+            # Disable multiprocessing_distributed mode if 1process per node or cpu mode
             args.multiprocessing_distributed = False
+        if args.ngpu == 1:
+            # If the number of GPUs equals to 1 with multiprocessing_distributed mode,
+            # LOCAL_RANK is always 0
+            args.local_rank = 0
 
         if num_nodes > 1 and get_node_rank(args.dist_rank, args.dist_launcher) is None:
             raise RuntimeError(
                 "--dist_rank or RANK must be set "
                 "if --multiprocessing_distributed == true"
             )
+
+        # Note that RANK, LOCAL_RANK, and WORLD_SIZE is automatically set,
+        # so we don't need to check here
     else:
         # d. multiprocess and multi-gpu with external launcher
         #    e.g. torch.distributed.launch
         if get_world_size(args.dist_world_size, args.dist_launcher) > 1:
-            distributed = True
+            args.distributed = True
         # e. single-process
         else:
-            distributed = False
+            args.distributed = False
 
-        if distributed:
+        if args.distributed and args.ngpu > 0:
             if get_local_rank(args.local_rank, args.dist_launcher) is None:
                 raise RuntimeError(
                     "--local_rank or LOCAL_RANK must be set "
                     "if --multiprocessing_distributed == false"
                 )
+        if args.distributed:
             if get_node_rank(args.dist_rank, args.dist_launcher) is None:
                 raise RuntimeError(
                     "--dist_rank or RANK must be set "
                     "if --multiprocessing_distributed == false"
                 )
-    if distributed and args.dist_launcher == "slurm" and not is_in_slurm_step():
+    if args.distributed and args.dist_launcher == "slurm" and not is_in_slurm_step():
         raise RuntimeError("Launch by 'srun' command if --dist_launcher='slurm'")
-
-    return distributed
 
 
 def is_in_slurm_job() -> bool:
@@ -158,7 +168,7 @@ def is_in_slurm_step() -> bool:
     return (
         is_in_slurm_job()
         and "SLURM_STEP_NUM_NODES" in os.environ
-        and "SLURM_STEP_NUM_TASKS" in os.environ
+        and "SLURM_STEP_NODELIST" in os.environ
     )
 
 
@@ -168,7 +178,7 @@ def _int_or_none(x: Optional[str]) -> Optional[int]:
     return int(x)
 
 
-def recommended_port():
+def free_port():
     """Find free port using bind().
 
     There are some interval between finding this port and using it
@@ -195,9 +205,6 @@ def get_rank(prior=None, launcher: str = None) -> Optional[int]:
             raise RuntimeError(f"launcher='{launcher}' is not supported")
 
     if prior is not None:
-        # prior is not None -> set it to RANK
-        # (This is not required actually. Set it just in case)
-        os.environ["RANK"] = str(prior)
         return int(prior)
     else:
         # prior is None and RANK is None -> RANK = None
@@ -218,16 +225,15 @@ def get_world_size(prior=None, launcher: str = None) -> int:
             raise RuntimeError(f"launcher='{launcher}' is not supported")
 
     if prior is not None:
-        # prior is not None -> set it to WORLD_SIZE
-        # (This is not required actually. Set it just in case)
-        os.environ["WORLD_SIZE"] = str(prior)
         return int(prior)
     else:
         # prior is None and WORLD_SIZE is None -> WORLD_SIZE = 1
-        return int(os.environ.setdefault("WORLD_SIZE", "1"))
+        return int(os.environ.get("WORLD_SIZE", "1"))
 
 
 def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
+    # LOCAL_RANK is same as GPU device id
+
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -242,9 +248,6 @@ def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
             raise RuntimeError(f"launcher='{launcher}' is not supported")
 
     if prior is not None:
-        # prior is not None -> set it to LOCAL_RANK
-        # (This is not required actually. Set it just in case)
-        os.environ["LOCAL_RANk"] = str(prior)
         return int(prior)
 
     elif "LOCAL_RANK" in os.environ:
@@ -255,14 +258,16 @@ def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
         # - "CUDA_VISIBLE_DEVICES" is set to multiple GPU ids. e.g. "0.1,2"
         #   => This intends to specify multiple devices to to be used exactly
         #      and local_rank information is possibly insufficient.
-        # - "CUDA_VISIBLE_DEVICES" is set to an id. e.g. "0"
+        # - "CUDA_VISIBLE_DEVICES" is set to an id. e.g. "1"
         #   => This could be used for LOCAL_RANK
         cvd = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
         if len(cvd) == 1 and "LOCAL_RANK" not in os.environ:
             # If CUDA_VISIBLE_DEVICES is set and LOCAL_RANK is not set,
             # then use it as LOCAL_RANK.
-            os.environ["LOCAL_RANk"] = os.environ["CUDA_VISIBLE_DEVICES"]
-            return int(os.environ["LOCAL_RANk"])
+
+            # Unset CUDA_VISIBLE_DEVICES
+            # because the other device must be visible to communicate
+            return int(os.environ.pop("CUDA_VISIBLE_DEVICES"))
         else:
             return None
     else:
@@ -280,15 +285,13 @@ def get_master_addr(prior=None, launcher: str = None) -> Optional[str]:
             prior = nodelist.split(",")[0].split("-")[0].replace("[", "")
 
     if prior is not None:
-        os.environ["MASTER_ADDR"] = str(prior)
         return str(prior)
     else:
-        return os.environ["MASTER_ADDR"]
+        return os.environ.get("MASTER_ADDR")
 
 
 def get_master_port(prior=None) -> Optional[int]:
     if prior is not None:
-        os.environ["MASTER_PORT"] = str(prior)
         return prior
     else:
         return _int_or_none(os.environ.get("MASTER_PORT"))
@@ -358,4 +361,4 @@ def get_num_nodes(prior=None, launcher: str = None) -> Optional[int]:
         raise RuntimeError(f"launcher='{launcher}' is not supported")
     else:
         # prior is None -> NUM_NODES = 1
-        return os.environ.get("WORLD_SIZE", 1)
+        return int(os.environ.get("WORLD_SIZE", 1))
