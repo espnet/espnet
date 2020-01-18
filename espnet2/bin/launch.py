@@ -28,7 +28,24 @@ def get_parser():
     parser.add_argument(
         "--ngpu", type=int, default=1, help="The number of GPUs per node"
     )
-    parser.add_argument("--num_nodes", type=int, default=1, help="The number of nodes")
+    egroup = parser.add_mutually_exclusive_group()
+    egroup.add_argument("--num_nodes", type=int, default=1, help="The number of nodes")
+    egroup.add_argument(
+        "--host",
+        type=str,
+        default=None,
+        help="Directly specify the host names.  The job are submitted via SSH. "
+        "Multiple host names can be specified by splitting by comma. e.g. host1,host2"
+        "This option must be used with 'run.pl'.",
+    )
+    parser.add_argument(
+        "--envfile",
+        type=str,
+        default=None,
+        help="Source the shell script before executing command. "
+        "This option is used when --host is specified.",
+    )
+
     parser.add_argument(
         "--multiprocessing_distributed",
         type=str2bool,
@@ -52,7 +69,7 @@ def get_parser():
     parser.add_argument(
         "--init_file_prefix",
         type=str,
-        default=f"{os.getcwd()}/.dist_init_",
+        default=f".dist_init_",
         help="The file name prefix for init_file, which is used for "
         "'Shared-file system initialization'. "
         "This option is used when --port is not specified",
@@ -69,16 +86,20 @@ def main(cmd=None):
     parser = get_parser()
     args = parser.parse_args(cmd)
     args.cmd = shlex.split(args.cmd)
+    if args.host is not None:
+        args.host = args.host.split(",")
 
     if shutil.which(args.cmd[0]) is None:
         raise RuntimeError(
             f"The first args of --cmd should be a script path. e.g. utils/run.pl: "
             f"{args.cmd[0]}"
         )
+    if args.host is not None and Path(args.cmd[0]).name != "run.pl":
+        raise RuntimeError("--host option must be used with 'run.pl'")
 
     # Specify init_method:
     #   See: https://pytorch.org/docs/stable/distributed.html#initialization
-    if args.num_nodes <= 1:
+    if args.host is None and args.num_nodes <= 1:
         # Automatically set init_method if num_node=1
         init_method = None
     else:
@@ -92,12 +113,60 @@ def main(cmd=None):
         else:
             init_method = ["--dist_master_port", str(args.master_port)]
 
-        # This can be omitted if slurm mode
-        if args.master_addr is not None:
-            init_method = ["--dist_master_addr", str(args.master_addf)]
+            # This can be omitted if slurm mode
+            if args.master_addr is not None:
+                init_method += ["--dist_master_addr", args.master_addr]
+            elif args.host is not None:
+                init_method += ["--dist_master_addr", args.host[0]]
 
     processes = []
-    if args.num_nodes <= 1:
+    # Submit command via SSH
+    if args.host is not None:
+        if args.envfile is not None:
+            env = ["cd", os.getcwd(), "&&", "source", args.envfile, "&&"]
+        else:
+            env = ["cd", os.getcwd(), "&&"]
+        logging.info(f"{len(args.host)}nodes and {args.ngpu}gpu via SSH")
+
+        for rank, host in enumerate(args.host):
+            cmd = (
+                args.cmd
+                # arguments for ${cmd}
+                + [
+                    "--gpu",
+                    str(args.ngpu),
+                    Path(args.log).stem + f".{rank}" + Path(args.log).suffix,
+                    "ssh",
+                    host,
+                    "'",
+                ]
+                + env
+                # arguments for *_train.py
+                + args.args
+                + [
+                    "--ngpu",
+                    str(args.ngpu),
+                    "--multiprocessing_distributed",
+                    "true",
+                    "--dist_rank",
+                    str(rank),
+                    "--dist_world_size",
+                    str(len(args.host)),
+                    "'",
+                ]
+                + init_method
+            )
+            if args.ngpu == 0:
+                # Gloo supports both GPU and CPU mode.
+                #   See: https://pytorch.org/docs/stable/distributed.html
+                cmd += ["--dist_backend", "gloo"]
+            process = subprocess.Popen(cmd)
+            processes.append(process)
+
+        logfile = (Path(args.log).stem + ".*" + Path(args.log).suffix,)
+
+    # If Single node
+    elif args.num_nodes <= 1:
         if args.ngpu > 1:
             if args.multiprocessing_distributed:
                 # NOTE:
