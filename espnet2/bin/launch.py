@@ -135,7 +135,8 @@ def main(cmd=None):
                 + [
                     "--gpu",
                     str(args.ngpu),
-                    Path(args.log).stem + f".{rank}" + Path(args.log).suffix,
+                    Path(args.log).parent
+                    / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix),
                     "ssh",
                     host,
                     "'",
@@ -265,7 +266,8 @@ def main(cmd=None):
                 + [
                     "--gpu",
                     str(min(args.ngpu, 1)),
-                    Path(args.log).stem + f".{rank}" + Path(args.log).suffix,
+                    Path(args.log).parent
+                    / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix),
                 ]
                 # arguments for *_train.py
                 + args.args
