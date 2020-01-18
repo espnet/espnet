@@ -149,17 +149,17 @@ def main(cmd=None):
                 # Gloo supports both GPU and CPU mode.
                 #   See: https://pytorch.org/docs/stable/distributed.html
                 cmd += ["--dist_backend", "gloo"]
-            Path(args.log).parent.mkdir(parents=True, exist_ok=True)
-            f = (
-                Path(args.log).parent
-                / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix)
-            ).open("w")
+
+            if args.log != "-":
+                Path(args.log).parent.mkdir(parents=True, exist_ok=True)
+                f = Path(args.log).open("w")
+            else:
+                # Output to stdout/stderr
+                f = None
             process = subprocess.Popen(" ".join(cmd), stdout=f, stderr=f, shell=True)
             processes.append(process)
 
-        logfile = Path(args.log).parent / (
-            Path(args.log).stem + ".*" + Path(args.log).suffix
-        )
+        logfile = args.log
 
     # If Single node
     elif args.num_nodes <= 1:
