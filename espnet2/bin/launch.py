@@ -94,8 +94,6 @@ def main(cmd=None):
             f"The first args of --cmd should be a script path. e.g. utils/run.pl: "
             f"{args.cmd[0]}"
         )
-    if args.host is not None and Path(args.cmd[0]).name != "run.pl":
-        raise RuntimeError("--host option must be used with 'run.pl'")
 
     # Specify init_method:
     #   See: https://pytorch.org/docs/stable/distributed.html#initialization
@@ -126,21 +124,11 @@ def main(cmd=None):
             env = ["cd", os.getcwd(), "&&", "source", args.envfile, "&&"]
         else:
             env = ["cd", os.getcwd(), "&&"]
-        logging.info(f"{len(args.host)}nodes and {args.ngpu}gpu via SSH")
+        logging.info(f"{len(args.host)}nodes and {args.ngpu}gpu-per-node via SSH")
 
         for rank, host in enumerate(args.host):
             cmd = (
-                args.cmd
-                # arguments for ${cmd}
-                + [
-                    "--gpu",
-                    str(args.ngpu),
-                    Path(args.log).parent
-                    / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix),
-                    "ssh",
-                    host,
-                    "'",
-                ]
+                ["ssh", host, "'"]
                 + env
                 # arguments for *_train.py
                 + args.args
@@ -161,7 +149,12 @@ def main(cmd=None):
                 # Gloo supports both GPU and CPU mode.
                 #   See: https://pytorch.org/docs/stable/distributed.html
                 cmd += ["--dist_backend", "gloo"]
-            process = subprocess.Popen(cmd)
+            Path(args.log).parent.mkdir(parents=True, exist_ok=True)
+            f = (
+                Path(args.log).parent
+                / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix)
+            ).open("w")
+            process = subprocess.Popen(" ".join(cmd), stdout=f, stderr=f, shell=True)
             processes.append(process)
 
         logfile = (Path(args.log).stem + ".*" + Path(args.log).suffix,)
@@ -211,7 +204,7 @@ def main(cmd=None):
         # NOTE:
         #   Assume same number of GPUs for each nodes.
 
-        logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu using srun")
+        logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu-per-node using srun")
         cmd = (
             args.cmd
             # arguments for ${cmd}
