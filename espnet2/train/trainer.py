@@ -148,7 +148,11 @@ class Trainer:
         else:
             ddp_model = model
 
-        summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+        else:
+            summary_writer = None
+
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f"{iepoch}epoch started")
             set_all_random_seed(seed + iepoch)
