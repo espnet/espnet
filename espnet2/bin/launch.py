@@ -157,7 +157,9 @@ def main(cmd=None):
             process = subprocess.Popen(" ".join(cmd), stdout=f, stderr=f, shell=True)
             processes.append(process)
 
-        logfile = (Path(args.log).stem + ".*" + Path(args.log).suffix,)
+        logfile = Path(args.log).parent / (
+            Path(args.log).stem + ".*" + Path(args.log).suffix
+        )
 
     # If Single node
     elif args.num_nodes <= 1:
@@ -283,7 +285,9 @@ def main(cmd=None):
             process = subprocess.Popen(cmd)
             processes.append(process)
 
-        logfile = (Path(args.log).stem + ".*" + Path(args.log).suffix,)
+        logfile = Path(args.log).parent / (
+            Path(args.log).stem + ".*" + Path(args.log).suffix
+        )
 
     logging.info(f"log file: {logfile}")
 
