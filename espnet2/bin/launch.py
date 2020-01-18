@@ -89,7 +89,7 @@ def main(cmd=None):
     if args.host is not None:
         args.host = args.host.split(",")
 
-    if shutil.which(args.cmd[0]) is None:
+    if args.host is None and shutil.which(args.cmd[0]) is None:
         raise RuntimeError(
             f"The first args of --cmd should be a script path. e.g. utils/run.pl: "
             f"{args.cmd[0]}"
