@@ -141,7 +141,6 @@ def main(cmd=None):
                     str(rank),
                     "--dist_world_size",
                     str(len(args.host)),
-                    "'",
                 ]
                 + init_method
             )
@@ -149,6 +148,7 @@ def main(cmd=None):
                 # Gloo supports both GPU and CPU mode.
                 #   See: https://pytorch.org/docs/stable/distributed.html
                 cmd += ["--dist_backend", "gloo"]
+            cmd.append("'")
 
             if args.log != "-":
                 Path(args.log).parent.mkdir(parents=True, exist_ok=True)
