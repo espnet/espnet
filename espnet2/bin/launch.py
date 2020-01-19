@@ -37,7 +37,9 @@ def get_parser():
         default=None,
         help="Directly specify the host names.  The job are submitted via SSH. "
         "Multiple host names can be specified by splitting by comma. e.g. host1,host2"
-        "This option must be used with 'run.pl'.",
+        " You can also the device id after the host name with ':'. e.g. "
+        "host1:0:2:3,host2:0:2. If the device ids are specified in this way, "
+        "the value of --ngpu is ignored.",
     )
     parser.add_argument(
         "--envfile",
@@ -87,8 +89,6 @@ def main(cmd=None):
     parser = get_parser()
     args = parser.parse_args(cmd)
     args.cmd = shlex.split(args.cmd)
-    if args.host is not None:
-        args.host = args.host.split(",")
 
     if args.host is None and shutil.which(args.cmd[0]) is None:
         raise RuntimeError(
@@ -116,7 +116,10 @@ def main(cmd=None):
             if args.master_addr is not None:
                 init_method += ["--dist_master_addr", args.master_addr]
             elif args.host is not None:
-                init_method += ["--dist_master_addr", args.host[0]]
+                init_method += [
+                    "--dist_master_addr",
+                    args.host.split(",")[0].split(":")[0],
+                ]
 
     processes = []
     # Submit command via SSH
@@ -125,40 +128,67 @@ def main(cmd=None):
             env = ["cd", os.getcwd(), "&&", "source", args.envfile, "&&"]
         else:
             env = ["cd", os.getcwd(), "&&"]
-        logging.info(f"{len(args.host)}nodes and {args.ngpu}gpu-per-node via SSH")
 
-        for rank, host in enumerate(args.host):
-            cmd = (
-                ["ssh", host, "'"]
-                + env
-                # arguments for *_train.py
-                + args.args
-                + [
-                    "--ngpu",
-                    str(args.ngpu),
-                    "--multiprocessing_distributed",
-                    "true",
-                    "--dist_rank",
-                    str(rank),
-                    "--dist_world_size",
-                    str(len(args.host)),
-                ]
-                + init_method
-            )
-            if args.ngpu == 0:
-                # Gloo supports both GPU and CPU mode.
-                #   See: https://pytorch.org/docs/stable/distributed.html
-                cmd += ["--dist_backend", "gloo"]
-            cmd.append("'")
-
-            if args.log != "-":
-                Path(args.log).parent.mkdir(parents=True, exist_ok=True)
-                f = Path(args.log).open("w")
+        hosts = []
+        ids_list = []
+        # e.g. args.host = "host1:0:2,host2:0,1"
+        for host in args.host.split(","):
+            # e.g host = "host1:0:2"
+            sps = host.split(":")
+            host = sps[0]
+            if len(sps) > 1:
+                ids = [int(x) for x in sps[1:]]
             else:
-                # Output to stdout/stderr
-                f = None
-            process = subprocess.Popen(" ".join(cmd), stdout=f, stderr=f, shell=True)
-            processes.append(process)
+                ids = list(range(args.ngpu))
+            hosts.append(host)
+            ids_list.append(ids)
+
+        world_size = sum(max(len(x), 1) for x in ids_list)
+        logging.info(f"{len(hosts)}nodes with world_size={world_size} via SSH")
+
+        rank = 0
+        for host, ids in zip(hosts, ids_list):
+            ngpu = 1 if len(ids) > 0 else 0
+            ids = ids if len(ids) > 0 else ["none"]
+
+            for local_rank in ids:
+                cmd = (
+                    ["ssh", host, "'"]
+                    + env
+                    # arguments for *_train.py
+                    + args.args
+                    + [
+                        "--ngpu",
+                        str(ngpu),
+                        "--multiprocessing_distributed",
+                        "false",
+                        "--local_rank",
+                        str(local_rank),
+                        "--dist_rank",
+                        str(rank),
+                        "--dist_world_size",
+                        str(world_size),
+                    ]
+                    + init_method
+                )
+                if ngpu == 0:
+                    # Gloo supports both GPU and CPU mode.
+                    #   See: https://pytorch.org/docs/stable/distributed.html
+                    cmd += ["--dist_backend", "gloo"]
+                cmd.append("'")
+
+                if args.log != "-":
+                    Path(args.log).parent.mkdir(parents=True, exist_ok=True)
+                    f = Path(args.log).open("w")
+                else:
+                    # Output to stdout/stderr
+                    f = None
+                process = subprocess.Popen(
+                    " ".join(cmd), stdout=f, stderr=f, shell=True
+                )
+                processes.append(process)
+
+                rank += 1
 
         logfile = args.log
 
