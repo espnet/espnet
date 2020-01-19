@@ -10,6 +10,7 @@ import uuid
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.utils.types import str2bool
+from espnet2.utils.types import str_or_none
 
 
 def get_parser():
@@ -40,8 +41,8 @@ def get_parser():
     )
     parser.add_argument(
         "--envfile",
-        type=str,
-        default=None,
+        type=str_or_none,
+        default="path.sh",
         help="Source the shell script before executing command. "
         "This option is used when --host is specified.",
     )
