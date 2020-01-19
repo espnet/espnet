@@ -87,6 +87,10 @@ class DistributedOption:
             # https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html
             os.environ.setdefault("NCCL_DEBUG", "INFO")
 
+            # See:
+            # https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
+            os.environ.setdefault("NCCL_BLOCKING_WAIT", "1")
+
             torch.distributed.init_process_group(
                 backend=self.dist_backend,
                 init_method=self.dist_init_method,
