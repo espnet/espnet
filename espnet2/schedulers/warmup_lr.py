@@ -1,6 +1,5 @@
 from distutils.version import LooseVersion
 from typing import Union
-import warnings
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -9,39 +8,32 @@ from typeguard import check_argument_types
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
 
-class NoamLR(_LRScheduler, AbsBatchStepScheduler):
-    """The LR scheduler proposed by Noam
+class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
+    """The WarmupLR scheduler
 
-    Ref:
-        "Attention Is All You Need", https://arxiv.org/pdf/1706.03762.pdf
+    This scheduler is almost same as NoamLR Scheduler except for following difference:
 
-    FIXME(kamo): PyTorch doesn't provide _LRScheduler as public class,
-     thus the behaviour isn't guaranteed at forward PyTorch version.
+    NoamLR:
+        lr = optimizer.lr * model_size ** -0.5
+             * min(step ** -0.5, step * warmup_step ** -1.5)
+    WarmupLR:
+        lr = optimizer.lr * warmup_step ** 0.5
+             * min(step ** -0.5, step * warmup_step ** -1.5)
 
-    NOTE(kamo): The "model_size" in original implementation is derived from
-     the model, but in this implementation, this parameter is a constant value.
-     You need to change it if the model is changed.
+    Note that the maximum lr equals to optimizer.lr in this scheduler.
 
     """
 
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
-        model_size: Union[int, float] = 320,
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
         if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
             raise NotImplementedError(f"Require PyTorch>=1.1.0: {torch.__version__}")
-        assert check_argument_types()
-        lr = list(optimizer.param_groups)[0]["lr"]
-        new_lr = lr * model_size * 0.5 / warmup_steps * 0.5
-        warnings.warn(
-            f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})",
-            category=DeprecationWarning,
-        )
 
-        self.model_size = model_size
+        assert check_argument_types()
         self.warmup_steps = warmup_steps
 
         # __init__() must be invoked before setting field
@@ -52,7 +44,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         step_num = self.last_epoch + 1
         return [
             lr
-            * self.model_size ** -0.5
+            * self.warmup_steps ** 0.5
             * min(step_num ** -0.5, step_num * self.warmup_steps ** -1.5)
             for lr in self.base_lrs
         ]
