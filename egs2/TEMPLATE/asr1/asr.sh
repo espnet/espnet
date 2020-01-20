@@ -98,7 +98,7 @@ Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eva
 Options:
     # General configuration
     --stage      # Processes starts from the specified stage (default="${stage}").
-    --skip-stage # Processes skip the specified stage (default="${skip_stage}").
+    --skip_stage # Processes skip the specified stage (default="${skip_stage}").
     --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --nj         # The number of parallel jobs (default="${nj}").
