@@ -6,7 +6,7 @@ set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
 
@@ -31,7 +31,6 @@ data_url=http://www.openslr.org/resources/1/waves_yesno.tar.gz
 
 ndev_utt=2
 
-train_yesno="train_yesno"
 train_set="train_nodev"
 train_dev="train_dev"
 eval_set="test_yesno"
@@ -44,23 +43,21 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     if [ -d ${datadir}/waves_yesno ] || [ -f ${datadir}/waves_yesno.tar.gz ]; then
         log "$0: yesno directory or archive already exists in ${datadir}. Skipping download."
     else
-        if ! which wget >/dev/null; then
+        if ! command -v wget >/dev/null; then
             log "$0: wget is not installed."
             exit 1;
         fi
         log "$0: downloading data from ${data_url}"
 
-        cd ${datadir}
-        if ! wget --no-check-certificate ${data_url}; then
+        if ! wget --no-check-certificate ${data_url} -P "${datadir}"; then
             log "$0: error executing wget ${data_url}"
             exit 1;
         fi
 
-        if ! tar -xvzf waves_yesno.tar.gz; then
+        if ! tar -xvzf ${datadir}/waves_yesno.tar.gz -C "${datadir}"; then
             log "$0: error un-tarring archive ${datadir}/waves_yesno.tar.gz"
             exit 1;
         fi
-        cd ..
         rm ${yesno_root}/README*
 
         log "$0: Successfully downloaded and un-tarred ${datadir}/waves_yesno.tar.gz"
@@ -93,7 +90,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp data/local/${x}_wav.scp data/$x/wav.scp
         cp data/local/$x.txt data/$x/text
 
-        cat data/$x/text | awk '{printf("%s global\n", $1);}' > data/$x/utt2spk
+        <data/$x/text awk '{printf("%s global\n", $1);}' > data/$x/utt2spk
         utils/utt2spk_to_spk2utt.pl <data/$x/utt2spk >data/$x/spk2utt
     done
 fi
@@ -106,7 +103,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                              ${ndev_utt}        \
                              data/${train_dev}
 
-    train_utt=$(($(wc -l < data/train_yesno/text) - ${ndev_utt}))
+    train_utt=$(($(wc -l < data/train_yesno/text) - ndev_utt))
 
     utils/subset_data_dir.sh --last             \
                              data/train_yesno   \
