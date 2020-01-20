@@ -124,11 +124,6 @@ def main(cmd=None):
     processes = []
     # Submit command via SSH
     if args.host is not None:
-        if args.envfile is not None:
-            env = ["cd", os.getcwd(), "&&", "source", args.envfile, "&&"]
-        else:
-            env = ["cd", os.getcwd(), "&&"]
-
         hosts = []
         ids_list = []
         # e.g. args.host = "host1:0:2,host2:0,1"
@@ -146,6 +141,11 @@ def main(cmd=None):
         world_size = sum(max(len(x), 1) for x in ids_list)
         logging.info(f"{len(hosts)}nodes with world_size={world_size} via SSH")
 
+        if args.envfile is not None:
+            env = f"source {args.envfile}"
+        else:
+            env = ""
+
         rank = 0
         for host, ids in zip(hosts, ids_list):
             ngpu = 1 if len(ids) > 0 else 0
@@ -153,10 +153,7 @@ def main(cmd=None):
 
             for local_rank in ids:
                 cmd = (
-                    ["ssh", host, "'"]
-                    + env
-                    # arguments for *_train.py
-                    + args.args
+                    args.args
                     + [
                         "--ngpu",
                         str(ngpu),
@@ -175,7 +172,14 @@ def main(cmd=None):
                     # Gloo supports both GPU and CPU mode.
                     #   See: https://pytorch.org/docs/stable/distributed.html
                     cmd += ["--dist_backend", "gloo"]
-                cmd.append("'")
+
+                heredoc = f"""<< EOF
+set -euo pipefail
+cd {os.getcwd()}
+{env}
+{" ".join([c if len(c) != 0 else "''" for c in cmd])}
+EOF
+"""
 
                 if args.log != "-":
                     Path(args.log).parent.mkdir(parents=True, exist_ok=True)
@@ -183,14 +187,14 @@ def main(cmd=None):
                 else:
                     # Output to stdout/stderr
                     f = None
+
                 process = subprocess.Popen(
-                    " ".join(cmd), stdout=f, stderr=f, shell=True
+                    ["ssh", host, "bash", heredoc], stdout=f, stderr=f,
                 )
+
                 processes.append(process)
 
                 rank += 1
-
-        logfile = args.log
 
     # If Single node
     elif args.num_nodes <= 1:
@@ -227,16 +231,9 @@ def main(cmd=None):
         )
         process = subprocess.Popen(cmd)
         processes.append(process)
-        logfile = args.log
 
     # If Slurm
     elif Path(args.cmd[0]).name == "slurm.pl":
-        # WARNING:
-        #   If the Cgroups option of slurm is enabled, you must take this way,
-        #   if not so, the last pattern can be also used.
-        # NOTE:
-        #   Assume same number of GPUs for each nodes.
-
         logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu-per-node using srun")
         cmd = (
             args.cmd
@@ -269,61 +266,59 @@ def main(cmd=None):
             cmd += ["--dist_backend", "gloo"]
         process = subprocess.Popen(cmd)
         processes.append(process)
-        logfile = args.log
-
-    elif Path(args.cmd[0]).name == "run.pl":
-        raise RuntimeError("run.pl can't submit jobs to the other nodes")
 
     else:
-        # WARNING:
-        #   Assuming that $CUDA_VISIBLE_DEVICES is automatically set by the system
-        # WARNING:
-        #   If the allocated devices are isolated from each other,
-        #   e.g. by using Cgroups,
-        #   then the internal communication within a node may be failed.
-
-        world_size = args.num_nodes * max(args.ngpu, 1)
-        logging.info(f"World_size={world_size}")
-
-        for rank in range(world_size):
-            cmd = (
-                args.cmd
-                # arguments for ${cmd}
-                + [
-                    "--gpu",
-                    str(min(args.ngpu, 1)),
-                    Path(args.log).parent
-                    / (Path(args.log).stem + f".{rank}" + Path(args.log).suffix),
-                ]
-                # arguments for *_train.py
-                + args.args
-                + [
-                    "--ngpu",
-                    "1",
-                    "--multiprocessing_distributed",
-                    "false",
-                    "--dist_rank",
-                    str(rank),
-                    "--dist_world_size",
-                    str(world_size),
-                ]
-                + init_method
-            )
-            if args.ngpu == 0:
-                # Gloo supports both GPU and CPU mode.
-                #   See: https://pytorch.org/docs/stable/distributed.html
-                cmd += ["--dist_backend", "gloo"]
-            process = subprocess.Popen(cmd)
-            processes.append(process)
-
-        logfile = Path(args.log).parent / (
-            Path(args.log).stem + ".*" + Path(args.log).suffix
+        logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu-per-node using mpirun")
+        cmd = (
+            args.cmd
+            # arguments for ${cmd}
+            + [
+                "--gpu",
+                str(args.ngpu),
+                "--num_threads",
+                str(max(args.ngpu, 1)),
+                "--num_nodes",
+                str(args.num_nodes),
+                args.log,
+                "mpirun",
+            ]
+            # arguments for *_train.py
+            + args.args
+            + [
+                "--ngpu",
+                str(args.ngpu),
+                "--multiprocessing_distributed",
+                "true",
+                "--dist_launcher",
+                "slurm",
+            ]
+            + init_method
         )
+        if args.ngpu == 0:
+            # Gloo supports both GPU and CPU mode.
+            #   See: https://pytorch.org/docs/stable/distributed.html
+            cmd += ["--dist_backend", "gloo"]
+        process = subprocess.Popen(cmd)
+        processes.append(process)
 
-    logging.info(f"log file: {logfile}")
+    logging.info(f"log file: {args.log}")
+
+    failed = False
+    while any(p.returncode is None for p in processes):
+        for process in processes:
+            # If any process is failed, try to kill the other processes too
+            if failed and process.returncode is not None:
+                process.kill()
+            else:
+                try:
+                    process.wait(0.5)
+                except subprocess.TimeoutExpired:
+                    pass
+
+                if process.returncode is not None and process.returncode != 0:
+                    failed = True
 
     for process in processes:
-        process.wait()
         if process.returncode != 0:
             raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
 
