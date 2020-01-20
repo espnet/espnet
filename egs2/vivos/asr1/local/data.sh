@@ -6,7 +6,7 @@ set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
 
@@ -34,7 +34,6 @@ ndev_utt=100
 train_vivos="train"
 train_set="train_nodev"
 train_dev="train_dev"
-eval_set="test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data download"
@@ -44,23 +43,21 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     if [ -d ${datadir}/vivos ] || [ -f ${datadir}/vivos.tar.gz ]; then
         log "$0: vivos directory or archive already exists in ${datadir}. Skipping download."
     else
-        if ! which wget >/dev/null; then
+        if ! command -v wget >/dev/null; then
             log "$0: wget is not installed."
             exit 1;
         fi
         log "$0: downloading data from ${data_url}"
 
-        cd ${datadir}
-        if ! wget --no-check-certificate ${data_url}; then
+        if ! wget --no-check-certificate ${data_url} -P ${datadir}; then
             log "$0: error executing wget ${data_url}"
             exit 1;
         fi
 
-        if ! tar -xvzf vivos.tar.gz; then
+        if ! tar -xvzf ${datadir}/vivos.tar.gz -C ${datadir}; then
             log "$0: error un-tarring archive ${datadir}/vivos.tar.gz"
             exit 1;
         fi
-        cd ..
 
         log "$0: Successfully downloaded and un-tarred ${datadir}/vivos.tar.gz"
     fi
@@ -97,7 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                              ${ndev_utt}        \
                              data/${train_dev}
 
-    train_utt=$(($(wc -l < data/${train_vivos}/text) - ${ndev_utt}))
+    train_utt=$(($(wc -l < data/${train_vivos}/text) - ndev_utt))
 
     utils/subset_data_dir.sh --last             \
                              data/${train_vivos}\
