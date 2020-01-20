@@ -6,6 +6,7 @@ For ASR, the following parts should be selected in form:
    (audio) fbank+pitch features in Kaldi scp/ark format
    (en) English text
 
+First part (feats), contains directory 'fbank_pitch_181516'.
 Second part (text) contains 'how2-300h-v1' with following directories:
    how2-300h-v1
    |_ data/
@@ -13,11 +14,9 @@ Second part (text) contains 'how2-300h-v1' with following directories:
       |_ train
       |_ dev5
    |_ features/
-First part (feats), contains directory 'fbank_pitch_181516'.
 
-2. Copy 'fbank_pitch_181516' contents into 'how2-300h-v1/features.
-
-3. Set up 'HOW2' in db.sh to where you put 'how-300h-v1' directory.
+2. Set up 'HOW2_FEATS' and 'HOW_TEXT' in db.sh to where you put 'how-300h-v1'
+   and 'fbank_pitch_181516' directories.
 
 ----
 

@@ -19,7 +19,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     VOXFORGE=
     VIVOS=
     YESNO=
-    HOW2=
+    HOW2_TEXT=
+    HOW2_FEATS=
 
 else
     WSJ0=
@@ -42,6 +43,7 @@ else
     VOXFORGE=downloads
     VIVOS=downloads
     YESNO=downloads
-    HOW2=downloads/how2-300h-v1
+    HOW2_TEXT=downloads/how2-300h-v1
+    HOW2_FEATS=downloads/fbank_pitch_181516
 
 fi
