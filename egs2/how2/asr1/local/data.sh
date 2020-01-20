@@ -23,8 +23,6 @@ maxchars=400
 
 data_how2=${HOW2}
 data_iwslt19=${HOW2}/test_set_iwslt2019
-# "_DUMPDIR" is exported from env through asr.sh
-dumpdir=${_DUMPDIR:-}
 
 # url to download iwslt 2019 test set
 url_iwslt19=http://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
@@ -42,11 +40,6 @@ fi
 
 if [ ! -d ${data_how2} ]; then
     log "${data_how2} doesn't exist. Please read instructions in README.md."
-    exit 2
-fi
-
-if [ -z ${dumpdir} ]; then
-    log "HOW2 recipe is intended to be trained with 'feats_type=fbank_type'."
     exit 2
 fi
 
@@ -195,17 +188,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
                                     --maxchars ${maxchars}          \
                                     data/${set}                     \
                                     data/${set}_reduced
-            set=${set}_reduced
         fi
-        
-        # Manually dump features to not conflict with stage 2 of asr.sh
-        mkdir -p ${dumpdir}/${set}
-        cp -r data/${set}/* ${dumpdir}/${set}
-
-        pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${dumpdir}/${set}/feats.scp |" - | \
-            awk '{ print $2 }' | cut -d, -f2 > ${dumpdir}/${set}/feats_dim
-
-        echo "fbank_pitch" > ${dumpdir}/${set}/feats_type 
     done
 
     # add non-linguistic symbols
