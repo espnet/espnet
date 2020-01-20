@@ -30,6 +30,11 @@ e2e_conf:
 
 # optimization related
 optim: adadelta
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
 init: chainer
 max_epoch: 8
 patience: 3
@@ -39,13 +44,3 @@ batch_size: 24
 max_length:
     - 800
     - 150
-
-# criterion
-early_stopping_criterion:
-   - eval
-   - acc
-   - max
-best_model_criterion:
--  - eval
-   - acc
-   - max

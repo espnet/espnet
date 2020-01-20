@@ -69,13 +69,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
     utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
     rm -r data/temp1 data/temp2 data/temp3
-    
-    # make segment-wise scp file
-    # for x in "${train_set}" "${train_dev}" ${recog_set}; do
-    #     local/csj_segment_scp.py --segments data/${x}/segments --scp data/${x}/wav.scp > data/${x}/wav_seg.scp
-    #     mv data/${x}/wav.scp data/${x}/wav.scp.bak
-    #     mv data/${x}/wav_seg.scp data/${x}/wav.scp
-    # done
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
