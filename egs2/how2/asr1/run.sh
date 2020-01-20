@@ -33,7 +33,7 @@ bpe_nlsyms="[hes]"
     --ngpu ${ngpu}                              \
     --nj ${nj}                                  \
     --decode_asr_model ${decode_asr_model}      \
-    --feats_type extracted                      \
+    --feats_type ${feats_type}                  \
     --token_type ${token_type}                  \
     --nbpe ${nbpe}                              \
     --nlsyms_txt ${nlsyms}                      \
