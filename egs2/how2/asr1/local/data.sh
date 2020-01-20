@@ -21,8 +21,9 @@ maxchars=400
 . ./path.sh
 . ./cmd.sh
 
-data_how2=${HOW2}
-data_iwslt19=${HOW2}/test_set_iwslt2019
+data_how2_text=${HOW2_TEXT}
+data_how2_feats=${HOW2_FEATS}
+data_iwslt19=${HOW2_TEXT}/test_set_iwslt2019
 
 # url to download iwslt 2019 test set
 url_iwslt19=http://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
@@ -38,9 +39,20 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-if [ ! -d ${data_how2} ]; then
-    log "${data_how2} doesn't exist. Please read instructions in README.md."
+if [ ! -d ${data_how2_text} ]; then
+    log "${data_how2_text} doesn't exist. Please read instructions in README.md."
     exit 2
+fi
+
+if [[ $(find ${data_how2_text}/features -type f -name '*.ark' | wc -l) -gt 0 ]]; then
+    log "It seems ${data_how2_text}/features already contains ark files. Skipping copy."
+else
+    if [ ! -d ${data_how2_feats} ]; then
+        log "${data_how2_feats} doesn't exist. Please read instructions in README.md."
+        exit 2
+    else
+        cp ${data_how2_feats}/* ${data_how2_text}/features/
+    fi
 fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -48,8 +60,8 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
 
     curr_path=${PWD}
 
-    if [ -d ${data_iwslt19} ] || [ -f ${data_how2}/iwslt2019.tar.gz ]; then
-        log "$0: iwslt2019 directory or archive already exists in ${data_how2}. Skipping download."
+    if [ -d ${data_iwslt19} ] || [ -f ${data_how2_text}/iwslt2019.tar.gz ]; then
+        log "$0: iwslt2019 directory or archive already exists in ${data_how2_text}. Skipping download."
     else
         if ! which wget >/dev/null; then
             log "$0: wget is not installed."
@@ -57,19 +69,19 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         fi
         log "$0: downloading test set from ${url_iwslt19}"
 
-        cd ${data_how2}
+        cd ${data_how2_text}
         if ! wget --no-check-certificate ${url_iwslt19}; then
             log "$0: error executing wget ${url_iwslt19}"
             exit 2
         fi
 
         if ! tar -xvzf iwslt2019.tar.gz; then
-            log "$0: error un-tarring archive ${data_how2}/iwslt19.tar.gz"
+            log "$0: error un-tarring archive ${data_how2_text}/iwslt19.tar.gz"
             exit 2
         fi
         cd ${curr_path}
 
-        log "$0: Successfully downloaded and un-tarred ${data_how2}/iwslt19.tar.gz"
+        log "$0: Successfully downloaded and un-tarred ${data_how2_text}/iwslt19.tar.gz"
     fi
 fi
 
@@ -166,11 +178,11 @@ prepare_set () {
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data preparation (HOW2 + IWSLT 2019 test set)"
 
-    feats_path=${data_how2}/features
+    feats_path=${data_how2_text}/features
     feats_pattern="ARK_PATH"
     
     for set in train val dev5 test_set_iwslt2019; do
-        srcdir=${data_how2}/data/${set}
+        srcdir=${data_how2_text}/data/${set}
         dstdir=data/${set}
         text="text.id.en"
 
