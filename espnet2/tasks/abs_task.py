@@ -795,7 +795,10 @@ class AbsTask(ABC):
             if not distributed_option.distributed:
                 _rank = ""
             else:
-                _rank = f":{distributed_option.dist_rank}"
+                _rank = (
+                    f":{distributed_option.dist_rank}/"
+                    f"{distributed_option.dist_world_size}"
+                )
 
             # NOTE(kamo):
             # logging.basicConfig() is invoked in main_worker() instead of main()
@@ -810,7 +813,8 @@ class AbsTask(ABC):
             # Suppress logging if RANK != 0
             logging.basicConfig(
                 level="ERROR",
-                format=f"[{os.uname()[1].split('.')[0]}:{distributed_option.dist_rank}]"
+                format=f"[{os.uname()[1].split('.')[0]}"
+                f":{distributed_option.dist_rank}/{distributed_option.dist_world_size}]"
                 f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
 
