@@ -37,8 +37,8 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         lr = list(optimizer.param_groups)[0]["lr"]
         new_lr = lr * model_size * 0.5 / warmup_steps * 0.5
         warnings.warn(
+            f"NoamLR is deprecated. "
             f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})",
-            category=DeprecationWarning,
         )
 
         self.model_size = model_size
