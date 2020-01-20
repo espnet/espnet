@@ -413,7 +413,7 @@ if [ ${skip_stage} -ne 3 ] && [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; the
         # shellcheck disable=SC2002
         cat ${srctexts} |
             python3 -m espnet2.bin.tokenize_text \
-                --token_type word -f 2- --input - --output - ${_opts} \
+                --token_type word -f 2- --input - --output - \
                 --field 2- \
                 --write_vocabulary true \
                 --vocabulary_size "${word_vocab_size}" \
