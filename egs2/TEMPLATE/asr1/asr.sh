@@ -111,7 +111,7 @@ Options:
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
+    --feats_type   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
 
@@ -189,10 +189,10 @@ if [ "${feats_type}" = raw ]; then
     data_feats=${dumpdir}/raw
 elif [ "${feats_type}" = fbank_pitch ]; then
     data_feats=${dumpdir}/fbank_pitch
-    # export for HOW2 as stage 2 is skipped
-    export _DUMPDIR=${data_feats}
 elif [ "${feats_type}" = fbank ]; then
     data_feats=${dumpdir}/fbank
+elif [ "${feats_type}" == extracted ]; then
+    data_feats=${dumpdir}/extracted
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -334,6 +334,19 @@ if [ ${skip_stage} -ne 2 ] && [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; the
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
         log "${feats_type} is not supported yet."
         exit 1
+
+    elif  [ "${feats_type}" = extracted ]; then
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            mkdir -p ${data_feats}/${dset}
+            cp -r data/${dset}/* ${data_feats}/${dset}
+
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        done
 
     else
         log "Error: not supported: --feats_type ${feats_type}"

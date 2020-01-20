@@ -4,8 +4,7 @@ set -e
 set -u
 set -o pipefail
 
-stage=8
-skip_stage=2
+stage=1
 stop_stage=11
 ngpu=1
 nj=16
@@ -18,26 +17,27 @@ eval_set="test_set_iwslt2019"
 asr_config=conf/train_rnn.yaml
 decode_config=conf/decode.yaml
 
+feats_type=extracted
+
 use_lm=false
 
 token_type=char
 nbpe=1000
 nlsyms=data/nlsyms
 # for sentenpiece
-bpe_symbols="[hes]"
+bpe_nlsyms="[hes]"
 
 ./asr.sh                                        \
     --stage ${stage}                            \
-    --skip_stage ${skip_stage}                  \
     --stop_stage ${stop_stage}                  \
     --ngpu ${ngpu}                              \
     --nj ${nj}                                  \
     --decode_asr_model ${decode_asr_model}      \
-    --feats_type fbank_pitch                    \
+    --feats_type extracted                      \
     --token_type ${token_type}                  \
     --nbpe ${nbpe}                              \
     --nlsyms_txt ${nlsyms}                      \
-    --bpe_symbols ${bpe_symbols}                \
+    --bpe_nlsyms ${bpe_nlsyms}                  \
     --use_lm ${use_lm}                          \
     --asr_config "${asr_config}"                \
     --decode_config "${decode_config}"          \
