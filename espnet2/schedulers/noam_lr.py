@@ -34,19 +34,22 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
             raise NotImplementedError(f"Require PyTorch>=1.1.0: {torch.__version__}")
         assert check_argument_types()
-        lr = list(optimizer.param_groups)[0]["lr"]
-        new_lr = lr * model_size * 0.5 / warmup_steps * 0.5
-        warnings.warn(
-            f"NoamLR is deprecated. "
-            f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})",
-        )
-
         self.model_size = model_size
         self.warmup_steps = warmup_steps
 
         # __init__() must be invoked before setting field
         # because step() is also invoked in __init__()
         super().__init__(optimizer, last_epoch)
+
+        lr = list(optimizer.param_groups)[0]["lr"]
+        new_lr = self.lr_for_WarmupLR(lr)
+        warnings.warn(
+            f"NoamLR is deprecated. "
+            f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})",
+        )
+
+    def lr_for_WarmupLR(self, lr: float) -> float:
+        return lr / self.model_size ** 0.5 / self.warmup_steps ** 0.5
 
     def get_lr(self):
         step_num = self.last_epoch + 1
