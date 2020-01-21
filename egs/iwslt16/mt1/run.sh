@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Kyoto University (Hirofumi Inaguma)
+# Copyright 2019 Shun Kiyono
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -30,25 +30,26 @@ use_valbest_average=true     # if true, the validation `n_average`-best NMT mode
                              # if false, the last `n_average` NMT models will be averaged.
 
 # preprocessing related
-src_case=lc.rm
-tgt_case=tc
+src_case=lc.rm  # TODO: tc only
+tgt_case=tc  # TODO: tc only
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-must_c=/n/rd11/corpora_8/MUSTC_v1.0
+iwslt16=iwslt16_data
 
 # target language related
 tgt_lang=de
-# you can choose from de, es, fr, it, nl, pt, ro, ru
+# (kiyono) currently de only
+# TODO: support en as target language
 # if you want to train the multilingual model, segment languages with _ as follows:
 # e.g., tgt_lang="de_es_fr"
 # if you want to use all languages, set tgt_lang="all"
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=16000
 bpemode=bpe
 
 # exp tag
@@ -58,22 +59,24 @@ tag="" # tag for managing experiments.
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -x
 set -e
 set -u
 set -o pipefail
 
 train_set=train.en-${tgt_lang}.${tgt_lang}
-train_dev=dev.en-${tgt_lang}.${tgt_lang}
-trans_set=""
-for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-    trans_set="${trans_set} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
+train_dev=tst2012.en-${tgt_lang}.${tgt_lang}
+trans_set="tst2013.en-${tgt_lang}.${tgt_lang} tst2014.en-${tgt_lang}.${tgt_lang}"
+
+mkdir -p ${dumpdir}/$train_set
+mkdir -p ${dumpdir}/$train_dev
+for dir in $(echo ${trans_set}); do
+    mkdir -p ${dumpdir}/${dir}
 done
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
-    done
+    local/download_and_untar.sh ${iwslt16} ${tgt_lang}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -81,41 +84,51 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang}
+        local/data_prep.sh ${iwslt16} ${lang}
     done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+#feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
+#feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    # Divide into source and target languages
-    for x in train.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
-        local/divide_lang.sh ${x} ${tgt_lang}
-    done
+#    # 1. moses tokenization
+#    local/tokenize.sh ${iwslt16} ${lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+#
+#    # 2. moses true-casing
+#    local/truecasing.sh ${iwslt16} ${lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
 
-    for x in train.en-${tgt_lang} dev.en-${tgt_lang}; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in ${tgt_lang} en; do
-            remove_longshortdata.sh --no_feat true --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
+    # 3. clean corpus
+    local/clean_corpus.sh ${iwslt16} ${lang} ${dumpdir} ${train_set}
 
-        # Match the number of utterances between source and target languages
-        # extract commocn lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
-        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
-        comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
-
-        for lang in ${tgt_lang} en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
-    done
+#    # Divide into source and target languages
+#    for x in train.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
+#        local/divide_lang.sh ${x} ${tgt_lang}
+#    done
+#
+#    for x in train.en-${tgt_lang} dev.en-${tgt_lang}; do
+#        # remove utt having more than 3000 frames
+#        # remove utt having more than 400 characters
+#        for lang in ${tgt_lang} en; do
+#            remove_longshortdata.sh --no_feat true --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+#        done
+#
+#        # Match the number of utterances between source and target languages
+#        # extract commocn lines
+#        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
+#        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
+#        comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
+#
+#        for lang in ${tgt_lang} en; do
+#            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
+#            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
+#        done
+#        rm -rf data/${x}.*.tmp
+#    done
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
@@ -125,6 +138,10 @@ echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
+
+    # TODO: prepare subword-nmt
+
+
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
