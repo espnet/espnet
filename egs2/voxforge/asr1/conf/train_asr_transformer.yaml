@@ -1,12 +1,26 @@
 scheduler: noamlr
-optim: adam
-optim_conf:
-    lr: 10.0
 batch_size: 64
 accum_grad: 2
 encoder: transformer
 decoder: transformer
 max_epoch: 200
-patience: 0
 e2e_conf:
     ctc_weight: 0.3
+
+# NoamLR is deprecated. Use WarmupLR.
+# The following is equivalent setting for NoamLR:
+#
+#    optim: adam
+#    optim_conf:
+#        lr: 10.
+#    scheduler: noamlr
+#    scheduler_conf:
+#        model_size: 320
+#        warmup_steps: 25000
+#
+optim: adam
+optim_conf:
+    lr: 0.00353
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
