@@ -277,11 +277,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         temp_files=()
         for i in "${!factor_arr[@]}"; do
             utils/perturb_data_dir_speed.sh ${factor_arr[$i]} data/train data/temp${i}
-            temp_files=(${temp_files[*]} "data/temp${i}")
+            temp_files=(${temp_files[*]+"${temp_files[*]}"} "data/temp${i}")
         done
         train_set=${train_set}_sp
-        utils/combine_data.sh --extra-files utt2uniq data/${train_set} ${temp_files[@]}
-        rm -r ${temp_files[*]}
+        utils/combine_data.sh --extra-files utt2uniq data/${train_set} ${temp_files[@]+"${temp_files[@]}"}
+        for temp_file in ${temp_files[@]}; do
+            rm -r ${temp_file}
+        done
     fi
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
