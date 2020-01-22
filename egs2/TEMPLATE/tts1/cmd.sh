@@ -50,7 +50,8 @@ elif [ "${cmd_backend}" = stdout ]; then
     # Used for "*_recog.py"
     export decode_cmd="stdout.pl"
 
-# "qsub" (SGE, Torque, PBS, etc.)
+
+# "qsub" (Sun Grid Engine, or derivation of it)
 elif [ "${cmd_backend}" = sge ]; then
     # The default setting is written in conf/queue.conf.
     # You must change "-q g.q" for the "queue" for your environment.
@@ -61,10 +62,20 @@ elif [ "${cmd_backend}" = sge ]; then
     export cuda_cmd="queue.pl"
     export decode_cmd="queue.pl"
 
+
+# "qsub" (Torque/PBS.)
+elif [ "${cmd_backend}" = pbs ]; then
+    # The default setting is written in conf/pbs.conf.
+
+    export train_cmd="pbs.pl"
+    export cuda_cmd="pbs.pl"
+    export decode_cmd="pbs.pl"
+
+
 # "sbatch" (Slurm)
 elif [ "${cmd_backend}" = slurm ]; then
     # The default setting is written in conf/slurm.conf.
-    # You must change "-p cpu" and "-p gpu" for the "partion" for your environment.
+    # You must change "-p cpu" and "-p gpu" for the "partition" for your environment.
     # To know the "partion" names, type "sinfo".
     # You can use "--gpu * " by defualt for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
