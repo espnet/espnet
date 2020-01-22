@@ -1,0 +1,2069 @@
+
+
+
+                     SYSTEM SUMMARY PERCENTAGES by SPEAKER                      
+
+,----------------------------------------------------------------------------------------------.
+|exp/train_si284_pytorch_train_no_preprocess/decode_test_eval92_decode_lm_word65000/hyp.wrd.trn|
+|----------------------------------------------------------------------------------------------|
+|  SPKR     |   # Snt    # Wrd   |  Corr        Sub       Del       Ins        Err     S.Err   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  440      |     40       651   |  99.1        0.8       0.2       0.3        1.2      10.0   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  441      |     42       637   |  98.9        1.1       0.0       0.0        1.1      16.7   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  442      |     42       722   |  98.1        1.7       0.3       0.4        2.4      28.6   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  443      |     40       658   |  98.3        1.5       0.2       0.5        2.1      22.5   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  444      |     41       740   |  99.3        0.5       0.1       0.0        0.7       9.8   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  445      |     42       601   |  98.2        1.7       0.2       1.0        2.8      21.4   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  446      |     40       687   |  98.5        1.3       0.1       0.0        1.5      22.5   |
+|-----------+--------------------+-------------------------------------------------------------|
+|  447      |     43       657   |  97.7        2.1       0.2       0.3        2.6      20.9   |
+|==============================================================================================|
+|  Sum/Avg  |    330      5353   |  98.5        1.3       0.1       0.3        1.8      19.1   |
+|==============================================================================================|
+|   Mean    |   41.3     669.1   |  98.5        1.3       0.1       0.3        1.8      19.0   |
+|   S.D.    |    1.2      45.4   |   0.6        0.5       0.1       0.3        0.8       6.5   |
+|  Median   |   41.5     657.5   |  98.4        1.4       0.2       0.3        1.8      21.2   |
+`----------------------------------------------------------------------------------------------'
+
+
+
+                     SYSTEM SUMMARY PERCENTAGES by SPEAKER                      
+
+,----------------------------------------------------------------------------------------------.
+|exp/train_si284_pytorch_train_no_preprocess/decode_test_eval92_decode_lm_word65000/hyp.wrd.trn|
+|----------------------------------------------------------------------------------------------|
+|   SPKR   |  # Snt     # Wrd   |  Corr        Sub       Del        Ins       Err      S.Err   |
+|----------+--------------------+--------------------------------------------------------------|
+|   440    |    40        651   |   645          5         1          2         8          4   |
+|----------+--------------------+--------------------------------------------------------------|
+|   441    |    42        637   |   630          7         0          0         7          7   |
+|----------+--------------------+--------------------------------------------------------------|
+|   442    |    42        722   |   708         12         2          3        17         12   |
+|----------+--------------------+--------------------------------------------------------------|
+|   443    |    40        658   |   647         10         1          3        14          9   |
+|----------+--------------------+--------------------------------------------------------------|
+|   444    |    41        740   |   735          4         1          0         5          4   |
+|----------+--------------------+--------------------------------------------------------------|
+|   445    |    42        601   |   590         10         1          6        17          9   |
+|----------+--------------------+--------------------------------------------------------------|
+|   446    |    40        687   |   677          9         1          0        10          9   |
+|----------+--------------------+--------------------------------------------------------------|
+|   447    |    43        657   |   642         14         1          2        17          9   |
+|==============================================================================================|
+|   Sum    |   330       5353   |  5274         71         8         16        95         63   |
+|==============================================================================================|
+|   Mean   |  41.3      669.1   | 659.3        8.9       1.0        2.0      11.9        7.9   |
+|   S.D.   |   1.2       45.4   |  45.9        3.4       0.5        2.1       5.0        2.7   |
+|  Median  |  41.5      657.5   | 646.0        9.5       1.0        2.0      12.0        9.0   |
+`----------------------------------------------------------------------------------------------'
+
+
+		DUMP OF SYSTEM ALIGNMENT STRUCTURE
+
+System name:   exp/train_si284_pytorch_train_no_preprocess/decode_test_eval92_decode_lm_word65000/hyp.wrd.trn
+
+Speakers: 
+    0:  440
+    1:  441
+    2:  442
+    3:  443
+    4:  444
+    5:  445
+    6:  446
+    7:  447
+
+Speaker sentences   0:  440   #utts: 40
+id: (440-440c0201)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  at n. e. c. the need for international managers will keep rising 
+HYP:  at n. e. c. the need for international managers will keep rising 
+Eval:                                                                  
+
+id: (440-440c0202)
+Scores: (#C #S #D #I) 27 0 0 0
+REF:  the company has five hundred japanese managers overseas most of them in key positions and expects the number to rise sixty percent in the next five years 
+HYP:  the company has five hundred japanese managers overseas most of them in key positions and expects the number to rise sixty percent in the next five years 
+Eval:                                                                                                                                                           
+
+id: (440-440c0203)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  about half these managers are in the u. s. 
+HYP:  about half these managers are in the u. s. 
+Eval:                                            
+
+id: (440-440c0204)
+Scores: (#C #S #D #I) 25 0 0 0
+REF:  r. l. i. corporation a peoria illinois based insurance holding company will begin trading friday on the big board under the symbol r. l. i. 
+HYP:  r. l. i. corporation a peoria illinois based insurance holding company will begin trading friday on the big board under the symbol r. l. i. 
+Eval:                                                                                                                                             
+
+id: (440-440c0205)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  the company previously traded over the counter 
+HYP:  the company previously traded over the counter 
+Eval:                                                
+
+id: (440-440c0206)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  two other issues began trading recently on the big board 
+HYP:  two other issues began trading recently on the big board 
+Eval:                                                          
+
+id: (440-440c0207)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  the agency isn't likely to take any action until the union's rank and file votes on the contract in two to three weeks 
+HYP:  the agency isn't likely to take any action until the union's rank and file votes on the contract in two to three weeks 
+Eval:                                                                                                                        
+
+id: (440-440c0208)
+Scores: (#C #S #D #I) 4 0 0 0
+REF:  union officials expect ratification 
+HYP:  union officials expect ratification 
+Eval:                                     
+
+id: (440-440c0209)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  a p. b. g. c. spokeswoman declined comment 
+HYP:  a p. b. g. c. spokeswoman declined comment 
+Eval:                                            
+
+id: (440-440c020a)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  despite the july decline durable goods orders remained seven point seven percent above the year earlier level 
+HYP:  despite the july decline durable goods orders remained seven point seven percent above the year earlier level 
+Eval:                                                                                                               
+
+id: (440-440c020b)
+Scores: (#C #S #D #I) 23 1 1 0
+REF:  economists were encouraged by a one point six percent increase in new orders for NON DEFENSE    capital goods an important indicator of future business investment 
+HYP:  economists were encouraged by a one point six percent increase in new orders for *** NONDEFENSE capital goods an important indicator of future business investment 
+Eval:                                                                                  D   S                                                                             
+
+id: (440-440c020c)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the rise in that category in july was led by increased orders for aircraft and parts nonelectrical machinery lumber and furniture 
+HYP:  the rise in that category in july was led by increased orders for aircraft and parts nonelectrical machinery lumber and furniture 
+Eval:                                                                                                                                   
+
+id: (440-440c020d)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  interest rates rose on short term treasury bills sold by the government yesterday at its regular weekly auction 
+HYP:  interest rates rose on short term treasury bills sold by the government yesterday at its regular weekly auction 
+Eval:                                                                                                                 
+
+id: (440-440c020e)
+Scores: (#C #S #D #I) 28 0 0 0
+REF:  the average rate on new thirteen week treasury bills increased to six point one two percent from five point nine seven percent at the previous auction last week 
+HYP:  the average rate on new thirteen week treasury bills increased to six point one two percent from five point nine seven percent at the previous auction last week 
+Eval:                                                                                                                                                                  
+
+id: (440-440c020f)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the average rate on new twenty six week bills rose to six point one six percent from six point one two percent 
+HYP:  the average rate on new twenty six week bills rose to six point one six percent from six point one two percent 
+Eval:                                                                                                                
+
+id: (440-440c020g)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  analysts too generally played down the effect on banks 
+HYP:  analysts too generally played down the effect on banks 
+Eval:                                                        
+
+id: (440-440c020h)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  in a fundamental sense the equity markets have very little to do with what goes on in the commercial banks 
+HYP:  in a fundamental sense the equity markets have very little to do with what goes on in the commercial banks 
+Eval:                                                                                                            
+
+id: (440-440c020i)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  there shouldn't be any risk to the banks in this sort of stuff said lawrence cohn a banking analyst at merrill lynch and company 
+HYP:  there shouldn't be any risk to the banks in this sort of stuff said lawrence cohn a banking analyst at merrill lynch and company 
+Eval:                                                                                                                                  
+
+id: (440-440c020j)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  the independent committee will recommend that holders accept the offer at a meeting expected to be held in december t. w. a. said 
+HYP:  the independent committee will recommend that holders accept the offer at a meeting expected to be held in december t. w. a. said 
+Eval:                                                                                                                                   
+
+id: (440-440c020k)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  the transaction requires approval of a majority of the shares of the holders not affiliated with mr. icahn 
+HYP:  the transaction requires approval of a majority of the shares of the holders not affiliated with mr. icahn 
+Eval:                                                                                                            
+
+id: (440-440c020l)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  the investor now owns seventy three percent of the company 
+HYP:  the investor now owns seventy three percent of the company 
+Eval:                                                            
+
+id: (440-440c020m)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  texaco has three choices a company adviser says 
+HYP:  texaco has three choices a company adviser says 
+Eval:                                                 
+
+id: (440-440c020n)
+Scores: (#C #S #D #I) 22 1 0 1
+REF:  it can sign ** ONTO the plan file a competing plan or take a completely passive role that neither endorses nor opposes a plan 
+HYP:  it can sign ON TO   the plan file a competing plan or take a completely passive role that neither endorses nor opposes a plan 
+Eval:             I  S                                                                                                              
+
+id: (440-440c020o)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  unable to agree on friday the board must meet again at least by phone to register its choice 
+HYP:  unable to agree on friday the board must meet again at least by phone to register its choice 
+Eval:                                                                                              
+
+id: (440-440c020p)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  commerce department officials noted however that auto imports usually rise in october as dealers fill their inventories with new models 
+HYP:  commerce department officials noted however that auto imports usually rise in october as dealers fill their inventories with new models 
+Eval:                                                                                                                                         
+
+id: (440-440c020q)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  the rise in auto imports also reflects higher prices for imported cars 
+HYP:  the rise in auto imports also reflects higher prices for imported cars 
+Eval:                                                                        
+
+id: (440-440c020r)
+Scores: (#C #S #D #I) 16 1 0 1
+REF:  prices are going up said george c. ** EADS vice president and chief economist at general motors corporation 
+HYP:  prices are going up said george c. E. D'S  vice president and chief economist at general motors corporation 
+Eval:                                    I  S                                                                     
+
+id: (440-440c020s)
+Scores: (#C #S #D #I) 12 2 0 0
+REF:  what we don't know is how much IS price and how much IS volume 
+HYP:  what we don't know is how much AS price and how much AS volume 
+Eval:                                S                     S         
+
+id: (440-440c020t)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  rates fell on short term treasury bills 
+HYP:  rates fell on short term treasury bills 
+Eval:                                         
+
+id: (440-440c020u)
+Scores: (#C #S #D #I) 29 0 0 0
+REF:  the rate on the latest three month bills declined to six point four three percent bid from an average of six point five three percent set at tuesday's auction 
+HYP:  the rate on the latest three month bills declined to six point four three percent bid from an average of six point five three percent set at tuesday's auction 
+Eval:                                                                                                                                                                
+
+id: (440-440c020v)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  the rate on six month bills fell to six point seven three percent from six point eight three percent 
+HYP:  the rate on six month bills fell to six point seven three percent from six point eight three percent 
+Eval:                                                                                                      
+
+id: (440-440c020w)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  durable goods reports frequently are highly volatile from month to month 
+HYP:  durable goods reports frequently are highly volatile from month to month 
+Eval:                                                                          
+
+id: (440-440c020x)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  many analysts cite an expected increase in aircraft orders as a big reason for the anticipated june increase 
+HYP:  many analysts cite an expected increase in aircraft orders as a big reason for the anticipated june increase 
+Eval:                                                                                                              
+
+id: (440-440c020y)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  estimates for the gain ranged from two percent to three percent 
+HYP:  estimates for the gain ranged from two percent to three percent 
+Eval:                                                                 
+
+id: (440-440c020z)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  utility analysts however expect the agreement to be completed without much difficulty 
+HYP:  utility analysts however expect the agreement to be completed without much difficulty 
+Eval:                                                                                       
+
+id: (440-440c0210)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  yesterday moody's investors service raised lilco's credit ratings in recognition of the improved outlook for steady financial recovery 
+HYP:  yesterday moody's investors service raised lilco's credit ratings in recognition of the improved outlook for steady financial recovery 
+Eval:                                                                                                                                        
+
+id: (440-440c0211)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  about three point five billion dollars of securities are affected 
+HYP:  about three point five billion dollars of securities are affected 
+Eval:                                                                   
+
+id: (440-440c0212)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+HYP:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+Eval:                                                                                                                                         
+
+id: (440-440c0213)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  he said such products would be marketed by other companies with experience in that business 
+HYP:  he said such products would be marketed by other companies with experience in that business 
+Eval:                                                                                             
+
+id: (440-440c0214)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  he declined to name specific products 
+HYP:  he declined to name specific products 
+Eval:                                       
+
+Speaker sentences   1:  441   #utts: 42
+id: (441-441c0201)
+Scores: (#C #S #D #I) 12 1 0 0
+REF:  first commodity appealed the expulsion and FINE  to the c. f. t. c. 
+HYP:  first commodity appealed the expulsion and FINED to the c. f. t. c. 
+Eval:                                            S                        
+
+id: (441-441c0202)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  a commission spokesman said a decision on the appeal is expected soon 
+HYP:  a commission spokesman said a decision on the appeal is expected soon 
+Eval:                                                                       
+
+id: (441-441c0203)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  first commodity officials couldn't be reached for comment 
+HYP:  first commodity officials couldn't be reached for comment 
+Eval:                                                           
+
+id: (441-441c0204)
+Scores: (#C #S #D #I) 17 1 0 0
+REF:  and then there's the explanation of why TERADYNE'S growth in japan is slow despite fifteen years of effort 
+HYP:  and then there's the explanation of why TERRORIZED growth in japan is slow despite fifteen years of effort 
+Eval:                                         S                                                                  
+
+id: (441-441c0205)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  the language is a big problem 
+HYP:  the language is a big problem 
+Eval:                               
+
+id: (441-441c0206)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  in europe an american can at least read street signs 
+HYP:  in europe an american can at least read street signs 
+Eval:                                                      
+
+id: (441-441c0207)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  in japan it's all greek so to speak 
+HYP:  in japan it's all greek so to speak 
+Eval:                                     
+
+id: (441-441c0208)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  the overall gain the fifth in the past seven months followed a revised four point one percent increase in february 
+HYP:  the overall gain the fifth in the past seven months followed a revised four point one percent increase in february 
+Eval:                                                                                                                    
+
+id: (441-441c0209)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  the earlier rise was previously reported as four point three percent 
+HYP:  the earlier rise was previously reported as four point three percent 
+Eval:                                                                      
+
+id: (441-441c020a)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  if defense is excluded march orders rose one percent after a three percent increase in february 
+HYP:  if defense is excluded march orders rose one percent after a three percent increase in february 
+Eval:                                                                                                 
+
+id: (441-441c020b)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+HYP:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+Eval:                                                                                
+
+id: (441-441c020c)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+HYP:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+Eval:                                                                                                                                               
+
+id: (441-441c020d)
+Scores: (#C #S #D #I) 15 1 0 0
+REF:  it received no PROPOSALS that were in the best interest of the shareholders the company said 
+HYP:  it received no PROPOSAL  that were in the best interest of the shareholders the company said 
+Eval:                S                                                                             
+
+id: (441-441c020e)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  elders brewing will be based outside australia because seventy percent of its assets are in britain and canada 
+HYP:  elders brewing will be based outside australia because seventy percent of its assets are in britain and canada 
+Eval:                                                                                                                
+
+id: (441-441c020f)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  also a move to base it abroad will have tax advantages 
+HYP:  also a move to base it abroad will have tax advantages 
+Eval:                                                        
+
+id: (441-441c020g)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  elders finance and elders agribusiness will remain based in australia 
+HYP:  elders finance and elders agribusiness will remain based in australia 
+Eval:                                                                       
+
+id: (441-441c020h)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  two years ago b. a. s. f. made three separate acquisitions in the u. s. 
+HYP:  two years ago b. a. s. f. made three separate acquisitions in the u. s. 
+Eval:                                                                         
+
+id: (441-441c020i)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  its biggest was the one billion dollar purchase of united technologies corporation's inmont subsidiary a major supplier of paint to the auto industry 
+HYP:  its biggest was the one billion dollar purchase of united technologies corporation's inmont subsidiary a major supplier of paint to the auto industry 
+Eval:                                                                                                                                                       
+
+id: (441-441c020j)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  today ninety percent of the four billion dollars of b. a. s. f. sales in the u. s. is produced there 
+HYP:  today ninety percent of the four billion dollars of b. a. s. f. sales in the u. s. is produced there 
+Eval:                                                                                                      
+
+id: (441-441c020k)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the following officers directors and large stockholders of companies reported changes in holdings under the securities exchange act of nineteen thirty four 
+HYP:  the following officers directors and large stockholders of companies reported changes in holdings under the securities exchange act of nineteen thirty four 
+Eval:                                                                                                                                                             
+
+id: (441-441c020l)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  those identified as beneficial owners hold at least ten percent of a company's equity securities 
+HYP:  those identified as beneficial owners hold at least ten percent of a company's equity securities 
+Eval:                                                                                                  
+
+id: (441-441c020m)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  unless otherwise noted changes involved direct holdings of common stock and took place in september and october of nineteen eighty seven 
+HYP:  unless otherwise noted changes involved direct holdings of common stock and took place in september and october of nineteen eighty seven 
+Eval:                                                                                                                                          
+
+id: (441-441c020n)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  companies are listed where transactions generally aggregate ten thousand shares or one hundred thousand dollars 
+HYP:  companies are listed where transactions generally aggregate ten thousand shares or one hundred thousand dollars 
+Eval:                                                                                                                 
+
+id: (441-441c020o)
+Scores: (#C #S #D #I) 13 1 0 0
+REF:  about all the businessman can count on is THAT policy will be pretty volatile 
+HYP:  about all the businessman can count on is A    policy will be pretty volatile 
+Eval:                                           S                                   
+
+id: (441-441c020p)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  if the dollar starts to plunge the fed may step up its defense of the currency 
+HYP:  if the dollar starts to plunge the fed may step up its defense of the currency 
+Eval:                                                                                
+
+id: (441-441c020q)
+Scores: (#C #S #D #I) 15 1 0 0
+REF:  if the fed pushes the dollar higher IT may curb the demand for u. s. exports 
+HYP:  if the fed pushes the dollar higher IN may curb the demand for u. s. exports 
+Eval:                                     S                                        
+
+id: (441-441c020r)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  too much focus is placed on reduction of cross country loans mr. meyerman said 
+HYP:  too much focus is placed on reduction of cross country loans mr. meyerman said 
+Eval:                                                                                
+
+id: (441-441c020s)
+Scores: (#C #S #D #I) 7 1 0 0
+REF:  analysts haven't focused on what HAPPENED to them 
+HYP:  analysts haven't focused on what HAPPEN   to them 
+Eval:                                  S                
+
+id: (441-441c020t)
+Scores: (#C #S #D #I) 5 0 0 0
+REF:  has exposure really been reduced 
+HYP:  has exposure really been reduced 
+Eval:                                  
+
+id: (441-441c020u)
+Scores: (#C #S #D #I) 3 1 0 0
+REF:  our guess is NO  
+HYP:  our guess is NOW 
+Eval:              S   
+
+id: (441-441c020v)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  closed end funds are traded on exchanges like stocks but invest in a wide portfolio of other securities 
+HYP:  closed end funds are traded on exchanges like stocks but invest in a wide portfolio of other securities 
+Eval:                                                                                                         
+
+id: (441-441c020w)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  although closed end funds have been around since at least the nineteen twenties they have boomed in popularity this year 
+HYP:  although closed end funds have been around since at least the nineteen twenties they have boomed in popularity this year 
+Eval:                                                                                                                          
+
+id: (441-441c020x)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  the bond funds in particular provide robust yields for investors and hefty fees for underwriters 
+HYP:  the bond funds in particular provide robust yields for investors and hefty fees for underwriters 
+Eval:                                                                                                  
+
+id: (441-441c020y)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  republic new york rose one and one quarter to forty five and seven eighths 
+HYP:  republic new york rose one and one quarter to forty five and seven eighths 
+Eval:                                                                            
+
+id: (441-441c020z)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  the company said its european banking affiliate safra republic plans to raise more than four hundred fifty million dollars through an international offering 
+HYP:  the company said its european banking affiliate safra republic plans to raise more than four hundred fifty million dollars through an international offering 
+Eval:                                                                                                                                                              
+
+id: (441-441c0210)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  after the offering republic new york will hold about forty nine percent of the affiliate 
+HYP:  after the offering republic new york will hold about forty nine percent of the affiliate 
+Eval:                                                                                          
+
+id: (441-441c0211)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  at the close the financial times thirty share index was three point nine points lower at one thousand four hundred eighteen point six 
+HYP:  at the close the financial times thirty share index was three point nine points lower at one thousand four hundred eighteen point six 
+Eval:                                                                                                                                       
+
+id: (441-441c0212)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  volume was modest as three hundred twenty six point seven million shares changed hands compared with three hundred ninety six point five million friday 
+HYP:  volume was modest as three hundred twenty six point seven million shares changed hands compared with three hundred ninety six point five million friday 
+Eval:                                                                                                                                                         
+
+id: (441-441c0213)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  the one hundred share index closed six point eight points lower at one thousand seven hundred fifty nine point nine 
+HYP:  the one hundred share index closed six point eight points lower at one thousand seven hundred fifty nine point nine 
+Eval:                                                                                                                     
+
+id: (441-441c0214)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+HYP:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+Eval:                                                                                                                                         
+
+id: (441-441c0215)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  he said such products would be marketed by other companies with experience in that business 
+HYP:  he said such products would be marketed by other companies with experience in that business 
+Eval:                                                                                             
+
+id: (441-441c0216)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  he declined to name specific products 
+HYP:  he declined to name specific products 
+Eval:                                       
+
+Speaker sentences   2:  442   #utts: 42
+id: (442-442c0201)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  bids totaling five hundred twenty five point five million dollars were submitted 
+HYP:  bids totaling five hundred twenty five point five million dollars were submitted 
+Eval:                                                                                  
+
+id: (442-442c0202)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  accepted bids ranged from six point two percent to six point two two five percent 
+HYP:  accepted bids ranged from six point two percent to six point two two five percent 
+Eval:                                                                                   
+
+id: (442-442c0203)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  the bank holding company slated another fifty million dollar sale next tuesday 
+HYP:  the bank holding company slated another fifty million dollar sale next tuesday 
+Eval:                                                                                
+
+id: (442-442c0204)
+Scores: (#C #S #D #I) 19 2 0 0
+REF:  m. i. c. c. INVESTMENTS has three series of publicly traded preferred shares AND ten series of privately held preferred stock 
+HYP:  m. i. c. c. INVESTMENT  has three series of publicly traded preferred shares IN  ten series of privately held preferred stock 
+Eval:             S                                                                S                                                
+
+id: (442-442c0205)
+Scores: (#C #S #D #I) 21 1 0 1
+REF:  m. i. c. c. said it intends to pay the dividend * ARREARS on july thirty first to stock of record july second 
+HYP:  m. i. c. c. said it intends to pay the dividend A REARS   on july thirty first to stock of record july second 
+Eval:                                                 I S                                                           
+
+id: (442-442c0206)
+Scores: (#C #S #D #I) 13 0 0 0
+REF:  the toronto based company provides mortgage guarantees to the canadian real estate industry 
+HYP:  the toronto based company provides mortgage guarantees to the canadian real estate industry 
+Eval:                                                                                             
+
+id: (442-442c0207)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+HYP:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+Eval:                                                                                
+
+id: (442-442c0208)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+HYP:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+Eval:                                                                                                                                               
+
+id: (442-442c0209)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  it received no proposals that were in the best interest of the shareholders the company said 
+HYP:  it received no proposals that were in the best interest of the shareholders the company said 
+Eval:                                                                                              
+
+id: (442-442c020a)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  under terms previously reported the italian agricultural concern assumed about one hundred ninety five million dollars in subordinated debt as part of the transaction 
+HYP:  under terms previously reported the italian agricultural concern assumed about one hundred ninety five million dollars in subordinated debt as part of the transaction 
+Eval:                                                                                                                                                                        
+
+id: (442-442c020b)
+Scores: (#C #S #D #I) 16 0 0 1
+REF:  ****** shamrock's pretax profit from the sale was one hundred twenty five million dollars a spokeswoman said 
+HYP:  THOUGH shamrock's pretax profit from the sale was one hundred twenty five million dollars a spokeswoman said 
+Eval: I                                                                                                            
+
+id: (442-442c020c)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  shamrock has interests in television and radio stations energy services real estate and venture capital 
+HYP:  shamrock has interests in television and radio stations energy services real estate and venture capital 
+Eval:                                                                                                         
+
+id: (442-442c020d)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  sony corporation for example closed at four thousand nine hundred fifty yen thirty four dollars and fifty cents a share yesterday 
+HYP:  sony corporation for example closed at four thousand nine hundred fifty yen thirty four dollars and fifty cents a share yesterday 
+Eval:                                                                                                                                   
+
+id: (442-442c020e)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  under tokyo trading rules the maximum one day drop for sony is five hundred yen about three dollars and fifty cents 
+HYP:  under tokyo trading rules the maximum one day drop for sony is five hundred yen about three dollars and fifty cents 
+Eval:                                                                                                                     
+
+id: (442-442c020f)
+Scores: (#C #S #D #I) 18 1 0 0
+REF:  this morning the asking price for the stock was four thousand EIGHT hundred fifty but there were no buyers 
+HYP:  this morning the asking price for the stock was four thousand NINE  hundred fifty but there were no buyers 
+Eval:                                                               S                                            
+
+id: (442-442c020g)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  a monsanto spokesman said there's very little we can say 
+HYP:  a monsanto spokesman said there's very little we can say 
+Eval:                                                          
+
+id: (442-442c020h)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  we just received the suit and the document is massive it's two hundred pages 
+HYP:  we just received the suit and the document is massive it's two hundred pages 
+Eval:                                                                              
+
+id: (442-442c020i)
+Scores: (#C #S #D #I) 15 1 1 0
+REF:  but on the first read through the CASE IS    without merit and we intend to fight it 
+HYP:  but on the first read through the **** CASES without merit and we intend to fight it 
+Eval:                                   D    S                                             
+
+id: (442-442c020j)
+Scores: (#C #S #D #I) 29 0 0 0
+REF:  according to the average estimate of seven economists surveyed by dow jones capital markets report new orders for u. s. durable goods rose two point four percent last month 
+HYP:  according to the average estimate of seven economists surveyed by dow jones capital markets report new orders for u. s. durable goods rose two point four percent last month 
+Eval:                                                                                                                                                                              
+
+id: (442-442c020k)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  that would follow a two point two percent drop in may 
+HYP:  that would follow a two point two percent drop in may 
+Eval:                                                       
+
+id: (442-442c020l)
+Scores: (#C #S #D #I) 23 1 0 0
+REF:  the may slump reported june twenty second came as a big surprise to most analysts and HELPED trigger a powerful bond rally that day 
+HYP:  the may slump reported june twenty second came as a big surprise to most analysts and HELP   trigger a powerful bond rally that day 
+Eval:                                                                                       S                                             
+
+id: (442-442c020m)
+Scores: (#C #S #D #I) 14 1 0 0
+REF:  even some bigger companies caution that they are leery of paying TOO big a premium 
+HYP:  even some bigger companies caution that they are leery of paying TO  big a premium 
+Eval:                                                                  S                 
+
+id: (442-442c020n)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  we're going to be bidders said a top official of a major oil company 
+HYP:  we're going to be bidders said a top official of a major oil company 
+Eval:                                                                      
+
+id: (442-442c020o)
+Scores: (#C #S #D #I) 23 1 1 0
+REF:  but if the winning bids are as high AS they were in some deals earlier this year THEN we're not going to be winning bidders 
+HYP:  but if the winning bids are as high ** they were in some deals earlier this year AND  we're not going to be winning bidders 
+Eval:                                     D                                            S                                          
+
+id: (442-442c020p)
+Scores: (#C #S #D #I) 27 0 0 0
+REF:  the company said it would begin a dutch auction later this week for as many as forty million shares or twenty six percent of its shares outstanding 
+HYP:  the company said it would begin a dutch auction later this week for as many as forty million shares or twenty six percent of its shares outstanding 
+Eval:                                                                                                                                                     
+
+id: (442-442c020q)
+Scores: (#C #S #D #I) 26 1 0 0
+REF:  in a dutch auction holders tender their shares at prices within A   stated range in this case between twenty eight dollars and thirty three dollars a share 
+HYP:  in a dutch auction holders tender their shares at prices within THE stated range in this case between twenty eight dollars and thirty three dollars a share 
+Eval:                                                                 S                                                                                           
+
+id: (442-442c020r)
+Scores: (#C #S #D #I) 24 1 0 0
+REF:  the company THEN accepts the shares tendered at the lowest price needed to reach its goal then pays that amount for all shares it purchases 
+HYP:  the company THAT accepts the shares tendered at the lowest price needed to reach its goal then pays that amount for all shares it purchases 
+Eval:             S                                                                                                                               
+
+id: (442-442c020s)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  at the close the financial times thirty share index was three point nine points lower at one thousand four hundred eighteen point six 
+HYP:  at the close the financial times thirty share index was three point nine points lower at one thousand four hundred eighteen point six 
+Eval:                                                                                                                                       
+
+id: (442-442c020t)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  volume was modest as three hundred twenty six point seven million shares changed hands compared with three hundred ninety six point five million friday 
+HYP:  volume was modest as three hundred twenty six point seven million shares changed hands compared with three hundred ninety six point five million friday 
+Eval:                                                                                                                                                         
+
+id: (442-442c020u)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  the one hundred share index closed six point eight points lower at one thousand seven hundred fifty nine point nine 
+HYP:  the one hundred share index closed six point eight points lower at one thousand seven hundred fifty nine point nine 
+Eval:                                                                                                                     
+
+id: (442-442c020v)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  utility analysts however expect the agreement to be completed without much difficulty 
+HYP:  utility analysts however expect the agreement to be completed without much difficulty 
+Eval:                                                                                       
+
+id: (442-442c020w)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  yesterday moody's investors service raised lilco's credit ratings in recognition of the improved outlook for steady financial recovery 
+HYP:  yesterday moody's investors service raised lilco's credit ratings in recognition of the improved outlook for steady financial recovery 
+Eval:                                                                                                                                        
+
+id: (442-442c020x)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  about three point five billion dollars of securities are affected 
+HYP:  about three point five billion dollars of securities are affected 
+Eval:                                                                   
+
+id: (442-442c020y)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+HYP:  he also said that the company for the first time was developing drugs specifically for the over the counter consumer health care market 
+Eval:                                                                                                                                         
+
+id: (442-442c020z)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  he said such products would be marketed by other companies with experience in that business 
+HYP:  he said such products would be marketed by other companies with experience in that business 
+Eval:                                                                                             
+
+id: (442-442c0210)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  he declined to name specific products 
+HYP:  he declined to name specific products 
+Eval:                                       
+
+id: (442-442c0211)
+Scores: (#C #S #D #I) 3 1 0 1
+REF:  so ****** NORMALCY has returned 
+HYP:  so NORMAL SHE      has returned 
+Eval:    I      S                     
+
+id: (442-442c0212)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  foreigners are back and negotiating with the chinese will be as tough as ever 
+HYP:  foreigners are back and negotiating with the chinese will be as tough as ever 
+Eval:                                                                               
+
+id: (442-442c0213)
+Scores: (#C #S #D #I) 2 0 0 0
+REF:  that's fine 
+HYP:  that's fine 
+Eval:             
+
+id: (442-442c0214)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  a change in the firm's ownership also should turn on a bright warning light 
+HYP:  a change in the firm's ownership also should turn on a bright warning light 
+Eval:                                                                             
+
+id: (442-442c0215)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  money managers who sell their firms but then continue working for them may be less dedicated under new ownership they say 
+HYP:  money managers who sell their firms but then continue working for them may be less dedicated under new ownership they say 
+Eval:                                                                                                                           
+
+id: (442-442c0216)
+Scores: (#C #S #D #I) 15 1 0 0
+REF:  important personnel usually are LOCKED into long term contracts with incentives aimed at reducing that problem 
+HYP:  important personnel usually are LOCK   into long term contracts with incentives aimed at reducing that problem 
+Eval:                                 S                                                                              
+
+Speaker sentences   3:  443   #utts: 40
+id: (443-443c0201)
+Scores: (#C #S #D #I) 27 1 1 0
+REF:  the labor department said NON FARM    payroll employment increased a robust three hundred thirty seven thousand last month after a revised three hundred nineteen thousand gain the month before 
+HYP:  the labor department said *** NONFARM payroll employment increased a robust three hundred thirty seven thousand last month after a revised three hundred nineteen thousand gain the month before 
+Eval:                           D   S                                                                                                                                                                  
+
+id: (443-443c0202)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  the department previously said jobs rose by four hundred forty eight thousand in january 
+HYP:  the department previously said jobs rose by four hundred forty eight thousand in january 
+Eval:                                                                                          
+
+id: (443-443c0203)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  using a measure that counts the military among the employed the rate was unchanged at six point six percent last month 
+HYP:  using a measure that counts the military among the employed the rate was unchanged at six point six percent last month 
+Eval:                                                                                                                        
+
+id: (443-443c0204)
+Scores: (#C #S #D #I) 20 1 0 0
+REF:  m. i. c. c. investments has three series of publicly traded preferred shares and ten series OF privately held preferred stock 
+HYP:  m. i. c. c. investments has three series of publicly traded preferred shares and ten series A  privately held preferred stock 
+Eval:                                                                                             S                                 
+
+id: (443-443c0205)
+Scores: (#C #S #D #I) 21 1 0 1
+REF:  m. i. c. c. said it intends to pay the dividend * ARREARS on july thirty first to stock of record july second 
+HYP:  m. i. c. c. said it intends to pay the dividend A REARS   on july thirty first to stock of record july second 
+Eval:                                                 I S                                                           
+
+id: (443-443c0206)
+Scores: (#C #S #D #I) 13 0 0 0
+REF:  the toronto based company provides mortgage guarantees to the canadian real estate industry 
+HYP:  the toronto based company provides mortgage guarantees to the canadian real estate industry 
+Eval:                                                                                             
+
+id: (443-443c0207)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  it isn't clear yet whether the campaign works 
+HYP:  it isn't clear yet whether the campaign works 
+Eval:                                               
+
+id: (443-443c0208)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  local membership jumped twenty two percent but the union has already lost twenty eight of the seventy three new members 
+HYP:  local membership jumped twenty two percent but the union has already lost twenty eight of the seventy three new members 
+Eval:                                                                                                                         
+
+id: (443-443c0209)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  nonetheless the union has moved the experiment to richmond virginia AND has received inquiries from other unions about its tactics 
+HYP:  nonetheless the union has moved the experiment to richmond virginia IT  has received inquiries from other unions about its tactics 
+Eval:                                                                     S                                                              
+
+id: (443-443c020a)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  in the efforts to restore market confidence administration officials have emphasized that the economy's fundamentals remain sound 
+HYP:  in the efforts to restore market confidence administration officials have emphasized that the economy's fundamentals remain sound 
+Eval:                                                                                                                                   
+
+id: (443-443c020b)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  that was certainly true last week 
+HYP:  that was certainly true last week 
+Eval:                                   
+
+id: (443-443c020c)
+Scores: (#C #S #D #I) 15 1 0 0
+REF:  employment LOOKED strong inflation was low and consumer spending and investment were holding up reasonably well 
+HYP:  employment LOOKS  strong inflation was low and consumer spending and investment were holding up reasonably well 
+Eval:            S                                                                                                    
+
+id: (443-443c020d)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  among export led electrical and computer makers japan victor company fell fifty to two thousand three hundred twenty 
+HYP:  among export led electrical and computer makers japan victor company fell fifty to two thousand three hundred twenty 
+Eval:                                                                                                                      
+
+id: (443-443c020e)
+Scores: (#C #S #D #I) 9 1 0 2
+REF:  ** ** KYOCERA was up sixty at five thousand two hundred sixty 
+HYP:  K. L. C.      was up sixty at five thousand two hundred sixty 
+Eval: I  I  S                                                       
+
+id: (443-443c020f)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  sony which lost points in previous sessions this week rebounded eighty to five thousand one hundred thirty 
+HYP:  sony which lost points in previous sessions this week rebounded eighty to five thousand one hundred thirty 
+Eval:                                                                                                            
+
+id: (443-443c020g)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the following officers directors and large stockholders of companies reported changes in holdings under the securities exchange act of nineteen thirty four 
+HYP:  the following officers directors and large stockholders of companies reported changes in holdings under the securities exchange act of nineteen thirty four 
+Eval:                                                                                                                                                             
+
+id: (443-443c020h)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  those identified as beneficial owners hold at least ten percent of a company's equity securities 
+HYP:  those identified as beneficial owners hold at least ten percent of a company's equity securities 
+Eval:                                                                                                  
+
+id: (443-443c020i)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  unless otherwise noted changes involved direct holdings of common stock and took place in september and october of nineteen eighty seven 
+HYP:  unless otherwise noted changes involved direct holdings of common stock and took place in september and october of nineteen eighty seven 
+Eval:                                                                                                                                          
+
+id: (443-443c020j)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  companies are listed where transactions generally aggregate ten thousand shares or one hundred thousand dollars 
+HYP:  companies are listed where transactions generally aggregate ten thousand shares or one hundred thousand dollars 
+Eval:                                                                                                                 
+
+id: (443-443c020k)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  after the third period ashland's coal operations began a process of becoming an independent company 
+HYP:  after the third period ashland's coal operations began a process of becoming an independent company 
+Eval:                                                                                                     
+
+id: (443-443c020l)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  when its initial public offering is completed ashland is expected to retain a forty six percent stake 
+HYP:  when its initial public offering is completed ashland is expected to retain a forty six percent stake 
+Eval:                                                                                                       
+
+id: (443-443c020m)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  the new company ashland coal incorporated is listed on the new york stock exchange 
+HYP:  the new company ashland coal incorporated is listed on the new york stock exchange 
+Eval:                                                                                    
+
+id: (443-443c020n)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  the official declined to elaborate on projections for non telephone operations but cited several indicators of recent gains 
+HYP:  the official declined to elaborate on projections for non telephone operations but cited several indicators of recent gains 
+Eval:                                                                                                                             
+
+id: (443-443c020o)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  he said the company has entered sixteen smaller CELLULAR markets this year and has expanded its financial services work force 
+HYP:  he said the company has entered sixteen smaller SELLER   markets this year and has expanded its financial services work force 
+Eval:                                                 S                                                                             
+
+id: (443-443c020p)
+Scores: (#C #S #D #I) 21 1 0 0
+REF:  in addition u. s. WEST'S data solutions business applied communications incorporated is working out well and performing ahead of all our schedules 
+HYP:  in addition u. s. WEST   data solutions business applied communications incorporated is working out well and performing ahead of all our schedules 
+Eval:                   S                                                                                                                                
+
+id: (443-443c020q)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  m. c. i. plans to begin offering the service at the end of this month 
+HYP:  m. c. i. plans to begin offering the service at the end of this month 
+Eval:                                                                       
+
+id: (443-443c020r)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+HYP:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+Eval:                                                                                                                                     
+
+id: (443-443c020s)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  a print media campaign will begin the following day 
+HYP:  a print media campaign will begin the following day 
+Eval:                                                     
+
+id: (443-443c020t)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  visa and mastercard fees vary because they are set by the banks or other institutions that issue the cards 
+HYP:  visa and mastercard fees vary because they are set by the banks or other institutions that issue the cards 
+Eval:                                                                                                            
+
+id: (443-443c020u)
+Scores: (#C #S #D #I) 17 2 0 0
+REF:  FEES  range up to about forty dollars annually for basic CARDS and sixty dollars a year for gold cards 
+HYP:  THESE range up to about forty dollars annually for basic CARS  and sixty dollars a year for gold cards 
+Eval: S                                                        S                                             
+
+id: (443-443c020v)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  in certain cases the cards are given free to subscribers 
+HYP:  in certain cases the cards are given free to subscribers 
+Eval:                                                          
+
+id: (443-443c020w)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  the american stock exchange index lost zero point seven three to three hundred eighty point nine four 
+HYP:  the american stock exchange index lost zero point seven three to three hundred eighty point nine four 
+Eval:                                                                                                       
+
+id: (443-443c020x)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  volume was eighteen million one hundred ninety thousand shares compared with ten million five hundred fifty thousand monday 
+HYP:  volume was eighteen million one hundred ninety thousand shares compared with ten million five hundred fifty thousand monday 
+Eval:                                                                                                                             
+
+id: (443-443c020y)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  there were two hundred fifty six issues advancing three hundred three declining and two hundred ninety two unchanged 
+HYP:  there were two hundred fifty six issues advancing three hundred three declining and two hundred ninety two unchanged 
+Eval:                                                                                                                      
+
+id: (443-443c020z)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  companies listed below reported quarterly profit substantially different from the average of analysts' estimates 
+HYP:  companies listed below reported quarterly profit substantially different from the average of analysts' estimates 
+Eval:                                                                                                                  
+
+id: (443-443c0210)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the companies are followed by at least three analysts and had a minimum five cent change in actual earnings per share 
+HYP:  the companies are followed by at least three analysts and had a minimum five cent change in actual earnings per share 
+Eval:                                                                                                                       
+
+id: (443-443c0211)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  estimated and actual results involving losses are omitted 
+HYP:  estimated and actual results involving losses are omitted 
+Eval:                                                           
+
+id: (443-443c0212)
+Scores: (#C #S #D #I) 4 0 0 0
+REF:  yesterday's losers included automobiles 
+HYP:  yesterday's losers included automobiles 
+Eval:                                         
+
+id: (443-443c0213)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  honda was down ten to one thousand nine hundred thirty 
+HYP:  honda was down ten to one thousand nine hundred thirty 
+Eval:                                                        
+
+id: (443-443c0214)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  nissan lost thirty to one thousand five hundred twenty and toyota was down thirty to end the day at two thousand six hundred twenty 
+HYP:  nissan lost thirty to one thousand five hundred twenty and toyota was down thirty to end the day at two thousand six hundred twenty 
+Eval:                                                                                                                                     
+
+Speaker sentences   4:  444   #utts: 41
+id: (444-444c0201)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  in the nineteen eighty five quarter the owner and operator of health maintenance organizations earned six point nine million dollars or twenty four cents a share 
+HYP:  in the nineteen eighty five quarter the owner and operator of health maintenance organizations earned six point nine million dollars or twenty four cents a share 
+Eval:                                                                                                                                                                   
+
+id: (444-444c0202)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  it had forecast a nineteen eighty six fourth quarter loss of eighteen million dollars to twenty two million dollars 
+HYP:  it had forecast a nineteen eighty six fourth quarter loss of eighteen million dollars to twenty two million dollars 
+Eval:                                                                                                                     
+
+id: (444-444c0203)
+Scores: (#C #S #D #I) 25 0 0 0
+REF:  revenue in the quarter more than doubled to three hundred sixty two point four million dollars from one hundred forty nine point two million dollars 
+HYP:  revenue in the quarter more than doubled to three hundred sixty two point four million dollars from one hundred forty nine point two million dollars 
+Eval:                                                                                                                                                      
+
+id: (444-444c0204)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  separately new york state sold about seventy seven point one million dollars of certificates of participation 
+HYP:  separately new york state sold about seventy seven point one million dollars of certificates of participation 
+Eval:                                                                                                               
+
+id: (444-444c0205)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  the issue was priced after auction to yield from three point five percent in nineteen eighty seven to five point five percent in nineteen ninety seven 
+HYP:  the issue was priced after auction to yield from three point five percent in nineteen eighty seven to five point five percent in nineteen ninety seven 
+Eval:                                                                                                                                                        
+
+id: (444-444c0206)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the unsold balance late yesterday was about thirty six point three million dollars according to shearson lehman brothers the lead underwriter 
+HYP:  the unsold balance late yesterday was about thirty six point three million dollars according to shearson lehman brothers the lead underwriter 
+Eval:                                                                                                                                               
+
+id: (444-444c0207)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the issue is rated single a by moody's and single a minus by s. and p. 
+HYP:  the issue is rated single a by moody's and single a minus by s. and p. 
+Eval:                                                                        
+
+id: (444-444c0208)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  citicorp had twenty one point five billion dollars in capital at the end of last year 
+HYP:  citicorp had twenty one point five billion dollars in capital at the end of last year 
+Eval:                                                                                       
+
+id: (444-444c0209)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  as one of the most acquisition hungry of major banks citicorp is often required by regulators to raise additional capital as a condition of making acquisitions 
+HYP:  as one of the most acquisition hungry of major banks citicorp is often required by regulators to raise additional capital as a condition of making acquisitions 
+Eval:                                                                                                                                                                 
+
+id: (444-444c020a)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  in addition banks in general are being pushed by regulators to boost their capital positions 
+HYP:  in addition banks in general are being pushed by regulators to boost their capital positions 
+Eval:                                                                                              
+
+id: (444-444c020b)
+Scores: (#C #S #D #I) 28 0 0 0
+REF:  monday's crash is likely to affect at least one other piece of pending legislation the sweeping trade bill that is now the subject of a house senate conference 
+HYP:  monday's crash is likely to affect at least one other piece of pending legislation the sweeping trade bill that is now the subject of a house senate conference 
+Eval:                                                                                                                                                                 
+
+id: (444-444c020c)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  senate finance chairman lloyd bentsen d. texas said he would speed up work on the package because of the crash 
+HYP:  senate finance chairman lloyd bentsen d. texas said he would speed up work on the package because of the crash 
+Eval:                                                                                                                
+
+id: (444-444c020d)
+Scores: (#C #S #D #I) 12 1 0 0
+REF:  it adds to the support for the trade bill GETTING through he said 
+HYP:  it adds to the support for the trade bill ENDING  through he said 
+Eval:                                           S                       
+
+id: (444-444c020e)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  several airlines have also opposed the standards and may fight some aspects in court 
+HYP:  several airlines have also opposed the standards and may fight some aspects in court 
+Eval:                                                                                      
+
+id: (444-444c020f)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  so far they have declined to comment publicly on their plans 
+HYP:  so far they have declined to comment publicly on their plans 
+Eval:                                                              
+
+id: (444-444c020g)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  state officials however say the airlines have indicated they will comply with most of the standards as long as competitors do 
+HYP:  state officials however say the airlines have indicated they will comply with most of the standards as long as competitors do 
+Eval:                                                                                                                               
+
+id: (444-444c020h)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  among export led electrical and computer makers japan victor company fell fifty to two thousand three hundred twenty 
+HYP:  among export led electrical and computer makers japan victor company fell fifty to two thousand three hundred twenty 
+Eval:                                                                                                                      
+
+id: (444-444c020i)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  kyocera was up sixty at five thousand two hundred sixty 
+HYP:  kyocera was up sixty at five thousand two hundred sixty 
+Eval:                                                         
+
+id: (444-444c020j)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  sony which lost points in previous sessions this week rebounded eighty to five thousand one hundred thirty 
+HYP:  sony which lost points in previous sessions this week rebounded eighty to five thousand one hundred thirty 
+Eval:                                                                                                            
+
+id: (444-444c020k)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  lately computer retailing has been tough on everybody 
+HYP:  lately computer retailing has been tough on everybody 
+Eval:                                                       
+
+id: (444-444c020l)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  no one is making very much money on it acknowledges brian j. KELLY  chairman of bell atlantic's investment development unit 
+HYP:  no one is making very much money on it acknowledges brian j. KELLEY chairman of bell atlantic's investment development unit 
+Eval:                                                              S                                                              
+
+id: (444-444c020m)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  we had to sustain some modest operating losses 
+HYP:  we had to sustain some modest operating losses 
+Eval:                                                
+
+id: (444-444c020n)
+Scores: (#C #S #D #I) 4 0 0 0
+REF:  we didn't like that 
+HYP:  we didn't like that 
+Eval:                     
+
+id: (444-444c020o)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  the company declined to identify the bidders but said it received offers in the high forty dollars per share 
+HYP:  the company declined to identify the bidders but said it received offers in the high forty dollars per share 
+Eval:                                                                                                              
+
+id: (444-444c020p)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  in response amfac shares rose one dollar to forty seven dollars and seventy five cents in new york stock exchange composite trading yesterday 
+HYP:  in response amfac shares rose one dollar to forty seven dollars and seventy five cents in new york stock exchange composite trading yesterday 
+Eval:                                                                                                                                               
+
+id: (444-444c020q)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the offers indicate a total price for the company exceeding eight hundred million dollars based on seventeen point two million shares outstanding 
+HYP:  the offers indicate a total price for the company exceeding eight hundred million dollars based on seventeen point two million shares outstanding 
+Eval:                                                                                                                                                   
+
+id: (444-444c020r)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  the mid july increase came even though auto makers are offering incentives on fewer cars this year than they did last year or earlier this year 
+HYP:  the mid july increase came even though auto makers are offering incentives on fewer cars this year than they did last year or earlier this year 
+Eval:                                                                                                                                                 
+
+id: (444-444c020s)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  incentives can move around sales but not create them said charles brady an oppenheimer and company auto stock analyst 
+HYP:  incentives can move around sales but not create them said charles brady an oppenheimer and company auto stock analyst 
+Eval:                                                                                                                       
+
+id: (444-444c020t)
+Scores: (#C #S #D #I) 12 1 0 0
+REF:  the MARKET'S strength may show that demand isn't all a creation of incentives 
+HYP:  the MARKET   strength may show that demand isn't all a creation of incentives 
+Eval:     S                                                                         
+
+id: (444-444c020u)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  m. c. i. plans to begin offering the service at the end of this month 
+HYP:  m. c. i. plans to begin offering the service at the end of this month 
+Eval:                                                                       
+
+id: (444-444c020v)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+HYP:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+Eval:                                                                                                                                     
+
+id: (444-444c020w)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  a print media campaign will begin the following day 
+HYP:  a print media campaign will begin the following day 
+Eval:                                                     
+
+id: (444-444c020x)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  the american stock exchange index lost zero point seven three to three hundred eighty point nine four 
+HYP:  the american stock exchange index lost zero point seven three to three hundred eighty point nine four 
+Eval:                                                                                                       
+
+id: (444-444c020y)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  volume was eighteen million one hundred ninety thousand shares compared with ten million five hundred fifty thousand monday 
+HYP:  volume was eighteen million one hundred ninety thousand shares compared with ten million five hundred fifty thousand monday 
+Eval:                                                                                                                             
+
+id: (444-444c020z)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  there were two hundred fifty six issues advancing three hundred three declining and two hundred ninety two unchanged 
+HYP:  there were two hundred fifty six issues advancing three hundred three declining and two hundred ninety two unchanged 
+Eval:                                                                                                                      
+
+id: (444-444c0210)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  the institute said earned premiums rose three point one percent in the second quarter failing to keep pace with inflation which rose four point five percent 
+HYP:  the institute said earned premiums rose three point one percent in the second quarter failing to keep pace with inflation which rose four point five percent 
+Eval:                                                                                                                                                              
+
+id: (444-444c0211)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  however investment income which represents thirteen percent of the industry's revenues rose eleven percent in the quarter reflecting gains from the rising stock market 
+HYP:  however investment income which represents thirteen percent of the industry's revenues rose eleven percent in the quarter reflecting gains from the rising stock market 
+Eval:                                                                                                                                                                         
+
+id: (444-444c0212)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  realized capital gains increased forty two percent to nine hundred nine million dollars from six hundred forty point nine million dollars 
+HYP:  realized capital gains increased forty two percent to nine hundred nine million dollars from six hundred forty point nine million dollars 
+Eval:                                                                                                                                           
+
+id: (444-444c0213)
+Scores: (#C #S #D #I) 12 1 1 0
+REF:  A CHANGE   in the firm's ownership also should turn on a bright warning light 
+HYP:  * ATTAINED in the firm's ownership also should turn on a bright warning light 
+Eval: D S                                                                           
+
+id: (444-444c0214)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  money managers who sell their firms but then continue working for them may be less dedicated under new ownership they say 
+HYP:  money managers who sell their firms but then continue working for them may be less dedicated under new ownership they say 
+Eval:                                                                                                                           
+
+id: (444-444c0215)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  important personnel usually are locked into long term contracts with incentives aimed at reducing that problem 
+HYP:  important personnel usually are locked into long term contracts with incentives aimed at reducing that problem 
+Eval:                                                                                                                
+
+Speaker sentences   5:  445   #utts: 42
+id: (445-445c0201)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  owens illinois said its share purchases would be financed by existing credit lines and new ones to be arranged 
+HYP:  owens illinois said its share purchases would be financed by existing credit lines and new ones to be arranged 
+Eval:                                                                                                                
+
+id: (445-445c0202)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  if all twenty million shares were purchased the company's equity would be reduced by about one third 
+HYP:  if all twenty million shares were purchased the company's equity would be reduced by about one third 
+Eval:                                                                                                      
+
+id: (445-445c0203)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  a spokesman said the company has about sixty million shares outstanding 
+HYP:  a spokesman said the company has about sixty million shares outstanding 
+Eval:                                                                         
+
+id: (445-445c0204)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the consensus was that a new piece of paper isn't required said one u. s. diplomat 
+HYP:  the consensus was that a new piece of paper isn't required said one u. s. diplomat 
+Eval:                                                                                    
+
+id: (445-445c0205)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  no one at the state department wants to let spies in 
+HYP:  no one at the state department wants to let spies in 
+Eval:                                                      
+
+id: (445-445c0206)
+Scores: (#C #S #D #I) 10 1 0 2
+REF:  we're not prepared to be *** *** ADVOCATES for the k. g. b. 
+HYP:  we're not prepared to be ADD THE CUTS      for the k. g. b. 
+Eval:                          I   I   S                          
+
+id: (445-445c0207)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  but the penalties for failure are real 
+HYP:  but the penalties for failure are real 
+Eval:                                        
+
+id: (445-445c0208)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  their business isn't just a job but their investment 
+HYP:  their business isn't just a job but their investment 
+Eval:                                                      
+
+id: (445-445c0209)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  and both mortgaged their homes to secure the loans they needed to start the business 
+HYP:  and both mortgaged their homes to secure the loans they needed to start the business 
+Eval:                                                                                      
+
+id: (445-445c020a)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  a long list of other witnesses have also testified in the trial now in its fourth month 
+HYP:  a long list of other witnesses have also testified in the trial now in its fourth month 
+Eval:                                                                                         
+
+id: (445-445c020b)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  but it is mr. west upon whom the outcome probably depends most 
+HYP:  but it is mr. west upon whom the outcome probably depends most 
+Eval:                                                                
+
+id: (445-445c020c)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  testimony concluded this week and closing arguments are scheduled to begin monday 
+HYP:  testimony concluded this week and closing arguments are scheduled to begin monday 
+Eval:                                                                                   
+
+id: (445-445c020d)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+HYP:  grand auto slid three to fifteen and one eighth on the american stock exchange 
+Eval:                                                                                
+
+id: (445-445c020e)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+HYP:  the company which runs retail automotive stores told shearson lehman brothers its financial adviser to terminate discussions to sell the firm 
+Eval:                                                                                                                                               
+
+id: (445-445c020f)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  it received no proposals that were in the best interest of the shareholders the company said 
+HYP:  it received no proposals that were in the best interest of the shareholders the company said 
+Eval:                                                                                              
+
+id: (445-445c020g)
+Scores: (#C #S #D #I) 23 2 0 1
+REF:  the order issued late wednesday by judge *** DIANA MURPHY stems from a suit filed in federal court last month by the union representing the machinists 
+HYP:  the order issued late wednesday by judge DAY AN    EMERY  stems from a suit filed in federal court last month by the union representing the machinists 
+Eval:                                          I   S     S                                                                                                   
+
+id: (445-445c020h)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the suit seeks to block the contract which would have raised pay levels but cut benefits 
+HYP:  the suit seeks to block the contract which would have raised pay levels but cut benefits 
+Eval:                                                                                          
+
+id: (445-445c020i)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  the airline imposed the contract without union bargaining 
+HYP:  the airline imposed the contract without union bargaining 
+Eval:                                                           
+
+id: (445-445c020j)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  yesterday's session began with a sharp quick decline in the industrial average of more than forty five points which some market analysts attributed to foreign selling 
+HYP:  yesterday's session began with a sharp quick decline in the industrial average of more than forty five points which some market analysts attributed to foreign selling 
+Eval:                                                                                                                                                                        
+
+id: (445-445c020k)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  but to the surprise of almost everyone stock prices began a steady climb that pushed the average above wednesday's close 
+HYP:  but to the surprise of almost everyone stock prices began a steady climb that pushed the average above wednesday's close 
+Eval:                                                                                                                          
+
+id: (445-445c020l)
+Scores: (#C #S #D #I) 20 1 0 1
+REF:  although those gains ** ERODED during the afternoon stock prices stayed within a narrow range until the last half hour of trading 
+HYP:  although those gains HE WROTE  during the afternoon stock prices stayed within a narrow range until the last half hour of trading 
+Eval:                      I  S                                                                                                         
+
+id: (445-445c020m)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  gillette is again a target of a major corporate raider 
+HYP:  gillette is again a target of a major corporate raider 
+Eval:                                                        
+
+id: (445-445c020n)
+Scores: (#C #S #D #I) 28 1 0 0
+REF:  coniston partners of new york said it has a six point eight percent stake in GILLETTE and may seek to acquire the company or gain seats on its board 
+HYP:  coniston partners of new york said it has a six point eight percent stake in JULY     and may seek to acquire the company or gain seats on its board 
+Eval:                                                                              S                                                                       
+
+id: (445-445c020o)
+Scores: (#C #S #D #I) 5 0 0 0
+REF:  a lengthy fight is likely 
+HYP:  a lengthy fight is likely 
+Eval:                           
+
+id: (445-445c020p)
+Scores: (#C #S #D #I) 13 1 0 0
+REF:  about all the BUSINESSMAN can count on is that policy will be pretty volatile 
+HYP:  about all the BUSINESSMEN can count on is that policy will be pretty volatile 
+Eval:               S                                                               
+
+id: (445-445c020q)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  if the dollar starts to plunge the fed may step up its defense of the currency 
+HYP:  if the dollar starts to plunge the fed may step up its defense of the currency 
+Eval:                                                                                
+
+id: (445-445c020r)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  if the fed pushes the dollar higher it may curb the demand for u. s. exports 
+HYP:  if the fed pushes the dollar higher it may curb the demand for u. s. exports 
+Eval:                                                                              
+
+id: (445-445c020s)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  lately computer retailing has been tough on everybody 
+HYP:  lately computer retailing has been tough on everybody 
+Eval:                                                       
+
+id: (445-445c020t)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  no one is making very much money on it acknowledges brian j. KELLY  chairman of bell atlantic's investment development unit 
+HYP:  no one is making very much money on it acknowledges brian j. KELLEY chairman of bell atlantic's investment development unit 
+Eval:                                                              S                                                              
+
+id: (445-445c020u)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  we had to sustain some modest operating losses 
+HYP:  we had to sustain some modest operating losses 
+Eval:                                                
+
+id: (445-445c020v)
+Scores: (#C #S #D #I) 4 0 0 0
+REF:  we didn't like that 
+HYP:  we didn't like that 
+Eval:                     
+
+id: (445-445c020w)
+Scores: (#C #S #D #I) 22 1 0 0
+REF:  the jury awarded mr. SCHARENBERG one hundred five million dollars a figure based on ten years of profits had his project been completed 
+HYP:  the jury awarded mr. SHARONBERG  one hundred five million dollars a figure based on ten years of profits had his project been completed 
+Eval:                      S                                                                                                                  
+
+id: (445-445c020x)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  continental started the appeal process but recently settled the case 
+HYP:  continental started the appeal process but recently settled the case 
+Eval:                                                                      
+
+id: (445-445c020y)
+Scores: (#C #S #D #I) 5 0 0 0
+REF:  neither side would disclose terms 
+HYP:  neither side would disclose terms 
+Eval:                                   
+
+id: (445-445c020z)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  m. c. i. plans to begin offering the service at the end of this month 
+HYP:  m. c. i. plans to begin offering the service at the end of this month 
+Eval:                                                                       
+
+id: (445-445c0210)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+HYP:  as part of the marketing plan the company will begin airing television commercials during prime time on election night next tuesday 
+Eval:                                                                                                                                     
+
+id: (445-445c0211)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  a print media campaign will begin the following day 
+HYP:  a print media campaign will begin the following day 
+Eval:                                                     
+
+id: (445-445c0212)
+Scores: (#C #S #D #I) 7 1 1 0
+REF:  the real change though IS IN    how china looks 
+HYP:  the real change though ** ISN'T how china looks 
+Eval:                        D  S                     
+
+id: (445-445c0213)
+Scores: (#C #S #D #I) 5 0 0 0
+REF:  from america china looked good 
+HYP:  from america china looked good 
+Eval:                                
+
+id: (445-445c0214)
+Scores: (#C #S #D #I) 15 1 0 2
+REF:  the numbers looked amazingly good *** **** INDUSTRIAL growth rates above ten percent per year year after year 
+HYP:  the numbers looked amazingly good AND JUST REAL       growth rates above ten percent per year year after year 
+Eval:                                   I   I    S                                                                  
+
+id: (445-445c0215)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  and after a temporary downturn in the next couple of years the numbers probably will go back up 
+HYP:  and after a temporary downturn in the next couple of years the numbers probably will go back up 
+Eval:                                                                                                 
+
+id: (445-445c0216)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  where else in the third world is there so much energy and progress as in china 
+HYP:  where else in the third world is there so much energy and progress as in china 
+Eval:                                                                                
+
+Speaker sentences   6:  446   #utts: 40
+id: (446-446c0201)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  here are price trends on the world's major stock markets as calculated by morgan stanley capital international perspective geneva 
+HYP:  here are price trends on the world's major stock markets as calculated by morgan stanley capital international perspective geneva 
+Eval:                                                                                                                                   
+
+id: (446-446c0202)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  to make them directly comparable each index is based on the close of nineteen sixty nine equaling one hundred 
+HYP:  to make them directly comparable each index is based on the close of nineteen sixty nine equaling one hundred 
+Eval:                                                                                                               
+
+id: (446-446c0203)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  the percentage change is since year end 
+HYP:  the percentage change is since year end 
+Eval:                                         
+
+id: (446-446c0204)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the consensus was that a new piece of paper isn't required said one u. s. diplomat 
+HYP:  the consensus was that a new piece of paper isn't required said one u. s. diplomat 
+Eval:                                                                                    
+
+id: (446-446c0205)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  no one at the state department wants to let spies in 
+HYP:  no one at the state department wants to let spies in 
+Eval:                                                      
+
+id: (446-446c0206)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  we're not prepared to be advocates for the k. g. b. 
+HYP:  we're not prepared to be advocates for the k. g. b. 
+Eval:                                                     
+
+id: (446-446c0207)
+Scores: (#C #S #D #I) 9 0 0 0
+REF:  that doesn't mean mr. icahn has committed any wrongdoing 
+HYP:  that doesn't mean mr. icahn has committed any wrongdoing 
+Eval:                                                          
+
+id: (446-446c0208)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  but the investigation could make some lenders wary 
+HYP:  but the investigation could make some lenders wary 
+Eval:                                                    
+
+id: (446-446c0209)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  mr. icahn and an investor group he heads hold seventy two point seven percent of t. w. a.'s shares 
+HYP:  mr. icahn and an investor group he heads hold seventy two point seven percent of t. w. a.'s shares 
+Eval:                                                                                                    
+
+id: (446-446c020a)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  separately new york state sold about seventy seven point one million dollars of certificates of participation 
+HYP:  separately new york state sold about seventy seven point one million dollars of certificates of participation 
+Eval:                                                                                                               
+
+id: (446-446c020b)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  the issue was priced after auction to yield from three point five percent in nineteen eighty seven to five point five percent in nineteen ninety seven 
+HYP:  the issue was priced after auction to yield from three point five percent in nineteen eighty seven to five point five percent in nineteen ninety seven 
+Eval:                                                                                                                                                        
+
+id: (446-446c020c)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  the unsold balance late yesterday was about thirty six point three million dollars according to shearson lehman brothers the lead underwriter 
+HYP:  the unsold balance late yesterday was about thirty six point three million dollars according to shearson lehman brothers the lead underwriter 
+Eval:                                                                                                                                               
+
+id: (446-446c020d)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the issue is rated single a by moody's and single a minus by s. and p. 
+HYP:  the issue is rated single a by moody's and single a minus by s. and p. 
+Eval:                                                                        
+
+id: (446-446c020e)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  fidelity had contended that gencorp isn't a qualified broadcaster because it failed to disclose allegedly improper political campaign contributions and foreign payments 
+HYP:  fidelity had contended that gencorp isn't a qualified broadcaster because it failed to disclose allegedly improper political campaign contributions and foreign payments 
+Eval:                                                                                                                                                                          
+
+id: (446-446c020f)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  under the proposed transaction the los angeles group would acquire the k. h. j. license and then sell itself to disney 
+HYP:  under the proposed transaction the los angeles group would acquire the k. h. j. license and then sell itself to disney 
+Eval:                                                                                                                        
+
+id: (446-446c020g)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the closely held group doesn't have any significant assets according to william g. simon its president 
+HYP:  the closely held group doesn't have any significant assets according to william g. simon its president 
+Eval:                                                                                                        
+
+id: (446-446c020h)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  he said that for the full year wang is aiming for an after tax profit equal to three percent to five percent of sales 
+HYP:  he said that for the full year wang is aiming for an after tax profit equal to three percent to five percent of sales 
+Eval:                                                                                                                       
+
+id: (446-446c020i)
+Scores: (#C #S #D #I) 25 0 0 0
+REF:  he said the company's goal is to have fifteen percent to twenty percent revenue growth to about three point two billion dollars for the year 
+HYP:  he said the company's goal is to have fifteen percent to twenty percent revenue growth to about three point two billion dollars for the year 
+Eval:                                                                                                                                              
+
+id: (446-446c020j)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  in fiscal nineteen eighty seven wang had a loss of seventy point seven million dollars on revenue of two point eight four billion dollars 
+HYP:  in fiscal nineteen eighty seven wang had a loss of seventy point seven million dollars on revenue of two point eight four billion dollars 
+Eval:                                                                                                                                           
+
+id: (446-446c020k)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  in many ways that's just what u. b. s. has done since mr. SENN was named president in nineteen eighty 
+HYP:  in many ways that's just what u. b. s. has done since mr. SEN  was named president in nineteen eighty 
+Eval:                                                           S                                           
+
+id: (446-446c020l)
+Scores: (#C #S #D #I) 26 0 0 0
+REF:  assets more than doubled since then to one hundred sixty point four billion swiss francs one hundred fifteen point six billion dollars in nineteen eighty seven 
+HYP:  assets more than doubled since then to one hundred sixty point four billion swiss francs one hundred fifteen point six billion dollars in nineteen eighty seven 
+Eval:                                                                                                                                                                 
+
+id: (446-446c020m)
+Scores: (#C #S #D #I) 19 0 0 0
+REF:  net income rose one hundred twenty five percent to seven hundred fifty three million swiss francs in the period 
+HYP:  net income rose one hundred twenty five percent to seven hundred fifty three million swiss francs in the period 
+Eval:                                                                                                                 
+
+id: (446-446c020n)
+Scores: (#C #S #D #I) 16 0 0 0
+REF:  the real estate investment trust said it was still hoping to reach a new credit arrangement 
+HYP:  the real estate investment trust said it was still hoping to reach a new credit arrangement 
+Eval:                                                                                             
+
+id: (446-446c020o)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  we're not ready to say we're in technical default a spokesman said 
+HYP:  we're not ready to say we're in technical default a spokesman said 
+Eval:                                                                    
+
+id: (446-446c020p)
+Scores: (#C #S #D #I) 3 0 0 0
+REF:  it's still unclear 
+HYP:  it's still unclear 
+Eval:                    
+
+id: (446-446c020q)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  there was a striking split between the sexes with men more likely than women to favor space programs 
+HYP:  there was a striking split between the sexes with men more likely than women to favor space programs 
+Eval:                                                                                                      
+
+id: (446-446c020r)
+Scores: (#C #S #D #I) 21 1 0 0
+REF:  among men fifty six percent said the u. s. was doing too little in space EXPLORATION only a quarter of women agreed 
+HYP:  among men fifty six percent said the u. s. was doing too little in space EXPIRATION  only a quarter of women agreed 
+Eval:                                                                          S                                          
+
+id: (446-446c020s)
+Scores: (#C #S #D #I) 16 1 0 0
+REF:  among men forty one percent supported boosting the space EXPLORATION budget compared with nineteen percent of women 
+HYP:  among men forty one percent supported boosting the space EXPIRATION  budget compared with nineteen percent of women 
+Eval:                                                          S                                                          
+
+id: (446-446c020t)
+Scores: (#C #S #D #I) 28 1 0 0
+REF:  according to the average estimate of SEVEN   economists surveyed by dow jones capital markets report new orders for u. s. durable goods rose two point four percent last month 
+HYP:  according to the average estimate of SEVENTY economists surveyed by dow jones capital markets report new orders for u. s. durable goods rose two point four percent last month 
+Eval:                                      S                                                                                                                                         
+
+id: (446-446c020u)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  that would follow a two point two percent drop in may 
+HYP:  that would follow a two point two percent drop in may 
+Eval:                                                       
+
+id: (446-446c020v)
+Scores: (#C #S #D #I) 23 1 0 0
+REF:  the may slump reported june twenty second came as a big surprise to most analysts and HELPED trigger a powerful bond rally that day 
+HYP:  the may slump reported june twenty second came as a big surprise to most analysts and HELP   trigger a powerful bond rally that day 
+Eval:                                                                                       S                                             
+
+id: (446-446c020w)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  durable goods reports frequently are highly volatile from month to month 
+HYP:  durable goods reports frequently are highly volatile from month to month 
+Eval:                                                                          
+
+id: (446-446c020x)
+Scores: (#C #S #D #I) 18 0 0 0
+REF:  many analysts cite an expected increase in aircraft orders as a big reason for the anticipated june increase 
+HYP:  many analysts cite an expected increase in aircraft orders as a big reason for the anticipated june increase 
+Eval:                                                                                                              
+
+id: (446-446c020y)
+Scores: (#C #S #D #I) 10 1 0 0
+REF:  estimates for the gain RANGED from two percent to three percent 
+HYP:  estimates for the gain RANGE  from two percent to three percent 
+Eval:                        S                                        
+
+id: (446-446c020z)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  republic new york rose one and one quarter to forty five and seven eighths 
+HYP:  republic new york rose one and one quarter to forty five and seven eighths 
+Eval:                                                                            
+
+id: (446-446c0210)
+Scores: (#C #S #D #I) 21 1 1 0
+REF:  the company said its european banking affiliate SAFRA    republic plans to raise more than four hundred fifty million dollars through AN international offering 
+HYP:  the company said its european banking affiliate SOFTWARE republic plans to raise more than four hundred fifty million dollars through ** international offering 
+Eval:                                                 S                                                                                     D                         
+
+id: (446-446c0211)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  after the offering republic new york will hold about forty nine percent of the affiliate 
+HYP:  after the offering republic new york will hold about forty nine percent of the affiliate 
+Eval:                                                                                          
+
+id: (446-446c0212)
+Scores: (#C #S #D #I) 23 1 0 0
+REF:  closely held times publishing also owns TWO washington based publications congressional quarterly which covers capitol hill and governing which covers state and local governments 
+HYP:  closely held times publishing also owns TO  washington based publications congressional quarterly which covers capitol hill and governing which covers state and local governments 
+Eval:                                         S                                                                                                                                          
+
+id: (446-446c0213)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  it also owns three state business magazines in florida georgia and arizona 
+HYP:  it also owns three state business magazines in florida georgia and arizona 
+Eval:                                                                            
+
+id: (446-446c0214)
+Scores: (#C #S #D #I) 11 1 0 0
+REF:  industry analysts VALUE  the company at about six hundred fifty million dollars 
+HYP:  industry analysts VALUED the company at about six hundred fifty million dollars 
+Eval:                   S                                                             
+
+Speaker sentences   7:  447   #utts: 43
+id: (447-447c0201)
+Scores: (#C #S #D #I) 21 0 0 0
+REF:  i don't mean there couldn't be some improvements in the revenue act of nineteen eighty six which took effect this month 
+HYP:  i don't mean there couldn't be some improvements in the revenue act of nineteen eighty six which took effect this month 
+Eval:                                                                                                                         
+
+id: (447-447c0202)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  i have my list of changes i'd like to see 
+HYP:  i have my list of changes i'd like to see 
+Eval:                                           
+
+id: (447-447c0203)
+Scores: (#C #S #D #I) 6 2 0 0
+REF:  AND I'M  sure you have your own list 
+HYP:  THE NAME sure you have your own list 
+Eval: S   S                                
+
+id: (447-447c0204)
+Scores: (#C #S #D #I) 24 2 0 0
+REF:  mr. robertson says he would only be attracted by a nineteen multiple if HE  thought the projected earnings growth rate WAS  eighteen percent to twenty percent 
+HYP:  mr. robertson says he would only be attracted by a nineteen multiple if YOU thought the projected earnings growth rate WITH eighteen percent to twenty percent 
+Eval:                                                                         S                                              S                                       
+
+id: (447-447c0205)
+Scores: (#C #S #D #I) 2 0 0 0
+REF:  he doesn't 
+HYP:  he doesn't 
+Eval:            
+
+id: (447-447c0206)
+Scores: (#C #S #D #I) 16 2 1 0
+REF:  he cites the law of large numbers CAN you really EXPECT IT       to grow at large numbers very long 
+HYP:  he cites the law of large numbers AND you really ****** EXPECTED to grow at large numbers very long 
+Eval:                                   S              D      S                                           
+
+id: (447-447c0207)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  washington national paid nineteen dollars a share for the two point six million united presidential shares it didn't already own 
+HYP:  washington national paid nineteen dollars a share for the two point six million united presidential shares it didn't already own 
+Eval:                                                                                                                                  
+
+id: (447-447c0208)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  before the transaction washington national controlled one point eight million united presidential shares or forty one point five percent of the company 
+HYP:  before the transaction washington national controlled one point eight million united presidential shares or forty one point five percent of the company 
+Eval:                                                                                                                                                         
+
+id: (447-447c0209)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  washington national is a financial services concern 
+HYP:  washington national is a financial services concern 
+Eval:                                                     
+
+id: (447-447c020a)
+Scores: (#C #S #D #I) 7 0 0 0
+REF:  united presidential is a life insurance company 
+HYP:  united presidential is a life insurance company 
+Eval:                                                 
+
+id: (447-447c020b)
+Scores: (#C #S #D #I) 13 0 0 0
+REF:  these are uneducated people he says in english so the patients won't understand 
+HYP:  these are uneducated people he says in english so the patients won't understand 
+Eval:                                                                                 
+
+id: (447-447c020c)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  sending the refugees back isn't their idea it's just what the opposition politicians are saying in our country these days 
+HYP:  sending the refugees back isn't their idea it's just what the opposition politicians are saying in our country these days 
+Eval:                                                                                                                           
+
+id: (447-447c020d)
+Scores: (#C #S #D #I) 8 2 0 0
+REF:  i will TELL you WHAT  i think in my office 
+HYP:  i will SO   you WOULD i think in my office 
+Eval:        S        S                          
+
+id: (447-447c020e)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  northgate exploration limited said it sold four million common shares at eight dollars each 
+HYP:  northgate exploration limited said it sold four million common shares at eight dollars each 
+Eval:                                                                                             
+
+id: (447-447c020f)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  they were sold to underwriters led by prudential bache securities incorporated 
+HYP:  they were sold to underwriters led by prudential bache securities incorporated 
+Eval:                                                                                
+
+id: (447-447c020g)
+Scores: (#C #S #D #I) 20 0 0 0
+REF:  the underwriting group has a thirty day option to acquire an additional six hundred thousand shares at eight dollars each 
+HYP:  the underwriting group has a thirty day option to acquire an additional six hundred thousand shares at eight dollars each 
+Eval:                                                                                                                           
+
+id: (447-447c020h)
+Scores: (#C #S #D #I) 14 0 0 0
+REF:  the toronto based gold mining concern said proceeds would be used for general purposes 
+HYP:  the toronto based gold mining concern said proceeds would be used for general purposes 
+Eval:                                                                                        
+
+id: (447-447c020i)
+Scores: (#C #S #D #I) 12 0 0 0
+REF:  it had fourteen point five million common shares outstanding before the issue 
+HYP:  it had fourteen point five million common shares outstanding before the issue 
+Eval:                                                                               
+
+id: (447-447c020j)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  in the efforts to restore market confidence administration officials have emphasized that the economy's fundamentals remain sound 
+HYP:  in the efforts to restore market confidence administration officials have emphasized that the economy's fundamentals remain sound 
+Eval:                                                                                                                                   
+
+id: (447-447c020k)
+Scores: (#C #S #D #I) 6 0 0 0
+REF:  that was certainly true last week 
+HYP:  that was certainly true last week 
+Eval:                                   
+
+id: (447-447c020l)
+Scores: (#C #S #D #I) 15 1 0 0
+REF:  employment LOOKED strong inflation was low and consumer spending and investment were holding up reasonably well 
+HYP:  employment LOOKS  strong inflation was low and consumer spending and investment were holding up reasonably well 
+Eval:            S                                                                                                    
+
+id: (447-447c020m)
+Scores: (#C #S #D #I) 16 1 0 2
+REF:  ** **** ENVIRODYNE said it expects sales to be the highest for any third quarter in the company's history 
+HYP:  IN VARO DINE       said it expects sales to be the highest for any third quarter in the company's history 
+Eval: I  I    S                                                                                                 
+
+id: (447-447c020n)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  it had sales of ninety one point five million dollars in the nineteen eighty six third quarter 
+HYP:  it had sales of ninety one point five million dollars in the nineteen eighty six third quarter 
+Eval:                                                                                                
+
+id: (447-447c020o)
+Scores: (#C #S #D #I) 11 0 0 0
+REF:  the company expects to report its results in about two weeks 
+HYP:  the company expects to report its results in about two weeks 
+Eval:                                                              
+
+id: (447-447c020p)
+Scores: (#C #S #D #I) 23 0 0 0
+REF:  the independent committee will recommend that holders accept the offer at a meeting expected to be held in december t. w. a. said 
+HYP:  the independent committee will recommend that holders accept the offer at a meeting expected to be held in december t. w. a. said 
+Eval:                                                                                                                                   
+
+id: (447-447c020q)
+Scores: (#C #S #D #I) 17 1 0 0
+REF:  the transaction requires approval of A   majority of the shares of the holders not affiliated with mr. icahn 
+HYP:  the transaction requires approval of THE majority of the shares of the holders not affiliated with mr. icahn 
+Eval:                                      S                                                                       
+
+id: (447-447c020r)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  the investor now owns seventy three percent of the company 
+HYP:  the investor now owns seventy three percent of the company 
+Eval:                                                            
+
+id: (447-447c020s)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  but while the fed stands pat it is coming under increasing attack from both sides 
+HYP:  but while the fed stands pat it is coming under increasing attack from both sides 
+Eval:                                                                                   
+
+id: (447-447c020t)
+Scores: (#C #S #D #I) 25 0 0 0
+REF:  some critics including high reagan administration officials are raising the alarm that the fed's policy is too tight and could cause a recession next year 
+HYP:  some critics including high reagan administration officials are raising the alarm that the fed's policy is too tight and could cause a recession next year 
+Eval:                                                                                                                                                            
+
+id: (447-447c020u)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  other analysts say the fed needs to tighten policy further to support the dollar and prevent inflation 
+HYP:  other analysts say the fed needs to tighten policy further to support the dollar and prevent inflation 
+Eval:                                                                                                        
+
+id: (447-447c020v)
+Scores: (#C #S #D #I) 17 0 0 0
+REF:  manhattan industries continued to trade above the offer price yesterday indicating the market expects a higher bid 
+HYP:  manhattan industries continued to trade above the offer price yesterday indicating the market expects a higher bid 
+Eval:                                                                                                                    
+
+id: (447-447c020w)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the shares closed at eighteen dollars and twenty five cents up twenty five cents on the new york stock exchange composite tape 
+HYP:  the shares closed at eighteen dollars and twenty five cents up twenty five cents on the new york stock exchange composite tape 
+Eval:                                                                                                                                
+
+id: (447-447c020x)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  salant shares closed unchanged on the big board at nine dollars and seventy five cents 
+HYP:  salant shares closed unchanged on the big board at nine dollars and seventy five cents 
+Eval:                                                                                        
+
+id: (447-447c020y)
+Scores: (#C #S #D #I) 19 1 0 0
+REF:  increasingly people who test positive join THE support groups that have sprung up across the country in the past year 
+HYP:  increasingly people who test positive join A   support groups that have sprung up across the country in the past year 
+Eval:                                            S                                                                          
+
+id: (447-447c020z)
+Scores: (#C #S #D #I) 10 0 0 0
+REF:  several cities have versions of the british organization body positive 
+HYP:  several cities have versions of the british organization body positive 
+Eval:                                                                        
+
+id: (447-447c0210)
+Scores: (#C #S #D #I) 15 0 0 0
+REF:  founded last october new york's body positive already has sixteen groups meeting every two weeks 
+HYP:  founded last october new york's body positive already has sixteen groups meeting every two weeks 
+Eval:                                                                                                  
+
+id: (447-447c0211)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  lately computer retailing has been tough on everybody 
+HYP:  lately computer retailing has been tough on everybody 
+Eval:                                                       
+
+id: (447-447c0212)
+Scores: (#C #S #D #I) 18 2 0 0
+REF:  no one is making very much money on it acknowledges BRIAN j. KELLY  chairman of bell atlantic's investment development unit 
+HYP:  no one is making very much money on it acknowledges BRYAN j. KELLEY chairman of bell atlantic's investment development unit 
+Eval:                                                     S        S                                                              
+
+id: (447-447c0213)
+Scores: (#C #S #D #I) 8 0 0 0
+REF:  we had to sustain some modest operating losses 
+HYP:  we had to sustain some modest operating losses 
+Eval:                                                
+
+id: (447-447c0214)
+Scores: (#C #S #D #I) 4 0 0 0
+REF:  we didn't like that 
+HYP:  we didn't like that 
+Eval:                     
+
+id: (447-447c0215)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  shearson lehman hutton incorporated's index of long term treasury bonds stayed in a very small range yesterday finishing very close to wednesday's closing level 
+HYP:  shearson lehman hutton incorporated's index of long term treasury bonds stayed in a very small range yesterday finishing very close to wednesday's closing level 
+Eval:                                                                                                                                                                  
+
+id: (447-447c0216)
+Scores: (#C #S #D #I) 22 0 0 0
+REF:  the index ended with a decline of zero point three five point to one thousand two hundred seventy two point one eight 
+HYP:  the index ended with a decline of zero point three five point to one thousand two hundred seventy two point one eight 
+Eval:                                                                                                                       
+
+id: (447-447c0217)
+Scores: (#C #S #D #I) 24 0 0 0
+REF:  the low was one thousand two hundred seventy point one nine and the high was one thousand two hundred seventy three point eight eight 
+HYP:  the low was one thousand two hundred seventy point one nine and the high was one thousand two hundred seventy three point eight eight 
+Eval:                                                                                                                                       
+
+
