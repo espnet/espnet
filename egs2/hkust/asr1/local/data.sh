@@ -2,7 +2,6 @@
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
-set -u
 set -o pipefail
 
 log() {
@@ -167,7 +166,20 @@ cat $dev_dir/utt2spk | sort -k 2 | utils/utt2spk_to_spk2utt.pl > $dev_dir/spk2ut
 
 
 log "Formatting Data Directory"
-local/hkust_format_data.sh
+
+mkdir -p data/train data/dev
+
+# Copy stuff into its final locations...
+
+for f in spk2utt utt2spk wav.scp text segments reco2file_and_channel; do
+  cp data/local/train/$f data/train/$f || exit 1;
+done
+
+for f in spk2utt utt2spk wav.scp text segments reco2file_and_channel; do
+  cp data/local/dev/$f data/dev/$f || exit 1;
+done
+
+log "hkust_format_data succeeded."
 
 
 log "Upsample audios from 8k to 16k"

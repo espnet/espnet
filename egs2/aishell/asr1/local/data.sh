@@ -2,7 +2,6 @@
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
-set -u
 set -o pipefail
 
 log() {
@@ -69,7 +68,7 @@ mkdir -p $tmp_dir
 
 # find wav audio file for train, dev and test resp.
 find $aishell_audio_dir -iname "*.wav" > $tmp_dir/wav.flist
-n=`cat $tmp_dir/wav.flist | wc -l`
+n=$(cat $tmp_dir/wav.flist | wc -l)
 [ $n -ne 141925 ] && \
   log Warning: expected 141925 data data files, found $n
 
