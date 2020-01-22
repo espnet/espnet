@@ -62,6 +62,9 @@ done
 cd "${cwd}" || exit 1
 
 
+# TODO(karita): test mt, st?
+
+
 # [ESPnet2] Validate configuration files
 echo "==== [ESPnet2] Validation configuration files ==="
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
@@ -77,4 +80,13 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
 fi
 
 
-# TODO(karita): test mt, st?
+# These files must be same each other.
+for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do 
+    file1=
+    for f in egs2/*/*/"${base}"; do
+        if [ -z "${file1}" ]; then
+            file1="${f}"
+        fi
+        diff "${file1}" "${f}" || { echo "To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; } 
+    done
+done
