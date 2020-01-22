@@ -188,6 +188,10 @@ EOF
                     # Output to stdout/stderr
                     f = None
 
+                # FIXME(kamo): The process will be alive
+                #  even if this program is stopped because we don't set -t here,
+                #  i.e. not assigning pty,
+                #  and the program is not killed when SSH connection is closed.
                 process = subprocess.Popen(
                     ["ssh", host, "bash", heredoc], stdout=f, stderr=f,
                 )
@@ -232,6 +236,12 @@ EOF
         process = subprocess.Popen(cmd)
         processes.append(process)
 
+    elif Path(args.cmd[0]).name == "run.pl":
+        raise RuntimeError("run.pl doesn't support submitting to the other nodes.")
+
+    elif Path(args.cmd[0]).name == "ssh.pl":
+        raise RuntimeError("Use --host option instead of ssh.pl")
+
     # If Slurm
     elif Path(args.cmd[0]).name == "slurm.pl":
         logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu-per-node using srun")
@@ -268,6 +278,8 @@ EOF
         processes.append(process)
 
     else:
+        # This pattern can also works with Slurm.
+
         logging.info(f"{args.num_nodes}nodes and {args.ngpu}gpu-per-node using mpirun")
         cmd = (
             args.cmd
@@ -277,10 +289,15 @@ EOF
                 str(args.ngpu),
                 "--num_threads",
                 str(max(args.ngpu, 1)),
+                # Make sure scheduler setting, i.e. conf/queue.conf
+                # so that --num_nodes requires 1process-per-node
                 "--num_nodes",
                 str(args.num_nodes),
                 args.log,
                 "mpirun",
+                # -np option can be omitted with Torque/PBS
+                "-np",
+                str(args.num_nodes),
             ]
             # arguments for *_train.py
             + args.args
@@ -290,7 +307,7 @@ EOF
                 "--multiprocessing_distributed",
                 "true",
                 "--dist_launcher",
-                "slurm",
+                "mpi",
             ]
             + init_method
         )
