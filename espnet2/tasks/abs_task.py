@@ -102,6 +102,7 @@ class IteratorOption:
     distributed: bool
     seed: int
     allow_variable_data_keys: bool
+    ngpu: int
 
 
 class AbsTask(ABC):
@@ -1007,6 +1008,7 @@ class AbsTask(ABC):
                 shuffle=shuffle,
                 num_workers=iterator_option.num_workers,
                 collate_fn=collate_fn,
+                pin_memory=iterator_option.ngpu > 0,
             ),
             dataset,
             batches,
