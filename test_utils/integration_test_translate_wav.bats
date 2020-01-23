@@ -2,6 +2,10 @@
 # -*- mode:sh -*-
 
 setup() {
+    cd tools || exit 1
+    make moses.done
+    cd - || exit 1
+
     tmpdir=/tmp/espnet-test-st
 }
 
