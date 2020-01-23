@@ -40,6 +40,9 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
         # because step() is also invoked in __init__()
         super().__init__(optimizer, last_epoch)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(warmup_steps={self.warmup_steps})"
+
     def get_lr(self):
         step_num = self.last_epoch + 1
         return [
