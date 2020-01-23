@@ -19,7 +19,7 @@ text=${data_dir}/text
 # check file existence
 [ -e ${scp} ] && rm ${scp}
 [ -e ${utt2spk} ] && rm ${utt2spk}
-[ -e ${rawtext} ] && rm ${rawtext}
+[ -e ${text} ] && rm ${text}
 
 # make scp, utt2spk, and spk2utt
 find ${db} -name "*.wav" | sort | while read -r filename; do
