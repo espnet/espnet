@@ -187,7 +187,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
     feat_trans_dir=${decode_dir}/dump
 
-    # TODO(karita): use st_trans.py?
     ${decode_cmd} ${decode_dir}/log/decode.log \
         st_trans.py \
         --config ${decode_config} \
