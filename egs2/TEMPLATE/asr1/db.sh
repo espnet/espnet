@@ -27,8 +27,8 @@ else
     REVERB=
     CHIME3=
     CHIME4=
-    CSJDATATOP=/mnt/aoni01/db/CSJ/USB
-    CSJVER=usb  ## Set your CSJ format (dvd or usb).
+    CSJDATATOP=
+    CSJVER=dvd  ## Set your CSJ format (dvd or usb).
                 ## Usage    :
                 ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
                 ##            Neccesary directory is dvd3 - dvd17.
