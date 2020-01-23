@@ -24,7 +24,7 @@ do_delta=false
 cmvn=
 
 # decoding parameter
-recog_model=
+trans_model=
 decode_config=
 decode_dir=decode
 api=v2
@@ -41,7 +41,7 @@ Options:
     --decode_dir <directory_name>   # Name of directory to store decoding temporary data
     --models <model_name>           # Model name (e.g. tedlium2.transformer.v1)
     --cmvn <path>                   # Location of cmvn.ark
-    --recog_model <path>            # Location of E2E model
+    --trans_model <path>            # Location of E2E model
     --decode_config <path>          # Location of configuration file
     --api <api_version>             # API version (v1 or v2)
 
@@ -53,7 +53,7 @@ Example:
     $0 --models must_c.transformer.v1.en-fr example.wav
 
     # Decode using model file
-    $0 --cmvn cmvn.ark --recog_model model.acc.best --decode_config conf/decode.yaml example.wav
+    $0 --cmvn cmvn.ark --trans_model model.acc.best --decode_config conf/decode.yaml example.wav
 
     # Decode with GPU (require batchsize > 0 in configuration file)
     $0 --ngpu 1 example.wav
@@ -85,8 +85,8 @@ set -o pipefail
 
 # Check model name or model file is set
 if [ -z $models ]; then
-    if [[ -z $cmvn || -z $recog_model || -z $decode_config ]]; then
-        echo 'Error: models or set of cmvn, recog_model and decode_config are required.' >&2
+    if [[ -z $cmvn || -z $trans_model || -z $decode_config ]]; then
+        echo 'Error: models or set of cmvn, trans_model and decode_config are required.' >&2
         exit 1
     fi
 fi
@@ -116,9 +116,9 @@ if [ -z "${cmvn}" ]; then
     download_models
     cmvn=$(find ${download_dir}/${models} -name "cmvn.ark" | head -n 1)
 fi
-if [ -z "${recog_model}" ]; then
+if [ -z "${trans_model}" ]; then
     download_models
-    recog_model=$(find ${download_dir}/${models} -name "model*.best*" | head -n 1)
+    trans_model=$(find ${download_dir}/${models} -name "model*.best*" | head -n 1)
 fi
 if [ -z "${decode_config}" ]; then
     download_models
@@ -134,8 +134,8 @@ if [ ! -f "${cmvn}" ]; then
     echo "No such CMVN file: ${cmvn}"
     exit 1
 fi
-if [ ! -f "${recog_model}" ]; then
-    echo "No such E2E model: ${recog_model}"
+if [ ! -f "${trans_model}" ]; then
+    echo "No such E2E model: ${trans_model}"
     exit 1
 fi
 if [ ! -f "${decode_config}" ]; then
@@ -166,10 +166,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 1 --write_utt2num_frames true \
         ${decode_dir}/data ${decode_dir}/log ${decode_dir}/fbank
 
-    feat_recog_dir=${decode_dir}/dump; mkdir -p ${feat_recog_dir}
+    feat_trans_dir=${decode_dir}/dump; mkdir -p ${feat_trans_dir}
     dump.sh --cmd "$train_cmd" --nj 1 --do_delta ${do_delta} \
         ${decode_dir}/data/feats.scp ${cmvn} ${decode_dir}/log \
-        ${feat_recog_dir}
+        ${feat_trans_dir}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -177,27 +177,27 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     dict=${decode_dir}/dict
     echo "<unk> 1" > ${dict}
-    feat_recog_dir=${decode_dir}/dump
-    data2json.sh --feat ${feat_recog_dir}/feats.scp \
-        ${decode_dir}/data ${dict} > ${feat_recog_dir}/data.json
+    feat_trans_dir=${decode_dir}/dump
+    data2json.sh --feat ${feat_trans_dir}/feats.scp \
+        ${decode_dir}/data ${dict} > ${feat_trans_dir}/data.json
     rm -f ${dict}
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
-    feat_recog_dir=${decode_dir}/dump
+    feat_trans_dir=${decode_dir}/dump
 
     # TODO(karita): use st_trans.py?
     ${decode_cmd} ${decode_dir}/log/decode.log \
-        asr_recog.py \
+        st_trans.py \
         --config ${decode_config} \
         --ngpu ${ngpu} \
         --backend pytorch \
         --debugmode ${debugmode} \
         --verbose ${verbose} \
-        --recog-json ${feat_recog_dir}/data.json \
+        --trans-json ${feat_trans_dir}/data.json \
         --result-label ${decode_dir}/result.json \
-        --model ${recog_model} \
+        --model ${trans_model} \
         --api ${api}
 
     echo ""
