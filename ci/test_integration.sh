@@ -31,6 +31,11 @@ cd ${cwd} || exit 1
 
 # TODO(karita): test mt, st?
 
-echo "=== test_utils: integration test ==="
+echo "=== run integration tests at test_utils ==="
 
-bats-core/bin/bats test_utils/integration_test_*.bats
+PATH=$(pwd)/bats-core/bin:$PATH
+if ! [ -x "$(command -v bats)" ]; then
+    echo "=== install bats ==="
+    git clone https://github.com/bats-core/bats-core.git
+fi
+bats test_utils/integration_test_*.bats
