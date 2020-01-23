@@ -30,3 +30,8 @@ echo "==== TTS (backend=pytorch) ==="
 cd ${cwd} || exit 1
 
 # TODO(karita): test mt, st?
+
+echo "=== test_utils: integration test ==="
+
+cd "${cwd}"
+bats-core/bin/bats test_utils/integration_test_*.bats
