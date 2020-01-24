@@ -45,7 +45,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/csj_make_trans/csj_autorun.sh ${CSJDATATOP} data/csj-data ${CSJVER}
     local/csj_data_prep.sh data/csj-data
 
-    for x in eval1 eval2 eval3 ; do
+    for x in ${recog_set}; do
         local/csj_eval_data_prep.sh data/csj-data/eval ${x}
     done
 
