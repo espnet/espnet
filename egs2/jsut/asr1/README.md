@@ -9,14 +9,7 @@
   - Commit date: `Wed Jan 15 07:49:31 2020 +0900`
 
 ## asr_train_rnn_fbank_pitch_char
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|250|1.6|98.4|0.0|0.0|98.4|98.4|
-|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|250|1.6|98.4|0.0|0.0|98.4|98.4|
-
-### CER
+### CER (S.Err for WER)
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -24,14 +17,7 @@
 |decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|5928|79.1|16.8|4.1|2.2|23.1|98.4|
 
 ## asr_train_rnn_raw_char
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|250|1.6|98.4|0.0|0.0|98.4|98.4|
-|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|250|2.4|97.6|0.0|0.0|97.6|97.6|
-
-### CER
+### CER (S.Err for WER)
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
