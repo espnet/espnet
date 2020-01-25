@@ -61,7 +61,7 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
 else:
     from torch.multiprocessing.spawn import SpawnContext as ProcessContext
