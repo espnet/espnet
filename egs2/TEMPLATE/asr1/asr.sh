@@ -337,8 +337,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            mkdir -p ${data_feats}/${dset}
-            cp -r data/${dset}/* ${data_feats}/${dset}
+            <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
 
             pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
                 awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
