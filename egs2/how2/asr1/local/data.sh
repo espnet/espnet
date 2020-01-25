@@ -145,8 +145,8 @@ prepare_set () {
         fi
     done
 
-    cat ${dstdir}/${text} | cut -d' ' -f1 > ${workdir}/id.en
-    cat ${dstdir}/${text} | cut -d' ' -f2- > ${workdir}/text.en
+    cut -d' ' -f1 ${dstdir}/${text} > ${workdir}/id.en
+    cut -d' ' -f2- ${dstdir}/${text} > ${workdir}/text.en
 
     # normalize punctuation using moses decoder
     normalize-punctuation.perl -l en < ${workdir}/text.en > ${workdir}/text.en.norm
