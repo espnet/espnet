@@ -363,8 +363,8 @@ if [ ${skip_stage} -ne 3 ] && [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; the
         # shellcheck disable=SC2002
         cat ${srctexts} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
-        if [ -z ${bpe_nlsyms} ]; then
-            _opts_spm="--user_defined_symbols ${bpe_nlsyms}"
+        if [ ! -z ${bpe_nlsyms} ]; then
+            _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
         else
             _opts_spm=""
         fi
