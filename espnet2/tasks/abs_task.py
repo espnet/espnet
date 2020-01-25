@@ -31,6 +31,7 @@ from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.noam_lr import NoamLR
+from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -76,7 +77,9 @@ scheduler_classes = dict(
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    scheduler_classes["noamlr"] = NoamLR
+    scheduler_classes.update(
+        noamlr=NoamLR, warmuplr=WarmupLR,
+    )
 if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
     CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
     scheduler_classes.update(
@@ -99,6 +102,7 @@ class IteratorOption:
     distributed: bool
     seed: int
     allow_variable_data_keys: bool
+    ngpu: int
 
 
 class AbsTask(ABC):
@@ -1004,6 +1008,7 @@ class AbsTask(ABC):
                 shuffle=shuffle,
                 num_workers=iterator_option.num_workers,
                 collate_fn=collate_fn,
+                pin_memory=iterator_option.ngpu > 0,
             ),
             dataset,
             batches,
