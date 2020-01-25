@@ -6,7 +6,7 @@ set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
 
@@ -63,23 +63,21 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     if [ -d ${data_iwslt19} ] || [ -f ${data_how2_text}/iwslt2019.tar.gz ]; then
         log "$0: iwslt2019 directory or archive already exists in ${data_how2_text}. Skipping download."
     else
-        if ! which wget >/dev/null; then
+        if ! command -v wget >/dev/null; then
             log "$0: wget is not installed."
             exit 2
         fi
         log "$0: downloading test set from ${url_iwslt19}"
 
-        cd ${data_how2_text}
-        if ! wget --no-check-certificate ${url_iwslt19}; then
+        if ! wget --no-check-certificate ${url_iwslt19} -P ${data_how2_text}; then
             log "$0: error executing wget ${url_iwslt19}"
             exit 2
         fi
 
-        if ! tar -xvzf iwslt2019.tar.gz; then
+        if ! tar -xvzf ${data_how2_text}/iwslt2019.tar.gz -C ${data_how2_text}; then
             log "$0: error un-tarring archive ${data_how2_text}/iwslt19.tar.gz"
             exit 2
         fi
-        cd ${curr_path}
 
         log "$0: Successfully downloaded and un-tarred ${data_how2_text}/iwslt19.tar.gz"
     fi
