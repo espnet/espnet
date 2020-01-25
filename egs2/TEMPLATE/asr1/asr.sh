@@ -24,7 +24,6 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-skip_stage=-10   # Processes skip the specified stage
 stop_stage=10    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
@@ -98,7 +97,6 @@ Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eva
 Options:
     # General configuration
     --stage      # Processes starts from the specified stage (default="${stage}").
-    --skip_stage # Processes skip the specified stage (default="${skip_stage}").
     --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --nj         # The number of parallel jobs (default="${nj}").
@@ -279,14 +277,14 @@ lm_exp="${expdir}/lm_${lm_tag}"
 
 # ========================== Main stages start from here. ==========================
 
-if [ ${skip_stage} -ne 1 ] && [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
 
 
-if [ ${skip_stage} -ne 2 ] && [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
 
@@ -355,7 +353,7 @@ if [ ${skip_stage} -ne 2 ] && [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; the
 fi
 
 
-if [ ${skip_stage} -ne 3 ] && [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${token_type}" = bpe ]; then
         log "Stage 3: Generate token_list from ${srctexts} using BPE"
 
@@ -430,7 +428,7 @@ fi
 
 
 if "${use_lm}"; then
-  if [ ${skip_stage} -ne 4 ] && [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       log "Stage 4: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
       _opts=
@@ -492,7 +490,7 @@ if "${use_lm}"; then
   fi
 
 
-  if [ ${skip_stage} -ne 5 ] && [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+  if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
       log "Stage 5: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
       _opts=
@@ -524,7 +522,7 @@ if "${use_lm}"; then
   fi
 
 
-  if [ ${skip_stage} -ne 6 ] && [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+  if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
       log "Stage 6: Calc perplexity: ${lm_test_text}"
       _opts=
       # TODO(kamo): Parallelize?
@@ -547,7 +545,7 @@ else
 fi
 
 
-if [ ${skip_stage} -ne 7 ] && [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
     log "Stage 7: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
@@ -631,7 +629,7 @@ if [ ${skip_stage} -ne 7 ] && [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; the
 fi
 
 
-if [ ${skip_stage} -ne 8 ] && [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
     log "Stage 8: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
@@ -692,7 +690,7 @@ if [ ${skip_stage} -ne 8 ] && [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; the
 fi
 
 
-if [ ${skip_stage} -ne 9 ] && [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     log "Stage 9: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
@@ -765,7 +763,7 @@ if [ ${skip_stage} -ne 9 ] && [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; the
 fi
 
 
-if [ ${skip_stage} -ne 10 ] && [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     log "Stage 10: Scoring"
 
     for dset in "${dev_set}" ${eval_sets}; do
@@ -848,7 +846,7 @@ if [ ${skip_stage} -ne 10 ] && [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; 
 fi
 
 
-if [ ${skip_stage} -ne 11 ] && [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     log "[Option] Stage 11: Pack model: ${asr_exp}/packed.tgz"
 
     _opts=
