@@ -58,8 +58,6 @@ fi
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data download"
 
-    curr_path=${PWD}
-
     if [ -d ${data_iwslt19} ] || [ -f ${data_how2_text}/iwslt2019.tar.gz ]; then
         log "$0: iwslt2019 directory or archive already exists in ${data_how2_text}. Skipping download."
     else
