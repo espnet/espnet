@@ -321,11 +321,21 @@ class Trainer:
 
             loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
-                # Weighted averaging
-                loss = (loss * weight).sum() / weight.sum()
-                # Apply weighted averaging for stats.
-                # if distributed, this method can also apply all_reduce()
+                # Apply weighted averaging for loss and stats
+                loss = (loss * weight).sum()
+
+                # if distributed, this method can also apply
                 stats, weight = recursive_average(stats, weight, distributed)
+
+                # NOTE(kamo): We can't apply recursive_average() to loss because
+                # it also apply all_reduce(), but I don't know
+                # the behaviour of computation graph in that case.
+                # It seems to give no effects for gradients in my test.
+                loss /= weight
+            if distributed:
+                # NOTE(kamo): Multiply world_size because DistributedDataParallel
+                # automatically normalizes the gradient by world_size.
+                loss *= torch.distributed.get_world_size()
 
             reporter.register(stats, weight)
 
