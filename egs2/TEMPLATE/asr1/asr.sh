@@ -83,8 +83,7 @@ decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
 train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
-srctexts=      # Used for the training of BPE and the creation of a vocabulary list.
-lm_train_text= # Text file path of language model training set.
+srctexts=      # Used for the training of BPE and LM and the creation of a vocabulary list.
 lm_dev_text=   # Text file path of language model development set.
 lm_test_text=  # Text file path of language model evaluation set.
 nlsyms_txt=none # Non-linguistic symbol list if existing.
@@ -147,8 +146,7 @@ Options:
     --train_set     # Name of training set (required).
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
-    --srctexts      # Used for the training of BPE and the creation of a vocabulary list (required).
-    --lm_train_text # Text file path of language model training set (default="${lm_train_text}").
+    --srctexts      # Used for the training of BPE adn LM and the creation of a vocabulary list (required).
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
@@ -173,11 +171,6 @@ fi
 [ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
 [ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
 [ -z "${srctexts}" ] &&  { log "${help_message}"; log "Error: --srctexts is required" ; exit 2; };
-# Use the same text as ASR for lm training if not specified.
-[ -z "${lm_train_text}" ] && lm_train_text="data/${train_set}_fix/text"
-[ -z "${lm_dev_text}" ] && lm_dev_text="data/${dev_set}_fix/text"
-# Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="data/${eval_sets%% *}_fix/text"
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
@@ -191,6 +184,11 @@ else
     log "Error: not supported: --feats_type ${feats_type}"
     exit 2
 fi
+
+# Use the same text as ASR for lm training if not specified.
+[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${dev_set}_fix/text"
+# Use the text of the 1st evaldir if lm_test is not specified
+[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${eval_sets%% *}_fix/text"
 
 # Check tokenization type
 token_listdir=data/token_list
@@ -378,6 +376,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Changed to $(<${data_feats}/${dset}/text)utts to $(<${data_feats}/${dset}_fix/text)utts"
     done
 
+    # "srctexts" is used for trainin of BPE and LM
     # shellcheck disable=SC2002
     cat ${srctexts} | awk ' { if( $NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 fi
@@ -443,7 +442,7 @@ fi
 
 if "${use_lm}"; then
   if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-      log "Stage 5: LM collect stats: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+      log "Stage 5: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then
@@ -456,9 +455,9 @@ if "${use_lm}"; then
       _logdir="${lm_stats_dir}/logdir"
       mkdir -p "${_logdir}"
       # Get the minimum number among ${nj} and the number lines of input files
-      _nj=$(min "${nj}" "$(<${lm_train_text} wc -l)" "$(<${lm_dev_text} wc -l)")
+      _nj=$(min "${nj}" "$(<${data_feats}/srctexts wc -l)" "$(<${lm_dev_text} wc -l)")
 
-      key_file="${lm_train_text}"
+      key_file="${data_feats}/srctexts"
       split_scps=""
       for n in $(seq ${_nj}); do
           split_scps+=" ${_logdir}/train.${n}.scp"
@@ -486,7 +485,7 @@ if "${use_lm}"; then
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
-              --train_data_path_and_name_and_type "${lm_train_text},text,text" \
+              --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --batch_type const_no_sort \
               --train_shape_file "${_logdir}/train.JOB.scp" \
@@ -505,7 +504,7 @@ if "${use_lm}"; then
 
 
   if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-      log "Stage 6: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
+      log "Stage 6: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then
@@ -524,7 +523,7 @@ if "${use_lm}"; then
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
-              --train_data_path_and_name_and_type "${lm_train_text},text,text" \
+              --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --train_shape_file "${lm_stats_dir}/train/text_shape" \
               --valid_shape_file "${lm_stats_dir}/valid/text_shape" \
