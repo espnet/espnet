@@ -8,6 +8,7 @@ stage=1
 stop_stage=11
 ngpu=1
 nj=16
+
 decode_asr_model=valid.acc.best.pth
 
 train_set="train_reduced"
@@ -19,13 +20,14 @@ decode_config=conf/decode.yaml
 
 feats_type=extracted
 
-use_lm=false
+token_type=bpe
 
-token_type=char
-nbpe=1000
 nlsyms=data/nlsyms
-# for sentenpiece
+
+nbpe=1000
 bpe_nlsyms="[hes]"
+
+use_lm=false
 
 ./asr.sh                                        \
     --stage ${stage}                            \
