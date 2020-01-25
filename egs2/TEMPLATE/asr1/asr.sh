@@ -324,7 +324,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape"
 
             # 4. Write feats_dim
-            head -n 1 "${data_feats}/${dset}/feats.scp" | awk '{ print $2 }' \
+            head -n 1 "${data_feats}/${dset}/feats_shape" | awk '{ print $2 }' \
                 | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
 
             # 5. Write feats_type
@@ -344,10 +344,10 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Remove too short data: ${data_feats}/* -> ${data_feats}/*_fix"
+    log "Stage 3: Remove short data: ${data_feats}/* -> ${data_feats}/*_fix"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-        # Cipy data dir
+        # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/${dset}" "${data_feats}/${dset}_fix"
         cp "${data_feats}/${dset}/feats_type" "${data_feats}/${dset}_fix/feats_type"
 
@@ -360,25 +360,31 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             <"${data_feats}/${dset}/utt2num_samples" \
                 awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
                 >"${data_feats}/${dset}_fix/utt2num_samples"
+            <"${data_feats}/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}_fix/utt2num_samples"  \
+                >"${data_feats}/${dset}_fix/wav.scp"
         else
             min_length=10
 
+            cp "${data_feats}/${dset}/feats_dim" "${data_feats}/${dset}_fix/feats_dim"
             <"${data_feats}/${dset}/feats_shape" awk -F, ' { print $1 } ' \
                 | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
                 >"${data_feats}/${dset}_fix/feats_shape"
+            <"${data_feats}/${dset}/feats.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}_fix/feats_shape"  \
+                >"${data_feats}/${dset}_fix/feats.scp"
         fi
 
         # Remove empty text
         <"${data_feats}/${dset}/text" \
-            awk ' { if( $NF != 1 ) print $0 } ' >"${data_feats}/${dset}_fix/text"
+            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}_fix/text"
 
+        # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh "${data_feats}/${dset}_fix"
-        log "Changed to $(<${data_feats}/${dset}/text)utts to $(<${data_feats}/${dset}_fix/text)utts"
     done
 
-    # "srctexts" is used for trainin of BPE and LM
     # shellcheck disable=SC2002
-    cat ${srctexts} | awk ' { if( $NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
+    cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 fi
 
 
