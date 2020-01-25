@@ -91,7 +91,7 @@ match_files () {
     dstdir=${3}
 
     mv ${dstdir}/${file} ${dstdir}/${file}.old
-    
+
     awk 'NR==FNR{l[$0];next;} !(FNR in l)' ${workdir}/utterances.deleted \
         ${dstdir}/${file}.old > ${dstdir}/${file}
 
@@ -133,7 +133,7 @@ prepare_set () {
     [ ! -d ${srcdir} ] && log "$0: No such directory ${srcdir}" && exit 2
     [ -d ${dstdir} ] && rm -rf ${2}
     mkdir -p ${workdir}
-        
+
     check_files ${srcdir} ${text} && cp -r ${srcdir}/* ${dstdir}
 
     # re-write paths in feats.scp and wav.scp with user paths
@@ -153,7 +153,8 @@ prepare_set () {
 
     # normalize text and modify other needed files (utt2spk, spk2utt..) according to new text file
     # excluding punctiation normalization iwslt19 test set remains unchanged.
-    if [ ${dstdir} == "test_set_iwslt2019/test" ]; then
+    if [[ ${dstdir} == *"test_set_iwslt2019"* ]]; then
+        cp ${workdir}/id.en ${workdir}/id.en.norm
         cp ${workdir}/text.en.norm ${workdir}/text.en.norm2
     else
         local/normalize_how2_texts.sh ${workdir}/text.en.norm ${workdir}/id.en \
@@ -171,7 +172,7 @@ prepare_set () {
 
     paste -d' ' ${workdir}/id.en.norm ${workdir}/text.en.norm2.lc > ${dstdir}/text
     paste -d' ' ${workdir}/id.en.norm ${workdir}/text.en.norm2.uc > ${dstdir}/text.uc
-    
+
     check_files ${dstdir} text
 }
 
@@ -180,7 +181,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     feats_path=${data_how2_text}/features
     feats_pattern="ARK_PATH"
-    
+
     for set in train val dev5 test_set_iwslt2019; do
         srcdir=${data_how2_text}/data/${set}
         dstdir=data/${set}
