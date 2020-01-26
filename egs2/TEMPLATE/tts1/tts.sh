@@ -13,6 +13,16 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+min() {
+  local a b
+  a=$1
+  for b in "$@"; do
+      if [ "${b}" -le "${a}" ]; then
+          a="${b}"
+      fi
+  done
+  echo "${a}"
+}
 SECONDS=0
 
 # General configuration
@@ -55,11 +65,11 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=eval.loss.best.pth # Model path for decoding e.g.,
-                                # decode_model=train.loss.best.pth
-                                # decode_model=3epoch/model.pth
-                                # decode_model=eval.acc.best.pth
-                                # decode_model=eval.loss.ave.pth
+decode_model=valid.loss.best.pth # Model path for decoding e.g.,
+                                 # decode_model=train.loss.best.pth
+                                 # decode_model=3epoch/model.pth
+                                 # decode_model=valid.acc.best.pth
+                                 # decode_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -207,8 +217,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            _opts=
+            if [ -e data/"${dset}"/segments ]; then
+                _opts+="--segments data/${dset}/segments "
+            fi
+            # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                --audio-format "${audio_format}" --fs "${fs}" \
+                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                 "data/${dset}/wav.scp" "${data_feats}/${dset}"
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
@@ -223,7 +238,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
             # 2. Feature extract
             # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-            _nj=$((nj<$(<"${data_feats}/${dset}/utt2spk" wc -l)?nj:$(<"${data_feats}/${dset}/utt2spk" wc -l)))
+            _nj=$(min "${nj}" "$(<${data_feats}/${dset}/utt2spk wc -l)")
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fs ${fs} "
@@ -304,10 +319,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 1. Split the key file
     _logdir="${tts_stats_dir}/logdir"
     mkdir -p "${_logdir}"
+
+    # Get the minimum number among ${nj} and the number lines of input files
+    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_dev_dir}/${_scp} wc -l)")
+
     key_file="${_train_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -315,15 +333,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     key_file="${_dev_dir}/${_scp}"
     split_scps=""
-    _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${tts_exp}/train.log'"
+    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.tts_train \
@@ -333,14 +350,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type const \
-            --sort_in_batch none \
+            --batch_type const_no_sort \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --eval_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${train_args}
 
@@ -395,13 +411,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --eval_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${tts_stats_dir}/train/speech_shape" \
             --train_shape_file "${tts_stats_dir}/train/text_shape" \
-            --eval_shape_file "${tts_stats_dir}/eval/speech_shape" \
-            --eval_shape_file "${tts_stats_dir}/eval/text_shape" \
-            --resume_epoch latest \
+            --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
+            --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
+            --resume true \
             --max_length 150 \
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
@@ -450,8 +466,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # 1. Split the key file
         key_file=${_data}/text
         split_scps=""
-        _nj=$((decode_nj<$(<${key_file} wc -l)?decode_nj:$(<${key_file} wc -l)))
-        for n in $(seq ${_nj}); do
+        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+        for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
         # shellcheck disable=SC2086

@@ -21,6 +21,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LIBRISPEECH=
     TIMIT=
     VOXFORGE=
+    VIVOS=
+    YESNO=
 
 else
     AISHELL=
@@ -45,5 +47,7 @@ else
     LIBRISPEECH=
     TIMIT=
     VOXFORGE=downloads
+    VIVOS=downloads
+    YESNO=downloads
 
 fi

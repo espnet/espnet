@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import collections.abc
-import logging
-import warnings
 from io import StringIO
+import logging
 from pathlib import Path
 from typing import Dict
 from typing import Union
+import warnings
 
 import numpy as np
 import soundfile
@@ -15,7 +15,7 @@ from typeguard import check_return_type
 
 
 class DatadirWriter:
-    """
+    """Writer class to create kaldi like data directory.
 
     Examples:
         >>> with DatadirWriter("output") as writer:
@@ -86,7 +86,7 @@ class DatadirWriter:
 
 
 def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
-    """
+    """Read a text file having 2 column as dict object.
 
     Examples:
         wav.scp:
@@ -159,7 +159,7 @@ def load_num_sequence_text(
 
 
 class SoundScpReader(collections.abc.Mapping):
-    """
+    """Reader class for 'wav.scp'.
 
     Examples:
         key1 /some/path/a.wav
@@ -212,7 +212,7 @@ class SoundScpReader(collections.abc.Mapping):
 
 
 class SoundScpWriter:
-    """
+    """Writer class for 'wav.scp'
 
     Examples:
         key1 /some/path/a.wav
@@ -277,7 +277,7 @@ class SoundScpWriter:
 
 
 class NpyScpWriter:
-    """
+    """Writer class for a scp file of numpy file.
 
     Examples:
         key1 /some/path/a.npy
@@ -326,7 +326,7 @@ class NpyScpWriter:
 
 
 class NpyScpReader(collections.abc.Mapping):
-    """
+    """Reader class for a scp file of numpy file.
 
     Examples:
         key1 /some/path/a.npy
