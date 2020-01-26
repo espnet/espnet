@@ -1,7 +1,7 @@
-from __future__ import annotations
-
 import argparse
 import dataclasses
+from dataclasses import is_dataclass
+from distutils.version import LooseVersion
 import logging
 from pathlib import Path
 from typing import Dict
@@ -14,22 +14,34 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn
-import torch.optim
 from torch.nn.parallel import data_parallel
+import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
-from typeguard import check_type
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
+from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
+from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.recursive_op import recursive_average
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.epoch_iter_factory import AbsIterFactory
+from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
+from espnet2.utils.build_dataclass import build_dataclass
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    from torch.utils.tensorboard import SummaryWriter
+else:
+    from tensorboardX import SummaryWriter
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class TrainerOptions:
     ngpu: int
     train_dtype: str
@@ -38,28 +50,31 @@ class TrainerOptions:
     grad_clip: float
     log_interval: Optional[int]
     no_forward_run: bool
-
-
-def build_dataclass(dataclass, args: argparse.Namespace):
-    """Helper function to build dataclass from 'args'."""
-    kwargs = {}
-    for field in dataclasses.fields(dataclass):
-        if not hasattr(args, field.name):
-            raise RuntimeError(
-                f"args doesn't have {field.name}. You need to set it to ArgumentsParser"
-            )
-        check_type(field.name, getattr(args, field.name), field.type)
-        kwargs[field.name] = getattr(args, field.name)
-    return dataclass(**kwargs)
+    distributed: bool
 
 
 class Trainer:
     """Trainer having a optimizer.
 
-    Trainer have a role to define the procedure for an epoch.
-    >>> for epoch in range(max_epoch):
-    ...     Trainer.train_one_epoch(...)
-    ...     Trainer.eval_one_epoch(...)
+    If you'd like to use multiple optimizers, then inherit this class
+    and override the methods if necessary - at least "train_one_epoch()"
+
+    >>> class TwoOptimizerTrainer(Trainer):
+    ...     num_optimizers: int = 1
+    ...
+    ...     @classmethod
+    ...     def add_arguments(cls, parser):
+    ...         ...
+    ...
+    ...     @classmethod
+    ...     def train_one_epoch(cls, model, optimizers, ...):
+    ...         loss1 = model.model1(...)
+    ...         loss1.backward()
+    ...         optimizers[0].step()
+    ...
+    ...         loss2 = model.model2(...)
+    ...         loss2.backward()
+    ...         optimizers[1].step()
 
     """
 
@@ -81,9 +96,186 @@ class Trainer:
         pass
 
     @classmethod
-    def train_one_epoch(
+    def run(
         cls,
         model: AbsE2E,
+        optimizers: Sequence[torch.optim.Optimizer],
+        schedulers: Sequence[Optional[AbsScheduler]],
+        train_iter_factory: AbsIterFactory,
+        valid_iter_factory: AbsIterFactory,
+        plot_attention_iter_factory: AbsIterFactory,
+        reporter: Reporter,
+        output_dir: Path,
+        max_epoch: int,
+        seed: int,
+        patience: Optional[int],
+        keep_n_best_checkpoints: int,
+        early_stopping_criterion: Sequence[str],
+        best_model_criterion: Sequence[Sequence[str]],
+        val_scheduler_criterion: Sequence[str],
+        trainer_options,
+        distributed_option: DistributedOption,
+    ) -> None:
+        """Perform training. This method performs the main process of training."""
+        assert check_argument_types()
+        # NOTE(kamo): Don't check the type more strictly as far trainer_options
+        assert is_dataclass(trainer_options), type(trainer_options)
+
+        start_epoch = reporter.get_epoch() + 1
+        if start_epoch == max_epoch + 1:
+            logging.warning(
+                f"The training has already reached at max_epoch: {start_epoch}"
+            )
+
+        if distributed_option.distributed:
+            # Use torch DDP instead of apex DDP
+            # https://github.com/NVIDIA/apex/issues/494
+            ddp_model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=list(range(trainer_options.ngpu))
+            )
+        else:
+            ddp_model = model
+
+        summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+        for iepoch in range(start_epoch, max_epoch + 1):
+            logging.info(f"{iepoch}epoch started")
+            set_all_random_seed(seed + iepoch)
+
+            reporter.set_epoch(iepoch)
+            # 1. Train and validation for one-epoch
+            with reporter.observe("train") as sub_reporter:
+                all_steps_are_invalid = cls.train_one_epoch(
+                    model=ddp_model,
+                    optimizers=optimizers,
+                    schedulers=schedulers,
+                    iterator=train_iter_factory.build_iter(iepoch),
+                    reporter=sub_reporter,
+                    options=trainer_options,
+                )
+
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # Eval and att_plot don't support distributed (It can)
+                with reporter.observe("valid") as sub_reporter:
+                    cls.validate_one_epoch(
+                        model=model,
+                        iterator=valid_iter_factory.build_iter(iepoch),
+                        reporter=sub_reporter,
+                        options=trainer_options,
+                    )
+
+                if plot_attention_iter_factory is not None:
+                    with reporter.observe("att_plot") as sub_reporter:
+                        cls.plot_attention(
+                            model=model,
+                            output_dir=output_dir / "att_ws",
+                            summary_writer=summary_writer,
+                            iterator=plot_attention_iter_factory.build_iter(iepoch),
+                            reporter=sub_reporter,
+                            options=trainer_options,
+                        )
+
+            # 2. LR Scheduler step
+            for scheduler in schedulers:
+                if isinstance(scheduler, AbsValEpochStepScheduler):
+                    _phase, _criterion = val_scheduler_criterion
+                    if not reporter.has(_phase, _criterion):
+                        raise RuntimeError(
+                            f"{_phase}.{_criterion} is not found in stats: "
+                            f"{reporter.get_all_keys()}"
+                        )
+                    val = reporter.get_value(_phase, _criterion)
+                    scheduler.step(val)
+                elif isinstance(scheduler, AbsEpochStepScheduler):
+                    scheduler.step()
+
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # 3. Report the results
+                reporter.logging()
+                reporter.matplotlib_plot(output_dir / "images")
+                reporter.tensorboard_add_scalar(summary_writer)
+
+                # 4. Save/Update the checkpoint
+                torch.save(
+                    {
+                        "model": model.state_dict(),
+                        "reporter": reporter.state_dict(),
+                        "optimizers": [o.state_dict() for o in optimizers],
+                        "schedulers": [
+                            s.state_dict() if s is not None else None
+                            for s in schedulers
+                        ],
+                    },
+                    output_dir / "checkpoint.pth",
+                )
+
+                # 5. Save the model and update the link to the best model
+                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
+                _improved = []
+                for _phase, k, _mode in best_model_criterion:
+                    # e.g. _phase, k, _mode = "train", "loss", "min"
+                    if reporter.has(_phase, k):
+                        best_epoch = reporter.get_best_epoch(_phase, k, _mode)
+                        # Creates sym links if it's the best result
+                        if best_epoch == iepoch:
+                            p = output_dir / f"{_phase}.{k}.best.pth"
+                            if p.is_symlink() or p.exists():
+                                p.unlink()
+                            p.symlink_to(f"{iepoch}epoch.pth")
+                            _improved.append(f"{_phase}.{k}")
+                if len(_improved) == 0:
+                    logging.info(f"There are no improvements in this epoch")
+                else:
+                    logging.info(
+                        f"The best model has been updated: " + ", ".join(_improved)
+                    )
+
+                # 6. Remove the model files excluding n-best epoch
+                _removed = []
+                # Get the union set of the n-best among multiple criterion
+                nbests = set().union(
+                    *[
+                        set(reporter.sort_epochs(ph, k, m)[:keep_n_best_checkpoints])
+                        for ph, k, m in best_model_criterion
+                        if reporter.has(ph, k)
+                    ]
+                )
+                for e in range(1, iepoch + 1):
+                    p = output_dir / f"{e}epoch.pth"
+                    if p.exists() and e not in nbests:
+                        p.unlink()
+                        _removed.append(str(p))
+                if len(_removed) != 0:
+                    logging.info(
+                        f"The model files were removed: " + ", ".join(_removed)
+                    )
+
+            # 7. If any updating haven't happen, stops the training
+            if all_steps_are_invalid:
+                logging.warning(
+                    f"The gradients at all steps are invalid in this epoch. "
+                    f"Something seems wrong. This training was stopped at {iepoch}epoch"
+                )
+                break
+
+            # 8. Check early stopping
+            if patience is not None:
+                _phase, _criterion, _mode = early_stopping_criterion
+                best_epoch = reporter.get_best_epoch(_phase, _criterion, _mode)
+                if iepoch - best_epoch > patience:
+                    logging.info(
+                        f"[Early stopping] {_phase}.{_criterion} has not been "
+                        f"improved {iepoch - best_epoch} epochs continuously. "
+                        f"The training was stopped at {iepoch}epoch"
+                    )
+                    break
+
+        else:
+            logging.info(f"The training was finished at {max_epoch} epochs ")
+
+    @classmethod
+    def train_one_epoch(
+        cls,
+        model: torch.nn.Module,
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
@@ -119,7 +311,7 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            if ngpu <= 1:
+            if ngpu <= 1 or options.distributed:
                 # NOTE(kamo): data_parallel also should work with ngpu=1,
                 # but for debuggability it's better to keep this block.
                 loss, stats, weight = model(**batch)
@@ -127,17 +319,16 @@ class Trainer:
                 loss, stats, weight = data_parallel(
                     model, (), range(ngpu), module_kwargs=batch
                 )
-                # Weighted averaging of loss from torch-data-parallel
-                loss = (loss * weight.to(loss.dtype)).sum(0) / weight.sum()
-                stats = {
-                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
-                    if v is not None
-                    else None
-                    for k, v in stats.items()
-                }
-                weight = weight.sum()
+                # Weighted averaging
+                loss = (loss * weight).sum() / weight.sum()
+            if ngpu > 1 or options.distributed:
+                # Apply weighted averaging for stats.
+                # if distributed, this method can also apply all_reduce()
+                stats, weight = recursive_average(stats, weight, options.distributed)
+
             reporter.register(stats, weight)
 
+            loss /= accum_grad
             if train_dtype in ("O0", "O1", "O2", "O3"):
                 from apex import amp
 
@@ -146,19 +337,22 @@ class Trainer:
             else:
                 loss.backward()
 
-            # gradient noise injection
-            if grad_noise:
-                add_gradient_noise(
-                    model,
-                    reporter.get_total_count(),
-                    duration=100,
-                    eta=1.0,
-                    scale_factor=0.55,
+            if iiter % accum_grad == 0:
+                # gradient noise injection
+                if grad_noise:
+                    add_gradient_noise(
+                        model,
+                        reporter.get_total_count(),
+                        duration=100,
+                        eta=1.0,
+                        scale_factor=0.55,
+                    )
+
+                # compute the gradient norm to check if it is normal or not
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), grad_clip
                 )
 
-            # compute the gradient norm to check if it is normal or not
-            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-            if iiter % accum_grad == 0:
                 if not np.isfinite(grad_norm):
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
@@ -177,6 +371,7 @@ class Trainer:
                         for i, pg in enumerate(optimizer.param_groups)
                         if "lr" in pg
                     },
+                    # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
 
@@ -186,9 +381,9 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
-    def eval_one_epoch(
+    def validate_one_epoch(
         cls,
-        model: AbsE2E,
+        model: torch.nn.Module,
         iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -225,8 +420,9 @@ class Trainer:
     @torch.no_grad()
     def plot_attention(
         cls,
-        model: AbsE2E,
-        output_dir: Path,
+        model: torch.nn.Module,
+        output_dir: Optional[Path],
+        summary_writer: Optional[SummaryWriter],
         iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -242,7 +438,6 @@ class Trainer:
         from matplotlib.ticker import MaxNLocator
 
         model.eval()
-        output_dir = Path(output_dir)
         for ids, batch in iterator:
             assert isinstance(batch, dict), type(batch)
             assert len(next(iter(batch.values()))) == len(ids), (
@@ -284,9 +479,15 @@ class Trainer:
                         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
                         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-                    p = output_dir / id_ / (k + ".png")
-                    p.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(p)
+                    if output_dir is not None:
+                        p = output_dir / id_ / (k + ".png")
+                        p.parent.mkdir(parents=True, exist_ok=True)
+                        fig.savefig(p)
+
+                    if summary_writer is not None:
+                        summary_writer.add_figure(
+                            f"{k}_{id_}", fig, reporter.get_epoch()
+                        )
 
                     # Dummy register() stimulates to increment the counter
                     reporter.register({})
