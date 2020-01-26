@@ -5,18 +5,29 @@ set -e
 set -u
 set -o pipefail
 
-# data preparation
-trans_type=char     # Transcript type: char or phn
+stage=1
+stop_stage=11
+ngpu=1
+nj=16
 
 train_set=train
 dev_set=dev
 eval_sets="test "
 
-./asr.sh \
-    --nbpe 5000 \
-    --token_type char \
-    --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
-    --srctexts "data/${train_set}/text" "$@" \
-    --local_data_opts "${trans_type}"
+asr_config=conf/train.yaml
+decode_config=conf/decode.yaml
+
+./asr.sh                                        \
+    --stage ${stage}                            \
+    --stop_stage ${stop_stage}                  \
+    --ngpu ${ngpu}                              \
+    --nj ${nj}                                  \
+    --feats_type fbank_pitch                    \
+    --token_type char                           \
+    --use_lm false                              \
+    --asr_config "${asr_config}"                \
+    --decode_config "${decode_config}"          \
+    --train_set "${train_set}"                  \
+    --dev_set "${dev_set}"                      \
+    --eval_sets "${eval_sets}"                  \
+    --srctexts "data/${train_set}/text" "$@"
