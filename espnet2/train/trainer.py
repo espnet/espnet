@@ -324,13 +324,10 @@ class Trainer:
                 # Apply weighted averaging for loss and stats
                 loss = (loss * weight).sum()
 
-                # if distributed, this method can also apply
+                # if distributed, this method can also apply all_reduce()
                 stats, weight = recursive_average(stats, weight, distributed)
 
-                # NOTE(kamo): We can't apply recursive_average() to loss because
-                # it also apply all_reduce(), but I don't know
-                # the behaviour of computation graph in that case.
-                # It seems to give no effects for gradients in my test.
+                # Now weight is summation over all workers
                 loss /= weight
             if distributed:
                 # NOTE(kamo): Multiply world_size because DistributedDataParallel
