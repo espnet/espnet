@@ -339,6 +339,7 @@ class Trainer:
 
             reporter.register(stats, weight)
 
+            loss /= accum_grad
             if train_dtype in ("O0", "O1", "O2", "O3"):
                 from apex import amp
 
@@ -347,19 +348,22 @@ class Trainer:
             else:
                 loss.backward()
 
-            # gradient noise injection
-            if grad_noise:
-                add_gradient_noise(
-                    model,
-                    reporter.get_total_count(),
-                    duration=100,
-                    eta=1.0,
-                    scale_factor=0.55,
+            if iiter % accum_grad == 0:
+                # gradient noise injection
+                if grad_noise:
+                    add_gradient_noise(
+                        model,
+                        reporter.get_total_count(),
+                        duration=100,
+                        eta=1.0,
+                        scale_factor=0.55,
+                    )
+
+                # compute the gradient norm to check if it is normal or not
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), grad_clip
                 )
 
-            # compute the gradient norm to check if it is normal or not
-            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-            if iiter % accum_grad == 0:
                 if not np.isfinite(grad_norm):
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
