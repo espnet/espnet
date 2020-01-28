@@ -186,9 +186,9 @@ else
 fi
 
 # Use the same text as ASR for lm training if not specified.
-[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${dev_set}_fix/text"
+[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${dev_set}/text"
 # Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${eval_sets%% *}_fix/text"
+[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${eval_sets%% *}/text"
 
 # Check tokenization type
 token_listdir=data/token_list
@@ -279,7 +279,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
-        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
+        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/org/"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -290,7 +290,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # i.e. the input file format and rate is same as the output.
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -303,37 +303,37 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_feats}/${dset}"
+                "data/${dset}/wav.scp" "${data_feats}/org/${dset}"
 
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "[Require Kaldi] stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
             # 2. Feature extract
-            _nj=$(min "${nj}" "$(<"${data_feats}/${dset}/utt2spk" wc -l)")
-            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            _nj=$(min "${nj}" "$(<"${data_feats}/org/${dset}/utt2spk" wc -l)")
+            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/org/${dset}"
+            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
 
             # 3. Derive the the frame length and feature dimension
             scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape"
+                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
 
             # 4. Write feats_dim
-            head -n 1 "${data_feats}/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
+                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
 
             # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank ]; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
         log "${feats_type} is not supported yet."
         exit 1
 
@@ -345,12 +345,12 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Remove short data: ${data_feats}/* -> ${data_feats}/*_fix"
+    log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
         # Copy data dir
-        utils/copy_data_dir.sh "${data_feats}/${dset}" "${data_feats}/${dset}_fix"
-        cp "${data_feats}/${dset}/feats_type" "${data_feats}/${dset}_fix/feats_type"
+        utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -358,30 +358,30 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             min_length=2560
 
             # utt2num_samples is created by format_wav_scp.sh
-            <"${data_feats}/${dset}/utt2num_samples" \
+            <"${data_feats}/org/${dset}/utt2num_samples" \
                 awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}_fix/utt2num_samples"
-            <"${data_feats}/${dset}/wav.scp" \
-                utils/filter_scp.pl "${data_feats}/${dset}_fix/utt2num_samples"  \
-                >"${data_feats}/${dset}_fix/wav.scp"
+                >"${data_feats}/${dset}/utt2num_samples"
+            <"${data_feats}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
         else
             min_length=10
 
-            cp "${data_feats}/${dset}/feats_dim" "${data_feats}/${dset}_fix/feats_dim"
-            <"${data_feats}/${dset}/feats_shape" awk -F, ' { print $1 } ' \
+            cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
+            <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
                 | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}_fix/feats_shape"
-            <"${data_feats}/${dset}/feats.scp" \
-                utils/filter_scp.pl "${data_feats}/${dset}_fix/feats_shape"  \
-                >"${data_feats}/${dset}_fix/feats.scp"
+                >"${data_feats}/${dset}/feats_shape"
+            <"${data_feats}/org/${dset}/feats.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
+                >"${data_feats}/${dset}/feats.scp"
         fi
 
         # Remove empty text
-        <"${data_feats}/${dset}/text" \
-            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}_fix/text"
+        <"${data_feats}/org/${dset}/text" \
+            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
         # fix_data_dir.sh leaves only utts which exist in all files
-        utils/fix_data_dir.sh "${data_feats}/${dset}_fix"
+        utils/fix_data_dir.sh "${data_feats}/${dset}"
     done
 
     # shellcheck disable=SC2002
@@ -566,8 +566,8 @@ fi
 
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    _asr_train_dir="${data_feats}/${train_set}_fix"
-    _asr_dev_dir="${data_feats}/${dev_set}_fix"
+    _asr_train_dir="${data_feats}/${train_set}"
+    _asr_dev_dir="${data_feats}/${dev_set}"
     log "Stage 8: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
@@ -650,8 +650,8 @@ fi
 
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    _asr_train_dir="${data_feats}/${train_set}_fix"
-    _asr_dev_dir="${data_feats}/${dev_set}_fix"
+    _asr_train_dir="${data_feats}/${train_set}"
+    _asr_dev_dir="${data_feats}/${dev_set}"
     log "Stage 9: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
@@ -736,7 +736,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
-        _data="${data_feats}/${dset}_fix"
+        _data="${data_feats}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -787,7 +787,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     log "Stage 11: Scoring"
 
     for dset in "${dev_set}" ${eval_sets}; do
-        _data="${data_feats}/${dset}_fix"
+        _data="${data_feats}/${dset}"
         _dir="${asr_exp}/decode_${dset}${decode_tag}"
 
         for _type in cer wer ter; do

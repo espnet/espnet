@@ -216,7 +216,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ "${feats_type}" = raw ]; then
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
@@ -224,21 +224,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_feats}/${dset}"
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+                "data/${dset}/wav.scp" "${data_feats}/org/${dset}"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
             # 2. Feature extract
             # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-            _nj=$(min "${nj}" "$(<${data_feats}/${dset}/utt2spk wc -l)")
+            _nj=$(min "${nj}" "$(<${data_feats}/org/${dset}/utt2spk wc -l)")
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fs ${fs} "
@@ -253,30 +253,31 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --n_shift "${n_shift}" \
                 --win_length "${win_length}" \
                 ${_opts} \
-                "${data_feats}/${dset}"
+                "${data_feats}/org/${dset}"
+            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
 
             # 3. Derive the the frame length and feature dimension
             scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}/${dset}/feats.scp" "${data_feats}/${dset}/feats_shape"
+                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
 
             # 4. Write feats_dim
-            head -n 1 "${data_feats}/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
+                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
 
             # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
     fi
 fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Remove short data: ${data_feats}/* -> ${data_feats}/*_fix"
+    log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
         # Copy data dir
-        utils/copy_data_dir.sh "${data_feats}/${dset}" "${data_feats}/${dset}_fix"
-        cp "${data_feats}/${dset}/feats_type" "${data_feats}/${dset}_fix/feats_type"
+        utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -284,32 +285,30 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             min_length=2560
 
             # utt2num_samples is created by format_wav_scp.sh
-            <"${data_feats}/${dset}/utt2num_samples" \
+            <"${data_feats}/org/${dset}/utt2num_samples" \
                 awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}_fix/utt2num_samples"
-            <"${data_feats}/${dset}/utt2spk" \
-                ./utils/filter_scp.pl \
-                    "${data_feats}/${dset}_fix/utt2num_samples"  \
-                >"${data_feats}/${dset}_fix/utt2spk"
+                >"${data_feats}/${dset}/utt2num_samples"
+            <"${data_feats}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
         else
             min_length=10
 
-            cp "${data_feats}/${dset}/feats_dim" "${data_feats}/${dset}_fix/feats_dim"
-            <"${data_feats}/${dset}/feats_shape" awk -F, ' { print $1 } ' \
+            cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
+            <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
                 | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}_fix/feats_shape"
-            <"${data_feats}/${dset}/utt2spk" \
-                ./utils/filter_scp.pl \
-                    "${data_feats}/${dset}_fix/feats_shape"  \
-                >"${data_feats}/${dset}_fix/utt2spk"
+                >"${data_feats}/${dset}/feats_shape"
+            <"${data_feats}/org/${dset}/feats.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
+                >"${data_feats}/${dset}/feats.scp"
         fi
 
         # Remove empty text
-        <"${data_feats}/${dset}/text" \
-            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}_fix/text"
+        <"${data_feats}/org/${dset}/text" \
+            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
         # fix_data_dir.sh leaves only utts which exist in all files
-        utils/fix_data_dir.sh "${data_feats}/${dset}_fix"
+        utils/fix_data_dir.sh "${data_feats}/${dset}"
     done
 
     # shellcheck disable=SC2002
@@ -340,8 +339,8 @@ fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    _train_dir="${data_feats}/${train_set}_fix"
-    _dev_dir="${data_feats}/${dev_set}_fix"
+    _train_dir="${data_feats}/${train_set}"
+    _dev_dir="${data_feats}/${dev_set}"
     log "Stage 5: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
@@ -421,8 +420,8 @@ fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    _train_dir="${data_feats}/${train_set}_fix"
-    _dev_dir="${data_feats}/${dev_set}_fix"
+    _train_dir="${data_feats}/${train_set}"
+    _dev_dir="${data_feats}/${dev_set}"
     log "Stage 5: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
@@ -492,7 +491,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    _feats_type="$(<${data_feats}/${train_set}_fix/feats_type)"
+    _feats_type="$(<${data_feats}/${train_set}/feats_type)"
     if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
         _opts+="--vocoder_conf n_fft=${n_fft} "
         _opts+="--vocoder_conf n_shift=${n_shift} "
@@ -506,7 +505,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
-        _data="${data_feats}/${dset}_fix"
+        _data="${data_feats}/${dset}"
         _dir="${tts_exp}/${decode_tag}_${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
