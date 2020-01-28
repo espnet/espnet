@@ -14,7 +14,6 @@ from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
