@@ -19,19 +19,19 @@
   - dict file: `data/lang_1char/train_si284_units.txt
 - Results
 
-### CER
+  ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_dev93_decode_lm_word65000|503|48634|97.4|1.1|1.5|0.6|3.2|62.0|
-|decode_test_eval92_decode_lm_word65000|330|31739|99.4|0.3|0.3|0.2|0.7|27.0|
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_lm_word65000|503|48634|97.4|1.1|1.5|0.6|3.2|62.0|
+  |decode_test_eval92_decode_lm_word65000|330|31739|99.4|0.3|0.3|0.2|0.7|27.0|
 
-### WER
+  ### WER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_dev93_decode_lm_word65000|503|8234|93.7|5.3|0.9|1.1|7.4|55.5|
-|decode_test_eval92_decode_lm_word65000|330|5353|98.5|1.3|0.1|0.3|1.8|19.1|
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_lm_word65000|503|8234|93.7|5.3|0.9|1.1|7.4|55.5|
+  |decode_test_eval92_decode_lm_word65000|330|5353|98.5|1.3|0.1|0.3|1.8|19.1|
 
 # RNN (PyTorch 1.3 + builtin CTC)
 - Environments
@@ -54,19 +54,19 @@
   - dict file: `data/lang_1char/train_si284_units.txt`
 - Results
 
-### CER
+  ### CER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_dev93_decode_rnn_lm_word65000|503|48634|96.7|1.6|1.7|0.7|4.0|66.8|
-|decode_test_eval92_decode_rnn_lm_word65000|330|31739|99.1|0.4|0.4|0.2|1.1|30.0|
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|48634|96.7|1.6|1.7|0.7|4.0|66.8|
+  |decode_test_eval92_decode_rnn_lm_word65000|330|31739|99.1|0.4|0.4|0.2|1.1|30.0|
 
-### WER
+  ### WER
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_dev93_decode_rnn_lm_word65000|503|8234|92.4|6.6|1.0|1.2|8.8|61.2|
-|decode_test_eval92_decode_rnn_lm_word65000|330|5353|97.8|1.9|0.3|0.3|2.5|22.7|
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|8234|92.4|6.6|1.0|1.2|8.8|61.2|
+  |decode_test_eval92_decode_rnn_lm_word65000|330|5353|97.8|1.9|0.3|0.3|2.5|22.7|
 
 
 # Transformer result
