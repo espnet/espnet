@@ -400,8 +400,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | TEDLIUM2 test          | N/A     | 8.1     | same as above                                                                                                                                                         |
 | TEDLIUM3 dev           | N/A     | 9.7     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm)                   |
 | TEDLIUM3 test          | N/A     | 8.0     | same as above                                                                                                                                                         |
-| WSJ dev93              | 3.2     | 7.0     | N/A                                                                                                                                                                   |
-| WSJ eval92             | 2.1     | 4.7     | N/A                                                                                                                                                                   |
+| WSJ dev93              |   3.2   |   7.4   | [link](https://github.com/espnet/espnet/blob/master/egs/wsj/asr1/RESULTS.md#transformer-pytorch-13--builtin-ctc)                                                      |
+| WSJ eval92             |   0.7   |   1.8   | same as above                                                                                                                                                         |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
