@@ -40,8 +40,8 @@ if [[ "$remove_archive" == "True" ]]; then
 fi
 
 if [ -z "${AISHELL}" ]; then
-    log "Error: \$AISHELL is not set in db.sh."
-    exit 2
+  log "Error: \$AISHELL is not set in db.sh."
+  exit 2
 fi
 
 
