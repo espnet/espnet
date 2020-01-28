@@ -22,4 +22,4 @@ lm_config=conf/lm.yaml
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_set}" \
-    --srctexts "data/train_nodev/text" "$*"
+    --srctexts "data/train_nodev/text" "$@"
