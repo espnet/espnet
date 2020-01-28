@@ -14,7 +14,7 @@ train_set=train
 dev_set=dev
 eval_sets="test "
 
-asr_config=conf/train_asr_rnn..yaml
+asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode_asr_rnn.yaml
 
 lm_config=conf/lm.yaml

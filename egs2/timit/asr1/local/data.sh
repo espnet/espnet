@@ -38,6 +38,7 @@ if [ -z "${TIMIT}" ]; then
     exit 2
 fi
 
+cur_dir=`pwd`
 dir=`pwd`/data/local/data
 lmdir=`pwd`/data/local/nist_lm
 mkdir -p $dir $lmdir
@@ -45,10 +46,10 @@ local=`pwd`/local
 utils=`pwd`/utils
 conf=`pwd`/conf
 
-if [ -z "$trans_type" ]; then
+if [ -n "$trans_type" ]; then
     if [[ "$trans_type" != "char" && "$trans_type" != "phn" ]]; then
-        log "Transcript type must be one of [phn, char]"
-        log $2
+        log "Transcript type \"$trans_type\" must be one of [phn, char]"
+        exit 2
     fi
 else
     trans_type=phn
@@ -186,6 +187,8 @@ for x in train dev test; do
 [FAKE]     =>  %HESITATION     / [ ] __ [ ] ;; hesitation token
     ' > ${x}.glm
 done
+
+cd ${cur_dir}
 
 # Copyright 2013  (Author: Daniel Povey)
 # Apache 2.0

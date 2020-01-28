@@ -38,7 +38,7 @@ optim_conf:
     weight_decay: 0
 patience: 0
 val_scheduler_criterion:
-- eval
+- valid
 - loss
 scheduler: reducelronplateau
 scheduler_conf:

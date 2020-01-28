@@ -9,7 +9,12 @@ encoder_conf:
     hidden_size: 320
     output_size: 320
     dropout: 0.0
-    subsample: "1_2_2_1_1"  # skip every n frame from input to nth layers
+    subsample:                  # skip every n frame from input to nth layers
+        - 1
+        - 2
+        - 2
+        - 1
+        - 1
 # decoder related
 decoder: rnn
 decoder_conf:
@@ -25,7 +30,7 @@ decoder_conf:
 # hybrid CTC/attention
 e2e_conf:
     ctc_weight: 0.5
-    lsm_weight: 0.0     # label smoothing option
+    lsm_weight: 0.0             # label smoothing option
 
 # minibatch related
 batch_size: 30
@@ -41,7 +46,7 @@ optim_conf:
     weight_decay: 0
 patience: 3
 val_scheduler_criterion:
-- eval
+- valid
 - loss
 scheduler: reducelronplateau
 scheduler_conf:

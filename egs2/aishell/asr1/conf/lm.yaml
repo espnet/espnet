@@ -9,5 +9,5 @@ grad_clip: 5.0
 batch_size: 64  # batch size in LM training
 max_epoch: 20   # if the data size is large, we can reduce this
 patience: 3
-opt: sgd
-maxlen: 100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+optim: sgd
+max_length: 100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
