@@ -60,7 +60,7 @@ class RNNEncoder(AbsEncoder):
                 constant_values=1,
             )
 
-        rnn_type = "b" if bidirectional else "" + rnn_type
+        rnn_type = ("b" if bidirectional else "") + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(
                 [
