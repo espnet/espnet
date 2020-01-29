@@ -7,28 +7,29 @@
 . ./path.sh || exit 1
 
 data=$1
-tgt_lang=$2
-dumpdir=$3
-train_set=$4
-train_dev=$5
-trans_set=$6
+src_lang=$2
+tgt_lang=$3
+dumpdir=$4
+train_set=$5
+train_dev=$6
+trans_set=$7
 
 # train
 echo "tokenize training data"
-normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/train.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${train_set}/train.tkn.en
-normalize-punctuation.perl -l ${tgt_lang} < ${data}/en-${tgt_lang}/train.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.${tgt_lang}
+normalize-punctuation.perl -l ${src_lang} < ${data}/${src_lang}-${tgt_lang}/train.raw.${src_lang} | tokenizer.perl -a -l ${src_lang} > ${dumpdir}/${train_set}/train.tkn.${src_lang}
+normalize-punctuation.perl -l ${tgt_lang} < ${data}/${src_lang}-${tgt_lang}/train.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.${tgt_lang}
 
 # validation
 echo "tokenize validation data"
-normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/tst2012.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${train_dev}/tst2012.tkn.en
-normalize-punctuation.perl -l ${tgt_lang}  < ${data}/en-${tgt_lang}/tst2012.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.${tgt_lang}
+normalize-punctuation.perl -l ${src_lang} < ${data}/${src_lang}-${tgt_lang}/tst2012.raw.${src_lang} | tokenizer.perl -a -l ${src_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.${src_lang}
+normalize-punctuation.perl -l ${tgt_lang}  < ${data}/${src_lang}-${tgt_lang}/tst2012.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.${tgt_lang}
 
 
 # test
 echo "tokenize test data"
 for ts in $(echo ${trans_set} | tr '_' ' '); do
     name=`echo $ts | cut -d'.' -f1`
-    normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/${name}.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${ts}/${name}.tkn.en
-    normalize-punctuation.perl -l ${tgt_lang} < ${data}/en-${tgt_lang}/${name}.raw.${tgt_lang} | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.${tgt_lang}
+    normalize-punctuation.perl -l ${src_lang} < ${data}/${src_lang}-${tgt_lang}/${name}.raw.${src_lang} | tokenizer.perl -a -l ${src_lang} > ${dumpdir}/${ts}/${name}.tkn.${src_lang}
+    normalize-punctuation.perl -l ${tgt_lang} < ${data}/${src_lang}-${tgt_lang}/${name}.raw.${tgt_lang} | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.${tgt_lang}
 done
 

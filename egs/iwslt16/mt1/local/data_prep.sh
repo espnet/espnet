@@ -7,21 +7,31 @@
 . ./path.sh || exit 1
 
 data=$1
-lang=$2
-data_dir=${data}/en-${lang}
+src_lang=$2
+tgt_lang=$3
+data_dir=${data}/${src_lang}-${tgt_lang}
 
 # extract training data
-cat ${data_dir}/train.tags.en-${lang}.${lang} | grep -v -E "^<" > ${data_dir}/train.raw.${lang}
-cat ${data_dir}/train.tags.en-${lang}.en | grep -v -E "^<" > ${data_dir}/train.raw.en
+if test "$src_lang" = "en"; then
+  cat ${data_dir}/train.tags.${src_lang}-${tgt_lang}.${tgt_lang} | grep -v -E "^<" > ${data_dir}/train.raw.${tgt_lang}
+  cat ${data_dir}/train.tags.${src_lang}-${tgt_lang}.${src_lang} | grep -v -E "^<" > ${data_dir}/train.raw.${src_lang}
+else
+  cat ${data_dir}/train.tags.${tgt_lang}-${src_lang}.${tgt_lang} | grep -v -E "^<" > ${data_dir}/train.raw.${tgt_lang}
+  cat ${data_dir}/train.tags.${tgt_lang}-${src_lang}.${src_lang} | grep -v -E "^<" > ${data_dir}/train.raw.${src_lang}
+fi
+
 
 
 # extract tst2010..4
 for NAME in tst2010 tst2011 tst2012 tst2013 tst2014
 do
-  for LANG in en $lang
+  for LANG in $src_lang $tgt_lang
   do
-  cat ${data_dir}/IWSLT16.TED.${NAME}.en-${lang}.${LANG}.xml | grep -E "^<seg" | grep -E "seg>$" | perl -ne '@col=split(/ /); print("@col[2..$#col-1]\n");' > \
-  ${data_dir}/${NAME}.raw.${LANG}
+  if test "$src_lang" = "en"; then
+    cat ${data_dir}/IWSLT16.TED.${NAME}.${src_lang}-${tgt_lang}.${LANG}.xml | grep -E "^<seg" | grep -E "seg>$" | perl -ne '@col=split(/ /); print("@col[2..$#col-1]\n");' > ${data_dir}/${NAME}.raw.${LANG}
+  else
+    cat ${data_dir}/IWSLT16.TED.${NAME}.${tgt_lang}-${src_lang}.${LANG}.xml | grep -E "^<seg" | grep -E "seg>$" | perl -ne '@col=split(/ /); print("@col[2..$#col-1]\n");' > ${data_dir}/${NAME}.raw.${LANG}
+  fi
   done
 done
 

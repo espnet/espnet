@@ -5,9 +5,10 @@
 
 
 decode_dir=$1
-tgt_lang=$2
-ttask=$3
-feat_trans_dir=$4
+src_lang=$2
+tgt_lang=$3
+ttask=$4
+feat_trans_dir=$5
 
 dataset_name=`echo $ttask | cut -d'.' -f1`
 
