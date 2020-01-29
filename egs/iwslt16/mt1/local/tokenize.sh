@@ -14,20 +14,21 @@ train_dev=$5
 trans_set=$6
 
 # train
-tokenizer.perl -a -l en < ${data}/en-${tgt_lang}/train.raw.en > ${dumpdir}/${train_set}/train.tkn.en
-tokenizer.perl -a -l ${tgt_lang} < ${data}/en-${tgt_lang}/train.raw.${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.${tgt_lang}
+echo "tokenize training data"
+normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/train.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${train_set}/train.tkn.en
+normalize-punctuation.perl -l ${tgt_lang} < ${data}/en-${tgt_lang}/train.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.${tgt_lang}
 
 # validation
-tokenizer.perl -a -l en < ${data}/en-${tgt_lang}/tst2012.raw.en > ${dumpdir}/${train_dev}/tst2012.tkn.en
-tokenizer.perl -a -l ${tgt_lang} < ${data}/en-${tgt_lang}/tst2012.raw.${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.${tgt_lang}
+echo "tokenize validation data"
+normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/tst2012.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${train_dev}/tst2012.tkn.en
+normalize-punctuation.perl -l ${tgt_lang}  < ${data}/en-${tgt_lang}/tst2012.raw.${tgt_lang}  | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.${tgt_lang}
 
 
 # test
+echo "tokenize test data"
 for ts in $(echo ${trans_set} | tr '_' ' '); do
     name=`echo $ts | cut -d'.' -f1`
-    tokenizer.perl -a -l en < ${data}/en-${tgt_lang}/${name}.raw.en > ${dumpdir}/${ts}/${name}.tkn.en
-    tokenizer.perl -a -l ${tgt_lang} < ${data}/en-${tgt_lang}/${name}.raw.${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.${tgt_lang}
+    normalize-punctuation.perl -l en < ${data}/en-${tgt_lang}/${name}.raw.en | tokenizer.perl -a -l en > ${dumpdir}/${ts}/${name}.tkn.en
+    normalize-punctuation.perl -l ${tgt_lang} < ${data}/en-${tgt_lang}/${name}.raw.${tgt_lang} | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.${tgt_lang}
 done
-
-
 
