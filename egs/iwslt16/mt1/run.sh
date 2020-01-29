@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Copyright 2019 Shun Kiyono
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# based on the wonderful work done by Hirofumi Inaguma
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -50,7 +51,7 @@ tag="" # tag for managing experiments.
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-set -x
+#set -x
 set -e
 set -u
 set -o pipefail
@@ -178,19 +179,19 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-#        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-#            mt_trans.py \
-#            --config ${decode_config} \
-#            --ngpu ${ngpu} \
-#            --backend ${backend} \
-#            --batchsize 0 \
-#            --trans-json ${feat_trans_dir}/split${nj}utt/data.JOB.json \
-#            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-#            --model ${expdir}/results/${trans_model}
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            mt_trans.py \
+            --config ${decode_config} \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --batchsize 0 \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${trans_model}
 
+        # decoding complete --> evaluation
         local/compute_bleu.sh ${expdir}/${decode_dir} ${tgt_lang} $ttask $feat_trans_dir
-#        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-#            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+
     ) &
     pids+=($!) # store background pids
     done
