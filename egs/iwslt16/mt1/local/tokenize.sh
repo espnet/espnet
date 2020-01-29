@@ -3,8 +3,6 @@
 # Copyright 2019 Shun Kiyono
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-set -x
-set -e
 
 . ./path.sh || exit 1
 
