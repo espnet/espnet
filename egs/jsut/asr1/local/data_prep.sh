@@ -5,7 +5,7 @@
 
 db=$1
 data_dir=$2
-pitch=$3
+fs=$3
 
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
@@ -24,7 +24,7 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 find ${db} -name "*.wav" | sort | while read -r filename; do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
-    echo "${id} sox ${filename} -t wav -r $pitch - |" >> ${scp}
+    echo "${id} sox ${filename} -t wav -r $fs - |" >> ${scp}
     echo "${id} JS" >> ${utt2spk}
 done
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
