@@ -1,6 +1,25 @@
-# BPE 16k
-### Transformer baseline (en->de)
-|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
-|---|---|---|---|---|---|---|---|---|---|
-|exp/train.en-de.de_tc_tc_pytorch_train_bpe8000/decode_tst-COMMON.de_decode|25.24|59.0|31.2|18.8|11.7|1.000|1.000|51449|51459|
-|exp/train.en-de.de_tc_tc_pytorch_train_bpe8000/decode_tst-HE.de_decode|23.48|55.1|28.8|17.5|10.9|1.000|1.030|12699|12327|
+# IWSLT 2016 Machine Translation
+## Preprocesssing
+- Moses `tokenizer`
+- Moses `truecaser`
+- Moses `clean-corpus-n`
+- BPE splitting using [subword-nmt](https://github.com/rsennrich/subword-nmt)
+    - number of merge operations: 16000
+
+## Model Configuration
+- Model: Transformer
+    - number of layers: 6
+    - d_model (adim): 256
+    - d_ff (eunits/dunits): 2048
+    - Gradient Clipping: 5
+    - Dropout Rate: 0.1
+    - Warmup steps: 8000
+
+## Result
+
+|           |         | En-->De |         |         | De-->en |         |
+|-----------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
+| Framework | tst2012 | tst2013 | tst2014 | tst2012 | tst2013 | tst2014 |
+|  Fairseq  |   27.73 |   29.45 |   25.14 |   32.25 |   34.23 |   29.49 |
+|   ESPNet  |   26.92 |   28.88 |   24.70 |   32.19 |   33.46 |   29.22 |
+
