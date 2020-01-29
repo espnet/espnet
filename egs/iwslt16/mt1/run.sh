@@ -38,9 +38,7 @@ iwslt16=iwslt16_data
 src_lang=en
 tgt_lang=de
 # (kiyono) currently de only
-# TODO: number of BPE merge operations as variable
 
-# bpemode (unigram or bpe)
 nbpe=16000
 bpemode=bpe
 
@@ -86,16 +84,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     # 1. moses tokenization
-    local/tokenize.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
-
-    # 2. moses true-casing
-    local/truecasing.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
-
-    # 3. clean corpus
-    local/clean_corpus.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set}
+#    local/tokenize.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+#
+#    # 2. moses true-casing
+#    local/truecasing.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+#
+#    # 3. clean corpus
+#    local/clean_corpus.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set}
 
     # 4. bpe training & splitting
-    local/train_and_apply_bpe.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/train_and_apply_bpe.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')" ${nbpe}
 fi
 
 src_dict=${dumpdir}/vocab/vocab.${src_lang}
@@ -109,11 +107,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p ${dumpdir}/vocab
 
     echo "Make vocabulary files"
-    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe16000 > ${src_dict}
-    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe16000 > ${tgt_dict}
+    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe${nbpe} > ${src_dict}
+    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe${nbpe} > ${tgt_dict}
 
     echo "Make json files"
-    local/generate_json.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/generate_json.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')" ${nbpe}
 fi
 
 # NOTE: skip stage 3: LM Preparation
