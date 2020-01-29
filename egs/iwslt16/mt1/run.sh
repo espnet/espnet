@@ -29,14 +29,6 @@ n_average=5                  # the number of NMT models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
                              # if false, the last `n_average` NMT models will be averaged.
 
-# preprocessing related
-src_case=tc
-tgt_case=tc
-# tc: truecase
-# lc: lowercase
-# lc.rm: lowercase with punctuation removal
-# (kiyono) only tc is supported
-
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
 iwslt16=iwslt16_data
@@ -45,9 +37,7 @@ iwslt16=iwslt16_data
 tgt_lang=de
 # (kiyono) currently de only
 # TODO: support en as target language
-# if you want to train the multilingual model, segment languages with _ as follows:
-# e.g., tgt_lang="de_es_fr"
-# if you want to use all languages, set tgt_lang="all"
+# TODO: number of BPE merge operations as variable
 
 # bpemode (unigram or bpe)
 nbpe=16000
@@ -128,9 +118,9 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
 else
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -174,7 +164,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
-    nj=4
+    nj=12
 
     pids=() # initialize pids
     for ttask in ${trans_set}; do
@@ -183,23 +173,24 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${ttask}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_trans.py \
-            --config ${decode_config} \
-            --ngpu ${ngpu} \
-            --backend ${backend} \
-            --batchsize 0 \
-            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${trans_model}
+#        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+#            mt_trans.py \
+#            --config ${decode_config} \
+#            --ngpu ${ngpu} \
+#            --backend ${backend} \
+#            --batchsize 0 \
+#            --trans-json ${feat_trans_dir}/split${nj}utt/data.JOB.json \
+#            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+#            --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+        local/compute_bleu.sh ${expdir}/${decode_dir} ${tgt_lang} $ttask $feat_trans_dir
+#        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+#            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
     ) &
     pids+=($!) # store background pids
     done
