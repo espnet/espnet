@@ -5,6 +5,8 @@ set -e
 set -u
 set -o pipefail
 
+fs=48000
+
 train_set=tr_no_dev
 dev_set=dev
 eval_set=eval1
@@ -22,4 +24,5 @@ lm_config=conf/lm.yaml
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_set}" \
+    --fs "${fs}" \
     --srctexts "data/${train_set}/text" "$@"
