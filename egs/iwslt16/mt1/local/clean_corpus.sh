@@ -6,9 +6,10 @@
 . ./path.sh || exit 1
 
 data=$1
-tgt_lang=$2
-dumpdir=$3
-train_set=$4
+src_lang=$2
+tgt_lang=$3
+dumpdir=$4
+train_set=$5
 
 
-clean-corpus-n.perl ${dumpdir}/${train_set}/train.tkn.tc en ${tgt_lang} ${dumpdir}/${train_set}/train.tkn.tc.clean 1 50
+clean-corpus-n.perl ${dumpdir}/${train_set}/train.tkn.tc ${src_lang} ${tgt_lang} ${dumpdir}/${train_set}/train.tkn.tc.clean 1 50

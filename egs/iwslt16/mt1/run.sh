@@ -35,9 +35,9 @@ use_valbest_average=true     # if true, the validation `n_average`-best NMT mode
 iwslt16=iwslt16_data
 
 # target language related
+src_lang=en
 tgt_lang=de
 # (kiyono) currently de only
-# TODO: support en as target language
 # TODO: number of BPE merge operations as variable
 
 # bpemode (unigram or bpe)
@@ -51,14 +51,14 @@ tag="" # tag for managing experiments.
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-#set -x
+set -x
 set -e
 set -u
 set -o pipefail
 
-train_set=train.en-${tgt_lang}.${tgt_lang}
-train_dev=tst2012.en-${tgt_lang}.${tgt_lang}
-trans_set="tst2013.en-${tgt_lang}.${tgt_lang} tst2014.en-${tgt_lang}.${tgt_lang}"
+train_set=train.${src_lang}-${tgt_lang}.${tgt_lang}
+train_dev=tst2012.${src_lang}-${tgt_lang}.${tgt_lang}
+trans_set="tst2013.${src_lang}-${tgt_lang}.${tgt_lang} tst2014.${src_lang}-${tgt_lang}.${tgt_lang}"
 
 mkdir -p ${dumpdir}/$train_set
 mkdir -p ${dumpdir}/$train_dev
@@ -68,7 +68,7 @@ done
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download_and_untar.sh ${iwslt16} ${tgt_lang}
+    local/download_and_untar.sh ${iwslt16} ${src_lang} ${tgt_lang}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -76,7 +76,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${iwslt16} ${lang}
+        local/data_prep.sh ${iwslt16} ${src_lang} ${tgt_lang}
     done
 fi
 
@@ -86,19 +86,19 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     # 1. moses tokenization
-    local/tokenize.sh ${iwslt16} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/tokenize.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
 
     # 2. moses true-casing
-    local/truecasing.sh ${iwslt16} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/truecasing.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
 
     # 3. clean corpus
-    local/clean_corpus.sh ${iwslt16} ${tgt_lang} ${dumpdir} ${train_set}
+    local/clean_corpus.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set}
 
     # 4. bpe training & splitting
-    local/train_and_apply_bpe.sh ${iwslt16} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/train_and_apply_bpe.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
 fi
 
-src_dict=${dumpdir}/vocab/vocab.en
+src_dict=${dumpdir}/vocab/vocab.${src_lang}
 tgt_dict=${dumpdir}/vocab/vocab.${tgt_lang}
 echo "source dictionary: ${src_dict}"
 echo "target dictionary: ${tgt_dict}"
@@ -109,11 +109,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p ${dumpdir}/vocab
 
     echo "Make vocabulary files"
-    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.en_bpe16000 > ${src_dict}
+    local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe16000 > ${src_dict}
     local/generate_vocab.py --input ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe16000 > ${tgt_dict}
 
     echo "Make json files"
-    local/generate_json.sh ${iwslt16} ${lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+    local/generate_json.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
 fi
 
 # NOTE: skip stage 3: LM Preparation
@@ -190,7 +190,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         # decoding complete --> evaluation
-        local/compute_bleu.sh ${expdir}/${decode_dir} ${tgt_lang} $ttask $feat_trans_dir
+        local/compute_bleu.sh ${expdir}/${decode_dir} ${src_lang} ${tgt_lang} $ttask $feat_trans_dir
 
     ) &
     pids+=($!) # store background pids

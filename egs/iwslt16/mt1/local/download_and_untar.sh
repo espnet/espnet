@@ -3,7 +3,6 @@
 # Copyright 2019 Shun Kiyono
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 . ./path.sh || exit 1
 
 remove_archive=false
@@ -50,6 +49,7 @@ if ! tar -zxvf ${data}/en-${lang}.tgz -C ${data}; then
 fi
 
 touch ${data}/.complete_en_${lang}
+ln -s ${data}/${lang}-en ${data}/en-${lang}
 echo "$0: Successfully downloaded and un-tarred ${data}/en-${lang}.tgz"
 
 if $remove_archive; then

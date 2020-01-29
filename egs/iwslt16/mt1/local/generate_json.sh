@@ -6,23 +6,24 @@
 . ./path.sh || exit 1
 
 data=$1
-tgt_lang=$2
-dumpdir=$3
-train_set=$4
-train_dev=$5
-trans_set=$6
+src_lang=$2
+tgt_lang=$3
+dumpdir=$4
+train_set=$5
+train_dev=$6
+trans_set=$7
 
-SRC_VOCAB=${dumpdir}/vocab/vocab.en
+SRC_VOCAB=${dumpdir}/vocab/vocab.${src_lang}
 TRG_VOCAB=${dumpdir}/vocab/vocab.${tgt_lang}
 
 # train
-local/generate_json.py  -s ${dumpdir}/${train_set}/train.tkn.tc.clean.en_bpe16000 -t ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${train_set}/data.json
+local/generate_json.py  -s ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe16000 -t ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${train_set}/data.json
 
 # valid
-local/generate_json.py  -s ${dumpdir}/${train_dev}/tst2012.tkn.tc.en_bpe16000 -t ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${train_dev}/data.json
+local/generate_json.py  -s ${dumpdir}/${train_dev}/tst2012.tkn.tc.${src_lang}_bpe16000 -t ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${train_dev}/data.json
 
 # test
 for ts in $(echo ${trans_set} | tr '_' ' '); do
     name=`echo $ts | cut -d'.' -f1`
-    local/generate_json.py -s ${dumpdir}/${ts}/${name}.tkn.tc.en_bpe16000 -t ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${ts}/data.json
+    local/generate_json.py -s ${dumpdir}/${ts}/${name}.tkn.tc.${src_lang}_bpe16000 -t ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang}_bpe16000 -sv ${SRC_VOCAB} -tv ${TRG_VOCAB} --dest ${dumpdir}/${ts}/data.json
 done
