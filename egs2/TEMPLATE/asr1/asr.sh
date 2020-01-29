@@ -24,7 +24,7 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-stop_stage=10    # Processes is stopped at the specified stage.
+stop_stage=11    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
