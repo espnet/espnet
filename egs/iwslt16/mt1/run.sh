@@ -66,7 +66,7 @@ done
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download_and_untar.sh ${iwslt16} ${src_lang} ${tgt_lang}
+    local/download_and_untar.sh ${iwslt16} ${tgt_lang}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -74,7 +74,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${iwslt16} ${src_lang} ${tgt_lang}
+        local/data_prep.sh ${iwslt16} de
     done
 fi
 
@@ -84,13 +84,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     # 1. moses tokenization
-#    local/tokenize.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
-#
-#    # 2. moses true-casing
-#    local/truecasing.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
-#
-#    # 3. clean corpus
-#    local/clean_corpus.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set}
+    local/tokenize.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+
+    # 2. moses true-casing
+    local/truecasing.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')"
+
+    # 3. clean corpus
+    local/clean_corpus.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set}
 
     # 4. bpe training & splitting
     local/train_and_apply_bpe.sh ${iwslt16} ${src_lang} ${tgt_lang} ${dumpdir} ${train_set} ${train_dev} "$(echo ${trans_set} | tr ' ' '_')" ${nbpe}
