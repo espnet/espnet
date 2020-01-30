@@ -1,8 +1,8 @@
 import argparse
-import logging
-import sys
 from collections import Counter
+import logging
 from pathlib import Path
+import sys
 from typing import List
 from typing import Optional
 

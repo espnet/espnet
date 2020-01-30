@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-import argparse
 import logging
-import random
-import sys
 from pathlib import Path
+import sys
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -12,18 +10,15 @@ from typing import Union
 import configargparse
 import numpy as np
 import torch
-import yaml
 from torch.nn.parallel import data_parallel
-from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPnetDataset
 from espnet2.torch_utils.device_funcs import to_device
-from espnet2.utils.fileio import DatadirWriter
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -57,42 +52,25 @@ def calc_perplexity(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build LM
-    with Path(train_config).open("r") as f:
-        train_args = yaml.safe_load(f)
-    train_args = argparse.Namespace(**train_args)
-    model = LMTask.build_model(train_args)
-    model.load_state_dict(torch.load(model_file, map_location=device))
+    model, train_args = LMTask.build_model_from_file(train_config, model_file, device)
     # Wrape model to make model.nll() data-parallel
     wrapped_model = ForwardAdaptor(model, "nll")
-    wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    wrapped_model.to(dtype=getattr(torch, dtype)).eval()
+    logging.info(f"Model:\n{model}")
 
     # 3. Build data-iterator
-    dataset = ESPnetDataset(
+    loader, _, _ = LMTask.build_non_sorted_iterator(
         data_path_and_name_and_type,
-        float_dtype=dtype,
-        preprocess=LMTask.build_preprocess_fn(train_args, False),
-    )
-    LMTask.check_task_requirements(dataset, allow_variable_data_keys, False)
-    if key_file is None:
-        key_file, _, _ = data_path_and_name_and_type[0]
-
-    batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, key_file=key_file, shuffle=False
-    )
-
-    logging.info(f"Model:\n{model}")
-    logging.info(f"Batch sampler: {batch_sampler}")
-    logging.info(f"dataset:\n{dataset}")
-    loader = DataLoader(
-        dataset=dataset,
-        batch_sampler=batch_sampler,
-        collate_fn=LMTask.build_collate_fn(train_args),
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
         num_workers=num_workers,
+        preprocess_fn=LMTask.build_preprocess_fn(train_args, False),
+        collate_fn=LMTask.build_collate_fn(train_args),
+        allow_variable_data_keys=allow_variable_data_keys,
     )
 
     # 4. Start for-loop
