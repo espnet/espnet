@@ -50,7 +50,7 @@ class VGGRNNEncoder(AbsEncoder):
 
         # Subsample is not used for VGGRNN
         subsample = np.ones(num_layers + 1, dtype=np.int)
-        rnn_type = "b" if bidirectional else "" + rnn_type
+        rnn_type = ("b" if bidirectional else "") + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(
                 [
@@ -100,8 +100,5 @@ class VGGRNNEncoder(AbsEncoder):
             xs_pad, ilens, states = module(xs_pad, ilens, prev_state=prev_state)
             current_states.append(states)
 
-        if self.use_projection:
-            xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
-        else:
-            xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
+        xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
         return xs_pad, ilens, current_states
