@@ -60,7 +60,7 @@ trans_set="tst2013.${src_lang}-${tgt_lang}.${tgt_lang} tst2014.${src_lang}-${tgt
 
 mkdir -p ${dumpdir}/$train_set
 mkdir -p ${dumpdir}/$train_dev
-for dir in $(echo ${trans_set}); do
+for dir in ${trans_set}; do
     mkdir -p ${dumpdir}/${dir}
 done
 
@@ -73,9 +73,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${iwslt16} de
-    done
+    local/data_prep.sh ${iwslt16} de
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
