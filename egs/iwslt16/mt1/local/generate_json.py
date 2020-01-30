@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ESPNetのMT実装が要求するフォーマットでtrain/devデータを作る．
+convert given text data to json format required by ESPNet
 """
 import argparse
 import json
@@ -14,12 +14,12 @@ logger = getLogger(__name__)
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='my script')
-    parser.add_argument('--src', '-s', type=os.path.abspath, required=True, help='')
-    parser.add_argument('--trg', '-t', type=os.path.abspath, required=True, help='')
-    parser.add_argument('--src-vocab', '-sv', type=os.path.abspath, required=True, help='')
-    parser.add_argument('--trg-vocab', '-tv', type=os.path.abspath, required=True, help='')
-    parser.add_argument('--dest', '-d', type=os.path.abspath, default='data.json', help='')
+    parser = argparse.ArgumentParser(description='generate json file')
+    parser.add_argument('--src', '-s', type=os.path.abspath, required=True, help='path to source language data')
+    parser.add_argument('--trg', '-t', type=os.path.abspath, required=True, help='path to target language data')
+    parser.add_argument('--src-vocab', '-sv', type=os.path.abspath, required=True, help='path to source vocabulary')
+    parser.add_argument('--trg-vocab', '-tv', type=os.path.abspath, required=True, help='path to target vocabulary')
+    parser.add_argument('--dest', '-d', type=os.path.abspath, default='data.json', help='path to output json file')
     args = parser.parse_args()
     return args
 
