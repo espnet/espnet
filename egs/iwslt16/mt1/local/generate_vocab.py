@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-0はCTCの空白トークンが使うらしいので1始まりで．
-1はUNKが使います．
-フォーマットは token + whitespace + index
+0: empty token for CTC algorithm
+1: special UNK token
+format: token + whitespace + index
 """
 import argparse
 import fileinput
