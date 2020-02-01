@@ -71,11 +71,9 @@ cat ${text} > ${tmpdir}/output/text.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
-for intype in output; do
-    for x in "${tmpdir}/${intype}"/*.scp; do
-        k=$(basename ${x} .scp)
-        < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
-    done
+for x in "${tmpdir}/output"/*.scp; do
+    k=$(basename ${x} .scp)
+    < ${x} scp2json.py --key ${k} > ${tmpdir}/output/${k}.json
 done
 
 # add to json

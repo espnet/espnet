@@ -200,11 +200,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # update json (add source references)
-    update_json.sh --text data/$(echo ${train_set} | cut -f -1 -d ".").mb/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_tr_dir}/data.${tgt_case}.json data/$(echo ${train_set} | cut -f -1 -d ".").mb ${dict}
-    update_json.sh --text data/$(echo ${train_dev} | cut -f -1 -d ".").mb/text.${src_case} --nlsyms ${nlsyms} \
-        ${feat_dt_dir}/data.${tgt_case}.json data/$(echo ${train_dev} | cut -f -1 -d ".").mb ${dict}
-
+    update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_tr_dir}/data.${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".mb ${dict}
+    update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} \
+        ${feat_dt_dir}/data.${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".mb ${dict}
 fi
 
 # NOTE: skip stage 3: LM Preparation
