@@ -318,6 +318,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # 2. Feature extract
             _nj=$(min "${nj}" "$(<"${data_feats}/${dset}/utt2spk" wc -l)")
             steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/${dset}"
+            utils/fix_data_dir.sh "${data_feats}/${dset}"
 
             # 3. Derive the feature dimension
             pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
