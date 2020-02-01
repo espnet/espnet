@@ -84,7 +84,7 @@ def tokenize(
         fout = sys.stdout
     else:
         p = Path(output)
-        p.parent.mkdir(parents=True, exists_ok=True)
+        p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w")
 
     tokenizer = build_tokenizer(
