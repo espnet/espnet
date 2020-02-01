@@ -6,17 +6,10 @@
 echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
-nj=1
-cmd=run.pl
 nlsyms=""
-lang=""
-feat="" # feat.scp
 oov="<unk>"
 bpecode=""
 verbose=0
-filetype=""
-preprocess_conf=""
-out="" # If omitted, write in stdout
 
 text=""
 multilingual=false
@@ -28,13 +21,7 @@ if [ $# != 3 ]; then
 Usage: $0 <json> <data-dir> <dict>
 e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
-  --nj <nj>                                        # number of parallel jobs
-  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
-  --feat <feat-scp>                                # feat.scp
   --oov <oov-word>                                 # Default: <unk>
-  --out <outputfile>                               # If omitted, write in stdout
-  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
-  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
   --verbose <num>                                  # Default: 0
 EOF
     exit 1;
@@ -78,7 +65,7 @@ vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 
-cp ${text} ${tmpdir}/output/text.scp
+cat ${text} > ${tmpdir}/output/text.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
