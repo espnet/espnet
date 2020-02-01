@@ -36,15 +36,15 @@ echo "==== [ESPnet2] ASR ==="
 feats_types="raw fbank_pitch"
 token_types="bpe char"
 for t in ${feats_types}; do
-    ./run.sh --stage 2 --stop-stage 2 --feats-type "${t}"
+    ./run.sh --stage 2 --stop-stage 3 --feats-type "${t}"
 done
 for t in ${token_types}; do
-    ./run.sh --stage 3 --stop-stage 3 --token-type "${t}"
+    ./run.sh --stage 4 --stop-stage 4 --token-type "${t}"
 done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 4 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 5 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
