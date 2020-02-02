@@ -28,7 +28,7 @@ best_model_criterion:
 
 # MTL
 e2e_conf:
-    ctc_weight: 0.4
+    ctc_weight: 0.5
     lsm_weight: 0.1
 
 # network
@@ -36,7 +36,7 @@ encoder: vgg_rnn
 encoder_conf:
     rnn_type: lstm
     bidirectional: True
-    use_projection: True
+    use_projection: False
     num_layers: 5
     hidden_size: 1024
     output_size: 1024
@@ -47,8 +47,8 @@ decoder_conf:
     num_layers: 2
     hidden_size: 1024
     context_residual: True
-    dropout: 0.1
-    sampling_probability: 0.
+    dropout: 0.0
+    sampling_probability: 0.0
     att_conf:
         atype: location
         adim: 1024
