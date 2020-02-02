@@ -10,12 +10,8 @@ log() {
 }
 SECONDS=0
 
-stage=-1
+stage=0
 stop_stage=1
-
-# it can be augmented depending on avalaible GPU memory
-maxframes=3000
-maxchars=400
 
 . ./db.sh
 . ./path.sh
@@ -55,8 +51,8 @@ else
     fi
 fi
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    log "stage -1: Data download"
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    log "stage 0: Data download"
 
     if [ -d ${data_iwslt19} ] || [ -f ${data_how2_text}/iwslt2019.tar.gz ]; then
         log "$0: iwslt2019 directory or archive already exists in ${data_how2_text}. Skipping download."
@@ -83,13 +79,18 @@ fi
 
 match_files () {
     workdir=${1}
+    savedir=${dstdir}/.save_$(date '+%Y-%m-%dT%H_%M')
     file=${2}
     dstdir=${3}
 
-    mv ${dstdir}/${file} ${dstdir}/${file}.old
+    [ ! -d ${savedir} ] && mkdir -p ${savedir}
 
-    awk 'NR==FNR{l[$0];next;} !(FNR in l)' ${workdir}/utterances.deleted \
-        ${dstdir}/${file}.old > ${dstdir}/${file}
+    if [ -s ${workdir}/utterances.deleted ]; then
+        mv ${dstdir}/${file} ${savedir}/${file}
+
+        awk 'NR==FNR{l[$0];next;} !(FNR in l)' ${workdir}/utterances.deleted \
+            ${savedir}/${file} > ${dstdir}/${file}
+    fi
 
     if [ $file == "utt2spk" ]; then
         utils/utt2spk_to_spk2utt.pl ${dstdir}/${file} > ${dstdir}/spk2utt
@@ -102,11 +103,11 @@ check_files () {
     text=${2}
     files="utt2spk segments feats.scp"
 
-    [[ ! -f ${dir}/${text} ]] && log "$0: ${dir}/${text} should exist" && exit 2
+    [ ! -f ${dir}/${text} ] && log "$0: ${dir}/${text} should exist" && exit 2
     n_utts=$(wc -l < ${dir}/${text})
 
     for x in ${files}; do
-        [[ ! -f ${dir}/${x} ]] && log "$0: ${dir}/${x} should exist" && exit 2
+        [ ! -f ${dir}/${x} ] && log "$0: ${dir}/${x} should exist" && exit 2
 
         seen_entries=$(awk '!seen[$1]++' ${dir}/${text} ${dir}/${x} | wc -l)
 
@@ -144,36 +145,32 @@ prepare_set () {
     cut -d' ' -f1 ${dstdir}/${text} > ${workdir}/id.en
     cut -d' ' -f2- ${dstdir}/${text} > ${workdir}/text.en
 
-    # normalize punctuation using moses decoder
-    normalize-punctuation.perl -l en < ${workdir}/text.en > ${workdir}/text.en.norm
+    # normalize punctuation and tokenize text using moses decoder
+    normalize-punctuation.perl -l en < ${workdir}/text.en > ${workdir}/text.en.rp
+    tokenizer.perl -l en -q < ${workdir}/text.en.rp > ${workdir}/text.en.rp.tok
 
-    # normalize text and modify other needed files (utt2spk, spk2utt..) according to new text file
-    # excluding punctiation normalization iwslt19 test set remains unchanged.
-    if [[ ${dstdir} == *"test_set_iwslt2019"* ]]; then
-        cp ${workdir}/id.en ${workdir}/id.en.norm
-        cp ${workdir}/text.en.norm ${workdir}/text.en.norm2
-    else
-        local/normalize_how2_texts.sh ${workdir}/text.en.norm ${workdir}/id.en \
-                                      ${workdir}/text.en.norm2 ${workdir}/id.en.norm
+    # normalize text
+    local/normalize_texts.sh ${workdir}/text.en.rp.tok ${workdir}/id.en \
+                             ${workdir}/text.en.rp.tok.norm ${workdir}/id.en.norm
 
-        # utterances removed during text normalization are also removed in other files
-        for x in segments utt2spk feats.scp; do
-            match_files ${workdir} ${x} ${dstdir}
-        done
-    fi
+    # utterances removed during text normalization are also removed in other files
+    for x in segments utt2spk feats.scp; do
+        match_files ${workdir} ${x} ${dstdir}
+    done
 
-    # saving lowercase and uppercase version of text. uppercase is for iwslt19
-    tr '[:upper:]' '[:lower:]' < ${workdir}/text.en.norm2 > ${workdir}/text.en.norm2.lc
-    tr '[:lower:]' '[:upper:]' < ${workdir}/text.en.norm2 > ${workdir}/text.en.norm2.uc
-
-    paste -d' ' ${workdir}/id.en.norm ${workdir}/text.en.norm2.lc > ${dstdir}/text
-    paste -d' ' ${workdir}/id.en.norm ${workdir}/text.en.norm2.uc > ${dstdir}/text.uc
+    tr '[:upper:]' '[:lower:]' < ${workdir}/text.en.rp.tok.norm \
+       > ${workdir}/text.en.rp.tok.norm.lc
+    paste -d' ' ${workdir}/id.en.norm ${workdir}/text.en.rp.tok.norm.lc \
+          > ${dstdir}/text
 
     check_files ${dstdir} text
+    [ -f ${dstdir}/text.en ] && rm ${dstdir}/text.*
+
+    return 0
 }
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: Data preparation (HOW2 + IWSLT 2019 test set)"
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 1: Data preparation (HOW2 + IWSLT 2019 test set)"
 
     feats_path=${data_how2_text}/features
     feats_pattern="ARK_PATH"
@@ -191,13 +188,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         fi
 
         prepare_set ${srcdir} ${dstdir} ${text} ${feats_pattern} ${feats_path}
-
-        if [ $set == "train" ]; then
-            remove_longshortdata.sh --maxframes ${maxframes}        \
-                                    --maxchars ${maxchars}          \
-                                    data/${set}                     \
-                                    data/${set}_reduced
-        fi
     done
 
     # add non-linguistic symbols
