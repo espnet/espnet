@@ -237,7 +237,7 @@ class ASRE2E(AbsE2E):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.error_calculator is None:
+        if self.training or self.error_calculator is None:
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
@@ -257,7 +257,7 @@ class ASRE2E(AbsE2E):
 
         # Calc CER using CTC
         cer_ctc = None
-        if self.error_calculator is not None:
+        if not self.training and self.error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
             cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
