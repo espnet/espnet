@@ -39,6 +39,8 @@ local_data_opts= # The options given to local/data.sh.
 feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16k            # Sampling rate.
+speed_perturb=false     # Whether to generate more data by perturbing the speed of the original data.
+perturb_factors=        # perturbation factors, e.g. "0.9 1.0 1.1" (seperated by space).
 
 # Tokenization related
 token_type=bpe      # Tokenization type (char or bpe).
@@ -109,6 +111,8 @@ Options:
     --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
+    --speed_perturb     # Whether to generate more data by perturbing the speed of the original data.
+    --perturb_factors   # perturbation factors, e.g. "0.9 1.0 1.1" (seperated by space).
 
     # Tokenization related
     --token_type              # Tokenization type (char or bpe, default="${token_type}").
@@ -146,7 +150,7 @@ Options:
     --train_set     # Name of training set (required).
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
-    --srctexts      # Used for the training of BPE adn LM and the creation of a vocabulary list (required).
+    --srctexts      # Used for the training of BPE and LM and the creation of a vocabulary list (required).
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
@@ -278,6 +282,21 @@ fi
 
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    if "${speed_perturb}" && [ -n "${perturb_factors}" ]; then
+        # speed-perturbed
+        temp_files=""
+        num_factors=0
+        for factor in ${perturb_factors}; do
+            num_factors=$((num_factors+1))
+            temp_files+=" data/temp${num_factors}"
+            utils/perturb_data_dir_speed.sh ${factor} data/train data/temp${num_factors}
+        done
+        train_set=${train_set}_sp
+        utils/combine_data.sh --extra-files utt2uniq data/${train_set} ${temp_files}
+        for i in ${temp_files}; do
+            rm -r ${i}
+        done
+    fi
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/org/"
 
