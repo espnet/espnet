@@ -25,7 +25,7 @@ LIABILITY, WHETjjHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+from distutils.version import LooseVersion
 import random
 
 import torch
@@ -220,7 +220,10 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
     rhs = torch.cat((f, rhs_zeros), 1)  # [b, n + d + 1, k]
 
     # Then, solve the linear system and unpack the results.
-    X, LU = torch.gesv(rhs, lhs)
+    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+        X, LU = torch.solve(rhs, lhs)
+    else:
+        X, LU = torch.gesv(rhs, lhs)
     w = X[:, :n, :]
     v = X[:, n:, :]
 
