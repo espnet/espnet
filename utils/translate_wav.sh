@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Nagoya University (Takenori Yoshimura)
-#           2019 RevComm Inc. (Takekatsu Hiramura)
+# Copyright 2020 The ESPnet Authors.
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
@@ -30,7 +29,7 @@ decode_dir=decode
 api=v2
 
 # download related
-models=tedlium2.transformer.v1
+models=must_c.transformer.v1.en-fr
 
 help_message=$(cat <<EOF
 Usage:
@@ -39,7 +38,7 @@ Usage:
 Options:
     --ngpu <ngpu>                   # Number of GPUs (Default: 0)
     --decode_dir <directory_name>   # Name of directory to store decoding temporary data
-    --models <model_name>           # Model name (e.g. tedlium2.transformer.v1)
+    --models <model_name>           # Model name (e.g. must_c.transformer.v1.en-fr)
     --cmvn <path>                   # Location of cmvn.ark
     --trans_model <path>            # Location of E2E model
     --decode_config <path>          # Location of configuration file
@@ -86,7 +85,7 @@ set -o pipefail
 # Check model name or model file is set
 if [ -z $models ]; then
     if [[ -z $cmvn || -z $trans_model || -z $decode_config ]]; then
-        echo 'Error: models or set of cmvn, trans_model and decode_config are required.' >&2
+        echo "Error: models or set of cmvn, trans_model and decode_config are required." >&2
         exit 1
     fi
 fi
@@ -186,6 +185,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
     feat_trans_dir=${decode_dir}/dump
+
 
     ${decode_cmd} ${decode_dir}/log/decode.log \
         st_trans.py \
