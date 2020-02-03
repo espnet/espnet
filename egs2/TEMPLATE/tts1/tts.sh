@@ -27,7 +27,7 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-stop_stage=5     # Processes is stopped at the specified stage.
+stop_stage=6     # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
@@ -216,7 +216,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ "${feats_type}" = raw ]; then
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
@@ -224,21 +224,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_feats}/${dset}"
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+                "data/${dset}/wav.scp" "${data_feats}/org/${dset}"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
             # 2. Feature extract
             # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-            _nj=$(min "${nj}" "$(<${data_feats}/${dset}/utt2spk wc -l)")
+            _nj=$(min "${nj}" "$(<${data_feats}/org/${dset}/utt2spk wc -l)")
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fs ${fs} "
@@ -253,45 +253,95 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --n_shift "${n_shift}" \
                 --win_length "${win_length}" \
                 ${_opts} \
-                "${data_feats}/${dset}"
+                "${data_feats}/org/${dset}"
+            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
 
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
-                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            # 3. Derive the the frame length and feature dimension
+            scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
+
+            # 4. Write feats_dim
+            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
+                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
+
+            # 5. Write feats_type
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
     fi
 fi
 
 
-token_list="data/token_list/${trans_type}/tokens.txt"
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Generate character level token_list from ${srctexts}"
-    mkdir -p "$(dirname ${token_list})"
+    log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
+
+    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+        # Copy data dir
+        utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+
+        # Remove short utterances
+        _feats_type="$(<${data_feats}/${dset}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            min_length=2560
+
+            # utt2num_samples is created by format_wav_scp.sh
+            <"${data_feats}/org/${dset}/utt2num_samples" \
+                awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
+                >"${data_feats}/${dset}/utt2num_samples"
+            <"${data_feats}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
+        else
+            min_length=10
+
+            cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
+            <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
+                | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
+                >"${data_feats}/${dset}/feats_shape"
+            <"${data_feats}/org/${dset}/feats.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
+                >"${data_feats}/${dset}/feats.scp"
+        fi
+
+        # Remove empty text
+        <"${data_feats}/org/${dset}/text" \
+            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+
+        # fix_data_dir.sh leaves only utts which exist in all files
+        utils/fix_data_dir.sh "${data_feats}/${dset}"
+    done
+
+    # shellcheck disable=SC2002
+    cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
+fi
+
+
+token_list="data/token_list/${trans_type}/tokens.txt"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "Stage 4: Generate character level token_list from ${srctexts}"
     # "nlsyms_txt" should be generated by local/data.sh if need
 
     # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
-    # shellcheck disable=SC2002
-    cat ${srctexts} | \
-        python3 -m espnet2.bin.tokenize_text  \
-              --token_type char -f 2- --input - --output - \
-              --non_linguistic_symbols ${nlsyms_txt} \
-              --write_vocabulary true \
-              --add_symbol "${blank}:0" \
-              --add_symbol "${oov}:1" \
-              --add_symbol "${sos_eos}:-1" \
-        > "${token_list}"
+    python3 -m espnet2.bin.tokenize_text \
+          --token_type char -f 2- \
+          --input "${data_feats}/srctexts" --output "${token_list}" \
+          --non_linguistic_symbols ${nlsyms_txt} \
+          --write_vocabulary true \
+          --add_symbol "${blank}:0" \
+          --add_symbol "${oov}:1" \
+          --add_symbol "${sos_eos}:-1"
 fi
 
 # ========================== Data preparation is done here. ==========================
 
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 4: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    log "Stage 5: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -369,10 +419,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 4: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    log "Stage 5: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -425,8 +475,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "Stage 5: Decoding: training_dir=${tts_exp}"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "Stage 6: Decoding: training_dir=${tts_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -505,8 +555,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "[Option] Stage 6: Pack model: ${tts_exp}/packed.tgz"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    log "[Option] Stage 7: Pack model: ${tts_exp}/packed.tgz"
 
     python -m espnet2.bin.pack tts \
         --train_config.yaml "${tts_exp}"/config.yaml \
