@@ -37,6 +37,13 @@ accum_grad: 2
 grad_clip: 5
 patience: 3
 max_epoch: 20
+val_scheduler_criterion:
+    - valid
+    - acc
+best_model_criterion:
+-   - valid
+    - acc
+    - max
 
 # NoamLR is deprecated. Use WarmupLR.
 # The following is equivalent setting for NoamLR:

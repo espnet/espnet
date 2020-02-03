@@ -46,8 +46,12 @@ optim_conf:
     weight_decay: 0
 patience: 3
 val_scheduler_criterion:
-- valid
-- loss
+    - valid
+    - acc
+best_model_criterion:
+-   - valid
+    - acc
+    - max
 scheduler: reducelronplateau
 scheduler_conf:
     mode: min
