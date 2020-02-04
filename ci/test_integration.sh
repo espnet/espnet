@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-. tools/venv/bin/activate
-PATH=$(pwd)/utils:${PATH:-}
-
-set -euo pipefail
-
 # test asr recipe
 cwd=$(pwd)
 cd ./egs/mini_an4/asr1 || exit 1
