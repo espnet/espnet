@@ -3,15 +3,13 @@
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import argparse
-
 import chainer
 import numpy
 import pytest
 import torch
 
 from espnet.optimizer.factory import dynamic_import_optimizer
-from espnet.optimizer.parser import OPTIMIZER_PARSER_DICT
+from espnet.optimizer.pytorch import OPTIMIZER_FACTORY_DICT
 
 
 class ChModel(chainer.Chain):
@@ -33,18 +31,7 @@ class ThModel(torch.nn.Module):
         return self.a(x).sum()
 
 
-def test_optimizer_parser():
-    parser = argparse.ArgumentParser()
-    opt_class = dynamic_import_optimizer("sgd", "pytorch")
-    opt_class.add_arguments(parser)
-    args = parser.parse_args(["--lr", "1.0"])
-    assert args.lr == 1.0
-    model = ThModel()
-    opt = opt_class(model.parameters(), args)
-    assert opt.param_groups[0]["lr"] == 1.0
-
-
-@pytest.mark.parametrize("name", OPTIMIZER_PARSER_DICT.keys())
+@pytest.mark.parametrize("name", OPTIMIZER_FACTORY_DICT.keys())
 def test_optimizer_backend_compatible(name):
     torch.set_grad_enabled(True)
     # model construction
@@ -73,3 +60,36 @@ def test_optimizer_backend_compatible(name):
         ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6)
     numpy.testing.assert_allclose(
         ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6)
+
+
+def test_pytorch_optimizer_factory():
+    model = torch.nn.Linear(2, 1)
+    opt_class = dynamic_import_optimizer("adam", "pytorch")
+    optimizer = opt_class.build(model.parameters(), lr=0.9)
+    for g in optimizer.param_groups:
+        assert g["lr"] == 0.9
+
+    opt_class = dynamic_import_optimizer("sgd", "pytorch")
+    optimizer = opt_class.build(model.parameters(), lr=0.9)
+    for g in optimizer.param_groups:
+        assert g["lr"] == 0.9
+
+    opt_class = dynamic_import_optimizer("adadelta", "pytorch")
+    optimizer = opt_class.build(model.parameters(), rho=0.9)
+    for g in optimizer.param_groups:
+        assert g["rho"] == 0.9
+
+
+def test_chainer_optimizer_factory():
+    model = chainer.links.Linear(2, 1)
+    opt_class = dynamic_import_optimizer("adam", "chainer")
+    optimizer = opt_class.build(model, lr=0.9)
+    assert optimizer.alpha == 0.9
+
+    opt_class = dynamic_import_optimizer("sgd", "chainer")
+    optimizer = opt_class.build(model, lr=0.9)
+    assert optimizer.lr == 0.9
+
+    opt_class = dynamic_import_optimizer("adadelta", "chainer")
+    optimizer = opt_class.build(model, rho=0.9)
+    assert optimizer.rho == 0.9
