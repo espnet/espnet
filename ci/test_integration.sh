@@ -9,7 +9,7 @@ set -euo pipefail
 
 echo "==== ASR (backend=pytorch lm=RNNLM) ==="
 ./run.sh
-echo "==== ASR (backend=pytorch, lm=TransformerLM, dtype=float64) ==="
+echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
 ./run.sh --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 # skip duplicated ASR training stage 4
 ./run.sh --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
