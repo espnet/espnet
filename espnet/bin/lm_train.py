@@ -19,7 +19,7 @@ import numpy as np
 
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.optimizer.adaptor import dynamic_import_optimizer
-from espnet.scheduler.scaler import dynamic_import_scaler
+from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -85,8 +85,8 @@ def get_parser(parser=None, required=True):
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
-    parser.add_argument('--scalers', default=None, action="append", type=lambda kv: kv.split("="),
-                        help='optimizer schedulers, e.g., "--scalers lr=noam --lr-noam-warmup 1000".')
+    parser.add_argument('--schedulers', default=None, action="append", type=lambda kv: kv.split("="),
+                        help='optimizer schedulers, e.g., "--schedulers lr=noam --lr-noam-warmup 1000".')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
@@ -110,10 +110,10 @@ def main(cmd_args):
     # parse arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
-    if args.scalers is not None:
-        for k, v in args.scalers:
-            scaler_class = dynamic_import_scaler(v)
-            scaler_class.add_arguments(k, parser)
+    if args.schedulers is not None:
+        for k, v in args.schedulers:
+            scheduler_class = dynamic_import_scheduler(v)
+            scheduler_class.add_arguments(k, parser)
 
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
     opt_class.add_arguments(parser)

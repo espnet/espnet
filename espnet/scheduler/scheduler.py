@@ -1,4 +1,4 @@
-"""Scalers."""
+"""Schedulers."""
 
 import argparse
 
@@ -16,8 +16,8 @@ class _PrefixParser:
         self.parser.add_argument(self.prefix + name[2:], **kwargs)
 
 
-class ScalerInterface:
-    """Scaler interface."""
+class SchedulerInterface:
+    """Scheduler interface."""
 
     alias = ""
 
@@ -36,7 +36,7 @@ class ScalerInterface:
     @classmethod
     def add_arguments(cls, key: str, parser: argparse.ArgumentParser):
         """Add arguments for CLI."""
-        group = parser.add_argument_group(f"{cls.alias} scaler")
+        group = parser.add_argument_group(f"{cls.alias} scheduler")
         cls._add_arguments(_PrefixParser(parser=group, prefix=f"--{key}-{cls.alias}-"))
         return parser
 
@@ -76,33 +76,33 @@ class ScalerInterface:
         raise NotImplementedError()
 
 
-SCALER_DICT = {}
+SCHEDULER_DICT = {}
 
 
-def register_scaler(cls):
-    """Register scaler."""
-    SCALER_DICT[cls.alias] = cls.__module__ + ":" + cls.__name__
+def register_scheduler(cls):
+    """Register scheduler."""
+    SCHEDULER_DICT[cls.alias] = cls.__module__ + ":" + cls.__name__
     return cls
 
 
-def dynamic_import_scaler(module):
-    """Import Scaler class dynamically.
+def dynamic_import_scheduler(module):
+    """Import Scheduler class dynamically.
 
     Args:
-        module (str): module_name:class_name or alias in `SCALER_DICT`
+        module (str): module_name:class_name or alias in `SCHEDULER_DICT`
 
     Returns:
-        type: Scaler class
+        type: Scheduler class
 
     """
-    model_class = dynamic_import(module, SCALER_DICT)
-    assert issubclass(model_class, ScalerInterface), f"{module} does not implement ScalerInterface"
+    model_class = dynamic_import(module, SCHEDULER_DICT)
+    assert issubclass(model_class, SchedulerInterface), f"{module} does not implement SchedulerInterface"
     return model_class
 
 
-@register_scaler
-class NoScaler(ScalerInterface):
-    """Scaler which does nothing."""
+@register_scheduler
+class NoScheduler(SchedulerInterface):
+    """Scheduler which does nothing."""
 
     alias = "none"
 
@@ -111,9 +111,9 @@ class NoScaler(ScalerInterface):
         return 1.0
 
 
-@register_scaler
-class NoamScaler(ScalerInterface):
-    """Warmup + InverseSqrt decay scaler.
+@register_scheduler
+class NoamScheduler(SchedulerInterface):
+    """Warmup + InverseSqrt decay scheduler.
 
     Args:
         noam_warmup (int): number of warmup iterations.
@@ -124,7 +124,7 @@ class NoamScaler(ScalerInterface):
 
     @staticmethod
     def _add_arguments(parser: _PrefixParser):
-        """Add scaler args."""
+        """Add scheduler args."""
         parser.add_argument("--warmup", type=int, default=1000,
                             help="Number of warmup iterations.")
 
@@ -139,8 +139,8 @@ class NoamScaler(ScalerInterface):
         return self.normalize * min(step ** -0.5, step * self.warmup ** -1.5)
 
 
-@register_scaler
-class CyclicCosineScaler(ScalerInterface):
+@register_scheduler
+class CyclicCosineScheduler(SchedulerInterface):
     """Cyclic cosine annealing.
 
     Args:
@@ -158,7 +158,7 @@ class CyclicCosineScaler(ScalerInterface):
 
     @staticmethod
     def _add_arguments(parser: _PrefixParser):
-        """Add scaler args."""
+        """Add scheduler args."""
         parser.add_argument("--warmup", type=int, default=1000,
                             help="Number of warmup iterations.")
         parser.add_argument("--total", type=int, default=100000,
