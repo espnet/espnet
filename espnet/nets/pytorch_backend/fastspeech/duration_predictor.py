@@ -102,15 +102,16 @@ class DurationPredictorLoss(torch.nn.Module):
 
     """
 
-    def __init__(self, offset=1.0):
+    def __init__(self, offset=1.0, reduction="mean"):
         """Initilize duration predictor loss module.
 
         Args:
             offset (float, optional): Offset value to avoid nan in log domain.
+            reduction (str): Reduction type in loss calculation.
 
         """
         super(DurationPredictorLoss, self).__init__()
-        self.criterion = torch.nn.MSELoss()
+        self.criterion = torch.nn.MSELoss(reduction=reduction)
         self.offset = offset
 
     def forward(self, outputs, targets):

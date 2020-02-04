@@ -222,7 +222,7 @@ class CustomConverter(object):
         """
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys, spembs, spcs = batch[0]
+        xs, ys, spembs, extras = batch[0]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -246,15 +246,15 @@ class CustomConverter(object):
             "olens": olens,
         }
 
-        # load second target
-        if spcs is not None:
-            spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
-            new_batch["spcs"] = spcs
-
         # load speaker embedding
         if spembs is not None:
-            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
-            new_batch["spembs"] = spembs
+            spembs = torch.from_numpy(np.array(spembs)).float()
+            new_batch["spembs"] = spembs.to(device)
+
+        # load second target
+        if extras is not None:
+            extras = pad_list([torch.from_numpy(extra).float() for extra in extras], 0)
+            new_batch["extras"] = extras.to(device)
 
         return new_batch
 
@@ -310,7 +310,7 @@ def train(args):
     if args.ngpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
 
@@ -404,19 +404,22 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device))
-
     # set intervals
+    eval_interval = (args.eval_interval_epochs, 'epoch')
     save_interval = (args.save_interval_epochs, 'epoch')
     report_interval = (args.report_interval_iters, 'iteration')
+
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(CustomEvaluator(
+        model, valid_iter, reporter, device), trigger=eval_interval)
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
+                   trigger=training.triggers.MinValueTrigger(
+                       'validation/main/loss', trigger=eval_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
@@ -433,7 +436,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=save_interval)
+        trainer.extend(att_reporter, trigger=eval_interval)
     else:
         att_reporter = None
 
@@ -445,9 +448,11 @@ def train(args):
     plot_keys = []
     for key in base_plot_keys:
         plot_key = ['main/' + key, 'validation/main/' + key]
-        trainer.extend(extensions.PlotReport(plot_key, 'epoch', file_name=key + '.png'))
+        trainer.extend(extensions.PlotReport(
+            plot_key, 'epoch', file_name=key + '.png'), trigger=eval_interval)
         plot_keys += plot_key
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
+    trainer.extend(extensions.PlotReport(
+        plot_keys, 'epoch', file_name='all_loss.png'), trigger=eval_interval)
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=report_interval))
@@ -469,6 +474,7 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
 
+@torch.no_grad()
 def decode(args):
     """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
@@ -546,33 +552,86 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
-    with torch.no_grad(), \
-            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
+    def _calculate_focus_rete(att_ws):
+        if att_ws is None:
+            # fastspeech case -> None
+            return 1.0
+        elif len(att_ws.shape) == 2:
+            # tacotron 2 case -> (L, T)
+            return float(att_ws.max(dim=-1)[0].mean())
+        elif len(att_ws.shape) == 4:
+            # transformer case -> (#layers, #heads, L, T)
+            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
+        else:
+            raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
 
-        for idx, utt_id in enumerate(js.keys()):
-            batch = [(utt_id, js[utt_id])]
-            data = load_inputs_and_targets(batch)
-            if train_args.use_speaker_embedding:
-                spemb = data[1][0]
-                spemb = torch.FloatTensor(spemb).to(device)
-            else:
-                spemb = None
-            x = data[0][0]
-            x = torch.LongTensor(x).to(device)
+    # define function to convert attention to duration
+    def _convert_att_to_duration(att_ws):
+        if len(att_ws.shape) == 2:
+            # tacotron 2 case -> (L, T)
+            pass
+        elif len(att_ws.shape) == 4:
+            # transformer case -> (#layers, #heads, L, T)
+            # get the most diagonal head according to focus rate
+            att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
+            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
+            diagonal_head_idx = diagonal_scores.argmax()
+            att_ws = att_ws[diagonal_head_idx]  # (L, T)
+        else:
+            raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+        # calculate duration from 2d attention weight
+        durations = torch.stack([att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])])
+        return durations.view(-1, 1).float()
 
-            # decode and write
-            start_time = time.time()
-            outs, probs, att_ws = model.inference(x, args, spemb=spemb)
-            logging.info("inference speed = %s msec / frame." % (
-                (time.time() - start_time) / (int(outs.size(0)) * 1000)))
-            if outs.size(0) == x.size(0) * args.maxlenratio:
-                logging.warning("output length reaches maximum length (%s)." % utt_id)
-            logging.info('(%d/%d) %s (size:%d->%d)' % (
-                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            f[utt_id] = outs.cpu().numpy()
+    # define writer instances
+    feat_writer = kaldiio.WriteHelper(
+        'ark,scp:{o}.ark,{o}.scp'.format(o=args.out))
+    if args.save_durations:
+        dur_writer = kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(
+                o=args.out.replace("feats", "durations")))
+    if args.save_focus_rates:
+        fr_writer = kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(
+                o=args.out.replace("feats", "focus_rates")))
 
-            # plot prob and att_ws
-            if probs is not None:
-                _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
-            if att_ws is not None:
-                _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)
+    # start decoding
+    for idx, utt_id in enumerate(js.keys()):
+        # setup inputs
+        batch = [(utt_id, js[utt_id])]
+        data = load_inputs_and_targets(batch)
+        x = torch.LongTensor(data[0][0]).to(device)
+        spemb = None
+        if train_args.use_speaker_embedding:
+            spemb = torch.FloatTensor(data[1][0]).to(device)
+
+        # decode and write
+        start_time = time.time()
+        outs, probs, att_ws = model.inference(x, args, spemb=spemb)
+        logging.info("inference speed = %.1f frames / sec." % (
+            int(outs.size(0)) / (time.time() - start_time)))
+        if outs.size(0) == x.size(0) * args.maxlenratio:
+            logging.warning("output length reaches maximum length (%s)." % utt_id)
+        focus_rate = _calculate_focus_rete(att_ws)
+        logging.info('(%d/%d) %s (size: %d->%d, focus rate: %.3f)' % (
+            idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0), focus_rate))
+        feat_writer[utt_id] = outs.cpu().numpy()
+        if args.save_durations:
+            ds = _convert_att_to_duration(att_ws)
+            dur_writer[utt_id] = ds.cpu().numpy()
+        if args.save_focus_rates:
+            fr_writer[utt_id] = np.array(focus_rate).reshape(1, 1)
+
+        # plot and save prob and att_ws
+        if probs is not None:
+            _plot_and_save(probs.cpu().numpy(), os.path.dirname(args.out) + "/probs/%s_prob.png" % utt_id)
+        if att_ws is not None:
+            _plot_and_save(att_ws.cpu().numpy(), os.path.dirname(args.out) + "/att_ws/%s_att_ws.png" % utt_id)
+
+    # close file object
+    feat_writer.close()
+    if args.save_durations:
+        dur_writer.close()
+    if args.save_focus_rates:
+        fr_writer.close()

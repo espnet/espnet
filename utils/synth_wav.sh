@@ -14,7 +14,7 @@ fi
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=3
+stop_stage=4
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
@@ -31,6 +31,7 @@ cmvn=
 
 # dictionary related
 dict=
+trans_type="char"
 
 # embedding related
 input_wav=
@@ -42,8 +43,8 @@ decode_dir=decode
 griffin_lim_iters=64
 
 # download related
-models=ljspeech.fastspeech.v1
-vocoder_models=ljspeech.wavenet.mol.v1
+models=ljspeech.transformer.v1
+vocoder_models=ljspeech.parallel_wavegan.v1
 
 help_message=$(cat <<EOF
 Usage:
@@ -55,28 +56,37 @@ Example:
     $0 example.txt
 
     # you can specify the pretrained models
-    $0 --models ljspeech.tacotron2.v3 example.txt
-
-    # if you want to try wavenet vocoder, extend stage
-    $0 --models ljspeech.tacotron2.v3 --stop_stage 4 example.txt
+    $0 --models ljspeech.transformer.v3 example.txt
 
     # also you can specify vocoder model
-    $0 --models ljspeech.tacotron2.v3 --vocoder_models ljspeech.wavenet.softmax.ns.v1 --stop_stage 4 example.txt
+    $0 --vocoder_models ljspeech.wavenet.mol.v2 --stop_stage 4 example.txt
 
 Available models:
-    - libritts.tacotron2.v1
     - ljspeech.tacotron2.v1
     - ljspeech.tacotron2.v2
     - ljspeech.tacotron2.v3
     - ljspeech.transformer.v1
     - ljspeech.transformer.v2
+    - ljspeech.transformer.v3
     - ljspeech.fastspeech.v1
     - ljspeech.fastspeech.v2
+    - ljspeech.fastspeech.v3
+    - libritts.tacotron2.v1
     - libritts.transformer.v1
+    - jsut.transformer.v1
+    - jsut.tacotron2.v1
+    - csmsc.transformer.v1
+    - csmsc.fastspeech.v3
 
 Available vocoder models:
     - ljspeech.wavenet.softmax.ns.v1
     - ljspeech.wavenet.mol.v1
+    - ljspeech.parallel_wavegan.v1
+    - libritts.wavenet.mol.v1
+    - jsut.wavenet.mol.v1
+    - jsut.parallel_wavegan.v1
+    - csmsc.wavenet.mol.v1
+    - csmsc.parallel_wavegan.v1
 EOF
 )
 
@@ -96,15 +106,21 @@ set -o pipefail
 
 function download_models () {
     case "${models}" in
-        "libritts.tacotron2.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
         "ljspeech.tacotron2.v1") share_url="https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs" ;;
         "ljspeech.tacotron2.v2") share_url="https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h" ;;
         "ljspeech.tacotron2.v3") share_url="https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n" ;;
         "ljspeech.transformer.v1") share_url="https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS" ;;
         "ljspeech.transformer.v2") share_url="https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp" ;;
+        "ljspeech.transformer.v3") share_url="https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP" ;;
         "ljspeech.fastspeech.v1") share_url="https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i" ;;
         "ljspeech.fastspeech.v2") share_url="https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B";;
+        "ljspeech.fastspeech.v3") share_url="https://drive.google.com/open?id=1W86YEQ6KbuUTIvVURLqKtSNqe_eI2GDN";;
+        "libritts.tacotron2.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
         "libritts.transformer.v1") share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3";;
+        "jsut.transformer.v1") share_url="https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD" ;;
+        "jsut.tacotron2.v1") share_url="https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t" ;;
+        "csmsc.transformer.v1") share_url="https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ";;
+        "csmsc.fastspeech.v3") share_url="https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R";;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -120,6 +136,12 @@ function download_vocoder_models () {
     case "${vocoder_models}" in
         "ljspeech.wavenet.softmax.ns.v1") share_url="https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L";;
         "ljspeech.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t";;
+        "ljspeech.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7";;
+        "libritts.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h";;
+        "jsut.wavenet.mol.v1") share_url="https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK";;
+        "jsut.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM";;
+        "csmsc.wavenet.mol.v1") share_url="https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj";;
+        "csmsc.parallel_wavegan.v1") share_url="https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy";;
         *) echo "No such models: ${vocoder_models}"; exit 1 ;;
     esac
 
@@ -202,7 +224,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     cat $txt >> ${decode_dir}/data/text
 
     mkdir -p ${decode_dir}/dump
-    data2json.sh ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
+    data2json.sh --trans_type ${trans_type} ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
@@ -281,7 +303,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Synthesis with WaveNet"
+    echo "stage 4: Synthesis with Neural Vocoder"
     model_corpus=$(echo ${models} | cut -d. -f 1)
     vocoder_model_corpus=$(echo ${vocoder_models} | cut -d. -f 1)
     if [ ${model_corpus} != ${vocoder_model_corpus} ]; then
@@ -292,7 +314,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     dst_dir=${decode_dir}/wav_wnv
 
     # This is hardcoded for now.
-    if [ ${vocoder_models} == "ljspeech.wavenet.mol.v1" ]; then
+    if [[ ${vocoder_models} == *".mol."* ]]; then
         # Needs to use https://github.com/r9y9/wavenet_vocoder
         # that supports mixture of logistics/gaussians
         MDN_WAVENET_VOC_DIR=./local/r9y9_wavenet_vocoder
@@ -302,10 +324,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         fi
         checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pth" | head -n 1)
         feats2npy.py ${outdir}/feats.scp ${outdir}_npy
-        python ${MDN_WAVENET_VOC_DIR}/evaluate.py ${outdir}_npy $checkpoint $dst_dir \
+        python ${MDN_WAVENET_VOC_DIR}/evaluate.py ${outdir}_npy ${checkpoint} ${dst_dir} \
             --hparams "batch_size=1" \
             --verbose ${verbose}
         rm -rf ${outdir}_npy
+    elif [[ ${vocoder_models} == *".parallel_wavegan."* ]]; then
+        checkpoint=$(find ${download_dir}/${vocoder_models} -name "*.pkl" | head -n 1)
+        if ! command -v parallel-wavegan-decode > /dev/null; then
+            pip install parallel-wavegan
+        fi
+        parallel-wavegan-decode \
+            --scp "${outdir}/feats.scp" \
+            --checkpoint "${checkpoint}" \
+            --outdir "${dst_dir}" \
+            --verbose ${verbose}
     else
         checkpoint=$(find ${download_dir}/${vocoder_models} -name "checkpoint*" | head -n 1)
         generate_wav.sh --nj 1 --cmd "${decode_cmd}" \

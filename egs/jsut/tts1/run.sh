@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
@@ -58,9 +58,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_no_dev"
-train_dev="dev"
-eval_set="eval"
+train_set="${trans_type}_train_no_dev"
+train_dev="${trans_type}_dev"
+eval_set="${trans_type}_eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -71,12 +71,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/jsut_ver1.1/ data/train ${trans_type}
+    local/data_prep.sh ${db_root}/jsut_ver1.1/ data/${trans_type}_train ${trans_type}
 
     # Downsample to fs from 48k
-    utils/data/resample_data_dir.sh $fs data/train
+    utils/data/resample_data_dir.sh $fs data/${trans_type}_train
 
-    utils/validate_data_dir.sh --no-feats data/train
+    utils/validate_data_dir.sh --no-feats data/${trans_type}_train
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -97,27 +97,27 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --n_shift ${n_shift} \
         --win_length "${win_length}" \
         --n_mels ${n_mels} \
-        data/train \
+        data/${trans_type}_train \
         exp/make_fbank/train \
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 500 data/deveval
-    utils/subset_data_dir.sh --first data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --last data/deveval 250 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --first data/${trans_type}_train 500 data/${trans_type}_deveval
+    utils/subset_data_dir.sh --first data/${trans_type}_deveval 250 data/${eval_set}
+    utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${train_dev}
+    n=$(( $(wc -l < data/${trans_type}_train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --last data/${trans_type}_train ${n} data/${train_set}
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
+        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_eval ${feat_ev_dir}
 fi
 
 dict=data/lang_${trans_type}/${train_set}_units.txt
@@ -141,7 +141,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})_${trans_type}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
     expname=${train_set}_${backend}_${tag}
 fi

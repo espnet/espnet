@@ -14,7 +14,9 @@ atype: add
 adim: 1024
 
 # multitask
+mtlalpha: 0.0
 asr-weight: 0.0
+mt-weight: 0.0
 
 # minibatch related
 batch-size: 15
@@ -30,7 +32,7 @@ weight-decay: 1e-6
 # optimization related
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt: adadelta
-epochs: 15
+epochs: 10
 patience: 3
 
 # scheduled sampling option

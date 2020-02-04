@@ -4,19 +4,24 @@
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""End-to-end speech recognition model training script."""
+"""Automatic speech recognition model training script."""
 
-import configargparse
 import logging
 import os
 import random
 import subprocess
 import sys
 
+from distutils.version import LooseVersion
+
+import configargparse
 import numpy as np
+import torch
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -72,14 +77,15 @@ def get_parser(parser=None, required=True):
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
+    # encoder
+    parser.add_argument('--num-encs', default=1, type=int,
+                        help='Number of encoders in the model.')
     # loss related
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
-    parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
-                        help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     # recognition options to compute CER/WER
@@ -170,9 +176,6 @@ def get_parser(parser=None, required=True):
     # decoder related
     parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
                         help='The flag to switch to use context vector residual in the decoder network')
-    parser.add_argument('--replace-sos', default=False, nargs='?',
-                        help='Replace <sos> in the decoder with a target language ID \
-                              (the first token in the target sequence)')
     # finetuning related
     parser.add_argument('--enc-init', default=None, type=str,
                         help='Pre-trained ASR model to initialize encoder.')
@@ -314,6 +317,9 @@ def main(cmd_args):
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
     else:
+        if is_torch_1_2_plus and args.ngpu != 1:
+            logging.debug("There are some bugs with multi-GPU processing in PyTorch 1.2+" +
+                          " (see https://github.com/pytorch/pytorch/issues/21108)")
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 

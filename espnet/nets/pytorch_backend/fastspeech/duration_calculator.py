@@ -8,6 +8,7 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -28,10 +29,14 @@ class DurationCalculator(torch.nn.Module):
 
         """
         super(DurationCalculator, self).__init__()
-        if not isinstance(teacher_model, Transformer):
-            raise ValueError("teacher model should be the instance of e2e_tts_transformer.Transformer")
+        if isinstance(teacher_model, Transformer):
+            self.register_buffer("diag_head_idx", torch.tensor(-1))
+        elif isinstance(teacher_model, Tacotron2):
+            pass
+        else:
+            raise ValueError("teacher model should be the instance of e2e_tts_transformer.Transformer "
+                             "or e2e_tts_tacotron2.Tacotron2.")
         self.teacher_model = teacher_model
-        self.register_buffer("diag_head_idx", torch.tensor(-1))
 
     def forward(self, xs, ilens, ys, olens, spembs=None):
         """Calculate forward propagation.
@@ -47,12 +52,17 @@ class DurationCalculator(torch.nn.Module):
             Tensor: Batch of durations (B, Tmax).
 
         """
-        att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens, spembs=spembs)
-        # TODO(kan-bayashi): fix this issue
-        # this does not work in multi-gpu case. registered buffer is not saved.
-        if int(self.diag_head_idx) == -1:
-            self._init_diagonal_head(att_ws)
-        att_ws = att_ws[:, self.diag_head_idx]
+        if isinstance(self.teacher_model, Transformer):
+            att_ws = self._calculate_encoder_decoder_attentions(xs, ilens, ys, olens, spembs=spembs)
+            # TODO(kan-bayashi): fix this issue
+            # this does not work in multi-gpu case. registered buffer is not saved.
+            if int(self.diag_head_idx) == -1:
+                self._init_diagonal_head(att_ws)
+            att_ws = att_ws[:, self.diag_head_idx]
+        else:
+            # NOTE(kan-bayashi): Here we assume that the teacher is tacotron 2
+            att_ws = self.teacher_model.calculate_all_attentions(
+                xs, ilens, ys, spembs=spembs, keep_tensor=True)
         durations = [self._calculate_duration(att_w, ilen, olen) for att_w, ilen, olen in zip(att_ws, ilens, olens)]
 
         return pad_list(durations, 0)

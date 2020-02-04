@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders_transducer import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
@@ -100,20 +101,22 @@ class E2E(ASRInterface, torch.nn.Module):
         # prediction
         group.add_argument('--dec-embed-dim', default=320, type=int,
                            help='Number of decoder embeddings dimensions')
-        parser.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
-                            help='Dropout rate for the decoder embeddings')
+        group.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
+                           help='Dropout rate for the decoder embeddings')
         # general
         group.add_argument('--rnnt_type', default='warp-transducer', type=str,
                            choices=['warp-transducer'],
                            help='Type of transducer implementation to calculate loss.')
-        parser.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
-                            help='RNN-Transducing mode')
-        parser.add_argument('--joint-dim', default=320, type=int,
-                            help='Number of dimensions in joint space')
+        group.add_argument('--rnnt-mode', default='rnnt', type=str, choices=['rnnt', 'rnnt-att'],
+                           help='RNN-Transducing mode')
+        group.add_argument('--joint-dim', default=320, type=int,
+                           help='Number of dimensions in joint space')
         # decoding
-        parser.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
-                            default=True,
-                            help='Normalize transducer scores by length')
+        group.add_argument('--score-norm-transducer', type=strtobool, nargs='?',
+                           default=True,
+                           help='Normalize transducer scores by length')
+
+        return parser
 
     def __init__(self, idim, odim, args):
         """Initialize transducer modules.
@@ -134,23 +137,14 @@ class E2E(ASRInterface, torch.nn.Module):
         self.space = args.sym_space
         self.blank = args.sym_blank
         self.reporter = Reporter()
+        self.beam_size = args.beam_size
 
         # note that eos is the same as sos (equivalent ID)
         self.sos = odim - 1
         self.eos = odim - 1
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
-        subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype.endswith("p") and not args.etype.startswith("vgg"):
-            ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
-                subsample[j] = int(ss[j])
-        else:
-            logging.warning(
-                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
-        self.subsample = subsample
+        self.subsample = get_subsample(args, mode='asr', arch='rnn-t')
 
         if args.use_frontend:
             # Relative importing because of using python3 syntax
@@ -282,7 +276,11 @@ class E2E(ASRInterface, torch.nn.Module):
             batch_nbest = []
 
             for b in six.moves.range(batchsize):
-                nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+                if self.beam_size == 1:
+                    nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
+                else:
+                    nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+
                 batch_nbest.append(nbest_hyps)
 
             y_hats = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]

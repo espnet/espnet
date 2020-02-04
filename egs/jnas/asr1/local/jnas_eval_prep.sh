@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# Copyright 2017 Nagoya University (Someki Masao)
+# Copyright 2019 Nagoya University (Someki Masao) and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Prepare JNAS dataset
 
-. ./path.sh
+. ./path.sh || exit 1;
 
-if [ $# != 2 ]; then
-    echo "Usage: $0 <data-directory> <evaluation data path>";
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Usage: $0 <data-directory> <speaker_text> [<trans_type>]";
     exit 1;
 fi
 
 source_root=$1  # database root directory
 EVAL_PATH=$2
+trans_type=${3:-kanji}
 
 DATA=${source_root}/${EVAL_PATH}
 
@@ -90,7 +91,7 @@ for filename in $(ls $wavdir); do
         nkf --overwrite -Lu  ${loctmp}/char_tmp/$id.utf8
     fi
 
-    PYTHONIOENCODING=utf-8 local/make_eval_trans.py \
+    local/make_eval_trans.py \
         ${loctmp}/char_tmp/$id.utf8 \
         "${all_ids[@]}" \
         2>>${logdir}/make_trans.log >> ${loctmp}/${EVAL_PATH}_trans.txt.unsorted
@@ -129,4 +130,10 @@ fi
 utils/fix_data_dir.sh ${locdata}/${EVAL_PATH}
 rm -rf ${loctmp}
 
+# convert text type (only for tts)
+if [ ${trans_type} != "kanji" ]; then
+    mv ${locdata}/${EVAL_PATH}/text ${locdata}/${EVAL_PATH}/rawtext
+    local/clean_text.py ${locdata}/${EVAL_PATH}/rawtext ${locdata}/${EVAL_PATH}/text ${trans_type}
+    rm ${locdata}/${EVAL_PATH}/rawtext
+fi
 echo "*** Initial JNAS eval data preparation finished!"

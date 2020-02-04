@@ -3,16 +3,15 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""TTS training script."""
+"""Text-to-speech model training script."""
 
-
-import configargparse
 import logging
 import os
 import random
 import subprocess
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.nets.tts_interface import TTSInterface
@@ -55,6 +54,8 @@ def get_parser():
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
                         help="Tensorboard log directory path")
+    parser.add_argument('--eval-interval-epochs', default=1, type=int,
+                        help="Evaluation interval epochs")
     parser.add_argument('--save-interval-epochs', default=1, type=int,
                         help="Save interval epochs")
     parser.add_argument('--report-interval-iters', default=100, type=int,
