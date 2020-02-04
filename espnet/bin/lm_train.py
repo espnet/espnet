@@ -18,7 +18,7 @@ import configargparse
 import numpy as np
 
 from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.optimizer.adaptor import dynamic_import_optimizer
+from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 

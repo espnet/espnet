@@ -35,7 +35,7 @@ from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.lm_interface import LMInterface
-from espnet.optimizer.adaptor import dynamic_import_optimizer
+from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
 
@@ -379,7 +379,7 @@ def train(args):
 
     # Set up an optimizer
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
-    optimizer = opt_class(model, args)
+    optimizer = opt_class.from_args(model, args)
     if args.schedulers is None:
         schedulers = []
     else:

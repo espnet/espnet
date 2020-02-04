@@ -10,7 +10,7 @@ import numpy
 import pytest
 import torch
 
-from espnet.optimizer.adaptor import dynamic_import_optimizer
+from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.optimizer.parser import OPTIMIZER_PARSER_DICT
 
 

@@ -1,44 +1,89 @@
 """PyTorch optimizer builders."""
+import argparse
 
 import torch
 
-
-OPTIMIZER_BUILDER_DICT = {}
-
-
-def register_builder(func):
-    """Register optimizer builder."""
-    OPTIMIZER_BUILDER_DICT[func.__name__] = func
-    return func
+from espnet.optimizer.factory import OptimizerFactoryInterface
+from espnet.optimizer.parser import adadelta
+from espnet.optimizer.parser import adam
+from espnet.optimizer.parser import sgd
 
 
-@register_builder
-def sgd(parameters, args):
-    """Build SGD."""
-    return torch.optim.SGD(
-        parameters,
-        lr=args.lr,
-        weight_decay=args.weight_decay,
-    )
+class AdamFactory(OptimizerFactoryInterface):
+    """Adam factory."""
+
+    @staticmethod
+    def add_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Register args."""
+        return adam(parser)
+
+    @staticmethod
+    def from_args(target, args: argparse.Namespace):
+        """Initialize optimizer from argparse Namespace.
+
+        Args:
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
+            args (argparse.Namespace): parsed command-line args
+
+        """
+        return torch.optim.Adam(
+            target,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            betas=(args.beta1, args.beta2),
+        )
 
 
-@register_builder
-def adam(parameters, args):
-    """Build adam."""
-    return torch.optim.Adam(
-        parameters,
-        lr=args.lr,
-        weight_decay=args.weight_decay,
-        betas=(args.beta1, args.beta2),
-    )
+class SGDFactory(OptimizerFactoryInterface):
+    """SGD factory."""
+
+    @staticmethod
+    def add_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Register args."""
+        return sgd(parser)
+
+    @staticmethod
+    def from_args(target, args: argparse.Namespace):
+        """Initialize optimizer from argparse Namespace.
+
+        Args:
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
+            args (argparse.Namespace): parsed command-line args
+
+        """
+        return torch.optim.SGD(
+            target,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+        )
 
 
-@register_builder
-def adadelta(parameters, args):
-    """Build adadelta."""
-    return torch.optim.Adadelta(
-        parameters,
-        rho=args.rho,
-        eps=args.eps,
-        weight_decay=args.weight_decay,
-    )
+class AdadeltaFactory(OptimizerFactoryInterface):
+    """Adadelta factory."""
+
+    @staticmethod
+    def add_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Register args."""
+        return adadelta(parser)
+
+    @staticmethod
+    def from_args(target, args: argparse.Namespace):
+        """Initialize optimizer from argparse Namespace.
+
+        Args:
+            target: for pytorch `model.parameters()`,
+                for chainer `model`
+            args (argparse.Namespace): parsed command-line args
+
+        """
+        return torch.optim.Adadelta(
+            target,
+            rho=args.rho,
+            eps=args.eps,
+            weight_decay=args.weight_decay,
+        )
+
+
+OPTIMIZER_BUILDER_DICT = {"adam": AdamFactory, "sgd": SGDFactory, "adadelta": AdadeltaFactory}
