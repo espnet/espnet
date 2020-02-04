@@ -30,7 +30,7 @@ from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
 from espnet.optimizer.adaptor import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler
-from espnet.scheduler.scaler import dynamic_import_scaler
+from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -87,7 +87,7 @@ def concat_examples(batch, device=None, padding=None):
 class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM."""
 
-    def __init__(self, train_iter, model, optimizer, scalers, device,
+    def __init__(self, train_iter, model, optimizer, schedulers, device,
                  gradclip=None, use_apex=False, accum_grad=1):
         """Initialize class.
 
@@ -95,7 +95,7 @@ class BPTTUpdater(training.StandardUpdater):
             train_iter (chainer.dataset.Iterator): The train iterator
             model (LMInterface) : The model to update
             optimizer (torch.optim.Optimizer): The optimizer for training
-            scalers (espnet.scheduler.scaler.ScalerInterface): The scalers of `optimizer`
+            schedulers (espnet.scheduler.scheduler.SchedulerInterface): The schedulers of `optimizer`
             device (int): The device id
             gradclip (float): The gradient clipping value to use
             use_apex (bool): The flag to use Apex in backprop.
@@ -107,7 +107,7 @@ class BPTTUpdater(training.StandardUpdater):
         self.device = device
         self.gradclip = gradclip
         self.use_apex = use_apex
-        self.scheduler = PyTorchScheduler(scalers, optimizer)
+        self.scheduler = PyTorchScheduler(schedulers, optimizer)
         self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
@@ -262,10 +262,10 @@ def train(args):
     # Set up an optimizer
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
     optimizer = opt_class(model.parameters(), args)
-    if args.scalers is None:
-        scalers = []
+    if args.schedulers is None:
+        schedulers = []
     else:
-        scalers = [dynamic_import_scaler(v)(k, args) for k, v in args.scalers]
+        schedulers = [dynamic_import_scheduler(v)(k, args) for k, v in args.schedulers]
 
     # setup apex.amp
     if args.train_dtype in ("O0", "O1", "O2", "O3"):
@@ -286,7 +286,7 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
-    updater = BPTTUpdater(train_iter, model, optimizer, scalers, gpu_id,
+    updater = BPTTUpdater(train_iter, model, optimizer, schedulers, gpu_id,
                           gradclip=args.gradclip,
                           use_apex=use_apex,
                           accum_grad=args.accum_grad)
