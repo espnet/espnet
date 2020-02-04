@@ -39,7 +39,7 @@ lang_model=rnnlm.model.best # set a language model to be used for decoding
 n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
-lm_n_average=6               # the number of languge models to be averaged
+lm_n_average=0               # the number of languge models to be averaged
 use_lm_valbest_average=false # if true, the validation `lm_n_average`-best language models will be averaged.
                              # if false, the last `lm_n_average` language models will be averaged.
 
@@ -253,19 +253,23 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
 
         # Average LM models
-        if ${use_lm_valbest_average}; then
-            lang_model=rnnlm.val${lm_n_average}.avg.best
-            opt="--log ${lmexpdir}/log"
-        else
-            lang_model=rnnlm.last${lm_n_average}.avg.best
-            opt="--log"
-        fi
-        average_checkpoints.py \
-            ${opt} \
-            --backend ${backend} \
-            --snapshots ${lmexpdir}/snapshot.ep.* \
-            --out ${lmexpdir}/${lang_model} \
-            --num ${lm_n_average}
+	if [ ${lm_n_average} -eq 0 ]; then
+	    lang_model=rnnlm.model.best
+	else
+            if ${use_lm_valbest_average}; then
+		lang_model=rnnlm.val${lm_n_average}.avg.best
+		opt="--log ${lmexpdir}/log"
+            else
+		lang_model=rnnlm.last${lm_n_average}.avg.best
+		opt="--log"
+            fi
+            average_checkpoints.py \
+		${opt} \
+		--backend ${backend} \
+		--snapshots ${lmexpdir}/snapshot.ep.* \
+		--out ${lmexpdir}/${lang_model} \
+		--num ${lm_n_average}
+	fi
     fi
 
     pids=() # initialize pids
@@ -290,7 +294,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/${lang_model}
+            --rnnlm ${lmexpdir}/${lang_model} \
+	    --api v2
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
