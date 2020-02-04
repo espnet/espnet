@@ -5,6 +5,7 @@ import random
 import numpy
 from PIL import Image
 from PIL.Image import BICUBIC
+import torch
 
 from espnet.transform.functional import FuncTrans
 
@@ -36,14 +37,19 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
             return x
         return numpy.concatenate((left, right), 0)
     elif mode == "sparse_image_warp":
-        import torch
-
-        from espnet.utils import spec_augment
+        from espnet.utils.spec_augment import time_warp as _time_warp
 
         # TODO(karita): make this differentiable again
-        return spec_augment.time_warp(torch.from_numpy(x), window).numpy()
+        return _time_warp(torch.from_numpy(x), window).numpy()
+    elif mode == "torch_interpolate":
+        from espnet.utils.spec_augment import time_warp2
+
+        return time_warp2(torch.from_numpy(x), window, inplace).numpy()
+
     else:
-        raise NotImplementedError("unknown resize mode: " + mode + ", choose one from (PIL, sparse_image_warp).")
+        raise NotImplementedError(
+            "unknown resize mode: " + mode + ", choose one from (PIL, sparse_image_warp, torch_interpolate)."
+        )
 
 
 class TimeWarp(FuncTrans):

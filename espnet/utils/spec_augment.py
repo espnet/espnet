@@ -48,7 +48,7 @@ def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_w
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     return time_mask(
-        freq_mask(time_warp(spec, W=W),
+        freq_mask(time_warp2(spec, window=W),
                   F=F, num_masks=num_freq_masks, replace_with_zero=replace_with_zero),
         T=T, num_masks=num_time_masks, replace_with_zero=replace_with_zero)
 
@@ -77,6 +77,39 @@ def time_warp(spec, W=5):
                          torch.tensor([[[point_to_warp + dist_to_warp, y]]], device=device))
     warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
     return warped_spectro.squeeze(3).squeeze(0)
+
+
+def time_warp2(x, window=80, inplace=False, mode="bicubic"):
+    """Time warping using torch.interpolate.
+
+    Args:
+        x: input tensor with shape (T, dim)
+        window: time warp parameter
+        inplace:
+        mode: Interpolate mode
+    """
+    # bicubic supports 4D or more dimension tensor
+    # x: (Time, Freq) -> (1, 1, Time, Freq)
+    x = x[None, None]
+    t = x.shape[2]
+    if t - window <= window:
+        return x.squeeze(0).squeeze(0)
+    # NOTE: randrange(a, b) emits a, a + 1, ..., b - 1
+    center = random.randrange(window, t - window)
+    warped = random.randrange(center - window, center + window) + 1  # 1 ... t - 1
+
+    # left: (1, 1, warped, Freq)
+    # right: (1, 1, time - warped, Freq)
+    left = torch.nn.functional.interpolate(x[:, :, :center], (warped, x.shape[3]),
+                                           mode=mode)
+    right = torch.nn.functional.interpolate(x[:, :, center:],
+                                            (t - warped, x.shape[3]), mode=mode)
+
+    if inplace:
+        x[:, :, :warped] = left
+        x[:, :, warped:] = right
+        return x.squeeze(0).squeeze(0)
+    return torch.cat([left, right], dim=2).squeeze(0).squeeze(0)
 
 
 def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
