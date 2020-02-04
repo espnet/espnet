@@ -24,7 +24,7 @@ SECONDS=0
 
 # General configuration
 stage=1          # Processes starts from the specified stage.
-stop_stage=11    # Processes is stopped at the specified stage.
+stop_stage=12    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
@@ -35,12 +35,13 @@ expdir=exp       # Directory to save experiments.
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 
+# Speed perturbation related
+speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+
 # Feature extraction related
 feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16k            # Sampling rate.
-speed_perturb=false     # Whether to generate more data by perturbing the speed of the original data.
-perturb_factors=        # perturbation factors, e.g. "0.9 1.0 1.1" (seperated by space).
 
 # Tokenization related
 token_type=bpe      # Tokenization type (char or bpe).
@@ -107,12 +108,13 @@ Options:
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
+    # Speed perturbation related
+    --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
+
     # Feature extraction related
     --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
-    --speed_perturb     # Whether to generate more data by perturbing the speed of the original data.
-    --perturb_factors   # perturbation factors, e.g. "0.9 1.0 1.1" (seperated by space).
 
     # Tokenization related
     --token_type              # Tokenization type (char or bpe, default="${token_type}").
@@ -280,25 +282,26 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/data.sh ${local_data_opts}
 fi
 
-
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    if "${speed_perturb}" && [ -n "${perturb_factors}" ]; then
-        # speed-perturbed
-        temp_files=""
-        num_factors=0
-        for factor in ${perturb_factors}; do
-            num_factors=$((num_factors+1))
-            temp_files+=" data/temp${num_factors}"
-            utils/perturb_data_dir_speed.sh ${factor} data/train data/temp${num_factors}
-        done
-        train_set=${train_set}_sp
-        utils/combine_data.sh --extra-files utt2uniq data/${train_set} ${temp_files}
-        for i in ${temp_files}; do
-            rm -r ${i}
-        done
+    if [ -n "${speed_perturb_factors}" ]; then
+       log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+       for factor in ${speed_perturb_factors}; do
+           scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+           _dirs+="data/${train_set}_sp${factor} "
+       done
+       utils/combine_data.sh "data/${train_set}" ${_dirs}
+    else
+       log "Skip stage 2: Speed perturbation"
     fi
+fi
+
+if [ -n "${speed_perturb_factors}" ]; then
+    train_set="${train_set}_sp"
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${feats_type}" = raw ]; then
-        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/org/"
+        log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -328,7 +331,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
 
     elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             # 1. Copy datadir
@@ -352,7 +355,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
 
     elif [ "${feats_type}" = fbank ]; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
         log "${feats_type} is not supported yet."
         exit 1
 
@@ -363,8 +366,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
         # Copy data dir
@@ -408,9 +411,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ "${token_type}" = bpe ]; then
-        log "Stage 4: Generate token_list from ${data_feats}/srctexts using BPE"
+        log "Stage 5: Generate token_list from ${data_feats}/srctexts using BPE"
 
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
@@ -426,7 +429,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _opts="--bpemodel ${bpemodel}"
 
     elif [ "${token_type}" = char ]; then
-        log "Stage 4: Generate character level token_list from ${data_feats}/srctexts"
+        log "Stage 5: Generate character level token_list from ${data_feats}/srctexts"
         _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
     else
@@ -467,8 +470,8 @@ fi
 
 
 if "${use_lm}"; then
-  if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-      log "Stage 5: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+  if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+      log "Stage 6: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then
@@ -529,8 +532,8 @@ if "${use_lm}"; then
   fi
 
 
-  if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-      log "Stage 6: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+  if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+      log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then
@@ -561,8 +564,8 @@ if "${use_lm}"; then
   fi
 
 
-  if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-      log "Stage 7: Calc perplexity: ${lm_test_text}"
+  if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+      log "Stage 8: Calc perplexity: ${lm_test_text}"
       _opts=
       # TODO(kamo): Parallelize?
       log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
@@ -580,14 +583,14 @@ if "${use_lm}"; then
   fi
 
 else
-    log "Stage 5-7: Skip lm-related stages: use_lm=${use_lm}"
+    log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
 fi
 
 
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 8: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
+    log "Stage 9: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
     if [ -n "${asr_config}" ]; then
@@ -668,10 +671,10 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 9: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
+    log "Stage 10: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
     if [ -n "${asr_config}" ]; then
@@ -729,8 +732,8 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 fi
 
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-    log "Stage 10: Decoding: training_dir=${asr_exp}"
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    log "Stage 11: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -802,8 +805,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    log "Stage 11: Scoring"
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    log "Stage 12: Scoring"
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
@@ -885,8 +888,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    log "[Option] Stage 12: Pack model: ${asr_exp}/packed.tgz"
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+    log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"
 
     _opts=
     if "${use_lm}"; then
