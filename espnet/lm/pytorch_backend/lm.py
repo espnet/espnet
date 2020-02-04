@@ -28,7 +28,7 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
-from espnet.optimizer.adaptor import dynamic_import_optimizer
+from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
 
@@ -261,7 +261,7 @@ def train(args):
 
     # Set up an optimizer
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
-    optimizer = opt_class(model.parameters(), args)
+    optimizer = opt_class.from_args(model.parameters(), args)
     if args.schedulers is None:
         schedulers = []
     else:

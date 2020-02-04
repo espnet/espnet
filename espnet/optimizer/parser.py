@@ -1,16 +1,6 @@
 """Common optimizer default config for multiple backends."""
 
 
-OPTIMIZER_PARSER_DICT = {}
-
-
-def register_parser(func):
-    """Register arg parser."""
-    OPTIMIZER_PARSER_DICT[func.__name__] = func
-    return func
-
-
-@register_parser
 def sgd(parser):
     """Add arguments."""
     parser.add_argument('--lr', type=float, default=1.0,
@@ -20,7 +10,6 @@ def sgd(parser):
     return parser
 
 
-@register_parser
 def adam(parser):
     """Add arguments."""
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -34,7 +23,6 @@ def adam(parser):
     return parser
 
 
-@register_parser
 def adadelta(parser):
     """Add arguments."""
     parser.add_argument('--rho', type=float, default=0.95,
