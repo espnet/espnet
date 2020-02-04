@@ -1,20 +1,29 @@
-# see https://arxiv.org/pdf/1905.04226.pdf
-layer: 12
-pos-enc: none
-head: 8
-dropout-rate: 0.0
-embed-unit: 128
-att-unit: 512
-unit: 2048
-opt: adam
-lr: 1e-3
-gradclip: 1.0
-scalers: lr=noam
-lr-noam-warmup: 5000
-sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-batchsize: 64
-accum-grad: 2
-epoch: 200
-patience: 0
-maxlen: 40
+# This Transformer LM setting w/ 4 GPUs took around 60 days for 50 epochs.
+# However, you can get better results in 6 days for 5 epochs (WER: 2.2/5.4/2.6/5.7)
+# than LSTM LM (WER: 2.6/5.6/2.6/5.7) in 60 days for 20 epochs
+# And if you does not have 4 GPUs, try accum-grad=4.
+
+# network architecture
 model-module: transformer
+att-unit: 512
+embed-unit: 128
+head: 8
+layer: 16
+pos-enc: none
+unit: 2048
+
+# minibatch related
+batchsize: 32
+maxlen: 40
+
+# optimization related
+opt: adam
+scalers: lr=cosine
+dropout-rate: 0.0
+epoch: 50
+gradclip: 1.0
+lr: 1e-4
+lr-cosine-total: 100000
+lr-cosine-warmup: 1000
+patience: 0
+sortagrad: 0
