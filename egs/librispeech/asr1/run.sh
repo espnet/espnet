@@ -253,23 +253,23 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
 
         # Average LM models
-	if [ ${lm_n_average} -eq 0 ]; then
-	    lang_model=rnnlm.model.best
-	else
+        if [ ${lm_n_average} -eq 0 ]; then
+            lang_model=rnnlm.model.best
+        else
             if ${use_lm_valbest_average}; then
-		lang_model=rnnlm.val${lm_n_average}.avg.best
-		opt="--log ${lmexpdir}/log"
+                lang_model=rnnlm.val${lm_n_average}.avg.best
+                opt="--log ${lmexpdir}/log"
             else
-		lang_model=rnnlm.last${lm_n_average}.avg.best
-		opt="--log"
+                lang_model=rnnlm.last${lm_n_average}.avg.best
+                opt="--log"
             fi
             average_checkpoints.py \
-		${opt} \
-		--backend ${backend} \
-		--snapshots ${lmexpdir}/snapshot.ep.* \
-		--out ${lmexpdir}/${lang_model} \
-		--num ${lm_n_average}
-	fi
+                ${opt} \
+                --backend ${backend} \
+                --snapshots ${lmexpdir}/snapshot.ep.* \
+                --out ${lmexpdir}/${lang_model} \
+                --num ${lm_n_average}
+        fi
     fi
 
     pids=() # initialize pids
@@ -295,7 +295,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --rnnlm ${lmexpdir}/${lang_model} \
-	    --api v2
+            --api v2
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
