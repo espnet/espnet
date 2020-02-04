@@ -35,10 +35,10 @@ echo "finished making wav.scp, utt2spk, spk2utt."
 find ${db} -follow -name "transcript_utf8.txt" | sort | while read -r filename; do
     cat ${filename} >> ${rawtext}
 done
-PYTHONIOENCODING=utf-8 PYTHONPATH=local/text python local/clean_text.py \
-    ${rawtext} ${input_type} > ${text}
+local/clean_text.py \
+    ${rawtext} ${text} ${input_type}
 rm ${rawtext}
 echo "finished making text."
 
-python local/prep_segments.py $scp > ${data_dir}/segments
+local/prep_segments.py $scp > ${data_dir}/segments
 echo "finished making segments."

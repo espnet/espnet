@@ -8,17 +8,14 @@
 
 """Language model training script."""
 
-from __future__ import division
-from __future__ import print_function
-
-import configargparse
 import logging
-
-import numpy as np
 import os
 import random
 import subprocess
 import sys
+
+import configargparse
+import numpy as np
 
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.optimizer.adaptor import dynamic_import_optimizer

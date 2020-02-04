@@ -40,7 +40,10 @@ class CTC(torch.nn.Module):
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
         if self.ctc_type == 'builtin':
             th_pred = th_pred.log_softmax(2)
-            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+            # Use the deterministic CuDNN implementation of CTC loss to avoid
+            #  [issue#17798](https://github.com/pytorch/pytorch/issues/17798)
+            with torch.backends.cudnn.flags(deterministic=True):
+                loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             # Batch-size average
             loss = loss / th_pred.size(1)
             return loss
@@ -83,6 +86,9 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "warpctc":
             # warpctc only supports float32
             ys_hat = ys_hat.to(dtype=torch.float32)
+        else:
+            # use GPU when using the cuDNN implementation
+            ys_true = to_device(self, ys_true)
         self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(dtype=dtype)
         if self.reduce:
             # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
@@ -119,5 +125,20 @@ def ctc_for(args, odim, reduce=True):
     :param bool reduce : return the CTC loss in a scalar
     :return: the corresponding CTC module
     """
-    return CTC(odim, args.eprojs, args.dropout_rate,
-               ctc_type=args.ctc_type, reduce=reduce)
+    num_encs = getattr(args, "num_encs", 1)  # use getattr to keep compatibility
+    if num_encs == 1:
+        # compatible with single encoder asr mode
+        return CTC(odim, args.eprojs, args.dropout_rate, ctc_type=args.ctc_type, reduce=reduce)
+    elif num_encs >= 1:
+        ctcs_list = torch.nn.ModuleList()
+        if args.share_ctc:
+            # use dropout_rate of the first encoder
+            ctc = CTC(odim, args.eprojs, args.dropout_rate[0], ctc_type=args.ctc_type, reduce=reduce)
+            ctcs_list.append(ctc)
+        else:
+            for idx in range(num_encs):
+                ctc = CTC(odim, args.eprojs, args.dropout_rate[idx], ctc_type=args.ctc_type, reduce=reduce)
+                ctcs_list.append(ctc)
+        return ctcs_list
+    else:
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))

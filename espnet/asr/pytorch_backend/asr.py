@@ -25,6 +25,7 @@ from torch.nn.parallel import data_parallel
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import format_mulenc_args
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
@@ -62,6 +63,14 @@ if sys.version_info[0] == 2:
     from itertools import izip_longest as zip_longest
 else:
     from itertools import zip_longest as zip_longest
+
+
+def _recursive_to(xs, device):
+    if torch.is_tensor(xs):
+        return xs.to(device)
+    if isinstance(xs, tuple):
+        return tuple(_recursive_to(x, device) for x in xs)
+    return xs
 
 
 class CustomEvaluator(BaseEvaluator):
@@ -110,7 +119,7 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) for arr in batch)
+                x = _recursive_to(batch, self.device)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -163,11 +172,17 @@ class CustomUpdater(StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
+        epoch = train_iter.epoch
 
-        # Get the next batch ( a list of json files)
+        # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) for arr in batch)
+        x = _recursive_to(batch, self.device)
+        is_new_epoch = train_iter.epoch != epoch
+        # When the last minibatch in the current epoch is given,
+        # gradient accumulation is turned off in order to evaluate the model
+        # on the validation set in every epoch.
+        # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
         if self.ngpu == 0:
@@ -187,11 +202,10 @@ class CustomUpdater(StandardUpdater):
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
             add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
-        loss.detach()  # Truncate the graph
 
         # update parameters
         self.forward_count += 1
-        if self.forward_count != self.accum_grad:
+        if not is_new_epoch and self.forward_count != self.accum_grad:
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
@@ -265,11 +279,63 @@ class CustomConverter(object):
             xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device, dtype=self.dtype)
 
         ilens = torch.from_numpy(ilens).to(device)
+        # NOTE: this is for multi-output (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0][:]) if isinstance(y, tuple) else y).long()
+                           for y in ys], self.ignore_id).to(device)
+
+        return xs_pad, ilens, ys_pad
+
+
+class CustomConverterMulEnc(object):
+    """Custom batch converter for Pytorch in multi-encoder case.
+
+    Args:
+        subsampling_factors (list): List of subsampling factors for each encoder.
+        dtype (torch.dtype): Data type to convert.
+
+    """
+
+    def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
+        """Initialize the converter."""
+        self.subsamping_factors = subsamping_factors
+        self.ignore_id = -1
+        self.dtype = dtype
+        self.num_encs = len(subsamping_factors)
+
+    def __call__(self, batch, device=torch.device('cpu')):
+        """Transform a batch and send it to a device.
+
+        Args:
+            batch (list): The batch to transform.
+            device (torch.device): The device to send to.
+
+        Returns:
+            tuple( list(torch.Tensor), list(torch.Tensor), torch.Tensor)
+
+        """
+        # batch should be located in list
+        assert len(batch) == 1
+        xs_list = batch[0][:self.num_encs]
+        ys = batch[0][-1]
+
+        # perform subsampling
+        if np.sum(self.subsamping_factors) > self.num_encs:
+            xs_list = [[x[::self.subsampling_factors[i], :] for x in xs_list[i]] for i in range(self.num_encs)]
+
+        # get batch of lengths of input sequences
+        ilens_list = [np.array([x.shape[0] for x in xs_list[i]]) for i in range(self.num_encs)]
+
+        # perform padding and convert to tensor
+        # currently only support real number
+        xs_list_pad = [pad_list([torch.from_numpy(x).float() for x in xs_list[i]], 0).to(device, dtype=self.dtype) for i
+                       in range(self.num_encs)]
+
+        ilens_list = [torch.from_numpy(ilens_list[i]).to(device) for i in range(self.num_encs)]
         # NOTE: this is for multi-task learning (e.g., speech translation)
         ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
                            for y in ys], self.ignore_id).to(device)
 
-        return xs_pad, ilens, ys_pad
+        return xs_list_pad, ilens_list, ys_pad
 
 
 def train(args):
@@ -280,6 +346,8 @@ def train(args):
 
     """
     set_deterministic_pytorch(args)
+    if args.num_encs > 1:
+        args = format_mulenc_args(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -289,9 +357,10 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['input'][0]['shape'][-1])
+    idim_list = [int(valid_json[utts[0]]['input'][i]['shape'][-1]) for i in range(args.num_encs)]
     odim = int(valid_json[utts[0]]['output'][0]['shape'][-1])
-    logging.info('#input dims : ' + str(idim))
+    for i in range(args.num_encs):
+        logging.info('stream{}: input dims : {}'.format(i + 1, idim_list[i]))
     logging.info('#output dims: ' + str(odim))
 
     # specify attention, CTC, hybrid mode
@@ -305,21 +374,19 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
-    if args.enc_init is not None or args.dec_init is not None:
-        model = load_trained_modules(idim, odim, args)
+    if (args.enc_init is not None or args.dec_init is not None) and args.num_encs == 1:
+        model = load_trained_modules(idim_list[0], odim, args)
     else:
         model_class = dynamic_import(args.model_module)
-        model = model_class(idim, odim, args)
+        model = model_class(idim_list[0] if args.num_encs == 1 else idim_list, odim, args)
     assert isinstance(model, ASRInterface)
-
-    subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
     # write model config
@@ -328,7 +395,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)),
+        f.write(json.dumps((idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
                            indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -338,9 +405,12 @@ def train(args):
     # check the use of multi-gpu
     if args.ngpu > 1:
         if args.batch_size != 0:
-            logging.info('batch size is automatically increased (%d -> %d)' % (
+            logging.warning('batch size is automatically increased (%d -> %d)' % (
                 args.batch_size, args.batch_size * args.ngpu))
             args.batch_size *= args.ngpu
+        if args.num_encs > 1:
+            # TODO(ruizhili): implement data parallel for multi-encoder setup.
+            raise NotImplementedError("Data parallel is not supported for multi-encoder setup.")
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -385,7 +455,10 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype)
+    if args.num_encs == 1:
+        converter = CustomConverter(subsampling_factor=model.subsample[0], dtype=dtype)
+    else:
+        converter = CustomConverterMulEnc([i[0] for i in model.subsample_list], dtype=dtype)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -477,14 +550,22 @@ def train(args):
         att_reporter = None
 
     # Make a plot for training and validation values
+    if args.num_encs > 1:
+        report_keys_loss_ctc = ['main/loss_ctc{}'.format(i + 1) for i in range(model.num_encs)] + [
+            'validation/main/loss_ctc{}'.format(i + 1) for i in range(model.num_encs)]
+        report_keys_cer_ctc = ['main/cer_ctc{}'.format(i + 1) for i in range(model.num_encs)] + [
+            'validation/main/cer_ctc{}'.format(i + 1) for i in range(model.num_encs)]
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
-                                          'main/loss_att', 'validation/main/loss_att'],
+                                          'main/loss_att',
+                                          'validation/main/loss_att'] +
+                                         ([] if args.num_encs == 1 else report_keys_loss_ctc),
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
-    trainer.extend(extensions.PlotReport(['main/cer_ctc', 'validation/main/cer_ctc'],
-                                         'epoch', file_name='cer.png'))
+    trainer.extend(extensions.PlotReport(
+        ['main/cer_ctc', 'validation/main/cer_ctc'] + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+        'epoch', file_name='cer.png'))
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
@@ -526,7 +607,7 @@ def train(args):
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
-                   'elapsed_time']
+                   'elapsed_time'] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
@@ -555,6 +636,7 @@ def recog(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
@@ -616,8 +698,9 @@ def recog(args):
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
-                feat = load_inputs_and_targets(batch)[0][0]
-                if args.streaming_mode == 'window':
+                feat = load_inputs_and_targets(batch)
+                feat = feat[0][0] if args.num_encs == 1 else [feat[idx][0] for idx in range(model.num_encs)]
+                if args.streaming_mode == 'window' and args.num_encs == 1:
                     logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
                     se2e = WindowStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
                     for i in range(0, feat.shape[0], args.streaming_window):
@@ -627,7 +710,7 @@ def recog(args):
                     se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
-                elif args.streaming_mode == 'segment':
+                elif args.streaming_mode == 'segment' and args.num_encs == 1:
                     logging.info('Using streaming recognizer with threshold value %d', args.streaming_min_blank_dur)
                     nbest_hyps = []
                     for n in range(args.nbest):
@@ -666,8 +749,33 @@ def recog(args):
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
-                feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                feats = load_inputs_and_targets(batch)[0] if args.num_encs == 1 else load_inputs_and_targets(batch)
+                if args.streaming_mode == 'window' and args.num_encs == 1:
+                    raise NotImplementedError
+                elif args.streaming_mode == 'segment' and args.num_encs == 1:
+                    if args.batchsize > 1:
+                        raise NotImplementedError
+                    feat = feats[0]
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
+                    nbest_hyps = [nbest_hyps]
+                else:
+                    nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
@@ -686,6 +794,9 @@ def enhance(args):
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+
+    # TODO(ruizhili): implement enhance for multi-encoder model
+    assert args.num_encs == 1, "number of encoder should be 1 ({} is given)".format(args.num_encs)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)

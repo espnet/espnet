@@ -21,10 +21,11 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
+train_config=conf/train.yaml # multi-encoders  conf/train_mulenc2.yaml
 preprocess_config=conf/preprocess.yaml
 lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+decode_config=conf/decode.yaml # multi-encoders conf/decode_mulenc2.yaml
+mulenc=false # flag for multi-encoder mode
 
 # rnnlm related
 use_wordlm=false    # false means to train/use a character LM
@@ -138,15 +139,28 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
-                 data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
-                 data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
-                     data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
-    done
+
+    if [ ${mulenc} = true ]; then
+        data2json.sh --feat "${feat_tr_dir}/feats.scp,${feat_tr_dir}/feats.scp" --bpecode ${bpemodel}.model \
+            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+        data2json.sh --feat "${feat_dt_dir}/feats.scp,${feat_dt_dir}/feats.scp" --bpecode ${bpemodel}.model \
+            data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+        for rtask in ${recog_set}; do
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+            data2json.sh --feat "${feat_recog_dir}/feats.scp,${feat_recog_dir}/feats.scp" --bpecode ${bpemodel}.model \
+                         data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        done
+    else
+        data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+                     data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+        data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
+                     data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+        for rtask in ${recog_set}; do
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+            data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+                         data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        done
+    fi
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,

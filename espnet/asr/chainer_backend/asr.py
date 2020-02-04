@@ -119,7 +119,7 @@ def train(args):
         for gid in six.moves.xrange(1, ngpu):
             devices['sub_%d' % gid] = gid
         logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
-        logging.info('batch size is automatically increased (%d -> %d)' % (
+        logging.warning('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
     else:
         gpu_id = -1
@@ -138,18 +138,8 @@ def train(args):
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
-    # Setup Training Extensions
-    if 'transformer' in args.model_module:
-        from espnet.nets.chainer_backend.transformer.training import CustomConverter
-        from espnet.nets.chainer_backend.transformer.training import CustomParallelUpdater
-        from espnet.nets.chainer_backend.transformer.training import CustomUpdater
-    else:
-        from espnet.nets.chainer_backend.rnn.training import CustomConverter
-        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
-        from espnet.nets.chainer_backend.rnn.training import CustomUpdater
-
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=model.subsample[0])
+    converter = model.custom_converter(subsampling_factor=model.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -194,7 +184,7 @@ def train(args):
                 batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
-        updater = CustomUpdater(
+        updater = model.custom_updater(
             train_iters[0], optimizer, converter=converter, device=gpu_id, accum_grad=accum_grad)
     else:
         if args.batch_count not in ("auto", "seq") and args.batch_size == 0:
@@ -231,7 +221,7 @@ def train(args):
                 for gid in six.moves.xrange(ngpu)]
 
         # set up updater
-        updater = CustomParallelUpdater(
+        updater = model.custom_parallel_updater(
             train_iters, optimizer, converter=converter, devices=devices)
 
     # Set up a trainer
