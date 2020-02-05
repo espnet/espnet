@@ -9,16 +9,18 @@ from typing import Tuple
 from typing import Union
 
 import h5py
+import humanfriendly
 import kaldiio
 import numpy as np
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.utils.fileio import NpyScpReader
-from espnet2.utils.fileio import SoundScpReader
 from espnet2.utils.fileio import load_num_sequence_text
+from espnet2.utils.fileio import NpyScpReader
 from espnet2.utils.fileio import read_2column_text
+from espnet2.utils.fileio import SoundScpReader
+from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -40,9 +42,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
     def __getitem__(self, key: str) -> np.ndarray:
         rate, array = self.loader[key]
         if self.rate is not None and self.rate != rate:
-            raise RuntimeError(
-                f"Sampling rates are mismatched: {self.rate} != {rate}"
-            )
+            raise RuntimeError(f"Sampling rates are mismatched: {self.rate} != {rate}")
         self.rate = rate
         # Multichannel wave fie
         # array: (NSample, Channel) or (Nsample)
@@ -52,13 +52,13 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 
 
 class ESPnetDataset(Dataset):
-    """
+    """Pytorch Dataset class for ESPNet.
 
     Examples:
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
         ...                         )
-        ... data = dataset['uttid']
+        ... uttid, data = dataset['uttid']
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
@@ -70,6 +70,7 @@ class ESPnetDataset(Dataset):
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
+        max_cache_size: Union[float, int, str] = 0.0,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -97,6 +98,14 @@ class ESPnetDataset(Dataset):
 
             # TODO(kamo): Should check consistency of each utt-keys?
 
+        if isinstance(max_cache_size, str):
+            max_cache_size = humanfriendly.parse_size(max_cache_size)
+        self.max_cache_size = max_cache_size
+        if max_cache_size > 0:
+            self.cache = SizedDict(shared=True)
+        else:
+            self.cache = None
+
     def _create_loader(
         self, path: str, loader_type: str
     ) -> Mapping[str, Union[np.ndarray, str]]:
@@ -106,6 +115,7 @@ class ESPnetDataset(Dataset):
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc
         """
+
         if loader_type == "sound":
             # path looks like:
             #   utta /some/where/a.wav
@@ -168,20 +178,23 @@ class ESPnetDataset(Dataset):
         _mes += f"("
         for name, (path, _type) in self.debug_info.items():
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
-        _mes += f"\n preprocess: {self.preprocess})"
+        _mes += f"\n  preprocess: {self.preprocess})"
         return _mes
 
     def __len__(self):
         raise RuntimeError(
-            "This method doesn't be needed because "
-            "we use custom BatchSampler "
+            "This method doesn't be needed because " "we use custom BatchSampler "
         )
 
     # NOTE(kamo):
     # Typically pytorch's Dataset.__getitem__ accepts an inger index,
     # however this Dataset handle a string, which represents a sample-id.
-    def __getitem__(self, uid: str) -> Dict[str, np.ndarray]:
+    def __getitem__(self, uid: str) -> Tuple[str, Dict[str, np.ndarray]]:
         assert check_argument_types()
+
+        if self.cache is not None and uid in self.cache:
+            data = self.cache[uid]
+            return uid, data
 
         data = {}
         # 1. Load data from each loaders
@@ -218,10 +231,12 @@ class ESPnetDataset(Dataset):
             elif value.dtype.kind == "i":
                 value = value.astype(self.int_dtype)
             else:
-                raise NotImplementedError(
-                    f"Not supported dtype: {value.dtype}"
-                )
+                raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
 
-        assert check_return_type(data)
-        return data
+        if self.cache is not None and self.cache.size < self.max_cache_size:
+            self.cache[uid] = data
+
+        retval = uid, data
+        assert check_return_type(retval)
+        return retval

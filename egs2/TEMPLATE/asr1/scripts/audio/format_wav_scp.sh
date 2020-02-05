@@ -3,7 +3,7 @@ set -euo pipefail
 SECONDS=0
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 help_message=$(cat << EOF
 Usage: $0 <in-wav.scp> <out-datadir> [<logdir> [<outdir>]]
@@ -51,7 +51,7 @@ fi
 . ./path.sh  # Setup the environment
 
 scp=$1
-if [ ! -f ${scp} ]; then
+if [ ! -f "${scp}" ]; then
     log "${help_message}"
     echo "$0: Error: No such file: ${scp}"
     exit 1
@@ -76,49 +76,53 @@ fi
 mkdir -p ${logdir}
 
 rm -f ${dir}/wav.scp
-nutt=$(<${scp} wc -l)
-nj=$((${nj}<${nutt}?${nj}:${nutt}))
 
 
 opts=
-if [ ! -z ${utt2ref_channels} ]; then
+if [ -n "${utt2ref_channels}" ]; then
     opts="--utt2ref-channels ${utt2ref_channels} "
-elif [ ! -z ${ref_channels} ]; then
+elif [ -n "${ref_channels}" ]; then
     opts="--ref-channels ${ref_channels} "
 fi
 
 
-if [ ! -z ${segments} ]; then
+if [ -n "${segments}" ]; then
     log "[info]: using ${segments}"
+    nutt=$(<${segments} wc -l)
+    nj=$((nj<nutt?nj:nutt))
+
     split_segments=""
     for n in $(seq ${nj}); do
         split_segments="${split_segments} ${logdir}/segments.${n}"
     done
 
-    utils/split_scp.pl ${segments} ${split_segments}
+    utils/split_scp.pl "${segments}" ${split_segments}
 
-    ${cmd} JOB=1:${nj} ${logdir}/format_wav_scp.JOB.log \
+    ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
         pyscripts/audio/format_wav_scp.py \
             ${opts} \
             --fs ${fs} \
-            --audio-format ${audio_format} \
-            --segment=${logdir}/segments.JOB \
-            ${scp} ${outdir}/format.JOB
+            --audio-format "${audio_format}" \
+            "--segment=${logdir}/segments.JOB" \
+            "${scp}" "${outdir}/format.JOB"
 
 else
     log "[info]: without segments"
+    nutt=$(<${scp} wc -l)
+    nj=$((nj<nutt?nj:nutt))
+
     split_scps=""
     for n in $(seq ${nj}); do
         split_scps="${split_scps} ${logdir}/wav.${n}.scp"
     done
 
-    utils/split_scp.pl ${scp} ${split_scps}
-    ${cmd} JOB=1:${nj} ${logdir}/format_wav_scp.JOB.log \
+    utils/split_scp.pl "${scp}" ${split_scps}
+    ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
         pyscripts/audio/format_wav_scp.py \
         ${opts} \
-        --fs ${fs} \
-        --audio-format ${audio_format} \
-        ${logdir}/wav.JOB.scp ${outdir}/format.JOB
+        --fs "${fs}" \
+        --audio-format "${audio_format}" \
+        "${logdir}/wav.JOB.scp" ${outdir}/format.JOB""
 fi
 
 # Workaround for the NFS problem
@@ -126,13 +130,13 @@ ls ${outdir}/format.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat ${outdir}/format.${n}/wav.scp || exit 1;
-done > ${dir}/${out_filename} || exit 1
+    cat "${outdir}/format.${n}/wav.scp" || exit 1;
+done > "${dir}/${out_filename}" || exit 1
 
-if ${write_utt2num_samples}; then
+if "${write_utt2num_samples}"; then
     for n in $(seq ${nj}); do
-        cat ${outdir}/format.${n}/utt2num_samples || exit 1;
-    done > ${dir}/utt2num_samples  || exit 1
+        cat "${outdir}/format.${n}/utt2num_samples" || exit 1;
+    done > "${dir}/utt2num_samples"  || exit 1
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

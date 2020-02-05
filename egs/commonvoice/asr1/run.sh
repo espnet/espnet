@@ -39,7 +39,7 @@ lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru
 data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
 
 # bpemode (unigram or bpe)
-nbpe=150
+nbpe=150 # 2020 for zh-TW
 bpemode=unigram
 
 # exp tag
@@ -96,13 +96,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                                   data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
-    # Remove features with too long frames in training data
-    max_len=3000
-    mv data/${train_set}/utt2num_frames data/${train_set}/utt2num_frames.bak
-    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${train_set}/utt2num_frames.bak > data/${train_set}/utt2num_frames
-    utils/filter_scp.pl data/${train_set}/utt2num_frames data/${train_set}/utt2spk > data/${train_set}/utt2spk.new
-    mv data/${train_set}/utt2spk.new data/${train_set}/utt2spk
-    utils/fix_data_dir.sh data/${train_set}
+
+    for x in ${train_set} ${recog_set}; do
+      # Remove features with too long frames in training data
+      max_len=3000
+      remove_longshortdata.sh  --maxframes $max_len data/${x} data/${x}_temp
+      mv data/${x}_temp data/${x}
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark

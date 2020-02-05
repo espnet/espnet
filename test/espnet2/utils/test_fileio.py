@@ -151,7 +151,7 @@ def test_SoundScpReader_normalize(tmp_path: Path):
 def test_SoundScpWriter(tmp_path: Path):
     audio1 = np.random.randint(-100, 100, 16, dtype=np.int16)
     audio2 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    with SoundScpWriter(tmp_path, "wav", dtype=np.int16) as writer:
+    with SoundScpWriter(tmp_path, tmp_path / "wav.scp", dtype=np.int16) as writer:
         writer["abc"] = 16, audio1
         writer["def"] = 16, audio2
         # Unsupported dimension
@@ -167,8 +167,8 @@ def test_SoundScpWriter(tmp_path: Path):
         assert rate1 == rate2
         np.testing.assert_array_equal(t, d)
 
-    assert writer.get_path("abc") == str(tmp_path / "data_wav" / "abc.wav")
-    assert writer.get_path("def") == str(tmp_path / "data_wav" / "def.wav")
+    assert writer.get_path("abc") == str(tmp_path / "abc.wav")
+    assert writer.get_path("def") == str(tmp_path / "def.wav")
 
 
 def test_SoundScpWriter_normalize(tmp_path: Path):
@@ -177,7 +177,7 @@ def test_SoundScpWriter_normalize(tmp_path: Path):
     audio1 = audio1.astype(np.float64) / (np.iinfo(np.int16).max + 1)
     audio2 = audio2.astype(np.float64) / (np.iinfo(np.int16).max + 1)
 
-    with SoundScpWriter(tmp_path, "wav", dtype=np.int16) as writer:
+    with SoundScpWriter(tmp_path, tmp_path / "wav.scp", dtype=np.int16) as writer:
         writer["abc"] = 16, audio1
         writer["def"] = 16, audio2
         # Unsupported dimension
@@ -227,7 +227,7 @@ def test_NpyScpReader(tmp_path: Path):
 def test_NpyScpWriter(tmp_path: Path):
     array1 = np.random.randn(1)
     array2 = np.random.randn(1, 1, 10)
-    with NpyScpWriter(tmp_path, "feats") as writer:
+    with NpyScpWriter(tmp_path, tmp_path / "feats.scp") as writer:
         writer["abc"] = array1
         writer["def"] = array2
     target = NpyScpReader(tmp_path / "feats.scp")
@@ -238,5 +238,5 @@ def test_NpyScpWriter(tmp_path: Path):
         d = desired[k]
         np.testing.assert_array_equal(t, d)
 
-    assert writer.get_path("abc") == str(tmp_path / "data_feats" / "abc.npy")
-    assert writer.get_path("def") == str(tmp_path / "data_feats" / "def.npy")
+    assert writer.get_path("abc") == str(tmp_path / "abc.npy")
+    assert writer.get_path("def") == str(tmp_path / "def.npy")
