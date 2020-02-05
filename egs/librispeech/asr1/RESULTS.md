@@ -20,7 +20,7 @@ We used the same ASR model in the previous report.
     - e2e JSON file: `./librispeech.transformer.v1/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.json`
     - lm file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/rnnlm.model.best`
     - lm JSON file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/model.json`
-    - dict file: `./data/lang_char/train_960_unigram5000_units.txt`
+    - dict file: `./data/lang_char`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 ```
 ./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/decode_dev_clean_decode_ep43/result.wrd.txt
