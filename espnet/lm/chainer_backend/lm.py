@@ -35,6 +35,9 @@ from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.lm_interface import LMInterface
+from espnet.optimizer.factory import dynamic_import_optimizer
+from espnet.scheduler.chainer import ChainerScheduler
+from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
@@ -223,12 +226,16 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
     :param chainer.dataset.Iterator train_iter : The train iterator
     :param optimizer:
+    :param schedulers:
     :param int device : The device id
+    :param int accum_grad :
     """
 
-    def __init__(self, train_iter, optimizer, device):
+    def __init__(self, train_iter, optimizer, schedulers, device, accum_grad):
         super(BPTTUpdater, self).__init__(
             train_iter, optimizer, device=device)
+        self.scheduler = ChainerScheduler(schedulers, optimizer)
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -236,33 +243,39 @@ class BPTTUpdater(training.updaters.StandardUpdater):
         # they are automatically named 'main'.
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
-        # Progress the dataset iterator for sentences at each iteration.
-        batch = train_iter.__next__()
-        x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
-        # Concatenate the token IDs to matrices and send them to the device
-        # self.converter does this job
-        # (it is chainer.dataset.concat_examples by default)
-        xp = chainer.backends.cuda.get_array_module(x)
-        loss = 0
-        count = 0
-        state = None
-        batch_size, sequence_length = x.shape
-        for i in six.moves.range(sequence_length):
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]),
-                                                 chainer.Variable(t[:, i]))
-            non_zeros = xp.count_nonzero(x[:, i])
-            loss += loss_batch * non_zeros
-            count += int(non_zeros)
 
-        reporter.report({'loss': float(loss.data)}, optimizer.target)
+        count = 0
+        sum_loss = 0
+        optimizer.target.cleargrads()  # Clear the parameter gradients
+        for _ in range(self.accum_grad):
+            # Progress the dataset iterator for sentences at each iteration.
+            batch = train_iter.__next__()
+            x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
+            # Concatenate the token IDs to matrices and send them to the device
+            # self.converter does this job
+            # (it is chainer.dataset.concat_examples by default)
+            xp = chainer.backends.cuda.get_array_module(x)
+            loss = 0
+            state = None
+            batch_size, sequence_length = x.shape
+            for i in six.moves.range(sequence_length):
+                # Compute the loss at this time step and accumulate it
+                state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]),
+                                                     chainer.Variable(t[:, i]))
+                non_zeros = xp.count_nonzero(x[:, i])
+                loss += loss_batch * non_zeros
+                count += int(non_zeros)
+            # backward
+            loss /= batch_size * self.accum_grad  # normalized by batch size
+            sum_loss += float(loss.data)
+            loss.backward()  # Backprop
+            loss.unchain_backward()  # Truncate the graph
+
+        reporter.report({'loss': sum_loss}, optimizer.target)
         reporter.report({'count': count}, optimizer.target)
         # update
-        loss /= batch_size  # normalized by batch size
-        optimizer.target.cleargrads()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
         optimizer.update()  # Update the parameters
+        self.scheduler.step(self.iteration)
 
 
 class LMEvaluator(BaseEvaluator):
@@ -342,8 +355,9 @@ def train(args):
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    epoch_iters = int(len(train_iter.batch_indices) / args.accum_grad)
+    logging.info('#iterations per epoch = %d' % epoch_iters)
+    logging.info('#total iterations = ' + str(args.epoch * epoch_iters))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
@@ -364,15 +378,17 @@ def train(args):
         f.write(json.dumps(vars(args), indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
-    if args.opt == 'sgd':
-        optimizer = chainer.optimizers.SGD(lr=1.0)
-    elif args.opt == 'adam':
-        optimizer = chainer.optimizers.Adam()
+    opt_class = dynamic_import_optimizer(args.opt, args.backend)
+    optimizer = opt_class.from_args(model, args)
+    if args.schedulers is None:
+        schedulers = []
+    else:
+        schedulers = [dynamic_import_scheduler(v)(k, args) for k, v in args.schedulers]
 
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
-    updater = BPTTUpdater(train_iter, optimizer, gpu_id)
+    updater = BPTTUpdater(train_iter, optimizer, schedulers, gpu_id, args.accum_grad)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
