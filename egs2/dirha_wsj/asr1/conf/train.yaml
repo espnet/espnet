@@ -1,0 +1,63 @@
+# network architecture
+# encoder related
+encoder: vgg_rnn
+encoder_conf:
+     rnn_type: lstm
+     bidirectional: True
+     use_projection: True
+     num_layers: 2
+     hidden_size: 320
+     output_size: 320
+
+
+# subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
+# decoder related
+decoder: rnn
+decoder_conf:
+     rnn_type: lstm
+     num_layers: 1
+     hidden_size: 300
+     sampling_probability: 0.0
+     att_conf:
+         atype: location
+         adim: 320
+         awin: 5
+         aheads: 4
+         aconv_chans: 10
+         aconv_filts: 100
+
+
+
+
+
+# hybrid CTC/attention
+e2e_conf:
+    ctc_weight: 0.2
+
+
+
+    #mtlalpha: 0.2
+
+# label smoothing
+#lsm-type: unigram
+#lsm-weight: 0.05
+
+# minibatch related
+batch_size: 15
+max_length:
+     - 800  # maxlen_in if input length  > maxlen_in, batchsize is automatically reduced
+     - 150  # maxlen_out if output length > maxlen_out, batchsize is automatically reduced
+
+# optimization related
+optim: adadelta
+optim_conf:
+     lr: 1.0 
+     rho: 0.95
+     eps: 1.0e-8
+     weight_decay: 0
+max_epoch: 30
+patience: 3
+
+
+
+
