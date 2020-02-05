@@ -15,7 +15,8 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr import Reporter
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -119,7 +120,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
-        self.subsample = [1]
+        self.subsample = get_subsample(args, mode='asr', arch='transformer')
         self.reporter = Reporter()
 
         # self.lsm_weight = a
@@ -163,7 +164,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         # 1. forward encoder
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
-        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
+        src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 

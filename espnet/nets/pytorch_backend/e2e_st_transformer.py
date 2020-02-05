@@ -14,6 +14,7 @@ import torch
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -120,7 +121,7 @@ class E2E(STInterface, torch.nn.Module):
         self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
-        self.subsample = [1]
+        self.subsample = get_subsample(args, mode='st', arch='transformer')
         self.reporter = Reporter()
 
         # self.lsm_weight = a
