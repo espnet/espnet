@@ -19,7 +19,7 @@ class CTC(torch.nn.Module):
         odim: int,
         encoder_output_sizse: int,
         dropout_rate: float = 0.0,
-        ctc_type: str = "warpctc",
+        ctc_type: str = "builtin",
         reduce: bool = True,
     ):
         assert check_argument_types()
