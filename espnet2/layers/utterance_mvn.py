@@ -9,10 +9,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 
 class UtteranceMVN(AbsNormalize):
     def __init__(
-        self,
-        norm_means: bool = True,
-        norm_vars: bool = False,
-        eps: float = 1.0e-20,
+        self, norm_means: bool = True, norm_vars: bool = False, eps: float = 1.0e-20,
     ):
         assert check_argument_types()
         super().__init__()
@@ -61,9 +58,7 @@ def utterance_mvn(
     """
     if ilens is None:
         ilens = x.new_full([x.size(0)], x.size(1))
-    ilens_ = ilens.to(x.device, x.dtype).view(
-        -1, *[1 for _ in range(x.dim() - 1)]
-    )
+    ilens_ = ilens.to(x.device, x.dtype).view(-1, *[1 for _ in range(x.dim() - 1)])
     # Zero padding
     if x.is_leaf and x.requires_grad:
         x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)

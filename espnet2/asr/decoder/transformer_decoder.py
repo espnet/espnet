@@ -2,23 +2,20 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
-from typing import Tuple, List
+from typing import List
+from typing import Tuple
 
 import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,
-)
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-)
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,
+    PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -80,15 +77,8 @@ class TransformerDecoder(AbsDecoder):
                 torch.nn.ReLU(),
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
-        elif isinstance(input_layer, torch.nn.Module):
-            self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
         else:
-            raise NotImplementedError(
-                "only `embed` or torch.nn.Module is supported."
-            )
+            raise ValueError(f"only 'embed' or 'linear' is supported: {input_layer}")
 
         self.normalize_before = normalize_before
         self.decoders = repeat(
@@ -101,9 +91,7 @@ class TransformerDecoder(AbsDecoder):
                 MultiHeadedAttention(
                     attention_heads, attention_dim, src_attention_dropout_rate
                 ),
-                PositionwiseFeedForward(
-                    attention_dim, linear_units, dropout_rate
-                ),
+                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
                 normalize_before,
                 concat_after,
@@ -141,7 +129,13 @@ class TransformerDecoder(AbsDecoder):
             olens: (batch, )
         """
         tgt = ys_in_pad
+        # tgt_mask: (B, 1, L)
         tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
+        # m: (1, L, L)
+        m = subsequent_mask(tgt_mask.size(-1), device=tgt_mask.device).unsqueeze(0)
+        # tgt_mask: (B, L, L)
+        tgt_mask = tgt_mask & m
+
         memory = hs_pad
         memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
 

@@ -3,12 +3,12 @@ from espnet2.tasks.tts import TTSTask
 
 
 def get_parser():
-    parser = TTSTask.add_arguments()
+    parser = TTSTask.get_parser()
     return parser
 
 
 def main(cmd=None):
-    """
+    """TTS training
 
     Example:
 

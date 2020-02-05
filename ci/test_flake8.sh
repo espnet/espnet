@@ -25,7 +25,6 @@ espnet/nets/chainer_backend/rnn/decoders.py
 espnet/nets/chainer_backend/rnn/encoders.py
 espnet/nets/chainer_backend/rnn/training.py
 espnet/nets/ctc_prefix_score.py
-espnet/nets/e2e_asr_common.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_beamformer.py
@@ -74,7 +73,10 @@ cov=$(echo "scale = 4; 100 * ${n_ok} / ${n_all}" | bc)
 echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 
 # --extend-ignore for wip files for flake8-docstrings
-flake8 --extend-ignore=D expnet2 test utils doc ${flake8_black_list}
+flake8 --show-source --extend-ignore=D test utils doc ${flake8_black_list} --exclude test/espnet2
 
 # white list of files that should support flake8-docstrings
-flake8 espnet --exclude=${flake8_black_list//$'\n'/,}
+flake8 --show-source espnet --exclude=${flake8_black_list//$'\n'/,}
+
+# espnet2
+flake8 --show-source --extend-ignore=D --ignore=H102,H238,E203,W503 --max-line-length 88 espnet2 test/espnet2
