@@ -18,15 +18,18 @@ import configargparse
 import numpy as np
 
 from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.optimizer.factory import dynamic_import_optimizer
+from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 
 # NOTE: you need this func to generate our sphinx doc
-def get_parser():
+def get_parser(parser=None, required=True):
     """Get parser."""
-    parser = configargparse.ArgumentParser(
-        description='Train a new language model on one CPU or one GPU',
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    if parser is None:
+        parser = configargparse.ArgumentParser(
+            description='Train a new language model on one CPU or one GPU',
+            config_file_parser_class=configargparse.YAMLConfigFileParser,
+            formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,
@@ -43,11 +46,11 @@ def get_parser():
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
+    parser.add_argument('--outdir', type=str, required=required,
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', type=str, required=True,
+    parser.add_argument('--dict', type=str, required=required,
                         help='Dictionary')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
@@ -59,9 +62,9 @@ def get_parser():
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
     # task related
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--train-label', type=str, required=required,
                         help='Filename of train label data')
-    parser.add_argument('--valid-label', type=str, required=True,
+    parser.add_argument('--valid-label', type=str, required=required,
                         help='Filename of validation label data')
     parser.add_argument('--test-label', type=str,
                         help='Filename of test label data')
@@ -69,18 +72,23 @@ def get_parser():
                         help='Path to dump a preprocessed dataset as hdf5')
     # training configuration
     parser.add_argument('--opt', default='sgd', type=str,
-                        choices=['sgd', 'adam'],
                         help='Optimizer')
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
+    parser.add_argument('--accum-grad', type=int, default=1,
+                        help='Number of gradient accumueration')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
+    parser.add_argument('--schedulers', default=None, action="append", type=lambda kv: kv.split("="),
+                        help='optimizer schedulers, you can configure params like:'
+                        ' <optimizer-param>-<scheduler-name>-<schduler-param>'
+                        ' e.g., "--schedulers lr=noam --lr-noam-warmup 1000".')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
@@ -101,10 +109,19 @@ def main(cmd_args):
     if args.ngpu == 0 and args.train_dtype in ("O0", "O1", "O2", "O3", "float16"):
         raise ValueError(f"--train-dtype {args.train_dtype} does not support the CPU backend.")
 
-    # parse model-specific arguments dynamically
+    # parse arguments dynamically
     model_class = dynamic_import_lm(args.model_module, args.backend)
     model_class.add_arguments(parser)
+    if args.schedulers is not None:
+        for k, v in args.schedulers:
+            scheduler_class = dynamic_import_scheduler(v)
+            scheduler_class.add_arguments(k, parser)
+
+    opt_class = dynamic_import_optimizer(args.opt, args.backend)
+    opt_class.add_arguments(parser)
+
     args = parser.parse_args(cmd_args)
+
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
