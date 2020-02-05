@@ -86,7 +86,9 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--schedulers', default=None, action="append", type=lambda kv: kv.split("="),
-                        help='optimizer schedulers, e.g., "--schedulers lr=noam --lr-noam-warmup 1000".')
+                        help='optimizer schedulers, you can configure params like:'
+                        ' <optimizer-param>-<scheduler-name>-<schduler-param>'
+                        ' e.g., "--schedulers lr=noam --lr-noam-warmup 1000".')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--maxlen', type=int, default=40,
