@@ -3,9 +3,7 @@
 from distutils.util import strtobool
 
 import logging
-
 import math
-import numpy as np
 
 import chainer
 import torch
@@ -17,7 +15,6 @@ from espnet.nets.asr_interface import ASRInterface
 
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 
@@ -179,7 +176,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.subsample = get_subsample(args, mode='asr', arch='rnn-t')
 
-            self.encoder = encoder_for(args, idim, subsample)
+            self.encoder = encoder_for(args, idim, self.subsample)
 
         if args.dtype == 'transformer':
             self.decoder = Decoder(
