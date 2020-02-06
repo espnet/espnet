@@ -179,6 +179,65 @@ EOF
 }
 EOF
 
+    cat << EOF > $tmpdir/valid_lang
+{
+    "utts": {
+        "uttid0": {
+            "input": [
+                {
+                    "feat": "${ark_1}:7",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": ja,
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        7,
+                        7
+                    ],
+                    "text": "ABC ABC",
+                    "token": "A B C <space> A B C",
+                    "tokenid": "3 4 5 2 3 4 5"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1": {
+            "input": [
+                {
+                    "feat": "${ark_1}:2429",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": ja,
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        5,
+                        7
+                    ],
+                    "text": "BC BC",
+                    "token": "B C <space> B C",
+                    "tokenid": "4 5 2 4 5"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
+    }
+}
+EOF
+
 }
 
 teardown() {
@@ -195,4 +254,10 @@ teardown() {
     $utils/data2json.sh --feat $scp_1,$scp_2 $tmpdir/data \
     $tmpdir/dict > ${tmpdir}/data_multi_inputs.json
     jsondiff ${tmpdir}/data_multi_inputs.json $tmpdir/valid_multi_inputs
+}
+
+@test "data2json.sh: language tag" {
+    $utils/data2json.sh --feat $scp_1 $tmpdir/data --lang ja \
+    $tmpdir/dict > ${tmpdir}/data_lang.json
+    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_multi_inputs
 }
