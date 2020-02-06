@@ -7,7 +7,6 @@ echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
 nlsyms=""
-lang=""
 oov="<unk>"
 bpecode=""
 verbose=0
@@ -71,15 +70,10 @@ awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 cat ${text} > ${tmpdir}/output/text.scp
 
 
-# 3. Create scp files for the others
-mkdir -p ${tmpdir}/other
-if [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
-fi
-
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
-for intype in "output other"; do
+intypes="output other"
+for intype in ${intypes}; do
     for x in "${tmpdir}/${intype}"/*.scp; do
         k=$(basename ${x} .scp)
         < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
