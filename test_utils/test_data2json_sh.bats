@@ -193,7 +193,7 @@ EOF
                     ]
                 }
             ],
-            "lang": ja,
+            "lang": "tgt",
             "output": [
                 {
                     "name": "target1",
@@ -219,7 +219,7 @@ EOF
                     ]
                 }
             ],
-            "lang": ja,
+            "lang": "tgt",
             "output": [
                 {
                     "name": "target1",
@@ -257,7 +257,7 @@ teardown() {
 }
 
 @test "data2json.sh: language tag" {
-    $utils/data2json.sh --feat $scp_1 $tmpdir/data --lang ja \
+    $utils/data2json.sh --feat $scp_1 $tmpdir/data --lang tgt \
     $tmpdir/dict > ${tmpdir}/data_lang.json
     jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_lang
 }
