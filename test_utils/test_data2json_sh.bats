@@ -297,13 +297,13 @@ teardown() {
 }
 
 @test "data2json.sh: language tag" {
-    $utils/data2json.sh --feat $scp_1 $tmpdir/data --lang tgt \
+    $utils/data2json.sh --feat $scp_1 --lang tgt $tmpdir/data \
         $tmpdir/dict > ${tmpdir}/data_lang.json
     jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_lang.json
 }
 
 @test "data2json.sh: no input" {
-    $utils/data2json.sh $tmpdir/data --lang tgt \
+    $utils/data2json.sh --lang tgt $tmpdir/data \
         $tmpdir/dict > ${tmpdir}/data_lang.json
     jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_mt.json
 }
