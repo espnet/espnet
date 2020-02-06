@@ -189,20 +189,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.${tgt_case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --nlsyms ${nlsyms} \
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
             data/${ttask} ${dict} > ${feat_trans_dir}/data.${tgt_case}.json
     done
 
     # update json (add source references)
-    update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} \
+    update_json.sh --text data/"$(echo ${train_set} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} --lang mb \
         ${feat_tr_dir}/data.${tgt_case}.json data/"$(echo ${train_set} | cut -f -1 -d ".")".mb ${dict}
-    update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} \
+    update_json.sh --text data/"$(echo ${train_dev} | cut -f -1 -d ".")".mb/text.${src_case} --nlsyms ${nlsyms} --lang mb \
         ${feat_dt_dir}/data.${tgt_case}.json data/"$(echo ${train_dev} | cut -f -1 -d ".")".mb ${dict}
 fi
 
