@@ -56,98 +56,101 @@ EOF
 
     cat << EOF > $tmpdir/base.json
 {
-"utts": {
-    "uttid0": {
-        "input": [
-            {
-                "feat": "${ark_1}:7",
-                "name": "input1",
-                "shape": [
-                    30,
-                    20
-                ]
-            }
-        ],
-        "lang": "tgt",
-        "output": [
-            {
-                "name": "target1",
-                "shape": [
-                    7,
-                    7
-                ],
-                "text": "ABC ABC",
-                "token": "A B C <space> A B C",
-                "tokenid": "3 4 5 2 3 4 5"
-            }
-        ],
-        "utt2spk": "spk1"
-    },
-    "uttid1": {
-        "input": [
-            {
-                "feat": "${ark_1}:2429",
-                "name": "input1",
-                "shape": [
-                    30,
-                    20
-                ]
-            }
-        ],
-        "lang": "tgt",
-        "output": [
-            {
-                "name": "target1",
-                "shape": [
-                    5,
-                    7
-                ],
-                "text": "BC BC",
-                "token": "B C <space> B C",
-                "tokenid": "4 5 2 4 5"
-            }
-        ],
-        "utt2spk": "spk2"
+    "utts": {
+        "uttid0": {
+            "input": [
+                {
+                    "feat": "${ark_1}:7",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        7,
+                        7
+                    ],
+                    "text": "ABC ABC",
+                    "token": "A B C <space> A B C",
+                    "tokenid": "3 4 5 2 3 4 5"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1": {
+            "input": [
+                {
+                    "feat": "${ark_1}:2429",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        5,
+                        7
+                    ],
+                    "text": "BC BC",
+                    "token": "B C <space> B C",
+                    "tokenid": "4 5 2 4 5"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
     }
 }
 EOF
 
-cat << EOF > $tmpdir/base_mt.json
+    cat << EOF > $tmpdir/base_mt.json
 {
-"utts": {
-"uttid0": {
-    "input": [],
-    "lang": "tgt",
-    "output": [
-        {
-            "name": "target1",
-            "shape": [
-                7,
-                7
+    "utts": {
+        "uttid0": {
+            "input": [],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        7,
+                        7
+                    ],
+                    "text": "ABC ABC",
+                    "token": "A B C <space> A B C",
+                    "tokenid": "3 4 5 2 3 4 5"
+                }
             ],
-            "text": "ABC ABC",
-            "token": "A B C <space> A B C",
-            "tokenid": "3 4 5 2 3 4 5"
-        }
-    ],
-    "utt2spk": "spk1"
-},
-"uttid1": {
-    "input": [],
-    "lang": "tgt",
-    "output": [
-        {
-            "name": "target1",
-            "shape": [
-                5,
-                7
+            "utt2spk": "spk1"
+        },
+        "uttid1": {
+            "input": [],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        5,
+                        7
+                    ],
+                    "text": "BC BC",
+                    "token": "B C <space> B C",
+                    "tokenid": "4 5 2 4 5"
+                }
             ],
-            "text": "BC BC",
-            "token": "B C <space> B C",
-            "tokenid": "4 5 2 4 5"
+            "utt2spk": "spk2"
         }
-    ],
-    "utt2spk": "spk2"
+    }
 }
 EOF
 
