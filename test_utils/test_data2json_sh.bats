@@ -49,7 +49,7 @@ B 4
 C 5
 EOF
 
-    cat << EOF > $tmpdir/valid
+    cat << EOF > $tmpdir/valid.json
 {
     "utts": {
         "uttid0": {
@@ -106,7 +106,7 @@ EOF
 }
 EOF
 
-    cat << EOF > $tmpdir/valid_multi_inputs
+    cat << EOF > $tmpdir/valid_multi_inputs.json
 {
     "utts": {
         "uttid0": {
@@ -179,7 +179,7 @@ EOF
 }
 EOF
 
-    cat << EOF > $tmpdir/valid_lang
+    cat << EOF > $tmpdir/valid_lang.json
 {
     "utts": {
         "uttid0": {
@@ -238,7 +238,7 @@ EOF
 }
 EOF
 
-cat << EOF > $tmpdir/valid_mt
+cat << EOF > $tmpdir/valid_mt.json
 {
 "utts": {
     "uttid0": {
@@ -276,7 +276,6 @@ cat << EOF > $tmpdir/valid_mt
         "utt2spk": "spk2"
     }
 }
-}
 EOF
 
 }
@@ -287,24 +286,24 @@ teardown() {
 
 @test "data2json.sh: single input" {
     $utils/data2json.sh --feat $scp_1 $tmpdir/data \
-    $tmpdir/dict > ${tmpdir}/data.json
-    jsondiff ${tmpdir}/data.json $tmpdir/valid
+        $tmpdir/dict > ${tmpdir}/data.json
+    jsondiff ${tmpdir}/data.json $tmpdir/valid.json
 }
 
 @test "data2json.sh: multi inputs" {
     $utils/data2json.sh --feat $scp_1,$scp_2 $tmpdir/data \
-    $tmpdir/dict > ${tmpdir}/data_multi_inputs.json
-    jsondiff ${tmpdir}/data_multi_inputs.json $tmpdir/valid_multi_inputs
+        $tmpdir/dict > ${tmpdir}/data_multi_inputs.json
+    jsondiff ${tmpdir}/data_multi_inputs.json $tmpdir/valid_multi_inputs.json
 }
 
 @test "data2json.sh: language tag" {
     $utils/data2json.sh --feat $scp_1 $tmpdir/data --lang tgt \
-    $tmpdir/dict > ${tmpdir}/data_lang.json
-    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_lang
+        $tmpdir/dict > ${tmpdir}/data_lang.json
+    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_lang.json
 }
 
 @test "data2json.sh: no input" {
     $utils/data2json.sh $tmpdir/data --lang tgt \
-    $tmpdir/dict > ${tmpdir}/data_lang.json
-    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_mt
+        $tmpdir/dict > ${tmpdir}/data_lang.json
+    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_mt.json
 }

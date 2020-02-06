@@ -54,7 +54,104 @@ B 4
 C 5
 EOF
 
-    cat << EOF > $tmpdir/valid
+    cat << EOF > $tmpdir/base.json
+{
+"utts": {
+    "uttid0": {
+        "input": [
+            {
+                "feat": "${ark_1}:7",
+                "name": "input1",
+                "shape": [
+                    30,
+                    20
+                ]
+            }
+        ],
+        "lang": "tgt",
+        "output": [
+            {
+                "name": "target1",
+                "shape": [
+                    7,
+                    7
+                ],
+                "text": "ABC ABC",
+                "token": "A B C <space> A B C",
+                "tokenid": "3 4 5 2 3 4 5"
+            }
+        ],
+        "utt2spk": "spk1"
+    },
+    "uttid1": {
+        "input": [
+            {
+                "feat": "${ark_1}:2429",
+                "name": "input1",
+                "shape": [
+                    30,
+                    20
+                ]
+            }
+        ],
+        "lang": "tgt",
+        "output": [
+            {
+                "name": "target1",
+                "shape": [
+                    5,
+                    7
+                ],
+                "text": "BC BC",
+                "token": "B C <space> B C",
+                "tokenid": "4 5 2 4 5"
+            }
+        ],
+        "utt2spk": "spk2"
+    }
+}
+EOF
+
+cat << EOF > $tmpdir/base_mt.json
+{
+"utts": {
+"uttid0": {
+    "input": [],
+    "lang": "tgt",
+    "output": [
+        {
+            "name": "target1",
+            "shape": [
+                7,
+                7
+            ],
+            "text": "ABC ABC",
+            "token": "A B C <space> A B C",
+            "tokenid": "3 4 5 2 3 4 5"
+        }
+    ],
+    "utt2spk": "spk1"
+},
+"uttid1": {
+    "input": [],
+    "lang": "tgt",
+    "output": [
+        {
+            "name": "target1",
+            "shape": [
+                5,
+                7
+            ],
+            "text": "BC BC",
+            "token": "B C <space> B C",
+            "tokenid": "4 5 2 4 5"
+        }
+    ],
+    "utt2spk": "spk2"
+}
+EOF
+
+    cat << EOF > $tmpdir/valid.json
 {
     "utts": {
         "uttid0": {
@@ -133,14 +230,80 @@ EOF
 }
 EOF
 
+cat << EOF > $tmpdir/valid_mt.json
+{
+"utts": {
+    "uttid0": {
+        "input": [],
+        "lang": "tgt",
+        "output": [
+            {
+                "name": "target1",
+                "shape": [
+                    7,
+                    7
+                ],
+                "text": "ABC ABC",
+                "token": "A B C <space> A B C",
+                "tokenid": "3 4 5 2 3 4 5"
+            }
+            {
+                "name": "target2",
+                "shape": [
+                    7,
+                    7
+                ],
+                "text": "CBA CBA",
+                "token": "C B A <space> C B A",
+                "tokenid": "5 4 3 2 5 4 3"
+            }
+        ],
+        "utt2spk": "spk1"
+    },
+    "uttid1": {
+        "input": [],
+        "lang": "tgt",
+        "output": [
+            {
+                "name": "target1",
+                "shape": [
+                    5,
+                    7
+                ],
+                "text": "BC BC",
+                "token": "B C <space> B C",
+                "tokenid": "4 5 2 4 5"
+            }
+            {
+                "name": "target2",
+                "shape": [
+                    5,
+                    7
+                ],
+                "text": "CB CB",
+                "token": "C B <space> C B",
+                "tokenid": "5 4 2 5 4"
+            }
+        ],
+        "utt2spk": "spk2"
+    }
+}
+EOF
+
 }
 
 teardown() {
     rm -rf $tmpdir
 }
 
-@test "update_json.sh: single input" {
-    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/data \
-    $tmpdir/dict > ${tmpdir}/data.json
-    jsondiff ${tmpdir}/data.json $tmpdir/valid
+@test "update_json.sh: multi outputs" {
+    $utils/update_json.sh --text $tmpdir/data/text_src ${tmpdir}/base.json $tmpdir/data \
+        $tmpdir/dict > ${tmpdir}/data.json
+    jsondiff ${tmpdir}/data.json $tmpdir/valid.json
+}
+
+@test "update_json.sh: mt" {
+    $utils/update_json.sh --text $tmpdir/data/text_src ${tmpdir}/base_mt.json $tmpdir/data \
+        $tmpdir/dict > ${tmpdir}/data.json
+    jsondiff ${tmpdir}/data.json $tmpdir/valid_mt.json
 }
