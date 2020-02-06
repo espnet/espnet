@@ -233,62 +233,63 @@ EOF
 }
 EOF
 
-cat << EOF > $tmpdir/valid_mt.json
+    cat << EOF > $tmpdir/valid_mt.json
 {
-"utts": {
-    "uttid0": {
-        "input": [],
-        "lang": "tgt",
-        "output": [
-            {
-                "name": "target1",
-                "shape": [
-                    7,
-                    7
-                ],
-                "text": "ABC ABC",
-                "token": "A B C <space> A B C",
-                "tokenid": "3 4 5 2 3 4 5"
-            }
-            {
-                "name": "target2",
-                "shape": [
-                    7,
-                    7
-                ],
-                "text": "CBA CBA",
-                "token": "C B A <space> C B A",
-                "tokenid": "5 4 3 2 5 4 3"
-            }
-        ],
-        "utt2spk": "spk1"
-    },
-    "uttid1": {
-        "input": [],
-        "lang": "tgt",
-        "output": [
-            {
-                "name": "target1",
-                "shape": [
-                    5,
-                    7
-                ],
-                "text": "BC BC",
-                "token": "B C <space> B C",
-                "tokenid": "4 5 2 4 5"
-            }
-            {
-                "name": "target2",
-                "shape": [
-                    5,
-                    7
-                ],
-                "text": "CB CB",
-                "token": "C B <space> C B",
-                "tokenid": "5 4 2 5 4"
-            }
-        ],
-        "utt2spk": "spk2"
+    "utts": {
+        "uttid0": {
+            "input": [],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        7,
+                        7
+                    ],
+                    "text": "ABC ABC",
+                    "token": "A B C <space> A B C",
+                    "tokenid": "3 4 5 2 3 4 5"
+                }
+                {
+                    "name": "target2",
+                    "shape": [
+                        7,
+                        7
+                    ],
+                    "text": "CBA CBA",
+                    "token": "C B A <space> C B A",
+                    "tokenid": "5 4 3 2 5 4 3"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1": {
+            "input": [],
+            "lang": "tgt",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        5,
+                        7
+                    ],
+                    "text": "BC BC",
+                    "token": "B C <space> B C",
+                    "tokenid": "4 5 2 4 5"
+                }
+                {
+                    "name": "target2",
+                    "shape": [
+                        5,
+                        7
+                    ],
+                    "text": "CB CB",
+                    "token": "C B <space> C B",
+                    "tokenid": "5 4 2 5 4"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
     }
 }
 EOF
