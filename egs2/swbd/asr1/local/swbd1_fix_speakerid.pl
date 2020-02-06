@@ -1,0 +1,1 @@
+../../../../egs/swbd/asr1/local/swbd1_fix_speakerid.pl
