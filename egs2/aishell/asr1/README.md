@@ -7,13 +7,6 @@
   - Commit date: `Sat Jan 11 06:09:24 2020 +0900`
 
 ## asr_train_asr_rnn_new_fbank_pitch_char
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_devdecode_asr_rnn_lm_valid.loss.best_asr_model_valid.acc.best|14326|14326|50.4|49.6|0.0|0.0|49.6|49.6|
-|decode_testdecode_asr_rnn_lm_valid.loss.best_asr_model_valid.acc.best|7176|7176|46.6|53.4|0.0|0.0|53.4|53.4|
-
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -22,13 +15,6 @@
 |decode_testdecode_asr_rnn_lm_valid.loss.best_asr_model_valid.acc.best|7176|104765|91.6|8.2|0.3|0.2|8.6|53.4|
 
 ## asr_train_asr_transformer_fbank_pitch_char
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_devdecode_asr_transformer_lm_valid.loss.best_asr_model_valid.acc.best|14326|14326|1.2|98.8|0.0|0.0|98.8|98.8|
-|decode_testdecode_asr_transformer_lm_valid.loss.best_asr_model_valid.acc.best|7176|7176|0.8|99.2|0.0|0.0|99.2|99.2|
-
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
