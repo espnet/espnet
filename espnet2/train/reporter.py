@@ -300,9 +300,34 @@ class Reporter:
     def get_best_epoch(self, key: str, key2: str, mode: str, nbest: int = 0) -> int:
         return self.sort_epochs(key, key2, mode)[nbest]
 
+    def check_early_stopping(
+        self,
+        patience: int,
+        key1: str,
+        key2: str,
+        mode: str,
+        epoch: int = None,
+        logger=None,
+    ) -> bool:
+        if logger is None:
+            logger = logging
+        if epoch is None:
+            epoch = self.get_epoch()
+
+        best_epoch = self.get_best_epoch(key1, key2, mode)
+        if epoch - best_epoch > patience:
+            logger.info(
+                f"[Early stopping] {key1}.{key2} has not been "
+                f"improved {epoch - best_epoch} epochs continuously. "
+                f"The training was stopped at {epoch}epoch"
+            )
+            return True
+        else:
+            return False
+
     def has(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return (
             epoch in self.stats
             and key in self.stats[epoch]
@@ -313,7 +338,7 @@ class Reporter:
         if logger is None:
             logger = logging
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         level = logging.getLevelName(level)
 
         message = ""
@@ -339,27 +364,29 @@ class Reporter:
         logger.log(level, message)
 
     def get_value(self, key: str, key2: str, epoch: int = None):
+        if not self.has(key, key2):
+            raise KeyError(f"{key}.{key2} is not found in stats: {self.get_all_keys()}")
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return self.stats[epoch][key][key2]
 
     def get_keys(self, epoch: int = None) -> Tuple[str, ...]:
         """Returns keys1 e.g. train,eval."""
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return tuple(self.stats[epoch])
 
     def get_keys2(self, key: str, epoch: int = None) -> Tuple[str, ...]:
         """Returns keys2 e.g. loss,acc."""
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         d = self.stats[epoch][key]
         keys2 = tuple(k for k in d if k not in ("time", "total_count"))
         return keys2
 
     def get_all_keys(self, epoch: int = None) -> Tuple[Tuple[str, str], ...]:
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         all_keys = []
         for key in self.stats[epoch]:
             for key2 in self.stats[epoch][key]:
@@ -390,7 +417,7 @@ class Reporter:
 
         plt.clf()
 
-        epochs = np.arange(1, max(self.stats) + 1)
+        epochs = np.arange(1, self.get_epoch() + 1)
         for key in keys:
             y = [
                 self.stats[e][key][key2]
