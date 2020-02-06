@@ -12,11 +12,16 @@ import random
 import subprocess
 import sys
 
+from distutils.version import LooseVersion
+
 import configargparse
 import numpy as np
+import torch
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -62,6 +67,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
+    parser.add_argument('--save-interval-iters', default=0, type=int,
+                        help="Save snapshot interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -157,6 +164,17 @@ def get_parser(parser=None, required=True):
                         help='Tie parameters of source embedding and target embedding.')
     parser.add_argument('--tie-classifier', default=False, type=strtobool, nargs='?',
                         help='Tie parameters of target embedding and output projection layer.')
+    # finetuning related
+    parser.add_argument('--enc-init', default=None, type=str, nargs='?',
+                        help='Pre-trained ASR model to initialize encoder.')
+    parser.add_argument('--enc-init-mods', default='enc.enc.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of encoder modules to initialize, separated by a comma.')
+    parser.add_argument('--dec-init', default=None, type=str, nargs='?',
+                        help='Pre-trained ASR, MT or LM model to initialize decoder.')
+    parser.add_argument('--dec-init-mods', default='att., dec.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of decoder modules to initialize, separated by a comma.')
     # multilingual related
     parser.add_argument('--multilingual', default=False, type=strtobool,
                         help='Prepend target language ID to the source sentence. \
@@ -222,6 +240,9 @@ def main(cmd_args):
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
     else:
+        if is_torch_1_2_plus and args.ngpu != 1:
+            logging.debug("There are some bugs with multi-GPU processing in PyTorch 1.2+" +
+                          " (see https://github.com/pytorch/pytorch/issues/21108)")
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 

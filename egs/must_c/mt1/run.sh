@@ -11,6 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+nj=16           # numebr of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -46,6 +47,9 @@ tgt_lang=de
 # if you want to train the multilingual model, segment languages with _ as follows:
 # e.g., tgt_lang="de_es_fr"
 # if you want to use all languages, set tgt_lang="all"
+
+use_st_dict=true
+# use the same dict as in the ST task
 
 # bpemode (unigram or bpe)
 nbpe=8000
@@ -118,26 +122,34 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
-nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${tgt_case}.txt
-bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
+if [ ${use_st_dict} = true ]; then
+    dict=../st1/data/lang_1spm/train_sp.en-${tgt_lang}.${tgt_lang}_${bpemode}${nbpe}_units_${tgt_case}.txt
+    nlsyms=../st1/data/lang_1spm/train_sp.en-${tgt_lang}.${tgt_lang}_non_lang_syms_${tgt_case}.txt
+    bpemodel=../st1/data/lang_1spm/train_sp.en-${tgt_lang}.${tgt_lang}_${bpemode}${nbpe}_${tgt_case}
+else
+    dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
+    nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${tgt_case}.txt
+    bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
+fi
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1spm/
 
-    echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d' ' data/train.en-${tgt_lang}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
-    cat ${nlsyms}
+    if [ ${use_st_dict} = false ]; then
+        echo "make a non-linguistic symbol list for all languages"
+        cut -f 2- -d' ' data/train.en-${tgt_lang}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+        cat ${nlsyms}
 
-    echo "make a joint source and target dictionary"
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=$(wc -l < ${dict})
-    cut -f 2- -d' ' data/train.en-${tgt_lang}.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
-    wc -l ${dict}
+        echo "make a joint source and target dictionary"
+        echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+        offset=$(wc -l < ${dict})
+        cut -f 2- -d' ' data/train.en-${tgt_lang}.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+        spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+        spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+        wc -l ${dict}
+    fi
 
     echo "make json files"
     local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model \
@@ -208,7 +220,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
-    nj=16
 
     pids=() # initialize pids
     for ttask in ${trans_set}; do

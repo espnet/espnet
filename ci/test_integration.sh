@@ -7,8 +7,12 @@ cd ./egs/mini_an4/asr1 || exit 1
 
 set -euo pipefail
 
-echo "==== ASR (backend=pytorch) ==="
+echo "==== ASR (backend=pytorch lm=RNNLM) ==="
 ./run.sh
+echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
+./run.sh --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
+# skip duplicated ASR training stage 4
+./run.sh --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
 echo "==== ASR (backend=chainer) ==="
@@ -39,3 +43,12 @@ echo "==== TTS (backend=pytorch) ==="
 cd ${cwd} || exit 1
 
 # TODO(karita): test mt, st?
+
+echo "=== run integration tests at test_utils ==="
+
+PATH=$(pwd)/bats-core/bin:$PATH
+if ! [ -x "$(command -v bats)" ]; then
+    echo "=== install bats ==="
+    git clone https://github.com/bats-core/bats-core.git
+fi
+bats test_utils/integration_test_*.bats
