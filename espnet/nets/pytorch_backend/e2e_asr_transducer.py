@@ -14,7 +14,10 @@ from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 
+
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 
@@ -174,18 +177,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             self.subsample = [1]
         else:
-            subsample = np.ones(args.elayers + 1, dtype=np.int)
-
-            if args.etype.endswith("p") and not args.etype.startswith("vgg"):
-                ss = args.subsample.split("_")
-
-                for j in range(min(args.elayers + 1, len(ss))):
-                    subsample[j] = int(ss[j])
-            else:
-                logging.warning(
-                    'Subsampling for vgg* is performed in max pooling layers.')
-                logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
-            self.subsample = subsample
+            self.subsample = get_subsample(args, mode='asr', arch='rnn-t')
 
             self.encoder = encoder_for(args, idim, subsample)
 
@@ -231,6 +223,19 @@ class E2E(ASRInterface, torch.nn.Module):
         self.criterion = TransLoss(args.trans_type, self.blank_id)
 
         self.default_parameters(args)
+
+        if args.use_frontend:
+            # Relative importing because of using python3 syntax
+            from espnet.nets.pytorch_backend.frontends.feature_transform \
+                import feature_transform_for
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
+
+            self.frontend = frontend_for(args, idim)
+            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
+            idim = args.n_mels
+        else:
+            self.frontend = None
 
         if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
