@@ -36,6 +36,11 @@ uttid0 ABC ABC
 uttid1 BC BC
 EOF
 
+    cat << EOF > $tmpdir/data/text_src
+uttid0 CBA CBA
+uttid1 CB CB
+EOF
+
     cat << EOF > $tmpdir/data/utt2spk
 uttid0 spk1
 uttid1 spk2
@@ -81,9 +86,9 @@ EOF
                         7,
                         7
                     ],
-                    "text": "ABC ABC",
-                    "token": "A B C <space> A B C",
-                    "tokenid": "3 4 5 2 3 4 5"
+                    "text": "CBA CBA",
+                    "token": "C B A <space> C B A",
+                    "tokenid": "5 4 3 2 5 4 3"
                 }
             ],
             "utt2spk": "spk1"
@@ -117,9 +122,9 @@ EOF
                         5,
                         7
                     ],
-                    "text": "BC BC",
-                    "token": "B C <space> B C",
-                    "tokenid": "4 5 2 4 5"
+                    "text": "CB CB",
+                    "token": "C B <space> C B",
+                    "tokenid": "5 4 2 5 4"
                 }
             ],
             "utt2spk": "spk2"
@@ -135,7 +140,7 @@ teardown() {
 }
 
 @test "update_json.sh: single input" {
-    $utils/update_json.sh --feat $scp_1 $tmpdir/data \
+    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/data \
     $tmpdir/dict > ${tmpdir}/data.json
     jsondiff ${tmpdir}/data.json $tmpdir/valid
 }
