@@ -8,11 +8,9 @@ setup() {
     tmpdir=$(mktemp -d testXXXXXX)
     mkdir -p $tmpdir/data
     ark_1=$tmpdir/test_1.ark
-    scp_1=$tmpdir/test_1.scp
 
     mkdir -p $tmpdir/data_multilingual
     ark_1_multilingual=$tmpdir/test_1_multilingual.ark
-    scp_1_multilingual=$tmpdir/test_1_multilingual.scp
 
     cat << EOF > $tmpdir/data/text
 uttid0 ABC ABC
@@ -71,7 +69,7 @@ EOF
 <lang4>
 EOF
 
-    cat << EOF > $tmpdir/base.json
+    cat << EOF > $tmpdir/base_st.json
 {
     "utts": {
         "uttid0": {
@@ -122,6 +120,65 @@ EOF
                     "text": "BC BC",
                     "token": "B C <space> B C",
                     "tokenid": "4 5 2 4 5"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
+    }
+}
+EOF
+
+    cat << EOF > $tmpdir/base_multilingual_st.json
+{
+    "utts": {
+        "uttid0-lang1": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:7",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang1",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        8,
+                        9
+                    ],
+                    "text": "<lang1> ABC ABC",
+                    "token": "<lang1> A B C <space> A B C",
+                    "tokenid": "6 3 4 5 2 3 4 5"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1-lang2": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:2429",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang2",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        6,
+                        9
+                    ],
+                    "text": "<lang2> BC BC",
+                    "token": "<lang2> B C <space> B C",
+                    "tokenid": "7 4 5 2 4 5"
                 }
             ],
             "utt2spk": "spk2"
@@ -212,7 +269,7 @@ EOF
 }
 EOF
 
-    cat << EOF > $tmpdir/valid.json
+    cat << EOF > $tmpdir/valid_st.json
 {
     "utts": {
         "uttid0": {
@@ -283,6 +340,85 @@ EOF
                     "text": "CB CB",
                     "token": "C B <space> C B",
                     "tokenid": "5 4 2 5 4"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
+    }
+}
+EOF
+
+    cat << EOF > $tmpdir/valid_multilingual_st.json
+{
+    "utts": {
+        "uttid0-lang1": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:7",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang1",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        8,
+                        9
+                    ],
+                    "text": "<lang1> ABC ABC",
+                    "token": "<lang1> A B C <space> A B C",
+                    "tokenid": "6 3 4 5 2 3 4 5"
+                }
+                {
+                    "name": "target2",
+                    "shape": [
+                        8,
+                        9
+                    ],
+                    "text": "<lang3> CBA CBA",
+                    "token": "<lang3> C B A <space> C B A",
+                    "tokenid": "6 5 4 3 2 5 4 3"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1-lang2": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:2429",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang2",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        6,
+                        9
+                    ],
+                    "text": "<lang2> BC BC",
+                    "token": "<lang2> B C <space> B C",
+                    "tokenid": "7 4 5 2 4 5"
+                }
+                {
+                    "name": "target2",
+                    "shape": [
+                        6,
+                        9
+                    ],
+                    "text": "<lang4> CB CB",
+                    "token": "<lang4> C B <space> C B",
+                    "tokenid": "7 5 4 2 5 4"
                 }
             ],
             "utt2spk": "spk2"
@@ -421,9 +557,9 @@ teardown() {
 }
 
 @test "update_json.sh: multi outputs" {
-    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base.json $tmpdir/data \
+    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base_st.json $tmpdir/data \
         $tmpdir/dict
-    jsondiff $tmpdir/base.json $tmpdir/valid.json
+    jsondiff $tmpdir/base_st.json $tmpdir/valid_st.json
 }
 
 @test "update_json.sh: MT" {
@@ -432,8 +568,14 @@ teardown() {
     jsondiff $tmpdir/base_mt.json $tmpdir/valid_mt.json
 }
 
+@test "update_json.sh: multilingual ST" {
+    $utils/update_json.sh --text $tmpdir/data_multilingual/text_src --nlsyms $tmpdir/nlsyms $tmpdir/base_multilingual_st.json $tmpdir/data_multilingual \
+        $tmpdir/dict_multilingual
+    jsondiff $tmpdir/base_multilingual_st.json $tmpdir/valid_multilingual_st.json
+}
+
 @test "update_json.sh: multilingual MT" {
     $utils/update_json.sh --text $tmpdir/data_multilingual/text_src --nlsyms $tmpdir/nlsyms $tmpdir/base_multilingual_mt.json $tmpdir/data_multilingual \
-        $tmpdir/dict
+        $tmpdir/dict_multilingual
     jsondiff $tmpdir/base_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
 }
