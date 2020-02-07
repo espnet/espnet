@@ -373,6 +373,48 @@ EOF
 }
 EOF
 
+    cat << EOF > $tmpdir/valid_multilingual_mt.json
+{
+    "utts": {
+        "uttid0-lang1": {
+            "input": [],
+            "lang": "lang1",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        8,
+                        9
+                    ],
+                    "text": "<lang1> ABC ABC",
+                    "token": "<lang1> A B C <space> A B C",
+                    "tokenid": "6 3 4 5 2 3 4 5"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1-lang2": {
+            "input": [],
+            "lang": "lang2",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        6,
+                        9
+                    ],
+                    "text": "<lang2> BC BC",
+                    "token": "<lang2> B C <space> B C",
+                    "tokenid": "7 4 5 2 4 5"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
+    }
+}
+EOF
+
+
 }
 
 teardown() {
@@ -407,4 +449,10 @@ teardown() {
     $utils/data2json.sh --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual > ${tmpdir}/data_multilingual_st.json
     jsondiff ${tmpdir}/data_multilingual_st.json $tmpdir/valid_multilingual_st.json
+}
+
+@test "data2json.sh: multilingual MT" {
+    $utils/data2json.sh --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
+        $tmpdir/dict_multilingual > ${tmpdir}/data_multilingual_mt.json
+    jsondiff ${tmpdir}/data_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
 }
