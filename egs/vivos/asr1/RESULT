@@ -22,4 +22,39 @@ exp/train_nodev_pytorch_train_mtlalpha1.0/decode_train_dev_decode_ctcweight1.0_l
 exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_lm_word7184/result.txt:|  SPKR         |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |
 exp/train_nodev_pytorch_train_mtlalpha1.0/decode_test_decode_ctcweight1.0_lm_word7184/result.txt:|  Sum/Avg      |   760     32771   |  83.0      12.7      4.3       3.2      20.2     93.9   |
 
+4. %CER of RNN-transducer without LM
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer/result.txt:|  SPKR        | # Snt    # Wrd  | Corr      Sub     Del      Ins     Err    S.Err  |
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer/result.txt:|  Sum/Avg     |  100      4007  | 85.9     11.2     2.9      2.1    16.3     97.0  |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer/result.txt:| SPKR        | # Snt   # Wrd  | Corr     Sub     Del     Ins     Err   S.Err  |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer/result.txt:| Sum/Avg     |  760    32771  | 84.6    11.7     3.7     3.3    18.7    94.5  |
+
+5. %CER of RNN-transducer with character-based LM
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer_lm/result.txt:|  SPKR        |  # Snt    # Wrd  |  Corr     Sub      Del      Ins      Err    S.Err  |
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer_lm/result.txt:|  Sum/Avg     |   100      4007  |  86.2    10.7      3.1      2.0     15.8     96.0  |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer_lm/result.txt:| SPKR        |  # Snt   # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer_lm/result.txt:| Sum/Avg     |   760    32771  | 84.8     11.2     4.0     3.1     18.3    93.6  |
+
+6. %CER of RNN-transducer with word-based LM
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer_lm_word7184:|  SPKR         |  # Snt     # Wrd   |  Corr       Sub      Del       Ins       Err     S.Err   |
+exp/train_nodev_pytorch_train_transducer/decode_train_dev_decode_transducer_lm_word7184:|  Sum/Avg      |   100       4007   |  85.8      10.6      3.5       1.9      16.0      96.0   |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer_lm_word7184:|  SPKR        |  # Snt     # Wrd  |  Corr      Sub       Del      Ins      Err     S.Err  |
+exp/train_nodev_pytorch_train_transducer/decode_test_decode_transducer_lm_word7184:|  Sum/Avg     |   760      32771  |  85.1     10.9       4.0      3.1     18.0      92.4  |
+
+7. %CER of transformer-transducer without LM
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer/result.txt:|  SPKR         |  # Snt     # Wrd   |  Corr       Sub      Del       Ins       Err     S.Err   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer/result.txt:|  Sum/Avg      |   100       4007   |  83.8      13.6      2.6       3.3      19.5      98.0   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer/result.txt:|  SPKR        |  # Snt     # Wrd  |  Corr      Sub       Del      Ins      Err     S.Err  |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer/result.txt:|  Sum/Avg     |   760      32771  |  85.3     11.0       3.7      3.0     17.7      93.6  |
+
+8. %CER of transformer-transducer with character-based LM
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer_lm/result.txt:|  SPKR         |  # Snt      # Wrd   |  Corr       Sub       Del        Ins       Err     S.Err   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer_lm/result.txt:|  Sum/Avg      |   100        4007   |  84.4      12.9       2.7        2.8      18.4      97.0   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer_lm/result.txt:|  SPKR         |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer_lm/result.txt:|  Sum/Avg      |   760     32771   |  85.7      10.5      3.8       2.9      17.2     93.3   |
+
+9. %CER of transformer-transducer with word-based LM
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer_lm_word7184/result.txt:|SPKR    | # Snt  # Wrd |   Corr        Sub        Del        Ins         Err      S.Err   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_train_dev_decode_transducer_lm_word7184/result.txt:|Sum/Avg | 100    4007  |   84.9       12.2        2.9        2.8        17.9       97.0   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer_lm_word7184/result.txt:|SPKR   |  # Snt      # Wrd   |   Corr       Sub        Del        Ins       Err      S.Err   |
+exp/train_nodev_pytorch_train_transformer_transducer/decode_test_decode_transducer_lm_word7184/result.txt|Sum/Avg |   760       32771   |   86.1      10.2        3.7        2.7      16.7       91.8   |
 EOF
