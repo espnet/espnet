@@ -62,7 +62,7 @@ def test_batchfy_hyp():
      for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
      for lm in (0.0, 0.5)
-     for bonus in (0.0,)                                   # 0.1)
+     for bonus in (0.0, 0.1)
      # "float16", "float64")
      for dtype in ("float32",)
      ]
