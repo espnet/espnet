@@ -114,8 +114,8 @@ cat ${text} > ${tmpdir}/output/text.scp
 mkdir -p ${tmpdir}/other
 if [ ${multilingual} == true ]; then
     awk '{
-        split($1,S,"[-]");
-        lang=S[2];
+        n = split($1,S,"[-]");
+        lang=S[n];
         print $1 " " lang
     }' ${text} > ${tmpdir}/other/lang.scp
 elif [ -n "${lang}" ]; then
