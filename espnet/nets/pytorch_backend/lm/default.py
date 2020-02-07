@@ -135,28 +135,22 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         # merge states
         n_batch = len(ys)
         n_layers = self.model.predictor.n_layers
-        typ = self.model.predictor.typ
+        if self.model.predictor.typ == "lstm":
+            keys = ("c", "h")
+        else:
+            keys = ("h",)
+
         if states[0] is None:
-            batch_state = None
-        elif typ == "lstm":
+            states = None
+        else:
             # transpose state of [batch, key, layer] into [key, layer, batch]
-            batch_state = {
-                k: [torch.stack([states[b][k][l] for b in range(n_batch)]) for l in range(n_layers)]
-                for k in ("c", "h")
+            states = {
+                k: [torch.stack([states[b][k][l] for b in range(n_batch)]) for l in range(n_layers)] for k in keys
             }
-        else:
-            # transpose state of [batch, layer] into [layer, batch]
-            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+        states, logp = self.model.predict(states, ys[:, -1])
 
-        states, logp = self.model.predict(batch_state, ys[:, -1])
-
-        if typ == "lstm":
-            # transpose state of [key, layer, batch] into [batch, key, layer]
-            state_list = [{k: [states[k][l][b] for l in range(n_layers)] for k in ("c", "h")} for b in range(n_batch)]
-        else:
-            # transpose state of [layer, batch] into [batch, layer]
-            state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
-        return logp, state_list
+        # transpose state of [key, layer, batch] into [batch, key, layer]
+        return logp, [{k: [states[k][l][b] for l in range(n_layers)] for k in keys} for b in range(n_batch)]
 
 
 class ClassifierWithState(nn.Module):
