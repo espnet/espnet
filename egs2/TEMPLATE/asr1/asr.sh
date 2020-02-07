@@ -26,6 +26,7 @@ SECONDS=0
 stage=1          # Processes starts from the specified stage.
 stop_stage=11    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
@@ -96,6 +97,7 @@ Options:
     --stage      # Processes starts from the specified stage (default="${stage}").
     --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes  # The number of nodes
     --nj         # The number of parallel jobs (default="${nj}").
     --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
@@ -522,7 +524,13 @@ if "${use_lm}"; then
 
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
-      ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/train.log \
+      python3 -m espnet2.bin.launch \
+          --cmd "${cuda_cmd}" \
+          --log "${lm_exp}"/train.log \
+          --ngpu "${ngpu}" \
+          --num_nodes "${num_nodes}" \
+          --init_file_prefix "${asr_exp}"/.dist_init_ \
+          --multiprocessing_distributed true -- \
           python3 -m espnet2.bin.lm_train \
               --ngpu "${ngpu}" \
               --use_preprocessor true \
@@ -685,9 +693,14 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
-    ${cuda_cmd} --gpu "${ngpu}" "${asr_exp}"/train.log \
+    python3 -m espnet2.bin.launch \
+        --cmd "${cuda_cmd}" \
+        --log "${asr_exp}"/train.log \
+        --ngpu "${ngpu}" \
+        --num_nodes "${num_nodes}" \
+        --init_file_prefix "${asr_exp}"/.dist_init_ \
+        --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.asr_train \
-            --ngpu "${ngpu}" \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
