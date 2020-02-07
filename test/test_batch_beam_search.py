@@ -70,7 +70,7 @@ transformer_lm = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, po
      for lm_nn, lm_args in (("default", lstm_lm), ("default", gru_lm), ("transformer", transformer_lm))
      for lm in (0.0, 0.5)
      for bonus in (0.0, 0.1)
-     for dtype in ("float16", "float32", "float64")
+     for dtype in ("float32", "float64")  # TODO(karita): float16
      ]
 )
 def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, bonus, device, dtype):
@@ -147,4 +147,4 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, 
 
     for i, (expected, actual) in enumerate(zip(legacy_nbest_bs, nbest_bs)):
         assert expected.yseq.tolist() == actual.yseq.tolist()
-        numpy.testing.assert_allclose(expected.score, actual.score, rtol=1e-6)
+        numpy.testing.assert_allclose(expected.score.cpu(), actual.score.cpu(), rtol=1e-6)
