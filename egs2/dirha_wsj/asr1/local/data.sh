@@ -10,8 +10,9 @@ log() {
 }
 SECONDS=0
 
-stage=1
+stage=0
 stop_stage=1
+mic=Beam_Circular_Array # Beam_Circular_Array Beam_Linear_Array KA6 L1C
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -26,40 +27,32 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-other_text=data/local/other_text/text
 
+dirha_folder=/export/b18/ruizhili/data
+WSJ0=/export/corpora5/LDC/LDC93S6B
+WSJ1=/export/corpora5/LDC/LDC94S13B
+dirha_wsj_folder=/export/b18/ruizhili/data/Data_processed
+#IR_folder=/export/b18/xwang/data/ # folders for Impulse responses for WSJ contamination
+#sph_reader=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+
+# TO DO: fix IR_folder, as well as uncomment matlab preprocess code in stage 0
+# You only need dirha_wsj_folder, just forget WSJ0/1, dirha_folder for now
 
 if [ ! -e "${WSJ0}" ]; then
-    log "Fill the value of 'CSJDATATOP' of db.sh"
+    log "Fill the value of 'WSJ0' of db.sh"
     exit 1
 fi
 
 if [ ! -e "${WSJ1}" ]; then
-    log "Fill the value of 'CSJDATATOP' of db.sh"
+    log "Fill the value of 'WSJ1' of db.sh"
     exit 1
 fi
 
 if [ ! -e "${dirha_folder}" ]; then
-    log "Fill the value of 'CSJDATATOP' of db.sh"
+    log "Fill the value of 'dirha_folder' of db.sh"
     exit 1
 fi
 
-#if [ -z "${mic}" ]; then
-#    log "Fill the value of 'mic' of db.sh"
-#    exit 1
-#fi
-mic=Beam_Circular_Array
-#mic="Beam_Circular_Array"  # Beam_Circular_Array Beam_Linear_Array KA6 L1C
-
-dirha_wsj_folder=/export/b18/ruizhili/data/Data_processed # output folder for augmented wsj data and dirha data
-#IR_folder=/export/b18/xwang/data/DIRHA_English_phrich_released_june2016_realonly_last/Data/Training_IRs # folders for Impulse responses for WSJ contamination
-#sph_reader=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
-WSJ1=/export/corpora5/LDC/LDC94S13B
-
-train_set=train_si284_$mic
-train_test=dirha_real_$mic
-train_dev=dirha_sim_$mic
-recog_set=dirha_real_$mic
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data preparation"
@@ -79,6 +72,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/dirha_data_prep.sh $DIRHA_wsj_data/Sim dirha_sim_$mic  || exit 1;
     local/dirha_data_prep.sh $DIRHA_wsj_data/Real dirha_real_$mic  || exit 1;
 fi
+
+other_text=data/local/other_text/text
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Srctexts preparation"
