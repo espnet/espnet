@@ -190,4 +190,3 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
         return logp, state_list
-
