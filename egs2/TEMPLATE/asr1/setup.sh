@@ -24,12 +24,13 @@ fi
 
 dir=$1
 
+basedir=$(echo "$dir" | cut -d'/' -f1)
+num_sub=$(awk -F"/" '{print NF-1}' <<< "${dir}")
 
-if [ ! -e "${dir}/../../TEMPLATE" ]; then
-    log "Error: ${dir}/../../TEMPLATE doen't exist. You may specify wrong directory."
+if [ "${basedir}" != "egs2" ] || [ "$num_sub" -neq 2 ]; then
+    log "Error: ${dir}/../../TEMPLATE should exist. You may specify wrong directory."
     exit 1
 fi
-
 
 
 log "Change directory to ${dir}"

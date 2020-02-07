@@ -13,6 +13,7 @@ import numpy
 from espnet.transform.spectrogram import spectrogram
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper
+from espnet2.utils.types import int_or_none
 
 
 def get_parser():
@@ -23,7 +24,7 @@ def get_parser():
                         help='FFT length in point')
     parser.add_argument('--n_shift', type=int, default=512,
                         help='Shift length in point')
-    parser.add_argument('--win_length', type=int, default=None, nargs='?',
+    parser.add_argument('--win_length', type=int_or_none, default=None, nargs='?',
                         help='Analisys window length in point')
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],

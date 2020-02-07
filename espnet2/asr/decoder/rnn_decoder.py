@@ -36,14 +36,7 @@ def build_attention_list(
     if num_encs == 1:
         for i in range(num_att):
             att = initial_att(
-                atype,
-                eprojs,
-                dunits,
-                aheads,
-                adim,
-                awin,
-                aconv_chans,
-                aconv_filts,
+                atype, eprojs, dunits, aheads, adim, awin, aconv_chans, aconv_filts,
             )
             att_list.append(att)
     elif num_encs > 1:  # no multi-speaker mode
@@ -155,8 +148,7 @@ class RNNDecoder(AbsDecoder):
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
             for l in range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]),
-                    (z_prev[l], c_prev[l]),
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]),
                 )
         else:
             z_list[0] = self.decoder[0](ey, z_prev[0])
@@ -220,9 +212,7 @@ class RNNDecoder(AbsDecoder):
                     )
                 hs_pad_han = torch.stack(att_c_list, dim=1)
                 hlens_han = [self.num_encs] * len(ys_in_pad)
-                att_c, att_w_list[self.num_encs] = self.att_list[
-                    self.num_encs
-                ](
+                att_c, att_w_list[self.num_encs] = self.att_list[self.num_encs](
                     hs_pad_han,
                     hlens_han,
                     self.dropout_dec[0](z_list[0]),
@@ -236,14 +226,10 @@ class RNNDecoder(AbsDecoder):
             else:
                 # utt x (zdim + hdim)
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)
-            z_list, c_list = self.rnn_forward(
-                ey, z_list, c_list, z_list, c_list
-            )
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             if self.context_residual:
                 z_all.append(
-                    torch.cat(
-                        (self.dropout_dec[-1](z_list[-1]), att_c), dim=-1
-                    )
+                    torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1)
                 )  # utt x (zdim + hdim)
             else:
                 z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)

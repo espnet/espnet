@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.batch_beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
@@ -54,20 +55,26 @@ def test_batchfy_hyp():
         assert us[i].states == hs[i].states
 
 
+lstm_lm = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
+gru_lm = Namespace(type="gru", layer=1, unit=2, dropout_rate=0.0)
+transformer_lm = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, pos_enc="none", dropout_rate=0.0)
+
+
 @pytest.mark.parametrize(
-    "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
-    [(nn, args, ctc, lm, bonus, device, dtype)
+    "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, bonus, device, dtype",
+    [(nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
      for device in ("cpu",)                                # "cuda")
      # (("rnn", rnn_args),)
      for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
-     for lm in (0.0,)                                      # 0.5)
-     for bonus in (0.0,)                                   # 0.1)
+     for lm_nn, lm_args in (("default", lstm_lm), ("default", gru_lm), ("transformer", transformer_lm))
+     for lm in (0.0, 0.5)
+     for bonus in (0.0, 0.1)
      # "float16", "float64")
      for dtype in ("float32",)
      ]
 )
-def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):
+def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, bonus, device, dtype):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
@@ -85,9 +92,7 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
         model_class, args, mtlalpha=ctc_weight)
     model.eval()
     char_list = train_args.char_list
-    lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-    lm = dynamic_import_lm("default", backend="pytorch")(
-        len(char_list), lm_args)
+    lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
     # test previous beam search
@@ -101,11 +106,6 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
         nbest=5
     )
 
-    feat = x[0, :ilens[0]].numpy()
-    # legacy beam search
-    with torch.no_grad():
-        nbest = model.recognize(feat, args, char_list, lm.model)
-
     # new beam search
     scorers = model.scorers()
     if lm_weight != 0:
@@ -115,6 +115,22 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
                    lm=args.lm_weight, length_bonus=args.penalty)
     model.to(device, dtype=dtype)
     model.eval()
+    with torch.no_grad():
+        enc = model.encode(x[0, :ilens[0]].to(device, dtype=dtype))
+
+    legacy_beam = BeamSearch(
+        beam_size=args.beam_size,
+        vocab_size=len(char_list),
+        weights=weights,
+        scorers=scorers,
+        token_list=train_args.char_list,
+        sos=model.sos,
+        eos=model.eos,
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder"
+    )
+    legacy_beam.to(device, dtype=dtype)
+    legacy_beam.eval()
+
     beam = BatchBeamSearch(
         beam_size=args.beam_size,
         vocab_size=len(char_list),
@@ -127,15 +143,9 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
     beam.to(device, dtype=dtype)
     beam.eval()
     with torch.no_grad():
-        enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        nbest_bs = beam(x=enc, maxlenratio=args.maxlenratio,
-                        minlenratio=args.minlenratio)
-    if dtype == torch.float16:
-        # skip because results are different. just checking it is decodable
-        return
+        legacy_nbest_bs = legacy_beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
+        nbest_bs = beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
 
-    for i, (expected, actual) in enumerate(zip(nbest, nbest_bs)):
-        actual = actual.asdict()
-        assert expected["yseq"] == actual["yseq"]
-        numpy.testing.assert_allclose(
-            expected["score"], actual["score"], rtol=1e-6)
+    for i, (expected, actual) in enumerate(zip(legacy_nbest_bs, nbest_bs)):
+        assert expected.yseq.tolist() == actual.yseq.tolist()
+        numpy.testing.assert_allclose(expected.score, actual.score, rtol=1e-6)

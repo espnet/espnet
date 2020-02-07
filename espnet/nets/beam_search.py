@@ -89,7 +89,7 @@ class BeamSearch(torch.nn.Module):
         self.do_pre_beam = self.pre_beam_score_key is not None and \
             self.pre_beam_size < self.n_vocab and len(self.part_scorers) > 0
 
-    def init_hyp(self, x: torch.Tensor) -> Hypothesis:
+    def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
 
         Args:

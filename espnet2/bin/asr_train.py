@@ -3,12 +3,12 @@ from espnet2.tasks.asr import ASRTask
 
 
 def get_parser():
-    parser = ASRTask.add_arguments()
+    parser = ASRTask.get_parser()
     return parser
 
 
 def main(cmd=None):
-    r"""
+    r"""ASR training.
 
     Example:
 

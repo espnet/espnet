@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-import argparse
 import logging
-import random
-import sys
 from pathlib import Path
+import sys
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -12,38 +10,19 @@ from typing import Union
 import configargparse
 import numpy as np
 import torch
-import yaml
 from torch.nn.parallel import data_parallel
-from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-
-
-class ModuleWrapper(torch.nn.Module):
-    """Wrapped module to parallelize specified method
-
-    torch.nn.DataParallel parallelizes only "forward()"
-    and, maybe, the method having the other name can't be applied
-    except for wrapping the module just like this class.
-
-    """
-
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
-
-    def forward(self, *args, **kwargs):
-        return self.module.nll(*args, **kwargs)
 
 
 def calc_perplexity(
@@ -64,8 +43,7 @@ def calc_perplexity(
     assert check_argument_types()
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) "
-        "%(levelname)s: %(message)s",
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if ngpu >= 1:
@@ -74,48 +52,32 @@ def calc_perplexity(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build LM
-    with Path(train_config).open("r") as f:
-        train_args = yaml.load(f, Loader=yaml.Loader)
-    train_args = argparse.Namespace(**train_args)
-    model = LMTask.build_model(train_args)
-    model.load_state_dict(torch.load(model_file, map_location=device))
-    wrapped_model = ModuleWrapper(model)
-    wrapped_model.to(device=device, dtype=getattr(torch, dtype)).eval()
+    model, train_args = LMTask.build_model_from_file(train_config, model_file, device)
+    # Wrape model to make model.nll() data-parallel
+    wrapped_model = ForwardAdaptor(model, "nll")
+    wrapped_model.to(dtype=getattr(torch, dtype)).eval()
+    logging.info(f"Model:\n{model}")
 
     # 3. Build data-iterator
-    dataset = ESPnetDataset(
+    loader, _, _ = LMTask.build_non_sorted_iterator(
         data_path_and_name_and_type,
-        float_dtype=dtype,
-        preprocess=LMTask.build_preprocess_fn(train_args, False),
-    )
-    LMTask.check_task_requirements(dataset, allow_variable_data_keys, False)
-    if key_file is None:
-        key_file, _, _ = data_path_and_name_and_type[0]
-
-    batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, key_file=key_file, shuffle=False
-    )
-
-    logging.info(f"Model:\n{model}")
-    logging.info(f"Batch sampler: {batch_sampler}")
-    logging.info(f"dataset:\n{dataset}")
-    loader = DataLoader(
-        dataset=dataset,
-        batch_sampler=batch_sampler,
-        collate_fn=LMTask.build_collate_fn(train_args),
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
         num_workers=num_workers,
+        preprocess_fn=LMTask.build_preprocess_fn(train_args, False),
+        collate_fn=LMTask.build_collate_fn(train_args),
+        allow_variable_data_keys=allow_variable_data_keys,
     )
 
     # 4. Start for-loop
     with DatadirWriter(output_dir) as writer:
         total_nll = 0.0
         total_ntokens = 0
-        for keys, batch in zip(batch_sampler, loader):
+        for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -132,11 +94,7 @@ def calc_perplexity(
                         wrapped_model, (), range(ngpu), module_kwargs=batch
                     )
 
-            assert _bs == len(nll) == len(lengths), (
-                _bs,
-                len(nll),
-                len(lengths),
-            )
+            assert _bs == len(nll) == len(lengths), (_bs, len(nll), len(lengths))
             # nll: (B, L) -> (B,)
             nll = nll.detach().cpu().numpy().sum(1)
             # lengths: (B,)
@@ -179,9 +137,7 @@ def get_parser():
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path"
-    )
+    parser.add_argument("--config", is_config_file=True, help="config file path")
 
     parser.add_argument(
         "--log_level",
@@ -193,10 +149,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -212,10 +165,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
     parser.add_argument(
         "--log_base",
@@ -233,9 +183,7 @@ def get_parser():
         action="append",
     )
     group.add_argument("--key_file", type=str_or_none)
-    group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False
-    )
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--train_config", type=str)

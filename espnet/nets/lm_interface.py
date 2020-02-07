@@ -1,7 +1,10 @@
 """Language model interface."""
 
+import argparse
+
 from espnet.nets.scorer_interface import ScorerInterface
 from espnet.utils.dynamic_import import dynamic_import
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class LMInterface(ScorerInterface):
@@ -11,6 +14,28 @@ class LMInterface(ScorerInterface):
     def add_arguments(parser):
         """Add arguments to command line argument parser."""
         return parser
+
+    @classmethod
+    def build(cls, n_vocab: int, **kwargs):
+        """Initialize this class with python-level args.
+
+        Args:
+            idim (int): The number of vocabulary.
+
+        Returns:
+            LMinterface: A new instance of LMInterface.
+
+        """
+        # local import to avoid cyclic import in lm_train
+        from espnet.bin.lm_train import get_parser
+
+        def wrap(parser):
+            return get_parser(parser, required=False)
+
+        args = argparse.Namespace(**kwargs)
+        args = fill_missing_args(args, wrap)
+        args = fill_missing_args(args, cls.add_arguments)
+        return cls(n_vocab, args)
 
     def forward(self, x, t):
         """Compute LM loss value from buffer sequences.

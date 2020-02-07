@@ -22,6 +22,7 @@ from espnet.nets.chainer_backend.transformer.encoder import Encoder
 from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -96,7 +97,7 @@ class E2E(ChainerASRInterface):
         self.scale_emb = args.adim ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
-        self.subsample = [0]
+        self.subsample = get_subsample(args, mode='asr', arch='transformer')
         self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
