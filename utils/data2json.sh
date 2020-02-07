@@ -112,7 +112,7 @@ cat ${text} > ${tmpdir}/output/text.scp
 
 # 3. Create scp files for the others
 mkdir -p ${tmpdir}/other
-if [ -n "${multilingual}" ]; then
+if [ ${multilingual} == true ]; then
     awk '{
         split($1,S,"[-]");
         lang=S[2];
