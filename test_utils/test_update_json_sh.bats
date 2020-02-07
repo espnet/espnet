@@ -422,18 +422,18 @@ teardown() {
 
 @test "update_json.sh: multi outputs" {
     $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base.json $tmpdir/data \
-        $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid.json
+        $tmpdir/dict
+    jsondiff $tmpdir/base.json $tmpdir/valid.json
 }
 
 @test "update_json.sh: MT" {
     $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base_mt.json $tmpdir/data \
-        $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_mt.json
+        $tmpdir/dict
+    jsondiff $tmpdir/base_mt.json $tmpdir/valid_mt.json
 }
 
 @test "update_json.sh: multilingual MT" {
     $utils/update_json.sh --text $tmpdir/data_multilingual/text_src --nlsyms $tmpdir/nlsyms $tmpdir/base_multilingual_mt.json $tmpdir/data_multilingual \
-        $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
+        $tmpdir/dict
+    jsondiff $tmpdir/base_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
 }
