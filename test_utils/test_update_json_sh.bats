@@ -10,26 +10,9 @@ setup() {
     ark_1=$tmpdir/test_1.ark
     scp_1=$tmpdir/test_1.scp
 
-    ark_2=$tmpdir/test_2.ark
-    scp_2=$tmpdir/test_2.scp
-
-    # Create an ark for dummy feature
-    python << EOF
-import numpy as np
-import kaldiio
-
-with kaldiio.WriteHelper('ark,scp:{},{}'.format('$ark_1', '$scp_1')) as f:
-    for i in range(2):
-        x = np.ones((30, 20)).astype(np.float32)
-        uttid = 'uttid{}'.format(i)
-        f[uttid] = x
-
-with kaldiio.WriteHelper('ark,scp:{},{}'.format('$ark_2', '$scp_2')) as f:
-    for i in range(2):
-        x = np.ones((30, 20)).astype(np.float32)
-        uttid = 'uttid{}'.format(i)
-        f[uttid] = x
-EOF
+    mkdir -p $tmpdir/data_multilingual
+    ark_1_multilingual=$tmpdir/test_1_multilingual.ark
+    scp_1_multilingual=$tmpdir/test_1_multilingual.scp
 
     cat << EOF > $tmpdir/data/text
 uttid0 ABC ABC
@@ -54,6 +37,36 @@ B 4
 C 5
 EOF
 
+    cat << EOF > $tmpdir/data_multilingual/text
+uttid0-lang1 <lang1> ABC ABC
+uttid1-lang2 <lang2> BC BC
+EOF
+
+    cat << EOF > $tmpdir/data_multilingual/text_src
+uttid0-lang1 <lang2> CBA CBA
+uttid1-lang2 <lang2> CB CB
+EOF
+
+    cat << EOF > $tmpdir/data_multilingual/utt2spk
+uttid0-lang1 spk1
+uttid1-lang2 spk2
+EOF
+
+    cat << EOF > $tmpdir/dict_multilingual
+<unk> 1
+<space> 2
+A 3
+B 4
+C 5
+<lang1> 6
+<lang2> 7
+EOF
+
+    cat << EOF > $tmpdir/nlsyms
+<lang1>
+<lang2>
+EOF
+
     cat << EOF > $tmpdir/base.json
 {
     "utts": {
@@ -68,7 +81,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -94,7 +107,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -113,12 +126,13 @@ EOF
 }
 EOF
 
+
     cat << EOF > $tmpdir/base_mt.json
 {
     "utts": {
         "uttid0": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -135,7 +149,7 @@ EOF
         },
         "uttid1": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -168,7 +182,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -204,7 +218,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -238,7 +252,7 @@ EOF
     "utts": {
         "uttid0": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -265,7 +279,7 @@ EOF
         },
         "uttid1": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -294,6 +308,7 @@ EOF
 }
 EOF
 
+
 }
 
 teardown() {
@@ -301,13 +316,13 @@ teardown() {
 }
 
 @test "update_json.sh: multi outputs" {
-    $utils/update_json.sh --text $tmpdir/data/text_src ${tmpdir}/base.json $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data.json
-    jsondiff ${tmpdir}/data.json $tmpdir/valid.json
+    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base.json $tmpdir/data \
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid.json
 }
 
-@test "update_json.sh: mt" {
-    $utils/update_json.sh --text $tmpdir/data/text_src ${tmpdir}/base_mt.json $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data.json
-    jsondiff ${tmpdir}/data.json $tmpdir/valid_mt.json
+@test "update_json.sh: MT" {
+    $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base_mt.json $tmpdir/data \
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_mt.json
 }
