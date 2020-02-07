@@ -13,6 +13,10 @@ setup() {
     ark_2=$tmpdir/test_2.ark
     scp_2=$tmpdir/test_2.scp
 
+    mkdir -p $tmpdir/data_multilingual
+    ark_1_multilingual=$tmpdir/test_1_multilingual.ark
+    scp_1_multilingual=$tmpdir/test_1_multilingual.scp
+
     # Create an ark for dummy feature
     python << EOF
 import numpy as np
@@ -28,6 +32,12 @@ with kaldiio.WriteHelper('ark,scp:{},{}'.format('$ark_2', '$scp_2')) as f:
     for i in range(2):
         x = np.ones((30, 20)).astype(np.float32)
         uttid = 'uttid{}'.format(i)
+        f[uttid] = x
+
+with kaldiio.WriteHelper('ark,scp:{},{}'.format('$ark_1_multilingual', '$scp_1_multilingual')) as f:
+    for i in range(2):
+        x = np.ones((30, 20)).astype(np.float32)
+        uttid = 'uttid{}-lang{}'.format(i, i+1)
         f[uttid] = x
 EOF
 
@@ -47,6 +57,31 @@ EOF
 A 3
 B 4
 C 5
+EOF
+
+    cat << EOF > $tmpdir/data_multilingual/text
+uttid0-lang1 <lang1> ABC ABC
+uttid1-lang2 <lang2> BC BC
+EOF
+
+    cat << EOF > $tmpdir/data_multilingual/utt2spk
+uttid0-lang1 spk1
+uttid1-lang2 spk2
+EOF
+
+    cat << EOF > $tmpdir/dict_multilingual
+<unk> 1
+<space> 2
+A 3
+B 4
+C 5
+<lang1> 6
+<lang2> 7
+EOF
+
+    cat << EOF > $tmpdir/nlsyms
+<lang1>
+<lang2>
 EOF
 
     cat << EOF > $tmpdir/valid.json
@@ -179,7 +214,7 @@ EOF
 }
 EOF
 
-    cat << EOF > $tmpdir/valid_lang.json
+    cat << EOF > $tmpdir/valid_st.json
 {
     "utts": {
         "uttid0": {
@@ -193,7 +228,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -219,7 +254,7 @@ EOF
                     ]
                 }
             ],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -238,12 +273,71 @@ EOF
 }
 EOF
 
+    cat << EOF > $tmpdir/valid_multilingual_st.json
+{
+    "utts": {
+        "uttid0-lang1": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:7",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang1",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        8,
+                        9
+                    ],
+                    "text": "<lang1> ABC ABC",
+                    "token": "<lang1> A B C <space> A B C",
+                    "tokenid": "6 3 4 5 2 3 4 5"
+                }
+            ],
+            "utt2spk": "spk1"
+        },
+        "uttid1-lang2": {
+            "input": [
+                {
+                    "feat": "${ark_1_multilingual}:2429",
+                    "name": "input1",
+                    "shape": [
+                        30,
+                        20
+                    ]
+                }
+            ],
+            "lang": "lang2",
+            "output": [
+                {
+                    "name": "target1",
+                    "shape": [
+                        6,
+                        9
+                    ],
+                    "text": "<lang2> BC BC",
+                    "token": "<lang2> B C <space> B C",
+                    "tokenid": "7 4 5 2 4 5"
+                }
+            ],
+            "utt2spk": "spk2"
+        }
+    }
+}
+EOF
+
     cat << EOF > $tmpdir/valid_mt.json
 {
     "utts": {
         "uttid0": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -260,7 +354,7 @@ EOF
         },
         "uttid1": {
             "input": [],
-            "lang": "tgt",
+            "lang": "lang1",
             "output": [
                 {
                     "name": "target1",
@@ -297,14 +391,20 @@ teardown() {
     jsondiff ${tmpdir}/data_multi_inputs.json $tmpdir/valid_multi_inputs.json
 }
 
-@test "data2json.sh: language tag" {
-    $utils/data2json.sh --feat $scp_1 --lang tgt $tmpdir/data \
+@test "data2json.sh: language tag for ST and MT" {
+    $utils/data2json.sh --feat $scp_1 --lang lang1 $tmpdir/data \
         $tmpdir/dict > ${tmpdir}/data_lang.json
-    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_lang.json
+    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_st.json
 }
 
-@test "data2json.sh: no input" {
-    $utils/data2json.sh --lang tgt $tmpdir/data \
+@test "data2json.sh: no input for MT" {
+    $utils/data2json.sh --lang lang1 $tmpdir/data \
         $tmpdir/dict > ${tmpdir}/data_lang.json
     jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_mt.json
+}
+
+@test "data2json.sh: multilingual ST" {
+    $utils/data2json.sh --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
+        $tmpdir/dict_multilingual > ${tmpdir}/data_multilingual_st.json
+    jsondiff ${tmpdir}/data_multilingual_st.json $tmpdir/valid_multilingual_st.json
 }
