@@ -55,9 +55,9 @@ def test_batchfy_hyp():
         assert us[i].states == hs[i].states
 
 
-lstm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-gru_args = Namespace(type="gru", layer=1, unit=2, dropout_rate=0.0)
-transformer_args = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, pos_enc="none", dropout_rate=0.0)
+lstm_lm = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
+gru_lm = Namespace(type="gru", layer=1, unit=2, dropout_rate=0.0)
+transformer_lm = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, pos_enc="none", dropout_rate=0.0)
 
 
 @pytest.mark.parametrize(
@@ -67,7 +67,7 @@ transformer_args = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, 
      # (("rnn", rnn_args),)
      for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
-     for lm_nn, lm_args in (("default", lstm_args), ("default", gru_args), ("transformer", transformer_args))
+     for lm_nn, lm_args in (("default", lstm_lm), ("default", gru_lm), ("transformer", transformer_lm))
      for lm in (0.0, 0.5)
      for bonus in (0.0, 0.1)
      # "float16", "float64")
