@@ -81,7 +81,7 @@ class ScorerInterface:
 class BatchScorerInterface(ScorerInterface):
     """Batch scorer interface."""
 
-    def score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
         Args:

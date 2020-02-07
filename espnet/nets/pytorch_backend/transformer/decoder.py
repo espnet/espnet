@@ -6,6 +6,10 @@
 
 """Decoder definition."""
 
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -152,25 +156,38 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
     # beam search API (see ScorerInterface)
     def score(self, ys, state, x):
         """Score."""
-        # TODO(karita): remove this section after all ScorerInterface implements batch decoding
-        if ys.dim() == 1:
-            ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-            logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
-            return logp.squeeze(0), state
+        ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
+        return logp.squeeze(0), state
 
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
         # merge states
         n_batch = len(ys)
         n_layers = len(self.decoders)
-        if state[0] is None:
+        if states[0] is None:
             batch_state = None
         else:
             # transpose state of [batch, layer] into [layer, batch]
-            batch_state = [torch.stack([state[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
 
         # batch decoding
-        ys_mask = subsequent_mask(ys.size(-1), device=x.device).unsqueeze(0)
-        logp, state = self.forward_one_step(ys, ys_mask, x, cache=batch_state)
+        ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
+        logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
 
         # transpose state of [layer, batch] into [batch, layer]
-        state_list = [[state[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
         return logp, state_list
+
