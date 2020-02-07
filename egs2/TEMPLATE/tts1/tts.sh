@@ -29,6 +29,7 @@ SECONDS=0
 stage=1          # Processes starts from the specified stage.
 stop_stage=6     # Processes is stopped at the specified stage.
 ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 decode_nj=32     # The number of parallel jobs in decoding.
 gpu_decode=false # Whether to perform gpu decoding.
@@ -88,6 +89,7 @@ Options:
     --stage      # Processes starts from the specified stage (default="${stage}").
     --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes  # The number of nodes
     --nj         # The number of parallel jobs (default="${nj}").
     --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
@@ -449,9 +451,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
-    ${cuda_cmd} --gpu "${ngpu}" "${tts_exp}"/train.log \
+    python3 -m espnet2.bin.launch \
+        --cmd "${cuda_cmd}" \
+        --log "${tts_exp}"/train.log \
+        --ngpu "${ngpu}" \
+        --num_nodes "${num_nodes}" \
+        --init_file_prefix "${tts_exp}"/.dist_init_ \
+        --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.tts_train \
-            --ngpu "${ngpu}" \
             --token_list "${_train_dir}/tokens.txt" \
             --use_preprocessor true \
             --token_type char \
