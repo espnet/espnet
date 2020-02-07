@@ -1,6 +1,7 @@
 """Parallel beam search module."""
 
 import logging
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -108,12 +109,27 @@ class BatchBeamSearch(BeamSearch):
             Hypothesis: The initial hypothesis.
 
         """
-        init_states = dict()
-        init_scores = dict()
-        for k, d in self.scorers.items():
-            init_states[k] = d.init_state(x)
-            init_scores[k] = 0.0
         return self.batchfy(super().init_hyp(x))
+
+    def score_full(self, hyp: BatchHypothesis, x: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+        """Score new hypothesis by `self.full_scorers`.
+
+        Args:
+            hyp (Hypothesis): Hypothesis with prefix tokens to score
+            x (torch.Tensor): Corresponding input feature
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
+                score dict of `hyp` that has string keys of `self.full_scorers`
+                and tensor score values of shape: `(self.n_vocab,)`,
+                and state dict that has string keys and state values of `self.full_scorers`
+
+        """
+        scores = dict()
+        states = dict()
+        for k, d in self.full_scorers.items():
+            scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+        return scores, states
 
     def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
