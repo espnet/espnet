@@ -14,7 +14,6 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn
-from torch.nn.parallel import data_parallel
 import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
@@ -50,7 +49,6 @@ class TrainerOptions:
     grad_clip: float
     log_interval: Optional[int]
     no_forward_run: bool
-    distributed: bool
 
 
 class Trainer:
@@ -130,13 +128,36 @@ class Trainer:
         if distributed_option.distributed:
             # Use torch DDP instead of apex DDP
             # https://github.com/NVIDIA/apex/issues/494
-            ddp_model = torch.nn.parallel.DistributedDataParallel(
-                model, device_ids=list(range(trainer_options.ngpu))
+            dp_model = torch.nn.parallel.DistributedDataParallel(
+                model,
+                device_ids=(
+                    # Perform multi-Process with multi-GPUs
+                    [torch.cuda.current_device()]
+                    if distributed_option.ngpu == 1
+                    # Perform single-Process with multi-GPUs
+                    else None
+                ),
+                output_device=(
+                    torch.cuda.current_device()
+                    if distributed_option.ngpu == 1
+                    else None
+                ),
+            )
+        elif distributed_option.ngpu > 1:
+            # apex.amp supports DataParallel now.
+            dp_model = torch.nn.parallel.DataParallel(
+                model, device_ids=list(range(distributed_option.ngpu)),
             )
         else:
-            ddp_model = model
+            # NOTE(kamo): DataParallel also should work with ngpu=1,
+            # but for debuggability it's better to keep this block.
+            dp_model = model
 
-        summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+        else:
+            summary_writer = None
+
         for iepoch in range(start_epoch, max_epoch + 1):
             logging.info(f"{iepoch}epoch started")
             set_all_random_seed(seed + iepoch)
@@ -145,7 +166,7 @@ class Trainer:
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.train_one_epoch(
-                    model=ddp_model,
+                    model=dp_model,
                     optimizers=optimizers,
                     schedulers=schedulers,
                     iterator=train_iter_factory.build_iter(iepoch),
@@ -153,16 +174,16 @@ class Trainer:
                     options=trainer_options,
                 )
 
-            if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # Eval and att_plot don't support distributed (It can)
-                with reporter.observe("valid") as sub_reporter:
-                    cls.validate_one_epoch(
-                        model=model,
-                        iterator=valid_iter_factory.build_iter(iepoch),
-                        reporter=sub_reporter,
-                        options=trainer_options,
-                    )
+            with reporter.observe("valid") as sub_reporter:
+                cls.validate_one_epoch(
+                    model=dp_model,
+                    iterator=valid_iter_factory.build_iter(iepoch),
+                    reporter=sub_reporter,
+                    options=trainer_options,
+                )
 
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # att_plot don't support distributed
                 if plot_attention_iter_factory is not None:
                     with reporter.observe("att_plot") as sub_reporter:
                         cls.plot_attention(
@@ -177,14 +198,7 @@ class Trainer:
             # 2. LR Scheduler step
             for scheduler in schedulers:
                 if isinstance(scheduler, AbsValEpochStepScheduler):
-                    _phase, _criterion = val_scheduler_criterion
-                    if not reporter.has(_phase, _criterion):
-                        raise RuntimeError(
-                            f"{_phase}.{_criterion} is not found in stats: "
-                            f"{reporter.get_all_keys()}"
-                        )
-                    val = reporter.get_value(_phase, _criterion)
-                    scheduler.step(val)
+                    scheduler.step(reporter.get_value(*val_scheduler_criterion))
                 elif isinstance(scheduler, AbsEpochStepScheduler):
                     scheduler.step()
 
@@ -259,14 +273,7 @@ class Trainer:
 
             # 8. Check early stopping
             if patience is not None:
-                _phase, _criterion, _mode = early_stopping_criterion
-                best_epoch = reporter.get_best_epoch(_phase, _criterion, _mode)
-                if iepoch - best_epoch > patience:
-                    logging.info(
-                        f"[Early stopping] {_phase}.{_criterion} has not been "
-                        f"improved {iepoch - best_epoch} epochs continuously. "
-                        f"The training was stopped at {iepoch}epoch"
-                    )
+                if reporter.check_early_stopping(patience, *early_stopping_criterion):
                     break
 
         else:
@@ -297,6 +304,7 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         train_dtype = options.train_dtype
+        distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         if log_interval is None:
             log_interval = max(len(iterator) // 20, 10)
@@ -311,20 +319,20 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            if ngpu <= 1 or options.distributed:
-                # NOTE(kamo): data_parallel also should work with ngpu=1,
-                # but for debuggability it's better to keep this block.
-                loss, stats, weight = model(**batch)
-            else:
-                loss, stats, weight = data_parallel(
-                    model, (), range(ngpu), module_kwargs=batch
-                )
-                # Weighted averaging
-                loss = (loss * weight).sum() / weight.sum()
-            if ngpu > 1 or options.distributed:
-                # Apply weighted averaging for stats.
+            loss, stats, weight = model(**batch)
+            if ngpu > 1 or distributed:
+                # Apply weighted averaging for loss and stats
+                loss = (loss * weight).sum()
+
                 # if distributed, this method can also apply all_reduce()
-                stats, weight = recursive_average(stats, weight, options.distributed)
+                stats, weight = recursive_average(stats, weight, distributed)
+
+                # Now weight is summation over all workers
+                loss /= weight
+            if distributed:
+                # NOTE(kamo): Multiply world_size because DistributedDataParallel
+                # automatically normalizes the gradient by world_size.
+                loss *= torch.distributed.get_world_size()
 
             reporter.register(stats, weight)
 
@@ -391,6 +399,7 @@ class Trainer:
         assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
+        distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         model.eval()
         for (_, batch) in iterator:
@@ -400,19 +409,11 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            if ngpu <= 1:
-                _, stats, weight = model(**batch)
-            else:
-                _, stats, weight = data_parallel(
-                    model, (), range(ngpu), module_kwargs=batch
-                )
-                stats = {
-                    k: (v * weight.to(v.dtype)).sum(0) / weight.sum()
-                    if v is not None
-                    else None
-                    for k, v in stats.items()
-                }
-                weight = weight.sum()
+            _, stats, weight = model(**batch)
+            if ngpu > 1 or distributed:
+                # Apply weighted averaging for stats.
+                # if distributed, this method can also apply all_reduce()
+                stats, weight = recursive_average(stats, weight, distributed)
 
             reporter.register(stats, weight)
 
