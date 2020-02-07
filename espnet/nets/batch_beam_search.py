@@ -161,6 +161,7 @@ class BatchBeamSearch(BeamSearch):
         weighted_scores += running_hyps.score.unsqueeze(1)
 
         # TODO(karita): do not use list. use batch instead
+        # see also https://github.com/espnet/espnet/pull/1402#discussion_r354561029
         # update hyps
         best_hyps = []
         prev_hyps = self.unbatchfy(running_hyps)

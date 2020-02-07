@@ -1,14 +1,19 @@
 """Default Recurrent Neural Network Languge Model in `lm_train.py`."""
 
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet.nets.lm_interface import LMInterface
 from espnet.nets.pytorch_backend.e2e_asr import to_device
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-class DefaultRNNLM(LMInterface, nn.Module):
+class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
     """Default RNNLM for `LMInterface` Implementation.
 
     Note:
@@ -111,6 +116,47 @@ class DefaultRNNLM(LMInterface, nn.Module):
 
         """
         return self.model.final(state)
+
+    # batch beam search API (see BatchScorerInterface)
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch.
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        # merge states
+        n_batch = len(ys)
+        n_layers = self.model.predictor.n_layers
+        typ = self.model.predictor.typ
+        if states[0] is None:
+            batch_state = None
+        elif typ == "lstm":
+            # transpose state of [batch, key, layer] into [key, layer, batch]
+            batch_state = {
+                k: [torch.stack([states[b][k][l] for b in range(n_batch)]) for l in range(n_layers)]
+                for k in ("c", "h")
+            }
+        else:
+            # transpose state of [batch, layer] into [layer, batch]
+            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+
+        states, logp = self.model.predict(batch_state, ys[:, -1])
+
+        if typ == "lstm":
+            # transpose state of [key, layer, batch] into [batch, key, layer]
+            state_list = [{k: [states[k][l][b] for l in range(n_layers)] for k in ("c", "h")} for b in range(n_batch)]
+        else:
+            # transpose state of [layer, batch] into [batch, layer]
+            state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        return logp, state_list
 
 
 class ClassifierWithState(nn.Module):
