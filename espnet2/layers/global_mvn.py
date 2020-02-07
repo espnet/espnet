@@ -20,7 +20,6 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         stats_file: npy file
         norm_means: Apply mean normalization
         norm_vars: Apply var normalization
-        inverse: Apply inverse normalization or not
         eps:
     """
 
@@ -40,10 +39,20 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
 
         self.stats_file = stats_file
         stats = np.load(stats_file)
-        count = stats[0].flatten()[-1]
-        mean = stats[0, :-1] / count
-        var = stats[1, :-1] / count - mean * mean
+        if isinstance(stats, np.ndarray):
+            # Kaldi like stats
+            count = stats[0].flatten()[-1]
+            mean = stats[0, :-1] / count
+            var = stats[1, :-1] / count - mean * mean
+        else:
+            # New style: Npz file
+            count = stats["count"]
+            sum_v = stats["sum"]
+            sum_square_v = stats["sum_square"]
+            mean = sum_v / count
+            var = sum_square_v / count - mean * mean
         std = np.maximum(np.sqrt(var), eps)
+
         self.register_buffer("mean", torch.from_numpy(mean))
         self.register_buffer("std", torch.from_numpy(std))
 
@@ -61,10 +70,6 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         Args:
             x: (B, L, ...)
             ilens: (B,)
-            norm_means: Apply mean normalization
-            norm_vars: Apply var normalization
-            inverse: Apply inverse normalization or not
-
         """
         if ilens is None:
             ilens = x.new_full([x.size(0)], x.size(1))

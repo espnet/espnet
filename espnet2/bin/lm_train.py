@@ -3,12 +3,12 @@ from espnet2.tasks.lm import LMTask
 
 
 def get_parser():
-    parser = LMTask.add_arguments()
+    parser = LMTask.get_parser()
     return parser
 
 
 def main(cmd=None):
-    """
+    """LM training.
 
     Example:
 

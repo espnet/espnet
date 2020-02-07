@@ -1,5 +1,6 @@
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
 from typeguard import check_argument_types
@@ -12,7 +13,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: int = 512,
+        win_length: Union[int, None] = 512,
         hop_length: int = 128,
         center: bool = True,
         pad_mode: str = "reflect",
@@ -22,7 +23,10 @@ class Stft(torch.nn.Module, InversibleInterface):
         assert check_argument_types()
         super().__init__()
         self.n_fft = n_fft
-        self.win_length = win_length
+        if win_length is None:
+            self.win_length = n_fft
+        else:
+            self.win_length = win_length
         self.hop_length = hop_length
         self.center = center
         self.pad_mode = pad_mode
@@ -43,7 +47,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """
+        """STFT forward function.
 
         Args:
             input: (Batch, Nsamples) or (Batch, Nsample, Channels)
@@ -78,8 +82,9 @@ class Stft(torch.nn.Module, InversibleInterface):
         if multi_channel:
             # output: (Batch * Channel, Frames, Freq, 2=real_imag)
             # -> (Batch, Frame, Channel, Freq, 2=real_imag)
-            output = output.view(
-                bs, -1, output.size(1), output.size(2), 2).transpose(1, 2)
+            output = output.view(bs, -1, output.size(1), output.size(2), 2).transpose(
+                1, 2
+            )
 
         if ilens is not None:
             if self.center:

@@ -4,8 +4,7 @@ import torch
 from espnet2.lm.seq_rnn import SequentialRNNLM
 
 
-@pytest.mark.parametrize("rnn_type",
-                         ["LSTM", "GRU", "RNN_TANH", "RNN_RELU"])
+@pytest.mark.parametrize("rnn_type", ["LSTM", "GRU", "RNN_TANH", "RNN_RELU"])
 @pytest.mark.parametrize("tie_weights", [True, False])
 def test_SequentialRNNLM_backward(rnn_type, tie_weights):
     model = SequentialRNNLM(10, rnn_type=rnn_type, tie_weights=tie_weights)
@@ -16,12 +15,11 @@ def test_SequentialRNNLM_backward(rnn_type, tie_weights):
     out.sum().backward()
 
 
-@pytest.mark.parametrize("rnn_type",
-                         ["LSTM", "GRU", "RNN_TANH", "RNN_RELU"])
+@pytest.mark.parametrize("rnn_type", ["LSTM", "GRU", "RNN_TANH", "RNN_RELU"])
 @pytest.mark.parametrize("tie_weights", [True, False])
 def test_SequentialRNNLM_score(rnn_type, tie_weights):
     model = SequentialRNNLM(10, rnn_type=rnn_type, tie_weights=tie_weights)
-    input = torch.randint(0, 9, (12, ))
+    input = torch.randint(0, 9, (12,))
     state = model.init_state(None)
     model.score(input, state, None)
 

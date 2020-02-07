@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from pathlib import Path
 import uuid
 
@@ -32,6 +33,7 @@ def test_register(weight1, weight2):
             "none": None,
         }
         sub.register(stats2, weight2)
+        assert sub.get_epoch() == 1
     with pytest.raises(RuntimeError):
         sub.register({})
 
@@ -55,7 +57,7 @@ def test_register(weight1, weight2):
 
 
 @pytest.mark.parametrize("mode", ["min", "max", "foo"])
-def test_sort_values(mode):
+def test_sort_epochs_and_values(mode):
     reporter = Reporter()
     key1 = uuid.uuid4().hex
     stats_list = [{"aa": 0.3}, {"aa": 0.5}, {"aa": 0.2}]
@@ -81,6 +83,91 @@ def test_sort_values(mode):
 
     for e in range(len(stats_list)):
         assert sort_values[e] == desired[e]
+
+
+def test_sort_epochs_and_values_no_key():
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.5}, {"aa": 0.2}]
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+    with pytest.raises(KeyError):
+        reporter.sort_epochs_and_values("foo", "bar", "min")
+
+
+def test_get_value_not_found():
+    reporter = Reporter()
+    with pytest.raises(KeyError):
+        reporter.get_value("a", "b")
+
+
+def test_sort_values():
+    mode = "min"
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.5}, {"aa": 0.2}]
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+    sort_values = reporter.sort_values(key1, "aa", mode)
+
+    desired = sorted([stats_list[e]["aa"] for e in range(len(stats_list))],)
+
+    for e in range(len(stats_list)):
+        assert sort_values[e] == desired[e]
+
+
+def test_sort_epochs():
+    mode = "min"
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.5}, {"aa": 0.2}]
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+    sort_values = reporter.sort_epochs(key1, "aa", mode)
+
+    desired = sorted(
+        [(e + 1, stats_list[e]["aa"]) for e in range(len(stats_list))],
+        key=lambda x: x[1],
+    )
+
+    for e in range(len(stats_list)):
+        assert sort_values[e] == desired[e][0]
+
+
+def test_best_epoch():
+    mode = "min"
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.5}, {"aa": 0.2}]
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+    best_epoch = reporter.get_best_epoch(key1, "aa", mode)
+    assert best_epoch == 3
+
+
+def test_check_early_stopping():
+    mode = "min"
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.2}, {"aa": 0.4}, {"aa": 0.3}]
+    patience = 1
+
+    results = []
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+        truefalse = reporter.check_early_stopping(patience, key1, "aa", mode)
+        results.append(truefalse)
+    assert results == [False, False, False, True]
 
 
 def test_logging():
@@ -135,7 +222,7 @@ def test_get_Keys2():
     assert reporter.get_keys2(key1) == ("aa",)
 
 
-def test_save_stats_plot(tmp_path: Path):
+def test_matplotlib_plot(tmp_path: Path):
     reporter = Reporter()
     reporter.set_epoch(1)
     key1 = uuid.uuid4().hex
@@ -153,8 +240,34 @@ def test_save_stats_plot(tmp_path: Path):
         stats1 = {"aa": 0.6}
         sub.register(stats1)
 
-    reporter.save_stats_plot(tmp_path)
+    reporter.matplotlib_plot(tmp_path)
     assert (tmp_path / "aa.png").exists()
+
+
+def test_tensorboard_add_scalar(tmp_path: Path):
+    reporter = Reporter()
+    reporter.set_epoch(1)
+    key1 = uuid.uuid4().hex
+    with reporter.observe(key1) as sub:
+        stats1 = {"aa": 0.6}
+        sub.register(stats1)
+
+    reporter.set_epoch(1)
+    with reporter.observe(key1) as sub:
+        # Skip epoch=2
+        sub.register({})
+
+    reporter.set_epoch(3)
+    with reporter.observe(key1) as sub:
+        stats1 = {"aa": 0.6}
+        sub.register(stats1)
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+        from torch.utils.tensorboard import SummaryWriter
+    else:
+        from tensorboardX import SummaryWriter
+    writer = SummaryWriter(tmp_path)
+    reporter.tensorboard_add_scalar(writer)
 
 
 def test_state_dict():

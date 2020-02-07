@@ -8,9 +8,7 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 @pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("use_projection", [True, False])
 @pytest.mark.parametrize("subsample", [None, (2, 2, 1, 1)])
-def test_Encoder_forward_backward(
-        rnn_type, bidirectional, use_projection, subsample
-):
+def test_Encoder_forward_backward(rnn_type, bidirectional, use_projection, subsample):
     encoder = RNNEncoder(
         5,
         rnn_type=rnn_type,
@@ -31,4 +29,4 @@ def test_Encoder_output_size():
 
 def test_Encoder_invalid_type():
     with pytest.raises(ValueError):
-        RNNEncoder(5, rnn_type='fff')
+        RNNEncoder(5, rnn_type="fff")

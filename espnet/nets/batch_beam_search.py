@@ -1,6 +1,7 @@
 """Parallel beam search module."""
 
 import logging
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -110,6 +111,26 @@ class BatchBeamSearch(BeamSearch):
         """
         return self.batchfy(super().init_hyp(x))
 
+    def score_full(self, hyp: BatchHypothesis, x: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+        """Score new hypothesis by `self.full_scorers`.
+
+        Args:
+            hyp (Hypothesis): Hypothesis with prefix tokens to score
+            x (torch.Tensor): Corresponding input feature
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
+                score dict of `hyp` that has string keys of `self.full_scorers`
+                and tensor score values of shape: `(self.n_vocab,)`,
+                and state dict that has string keys and state values of `self.full_scorers`
+
+        """
+        scores = dict()
+        states = dict()
+        for k, d in self.full_scorers.items():
+            scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+        return scores, states
+
     def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -140,6 +161,7 @@ class BatchBeamSearch(BeamSearch):
         weighted_scores += running_hyps.score.unsqueeze(1)
 
         # TODO(karita): do not use list. use batch instead
+        # see also https://github.com/espnet/espnet/pull/1402#discussion_r354561029
         # update hyps
         best_hyps = []
         prev_hyps = self.unbatchfy(running_hyps)
