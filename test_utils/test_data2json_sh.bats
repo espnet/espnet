@@ -423,36 +423,36 @@ teardown() {
 
 @test "data2json.sh: single input" {
     $utils/data2json.sh --feat $scp_1 $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data.json
-    jsondiff ${tmpdir}/data.json $tmpdir/valid.json
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid.json
 }
 
 @test "data2json.sh: multi inputs" {
     $utils/data2json.sh --feat $scp_1,$scp_2 $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data_multi_inputs.json
-    jsondiff ${tmpdir}/data_multi_inputs.json $tmpdir/valid_multi_inputs.json
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_multi_inputs.json
 }
 
 @test "data2json.sh: language tag for ST and MT" {
     $utils/data2json.sh --feat $scp_1 --lang lang1 $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data_lang.json
-    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_st.json
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_st.json
 }
 
 @test "data2json.sh: no input for MT" {
     $utils/data2json.sh --lang lang1 $tmpdir/data \
-        $tmpdir/dict > ${tmpdir}/data_lang.json
-    jsondiff ${tmpdir}/data_lang.json $tmpdir/valid_mt.json
+        $tmpdir/dict > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_mt.json
 }
 
 @test "data2json.sh: multilingual ST" {
     $utils/data2json.sh --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
-        $tmpdir/dict_multilingual > ${tmpdir}/data_multilingual_st.json
-    jsondiff ${tmpdir}/data_multilingual_st.json $tmpdir/valid_multilingual_st.json
+        $tmpdir/dict_multilingual > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_st.json
 }
 
 @test "data2json.sh: multilingual MT" {
     $utils/data2json.sh --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
-        $tmpdir/dict_multilingual > ${tmpdir}/data_multilingual_mt.json
-    jsondiff ${tmpdir}/data_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
+        $tmpdir/dict_multilingual > $tmpdir/data.json
+    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
 }
