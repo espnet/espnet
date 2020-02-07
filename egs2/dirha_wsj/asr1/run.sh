@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-mic=L1C     # Beam_Circular_Array
+mic=L1C     # Beam_Circular_Array Beam_Linear_Array KA6 L1C
 
 local_data_opts="--mic ${mic}"
 
@@ -27,20 +27,20 @@ lm_config=conf/lm.yaml
 use_word_lm=false
 word_vocab_size=65000
 
-./asr.sh \
-    --stage ${stage} \
-    --stop_stage ${stop_stage} \
-    --nj ${nj} \
-    --use_word_lm ${use_word_lm} \
-    --decode_asr_model ${decode_asr_model} \
-    --token_type char \
-    --feats_type fbank_pitch \
-    --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
-    --lm_config "${lm_config}" \
-    --word_vocab_size "${word_vocab_size}"
-    --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_set}" \
-    --local_data_opts "${local_data_opts}" \
+./asr.sh                                        \
+    --stage ${stage}                            \
+    --stop_stage ${stop_stage}                  \
+    --nj ${nj}                                  \
+    --decode_asr_model ${decode_asr_model}      \
+    --token_type char                           \
+    --feats_type fbank_pitch                    \
+    --asr_config "${asr_config}"                \
+    --decode_config "${decode_config}"          \
+    --lm_config "${lm_config}"                  \
+    --use_word_lm ${use_word_lm}                \
+    --word_vocab_size ${word_vocab_size}        \
+    --train_set "${train_set}"                  \
+    --dev_set "${dev_set}"                      \
+    --eval_sets "${eval_set}"                   \
+    --local_data_opts "${local_data_opts}"      \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
