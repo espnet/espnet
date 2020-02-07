@@ -5,14 +5,14 @@ set -e
 set -u
 set -o pipefail
 
-mic=Beam_Circular_Array
+mic=L1C     # Beam_Circular_Array
 
-local_data_opts="--mic "${mic}" "
+local_data_opts="--mic ${mic}"
 
-stage=9
-stop_stage=9
+stage=1
+stop_stage=11
 nj=16
-decode_asr_model=eval.loss.best.pth   # espnet 1 recog_model=model.acc.best
+decode_asr_model=valid.loss.best.pth 
 
 train_set=train_si284_$mic
 dev_set=dirha_sim_$mic
@@ -24,21 +24,23 @@ asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 lm_config=conf/lm.yaml
-use_wordlm=false # not supported yet
+use_word_lm=false
 word_vocab_size=65000
 
-#--local_data_opts "${local_data_opts}" \
 ./asr.sh \
     --stage ${stage} \
     --stop_stage ${stop_stage} \
     --nj ${nj} \
+    --use_word_lm ${use_word_lm} \
     --decode_asr_model ${decode_asr_model} \
     --token_type char \
     --feats_type fbank_pitch \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --lm_config "${lm_config}" \
+    --word_vocab_size "${word_vocab_size}"
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_set}" \
+    --local_data_opts "${local_data_opts}" \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
