@@ -55,8 +55,9 @@ def test_batchfy_hyp():
         assert us[i].states == hs[i].states
 
 
-default_lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-transformer_lm_args = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, pos_enc="none", dropout_rate=0.0)
+lstm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
+gru_args = Namespace(type="gru", layer=1, unit=2, dropout_rate=0.0)
+transformer_args = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=1, pos_enc="none", dropout_rate=0.0)
 
 
 @pytest.mark.parametrize(
@@ -66,7 +67,7 @@ transformer_lm_args = Namespace(layer=1, unit=2, att_unit=2, embed_unit=2, head=
      # (("rnn", rnn_args),)
      for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
-     for lm_nn, lm_args in (("default", default_lm_args), ("transformer", transformer_lm_args))
+     for lm_nn, lm_args in (("default", lstm_args), ("default", gru_args), ("transformer", transformer_args))
      for lm in (0.0, 0.5)
      for bonus in (0.0, 0.1)
      # "float16", "float64")
@@ -91,7 +92,6 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, 
         model_class, args, mtlalpha=ctc_weight)
     model.eval()
     char_list = train_args.char_list
-    # lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
     lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
@@ -106,16 +106,6 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, 
         nbest=5
     )
 
-    feat = x[0, :ilens[0]].numpy()
-    # # legacy beam search
-    # with torch.no_grad():
-    #     # TODO(karita): fix this
-    #     if lm_nn == "default":
-    #         lm_model = lm.model
-    #     else:
-    #         lm_model = lm
-    #     nbest = model.recognize(feat, args, char_list, lm_model)
-
     # new beam search
     scorers = model.scorers()
     if lm_weight != 0:
@@ -126,7 +116,7 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_nn, lm_args, 
     model.to(device, dtype=dtype)
     model.eval()
     with torch.no_grad():
-        enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
+        enc = model.encode(x[0, :ilens[0]].to(device, dtype=dtype))
 
     legacy_beam = BeamSearch(
         beam_size=args.beam_size,
