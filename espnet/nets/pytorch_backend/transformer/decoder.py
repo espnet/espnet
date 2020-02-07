@@ -160,6 +160,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
         return logp.squeeze(0), state
 
+    # batch beam search API (see BatchScorerInterface)
     def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 

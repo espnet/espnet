@@ -61,7 +61,7 @@ def test_batchfy_hyp():
      # (("rnn", rnn_args),)
      for nn, args in (("transformer", transformer_args),)
      for ctc in (0.0,)                                     # 0.5, 1.0)
-     for lm in (0.0,)                                      # 0.5)
+     for lm in (0.0, 0.5)
      for bonus in (0.0,)                                   # 0.1)
      # "float16", "float64")
      for dtype in ("float32",)
@@ -86,8 +86,7 @@ def test_batch_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
-    lm = dynamic_import_lm("default", backend="pytorch")(
-        len(char_list), lm_args)
+    lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
     # test previous beam search
