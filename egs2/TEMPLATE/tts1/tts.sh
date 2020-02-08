@@ -219,6 +219,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
+            rm -f ${data_feats}/org/${dset}/{segments,wav.scp}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
