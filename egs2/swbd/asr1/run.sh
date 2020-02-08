@@ -15,7 +15,9 @@ decode_config=conf/tuning/decode_rnn.yaml
 lm_config=conf/lm.yaml
 
 ./asr.sh \
-    --token_type char \
+    --token_type bpe \
+    --nbpe 2000 \
+    --bpemode bpe \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
