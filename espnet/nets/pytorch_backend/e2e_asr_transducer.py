@@ -89,6 +89,10 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Number of heads for multi head attention')
         group.add_argument('--transformer-attn-dropout-rate', default=0.0, type=float,
                            help='dropout in transformer attention.')
+        group.add_argument('--transformer-attn-dropout-rate-encoder', default=0.0, type=float,
+                           help='dropout in transformer decoder attention.')
+        group.add_argument('--transformer-attn-dropout-rate-decoder', default=0.0, type=float,
+                           help='dropout in transformer decoder attention.')
         # Attention - RNN
         group.add_argument('--atype', default='dot', type=str,
                            choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -128,7 +132,7 @@ class E2E(ASRInterface, torch.nn.Module):
                            choices=["conv2d", "vgg2l", "linear", "embed"],
                            help='transformer encoder input layer type')
         group.add_argument("--transformer-dec-input-layer", type=str, default="embed",
-                           choices=["vgg1l", "linear", "embed"],
+                           choices=["linear", "embed"],
                            help='transformer decoder input layer type')
         group.add_argument('--transformer-lr', default=10.0, type=float,
                            help='Initial value of learning rate')
@@ -170,7 +174,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 input_layer=args.transformer_input_layer,
                 dropout_rate=args.dropout_rate,
                 positional_dropout_rate=args.dropout_rate,
-                attention_dropout_rate=args.transformer_attn_dropout_rate)
+                attention_dropout_rate=args.transformer_attn_dropout_rate_encoder)
 
             self.subsample = [1]
         else:
@@ -189,7 +193,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 input_layer=args.transformer_dec_input_layer,
                 dropout_rate=args.dropout_rate_decoder,
                 positional_dropout_rate=args.dropout_rate_decoder,
-                attention_dropout_rate=args.transformer_attn_dropout_rate)
+                attention_dropout_rate=args.transformer_attn_dropout_rate_decoder)
         else:
             if args.etype == 'transformer':
                 args.eprojs = args.adim
