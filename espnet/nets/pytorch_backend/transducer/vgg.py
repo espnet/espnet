@@ -12,6 +12,7 @@ class VGG2L(torch.nn.Module):
         Args:
             idim (int): dimension of inputs
             odim (int): dimension of outputs
+
         """
         super(VGG2L, self).__init__()
 
@@ -39,6 +40,7 @@ class VGG2L(torch.nn.Module):
         Returns:
             x (torch.Tensor): input torch (B, sub(T), attention_dim)
             x_mask (torch.Tensor): (B, 1, sub(T))
+
         """
         x = x.unsqueeze(1)
         x = self.vgg2l(x)
