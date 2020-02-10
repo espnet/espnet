@@ -62,7 +62,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
   - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
   - Support numbers of ST recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
-  - Support numbers of MT recipes (IWSLT'16, the avobe ST recipes etc.)
+  - Support numbers of MT recipes (IWSLT'16, the above ST recipes etc.)
   - Support speech separation and recognition recipe (WSJ-2mix)
 - State-of-the-art performance in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - State-of-the-art performance in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -447,7 +447,7 @@ We list 4-gram BLEU of major ST tasks.
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 48.39 | link |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 18.67 | link |
 | Libri-trans test (En->Fr)                         | 16.70 | link |
-| How2 dev5 (En->Pt)                                | 46.19 | link |
+| How2 dev5 (En->Pt)                                | 45.68 | link |
 | Must-C tst-COMMON (En->De)                        | 22.91 | link |
 | Mboshi-French dev (Fr->Mboshi)                    | 6.18  | N/A  |
 
@@ -494,7 +494,7 @@ Available pretrained models in the demo script are listed as below.
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | link |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | link |
 | Libri-trans test (En->Fr)                         | 18.09 | link |
-| How2 dev5 (En->Pt)                                | 58.61 | link |
+| How2 dev5 (En->Pt)                                | 58.61 | [link]() |
 | Must-C tst-COMMON (En->De)                        | 27.63 | link |
 | IWSLT'14 test2014 (En->De)                        | 24.70 | link |
 | IWSLT'14 test2014 (De->En)                        | 29.22 | link |
