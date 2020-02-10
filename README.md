@@ -50,6 +50,9 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
+- Transducer based end-to-end ASR
+  - Available: RNN-Transducer, Transformer-Transducer, Transformer/RNN-Transducer
+  - Support attention extension and VGG-Transformer (encoder)
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
 - Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
