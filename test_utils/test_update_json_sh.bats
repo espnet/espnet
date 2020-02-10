@@ -294,7 +294,7 @@ EOF
                     "text": "ABC ABC",
                     "token": "A B C <space> A B C",
                     "tokenid": "3 4 5 2 3 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -330,7 +330,7 @@ EOF
                     "text": "BC BC",
                     "token": "B C <space> B C",
                     "tokenid": "4 5 2 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -373,7 +373,7 @@ EOF
                     "text": "<lang1> ABC ABC",
                     "token": "<lang1> A B C <space> A B C",
                     "tokenid": "6 3 4 5 2 3 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -409,7 +409,7 @@ EOF
                     "text": "<lang2> BC BC",
                     "token": "<lang2> B C <space> B C",
                     "tokenid": "7 4 5 2 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -443,7 +443,7 @@ EOF
                     "text": "ABC ABC",
                     "token": "A B C <space> A B C",
                     "tokenid": "3 4 5 2 3 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -470,7 +470,7 @@ EOF
                     "text": "BC BC",
                     "token": "B C <space> B C",
                     "tokenid": "4 5 2 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -504,7 +504,7 @@ EOF
                     "text": "<lang1> ABC ABC",
                     "token": "<lang1> A B C <space> A B C",
                     "tokenid": "6 3 4 5 2 3 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
@@ -531,7 +531,7 @@ EOF
                     "text": "<lang2> BC BC",
                     "token": "<lang2> B C <space> B C",
                     "tokenid": "7 4 5 2 4 5"
-                }
+                },
                 {
                     "name": "target2",
                     "shape": [
