@@ -632,11 +632,26 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
+### MT results
+
+#### IWSLT2016 En-->De
+
+|    Model    | test2012 | test2013 | test2014 | Pretrained Model |
+|:-----------:|:--------:|:--------:|:--------:|:----------------:|
+| Transformer |   26.06  |   28.15  |   24.05  |       [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19)       |
+
+#### IWSLT2016 De-->En
+
+|    Model    | test2012 | test2013 | test2014 | Pretrained Model |
+|:-----------:|:--------:|:--------:|:--------:|:----------------:|
+| Transformer |   32.07  |   33.52  |   29.13  |       [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19)       |
+
 
 ## Chainer and Pytorch backends
 
 |                    | Chainer                         | Pytorch                            |
 | -----------        | :----:                          | :----:                             |
+
 | Performance        | ◎                               | ◎                                  |
 | Speed              | ○                               | ◎                                  |
 | Multi-GPU          | supported                       | supported                          |
