@@ -64,21 +64,21 @@ if [ -f $data/$part.tgz ]; then
 fi
 
 if [ ! -f $data/$part.tgz ]; then
-  if ! which wget >/dev/null; then
+  if ! command -v wget >/dev/null; then
     echo "$0: wget is not installed."
     exit 1;
   fi
   full_url=$url/$part.tgz
   echo "$0: downloading data from $full_url.  This may take some time, please be patient."
 
-  cd $data
+  cd $data || exit 1
   if ! wget --no-check-certificate $full_url; then
     echo "$0: error executing wget $full_url"
     exit 1;
   fi
 fi
 
-cd $data
+cd $data || exit 1
 
 if ! tar -xvzf $part.tgz; then
   echo "$0: error un-tarring archive $data/$part.tgz"
@@ -88,7 +88,7 @@ fi
 touch $data/$part/.complete
 
 if [ $part == "data_aishell" ]; then
-  cd $data/$part/wav
+  cd $data/$part/wav || exit 1
   for wav in ./*.tar.gz; do
     echo "Extracting wav from $wav"
     tar -zxf $wav && rm $wav
