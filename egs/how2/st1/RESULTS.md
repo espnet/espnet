@@ -12,16 +12,19 @@
   - e2e file: `exp/train.pt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans/results/model.val5.avg.best`
   - e2e JSON file: `exp/train.pt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans/results/model.json`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+- Note: longer version of "short" for SpecAugment: 30ep->50ep
 
 ### train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans_mttrans (2)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans_mttrans/decode_dev5.pt_decode|**45.63**|72.3|52.0|39.3|29.9|0.995|0.995|43847|44062|
+- Note: shorten the total number epochs when pre-training the model: 100ep->30ep
 
 ### train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans (3)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans/decode_dev5.pt_decode|**45.03**|71.7|51.2|38.5|29.0|1.000|1.000|44058|44062|
+- Note: shorten the total number epochs when pre-training the model: 100ep->30ep
 
 ### ensemble (1) + (2) + (3)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
