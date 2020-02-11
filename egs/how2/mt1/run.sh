@@ -32,7 +32,7 @@ use_valbest_average=true     # if true, the validation `n_average`-best NMT mode
 
 # cascaded-ST related
 asr_model=
-asr_decode_config=
+decode_config_asr=
 dict_asr=
 
 # preprocessing related
@@ -52,8 +52,8 @@ how2=/n/rd8/how2/how2-300h-v1
 #  |_ features/
 #    |_ fbank_pitch_181516/
 
-use_st_dict=true
 # use the same dict as in the ST task
+use_st_dict=true
 
 # bpemode (unigram or bpe)
 nbpe=8000
@@ -255,8 +255,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ]; then
             trans_model=model.last${n_average}.avg.best
         fi
     fi
-    if [ ! -n "${asr_decode_config}" ]; then
-        echo "Set --asr_decode_config"
+    if [ ! -n "${decode_config_asr}" ]; then
+        echo "Set --decode_config_asr"
         exit 1
     fi
     if [ ! -n "${dict_asr}" ]; then
@@ -270,7 +270,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ]; then
         data_dir=data/${rtask}
 
         # ASR outputs
-        asr_decode_dir=decode_${rtask}_$(basename ${asr_decode_config%.*})
+        asr_decode_dir=decode_${rtask}_$(basename ${decode_config_asr%.*})
         json2text.py ${asr_model}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
         spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
