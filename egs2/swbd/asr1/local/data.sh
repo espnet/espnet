@@ -40,7 +40,6 @@ fi
 
 train_set=train_nodup
 train_dev=train_dev
-recog_set="train_dev eval2000 rt03"
 srctexts=train_nodup/text_lm
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -52,7 +51,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/eval2000_data_prep.sh ${EVAL2000}
     local/rt03_data_prep.sh ${RT03}
     # use additional fisher transcriptions for LM training
-    if [ ! -z "${FISHER}" ]; then
+    if [ -n "${FISHER}" ]; then
         local/fisher_data_prep.sh ${FISHER}
         utils/fix_data_dir.sh data/train_fisher
     fi
@@ -89,17 +88,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     cp data/${train_dev}/text data/${train_dev}/text.backup
     sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_set}/text
     sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_dev}/text
-    if [ ! -z "${FISHER}" ]; then
+    if [ -n "${FISHER}" ]; then
         cp data/train_fisher/text data/train_fisher/text.backup
         sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
     fi
 
     # combine swbd and fisher texts
-    if [ ! -z "${FISHER}" ]; then
-        # cut -f 2- -d" " data/${train_set}/text | gzip -c > data/${train_set}/text.gz
-        cat data/${train_set}/text | gzip -c > data/${train_set}/text.gz
-        # cut -f 2- -d" " data/train_fisher/text | gzip -c > data/train_fisher/text.gz
-        cat data/train_fisher/text | gzip -c > data/train_fisher/text.gz
+    if [ -n "${FISHER}" ]; then
+        gzip -c data/${train_set}/text > data/${train_set}/text.gz
+        gzip -c data/train_fisher/text > data/train_fisher/text.gz
         zcat data/${train_set}/text.gz data/train_fisher/text.gz > data/${srctexts}
     fi
     
