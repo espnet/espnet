@@ -250,8 +250,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for ttask in ${trans_set}; do
     (
-        # decode_dir=decode_${ttask}_$(basename ${decode_config%.*})_ensemble3
-        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})_ensemble2
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
@@ -268,9 +267,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --batchsize 0 \
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${trans_model} \
-            --model2 exp/train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans_mttrans/results/${trans_model}
-            # --model2 exp/train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans/results/${trans_model} \
+            --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} pt ${dict}
