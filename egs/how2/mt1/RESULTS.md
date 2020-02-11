@@ -1,10 +1,4 @@
 # BPE 8k
-### RNN baseline
-#### tc->tc
-|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
-|---|---|---|---|---|---|---|---|---|---|
-|exp/train.pt_tc_tc_pytorch_train_bpe8000/decode_dev5.pt_decode|**54.02**|78.2|60.1|47.8|38.1|0.999|0.999|44004|44062|
-
 ### Transformer baseline
 #### lc.rm->tc
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
@@ -31,3 +25,10 @@
   - e2e file: `exp/train.pt_tc_tc_pytorch_train_pytorch_transformer_bpe8000/results/model.val5.avg.best`
   - e2e JSON file: `exp/train.pt_tc_tc_pytorch_train_pytorch_transformer_bpe8000/results/model.json`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+
+
+### RNN baseline
+#### tc->tc
+|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
+|---|---|---|---|---|---|---|---|---|---|
+|exp/train.pt_tc_tc_pytorch_train_bpe8000/decode_dev5.pt_decode|**54.02**|78.2|60.1|47.8|38.1|0.999|0.999|44004|44062|
