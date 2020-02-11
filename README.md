@@ -86,12 +86,13 @@ Optionally, GPU environment requires the following libraries:
 We support the following Linux distributions with CI. If you want to build your own Linux by yourself, 
 please also check our [CI configurations](https://github.com/espnet/espnet/blob/master/.circleci/config.yml).
 to prepare the appropriate environments
+
 - ubuntu18
 - ubuntu16
 - centos7
 - debian9
 
-Also, we require to install Kaldi. You can follow the [Kaldi install instruction](https://github.com/kaldi-asr/kaldi/blob/master/INSTALL)
+Also, we have several other requirements to install Kaldi. You can follow the [Kaldi install instruction](https://github.com/kaldi-asr/kaldi/blob/master/INSTALL)
 or our Kaldi installation in CI with prebuilt Kaldi binaries in https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh
 
 ## Installation
