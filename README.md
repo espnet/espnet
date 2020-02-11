@@ -37,6 +37,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [ASR demo](#asr-demo)
   * [TTS results](#tts-results)
   * [TTS demo](#tts-demo)
+  * [ST results](#st-results)
+  * [ST demo](#st-demo)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
 * [Citation](#citation)
@@ -53,13 +55,17 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
 - Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
+- Transformer based end-to-end ST (new!)
+- Transformer based end-to-end MT (new!)
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
   - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
-  - Support speech translation recipes (Fisher callhome Spanish to English, IWSLT'18)
+  - Support numbers of ST recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
+  - Support numbers of MT recipes (IWSLT'16, the above ST recipes etc.)
   - Support speech separation and recognition recipe (WSJ-2mix)
-- State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- State-of-the-art performance in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- State-of-the-art performance in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
 
@@ -429,6 +435,69 @@ Available pretrained models in the demo script are listed as below.
 | [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech     |
 | [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
 | [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
+
+
+### ST results
+
+We list 4-gram BLEU of major ST tasks.
+
+#### end-to-end system
+| Task | BLEU | Pretrained model |
+| ---- | :----: | :----: |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 48.39 | link |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 18.67 | link |
+| Libri-trans test (En->Fr)                         | 16.70 | link |
+| How2 dev5 (En->Pt)                                | 45.68 | link |
+| Must-C tst-COMMON (En->De)                        | 22.91 | link |
+| Mboshi-French dev (Fr->Mboshi)                    | 6.18  | N/A  |
+
+#### cascaded system
+| Task | BLEU | Pretrained model |
+| ---- | :----: | :----: |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 42.16 | link |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 19.82 | link |
+| Libri-trans test (En->Fr)                         | 16.96 | link |
+| How2 dev5 (En->Pt)                                | 44.90 | link |
+| Must-C tst-COMMON (En->De)                        | 23.65 | link |
+
+If you want to check the results of the other recipes, please check `egs/<name_of_recipe>/st1/RESULTS.md`.
+
+### ST demo
+
+(**New!**) We made a new real-time E2E-ST + TTS demonstration in Google Colab.  
+Please access the notebook from the following button and enjoy the real-time speech-to-speech translation!
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/st_demo.ipynb)
+
+---
+
+You can translate speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/translate_wav.sh` as follows:
+```sh
+cd egs/fisher_callhome_spanish/st1/
+wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf - ../../../utils/translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
+```
+where `test.wav` is a WAV file to be translated.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models in the demo script are listed as below.
+
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [fisher_callhome_spanish.transformer.v1](https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3)            | Transformer-ST trained on Fisher-CallHome Spanish Es->En                  |
+
+
+### MT results
+
+| Task | BLEU | Pretrained model |
+| ---- | :----: | :----: |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | link |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | link |
+| Libri-trans test (En->Fr)                         | 18.09 | link |
+| How2 dev5 (En->Pt)                                | 58.61 | [link]() |
+| Must-C tst-COMMON (En->De)                        | 27.63 | link |
+| IWSLT'14 test2014 (En->De)                        | 24.70 | link |
+| IWSLT'14 test2014 (De->En)                        | 29.22 | link |
 
 
 ### TTS results
