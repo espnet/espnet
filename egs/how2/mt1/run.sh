@@ -33,6 +33,7 @@ use_valbest_average=true     # if true, the validation `n_average`-best NMT mode
 # cascaded-ST related
 asr_model=
 asr_decode_config=
+dict_asr=
 
 # preprocessing related
 src_case=lc.rm
@@ -258,8 +259,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ]; then
         echo "Set --asr_decode_config"
         exit 1
     fi
+    if [ ! -n "${dict_asr}" ]; then
+        echo "Set --dict_asr"
+        exit 1
+    fi
 
-    dict_asr=../asr1/data/lang_1spm/train.en_${bpemode}5000_units_lc.rm.txt
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
         rtask=$(echo ${ttask} | cut -f -1 -d ".").en
