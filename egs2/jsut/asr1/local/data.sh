@@ -14,11 +14,8 @@ stage=-1
 stop_stage=1
 fs=48000
 
-db_root=downloads
-
 log "$0 $*"
 . utils/parse_options.sh
-
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -28,6 +25,8 @@ fi
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
+
+db_root=${JSUT}
 
 train_set=tr_no_dev
 train_dev=dev

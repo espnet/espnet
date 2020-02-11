@@ -6,6 +6,13 @@ set -u
 set -o pipefail
 
 fs=48000
+opts=
+if [ "${fs}" -eq 48000 ]; then
+    # To suppress recreation, specify wav format
+    opts="--audio_format wav "
+else
+    opts="--audio_format flac "
+fi
 
 train_set=tr_no_dev
 dev_set=dev
@@ -17,12 +24,14 @@ lm_config=conf/lm.yaml
 
 ./asr.sh \
     --token_type char \
-    --feats_type fbank_pitch \
+    --feats_type raw \
+    --fs ${fs} \
+    --local_data_opts "--fs ${fs}" \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --lm_config "${lm_config}" \
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_set}" \
-    --fs "${fs}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --srctexts "data/${train_set}/text" \
+    ${opts} "$@"
