@@ -245,7 +245,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average NMT models
@@ -254,14 +254,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ]; then
         else
             trans_model=model.last${n_average}.avg.best
         fi
-    fi
-    if [ ! -n "${decode_config_asr}" ]; then
-        echo "Set --decode_config_asr"
-        exit 1
-    fi
-    if [ ! -n "${dict_asr}" ]; then
-        echo "Set --dict_asr"
-        exit 1
     fi
 
     for ttask in ${trans_set}; do
