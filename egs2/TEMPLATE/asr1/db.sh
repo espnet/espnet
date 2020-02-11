@@ -5,8 +5,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     REVERB=
     CHIME3=
     CHIME4=
-    CSJDATATOP=
-    CSJVER=dvd  ## Set your CSJ format (dvd or usb).
+    CSJDATATOP=/export/corpora5/CSJ/USB
+    CSJVER=usb  ## Set your CSJ format (dvd or usb).
                 ## Usage    :
                 ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
                 ##            Neccesary directory is dvd3 - dvd17.
@@ -16,6 +16,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
+    JSUT=
     VOXFORGE=
     VIVOS=
     YESNO=
@@ -38,6 +39,7 @@ else
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
     LIBRISPEECH=
+    JSUT=downloads
     VOXFORGE=downloads
     VIVOS=downloads
     YESNO=downloads
