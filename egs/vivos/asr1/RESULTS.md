@@ -9,6 +9,17 @@
   - Git hash: `b19ae06fa0ee36d9a65ca701dd169d52cf1a24fd`
   - Commit date: `Fri Feb 7 16:32:23 2020 +0100
 
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/file/d/1mW2ANumwGozam7mt2_0JSpUAWIFfvyac
+  - training config file: `conf/tuning/transducer/train_transformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_transducer.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_transformer-rnn_transducer/results/model.last5.avg.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_transformer-rnn_transducer/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+  - dict file: `data/lang_1char`
+
 - Results (obtained with `$ show_results.sh`)
 
 ```
