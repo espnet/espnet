@@ -373,6 +373,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+
+        # no need to keep segments & reco2file_and_channel
+        if [ -f ${data_feats}/org/${dset}/segments ]; then
+          rm ${data_feats}/org/${dset}/segments
+        fi
+        if [ -f ${data_feats}/org/${dset}/reco2file_and_channel ]; then
+          rm ${data_feats}/org/${dset}/reco2file_and_channel
+        fi
+
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
