@@ -2,6 +2,7 @@
 
 """Network related utility tools."""
 
+import logging
 import numpy as np
 import torch
 
@@ -367,3 +368,70 @@ def to_torch_tensor(x):
                 return x
             else:
                 raise ValueError(error)
+
+
+def get_subsample(train_args, mode, arch):
+    """Parse the subsampling factors from the training args for the specified `mode` and `arch`.
+
+    Args:
+        train_args: argument Namespace containing options.
+        mode: one of ('asr', 'mt', 'st')
+        arch: one of ('rnn', 'rnn-t', 'rnn_mix', 'rnn_mulenc', 'transformer')
+
+    Returns:
+        np.ndarray / List[np.ndarray]: subsampling factors.
+    """
+    if arch == 'transformer':
+        return np.array([1])
+
+    elif mode == 'mt' and arch == 'rnn':
+        # +1 means input (+1) and layers outputs (train_args.elayer)
+        subsample = np.ones(train_args.elayers + 1, dtype=np.int)
+        logging.warning('Subsampling is not performed for machine translation.')
+        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+        return subsample
+
+    elif (mode == 'asr' and arch in ('rnn', 'rnn-t')) or \
+         (mode == 'mt' and arch == 'rnn') or \
+         (mode == 'st' and arch == 'rnn'):
+        subsample = np.ones(train_args.elayers + 1, dtype=np.int)
+        if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
+            ss = train_args.subsample.split("_")
+            for j in range(min(train_args.elayers + 1, len(ss))):
+                subsample[j] = int(ss[j])
+        else:
+            logging.warning(
+                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
+        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+        return subsample
+
+    elif mode == 'asr' and arch == 'rnn_mix':
+        subsample = np.ones(train_args.elayers_sd + train_args.elayers + 1, dtype=np.int)
+        if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
+            ss = train_args.subsample.split("_")
+            for j in range(min(train_args.elayers_sd + train_args.elayers + 1, len(ss))):
+                subsample[j] = int(ss[j])
+        else:
+            logging.warning(
+                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
+        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+        return subsample
+
+    elif mode == 'asr' and arch == 'rnn_mulenc':
+        subsample_list = []
+        for idx in range(train_args.num_encs):
+            subsample = np.ones(train_args.elayers[idx] + 1, dtype=np.int)
+            if train_args.etype[idx].endswith("p") and not train_args.etype[idx].startswith("vgg"):
+                ss = train_args.subsample[idx].split("_")
+                for j in range(min(train_args.elayers[idx] + 1, len(ss))):
+                    subsample[j] = int(ss[j])
+            else:
+                logging.warning(
+                    'Encoder %d: Subsampling is not performed for vgg*. '
+                    'It is performed in max pooling layers at CNN.', idx + 1)
+            logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+            subsample_list.append(subsample)
+        return subsample_list
+
+    else:
+        raise ValueError('Invalid options: mode={}, arch={}'.format(mode, arch))

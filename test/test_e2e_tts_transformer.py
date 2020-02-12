@@ -301,32 +301,30 @@ def test_attention_masking(model_dict):
     a = model.encoder.encoders[0].self_attn
     a(xs, xs, xs, x_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
     for aw, ilen in zip(aws, batch["ilens"]):
+        assert not np.isnan(aw[:, :ilen, :ilen]).any()
         np.testing.assert_almost_equal(aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4)
         assert aw[:, ilen:, ilen:].sum() == 0.0
 
     # test encoder-decoder attention
     ys = model.decoder.embed(batch["ys"])
     ys[1, olens[1]:] = float("nan")
-    xy_masks = model._source_to_target_mask(batch["ilens"], batch["olens"])
+    xy_masks = x_masks
     a = model.decoder.decoders[0].src_attn
     a(ys, xs, xs, xy_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
+        assert not np.isnan(aw[:, :olen, :ilen]).any()
         np.testing.assert_almost_equal(aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, ilen:].sum() == 0.0
 
     # test decoder self-attention
-    ys = model.decoder.embed(batch["ys"])
-    ys[1, olens[1]:] = float("nan")
     y_masks = model._target_mask(batch["olens"])
     a = model.decoder.decoders[0].self_attn
     a(ys, ys, ys, y_masks)
     aws = a.attn.detach().numpy()
-    assert not np.isnan(aws).any()
     for aw, olen in zip(aws, batch["olens"]):
+        assert not np.isnan(aw[:, :olen, :olen]).any()
         np.testing.assert_almost_equal(aw[:, :olen, :olen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, olen:].sum() == 0.0
 
@@ -364,7 +362,7 @@ def test_forward_and_inference_are_equal(model_dict):
     with torch.no_grad():
         # --------- forward calculation ---------
         x_masks = model._source_mask(ilens)
-        hs_fp, _ = model.encoder(xs, x_masks)
+        hs_fp, h_masks = model.encoder(xs, x_masks)
         if model.reduction_factor > 1:
             ys_in = ys[:, model.reduction_factor - 1::model.reduction_factor]
             olens_in = olens.new([olen // model.reduction_factor for olen in olens])
@@ -372,8 +370,7 @@ def test_forward_and_inference_are_equal(model_dict):
             ys_in, olens_in = ys, olens
         ys_in = model._add_first_frame_and_remove_last_frame(ys_in)
         y_masks = model._target_mask(olens_in)
-        xy_masks = model._source_to_target_mask(ilens, olens_in)
-        zs, _ = model.decoder(ys_in, y_masks, hs_fp, xy_masks)
+        zs, _ = model.decoder(ys_in, y_masks, hs_fp, h_masks)
         before_outs = model.feat_out(zs).view(zs.size(0), -1, model.odim)
         logits = model.prob_out(zs).view(zs.size(0), -1)
         after_outs = before_outs + model.postnet(before_outs.transpose(1, 2)).transpose(1, 2)

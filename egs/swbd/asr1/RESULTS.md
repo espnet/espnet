@@ -1,3 +1,34 @@
+# transformer with BPE 2000, specaug, LM decoding
+## Models
+- model link: https://drive.google.com/open?id=10AeST49tCFOHQul4rVETBHISwaN4PwuU
+- training config file: `conf/tuning/train_pytorch_transformer.yaml`
+- decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
+- cmvn file: `data/train_nodup/cmvn.ark`
+- e2e file: `exp/train_nodup_pytorch_train_specaug/results/model.last10.avg.best`
+- e2e JSON file: `exp/train_nodup_pytorch_train_specaug/results/model.json`
+- lm file: `exp/train_rnnlm_pytorch_swbd+fisher_bpe2000/rnnlm.model.best`
+- lm JSON file: `exp/train_rnnlm_pytorch_swbd+fisher_bpe2000/model.json`
+- dict file: `data/lang_char`
+
+## Environments
+- date: `Tue Dec 24 12:01:51 JST 2019`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
+- Git hash: `fb9911bef3dcc6266c8fe4bd25f9bb5bbe40fb89`
+  - Commit date: `Tue Dec 24 11:08:47 2019 +0900`
+
+## WER
+```
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.callhm.ctm.filt.sys:|    SPK          |    # Snt       # Wrd     |    Corr          Sub          Del          Ins           Err        S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.callhm.ctm.filt.sys:|    SumAvg       |    2628        21594     |    85.2         11.2          3.6          2.6          17.3         53.7    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.ctm.filt.sys:|   SPKR          |    # Snt      # Wrd    |    Corr         Sub          Del         Ins          Err       S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.ctm.filt.sys:|   Sum/Avg       |    4459       42989    |    88.9         8.2          2.9         1.8         12.9        48.0    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.swbd.ctm.filt.sys:|    SPKR         |    # Snt       # Wrd    |    Corr          Sub           Del          Ins          Err        S.Err    |
+exp/train_nodup_pytorch_train_specaug/decode_eval2000_model.last10.avg.best_decode_lmw0.3_swbd+fisher/scoring/hyp.swbd.ctm.filt.sys:|    Sum/Avg      |    1831        21395    |    92.5          5.3           2.2          1.0          8.5         40.0    |
+```
+
 # transformer with BPE 2000, specaug
 
 ```
