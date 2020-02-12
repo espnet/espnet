@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 stage=1
-stop_stage=12
+stop_stage=1000
 nj=16
 decode_asr_model=valid.loss.best.pth
 
