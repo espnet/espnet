@@ -1,10 +1,14 @@
 """Length bonus module."""
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-class LengthBonus(ScorerInterface):
+class LengthBonus(BatchScorerInterface):
     """Length bonus in beam search."""
 
     def __init__(self, n_vocab: int):
@@ -31,3 +35,19 @@ class LengthBonus(ScorerInterface):
 
         """
         return torch.tensor([1.0], device=x.device, dtype=x.dtype).expand(self.n), None
+
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch.
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        return torch.tensor([1.0], device=xs.device, dtype=xs.dtype).expand(ys.shape[0], self.n), None
