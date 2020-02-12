@@ -18,7 +18,7 @@ data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
 mkdir ${COMMONVOICE}
@@ -36,7 +36,6 @@ set -o pipefail
 train_set=valid_train_${lang}
 train_dev=valid_dev_${lang}
 test_set=valid_test_${lang}
-recog_set="valid_dev_${lang} valid_test_${lang}"
 
 log "data preparation started"
 

@@ -22,7 +22,7 @@ mic=ihm
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $@"
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
 if [ ! -e "${AMI}" ]; then
@@ -38,12 +38,6 @@ set -o pipefail
 
 base_mic=${mic//[0-9]/} # sdm, ihm or mdm
 nmics=${mic//[a-z]/} # e.g. 8 for mdm8.
-
-train_set=${mic}_train
-train_dev=${mic}_dev
-train_test=${mic}_eval
-recog_set="${mic}_dev ${mic}_eval"
-echo "$stage"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "data stage 1: Data Download"
