@@ -27,7 +27,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     VIVOS=
     YESNO=
 
->>>>>>> upstream/v.0.7.0
 else
     AISHELL=
     WSJ0=
@@ -51,13 +50,9 @@ else
     LIBRISPEECH=
     TIMIT=
     VOXFORGE=downloads
-<<<<<<< HEAD
     AMI=
     COMMONVOICE=
     BABEL=
-=======
     VIVOS=downloads
     YESNO=downloads
-
->>>>>>> upstream/v.0.7.0
 fi
