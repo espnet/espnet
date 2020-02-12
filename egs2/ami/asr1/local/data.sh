@@ -71,7 +71,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	fi
 	export PATH=${PATH}:${BEAMFORMIT}
 	! hash BeamformIt && log "Missing BeamformIt, run 'cd ../../../tools/kaldi/tools; extras/install_beamformit.sh; cd -;'" && exit 1
-	local/ami_beamform.sh --cmd "$train_cmd" --nj 20 ${nmics} ${AMI} ${PROCESSED_AMI_DIR}
+	local/ami_beamform.sh --cmd "${train_cmd}" --nj 20 ${nmics} ${AMI} ${PROCESSED_AMI_DIR}
     else
 	PROCESSED_AMI_DIR=${AMI}
     fi
