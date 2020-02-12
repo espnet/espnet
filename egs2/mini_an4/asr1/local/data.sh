@@ -61,6 +61,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/subset_data_dir.sh --first data/train 1 data/${train_dev}
     n=$(($(wc -l < data/train/text) - 1))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+
+    # Create "test_seg" in order to test the use case of segments
+    rm -rf data/test_seg
+    utils/copy_data_dir.sh data/test data/test_seg
+    <data/test/wav.scp awk '{ for(i=2;i<=NF;i++){a=a " " $i}; print($1 "_org", a) }' > data/test_seg/wav.scp
+    cat << EOF > data/test_seg/segments
+fcaw-cen8-b fcaw-cen8-b_org 0.0 2.9
+mmxg-cen8-b mmxg-cen8-b_org 0.0 2.3
+EOF
+
 fi
+
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
