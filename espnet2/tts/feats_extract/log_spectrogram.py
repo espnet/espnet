@@ -1,7 +1,6 @@
 from typing import Any
 from typing import Dict
 from typing import Tuple
-from typing import Union
 
 import torch
 from typeguard import check_argument_types

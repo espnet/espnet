@@ -1,5 +1,8 @@
-from typing import Dict, List, Union, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
 from typeguard import check_argument_types
@@ -8,15 +11,15 @@ from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,
+    LabelSmoothingLoss,  # noqa: H301
 )
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.train.abs_e2e import AbsE2E
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.train.abs_e2e import AbsE2E
 
 
 class ASRE2E(AbsE2E):
@@ -234,7 +237,7 @@ class ASRE2E(AbsE2E):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.error_calculator is None:
+        if self.training or self.error_calculator is None:
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
@@ -254,7 +257,7 @@ class ASRE2E(AbsE2E):
 
         # Calc CER using CTC
         cer_ctc = None
-        if self.error_calculator is not None:
+        if not self.training and self.error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
             cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc

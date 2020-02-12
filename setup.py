@@ -30,7 +30,8 @@ requirements = {
         "unidecode>=1.0.22",
         "editdistance==0.5.2",
         "h5py==2.9.0",
-        "tensorboardX>=1.8",
+        "tensorboard>=1.14",  # For pytorch>=1.1.0
+        "tensorboardX>=1.8",  # For pytorch<1.1.0
         "pillow>=6.1.0",
         "nara_wpe>=0.0.5",
         "museval>=0.2.1",
@@ -84,7 +85,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.6.0",
+    version="0.7.0",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

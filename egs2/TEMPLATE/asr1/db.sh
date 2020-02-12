@@ -1,4 +1,5 @@
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
+    AISHELL=
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -15,12 +16,20 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ## Case USB : Neccesary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+    HKUST1=
+    HKUST2=
     LIBRISPEECH=
+    TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
     COMMONVOICE=downloads
     BABEL=
+    VIVOS=
+    YESNO=
+
+>>>>>>> upstream/v.0.7.0
 else
+    AISHELL=
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -37,9 +46,18 @@ else
                 ## Case USB : Neccesary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+    HKUST1=
+    HKUST2=
     LIBRISPEECH=
+    TIMIT=
     VOXFORGE=downloads
+<<<<<<< HEAD
     AMI=
     COMMONVOICE=
     BABEL=
+=======
+    VIVOS=downloads
+    YESNO=downloads
+
+>>>>>>> upstream/v.0.7.0
 fi
