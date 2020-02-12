@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
-import argparse
 import logging
-import random
 import sys
-from pathlib import Path
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
 
 import configargparse
-import numpy as np
 import torch
-import yaml
-from torch.utils.data.dataloader import DataLoader
 from typeguard import check_argument_types
 
 from espnet.nets.beam_search import BeamSearch
@@ -23,11 +17,10 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
-from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.build_tokenizer import build_tokenizer
-from espnet2.train.batch_sampler import ConstantBatchSampler
-from espnet2.train.dataset import ESPnetDataset
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -81,17 +74,13 @@ def recog(
         device = "cpu"
 
     # 1. Set random-seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.random.manual_seed(seed)
+    set_all_random_seed(seed)
 
     # 2. Build ASR model
     scorers = {}
-    with Path(asr_train_config).open("r") as f:
-        asr_train_args = yaml.safe_load(f)
-    asr_train_args = argparse.Namespace(**asr_train_args)
-    asr_model = ASRTask.build_model(asr_train_args)
-    asr_model.load_state_dict(torch.load(asr_model_file, map_location=device))
+    asr_model, asr_train_args = ASRTask.build_model_from_file(
+        asr_train_config, asr_model_file, device
+    )
 
     decoder = asr_model.decoder
     ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
@@ -102,11 +91,9 @@ def recog(
 
     # 3. Build Language model
     if lm_train_config is not None:
-        with Path(lm_train_config).open("r") as f:
-            lm_train_args = yaml.safe_load(f)
-        lm_train_args = argparse.Namespace(**lm_train_args)
-        lm = LMTask.build_model(lm_train_args)
-        lm.load_state_dict(torch.load(lm_file, map_location=device))
+        lm, lm_train_args = LMTask.build_model_from_file(
+            lm_train_config, lm_file, device
+        )
         scorers["lm"] = lm.lm
 
     # 4. Build BeamSearch object
@@ -130,25 +117,15 @@ def recog(
     logging.info(f"Decoding device={device}, dtype={dtype}")
 
     # 5. Build data-iterator
-    dataset = ESPnetDataset(
+    loader, _, _ = ASRTask.build_non_sorted_iterator(
         data_path_and_name_and_type,
-        float_dtype=dtype,
-        preprocess=ASRTask.build_preprocess_fn(asr_train_args, False),
-    )
-    ASRTask.check_task_requirements(dataset, allow_variable_data_keys, False)
-    if key_file is None:
-        key_file, _, _ = data_path_and_name_and_type[0]
-
-    batch_sampler = ConstantBatchSampler(
-        batch_size=batch_size, key_file=key_file, shuffle=False
-    )
-    logging.info(f"Batch sampler: {batch_sampler}")
-    logging.info(f"dataset:\n{dataset}")
-    loader = DataLoader(
-        dataset=dataset,
-        batch_sampler=batch_sampler,
-        collate_fn=ASRTask.build_collate_fn(asr_train_args),
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
         num_workers=num_workers,
+        preprocess_fn=ASRTask.build_preprocess_fn(asr_train_args, False),
+        collate_fn=ASRTask.build_collate_fn(asr_train_args),
+        allow_variable_data_keys=allow_variable_data_keys,
     )
 
     # 6. [Optional] Build Text converter: e.g. bpe-sym -> Text
@@ -200,6 +177,10 @@ def recog(
 
                 # remove sos/eos and get results
                 token_int = hyp.yseq[1:-1].tolist()
+
+                # remove blank symbol id, which is assumed to be 0
+                token_int = list(filter(lambda x: x != 0, token_int))
+
                 # Change integer-ids to tokens
                 token = converter.ids2tokens(token_int)
 
@@ -207,7 +188,7 @@ def recog(
                 ibest_writer = writer[f"{n}best_recog"]
 
                 # Write the result to each files
-                ibest_writer["token"][key] = " ".join(token).replace(blank_symbol, "")
+                ibest_writer["token"][key] = " ".join(token)
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 

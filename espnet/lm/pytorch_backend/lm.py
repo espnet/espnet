@@ -28,6 +28,9 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.lm_interface import LMInterface
+from espnet.optimizer.factory import dynamic_import_optimizer
+from espnet.scheduler.pytorch import PyTorchScheduler
+from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -84,16 +87,19 @@ def concat_examples(batch, device=None, padding=None):
 class BPTTUpdater(training.StandardUpdater):
     """An updater for a pytorch LM."""
 
-    def __init__(self, train_iter, model, optimizer, device, gradclip=None, use_apex=False):
+    def __init__(self, train_iter, model, optimizer, schedulers, device,
+                 gradclip=None, use_apex=False, accum_grad=1):
         """Initialize class.
 
         Args:
             train_iter (chainer.dataset.Iterator): The train iterator
             model (LMInterface) : The model to update
             optimizer (torch.optim.Optimizer): The optimizer for training
+            schedulers (espnet.scheduler.scheduler.SchedulerInterface): The schedulers of `optimizer`
             device (int): The device id
             gradclip (float): The gradient clipping value to use
             use_apex (bool): The flag to use Apex in backprop.
+            accum_grad (int): The number of gradient accumulation.
 
         """
         super(BPTTUpdater, self).__init__(train_iter, optimizer)
@@ -101,6 +107,8 @@ class BPTTUpdater(training.StandardUpdater):
         self.device = device
         self.gradclip = gradclip
         self.use_apex = use_apex
+        self.scheduler = PyTorchScheduler(schedulers, optimizer)
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -110,30 +118,39 @@ class BPTTUpdater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
         # Progress the dataset iterator for sentences at each iteration.
-        batch = train_iter.__next__()
-        # Concatenate the token IDs to matrices and send them to the device
-        # self.converter does this job
-        # (it is chainer.dataset.concat_examples by default)
-        x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
-        if self.device[0] == -1:
-            loss, nll, count = self.model(x, t)
-        else:
-            # apex does not support torch.nn.DataParallel
-            loss, nll, count = data_parallel(self.model, (x, t), self.device)
-        reporter.report({'loss': float(loss.mean())}, optimizer.target)
-        reporter.report({'nll': float(nll.sum())}, optimizer.target)
-        reporter.report({'count': int(count.sum())}, optimizer.target)
-        # update
         self.model.zero_grad()  # Clear the parameter gradients
-        if self.use_apex:
-            from apex import amp
-            with amp.scale_loss(loss.mean(), optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.mean().backward()  # Backprop
+        accum = {"loss": 0.0, "nll": 0.0, "count": 0}
+        for _ in range(self.accum_grad):
+            batch = train_iter.__next__()
+            # Concatenate the token IDs to matrices and send them to the device
+            # self.converter does this job
+            # (it is chainer.dataset.concat_examples by default)
+            x, t = concat_examples(batch, device=self.device[0], padding=(0, -100))
+            if self.device[0] == -1:
+                loss, nll, count = self.model(x, t)
+            else:
+                # apex does not support torch.nn.DataParallel
+                loss, nll, count = data_parallel(self.model, (x, t), self.device)
+
+            # backward
+            loss = loss.mean() / self.accum_grad
+            if self.use_apex:
+                from apex import amp
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()  # Backprop
+            # accumulate stats
+            accum["loss"] += float(loss)
+            accum["nll"] += float(nll.sum())
+            accum["count"] += int(count.sum())
+
+        for k, v in accum.items():
+            reporter.report({k: v}, optimizer.target)
         if self.gradclip is not None:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
         optimizer.step()  # Update the parameters
+        self.scheduler.step(n_iter=self.iteration)
 
 
 class LMEvaluator(BaseEvaluator):
@@ -215,14 +232,15 @@ def train(args):
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
     batch_size = args.batchsize * max(args.ngpu, 1)
-    if batch_size > args.batchsize:
-        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size})')
+    if batch_size * args.accum_grad > args.batchsize:
+        logging.info(f'batch size is automatically increased ({args.batchsize} -> {batch_size * args.accum_grad})')
     train_iter = ParallelSentenceIterator(train, batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    epoch_iters = int(len(train_iter.batch_indices) / args.accum_grad)
+    logging.info('#iterations per epoch = %d' % epoch_iters)
+    logging.info('#total iterations = ' + str(args.epoch * epoch_iters))
     # Prepare an RNNLM model
     if args.train_dtype in ("float16", "float32", "float64"):
         dtype = getattr(torch, args.train_dtype)
@@ -242,10 +260,12 @@ def train(args):
         f.write(json.dumps(vars(args), indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
-    if args.opt == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
-    elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+    opt_class = dynamic_import_optimizer(args.opt, args.backend)
+    optimizer = opt_class.from_args(model.parameters(), args)
+    if args.schedulers is None:
+        schedulers = []
+    else:
+        schedulers = [dynamic_import_scheduler(v)(k, args) for k, v in args.schedulers]
 
     # setup apex.amp
     if args.train_dtype in ("O0", "O1", "O2", "O3"):
@@ -266,8 +286,10 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
-    updater = BPTTUpdater(train_iter, model, optimizer, gpu_id,
-                          gradclip=args.gradclip, use_apex=use_apex)
+    updater = BPTTUpdater(train_iter, model, optimizer, schedulers, gpu_id,
+                          gradclip=args.gradclip,
+                          use_apex=use_apex,
+                          accum_grad=args.accum_grad)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,

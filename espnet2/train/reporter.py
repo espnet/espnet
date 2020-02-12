@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import dataclasses
-import datetime
-import logging
-import time
-import warnings
 from collections import defaultdict
 from contextlib import contextmanager
+import dataclasses
+import datetime
+from distutils.version import LooseVersion
+import logging
 from pathlib import Path
+import time
 from typing import ContextManager
 from typing import Dict
 from typing import List
@@ -15,12 +15,18 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+import warnings
 
 import humanfriendly
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    from torch.utils.tensorboard import SummaryWriter
+else:
+    from tensorboardX import SummaryWriter
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
@@ -108,7 +114,7 @@ class WeightedAverage(ReportedValue):
 
 
 class SubReporter:
-    """This class is used in Reporter
+    """This class is used in Reporter.
 
     See the docstring of Reporter for the usage.
     """
@@ -123,8 +129,11 @@ class SubReporter:
         self._finished = False
 
     def get_total_count(self) -> int:
-        """Returns the number of iterations over all epochs"""
+        """Returns the number of iterations over all epochs."""
         return self.total_count
+
+    def get_epoch(self) -> int:
+        return self.epoch
 
     def register(
         self,
@@ -178,7 +187,7 @@ class SubReporter:
 
 
 class Reporter:
-    """
+    """Reporter class.
 
     Examples:
 
@@ -197,7 +206,7 @@ class Reporter:
         self.epoch = epoch
         # stats: Dict[int, Dict[str, Dict[str, float]]]
         # e.g. self.stats[epoch]['train']['loss']
-        self.stats = defaultdict(dict)
+        self.stats = {}
 
     def get_epoch(self) -> int:
         return self.epoch
@@ -255,13 +264,14 @@ class Reporter:
         )
         stats["total_count"] = sub_reporter.total_count
 
-        self.stats[self.epoch][sub_reporter.key] = stats
+        self.stats.setdefault(self.epoch, {})[sub_reporter.key] = stats
         sub_reporter.finished()
 
     def sort_epochs_and_values(
         self, key: str, key2: str, mode: str
     ) -> List[Tuple[int, float]]:
-        """Return the epoch which resulted the best value
+        """Return the epoch which resulted the best value.
+
         Example:
             >>> val = reporter.sort_epochs_and_values('eval', 'loss', 'min')
             >>> e_1best, v_1best = val[0]
@@ -269,6 +279,8 @@ class Reporter:
         """
         if mode not in ("min", "max"):
             raise ValueError(f"mode must min or max: {mode}")
+        if not self.has(key, key2):
+            raise KeyError(f"{key}.{key2} is not found: {self.get_all_keys()}")
 
         # iterate from the last epoch
         values = [(e, self.stats[e][key][key2]) for e in self.stats]
@@ -279,9 +291,43 @@ class Reporter:
             values = sorted(values, key=lambda x: -x[1])
         return values
 
+    def sort_epochs(self, key: str, key2: str, mode: str) -> List[int]:
+        return [e for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def sort_values(self, key: str, key2: str, mode: str) -> List[float]:
+        return [v for e, v in self.sort_epochs_and_values(key, key2, mode)]
+
+    def get_best_epoch(self, key: str, key2: str, mode: str, nbest: int = 0) -> int:
+        return self.sort_epochs(key, key2, mode)[nbest]
+
+    def check_early_stopping(
+        self,
+        patience: int,
+        key1: str,
+        key2: str,
+        mode: str,
+        epoch: int = None,
+        logger=None,
+    ) -> bool:
+        if logger is None:
+            logger = logging
+        if epoch is None:
+            epoch = self.get_epoch()
+
+        best_epoch = self.get_best_epoch(key1, key2, mode)
+        if epoch - best_epoch > patience:
+            logger.info(
+                f"[Early stopping] {key1}.{key2} has not been "
+                f"improved {epoch - best_epoch} epochs continuously. "
+                f"The training was stopped at {epoch}epoch"
+            )
+            return True
+        else:
+            return False
+
     def has(self, key: str, key2: str, epoch: int = None) -> bool:
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return (
             epoch in self.stats
             and key in self.stats[epoch]
@@ -292,7 +338,7 @@ class Reporter:
         if logger is None:
             logger = logging
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         level = logging.getLevelName(level)
 
         message = ""
@@ -318,33 +364,37 @@ class Reporter:
         logger.log(level, message)
 
     def get_value(self, key: str, key2: str, epoch: int = None):
+        if not self.has(key, key2):
+            raise KeyError(f"{key}.{key2} is not found in stats: {self.get_all_keys()}")
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return self.stats[epoch][key][key2]
 
     def get_keys(self, epoch: int = None) -> Tuple[str, ...]:
+        """Returns keys1 e.g. train,eval."""
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         return tuple(self.stats[epoch])
 
     def get_keys2(self, key: str, epoch: int = None) -> Tuple[str, ...]:
+        """Returns keys2 e.g. loss,acc."""
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         d = self.stats[epoch][key]
         keys2 = tuple(k for k in d if k not in ("time", "total_count"))
         return keys2
 
     def get_all_keys(self, epoch: int = None) -> Tuple[Tuple[str, str], ...]:
         if epoch is None:
-            epoch = max(self.stats)
+            epoch = self.get_epoch()
         all_keys = []
         for key in self.stats[epoch]:
             for key2 in self.stats[epoch][key]:
                 all_keys.append((key, key2))
         return tuple(all_keys)
 
-    def save_stats_plot(self, output_dir: Union[str, Path]):
-        """Plot stats using Matplotlib and save images"""
+    def matplotlib_plot(self, output_dir: Union[str, Path]):
+        """Plot stats using Matplotlib and save images."""
         keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
         for key2 in keys2:
             keys = [k for k in self.get_keys() if key2 in self.get_keys2(k)]
@@ -367,10 +417,10 @@ class Reporter:
 
         plt.clf()
 
-        epochs = np.arange(1, max(self.stats) + 1)
+        epochs = np.arange(1, self.get_epoch() + 1)
         for key in keys:
             y = [
-                np.nanmean(self.stats[e][key][key2])
+                self.stats[e][key][key2]
                 if e in self.stats
                 and key in self.stats[e]
                 and key2 in self.stats[e][key]
@@ -389,6 +439,22 @@ class Reporter:
         plt.grid()
 
         return plt
+
+    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, epoch: int = None):
+        if epoch is None:
+            epoch = self.get_epoch()
+
+        keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
+        for key2 in keys2:
+            summary_writer.add_scalars(
+                key2,
+                {
+                    k: self.stats[epoch][k][key2]
+                    for k in self.get_keys(epoch)
+                    if key2 in self.stats[epoch][k]
+                },
+                epoch,
+            )
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}

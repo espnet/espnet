@@ -2,6 +2,8 @@ from distutils.util import strtobool
 from typing import Optional
 from typing import Tuple
 
+import humanfriendly
+
 
 def str2bool(value: str) -> bool:
     return bool(strtobool(value))
@@ -17,7 +19,7 @@ def remove_parenthesis(value: str):
 
 
 def int_or_none(value: str) -> Optional[int]:
-    """
+    """int_or_none.
 
     Examples:
         >>> import argparse
@@ -39,7 +41,7 @@ def int_or_none(value: str) -> Optional[int]:
 
 
 def float_or_none(value: str) -> Optional[float]:
-    """
+    """float_or_none.
 
     Examples:
         >>> import argparse
@@ -60,8 +62,14 @@ def float_or_none(value: str) -> Optional[float]:
     return float(value)
 
 
+def humanfriendly_parse_size_or_none(value) -> Optional[float]:
+    if value.strip().lower() in ("none", "null", "nil"):
+        return None
+    return humanfriendly.parse_size(value)
+
+
 def str_or_none(value: str) -> Optional[str]:
-    """
+    """str_or_none.
 
     Examples:
         >>> import argparse
@@ -83,7 +91,7 @@ def str_or_none(value: str) -> Optional[str]:
 
 
 def str2pair_str(value: str) -> Tuple[str, str]:
-    """
+    """str2pair_str.
 
     Examples:
         >>> import argparse
@@ -101,7 +109,7 @@ def str2pair_str(value: str) -> Tuple[str, str]:
 
 
 def str2triple_str(value: str) -> Tuple[str, str, str]:
-    """
+    """str2triple_str.
 
     Examples:
         >>> str2triple_str('abc,def ,ghi')

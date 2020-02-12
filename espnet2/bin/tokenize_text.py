@@ -1,8 +1,8 @@
 import argparse
-import logging
-import sys
 from collections import Counter
+import logging
 from pathlib import Path
+import sys
 from typing import List
 from typing import Optional
 
@@ -84,7 +84,7 @@ def tokenize(
         fout = sys.stdout
     else:
         p = Path(output)
-        p.parent.mkdir(parents=True, exists_ok=True)
+        p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w")
 
     tokenizer = build_tokenizer(

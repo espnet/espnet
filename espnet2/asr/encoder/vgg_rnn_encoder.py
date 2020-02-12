@@ -13,7 +13,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class VGGRNNEncoder(AbsEncoder):
-    """
+    """VGGRNNEncoder class.
 
     Args:
         input_size: The number of expected features in the input
@@ -50,7 +50,7 @@ class VGGRNNEncoder(AbsEncoder):
 
         # Subsample is not used for VGGRNN
         subsample = np.ones(num_layers + 1, dtype=np.int)
-        rnn_type = "b" if bidirectional else "" + rnn_type
+        rnn_type = ("b" if bidirectional else "") + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(
                 [

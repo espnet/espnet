@@ -47,7 +47,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """
+        """STFT forward function.
 
         Args:
             input: (Batch, Nsamples) or (Batch, Nsample, Channels)
