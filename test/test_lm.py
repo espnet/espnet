@@ -1,5 +1,3 @@
-from argparse import Namespace
-
 import chainer
 import numpy
 import pytest
@@ -68,11 +66,12 @@ def test_lm():
     "lm_name, lm_args, device, dtype", [
         (nn, args, device, dtype)
         for nn, args in (
-            ("default", Namespace(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
-            ("default", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
-            ("seq_rnn", Namespace(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
-            ("seq_rnn", Namespace(type="gru", layer=2, unit=2, dropout_rate=0.5)),
-            ("transformer", Namespace(layer=1, unit=2, att_unit=2, head=2, dropout_rate=0.5, posenc_len=10))
+            ("default", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
+            ("default", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
+            ("seq_rnn", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
+            ("seq_rnn", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
+            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, embed_unit=3)),
+            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="none", embed_unit=3))
         )
         for device in ("cpu", "cuda")
         for dtype in ("float16", "float32", "float64")
@@ -87,7 +86,7 @@ def test_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     model, x, ilens, y, data, train_args = prepare("rnn", rnn_args)
     char_list = train_args.char_list
     n_vocab = len(char_list)
-    lm = dynamic_import_lm(lm_name, backend="pytorch")(n_vocab, lm_args)
+    lm = dynamic_import_lm(lm_name, backend="pytorch").build(n_vocab, **lm_args)
     lm.to(device=device, dtype=dtype)
 
     # test trainable

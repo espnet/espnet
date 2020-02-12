@@ -7,8 +7,12 @@ cd ./egs/mini_an4/asr1 || exit 1
 
 set -euo pipefail
 
-echo "==== ASR (backend=pytorch) ==="
+echo "==== ASR (backend=pytorch lm=RNNLM) ==="
 ./run.sh
+echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
+./run.sh --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
+# skip duplicated ASR training stage 4
+./run.sh --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
 echo "==== ASR (backend=chainer) ==="
@@ -36,15 +40,15 @@ echo "==== [ESPnet2] ASR ==="
 feats_types="raw fbank_pitch"
 token_types="bpe char"
 for t in ${feats_types}; do
-    ./run.sh --stage 2 --stop-stage 2 --feats-type "${t}"
+    ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}"
 done
 for t in ${token_types}; do
-    ./run.sh --stage 3 --stop-stage 3 --token-type "${t}"
+    ./run.sh --stage 5 --stop-stage 5 --token-type "${t}"
 done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 4 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 6 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
@@ -62,6 +66,9 @@ done
 cd "${cwd}" || exit 1
 
 
+# TODO(karita): test mt, st?
+
+
 # [ESPnet2] Validate configuration files
 echo "==== [ESPnet2] Validation configuration files ==="
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
@@ -76,5 +83,23 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     done
 fi
 
+# These files must be same each other.
+for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do 
+    file1=
+    for f in egs2/*/*/"${base}"; do
+        if [ -z "${file1}" ]; then
+            file1="${f}"
+        fi
+        diff "${file1}" "${f}" || { echo "To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; } 
+    done
+done
 
-# TODO(karita): test mt, st?
+
+echo "=== run integration tests at test_utils ==="
+
+PATH=$(pwd)/bats-core/bin:$PATH
+if ! [ -x "$(command -v bats)" ]; then
+    echo "=== install bats ==="
+    git clone https://github.com/bats-core/bats-core.git
+fi
+bats test_utils/integration_test_*.bats
