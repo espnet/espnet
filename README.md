@@ -515,6 +515,8 @@ Available pretrained models in the demo script are listed as below.
 | Must-C tst-COMMON (En->De)                        | 27.63 | link |
 | IWSLT'14 test2014 (En->De)                        | 24.70 | link |
 | IWSLT'14 test2014 (De->En)                        | 29.22 | link |
+| IWSLT'16 test2014 (En->De)                        | 24.05 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
+| IWSLT'16 test2014 (De->En)                        | 29.13 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
 
 
 ### TTS results
