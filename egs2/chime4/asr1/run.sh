@@ -37,6 +37,8 @@ word_vocab_size=65000
     --asr_config "${asr_config}"           \
     --decode_config "${decode_config}"     \
     --lm_config "${lm_config}"             \
+    --use_word_lm ${use_word_lm}           \
+    --word_vocab_size ${word_vocab_size}   \
     --train_set "${train_set}"             \
     --dev_set "${dev_set}"                 \
     --eval_sets "${eval_set}"              \
