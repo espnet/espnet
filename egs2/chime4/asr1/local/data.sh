@@ -22,9 +22,9 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-. ./path.sh || exit 1;
-. ./cmd.sh || exit 1;
-. ./db.sh || exit 1;
+. ../path.sh || exit 1;
+. ../cmd.sh || exit 1;
+. ../db.sh || exit 1;
 
 
 WSJ0=/export/corpora5/LDC/LDC93S6B
