@@ -456,7 +456,7 @@ def chainer_load(path, model):
         model (chainer.Chain): Chainer model.
 
     """
-    if 'snapshot' in path:
+    if 'snapshot' in os.path.basename(path):
         chainer.serializers.load_npz(path, model, path='updater/model:main/')
     else:
         chainer.serializers.load_npz(path, model)
@@ -506,7 +506,7 @@ def torch_load(path, model):
         model (torch.nn.Module): Torch model.
 
     """
-    if 'snapshot' in path:
+    if 'snapshot' in os.path.basename(path):
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
     else:
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)
