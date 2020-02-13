@@ -10,6 +10,8 @@ log() {
 }
 SECONDS=0
 
+train_cmd="run.pl" # To fix 54 line shell check ^-- SC2154: train_cmd is referenced but not assigned.
+
 stage=0
 stop_stage=2
 train_dev=dt05_multi_isolated_1ch_track
@@ -22,9 +24,9 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-. ../path.sh || exit 1;
-. ../cmd.sh || exit 1;
-. ../db.sh || exit 1;
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+. ./db.sh || exit 1;
 
 
 WSJ0=/export/corpora5/LDC/LDC93S6B
