@@ -651,7 +651,6 @@ Available pretrained vocoder models in the demo script are listed as follows:
 
 |                    | Chainer                         | Pytorch                            |
 | -----------        | :----:                          | :----:                             |
-
 | Performance        | ◎                               | ◎                                  |
 | Speed              | ○                               | ◎                                  |
 | Multi-GPU          | supported                       | supported                          |
