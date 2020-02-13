@@ -503,7 +503,6 @@ Available pretrained models in the demo script are listed as below.
 | :------                                                                                          | :------                                                    |
 | [fisher_callhome_spanish.transformer.v1](https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3)            | Transformer-ST trained on Fisher-CallHome Spanish Es->En                  |
 
-
 ### MT results
 
 | Task | BLEU | Pretrained model |
@@ -515,7 +514,8 @@ Available pretrained models in the demo script are listed as below.
 | Must-C tst-COMMON (En->De)                        | 27.63 | link |
 | IWSLT'14 test2014 (En->De)                        | 24.70 | link |
 | IWSLT'14 test2014 (De->En)                        | 29.22 | link |
-
+| IWSLT'16 test2016 (En->De)                        | 24.05 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
+| IWSLT'16 test2016 (De->En)                        | 29.13 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
 
 ### TTS results
 
@@ -631,21 +631,6 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-
-### MT results
-
-#### IWSLT2016 En-->De
-
-|    Model    | test2012 | test2013 | test2014 | Pretrained Model |
-|:-----------:|:--------:|:--------:|:--------:|:----------------:|
-| Transformer |   26.06  |   28.15  |   24.05  |       [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19)       |
-
-#### IWSLT2016 De-->En
-
-|    Model    | test2012 | test2013 | test2014 | Pretrained Model |
-|:-----------:|:--------:|:--------:|:--------:|:----------------:|
-| Transformer |   32.07  |   33.52  |   29.13  |       [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19)       |
-
 
 ## Chainer and Pytorch backends
 
