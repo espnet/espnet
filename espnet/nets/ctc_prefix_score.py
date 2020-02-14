@@ -157,6 +157,7 @@ class CTCPrefixScoreTH(object):
                 log_psi[si, scoring_ids[si]] = log_psi_[si]
         else:
             log_psi = torch.logsumexp(torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0), dim=0)
+            log_psi[:, self.blank] = self.logzero
 
         for si in range(self.n_bb):
             log_psi[si, self.eos] = r_sum[self.end_frames[si], si]
@@ -265,6 +266,11 @@ class CTCPrefixScore(object):
         eos_pos = self.xp.where(cs == self.eos)[0]
         if len(eos_pos) > 0:
             log_psi[eos_pos] = r_sum[-1]  # log(r_T^n(g) + r_T^b(g))
+
+        # exclude blank probs
+        blank_pos = self.xp.where(cs == self.blank)[0]
+        if len(blank_pos) > 0:
+            log_psi[blank_pos] = self.logzero
 
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily
