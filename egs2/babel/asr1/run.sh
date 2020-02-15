@@ -26,6 +26,8 @@ asr_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
+nlsyms_txt=data/nlsym.txt
+
 ./asr.sh \
     --stage ${stage} \
     --stop_stage ${stop_stage} \
@@ -36,6 +38,7 @@ decode_config=conf/decode.yaml
     --lm_config "${lm_config}" \
     --token_type char \
     --feats_type raw \
+    --nlsyms_txt ${nlsyms_txt} \
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
