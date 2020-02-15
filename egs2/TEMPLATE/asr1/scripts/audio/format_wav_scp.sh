@@ -76,8 +76,6 @@ fi
 mkdir -p ${logdir}
 
 rm -f ${dir}/wav.scp
-nutt=$(<${scp} wc -l)
-nj=$((nj<nutt?nj:nutt))
 
 
 opts=
@@ -90,6 +88,9 @@ fi
 
 if [ -n "${segments}" ]; then
     log "[info]: using ${segments}"
+    nutt=$(<${segments} wc -l)
+    nj=$((nj<nutt?nj:nutt))
+
     split_segments=""
     for n in $(seq ${nj}); do
         split_segments="${split_segments} ${logdir}/segments.${n}"
@@ -107,6 +108,9 @@ if [ -n "${segments}" ]; then
 
 else
     log "[info]: without segments"
+    nutt=$(<${scp} wc -l)
+    nj=$((nj<nutt?nj:nutt))
+
     split_scps=""
     for n in $(seq ${nj}); do
         split_scps="${split_scps} ${logdir}/wav.${n}.scp"

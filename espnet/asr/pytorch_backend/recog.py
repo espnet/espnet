@@ -10,8 +10,10 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -29,7 +31,7 @@ def recog_v2(args):
     """
     logging.warning("experimental API for custom LMs is selected by --api v2")
     if args.batchsize > 1:
-        raise NotImplementedError("batch decoding is not implemented")
+        raise NotImplementedError("multi-utt batch decoding is not implemented")
     if args.streaming_mode is not None:
         raise NotImplementedError("streaming mode is not implemented")
     if args.word_rnnlm:
@@ -65,6 +67,7 @@ def recog_v2(args):
         ctc=args.ctc_weight,
         lm=args.lm_weight,
         length_bonus=args.penalty)
+
     beam_search = BeamSearch(
         beam_size=args.beam_size,
         vocab_size=len(train_args.char_list),
@@ -73,7 +76,16 @@ def recog_v2(args):
         sos=model.sos,
         eos=model.eos,
         token_list=train_args.char_list,
+        pre_beam_score_key=None if args.ctc_weight == 1.0 else "decoder"
     )
+    # TODO(karita): make all scorers batchfied
+    if args.batchsize == 1:
+        non_batch = [k for k, v in beam_search.full_scorers.items() if not isinstance(v, BatchScorerInterface)]
+        if len(non_batch) == 0:
+            beam_search.__class__ = BatchBeamSearch
+            logging.info("BatchBeamSearch implementation is selected.")
+        else:
+            logging.warning(f"As non-batch scorers {non_batch} are found, fall back to non-batch implementation.")
 
     if args.ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
