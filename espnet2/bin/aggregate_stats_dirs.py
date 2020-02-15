@@ -22,16 +22,20 @@ def aggregate_stats_dirs(
     output_dir = Path(output_dir)
 
     for mode in ["train", "valid"]:
-        with (input_dirs[0] / mode / "batch_keys").open("r") as f:
+        with (input_dirs[0] / mode / "batch_keys").open("r", encoding="utf-8") as f:
             batch_keys = [l.strip() for l in f if l.strip() != ""]
-        with (input_dirs[0] / mode / "stats_keys").open("r") as f:
+        with (input_dirs[0] / mode / "stats_keys").open("r", encoding="utf-8") as f:
             stats_keys = [l.strip() for l in f if l.strip() != ""]
         (output_dir / mode).mkdir(parents=True, exist_ok=True)
 
         for key in batch_keys:
-            with (output_dir / mode / f"{key}_shape").open("w") as fout:
+            with (output_dir / mode / f"{key}_shape").open(
+                "w", encoding="utf-8"
+            ) as fout:
                 for idir in input_dirs:
-                    with (idir / mode / f"{key}_shape").open("r") as fin:
+                    with (idir / mode / f"{key}_shape").open(
+                        "r", encoding="utf-8"
+                    ) as fin:
                         for line in fin:
                             fout.write(line)
 
@@ -52,9 +56,9 @@ def aggregate_stats_dirs(
             scp = input_dirs[0] / p
             if scp.exists():
                 (output_dir / p).parent.mkdir(parents=True, exist_ok=True)
-                with (output_dir / p).open("w") as fout:
+                with (output_dir / p).open("w", encoding="utf-8") as fout:
                     for idir in input_dirs:
-                        with (idir / p).open("r") as fin:
+                        with (idir / p).open("r", encoding="utf-8") as fin:
                             for line in fin:
                                 fout.write(line)
 

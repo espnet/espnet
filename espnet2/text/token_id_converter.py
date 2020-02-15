@@ -19,7 +19,7 @@ class TokenIDConverter:
             self.token_list_repr = str(token_list)
             self.token_list: List[str] = []
 
-            with token_list.open("r") as f:
+            with token_list.open("r", encoding="utf-8") as f:
                 for idx, line in enumerate(f):
                     line = line.rstrip()
                     self.token_list.append(line)

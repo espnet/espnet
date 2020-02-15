@@ -117,9 +117,9 @@ def calc_perplexity(
         else:
             ppl = log_base ** (total_nll / total_ntokens / np.log(log_base))
 
-        with (Path(output_dir) / "ppl").open("w") as f:
+        with (Path(output_dir) / "ppl").open("w", encoding="utf-8") as f:
             f.write(f"{ppl}\n")
-        with (Path(output_dir) / "base").open("w") as f:
+        with (Path(output_dir) / "base").open("w", encoding="utf-8") as f:
             if log_base is None:
                 _log_base = np.e
             else:

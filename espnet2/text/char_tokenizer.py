@@ -21,7 +21,7 @@ class CharTokenizer(AbsTokenizer):
             self.non_linguistic_symbols = []
         elif isinstance(non_linguistic_symbols, (Path, str)):
             non_linguistic_symbols = Path(non_linguistic_symbols)
-            with non_linguistic_symbols.open("r") as f:
+            with non_linguistic_symbols.open("r", encoding="utf-8") as f:
                 self.non_linguistic_symbols = [line.rstrip() for line in f]
         else:
             self.non_linguistic_symbols = list(non_linguistic_symbols)
