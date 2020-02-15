@@ -38,4 +38,10 @@ for x in ${train_set} ${train_dev} ${recog_set}; do
 done
 
 
+echo "<hes>
+<v-noise>
+<noise>
+<silence>
+<cough>" > data/nlsym.txt
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
