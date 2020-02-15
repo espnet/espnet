@@ -23,7 +23,7 @@ class EpochIterFactory(AbsIterFactory):
         shuffle: bool = False,
         num_workers: int = 0,
         collate_fn=None,
-        pin_memory: bool = True,
+        pin_memory: bool = False,
     ):
         """Build iterator for each epoch.
 

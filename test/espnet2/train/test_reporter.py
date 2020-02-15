@@ -97,6 +97,12 @@ def test_sort_epochs_and_values_no_key():
         reporter.sort_epochs_and_values("foo", "bar", "min")
 
 
+def test_get_value_not_found():
+    reporter = Reporter()
+    with pytest.raises(KeyError):
+        reporter.get_value("a", "b")
+
+
 def test_sort_values():
     mode = "min"
     reporter = Reporter()
@@ -145,6 +151,23 @@ def test_best_epoch():
             sub.register(stats_list[e])
     best_epoch = reporter.get_best_epoch(key1, "aa", mode)
     assert best_epoch == 3
+
+
+def test_check_early_stopping():
+    mode = "min"
+    reporter = Reporter()
+    key1 = uuid.uuid4().hex
+    stats_list = [{"aa": 0.3}, {"aa": 0.2}, {"aa": 0.4}, {"aa": 0.3}]
+    patience = 1
+
+    results = []
+    for e in range(len(stats_list)):
+        reporter.set_epoch(e + 1)
+        with reporter.observe(key1) as sub:
+            sub.register(stats_list[e])
+        truefalse = reporter.check_early_stopping(patience, key1, "aa", mode)
+        results.append(truefalse)
+    assert results == [False, False, False, True]
 
 
 def test_logging():
