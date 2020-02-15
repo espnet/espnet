@@ -26,7 +26,7 @@ class DefaultFrontend(AbsFrontend):
         self,
         fs: Union[int, str] = 16000,
         n_fft: int = 512,
-        win_length: Union[int, None] = 512,
+        win_length: int = None,
         hop_length: int = 128,
         center: bool = True,
         pad_mode: str = "reflect",

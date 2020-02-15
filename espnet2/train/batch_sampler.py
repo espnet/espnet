@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import ABC
 from abc import abstractmethod
 import logging
@@ -26,7 +24,7 @@ def build_batch_sampler(
     sort_batch: str = "ascending",
     drop_last: bool = False,
     min_batch_size: int = 1,
-) -> AbsSampler:
+) -> "AbsSampler":
     """Helper function to instantiate BatchSampler
 
     Args:

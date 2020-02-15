@@ -6,6 +6,10 @@
 
 """Decoder definition."""
 
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -15,10 +19,10 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-class Decoder(ScorerInterface, torch.nn.Module):
+class Decoder(BatchScorerInterface, torch.nn.Module):
     """Transfomer decoder module.
 
     :param int odim: output dim
@@ -134,7 +138,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
         """
         x = self.embed(tgt)
         if cache is None:
-            cache = self.init_state()
+            cache = [None] * len(self.decoders)
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(x, tgt_mask, memory, None, cache=c)
@@ -150,12 +154,40 @@ class Decoder(ScorerInterface, torch.nn.Module):
         return y, new_cache
 
     # beam search API (see ScorerInterface)
-    def init_state(self, x=None):
-        """Get an initial state for decoding."""
-        return [None for i in range(len(self.decoders))]
-
     def score(self, ys, state, x):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
         return logp.squeeze(0), state
+
+    # batch beam search API (see BatchScorerInterface)
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        # merge states
+        n_batch = len(ys)
+        n_layers = len(self.decoders)
+        if states[0] is None:
+            batch_state = None
+        else:
+            # transpose state of [batch, layer] into [layer, batch]
+            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+
+        # batch decoding
+        ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
+        logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
+
+        # transpose state of [layer, batch] into [batch, layer]
+        state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        return logp, state_list
