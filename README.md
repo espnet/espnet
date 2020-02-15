@@ -38,7 +38,6 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [ST results](#st-results)
   * [ST demo](#st-demo)
   * [MT results](#mt-results)
-  * [MT demo](#mt-demo)
   * [TTS results](#tts-results)
   * [TTS demo](#tts-demo)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
