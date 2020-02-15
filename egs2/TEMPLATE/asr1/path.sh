@@ -29,8 +29,3 @@ export PYTHONIOENCODING=UTF-8
 # You need to change or unset NCCL_SOCKET_IFNAME according to your network environment
 # https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html#nccl-socket-ifname
 export NCCL_SOCKET_IFNAME=^lo,docker,virbr,vmnet,vboxnet
-
-
-if python -c 'import sys; from distutils.version import LooseVersion as L; assert L(sys.version) < L("3.7")' &> /dev/null; then
-    echo "Warning! Python<=3.6 might cause 'UnicodeEncodeError'"
-fi
