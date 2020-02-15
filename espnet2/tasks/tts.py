@@ -180,7 +180,7 @@ class TTSTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> TTSE2E:
         assert check_argument_types()
         if isinstance(args.token_list, str):
-            with open(args.token_list) as f:
+            with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
