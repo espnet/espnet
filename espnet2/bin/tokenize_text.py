@@ -79,13 +79,13 @@ def tokenize(
     if input == "-":
         fin = sys.stdin
     else:
-        fin = Path(input).open("r")
+        fin = Path(input).open("r", encoding="utf-8")
     if output == "-":
         fout = sys.stdout
     else:
         p = Path(output)
         p.parent.mkdir(parents=True, exist_ok=True)
-        fout = p.open("w")
+        fout = p.open("w", encoding="utf-8")
 
     tokenizer = build_tokenizer(
         token_type=token_type,

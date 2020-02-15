@@ -947,7 +947,7 @@ class AbsTask(ABC):
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        with (output_dir / "config.yaml").open("w") as f:
+        with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
@@ -1173,7 +1173,7 @@ class AbsTask(ABC):
         assert check_argument_types()
         config_file = Path(config_file)
 
-        with config_file.open("r") as f:
+        with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
         model = cls.build_model(args)
