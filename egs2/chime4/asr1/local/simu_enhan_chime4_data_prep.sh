@@ -1,1 +1,1 @@
-simu_enhan_chime4_data_prep.sh
+../../../../egs/chime4/asr1/local/simu_enhan_chime4_data_prep.sh

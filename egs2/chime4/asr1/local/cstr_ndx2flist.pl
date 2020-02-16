@@ -1,1 +1,1 @@
-cstr_ndx2flist.pl
+../../../../egs/chime4/asr1/local/cstr_ndx2flist.pl
