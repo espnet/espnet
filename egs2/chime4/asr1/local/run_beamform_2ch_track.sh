@@ -1,1 +1,1 @@
-run_beamform_2ch_track.sh
+../../../../egs/chime4/asr1/local/run_beamform_2ch_track.sh

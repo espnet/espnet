@@ -1,1 +1,1 @@
-flist2scp.pl
+../../../../egs/chime4/asr1/local/flist2scp.pl

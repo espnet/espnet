@@ -1,1 +1,1 @@
-show_enhance_results.sh
+../../../../egs/chime4/asr1/local/show_enhance_results.sh

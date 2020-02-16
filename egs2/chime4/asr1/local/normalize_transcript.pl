@@ -1,1 +1,1 @@
-normalize_transcript.pl
+../../../../egs/chime4/asr1/local/normalize_transcript.pl
