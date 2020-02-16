@@ -29,8 +29,6 @@ fi
 
 . ./path.sh
 . ./cmd.sh
-a=${train_cmd}
-echo ${a}
 
 train_set="train_nodev"
 train_dev="train_dev"
