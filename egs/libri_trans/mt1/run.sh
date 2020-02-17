@@ -53,8 +53,8 @@ datadir=/n/rd11/corpora_8/libri_trans/
 # Download data from here:
 # https://persyval-platform.univ-grenoble-alpes.fr/DS91/detaildataset
 
-use_st_dict=true
 # use the same dict as in the ST task
+use_st_dict=true
 
 # bpemode (unigram or bpe)
 nbpe=1000
