@@ -27,18 +27,21 @@
   - e2e JSON file: `exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json`
   - NOTE: This model is initialized with the Transformer ASR model (BPE1k, use SpecAugment) on the encoder side and Transformer MT model (BPE1k) on the decoder side.
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+- Note: longer version of "short" for SpecAugment: 30ep->50ep
 
 ### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans (2)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**17.45**|49.5|23.1|12.6|7.1|0.976|0.976|21880|22408|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_test.fr_decode_pytorch_transformer_bpe_pretrain|**16.22**|48.4|22.0|11.6|6.2|0.974|0.975|42798|43904|s
+- Note: shorten the total number epochs when pre-training the model: 100ep->30ep
 
 ### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans (3)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**16.50**|47.5|21.5|11.5|6.3|1.000|1.012|22669|22408|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/decode_test.fr_decode_pytorch_transformer_bpe_pretrain|**15.53**|47.0|20.9|10.8|5.6|0.994|0.995|43663|43904|
+- Note: shorten the total number epochs when pre-training the model: 100ep->30ep
 
 ### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_ctc_asr0.2_mt0.2_bpe1000
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
