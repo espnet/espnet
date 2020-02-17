@@ -157,10 +157,12 @@ class CTCPrefixScoreTH(object):
                 log_psi[si, scoring_ids[si]] = log_psi_[si]
         else:
             log_psi = torch.logsumexp(torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0), dim=0)
-            log_psi[:, self.blank] = self.logzero
 
         for si in range(self.n_bb):
             log_psi[si, self.eos] = r_sum[self.end_frames[si], si]
+
+        # exclude blank probs
+        log_psi[:, self.blank] = self.logzero
 
         return (r, log_psi, f_min, f_max, scoring_idmap), log_psi - s_prev
 
