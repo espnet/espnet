@@ -1,11 +1,17 @@
 # Transformer results
+### ensemble (1) + (2) + (3)
+|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
+|---|---|---|---|---|---|---|---|---|---|
+|exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain_ensemble3|**19.17**|51.3|25.0|14.1|8.2|0.974|0.975|21842|22408|
+|exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_test.fr_decode_pytorch_transformer_bpe_pretrain_ensemble3|**17.40**|49.8|23.4|12.7|7.0|0.972|0.972|42676|43904|
+
 ### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_ctc_asr0.2_mt0.2_short_long_bpe1000_specaug_asrtrans_mttrans
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_ctc_asr0.2_mt0.2_short_long_bpe1000_specaug_asrtrans_mttrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**18.20**|50.5|24.1|13.3|7.6|0.971|0.971|21760|22408|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_ctc_asr0.2_mt0.2_short_long_bpe1000_specaug_asrtrans_mttrans/decode_test.fr_decode_pytorch_transformer_bpe_pretrain|**16.76**|48.6|22.3|12.0|6.7|0.976|0.976|42850|43904|
 
-### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans
+### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans (1)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**18.07**|50.4|23.9|13.2|7.5|0.974|0.974|21823|22408|
@@ -22,13 +28,13 @@
   - NOTE: This model is initialized with the Transformer ASR model (BPE1k, use SpecAugment) on the encoder side and Transformer MT model (BPE1k) on the decoder side.
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 
-### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans
+### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans (2)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**17.45**|49.5|23.1|12.6|7.1|0.976|0.976|21880|22408|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/decode_test.fr_decode_pytorch_transformer_bpe_pretrain|**16.22**|48.4|22.0|11.6|6.2|0.974|0.975|42798|43904|s
 
-### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans
+### train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans (3)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train_sp.fr_lc_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/decode_dev.fr_decode_pytorch_transformer_bpe_pretrain|**16.50**|47.5|21.5|11.5|6.3|1.000|1.012|22669|22408|

@@ -1,4 +1,9 @@
 # Transformer results
+### ensemble (1) + (2) + (3)
+|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
+|---|---|---|---|---|---|---|---|---|---|
+|exp/train.pt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans/decode_dev5.pt_decode_ensemble3|**48.04**|73.8|54.2|41.8|32.3|0.996|0.996|43907|44062|
+
 ### train.pt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans (1)
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
 |---|---|---|---|---|---|---|---|---|---|
@@ -25,11 +30,6 @@
 |---|---|---|---|---|---|---|---|---|---|
 |exp/train.pt_tc_pytorch_train_pytorch_transformer_short_bpe8000_asrtrans/decode_dev5.pt_decode|**45.03**|71.7|51.2|38.5|29.0|1.000|1.000|44058|44062|
 - Note: shorten the total number epochs when pre-training the model: 100ep->30ep
-
-### ensemble (1) + (2) + (3)
-|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
-|---|---|---|---|---|---|---|---|---|---|
-|exp/train.pt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans/decode_dev5.pt_decode_ensemble3|**48.04**|73.8|54.2|41.8|32.3|0.996|0.996|43907|44062|
 
 ### train.pt_tc_pytorch_train_pytorch_transformer_ctc_asr0.3_bpe8000
 |dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
