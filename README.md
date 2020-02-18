@@ -54,24 +54,24 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 ## Key Features
 
 ### Kaldi style complete recipe
-- Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
-- Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
-- Support numbers of ST recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
-- Support numbers of MT recipes (IWSLT'16, the above ST recipes etc.)
+- Support numbers of `ASR` recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
+- Support numbers of `TTS` recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
+- Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
+- Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
 - Support speech separation and recognition recipe (WSJ-2mix)
 
 
 ### ASR
 
-- State-of-the-art performance in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
-- Hybrid CTC/attention based end-to-end ASR
+- **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
   - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
-- Incorporate RNNLM/LSTMLM trained only with text data
+- Incorporate RNNLM/LSTMLM/TransformerLM trained only with text data
 - Batch GPU decoding
-- Transducer based end-to-end ASR
+- **Transducer** based end-to-end ASR
   - Available: RNN-Transducer, Transformer-Transducer, Transformer/RNN-Transducer
   - Support attention extension and VGG-Transformer (encoder)
 
@@ -81,7 +81,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
 
 ### ST & MT
-- State-of-the-art performance in several ST benchmarks (comparable/superior to cascaded ASR and MT)
+- **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
 - Transformer based end-to-end MT (new!)
 
