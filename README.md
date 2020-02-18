@@ -8,6 +8,12 @@
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 [![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
+
+[**Docs**](https://espnet.github.io/espnet/)
+| [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
+| [**Notebook**](https://github.com/espnet/notebook)
+| [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
+
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
