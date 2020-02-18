@@ -107,6 +107,7 @@ scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 @dataclasses.dataclass
 class IteratorOption:
+    iterator_type: str
     train_dtype: str
     max_length: Sequence[int]
     num_workers: int
@@ -229,6 +230,19 @@ class AbsTask(ABC):
             default="INFO",
             choices=("ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
             help="The verbose level of logging",
+        )
+        group.add_argument(
+            "--dry_run",
+            type=str2bool,
+            default=False,
+            help="Perform process without training",
+        )
+        group.add_argument(
+            "--iterator_type",
+            type=str,
+            choices=["sequence", "none"],
+            default="sequence",
+            help="Specify iterator type",
         )
 
         group.add_argument("--output_dir", type=str_or_none, default=None)
@@ -870,7 +884,7 @@ class AbsTask(ABC):
             plot_attention_iter_factory, _, _ = cls.build_iter_factory(
                 iterator_option=iterator_option,
                 data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-                shape_files=[args.valid_shape_file[0]],
+                shape_files=args.valid_shape_file,
                 batch_type="const_no_sort",
                 batch_size=1,
                 train=False,
@@ -983,7 +997,9 @@ class AbsTask(ABC):
             )
 
         # 9. Run
-        if args.collect_stats:
+        if args.dry_run:
+            pass
+        elif args.collect_stats:
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
@@ -1033,6 +1049,46 @@ class AbsTask(ABC):
 
     @classmethod
     def build_iter_factory(
+        cls,
+        iterator_option: IteratorOption,
+        data_path_and_name_and_type,
+        shape_files: Union[Tuple[str, ...], List[str]],
+        batch_type: str,
+        train: bool,
+        preprocess_fn,
+        batch_size: int,
+        collate_fn,
+        num_batches: int = None,
+        num_iters_per_epoch: int = None,
+        max_cache_size: float = 0,
+        distributed: bool = False,
+        name: str = "",
+    ):
+        if iterator_option.iterator_type == "sequence":
+            return cls.build_sequence_iter_factory(
+                iterator_option=iterator_option,
+                data_path_and_name_and_type=data_path_and_name_and_type,
+                shape_files=shape_files,
+                batch_type=batch_type,
+                train=train,
+                preprocess_fn=preprocess_fn,
+                batch_size=batch_size,
+                collate_fn=collate_fn,
+                num_batches=num_batches,
+                num_iters_per_epoch=num_iters_per_epoch,
+                max_cache_size=max_cache_size,
+                distributed=distributed,
+                name=name,
+            )
+        elif iterator_option.iterator_type == "none":
+            return None, None, None
+        else:
+            raise RuntimeError(
+                f"Not supported: iterator_type={iterator_option.iterator_type}"
+            )
+
+    @classmethod
+    def build_sequence_iter_factory(
         cls,
         iterator_option: IteratorOption,
         data_path_and_name_and_type,
