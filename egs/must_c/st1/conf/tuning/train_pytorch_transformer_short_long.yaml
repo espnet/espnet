@@ -28,7 +28,7 @@ opt: noam
 accum-grad: 2
 grad-clip: 5
 patience: 0
-epochs: 30  # shorten the total number epochs when pre-training the model: 100ep->30ep
+epochs: 50  # longer version of "short" for SpecAugment: 30ep->50ep
 dropout-rate: 0.1
 
 # transformer specific setting
