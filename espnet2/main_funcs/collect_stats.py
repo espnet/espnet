@@ -115,9 +115,9 @@ def collect_stats(
             )
 
         # batch_keys and stats_keys are used by aggregate_stats_dirs.py
-        with (output_dir / mode / "batch_keys").open("w") as f:
+        with (output_dir / mode / "batch_keys").open("w", encoding="utf-8") as f:
             f.write(
                 "\n".join(filter(lambda x: not x.endswith("_lengths"), batch)) + "\n"
             )
-        with (output_dir / mode / "stats_keys").open("w") as f:
+        with (output_dir / mode / "stats_keys").open("w", encoding="utf-8") as f:
             f.write("\n".join(sum_dict) + "\n")

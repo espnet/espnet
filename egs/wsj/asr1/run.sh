@@ -21,6 +21,9 @@ seed=1
 # feature configuration
 do_delta=false
 
+# sample filtering
+min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
+
 # config files
 preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
@@ -134,6 +137,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
+
+    ### Filter out short samples which lead to `loss_ctc=inf` during training
+    ###  with the specified configuration.
+    # Samples satisfying `len(input) - len(output) * min_io_ratio < min_io_delta` will be pruned.
+    local/filtering_samples.py \
+        --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
+        --data-json ${feat_tr_dir}/data.json \
+        --mode-subsample "asr" \
+        --arch-subsample "rnn" \
+        ${min_io_delta:+--min-io-delta $min_io_delta} \
+        --output-json-path ${feat_tr_dir}/data.json
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
