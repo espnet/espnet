@@ -1,4 +1,5 @@
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
+    AISHELL=
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -20,11 +21,16 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LIBRISPEECH=
     RT03=/export/corpora/LDC/LDC2007S10
     SWBD=/export/corpora3/LDC/LDC97S62
+    HKUST1=
+    HKUST2=
+    LIBRISPEECH=
+    TIMIT=
     VOXFORGE=
     VIVOS=
     YESNO=
 
 else
+    AISHELL=
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -46,6 +52,10 @@ else
     LIBRISPEECH=
     RT03=
     SWBD=
+    HKUST1=
+    HKUST2=
+    LIBRISPEECH=
+    TIMIT=
     VOXFORGE=downloads
     VIVOS=downloads
     YESNO=downloads
