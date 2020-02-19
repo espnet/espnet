@@ -317,9 +317,9 @@ def main(cmd_args):
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
     else:
-        if is_torch_1_2_plus:
-            assert args.ngpu == 1, "There are some bugs with multi-GPU processing in PyTorch 1.2+" \
-                                   " (see https://github.com/pytorch/pytorch/issues/21108)"
+        if is_torch_1_2_plus and args.ngpu != 1:
+            logging.debug("There are some bugs with multi-GPU processing in PyTorch 1.2+" +
+                          " (see https://github.com/pytorch/pytorch/issues/21108)")
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 

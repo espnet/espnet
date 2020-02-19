@@ -25,6 +25,7 @@ word_vocab_size=7184
     --stage ${stage}                            \
     --stop_stage ${stop_stage}                  \
     --nj ${nj}                                  \
+    --audio_format wav                          \
     --decode_asr_model ${decode_asr_model}      \
     --feats_type raw                            \
     --token_type char                           \
