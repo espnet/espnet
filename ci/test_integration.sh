@@ -85,14 +85,23 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
 fi
 
 # These files must be same each other.
-for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do 
+for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
     file1=
     for f in egs2/*/*/"${base}"; do
         if [ -z "${file1}" ]; then
             file1="${f}"
         fi
-        diff "${file1}" "${f}" || { echo "To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; } 
+        diff "${file1}" "${f}" || { echo "To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; }
     done
+done
+
+
+echo "==== [ESPnet2] test setup.sh ==="
+for d in egs2/TEMPLATE/*; do
+    if [ -d "${d}" ]; then
+        d="${d##*/}"
+        egs2/TEMPLATE/"$d"/setup.sh egs2/test/"${d}"
+    fi
 done
 
 
