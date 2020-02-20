@@ -19,11 +19,6 @@ lm_resume=     # Resume the LM training from snapshot
 voxforge=downloads # original data directory to be stored
 lang=it # de, en, es, fr, it, nl, pt, ru
 
-# datasets
-train_set=tr_${lang}
-train_dev=dt_${lang}
-recog_set="dt_${lang} et_${lang}"
-
 # feature configuration
 do_delta=false
 
@@ -42,6 +37,11 @@ type_transfer='enc' # define type of transfer lr. Can be either 'enc', 'dec' or 
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
+
+# datasets
+train_set=tr_${lang}
+train_dev=dt_${lang}
+recog_set="dt_${lang} et_${lang}"
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
