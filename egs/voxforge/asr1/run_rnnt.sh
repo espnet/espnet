@@ -38,16 +38,16 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-# datasets
-train_set=tr_${lang}
-train_dev=dt_${lang}
-recog_set="dt_${lang} et_${lang}"
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
+
+# datasets
+train_set=tr_${lang}
+train_dev=dt_${lang}
+recog_set="dt_${lang} et_${lang}"
 
 if [ ${use_transfer} == true ]; then
     finetuning_conf=$(dirname ${train_config})/finetuning.yaml
