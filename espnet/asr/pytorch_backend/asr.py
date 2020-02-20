@@ -376,6 +376,8 @@ def train(args):
         model = model_class(idim_list[0] if args.num_encs == 1 else idim_list, odim, args)
     assert isinstance(model, ASRInterface)
 
+    logging.warning(' Total parameter of the model = ' + str(sum(p.numel() for p in model.parameters())) )
+
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
@@ -637,6 +639,8 @@ def recog(args):
     assert isinstance(model, ASRInterface)
     model.recog_args = args
 
+    logging.warning(' Total parameter of the model = ' + str(sum(p.numel() for p in model.parameters())) )
+    
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)

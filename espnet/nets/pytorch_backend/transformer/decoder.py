@@ -7,7 +7,12 @@
 """Decoder definition."""
 
 import torch
+import logging
 
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -38,8 +43,12 @@ class Decoder(ScorerInterface, torch.nn.Module):
     """
 
     def __init__(self, odim,
+                 selfattention_layer_type="selfattn",
                  attention_dim=256,
                  attention_heads=4,
+                 conv_wshare=4,
+                 conv_kernel_length=11,
+                 conv_usebias=False,
                  linear_units=2048,
                  num_blocks=6,
                  dropout_rate=0.1,
@@ -74,18 +83,76 @@ class Decoder(ScorerInterface, torch.nn.Module):
         else:
             raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
         self.normalize_before = normalize_before
-        self.decoders = repeat(
-            num_blocks,
-            lambda: DecoderLayer(
-                attention_dim,
-                MultiHeadedAttention(attention_heads, attention_dim, self_attention_dropout_rate),
-                MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
-                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate,
-                normalize_before,
-                concat_after
+        if selfattention_layer_type == "selfattn":
+            logging.warning('decoder self-attention layer type = self-attention')
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    MultiHeadedAttention(attention_heads, attention_dim, self_attention_dropout_rate),
+                    MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after
+                )
             )
-        )
+        elif selfattention_layer_type == "lightconv":
+            logging.warning('decoder self-attention layer type = lightweight convolution')
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    LightweightConvolution(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after
+                )
+            )
+        elif selfattention_layer_type == "lightconv2d":
+            logging.warning('decoder self-attention layer type = lightweight convolution 2-dimentional')
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    LightweightConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after
+                )
+            )
+        elif selfattention_layer_type == "dynamicconv":
+            logging.warning('decoder self-attention layer type = dynamic convolution')
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    DynamicConvolution(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after
+                )
+            )
+        elif selfattention_layer_type == "dynamicconv2d":
+            logging.warning('decoder self-attention layer type = dynamic convolution 2-dimentional')
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    DynamicConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after
+                )
+            )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
         if use_output_layer:

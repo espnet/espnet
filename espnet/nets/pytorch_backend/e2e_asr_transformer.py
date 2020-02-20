@@ -19,6 +19,8 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
@@ -58,7 +60,20 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
-
+        group.add_argument("--transformer-encoder-selfattn-layer-type", type=str, default="selfattn",
+                           choices=["selfattn", "lightconv", "lightconv2d", "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
+                           help='transformer encoder self-attention layer type')
+        group.add_argument("--transformer-decoder-selfattn-layer-type", type=str, default="selfattn",
+                           choices=["selfattn", "lightconv", "lightconv2d", "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
+                           help='transformer decoder self-attention layer type')
+        parser.add_argument('--wshare', default=4, type=int,
+                           help='Number of parameter shargin for lightweight convolution')
+        parser.add_argument('--ldconv-encoder-kernel-length', default="21-23-25-27-29-31-33-35-37-39-41-43", type=str,
+                           help='kernel size for lightweight/dynamic convolution: Encoder side. For exmaple, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
+        parser.add_argument('--ldconv-decoder-kernel-length', default="11-13-15-17-19-21", type=str,
+                           help='kernel size for lightweight/dynamic convolution: Decoder side. For exmaple, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
+        parser.add_argument('--ldconv-usebias', type=strtobool, default=False,
+                           help='use bias term in lightweight/dynamic convolution')
         group.add_argument('--dropout-rate', default=0.0, type=float,
                            help='Dropout rate for the encoder')
         # Encoder
@@ -95,8 +110,12 @@ class E2E(ASRInterface, torch.nn.Module):
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(
             idim=idim,
+            selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_encoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.eunits,
             num_blocks=args.elayers,
             input_layer=args.transformer_input_layer,
@@ -106,8 +125,12 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         self.decoder = Decoder(
             odim=odim,
+            selfattention_layer_type=args.transformer_decoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_decoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
@@ -435,6 +458,9 @@ class E2E(ASRInterface, torch.nn.Module):
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention):
+            if isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution):
                 ret[name] = m.attn.cpu().numpy()
+            if isinstance(m, DynamicConvolution2D):
+                ret[name+"_time"] = m.attn_t.cpu().numpy()
+                ret[name+"_freq"] = m.attn_f.cpu().numpy()
         return ret
