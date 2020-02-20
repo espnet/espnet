@@ -213,7 +213,7 @@ if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
-    bpemodel=""
+    bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
