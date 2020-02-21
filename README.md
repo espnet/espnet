@@ -308,19 +308,6 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
 
-## Chainer and Pytorch backends
-
-|                    | Chainer                         | Pytorch                            |
-| -----------        | :----:                          | :----:                             |
-| Performance        | ◎                               | ◎                                  |
-| Speed              | ○                               | ◎                                  |
-| Multi-GPU          | supported                       | supported                          |
-| VGG-like encoder   | supported                       | supported                          |
-| Transformer        | supported                       | supported                          |
-| RNNLM integration  | supported                       | supported                          |
-| #Attention types   | 3 (no attention, dot, location) | 12 including variants of multihead |
-| TTS recipe support | no support                      | supported                          |
-
 ## References
 
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
