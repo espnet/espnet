@@ -10,15 +10,15 @@ adim: 256
 aheads: 4
 
 # multitask
-mtlalpha: 1.0  # CTC weight
-asr-weight: 0.3
+mtlalpha: 0.0  # CTC weight
+asr-weight: 0.0
 mt-weight: 0.0
 
 # label smoothing
 lsm-weight: 0.1
 
 # minibatch related
-batch-size: 32  # for char
+batch-size: 64  # for BPE
 maxlen-in: 512  # if input length  > maxlen-in, batchsize is automatically reduced
 maxlen-out: 150 # if output length > maxlen-out, batchsize is automatically reduced
 
@@ -28,7 +28,7 @@ opt: noam
 accum-grad: 2
 grad-clip: 5
 patience: 0
-epochs: 40
+epochs: 30  # longer version of "short" for SpecAugment: 20ep->30ep
 dropout-rate: 0.1
 
 # transformer specific setting
@@ -44,7 +44,3 @@ transformer-init: pytorch
 # pre-training related
 enc-init-mods: encoder.embed,encoder.encoders,encoder.after_norm
 dec-init-mods: decoder.embed,decoder.decoders,decoder.after_norm,decoder.output_layer
-
-# Report CER & WER
-report-cer: true
-report-wer: true
