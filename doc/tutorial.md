@@ -202,4 +202,17 @@ $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir instal
 ```
 
 
+### Chainer and Pytorch backends
+
+|                    | Chainer                         | Pytorch                            |
+| -----------        | :----:                          | :----:                             |
+| Performance        | ◎                               | ◎                                  |
+| Speed              | ○                               | ◎                                  |
+| Multi-GPU          | supported                       | supported                          |
+| VGG-like encoder   | supported                       | supported                          |
+| Transformer        | supported                       | supported                          |
+| RNNLM integration  | supported                       | supported                          |
+| #Attention types   | 3 (no attention, dot, location) | 12 including variants of multihead |
+| TTS recipe support | no support                      | supported                          |
+
 
