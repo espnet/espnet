@@ -66,7 +66,7 @@ See https://espnet.github.io/espnet/tutorial.html
 
 ## Docker Container
 
-go to docker/ and follow https://espnet.github.io/espnet/docker.html instructions there.
+go to docker/ and follow [instructions](https://espnet.github.io/espnet/docker.html)  there.
 
 
 ## Results and demo
