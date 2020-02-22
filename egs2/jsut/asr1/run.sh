@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-fs=48000
+fs=16000
 opts=
 if [ "${fs}" -eq 48000 ]; then
     # To suppress recreation, specify wav format
@@ -21,7 +21,6 @@ eval_set=eval1
 asr_config=conf/tuning/train_rnn.yaml
 decode_config=conf/tuning/decode_rnn.yaml
 lm_config=conf/lm.yaml
-
 ./asr.sh \
     --token_type char \
     --feats_type raw \

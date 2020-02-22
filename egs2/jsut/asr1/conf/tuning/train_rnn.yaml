@@ -33,7 +33,7 @@ optim_conf:
     rho: 0.95
     eps: 1.0e-08
     weight_decay: 0
-init: chainer
+init: xavier_uniform
 max_epoch: 50
 batch_size: 35
 max_length:
