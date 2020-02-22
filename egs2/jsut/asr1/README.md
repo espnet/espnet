@@ -8,18 +8,24 @@
 - Git hash: `3b0f14e85e52ab5d178c412c26643759ef03d3fb`
   - Commit date: `Wed Jan 15 07:49:31 2020 +0900`
 
-## asr_train_rnn_fbank_pitch_char
-### CER (S.Err for WER)
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|6349|79.6|16.3|4.1|2.2|22.6|98.4|
-|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|5928|79.1|16.8|4.1|2.2|23.1|98.4|
-
 ## asr_train_rnn_raw_char
 ### CER (S.Err for WER)
 
+#### 16k
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|6349|79.6|16.3|4.2|2.0|22.5|98.4|
-|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|5928|78.0|17.6|4.4|2.1|24.1|97.6|
+|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|6349|83.4|12.5|4.1|1.5|18.1|95.2|
+|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|5928|82.5|13.5|4.0|1.7|19.1|95.2|
+
+#### 48k
+
+Make sure to add following parameters.
+```
+--asr_args "--frontend_conf n_fft=$(echo ${fs} | python -c 'print(int(0.032 * float(input())))') --frontend_conf hop_length=$(echo ${fs} | python -c 'print(int(0.008 * float(input())))')"
+```
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_devdecode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|6349|84.7|12.0|3.3|1.7|17.0|94.8|
+|decode_eval1decode_rnn_lm_valid.loss.best_asr_model_valid.acc.best|250|5928|83.5|13.1|3.4|1.6|18.0|94.8|
