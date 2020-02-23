@@ -37,11 +37,6 @@ for x in ${train_set} ${train_dev} ${recog_set}; do
    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
 done
 
-
-echo "<hes>
-<v-noise>
-<noise>
-<silence>
-<cough>" > data/nlsym.txt
+cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > data/nlsym.txt
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
