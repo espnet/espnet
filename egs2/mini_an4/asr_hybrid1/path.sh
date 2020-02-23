@@ -1,0 +1,1 @@
+../../TEMPLATE/asr_hybrid1/path.sh

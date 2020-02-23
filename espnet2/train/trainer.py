@@ -306,7 +306,10 @@ class Trainer:
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         if log_interval is None:
-            log_interval = max(len(iterator) // 20, 10)
+            try:
+                log_interval = max(len(iterator) // 20, 10)
+            except TypeError:
+                log_interval = 1000
 
         model.train()
         all_steps_are_invalid = True

@@ -10,7 +10,6 @@ from typing import Tuple
 import numpy as np
 import torch
 from torch.nn.parallel import data_parallel
-from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
 from espnet2.torch_utils.device_funcs import to_device
@@ -23,8 +22,8 @@ from espnet2.utils.fileio import NpyScpWriter
 @torch.no_grad()
 def collect_stats(
     model: AbsE2E,
-    train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-    valid_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+    train_iter: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+    valid_iter: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
     output_dir: Path,
     ngpu: Optional[int],
     log_interval: Optional[int],
@@ -42,7 +41,10 @@ def collect_stats(
     npy_scp_writers = {}
     for itr, mode in zip([train_iter, valid_iter], ["train", "valid"]):
         if log_interval is None:
-            log_interval = max(len(itr) // 20, 10)
+            try:
+                log_interval = max(len(itr) // 20, 10)
+            except TypeError:
+                log_interval = 1000
 
         sum_dict = defaultdict(lambda: 0)
         sq_dict = defaultdict(lambda: 0)
