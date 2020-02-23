@@ -26,7 +26,7 @@ class ForwardAdaptor(torch.nn.Module):
         self.module = module
         self.name = name
         if not hasattr(module, name):
-            raise RuntimeError(f"{module} doesn't have {name}")
+            raise ValueError(f"{module} doesn't have {name}")
 
     def forward(self, *args, **kwargs):
         func = getattr(self.module, self.name)
