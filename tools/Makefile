@@ -31,7 +31,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done
+python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done kenlm.done
 
 extra: nkf.done moses.done mwerSegmenter.done pesq
 
@@ -112,6 +112,13 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
+
+kenlm.done: espnet.done
+	rm -rf kenlm
+	git clone https://github.com/kpu/kenlm.git
+	mkdir -p kenlm/build && cd kenlm/build && cmake .. && make -j4;
+	. venv/bin/activate; cd kenlm && python setup.py install
+	touch kenlm.done
 
 nkf.done:
 	rm -rf nkf
