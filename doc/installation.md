@@ -3,13 +3,40 @@
 
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
-- protocol buffer
-    - For the sentencepiece, you need to install via package manager e.g.
-      `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`.
-      See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md
-- libsndfile
-    - For the soundfile, you need to install via package manager e.g.
-      `sudo apt-get install libsndfile1-dev`.
+
+We often use audio converter tools in several secipes:
+
+
+- lame (mp3 support)
+    ```bash
+    # e.g. Ubuntu
+    sudo apt-get install lame
+    # e.g. CentOS7: You need to register EPEL repo
+    sudo yum install lame
+    ```
+- flac support
+    ```bash
+    # e.g. Ubuntu
+    sudo apt-get install flac
+    ```
+- libsndfile (Soundfile)
+    ```bash
+    # e.g. Ubuntu
+    sudo apt-get install libsndfile1-dev
+    # e.g. CentOS
+    sudo yum install -y libsndfile libsndfile-devel
+    ```
+- sox
+    ```bash
+    # e.g. Ubuntu
+    sudo apt-get install sox
+    ```
+- ffmpeg
+    ```bash
+    # e.g. Ubuntu
+    sudo apt-get install ffmpeg
+    ```
+
 
 Optionally, GPU environment requires the following libraries:
 
@@ -27,9 +54,6 @@ to prepare the appropriate environments
 - ubuntu16
 - centos7
 - debian9
-
-Also, we have several other requirements to install Kaldi. You can follow the [Kaldi install instruction](https://github.com/kaldi-asr/kaldi/blob/master/INSTALL)
-or our Kaldi installation in CI with prebuilt Kaldi binaries in https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh
 
 
 ### Step 1) setting of the environment for GPU support
@@ -62,15 +86,17 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2) Install Kaldi
 Related links:
-- Github: https://github.com/kaldi-asr/kaldi
-- Documentation: https://kaldi-asr.org/
-  - Downloading and installing Kaldi: https://kaldi-asr.org/doc/install.html
-  - The build process (how Kaldi is compiled): https://kaldi-asr.org/doc/build_setup.html
-- INSTALL: https://github.com/kaldi-asr/kaldi/blob/master/INSTALL
+- [Kaldi Github](https://github.com/kaldi-asr/kaldi)
+- [Kaldi Documentation](https://kaldi-asr.org/)
+  - [Downloading and installing Kaldi](https://kaldi-asr.org/doc/install.html)
+  - [The build process (how Kaldi is compiled)](https://kaldi-asr.org/doc/build_setup.html)
+- [Kaldi INSTALL](https://github.com/kaldi-asr/kaldi/blob/master/INSTALL)
 
 Kaldi's requirements:
 - OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.
 - GCC >= 4.7
+
+We also have prebuilt Kaldi binaries in https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh
 
 
 1. Git clone kaldi
