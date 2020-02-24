@@ -15,7 +15,8 @@ from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
-
+import kenlm
+from espnet.nets.pytorch_backend.ngram import Ngram
 
 def recog_v2(args):
     """Decode with custom models that implements ScorerInterface.
@@ -57,8 +58,14 @@ def recog_v2(args):
     else:
         lm = None
 
+    if args.ngram:
+        ngram = Ngram(args.ngram, self.char_list)
+    else:
+        ngram = None
+
     scorers = model.scorers()
     scorers["lm"] = lm
+    scorers["ngram"] = ngram
     scorers["length_bonus"] = LengthBonus(len(train_args.char_list))
     weights = dict(
         decoder=1.0 - args.ctc_weight,
