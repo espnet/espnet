@@ -160,7 +160,9 @@ fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 if [ -d ${chime5_dir}/${lmexpdir} ]; then
-    ln -s ${chime5_dir}/${lmexpdir} ${lmexpdir}
+    if [ ! -e ${lmexpdir} ]; then
+        ln -s ${chime5_dir}/${lmexpdir} ${lmexpdir}
+    fi
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -179,7 +181,9 @@ fi
 expdir=exp/${expname}
 
 if [ -d ${chime5_dir}/${expdir} ]; then
-    ln -s ${chime5_dir}/${expdir} ${expdir}
+    if [ ! -e ${expdir} ]; then
+        ln -s ${chime5_dir}/${expdir} ${expdir}
+    fi
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
