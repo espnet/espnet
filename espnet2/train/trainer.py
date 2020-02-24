@@ -27,7 +27,7 @@ from espnet2.torch_utils.calculate_all_attentions import calculate_all_attention
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.reporter import Reporter
@@ -96,7 +96,7 @@ class Trainer:
     @classmethod
     def run(
         cls,
-        model: AbsE2E,
+        model: AbsESPnetModel,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
