@@ -10,31 +10,35 @@ We often use audio converter tools in several secipes:
 - lame (mp3 support)
     ```bash
     # e.g. Ubuntu
-    sudo apt-get install lame
+    $ sudo apt-get install lame
     # e.g. CentOS7: You need to register EPEL repo
-    sudo yum install lame
+    $ sudo yum install lame
     ```
 - flac support
     ```bash
     # e.g. Ubuntu
-    sudo apt-get install flac
+    $ sudo apt-get install flac
     ```
 - libsndfile (Soundfile)
     ```bash
     # e.g. Ubuntu
-    sudo apt-get install libsndfile1-dev
+    $ sudo apt-get install libsndfile1-dev
     # e.g. CentOS
-    sudo yum install libsndfile libsndfile-devel
+    $ sudo yum install libsndfile libsndfile-devel
     ```
 - sox
     ```bash
     # e.g. Ubuntu
-    sudo apt-get install sox
+    $ sudo apt-get install sox
+    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    $ conda install -c conda-forge sox
     ```
 - ffmpeg
     ```bash
     # e.g. Ubuntu
-    sudo apt-get install ffmpeg
+    $ sudo apt-get install ffmpeg
+    # Using anaconda
+    $ conda install -c conda-forge ffmpeg
     ```
 
 
@@ -102,46 +106,52 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Git clone kaldi
 
     ```bash
-    git clone https://github.com/kaldi-asr/kaldi
-    cd kaldi
+    $ git clone https://github.com/kaldi-asr/kaldi
+    $ cd kaldi
     ```
 1. Install tools
 
     ```bash
-    cd tools
-    make -j <NCPU>
+    $ cd tools
+    $ make -j <NCPU>
     ```
     1. Select BLAS library from ATLAS, OpenBLAS, or MKL
 
     - OpenBLAS
 
     ```bash
-    ./extras/install_openblas.sh
+    $ ./extras/install_openblas.sh
     ```
     - MKL (You need sudo privilege)
 
     ```bash
-    sudo ./extras/install_openblas.sh
+    $ sudo ./extras/install_openblas.sh
     ```
     - ATLAS (You need sudo privilege)
 
     ```bash
     # Ubuntu
-    sudo apt-get install libatlas-base-dev
+    $ sudo apt-get install libatlas-base-dev
     ```
 
 1. Compile Kaldi & install
 
     ```bash
-    cd src
+    $ cd src
     # ESPnet uses only feature extractor, so you can disable CUDA
-    ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
+    $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0
-    make -j clean depend; make -j <NCPU>
+    $ make -j clean depend; make -j <NCPU>
     ```
 
 ### Step 3-A) installation of espnet
+
+    ```bash
+    $ git clone https://github.com/espnet/espnet
+    $ cd espnet
+    ```
+
 #### using miniconda (default)
 
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
