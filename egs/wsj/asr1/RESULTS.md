@@ -1,3 +1,74 @@
+# Transformer (PyTorch 1.3 + builtin CTC)
+- Environments
+  - date: `Wed Jan 22 23:33:17 CST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.3.1`
+  - Git hash: `28ce90a17148afcb36f4e593966911b9c3a6230b`
+    - Commit date: `Tue Jan 7 16:34:06 2020 +0900`
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp
+  - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
+  - cmvn file: `data/train_si284/cmvn.ark`
+  - e2e file: `exp/train_si284_pytorch_train_no_preprocess/results/model.acc.best`
+  - e2e JSON file: `exp/train_si284_pytorch_train_no_preprocess/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm_word65000/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm_word65000/model.json`
+  - dict file: `data/lang_1char/train_si284_units.txt
+- Results
+
+  ### CER
+
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_lm_word65000|503|48634|97.4|1.1|1.5|0.6|3.2|62.0|
+  |decode_test_eval92_decode_lm_word65000|330|31739|99.4|0.3|0.3|0.2|0.7|27.0|
+
+  ### WER
+
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_lm_word65000|503|8234|93.7|5.3|0.9|1.1|7.4|55.5|
+  |decode_test_eval92_decode_lm_word65000|330|5353|98.5|1.3|0.1|0.3|1.8|19.1|
+
+# RNN (PyTorch 1.3 + builtin CTC)
+- Environments
+  - date: `Wed Jan 22 23:33:17 CST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.3.1`
+  - Git hash: `28ce90a17148afcb36f4e593966911b9c3a6230b`
+    - Commit date: `Tue Jan 7 16:34:06 2020 +0900`
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1zIK6vE_0Yfn9ezcLwNPk1cCXhrrw9Oje
+  - training config file: `conf/tuning/train_rnn.yaml`
+  - decoding config file: `conf/tuning/decode_rnn.yaml`
+  - cmvn file: `data/train_si284/cmvn.ark`
+  - e2e file: `exp/train_si284_pytorch_train_rnn_no_preprocess/results/model.acc.best`
+  - e2e JSON file: `exp/train_si284_pytorch_train_rnn_no_preprocess/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm_word65000/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm_word65000/model.json`
+  - dict file: `data/lang_1char/train_si284_units.txt`
+- Results
+
+  ### CER
+
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|48634|96.7|1.6|1.7|0.7|4.0|66.8|
+  |decode_test_eval92_decode_rnn_lm_word65000|330|31739|99.1|0.4|0.4|0.2|1.1|30.0|
+
+  ### WER
+
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|8234|92.4|6.6|1.0|1.2|8.8|61.2|
+  |decode_test_eval92_decode_rnn_lm_word65000|330|5353|97.8|1.9|0.3|0.3|2.5|22.7|
+
+
 # Transformer result
 Be careful with patience !!!
 
