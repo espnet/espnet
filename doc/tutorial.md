@@ -159,20 +159,6 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
     This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
 
-### Chainer and Pytorch backends
-
-|                    | Chainer                         | Pytorch                            |
-| -----------        | :----:                          | :----:                             |
-| Performance        | ◎                               | ◎                                  |
-| Speed              | ○                               | ◎                                  |
-| Multi-GPU          | supported                       | supported                          |
-| VGG-like encoder   | supported                       | supported                          |
-| Transformer        | supported                       | supported                          |
-| RNNLM integration  | supported                       | supported                          |
-| #Attention types   | 3 (no attention, dot, location) | 12 including variants of multihead |
-| TTS recipe support | no support                      | supported                          |
-
-
 
 ### Known issues
 
