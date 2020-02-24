@@ -123,7 +123,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
     # write model config
@@ -224,6 +224,8 @@ def train(args):
     load_cv = LoadInputsAndTargets(mode='mt', load_output=True)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
+    # default collate function converts numpy array to pytorch tensor
+    # we used an empty collate function instead which returns list
     train_iter = {'main': ChainerDataLoader(
         dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
@@ -235,7 +237,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, device, args.ngpu, args.accum_grad, use_apex=use_apex)
+        model, args.grad_clip, train_iter, optimizer,
+        device, args.ngpu, False, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -249,7 +252,11 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+    if args.save_interval_iters > 0:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
@@ -287,7 +294,11 @@ def train(args):
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    if args.save_interval_iters > 0:
+        trainer.extend(torch_snapshot(filename='snapshot.iter.{.updater.iteration}'),
+                       trigger=(args.save_interval_iters, 'iteration'))
+    else:
+        trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
