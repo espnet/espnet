@@ -4,7 +4,7 @@
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
 
-We often use audio converter tools in several secipes:
+We often use audio converter tools in several recipes:
 
 
 - lame (mp3 support)
