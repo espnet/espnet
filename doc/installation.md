@@ -24,7 +24,7 @@ We often use audio converter tools in several secipes:
     # e.g. Ubuntu
     sudo apt-get install libsndfile1-dev
     # e.g. CentOS
-    sudo yum install -y libsndfile libsndfile-devel
+    sudo yum install libsndfile libsndfile-devel
     ```
 - sox
     ```bash
@@ -96,7 +96,7 @@ Kaldi's requirements:
 - OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.
 - GCC >= 4.7
 
-We also have prebuilt Kaldi binaries in https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh
+We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
 
 
 1. Git clone kaldi
@@ -108,7 +108,7 @@ We also have prebuilt Kaldi binaries in https://github.com/espnet/espnet/blob/ma
 1. Install tools
 
     ```bash
-    tools
+    cd tools
     make -j <NCPU>
     ```
     1. Select BLAS library from ATLAS, OpenBLAS, or MKL
