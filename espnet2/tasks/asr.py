@@ -16,11 +16,11 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
-from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
+from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -38,7 +38,6 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
-
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -135,7 +134,7 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--e2e_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ASRE2E),
+            default=get_default_kwargs(ESPnetASRModel),
             help="The keyword arguments for E2E class.",
         )
 
@@ -215,7 +214,7 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ASRE2E:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -272,7 +271,7 @@ class ASRTask(AbsTask):
         rnnt_decoder = None
 
         # 6. Build model
-        model = ASRE2E(
+        model = ESPnetASRModel(
             vocab_size=vocab_size,
             frontend=frontend,
             normalize=normalize,

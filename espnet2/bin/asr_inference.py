@@ -27,7 +27,7 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
-def recog(
+def inference(
     output_dir: str,
     maxlenratio: float,
     minlenratio: float,
@@ -311,7 +311,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
-    recog(**kwargs)
+    inference(**kwargs)
 
 
 if __name__ == "__main__":

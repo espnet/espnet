@@ -13,7 +13,7 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.lm.abs_model import AbsLM
-from espnet2.lm.e2e import LanguageE2E
+from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.abs_task import IteratorOption
@@ -78,7 +78,7 @@ class LMTask(AbsTask):
         group.add_argument(
             "--e2e_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(LanguageE2E),
+            default=get_default_kwargs(ESPnetLanguageModel),
             help="The keyword arguments for E2E class.",
         )
 
@@ -153,7 +153,7 @@ class LMTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> LanguageE2E:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetLanguageModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -176,7 +176,7 @@ class LMTask(AbsTask):
 
         # 2. Build E2E
         # Assume the last-id is sos_and_eos
-        model = LanguageE2E(lm=lm, vocab_size=vocab_size, **args.e2e_conf)
+        model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.e2e_conf)
 
         # FIXME(kamo): Should be done in model?
         # 3. Initialize

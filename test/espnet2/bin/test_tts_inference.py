@@ -2,8 +2,8 @@ from argparse import ArgumentParser
 
 import pytest
 
-from espnet2.bin.tts_decode import get_parser
-from espnet2.bin.tts_decode import main
+from espnet2.bin.tts_inference import get_parser
+from espnet2.bin.tts_inference import main
 
 
 def test_get_parser():

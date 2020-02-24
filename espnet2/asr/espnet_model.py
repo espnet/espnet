@@ -19,10 +19,10 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
-class ASRE2E(AbsE2E):
+class ESPnetASRModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     def __init__(
@@ -165,7 +165,7 @@ class ASRE2E(AbsE2E):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_decode.py
+        """Frontend + Encoder. Note that this method is used by asr_inference.py
 
         Args:
             speech: (Batch, Length, ...)

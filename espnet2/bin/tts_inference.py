@@ -29,7 +29,7 @@ from espnet2.utils.types import str_or_none
 
 
 @torch.no_grad()
-def tts_decode(
+def inference(
     output_dir: str,
     batch_size: int,
     dtype: str,
@@ -263,7 +263,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
-    tts_decode(**kwargs)
+    inference(**kwargs)
 
 
 if __name__ == "__main__":
