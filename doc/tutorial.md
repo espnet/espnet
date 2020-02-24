@@ -18,8 +18,8 @@ $ ./run.sh --backend pytorch
 ```
 With this main script, you can perform a full procedure of ASR experiments including
 - Data download
-- Data preparation (Kaldi style, see http://kaldi-asr.org/doc/data_prep.html)
-- Feature extraction (Kaldi style, see http://kaldi-asr.org/doc/feat.html)
+- [Data preparation](http://kaldi-asr.org/doc/data_prep.html) (Kaldi style)
+- [Feature extraction](http://kaldi-asr.org/doc/feat.html) (Kaldi style)
 - Dictionary and JSON format data preparation
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
@@ -89,8 +89,20 @@ Note that we would not include the installation of Tensorboard to simplify our i
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
 If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
+For more information about `cmd.sh` see [Parallelization in Kaldi
+](http://kaldi-asr.org/doc/queue.html).
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+
+You also changing the configuration to use specified backend:
+
+
+|cmd     |Backend                                  | configuration file|
+|--------| :--------------------------------------:| :---------------: |
+|run.pl  | Local machine (default)                 |-                  |
+|queue.pl|Sun grid engine, or grid endine like tool|conf/queue.conf    |
+|slurm.pl|Slurm                                    |conf/queue.conf    |
+|pbs.pl  |PBS/Torque                               |conf/pbs.conf      |
+|ssh.pl  |SSH                                      |.queue/machines    |
 
 ### CTC, attention, and hybrid CTC/attention
 
