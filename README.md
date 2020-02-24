@@ -133,21 +133,21 @@ We list 4-gram BLEU of major ST tasks.
 #### end-to-end system
 | Task | BLEU | Pretrained model |
 | ---- | :----: | :----: |
-| Fisher-CallHome Spanish fisher_test (Es->En)      | 48.39 | link |
-| Fisher-CallHome Spanish callhome_evltest (Es->En) | 18.67 | link |
-| Libri-trans test (En->Fr)                         | 16.70 | link |
-| How2 dev5 (En->Pt)                                | 45.68 | link |
-| Must-C tst-COMMON (En->De)                        | 22.91 | link |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 48.39 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/st1/RESULTS.md#train_spen_lcrm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans) |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 18.67 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/st1/RESULTS.md#train_spen_lcrm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans) |
+| Libri-trans test (En->Fr)                         | 16.70 | [link](https://github.com/espnet/espnet/blob/master/egs/libri_trans/st1/RESULTS.md#train_spfr_lc_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans-1) |
+| How2 dev5 (En->Pt)                                | 45.68 | [link](https://github.com/espnet/espnet/blob/master/egs/how2/st1/RESULTS.md#trainpt_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans-1) |
+| Must-C tst-COMMON (En->De)                        | 22.91 | [link](https://github.com/espnet/espnet/blob/master/egs/must_c/st1/RESULTS.md#train_spen-dede_tc_pytorch_train_pytorch_transformer_short_long_bpe8000_specaug_asrtrans_mttrans) |
 | Mboshi-French dev (Fr->Mboshi)                    | 6.18  | N/A  |
 
 #### cascaded system
 | Task | BLEU | Pretrained model |
 | ---- | :----: | :----: |
-| Fisher-CallHome Spanish fisher_test (Es->En)      | 42.16 | link |
-| Fisher-CallHome Spanish callhome_evltest (Es->En) | 19.82 | link |
-| Libri-trans test (En->Fr)                         | 16.96 | link |
-| How2 dev5 (En->Pt)                                | 44.90 | link |
-| Must-C tst-COMMON (En->De)                        | 23.65 | link |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 42.16 | N/A  |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 19.82 | N/A  |
+| Libri-trans test (En->Fr)                         | 16.96 | N/A  |
+| How2 dev5 (En->Pt)                                | 44.90 | N/A  |
+| Must-C tst-COMMON (En->De)                        | 23.65 | N/A  |
 
 If you want to check the results of the other recipes, please check `egs/<name_of_recipe>/st1/RESULTS.md`.
 
@@ -180,15 +180,15 @@ Available pretrained models in the demo script are listed as below.
 
 | Task | BLEU | Pretrained model |
 | ---- | :----: | :----: |
-| Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | link |
-| Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | link |
-| Libri-trans test (En->Fr)                         | 18.09 | link |
-| How2 dev5 (En->Pt)                                | 58.61 | [link]() |
-| Must-C tst-COMMON (En->De)                        | 27.63 | link |
-| IWSLT'14 test2014 (En->De)                        | 24.70 | link |
-| IWSLT'14 test2014 (De->En)                        | 29.22 | link |
-| IWSLT'16 test2014 (En->De)                        | 24.05 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
-| IWSLT'16 test2014 (De->En)                        | 29.13 | [link](https://drive.google.com/open?id=1o150rdEhPubN1i36TK_dWktFkxuL-X19) |
+| Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
+| Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
+| Libri-trans test (En->Fr)                         | 18.09 | [link](https://github.com/espnet/espnet/blob/master/egs/libri_trans/mt1/RESULTS.md#trainfr_lcrm_tc_pytorch_train_pytorch_transformer_bpe1000) |
+| How2 dev5 (En->Pt)                                | 58.61 | [link](https://github.com/espnet/espnet/blob/master/egs/how2/mt1/RESULTS.md#trainpt_tc_tc_pytorch_train_pytorch_transformer_bpe8000) |
+| Must-C tst-COMMON (En->De)                        | 27.63 | [link](https://github.com/espnet/espnet/blob/master/egs/must_c/mt1/RESULTS.md#summary-4-gram-bleu) |
+| IWSLT'14 test2014 (En->De)                        | 24.70 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
+| IWSLT'14 test2014 (De->En)                        | 29.22 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
+| IWSLT'16 test2014 (En->De)                        | 24.05 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
+| IWSLT'16 test2014 (De->En)                        | 29.13 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
 
 
 ### TTS results

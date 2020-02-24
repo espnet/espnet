@@ -15,7 +15,7 @@ atype: add
 adim: 1024
 
 # minibatch related
-batch-size: 64
+batch-size: 64  # for BPE
 maxlen-in: 100  # if input length  > maxlen-in, batchsize is automatically reduced
 maxlen-out: 100 # if output length > maxlen-out, batchsize is automatically reduced
 
