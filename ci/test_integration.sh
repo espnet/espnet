@@ -91,7 +91,7 @@ for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
         if [ -z "${file1}" ]; then
             file1="${f}"
         fi
-        diff "${file1}" "${f}" || { echo "To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; }
+        diff "${file1}" "${f}" || { echo "Error: ${file1} and ${f} differ: To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; }
     done
 done
 
