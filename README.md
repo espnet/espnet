@@ -66,8 +66,11 @@ See https://espnet.github.io/espnet/tutorial.html
 
 ## Docker Container
 
-go to docker/ and follow [instructions](https://espnet.github.io/espnet/docker.html)  there.
+go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
+## Contribution
+Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
+If you are the first commiter, please follow the [contribution guide](CONTRIBUTING.md).
 
 ## Results and demo
 
