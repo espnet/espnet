@@ -39,6 +39,3 @@ scheduler_conf:
 
 # minibatch related
 batch_size: 32
-max_length:
-    - 512
-    - 150

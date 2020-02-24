@@ -36,6 +36,3 @@ optim_conf:
 init: xavier_uniform
 max_epoch: 50
 batch_size: 35
-max_length:
-    - 600
-    - 150
