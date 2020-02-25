@@ -833,13 +833,27 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
             mkdir -p "${_scoredir}"
 
             if [ "${_type}" = wer ]; then
-                # Covert text to "trn" format
-                <"${_data}/text" \
-                    awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
+                # Tokenize text to word level
+                paste \
+                    <(<"${_data}/text" \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
-                <"${_dir}/text" \
-                    awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
+
+                paste \
+                    <(<"${_dir}/text"  \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
+
 
             elif [ "${_type}" = cer ]; then
                 # Tokenize text to char level
