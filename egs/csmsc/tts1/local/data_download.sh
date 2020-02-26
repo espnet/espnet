@@ -12,18 +12,18 @@ if [ $# != 1 ]; then
 fi
 
 # download dataset
-cwd=`pwd`
+cwd=$(pwd)
 if [ ! -e ${db}/CSMSC ]; then
     mkdir -p ${db}
     cd ${db}
     wget https://weixinxcxdb.oss-cn-beijing.aliyuncs.com/gwYinPinKu/BZNSYP.rar
     mkdir CSMSC && cd CSMSC && unrar x ../BZNSYP.rar
     # convert new line code
-    find CSMSC/PhoneLabeling -name "*.interval" | while read line; do
-        nkf -Lu --overwrite ${line}
+    find ./PhoneLabeling -name "*.interval" | while read -r line; do
+        nkf -Lu -w --overwrite ${line}
     done
     rm ../BZNSYP.rar
-    cd $cwd
+    cd ${cwd}
     echo "Successfully finished download."
 else
     echo "Already exists. Skip download."
