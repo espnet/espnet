@@ -60,7 +60,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
     # remove duplicated utterances in the training set
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set_ori} # 233hr 36min
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 233hr 36min
 
 fi
 
