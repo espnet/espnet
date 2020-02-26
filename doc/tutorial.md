@@ -1,4 +1,23 @@
 ## Usage
+### Directory structure
+
+```
+espnet/              # Python modules
+utils/               # Utility scripts of ESPnet
+test/                # Unit test
+test_utils/          #unit test for executable scripts
+egs/                 # The complete recipe for each corpora
+    an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
+      asr1/          # ASR recipe
+          - run.sh   # Executable script
+          - cmd.sh   # To select the backend for job scheduler 
+          - path.sh  # Setup script for environment variables
+          - conf/    # Containing COnfiguration files
+          - steps/   # The utils scripts from Kaldi
+          - utils/   # The utils scripts from Kaldi
+      tts1/          # TTS recipe
+    ...
+```
 
 ### Execution of example scripts
 
@@ -23,6 +42,27 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Dictionary and JSON format data preparation
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
+
+### Setup in your cluster
+Change `cmd.sh` according to your cluster setup.
+If you run experiments with your local machine, you don't have to change it.
+For more information about `cmd.sh` see [Parallelization in Kaldi
+](http://kaldi-asr.org/doc/queue.html).
+It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+
+You also changing the configuration to use specified backend:
+
+
+|cmd     |Backend                                  | configuration file|
+|--------| :--------------------------------------:| :---------------: |
+|run.pl  | Local machine (default)                 |-                  |
+|queue.pl|Sun grid engine, or grid endine like tool|conf/queue.conf    |
+|slurm.pl|Slurm                                    |conf/queue.conf    |
+|pbs.pl  |PBS/Torque                               |conf/pbs.conf      |
+|ssh.pl  |SSH                                      |.queue/machines    |
+
+
+### Logging
 
 The training progress (loss and accuracy for training and validation data) can be monitored with the following command
 ```sh
@@ -54,7 +94,30 @@ and connecting to the given address (default : localhost:6006). This will provid
 ![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
+
+### Change options in run.sh
+
+We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's ued in run.sh: 
+
+e.g. If the script has `ngpu` option
+
+```bash
+#!/bin/bash
+# run.sh
+ngpu=1
+. utils/parse_options.sh
+echo ${ngpu}
+```
+
+Then you can change the value as following:
+
+```bash
+$ ./run.sh --ngpu 2
+echo 2
+```
+
 ### Use of GPU
+
 
 - Training:
   If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
@@ -86,23 +149,18 @@ Note that we would not include the installation of Tensorboard to simplify our i
 - Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
 
-### Setup in your cluster
-Change `cmd.sh` according to your cluster setup.
-If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see [Parallelization in Kaldi
-](http://kaldi-asr.org/doc/queue.html).
-It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+### Start from the middle stage or stop at specified stage
 
-You also changing the configuration to use specified backend:
+`run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start 
+from the specified stage if some stages are failed by some reason for example.
 
+You can start from specified stage as following and stop the process at the specifed stage:
 
-|cmd     |Backend                                  | configuration file|
-|--------| :--------------------------------------:| :---------------: |
-|run.pl  | Local machine (default)                 |-                  |
-|queue.pl|Sun grid engine, or grid endine like tool|conf/queue.conf    |
-|slurm.pl|Slurm                                    |conf/queue.conf    |
-|pbs.pl  |PBS/Torque                               |conf/pbs.conf      |
-|ssh.pl  |SSH                                      |.queue/machines    |
+```bash
+# Start from 3rd stage and stop and 5th stage
+$ ./run.sh --stage 3 --stop-stage 5
+```
+
 
 ### CTC, attention, and hybrid CTC/attention
 
@@ -125,7 +183,7 @@ The CTC training mode does not output the validation accuracy, and the optimum m
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
 
-### Changing the configuration
+### Changing the training configuration
 
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
 
@@ -212,5 +270,3 @@ $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir instal
 | RNNLM integration  | supported                       | supported                          |
 | #Attention types   | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support                      | supported                          |
-
-
