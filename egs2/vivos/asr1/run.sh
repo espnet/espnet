@@ -4,11 +4,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=1
-stop_stage=11
-nj=16
-decode_asr_model=eval.loss.best.pth
-
 train_set="train_nodev"
 train_dev="train_dev"
 eval_set="test"
@@ -22,11 +17,7 @@ use_wordlm=false
 word_vocab_size=7184
 
 ./asr.sh                                        \
-    --stage ${stage}                            \
-    --stop_stage ${stop_stage}                  \
-    --nj ${nj}                                  \
     --audio_format wav                          \
-    --decode_asr_model ${decode_asr_model}      \
     --feats_type raw                            \
     --token_type char                           \
     --use_lm ${use_lm}                          \
