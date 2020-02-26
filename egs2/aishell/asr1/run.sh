@@ -5,11 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=1
-stop_stage=12
-ngpu=1
-nj=16
-
 train_set=train
 dev_set=dev
 eval_sets="test "
@@ -26,10 +21,6 @@ use_wordlm=false
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
-    --stage ${stage}                                   \
-    --stop_stage ${stop_stage}                         \
-    --ngpu ${ngpu}                                     \
-    --nj ${nj}                                         \
     --audio_format wav                                 \
     --feats_type fbank_pitch                           \
     --token_type char                                  \
