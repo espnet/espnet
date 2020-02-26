@@ -1,4 +1,9 @@
-# Overview of example information
+# egs (Examples)
+
+## How to use?
+See: https://espnet.github.io/espnet/tutorial.html
+
+## Overview of example information
 
 | Directory name          | Corpus name                                                  | Task                                       | Language       | URL                                                          | Note                          |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------------------------- |
