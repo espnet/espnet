@@ -65,7 +65,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Normalize text to capital letters
     for x in train dev_android dev_ios dev_mic test_android test_ios test_mic; do
         mv data/${x}/text data/${x}/text.org
-        paste <(cut -f 1 data/${x}/text.org) <(cut -f 2 data/${x}/text.org | tr 'a-z' 'A-Z') \
+        paste <(cut -f 1 data/${x}/text.org) <(cut -f 2 data/${x}/text.org | tr '[:lower:]' '[:upper:]') \
             > data/${x}/text
         rm data/${x}/text.org
     done
@@ -89,6 +89,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
             data/test_${x} exp/make_fbank/test_${x} ${fbankdir}
         utils/fix_data_dir.sh data/test_${x}
+    done
     
     # speed-perturbed
     utils/perturb_data_dir_speed.sh 0.9 data/train data/temp1
@@ -177,8 +178,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --dict ${dict} \
-        --resume ${lmexpdir}/snapshot.ep.18
+        --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
