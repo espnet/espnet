@@ -13,10 +13,10 @@ train_set="train_nodev"
 train_dev="train_dev"
 eval_set="test"
 
-asr_config=conf/train.yaml
+asr_config=conf/train_asr.yaml
 decode_config=conf/decode.yaml
 
-lm_config=conf/lm_char.yaml
+lm_config=conf/train_lm_char.yaml
 use_lm=true
 use_wordlm=false
 word_vocab_size=7184

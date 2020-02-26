@@ -45,6 +45,6 @@ max_length:
 
 # criterion
 best_model_criterion:
--  - eval
+-  - valid
    - acc
    - max

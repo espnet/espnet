@@ -7,20 +7,19 @@ set -o pipefail
 stage=1
 stop_stage=11
 nj=16
-decode_asr_model=eval.acc.best.pth 
 
 train_set="train_nodev"
 train_dev="train_dev"
 eval_set="test_yesno"
 
-asr_config=conf/train.yaml
+asr_config=conf/train_asr.yaml
 decode_config=conf/decode.yaml
 
 ./asr.sh                                        \
     --stage ${stage}                            \
     --stop_stage ${stop_stage}                  \
     --nj ${nj}                                  \
-    --decode_asr_model ${decode_asr_model}      \
+    --audio_format wav                          \
     --feats_type raw                            \
     --token_type char                           \
     --use_lm false                              \

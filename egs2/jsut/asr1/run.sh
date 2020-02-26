@@ -18,9 +18,9 @@ train_set=tr_no_dev
 dev_set=dev
 eval_set=eval1
 
-asr_config=conf/tuning/train_rnn.yaml
-decode_config=conf/tuning/decode_rnn.yaml
-lm_config=conf/lm.yaml
+asr_config=conf/train_asr_rnn.yaml
+decode_config=conf/decode_rnn.yaml
+lm_config=conf/train_lm.yaml
 ./asr.sh \
     --token_type char \
     --feats_type raw \
