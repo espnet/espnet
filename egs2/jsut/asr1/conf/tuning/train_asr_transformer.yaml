@@ -16,7 +16,7 @@ decoder_conf:
     input_layer: embed
     num_blocks: 6
     linear_units: 2048
-    drop_rate: 0.1
+    dropout_rate: 0.1
 
 # hybrid CTC/attention
 e2e_conf:
