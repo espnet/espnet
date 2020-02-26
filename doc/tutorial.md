@@ -97,7 +97,7 @@ Note that we would not include the installation of Tensorboard to simplify our i
 
 ### Change options in run.sh
 
-We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's ued in run.sh: 
+We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's used in run.sh: 
 
 e.g. If the script has `ngpu` option
 
@@ -157,7 +157,7 @@ from the specified stage if some stages are failed by some reason for example.
 You can start from specified stage as following and stop the process at the specifed stage:
 
 ```bash
-# Start from 3rd stage and stop and 5th stage
+# Start from 3rd stage and stop at 5th stage
 $ ./run.sh --stage 3 --stop-stage 5
 ```
 
