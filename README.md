@@ -29,7 +29,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Support speech separation and recognition recipe (WSJ-2mix)
 
 
-### ASR
+### ASR: Automatic Speech Recognition
 
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - **Hybrid CTC/attention** based end-to-end ASR
@@ -43,12 +43,12 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Available: RNN-Transducer, Transformer-Transducer, Transformer/RNN-Transducer
   - Support attention extension and VGG-Transformer (encoder)
 
-### TTS
+### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
 - Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
 
-### ST & MT
+### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
 - Transformer based end-to-end MT (new!)
