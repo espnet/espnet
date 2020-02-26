@@ -9,20 +9,17 @@ init: chainer
 max_epoch: 20
 patience: 3
 batch_size: 5
-max_length:
-    - 800
-    - 150
 
 # criterion
 val_scheduler_criterion:
-    - eval
+    - valid
     - acc
 early_stopping_criterion:
-    - eval
+    - valid
     - acc
     - max
 best_model_criterion:
--   - eval
+-   - valid
     - acc
     - max
 
