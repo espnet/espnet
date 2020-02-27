@@ -44,7 +44,9 @@ class DefaultRNNLM(LMInterface, nn.Module):
         nn.Module.__init__(self)
         # NOTE: for a compatibility with less than 0.5.0 version models
         dropout_rate = getattr(args, "dropout_rate", 0.0)
-        self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.embed_unit, args.type, dropout_rate))
+        self.model = ClassifierWithState(
+            RNNLM(n_vocab, args.layer, args.unit, args.embed_unit, args.type, dropout_rate)
+            )
 
     def state_dict(self):
         """Dump state dict."""
@@ -240,10 +242,14 @@ class RNNLM(nn.Module):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_embed)
         if typ == "lstm":
-            self.rnn = nn.ModuleList( [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)] )
+            self.rnn = nn.ModuleList(
+                [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)]
+                )
         else:
-            self.rnn = nn.ModuleList( [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)] )
-            
+            self.rnn = nn.ModuleList(
+                [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)]
+                )
+        
         self.dropout = nn.ModuleList(
             [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
