@@ -11,13 +11,10 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.rnn_encoder import RNNEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr_hybrid.e2e import ASRHybridE2E
+from espnet2.asr_hybrid.tdnn import SamePaddingTDNN
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -46,11 +43,11 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 encoder_choices = ClassChoices(
-    "encoder",
+    "model",
     classes=dict(
-        transformer=TransformerEncoder, vgg_rnn=VGGRNNEncoder, rnn=RNNEncoder,
+        tdnn=SamePaddingTDNN,
     ),
-    type_check=AbsEncoder,
+    type_check=torch.nn.Module,
     default="rnn",
 )
 

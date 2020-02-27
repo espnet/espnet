@@ -84,7 +84,7 @@ class ASRHybridE2E(AbsE2E):
         # 1. Forward
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        # The number of frames between input feats and alignment can be differed
+        # The lenght between input feats and alignment can be differed with 1 frame
         # by the padding strategy of each STFT,
         # then padding or truncating alignment here.
         if encoder_out.shape[1] > align.shape[1]:
