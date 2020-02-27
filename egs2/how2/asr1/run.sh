@@ -4,13 +4,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=1
-stop_stage=11
-ngpu=1
-nj=16
-
-decode_asr_model=valid.acc.best.pth
-
 train_set="train_reduced"
 train_dev="dev5"
 eval_set="test_set_iwslt2019"
@@ -30,11 +23,6 @@ bpe_nlsyms="[hes]"
 use_lm=false
 
 ./asr.sh                                        \
-    --stage ${stage}                            \
-    --stop_stage ${stop_stage}                  \
-    --ngpu ${ngpu}                              \
-    --nj ${nj}                                  \
-    --decode_asr_model ${decode_asr_model}      \
     --feats_type ${feats_type}                  \
     --token_type ${token_type}                  \
     --nbpe ${nbpe}                              \
