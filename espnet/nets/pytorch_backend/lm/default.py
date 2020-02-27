@@ -246,7 +246,7 @@ class RNNLM(nn.Module):
         else:
             self.rnn = nn.ModuleList(
                 [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)])
-        
+
         self.dropout = nn.ModuleList(
             [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
