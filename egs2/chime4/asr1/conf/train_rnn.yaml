@@ -41,6 +41,6 @@ patience: 3
 
 # minibatch related
 batch_size: 20 # 25 cuda out of memory
-max_length:
-    - 600
-    - 150
+#max_length:
+#    - 600
+#    - 150
