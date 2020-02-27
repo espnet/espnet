@@ -240,9 +240,9 @@ class RNNLM(nn.Module):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_embed)
         if typ == "lstm":
-            self.rnn = nn.ModuleList( [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)]
+            self.rnn = nn.ModuleList( [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)] )
         else:
-            self.rnn = nn.ModuleList( [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)]
+            self.rnn = nn.ModuleList( [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)] )
             
         self.dropout = nn.ModuleList(
             [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])

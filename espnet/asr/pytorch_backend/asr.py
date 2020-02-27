@@ -650,7 +650,7 @@ def recog(args):
             raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit, rnnlm_args.embed_unit)))
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
@@ -661,7 +661,7 @@ def recog(args):
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
+            len(word_dict), rnnlm_args.layer, rnnlm_args.unit, rnnlm_args.embed_unit))
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 
