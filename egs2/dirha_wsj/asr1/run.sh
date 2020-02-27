@@ -9,10 +9,6 @@ mic=L1C     # Beam_Circular_Array Beam_Linear_Array KA6 L1C
 
 local_data_opts="--mic ${mic}"
 
-stage=1
-stop_stage=11
-nj=16
-decode_asr_model=valid.loss.best.pth 
 
 train_set=train_si284_$mic
 dev_set=dirha_sim_$mic
@@ -23,15 +19,12 @@ eval_set=dirha_real_$mic
 asr_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
-lm_config=conf/lm.yaml
+lm_config=conf/train_lm.yaml
 use_word_lm=false
 word_vocab_size=65000
 
 ./asr.sh                                        \
-    --stage ${stage}                            \
-    --stop_stage ${stop_stage}                  \
-    --nj ${nj}                                  \
-    --decode_asr_model ${decode_asr_model}      \
+    --nlsyms_txt data/nlsyms.txt                \
     --token_type char                           \
     --feats_type fbank_pitch                    \
     --asr_config "${asr_config}"                \
