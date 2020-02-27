@@ -296,7 +296,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
            scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
            _dirs+="data/${train_set}_sp${factor} "
        done
-       utils/combine_data.sh "data/${train_set}" ${_dirs}
+       utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
     else
        log "Skip stage 2: Speed perturbation"
     fi
