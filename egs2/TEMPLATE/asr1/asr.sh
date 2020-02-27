@@ -52,6 +52,8 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
+bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
+bpe_char_cover=1.0  # character coverage when modeling BPE
 
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
@@ -114,7 +116,7 @@ Options:
     --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
+    --feats_type   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
 
@@ -126,7 +128,8 @@ Options:
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos=                # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-
+    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
+    --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_config       # Config for language model training (default="${lm_config}").
@@ -187,6 +190,8 @@ elif [ "${feats_type}" = fbank_pitch ]; then
     data_feats=${dumpdir}/fbank_pitch
 elif [ "${feats_type}" = fbank ]; then
     data_feats=${dumpdir}/fbank
+elif [ "${feats_type}" == extracted ]; then
+    data_feats=${dumpdir}/extracted
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -362,6 +367,19 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "${feats_type} is not supported yet."
         exit 1
 
+    elif  [ "${feats_type}" = extracted ]; then
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        done
+
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
@@ -422,12 +440,20 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # shellcheck disable=SC2002
         <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
 
+        if [ ! -z ${bpe_nlsyms} ]; then
+            _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+        else
+            _opts_spm=""
+        fi
+
         spm_train \
             --input="${bpedir}"/train.txt \
             --vocab_size="${nbpe}" \
             --model_type="${bpemode}" \
             --model_prefix="${bpeprefix}" \
-            --input_sentence_size="${bpe_input_sentence_size}"
+            --character_coverage=${bpe_char_cover} \
+            --input_sentence_size="${bpe_input_sentence_size}" \
+            ${_opts_spm}
 
         _opts="--bpemodel ${bpemodel}"
 
