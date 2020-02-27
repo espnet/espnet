@@ -8,7 +8,8 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 tags="cpu-u18
       gpu-cuda10.0-cudnn7-u18"
-cuda_vers="10.0"
+cuda_vers="10.0
+           10.1"
 docker_ver=$(docker version -f '{{.Server.Version}}')
 echo "Using Docker Ver.${docker_ver}"
 
