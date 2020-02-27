@@ -27,9 +27,6 @@ decoder_conf:
          aconv_filts: 100
 
 
-
-
-
 # hybrid CTC/attention
 e2e_conf:
     ctc_weight: 0.2
@@ -44,9 +41,6 @@ e2e_conf:
 
 # minibatch related
 batch_size: 15
-max_length:
-     - 800  # maxlen_in if input length  > maxlen_in, batchsize is automatically reduced
-     - 150  # maxlen_out if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 optim: adadelta

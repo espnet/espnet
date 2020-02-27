@@ -74,6 +74,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 other_text=data/local/other_text/text
+nlsyms=data/nlsyms,txt
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Srctexts preparation"
@@ -84,6 +85,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     zcat ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | \
 	    grep -v "<" | tr "[:lower:]" "[:upper:]" | \
 	    awk '{ printf("wsj1_lng_%07d %s\n",NR,$0) } ' > ${other_text}
+
+    log "Create non linguistic symbols: ${nlsyms}"
+    cut -f 2- data/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cat ${nlsyms}
+
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
