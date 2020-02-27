@@ -38,6 +38,17 @@ optim_conf:
 init: chainer
 max_epoch: 8
 patience: 3
+val_scheduler_criterion:
+- valid
+- loss
+
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+num_iters_per_epoch: 300000
+
 
 # minibatch related
 batch_size: 24

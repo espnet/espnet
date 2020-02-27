@@ -35,8 +35,7 @@ if [ -z "${CSJVER}" ]; then
     exit 1
 fi
 
-train_set_ori=train_nodup
-train_set=train_nodup_sp
+train_set=train_nodup
 train_dev=train_dev
 recog_set="eval1 eval2 eval3"
 
@@ -61,14 +60,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
     # remove duplicated utterances in the training set
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set_ori} # 233hr 36min
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 233hr 36min
 
-    # speed purturbation
-    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
