@@ -349,10 +349,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
             hyps_best_kept = []
             for hyp in hyps:
-                vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
                 ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
-                ey.unsqueeze(0)
                 if self.num_encs == 1:
                     att_c, att_w = self.att[att_idx](h[0].unsqueeze(0), [h[0].size(0)],
                                                      self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
