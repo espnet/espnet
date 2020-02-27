@@ -239,7 +239,7 @@ class RNNLM(nn.Module):
         :param str typ: The RNN type
         """
         super(RNNLM, self).__init__()
-        if n_embed == None:
+        if n_embed is None:
             n_embed = n_units
         self.embed = nn.Embedding(n_vocab, n_embed)
         if typ == "lstm":
