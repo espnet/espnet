@@ -16,7 +16,7 @@ decoder_conf:
     input_layer: embed
     num_blocks: 6
     linear_units: 2048
-    drop_rate: 0.1
+    dropout_rate: 0.1
 
 # hybrid CTC/attention
 e2e_conf:
@@ -27,24 +27,15 @@ e2e_conf:
 # optimization related
 optim: adam
 init: chainer
-accum_grad: 4
+accum_grad: 2
 grad_clip: 5
 patience: 0
 max_epoch: 50
 optim_conf:
-    lr: 10.0
+    lr: 5.0
 scheduler: noamlr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 18000
 
 # minibatch related
 batch_size: 32
-max_length:
-    - 512
-    - 150
-
-# criterion
-best_model_criterion:
--  - eval
-   - acc
-   - max

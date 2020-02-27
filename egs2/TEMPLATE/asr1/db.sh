@@ -1,5 +1,6 @@
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
+    AN4=
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -28,7 +29,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HOW2_FEATS=
 
 else
-    AISHELL=
+    AISHELL=downloads
+    AN4=downloads
     WSJ0=
     WSJ1=
     WSJCAM0=
