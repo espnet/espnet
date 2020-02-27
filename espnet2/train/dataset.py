@@ -20,6 +20,8 @@ from espnet2.utils.fileio import load_num_sequence_text
 from espnet2.utils.fileio import NpyScpReader
 from espnet2.utils.fileio import read_2column_text
 from espnet2.utils.fileio import SoundScpReader
+from espnet2.utils.rand_gen_dataset import FloatRandomGenerateDataset
+from espnet2.utils.rand_gen_dataset import IntRandomGenerateDataset
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -162,7 +164,21 @@ class ESPnetDataset(Dataset):
             return load_num_sequence_text(path, loader_type)
 
         elif loader_type == "text":
+            # NOTE(kamo): Return str instead of np.ndarray in this case.
+            #  Must be converted by "preprocess"
             return read_2column_text(path)
+
+        elif loader_type == "rand_float":
+            return FloatRandomGenerateDataset(path)
+
+        elif loader_type.startswith("rand_int"):
+            # e.g. rand_int_3_10
+            try:
+                low, high = loader_type[len("rand_int") + 1 :].split("_")
+                low, high = int(low), int(high)
+            except ValueError:
+                raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
+            return IntRandomGenerateDataset(path, low, high)
 
         else:
             raise RuntimeError(f"Not supported: loader_type={loader_type}")

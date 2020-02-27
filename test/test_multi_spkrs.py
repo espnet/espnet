@@ -6,6 +6,7 @@
 import argparse
 import importlib
 import numpy
+import re
 import torch
 
 import pytest
@@ -105,13 +106,9 @@ def init_chainer_weight_const(m, val):
 def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
-    seq_true_texts = ([["uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"],
-                       ["uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"]])
 
     # ctc_weight: 0.5 (hybrid CTC/attention), cannot be 0.0 (attention) or 1.0 (CTC)
     for text_idx2, ctc_weight in enumerate([0.5]):
-        seq_true_text_sd = seq_true_texts[text_idx1]
-
         args = make_arg(etype=etype, ctc_weight=ctc_weight, num_spkrs=num_spkrs, spa=spa)
         m = importlib.import_module(m_str)
         model = m.E2E(40, 5, args)
@@ -123,22 +120,18 @@ def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, 
 
         data = [
             ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-                numpy.float32), token=seq_true_text_sd))
+                numpy.float32), token=['', '']))
         ]
 
         in_data = data[0][1]["feat"]
         nbest_hyps = model.recognize(in_data, args, args.char_list)
 
-        seq_hat_text_sd = []
         for i in range(num_spkrs):
             y_hat = nbest_hyps[i][0]['yseq'][1:]
             seq_hat = [args.char_list[int(idx)] for idx in y_hat]
             seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-            seq_hat_text_sd.append(seq_hat_text)
 
-        seq_true_text_sd = data[0][1]["token"]
-
-        assert seq_hat_text_sd == seq_true_text_sd
+            assert re.match(r'[aiueo]+', seq_hat_text)
 
 
 @pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "m_str", "data_idx"), [

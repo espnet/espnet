@@ -1,9 +1,9 @@
 from abc import ABC
 from abc import abstractmethod
 import argparse
-import dataclasses
 from distutils.version import LooseVersion
 import logging
+import os
 from pathlib import Path
 import sys
 from typing import Any
@@ -19,6 +19,7 @@ import configargparse
 import humanfriendly
 import numpy as np
 import torch
+import torch.multiprocessing
 import torch.nn
 import torch.optim
 from torch.utils.data import DataLoader
@@ -27,6 +28,9 @@ from typeguard import check_return_type
 import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
+from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
@@ -41,8 +45,11 @@ from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
-from espnet2.train.epoch_iter_factory import AbsIterFactory
-from espnet2.train.epoch_iter_factory import EpochIterFactory
+from espnet2.train.distributed_utils import free_port
+from espnet2.train.distributed_utils import get_master_port
+from espnet2.train.distributed_utils import get_node_rank
+from espnet2.train.distributed_utils import get_num_nodes
+from espnet2.train.distributed_utils import resolve_distributed_mode
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
@@ -54,6 +61,12 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+    from torch.multiprocessing.spawn import ProcessContext
+else:
+    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
+
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -92,19 +105,6 @@ optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
-@dataclasses.dataclass
-class IteratorOption:
-    train_dtype: str
-    max_length: Sequence[int]
-    num_workers: int
-    sort_in_batch: str
-    sort_batch: str
-    distributed: bool
-    seed: int
-    allow_variable_data_keys: bool
-    ngpu: int
-
-
 class AbsTask(ABC):
     # Use @staticmethod, or @classmethod,
     # instead of instance method to avoid God classes
@@ -113,7 +113,6 @@ class AbsTask(ABC):
     num_optimizers: int = 1
     trainer = Trainer
     class_choices_list: List[ClassChoices] = []
-    iterator_option = IteratorOption
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
@@ -215,8 +214,21 @@ class AbsTask(ABC):
             "--log_level",
             type=lambda x: x.upper(),
             default="INFO",
-            choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+            choices=("ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
             help="The verbose level of logging",
+        )
+        group.add_argument(
+            "--dry_run",
+            type=str2bool,
+            default=False,
+            help="Perform process without training",
+        )
+        group.add_argument(
+            "--iterator_type",
+            type=str,
+            choices=["sequence", "none"],
+            default="sequence",
+            help="Specify iterator type",
         )
 
         group.add_argument("--output_dir", type=str_or_none, default=None)
@@ -243,12 +255,6 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("distributed training related")
         group.add_argument(
-            "--distributed",
-            type=str2bool,
-            default=False,
-            help="Enable distributed training",
-        )
-        group.add_argument(
             "--dist_backend", default="nccl", type=str, help="distributed backend",
         )
         group.add_argument(
@@ -260,15 +266,53 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--dist_world_size",
-            default=-1,
-            type=int,
+            default=None,
+            type=int_or_none,
             help="number of nodes for distributed training",
         )
         group.add_argument(
             "--dist_rank",
-            type=int,
-            default=-1,
+            type=int_or_none,
+            default=None,
             help="node rank for distributed training",
+        )
+        group.add_argument(
+            # Not starting with "dist_" for compatibility to launch.py
+            "--local_rank",
+            type=int_or_none,
+            default=None,
+            help="local rank for distributed training. This option is used if "
+            "--multiprocessing_distributed=false",
+        )
+        group.add_argument(
+            "--dist_master_addr",
+            default=None,
+            type=str_or_none,
+            help="The master address for distributed training. "
+            "This value is used when dist_init_method == 'env://'",
+        )
+        group.add_argument(
+            "--dist_master_port",
+            default=None,
+            type=int_or_none,
+            help="The master port for distributed training"
+            "This value is used when dist_init_method == 'env://'",
+        )
+        group.add_argument(
+            "--dist_launcher",
+            default=None,
+            type=str_or_none,
+            choices=["slurm", "mpi", None],
+            help="The launcher type for distributed training",
+        )
+        group.add_argument(
+            "--multiprocessing_distributed",
+            default=False,
+            type=str2bool,
+            help="Use multi-processing distributed training to launch "
+            "N processes per node, which has N GPUs. This is the "
+            "fastest way to use PyTorch for either single node or "
+            "multi node data parallel training",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -430,6 +474,10 @@ class AbsTask(ABC):
             help="If not given, the value of --batch_size is used",
         )
 
+        group.add_argument("--train_shape_file", type=str, action="append", default=[])
+        group.add_argument("--valid_shape_file", type=str, action="append", default=[])
+
+        group = parser.add_argument_group("Sequence iterator related")
         _batch_type_choices = ("const_no_sort", "const", "seq", "bin", "frame")
         group.add_argument(
             "--batch_type", type=str, default="seq", choices=_batch_type_choices,
@@ -441,9 +489,6 @@ class AbsTask(ABC):
             choices=_batch_type_choices + (None,),
             help="If not given, the value of --batch_type is used",
         )
-
-        group.add_argument("--train_shape_file", type=str, action="append", default=[])
-        group.add_argument("--valid_shape_file", type=str, action="append", default=[])
         group.add_argument("--max_length", type=int, action="append", default=[])
         group.add_argument(
             "--sort_in_batch",
@@ -459,6 +504,16 @@ class AbsTask(ABC):
             default="descending",
             choices=["descending", "ascending"],
             help="Sort mini-batches by the sample lengths",
+        )
+
+        group = parser.add_argument_group("Chunk iterator related")
+        group.add_argument("--chunk_length", type=int, default=500)
+        group.add_argument("--chunk_shift_ratio", type=float, default=0.5)
+        group.add_argument(
+            "--num_cache_chunks",
+            type=int,
+            default=1024,
+            help="Shuffle in the specified number of chunks and generate mini-batches",
         )
 
         group = parser.add_argument_group("Dataset related")
@@ -556,7 +611,7 @@ class AbsTask(ABC):
     def get_default_config(cls) -> Dict[str, Any]:
         """Return the configuration as dict.
 
-        This method is used print_config()
+        This method is used by print_config()
         """
 
         def get_class_type(name: str, classes: dict):
@@ -671,7 +726,7 @@ class AbsTask(ABC):
         file.write(yaml_no_alias_safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
-    def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None) -> None:
+    def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
         if cls.num_optimizers != cls.trainer.num_optimizers:
             raise RuntimeError(
                 f"Task.num_optimizers != Task.trainer.num_optimizers: "
@@ -688,19 +743,94 @@ class AbsTask(ABC):
             sys.exit(0)
         cls.check_required_command_args(args)
 
+        # "distributed" is decided using the other command args
+        resolve_distributed_mode(args)
+        if not args.distributed or not args.multiprocessing_distributed:
+            cls.main_worker(args)
+
+        else:
+            assert args.ngpu > 1, args.ngpu
+            # Multi-processing distributed mode: e.g. 2node-4process-4GPU
+            # |   Host1     |    Host2    |
+            # |   Process1  |   Process2  |  <= Spawn processes
+            # |Child1|Child2|Child1|Child2|
+            # |GPU1  |GPU2  |GPU1  |GPU2  |
+
+            # See also the following usage of --multiprocessing-distributed:
+            # https://github.com/pytorch/examples/blob/master/imagenet/main.py
+            num_nodes = get_num_nodes(args.dist_world_size, args.dist_launcher)
+            if num_nodes == 1:
+                args.dist_master_addr = "localhost"
+                args.dist_rank = 0
+                # Single node distributed training with multi-GPUs
+                if (
+                    args.dist_init_method == "env://"
+                    and get_master_port(args.dist_master_port) is None
+                ):
+                    # Get the unused port
+                    args.dist_master_port = free_port()
+
+            # Assume that nodes use same number of GPUs each other
+            args.dist_world_size = args.ngpu * num_nodes
+            node_rank = get_node_rank(args.dist_rank, args.dist_launcher)
+
+            # The following block is copied from:
+            # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
+            error_queues = []
+            processes = []
+            mp = torch.multiprocessing.get_context("spawn")
+            for i in range(args.ngpu):
+                # Copy args
+                local_args = argparse.Namespace(**vars(args))
+
+                local_args.local_rank = i
+                local_args.dist_rank = args.ngpu * node_rank + i
+                local_args.ngpu = 1
+
+                process = mp.Process(
+                    target=cls.main_worker, args=(local_args,), daemon=False,
+                )
+                process.start()
+                processes.append(process)
+                error_queues.append(mp.SimpleQueue())
+            # Loop on join until it returns True or raises an exception.
+            while not ProcessContext(processes, error_queues).join():
+                pass
+
+    @classmethod
+    def main_worker(cls, args: argparse.Namespace):
+        assert check_argument_types()
+
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
         distributed_option.init()
+
+        # NOTE(kamo): Don't use logging before invoking logging.basicConfig()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            if not distributed_option.distributed:
+                _rank = ""
+            else:
+                _rank = (
+                    f":{distributed_option.dist_rank}/"
+                    f"{distributed_option.dist_world_size}"
+                )
+
+            # NOTE(kamo):
+            # logging.basicConfig() is invoked in main_worker() instead of main()
+            # because it can be invoked only once in a process.
+            # FIXME(kamo): Should we use logging.getLogger()?
             logging.basicConfig(
                 level=args.log_level,
-                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1].split('.')[0]}{_rank}]"
+                f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
         else:
             # Suppress logging if RANK != 0
             logging.basicConfig(
                 level="ERROR",
-                format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+                format=f"[{os.uname()[1].split('.')[0]}"
+                f":{distributed_option.dist_rank}/{distributed_option.dist_world_size}]"
+                f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
 
         # 1. Set random-seed
@@ -709,20 +839,35 @@ class AbsTask(ABC):
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
-        # 2. Build iterator factories
-        iterator_option = build_dataclass(cls.iterator_option, args)
+        common_iter_kwargs = dict(
+            iterator_type=args.iterator_type,
+            train_dtype=args.train_dtype,
+            num_workers=args.num_workers,
+            seed=args.seed,
+            allow_variable_data_keys=args.allow_variable_data_keys,
+            ngpu=args.ngpu,
+            max_length=args.max_length,
+            sort_in_batch=args.sort_in_batch,
+            sort_batch=args.sort_batch,
+            chunk_length=args.chunk_length,
+            chunk_shift_ratio=args.chunk_shift_ratio,
+            num_cache_chunks=args.num_cache_chunks,
+        )
 
+        # 2. Build iterator factories
         train_iter_factory, _, _ = cls.build_iter_factory(
-            iterator_option=iterator_option,
             data_path_and_name_and_type=args.train_data_path_and_name_and_type,
             shape_files=args.train_shape_file,
-            batch_type=args.batch_type,
             batch_size=args.batch_size,
-            train=True,
+            batch_type=args.batch_type,
+            train=not args.collect_stats,
             preprocess_fn=cls.build_preprocess_fn(args, train=True),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=args.num_iters_per_epoch,
             max_cache_size=args.max_cache_size,
+            distributed=distributed_option.distributed,
+            name="train",
+            **common_iter_kwargs,
         )
         if args.valid_batch_type is None:
             args.valid_batch_type = args.batch_type
@@ -732,22 +877,23 @@ class AbsTask(ABC):
             # Cache 5% of maximum size for validation loader
             args.valid_max_cache_size = 0.05 * args.max_cache_size
         valid_iter_factory, _, _ = cls.build_iter_factory(
-            iterator_option=iterator_option,
             data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
             shape_files=args.valid_shape_file,
-            batch_type=args.valid_batch_type,
             batch_size=args.valid_batch_size,
+            batch_type=args.batch_type,
             train=False,
             preprocess_fn=cls.build_preprocess_fn(args, train=False),
             collate_fn=cls.build_collate_fn(args),
             num_iters_per_epoch=None,
             max_cache_size=args.valid_max_cache_size,
+            distributed=distributed_option.distributed,
+            name="valid",
+            **common_iter_kwargs,
         )
         if args.num_att_plot != 0:
             plot_attention_iter_factory, _, _ = cls.build_iter_factory(
-                iterator_option=iterator_option,
                 data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-                shape_files=[args.valid_shape_file[0]],
+                shape_files=args.valid_shape_file,
                 batch_type="const_no_sort",
                 batch_size=1,
                 train=False,
@@ -757,6 +903,10 @@ class AbsTask(ABC):
                 num_iters_per_epoch=None,
                 # num_att_plot should be a few sample ~ 3, so cache all data.
                 max_cache_size=np.inf if args.max_cache_size != 0.0 else 0.0,
+                # always False because plot_attention performs on RANK0
+                distributed=False,
+                name="plot_att",
+                **common_iter_kwargs,
             )
         else:
             plot_attention_iter_factory = None
@@ -821,7 +971,7 @@ class AbsTask(ABC):
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        with (output_dir / "config.yaml").open("w") as f:
+        with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
@@ -857,14 +1007,16 @@ class AbsTask(ABC):
             )
 
         # 9. Run
-        if args.collect_stats:
+        if args.dry_run:
+            pass
+        elif args.collect_stats:
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
             collect_stats(
                 model=model,
-                train_iter=train_iter_factory.build_iter(1, shuffle=False),
-                valid_iter=valid_iter_factory.build_iter(1, shuffle=False),
+                train_iter=train_iter_factory.build_iter(1),
+                valid_iter=valid_iter_factory.build_iter(1),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
@@ -896,29 +1048,46 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
             )
 
-            # Generated n-best averaged model
-            average_nbest_models(
-                reporter=reporter,
-                output_dir=output_dir,
-                best_model_criterion=args.best_model_criterion,
-                nbest=args.keep_n_best_checkpoints,
-            )
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # Generated n-best averaged model
+                average_nbest_models(
+                    reporter=reporter,
+                    output_dir=output_dir,
+                    best_model_criterion=args.best_model_criterion,
+                    nbest=args.keep_n_best_checkpoints,
+                )
 
     @classmethod
     def build_iter_factory(
         cls,
-        iterator_option: IteratorOption,
+        iterator_type: str,
+        batch_size: int,
+        preprocess_fn,
+        collate_fn,
+        train_dtype: str,
+        num_workers: int,
+        seed: int,
+        allow_variable_data_keys: bool,
+        ngpu: int,
         data_path_and_name_and_type,
         shape_files: Union[Tuple[str, ...], List[str]],
         batch_type: str,
         train: bool,
-        preprocess_fn,
-        batch_size: int,
-        collate_fn,
+        num_iters_per_epoch: Optional[int],
+        max_cache_size: float,
+        distributed: bool,
+        name: str,
+        max_length: Sequence[int],
+        sort_in_batch: str,
+        sort_batch: str,
+        chunk_length: Union[int, str],
+        chunk_shift_ratio: float,
+        num_cache_chunks: int,
         num_batches: int = None,
-        num_iters_per_epoch: int = None,
-        max_cache_size: float = 0,
-    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+    ) -> Union[
+        Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]],
+        Tuple[None, None, None],
+    ]:
         """Build a factory object of mini-batch iterator.
 
         This object is invoked at every epochs to build the iterator for each epoch
@@ -931,7 +1100,7 @@ class AbsTask(ABC):
 
         The mini-batches for each epochs are fully controlled by this class.
         Note that the random seed used for shuffling is decided as "seed + epoch" and
-        the generated mini-batches can be reproduces even when resuming.
+        the generated mini-batches can be reproduces when resuming.
 
         Note that the definition of "epoch" doesn't always indicate
         to run out of the whole training corpus.
@@ -942,30 +1111,76 @@ class AbsTask(ABC):
         - 1 epoch without "--num_iters_per_epoch"
         - 4 epoch with "--num_iters_per_epoch" == 4
 
-        Note that this iterators highly assumes seq2seq training fashion,
-        so the mini-batch includes the variable length sequences with padding.
-        If you need to use custom iterators, e.g. LM training with truncated-BPTT uses
-        fixed-length data cut off from concatenated sequences and in such case,
-        your new task may need to override this method and "IteratorOption" class
-        as following:
-
-        >>> @dataclasses.dataclass
-        ... class YourIteratorOption:
-        ...     foo: int
-        ...     bar: str
-        >>> class YourTask(AbsTask):
-        ...    iterator_option: YourIteratorOption
-        ...
-        ...    @classmethod
-        ...    def build_iter_factory(cls, ...):
-
-
         """
         assert check_argument_types()
-        if iterator_option.train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            train_dtype = "float32"
+
+        kwargs = dict(
+            data_path_and_name_and_type=data_path_and_name_and_type,
+            shape_files=shape_files,
+            train=train,
+            preprocess_fn=preprocess_fn,
+            collate_fn=collate_fn,
+            num_batches=num_batches,
+            num_iters_per_epoch=num_iters_per_epoch,
+            max_cache_size=max_cache_size,
+            distributed=distributed,
+            name=name,
+            batch_size=batch_size,
+            train_dtype=train_dtype,
+            num_workers=num_workers,
+            seed=seed,
+            allow_variable_data_keys=allow_variable_data_keys,
+            ngpu=ngpu,
+        )
+
+        if iterator_type == "sequence":
+            return cls.build_sequence_iter_factory(
+                **kwargs,
+                batch_type=batch_type,
+                max_length=max_length,
+                sort_in_batch=sort_in_batch,
+                sort_batch=sort_batch,
+            )
+        elif iterator_type == "chunk":
+            return cls.build_chunk_iter_factory(
+                **kwargs,
+                chunk_length=chunk_length,
+                chunk_shift_ratio=chunk_shift_ratio,
+                num_cache_chunks=num_cache_chunks,
+            )
+        elif iterator_type == "none":
+            # This branch is used for --dry_run mode
+            return None, None, None
         else:
-            train_dtype = iterator_option.train_dtype
+            raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
+
+    @classmethod
+    def build_sequence_iter_factory(
+        cls,
+        data_path_and_name_and_type,
+        shape_files: Union[Tuple[str, ...], List[str]],
+        batch_type: str,
+        train: bool,
+        preprocess_fn,
+        batch_size: int,
+        collate_fn,
+        train_dtype: str,
+        max_length: Sequence[int],
+        num_workers: int,
+        sort_in_batch: str,
+        sort_batch: str,
+        seed: int,
+        allow_variable_data_keys: bool,
+        ngpu: int,
+        num_batches: Optional[int],
+        num_iters_per_epoch: Optional[int],
+        max_cache_size: float,
+        distributed: bool,
+        name: str,
+    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+        assert check_argument_types()
+        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
+            train_dtype = "float32"
 
         dataset = ESPnetDataset(
             data_path_and_name_and_type,
@@ -973,42 +1188,112 @@ class AbsTask(ABC):
             preprocess=preprocess_fn,
             max_cache_size=max_cache_size,
         )
-        cls.check_task_requirements(dataset, iterator_option.allow_variable_data_keys)
-
-        if train:
-            shuffle = True
-        else:
-            num_iters_per_epoch = None
-            shuffle = False
+        cls.check_task_requirements(dataset, allow_variable_data_keys)
 
         batch_sampler = build_batch_sampler(
             type=batch_type,
             shape_files=shape_files,
-            max_lengths=iterator_option.max_length,
+            max_lengths=max_length,
             batch_size=batch_size,
-            sort_in_batch=iterator_option.sort_in_batch,
-            sort_batch=iterator_option.sort_batch,
+            sort_in_batch=sort_in_batch,
+            sort_batch=sort_batch,
+            drop_last=False,
+            min_batch_size=torch.distributed.get_world_size() if distributed else 1,
         )
 
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
 
-        if iterator_option.distributed:
-            world_size = torch.distributed.get_world_size()
-            rank = torch.distributed.get_rank()
-            batches = [batch[rank::world_size] for batch in batches]
+        bs_list = [len(batch) for batch in batches]
+
+        logging.info(f"[{name}] dataset:\n{dataset}")
+        logging.info(f"[{name}] Batch sampler: {batch_sampler}")
+        logging.info(
+            f"[{name}] mini-batch sizes summary: N-batch={len(bs_list)}, "
+            f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
+        )
 
         return (
-            EpochIterFactory(
+            SequenceIterFactory(
                 dataset=dataset,
                 batches=batches,
-                seed=iterator_option.seed,
+                seed=seed,
                 num_iters_per_epoch=num_iters_per_epoch,
-                shuffle=shuffle,
-                num_workers=iterator_option.num_workers,
+                shuffle=train,
+                num_workers=num_workers,
                 collate_fn=collate_fn,
-                pin_memory=iterator_option.ngpu > 0,
+                pin_memory=ngpu > 0,
+                distributed=distributed,
+            ),
+            dataset,
+            batches,
+        )
+
+    @classmethod
+    def build_chunk_iter_factory(
+        cls,
+        data_path_and_name_and_type,
+        shape_files: Union[Tuple[str, ...], List[str]],
+        train: bool,
+        preprocess_fn,
+        collate_fn,
+        train_dtype: str,
+        num_workers: int,
+        seed: int,
+        allow_variable_data_keys: bool,
+        batch_size: int,
+        ngpu: int,
+        chunk_length: Union[int, str],
+        chunk_shift_ratio: float,
+        num_cache_chunks: int,
+        num_batches: Optional[int],
+        num_iters_per_epoch: Optional[int],
+        max_cache_size: float,
+        distributed: bool,
+        name: str,
+    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+        assert check_argument_types()
+        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
+            train_dtype = "float32"
+
+        dataset = ESPnetDataset(
+            data_path_and_name_and_type,
+            float_dtype=train_dtype,
+            preprocess=preprocess_fn,
+            max_cache_size=max_cache_size,
+        )
+        cls.check_task_requirements(dataset, allow_variable_data_keys)
+
+        if len(shape_files) == 0:
+            key_file = data_path_and_name_and_type[0][0]
+        else:
+            key_file = shape_files[0]
+
+        batch_sampler = ConstantBatchSampler(batch_size=1, key_file=key_file)
+        batches = list(batch_sampler)
+        if num_batches is not None:
+            batches = batches[:num_batches]
+        logging.info(f"[{name}] dataset:\n{dataset}")
+
+        return (
+            ChunkIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=seed,
+                # For chunk iterator,
+                # --num_iters_per_epoch doesn't indicate the number of iterations,
+                # but indicates the number of samples.
+                num_samples_per_epoch=num_iters_per_epoch,
+                shuffle=train,
+                num_workers=num_workers,
+                collate_fn=collate_fn,
+                pin_memory=ngpu > 0,
+                batch_size=batch_size,
+                chunk_length=chunk_length,
+                chunk_shift_ratio=chunk_shift_ratio,
+                num_cache_chunks=num_cache_chunks,
+                distributed=distributed,
             ),
             dataset,
             batches,
@@ -1033,7 +1318,7 @@ class AbsTask(ABC):
         assert check_argument_types()
         config_file = Path(config_file)
 
-        with config_file.open("r") as f:
+        with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
         model = cls.build_model(args)
@@ -1080,8 +1365,8 @@ class AbsTask(ABC):
             key_file, _, _ = data_path_and_name_and_type[0]
         batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
 
-        logging.info(f"Batch sampler: {batch_sampler}")
         logging.info(f"dataset:\n{dataset}")
+        logging.info(f"Batch sampler: {batch_sampler}")
 
         # For backward compatibility for pytorch DataLoader
         if collate_fn is not None:

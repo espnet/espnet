@@ -25,7 +25,6 @@ espnet/nets/chainer_backend/rnn/decoders.py
 espnet/nets/chainer_backend/rnn/encoders.py
 espnet/nets/chainer_backend/rnn/training.py
 espnet/nets/ctc_prefix_score.py
-espnet/nets/e2e_asr_common.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_beamformer.py

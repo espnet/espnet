@@ -77,7 +77,7 @@ def unpack(
                     d = find_path_and_change_it_recursive(
                         d, tarinfo2.name, str(outpath / tarinfo2.name)
                     )
-                with outname.open("w") as f:
+                with outname.open("w", encoding="utf-8") as f:
                     yaml.safe_dump(d, f)
             else:
                 tar.extract(tarinfo, path=outpath)
@@ -123,7 +123,7 @@ def pack(
     # Read yaml and Change the file path to the archived path
     yaml_files_map = {}
     for name, path in yaml_files.items():
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             dic = yaml.safe_load(f)
             for dst, src in files_map.items():
                 dic = find_path_and_change_it_recursive(dic, src, dst)
