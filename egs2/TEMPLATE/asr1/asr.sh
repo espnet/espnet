@@ -440,7 +440,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # shellcheck disable=SC2002
         <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
 
-        if [ ! -z ${bpe_nlsyms} ]; then
+        if [ -n "${bpe_nlsyms}" ]; then
             _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
         else
             _opts_spm=""
