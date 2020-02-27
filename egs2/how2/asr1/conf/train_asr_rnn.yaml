@@ -6,47 +6,51 @@ optim_conf:
     eps: 1.0e-08
     weight_decay: 0
 init: chainer
-max_epoch: 20
+batch_size: 20
+max_epoch: 15
 patience: 3
-batch_size: 5
 max_length:
     - 800
     - 150
 
 # criterion
 val_scheduler_criterion:
-    - eval
+    - valid
     - acc
 early_stopping_criterion:
-    - eval
+    - valid
     - acc
     - max
 best_model_criterion:
--   - eval
+-   - valid
     - acc
     - max
 
 # MTL
 e2e_conf:
     ctc_weight: 0.5
+    lsm_weight: 0.1
 
 # network
-encoder: rnn
+encoder: vgg_rnn
 encoder_conf:
     rnn_type: lstm
     bidirectional: True
-    use_projection: True
-    num_layers: 3
-    hidden_size: 128
-    output_size: 128
+    use_projection: False
+    num_layers: 5
+    hidden_size: 1024
+    output_size: 1024
+    dropout: 0.3
 decoder: rnn
 decoder_conf:
     rnn_type: lstm
-    num_layers: 1
-    hidden_size: 128
-    sampling_probability: 0.
+    num_layers: 2
+    hidden_size: 1024
+    context_residual: True
+    dropout: 0.0
+    sampling_probability: 0.0
     att_conf:
         atype: location
-        adim: 128
+        adim: 1024
         aconv_chans: 10
         aconv_filts: 100
