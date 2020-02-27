@@ -230,7 +230,7 @@ class ClassifierWithState(nn.Module):
 class RNNLM(nn.Module):
     """A pytorch RNNLM."""
 
-    def __init__(self, n_vocab, n_layers, n_units, n_embed, typ="lstm", dropout_rate=0.5):
+    def __init__(self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5):
         """Initialize class.
 
         :param int n_vocab: The size of the vocabulary
@@ -239,6 +239,8 @@ class RNNLM(nn.Module):
         :param str typ: The RNN type
         """
         super(RNNLM, self).__init__()
+        if n_embed == None:
+            n_embed = n_units
         self.embed = nn.Embedding(n_vocab, n_embed)
         if typ == "lstm":
             self.rnn = nn.ModuleList(
