@@ -8,7 +8,7 @@ train_set="train_reduced"
 train_dev="dev5"
 eval_set="test_set_iwslt2019"
 
-asr_config=conf/train_rnn.yaml
+asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode.yaml
 
 feats_type=extracted
