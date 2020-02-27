@@ -17,14 +17,14 @@ scheduler_conf:
 
 # criterion
 val_scheduler_criterion:
-    - eval
+    - valid
     - acc
 early_stopping_criterion:
-    - eval
+    - valid
     - acc
     - max
 best_model_criterion:
--   - eval
+-   - valid
     - acc
     - max
 
