@@ -74,7 +74,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 other_text=data/local/other_text/text
-nlsyms=data/nlsyms,txt
+nlsyms=data/nlsyms.txt
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Srctexts preparation"
