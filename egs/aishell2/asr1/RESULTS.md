@@ -8,7 +8,8 @@
     - chainer version: `chainer 6.0.0`
     - pytorch version: `pytorch 1.0.1.post2`
     - Git hash: `9ec6939a580c4f8ab6cefb9cb13614e44e72a627`
-  - Model files
+  - Model files (archived to model.v1.tar.gz)
+    - model link: https://drive.google.com/drive/folders/1qsPhnQJOahBHcNmA4EnWwCBNp2oiZivC
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_sp/cmvn.ark`
@@ -20,14 +21,14 @@
 ```
 exp/train_sp_pytorch_train/decode_test_android_avg_best_lm/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
-|   Sum/Avg  |   5000       49534   |   91.1        8.5        0.5        0.1        9.1       46.5   |
+|   Sum/Avg  |   5000       49534   |   91.2        8.4        0.4        0.1        8.9       46.4   |
 exp/train_sp_pytorch_train/decode_test_ios_avg_best_lm/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
-|   Sum/Avg  |   5000       49534   |   92.5        7.2        0.3        0.1        7.7       42.1   |
+|   Sum/Avg  |   5000       49534   |   92.6        7.1        0.3        0.1        7.5       41.7   |
 exp/train_sp_pytorch_train/decode_test_mic_avg_best_lm/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
-|   Sum/Avg  |   5000       49534   |   91.4        8.2        0.3        0.1        8.7       45.8   |
+|   Sum/Avg  |   5000       49534   |   91.6        8.1        0.3        0.1        8.6       45.3   |
 exp/train_sp_pytorch_train/decode_test_overall_avg_best_lm/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
-|   Sum/Avg  |   15000      148602  |   91.7        8.0        0.4        0.1        8.5       44.8   |
+|   Sum/Avg  |   15000      148602  |   91.8        7.9        0.3        0.1        8.3       44.5   |
 ```
