@@ -37,6 +37,9 @@ use_valbest_average=true     # if true, the validation `n_average`-best ST model
 asr_model=
 mt_model=
 
+# distillation related
+teacher_mt_model=
+
 # preprocessing related
 src_case=lc.rm
 tgt_case=lc.rm
@@ -217,13 +220,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model \
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
             data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
     done
 
@@ -231,7 +234,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for ttask in fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
         for no in 1 2 3; do
-            local/data2json.sh --text data/${ttask}/text.${tgt_case}.${no} --feat ${feat_trans_dir}/feats.scp --bpecode ${bpemodel}.model \
+            data2json.sh --text data/${ttask}/text.${tgt_case}.${no} --feat ${feat_trans_dir}/feats.scp --bpecode ${bpemodel}.model --lang en \
                 data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${tgt_case}.json
         done
     done
@@ -240,14 +243,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for x in ${train_set} ${train_dev} fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
-        local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
+        update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_dir}/data_${bpemode}${nbpe}.${tgt_case}.json ${data_dir} ${dict}
     done
     for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
         for no in 1 2 3; do
-            local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
+            update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
                 ${feat_dir}/data_${bpemode}${nbpe}_${no}.${tgt_case}.json ${data_dir} ${dict}
         done
     done
@@ -268,6 +271,9 @@ if [ -z ${tag} ]; then
     fi
     if [ -n "${mt_model}" ]; then
         expname=${expname}_mttrans
+    fi
+    if [ -n "${teacher_mt_model}" ]; then
+        expname=${expname}_distill
     fi
 else
     expname=${train_set}_${tgt_case}_${backend}_${tag}
@@ -296,7 +302,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
         --enc-init ${asr_model} \
-        --dec-init ${mt_model}
+        --dec-init ${mt_model} \
+        --teacher-mt-model ${teacher_mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -339,6 +346,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
+            # --model2 exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/results/${trans_model} \
+            # --model3 exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/results/${trans_model} \
 
         # Fisher has 4 references per utterance
         if [ ${ttask} = "fisher_dev.en" ] || [ ${ttask} = "fisher_dev2.en" ] || [ ${ttask} = "fisher_test.en" ]; then

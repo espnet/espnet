@@ -33,7 +33,7 @@ def get_default_train_args(**kwargs):
         mtlalpha=1.0,
         rnnt_mode='rnnt',
         use_frontend=False,
-        rnnt_type='warp-transducer',
+        trans_type='warp-transducer',
         char_list=['a', 'b', 'c', 'd'],
         sym_space='<space>',
         sym_blank='<blank>',
