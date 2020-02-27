@@ -75,15 +75,15 @@ requirements = {
         "travis-sphinx>=2.0.1",
         "nbsphinx>=0.4.2",
     ],
-    'doc': [
-        'Sphinx==2.1.2',
-        'sphinx-rtd-theme>=0.2.4',
-        'sphinx-argparse>=0.2.5',
-        'commonmark==0.8.1',
-        'recommonmark>=0.4.0',
-        'travis-sphinx>=2.0.1',
-        'nbsphinx>=0.4.2',
-        'sphinx-markdown-tables>=0.0.12',
+    "doc": [
+        "Sphinx==2.1.2",
+        "sphinx-rtd-theme>=0.2.4",
+        "sphinx-argparse>=0.2.5",
+        "commonmark==0.8.1",
+        "recommonmark>=0.4.0",
+        "travis-sphinx>=2.0.1",
+        "nbsphinx>=0.4.2",
+        "sphinx-markdown-tables>=0.0.12",
     ],
 }
 install_requires = requirements["install"]
