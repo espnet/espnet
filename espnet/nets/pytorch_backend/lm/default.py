@@ -27,7 +27,7 @@ class DefaultRNNLM(LMInterface, nn.Module):
                             help='Number of hidden layers')
         parser.add_argument('--unit', '-u', type=int, default=650,
                             help='Number of hidden units')
-        parser.add_argument('--embed-unit', type=int, default=650,
+        parser.add_argument('--embed-unit', default=None,
                             help='Number of hidden units in embedding layer')
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
