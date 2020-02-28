@@ -295,11 +295,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
        for factor in ${speed_perturb_factors}; do
            if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
                scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+               _dirs+="data/${train_set}_sp${factor} "
            else
                # If speed factor is 1, same as the original
-               utils/copy_data_dir.sh  "data/${train_set}" "data/${train_set}_sp${factor}"
+               _dirs+="data/${train_set} "
            fi
-           _dirs+="data/${train_set}_sp${factor} "
        done
        utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
     else
