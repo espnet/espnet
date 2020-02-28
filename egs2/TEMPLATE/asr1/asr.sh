@@ -293,8 +293,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
-           scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
-           _dirs+="data/${train_set}_sp${factor} "
+           if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+               _dirs+="data/${train_set}_sp${factor} "
+           else
+               # If speed factor is 1, same as the original
+               _dirs+="data/${train_set} "
+           fi
        done
        utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
     else
