@@ -1,13 +1,14 @@
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
+    AN4=
     WSJ0=
     WSJ1=
     WSJCAM0=
     REVERB=
     CHIME3=
     CHIME4=
-    CSJDATATOP=
-    CSJVER=dvd  ## Set your CSJ format (dvd or usb).
+    CSJDATATOP=/export/corpora5/CSJ/USB
+    CSJVER=usb  ## Set your CSJ format (dvd or usb).
                 ## Usage    :
                 ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
                 ##            Neccesary directory is dvd3 - dvd17.
@@ -19,6 +20,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     LIBRISPEECH=
+    JSUT=
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
@@ -26,9 +28,12 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL=
     VIVOS=
     YESNO=
+    HOW2_TEXT=
+    HOW2_FEATS=
 
 else
-    AISHELL=
+    AISHELL=downloads
+    AN4=downloads
     WSJ0=
     WSJ1=
     WSJCAM0=
@@ -48,6 +53,7 @@ else
     HKUST1=
     HKUST2=
     LIBRISPEECH=
+    JSUT=downloads
     TIMIT=
     VOXFORGE=downloads
     AMI=
@@ -55,4 +61,6 @@ else
     BABEL=
     VIVOS=downloads
     YESNO=downloads
+    HOW2_TEXT=downloads/how2-300h-v1
+    HOW2_FEATS=downloads/fbank_pitch_181516
 fi
