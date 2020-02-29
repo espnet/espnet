@@ -5,9 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=0
-stop_stage=10
-nj=32
 lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru
 
 train_set=valid_train_${lang}
@@ -20,9 +17,6 @@ decode_config=conf/decode.yaml
 
 
 ./asr.sh \
-    --stage ${stage} \
-    --stop_stage ${stop_stage} \
-    --nj ${nj} \
     --local_data_opts "--lang ${lang}" \
     --use_lm true \
     --lm_config "${lm_config}" \

@@ -5,10 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=0
-stop_stage=10
-nj=32
-
 # You may set 'mic' to:
 #  ihm [individual headset mic- the default which gives best results]
 #  sdm1 [single distant microphone- the current script allows you only to select
@@ -30,10 +26,7 @@ decode_config=conf/decode.yaml
 
 
 ./asr.sh \
-    --stage ${stage} \
-    --stop_stage ${stop_stage} \
-    --nj ${nj} \
-    --local_data_opts "--mic ${mic} --stage 2" \
+    --local_data_opts "--mic ${mic}" \
     --use_lm true \
     --lm_config "${lm_config}" \
     --use_word_lm false \
