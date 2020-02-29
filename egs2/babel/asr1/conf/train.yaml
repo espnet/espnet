@@ -1,6 +1,6 @@
 # network architecture
 # encoder related
-ecnoder: rnn
+encoder: rnn
 encoder_conf:
     rnn_type: lstm
     bidirectional: True
@@ -13,31 +13,28 @@ decoder: rnn
 decoder_conf:
     rnn_type: lstm
     num_layers: 1
-    hidden_size: 300
+    hidden_size: 320
     sampling_probability: 0.0
-    att_conf:
-        aheads: 4
-        atype: location
-        awin: 5
-        adim: 320
-        aconv_chans: 10
-        aconv_filts: 100
-
-
-# hybrid CTC/attention
-e2e_conf:
-    ctc_weight: 1.0
-    lsm_weight: 0.05
 
 
 # minibatch related
 batch_size: 30
-max_length:
-    - 800
-    - 150
 
 # optimization related
 optim: adadelta
-max_epoch: 15
-patience: 3
+max_epoch: 100
+patience: 4
+
+scheduler: reducelronplateau
+scheduler_conf:
+   mode: min
+   factor: 0.5
+   patience: 1
+
+# criterion
+val_scheduler_criterion:
+    - valid
+    - loss
+
+init: xavier_uniform
 
