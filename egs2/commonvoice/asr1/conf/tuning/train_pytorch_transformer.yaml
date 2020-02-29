@@ -27,7 +27,6 @@ e2e_conf:
 
 # minibatch related
 batch_size: 32
-max_length: 512  # if input length  > maxlen-in, batchsize is automatically reduced
 
 # optimization related
 optim: adam
