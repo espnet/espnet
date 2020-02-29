@@ -128,7 +128,7 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc_weight)
     model.eval()
     char_list = train_args.char_list
-    lm_args = Namespace(type="lstm", layer=1, unit=2, dropout_rate=0.0)
+    lm_args = Namespace(type="lstm", layer=1, unit=2, embed_unit=2, dropout_rate=0.0)
     lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
 
