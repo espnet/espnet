@@ -29,7 +29,7 @@ class DefaultRNNLM(LMInterface, nn.Module):
                             help='Number of hidden units')
         parser.add_argument('--embed-unit', default=None,
                             help='Number of hidden units in embedding layer, \
-                            if it is not setted, it keep same with hidden units.')
+                            if it is not specified, it keeps the same number with hidden units.')
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
         return parser
