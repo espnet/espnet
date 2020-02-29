@@ -15,9 +15,9 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
@@ -29,7 +29,6 @@ from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_e2e import AbsE2E
 from espnet2.train.distributed_utils import DistributedOption
-from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
@@ -283,7 +282,7 @@ class Trainer:
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
-        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         reporter: SubReporter,
@@ -392,7 +391,7 @@ class Trainer:
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
-        iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
+        iterator: Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:
@@ -424,7 +423,7 @@ class Trainer:
         model: torch.nn.Module,
         output_dir: Optional[Path],
         summary_writer: Optional[SummaryWriter],
-        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:
