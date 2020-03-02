@@ -132,7 +132,7 @@ def train(args):
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit, rnnlm_args.embed_unit))
         torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 

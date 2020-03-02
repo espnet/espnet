@@ -373,7 +373,6 @@ class E2E(STInterface, torch.nn.Module):
 
             hyps_best_kept = []
             for hyp in hyps:
-                vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
 
                 # get nbest local scores and their ids
