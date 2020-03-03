@@ -10,7 +10,6 @@ log() {
 }
 SECONDS=0
 
-train_cmd="run.pl" # To fix 54 line shell check ^-- SC2154: train_cmd is referenced but not assigned.
 
 stage=0
 stop_stage=2
@@ -29,9 +28,6 @@ fi
 . ./db.sh || exit 1;
 
 
-WSJ0=/export/corpora5/LDC/LDC93S6B
-WSJ1=/export/corpora5/LDC/LDC94S13B
-CHIME4=/export/corpora4/CHiME4/CHiME3
 
 if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' of db.sh"
