@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# Copyright 2019 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
@@ -10,6 +10,7 @@ import json
 import os
 
 from text.cleaners import custom_english_cleaners
+import nltk
 
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.
@@ -20,7 +21,9 @@ except ImportError:
     raise ImportError("g2p_en is not installed. please run `. ./path.sh && pip install g2p_en`.")
 except LookupError:
     # NOTE: we need to download dict in initial running
+
     import ssl
+
     try:
         _create_unverified_https_context = ssl._create_unverified_context
     except AttributeError:
@@ -59,8 +62,8 @@ def main():
                 js = json.load(f)
             for key in sorted(js.keys()):
                 uid = args.spk_tag + "_" + key.replace(".wav", "")
-                text = js[key]["clean"]
-                text = custom_english_cleaners(text.rstrip())
+                content = js[key]["clean"]
+                text = custom_english_cleaners(content.rstrip())
                 if args.lang_tag is None:
                     line = "%s %s \n" % (uid, text)
                 else:

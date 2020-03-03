@@ -38,7 +38,6 @@ def g2p(text):
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lang_tag", type=str, default=None, nargs="?",
@@ -49,7 +48,7 @@ def main():
                         help="*_mls.json filenames")
     parser.add_argument("out", type=str,
                         help="output filename")
-    parser.add_argument("trans_type", type=str, default="kana",
+    parser.add_argument("trans_type", type=str, default="phn",
                         choices=["char", "phn"],
                         help="Input transcription type")
     args = parser.parse_args()
@@ -65,7 +64,6 @@ def main():
             for key in sorted(js.keys()):
                 uid = args.spk_tag + "_" + key.replace(".wav", "")
                 
-                #text = js[key]["clean"].upper()
                 content = js[key]["clean"]
                 text = custom_english_cleaners(content.rstrip())
                 if args.trans_type == "phn":
@@ -73,7 +71,7 @@ def main():
                     text = g2p(clean_content)
 
                 if args.lang_tag is None:
-                    line = "%s %s\n" % (uid, text)
+                    line = "%s %s \n" % (uid, text)
                 else:
                     line = "%s <%s> %s\n" % (uid, args.lang_tag, text)
                 out.write(line)

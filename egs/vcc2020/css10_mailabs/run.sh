@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Nagoya University (Takenori Yoshimura)
+# Copyright 2020 Nagoya University (Wen-Chn Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -33,8 +33,7 @@ trim_win_length=1024
 trim_shift_length=256
 trim_min_silence=0.01
 
-# char or phn
-trans_type=char
+trans_type="char"
 
 # config files
 train_config=conf/train_pytorch_transformer+spkemb.yaml
@@ -45,6 +44,7 @@ model=model.loss.best
 n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
+# specify the downloaded database directories
 fin_db=downloads
 mailabs_db=../../m_ailabs/tts1/downloads
 
@@ -65,25 +65,23 @@ eval_set=eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    # Please download the CSS10 and M-AILABS datasets in respective recipes.
+    echo "Please download the CSS10 and M-AILABS datasets in respective recipes"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    ### Task dependent. You have to make data the following preparation part by yourself.
-    ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    
-    # prepare the CSS10 dataset
-    local/data_prep_css10_fi.sh ${fin_db}/fin fi_FI fin data/fin ${trans_type}
-    utils/data/resample_data_dir.sh ${fs} data/fin
-    utils/validate_data_dir.sh --no-feats data/fin
     
     # prepare the M-AILABS dataset
     for spk in judy elliot; do
-        local/data_prep_mailabs.sh ${mailabs_db} en_US ${spk} data/${spk} ${trans_type}
+        local/data_prep_mailabs.sh ${mailabs_db} data/${spk} en_US ${spk}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done
+
+    # prepare the CSS10 dataset
+    local/data_prep_css10_fi.sh ${fin_db}/fin data/fin fi_FI fin
+    utils/data/resample_data_dir.sh ${fs} data/fin
+    utils/validate_data_dir.sh --no-feats data/fin
     
 fi
 
@@ -91,8 +89,6 @@ feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    ### Task dependent. You have to design training and dev name by yourself.
-    ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
     fbankdir=fbank
@@ -150,12 +146,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
-dict=data/lang_1${trans_type}/${train_set}_units.txt
-nlsyms=data/lang_1${trans_type}/${train_set}_non_lang_syms.txt
-echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
+
+    dict=data/lang_1${trans_type}/${train_set}_units.txt
+    nlsyms=data/lang_1${trans_type}/${train_set}_non_lang_syms.txt
+    echo "dictionary: ${dict}"
     mkdir -p data/lang_1${trans_type}/
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
@@ -168,7 +164,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} --trans_type ${trans_type} \
         data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms "${nlsyms}" --trans_type ${trans_type} \
@@ -219,15 +214,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     done
 fi
 
+if [ -z ${tag} ]; then
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+else
+    expname=${train_set}_${backend}_${tag}
+fi
+expdir=exp/${expname}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Text-to-speech model training"
 
-    if [ -z ${tag} ]; then
-        expname=${train_set}_${backend}_$(basename ${train_config%.*})
-    else
-        expname=${train_set}_${backend}_${tag}
-    fi
-    expdir=exp/${expname}
     mkdir -p ${expdir}
 
     tr_json=${feat_tr_dir}/data.json
@@ -249,12 +244,6 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding, synthesis"
 
-    if [ -z ${tag} ]; then
-        expname=${train_set}_${backend}_$(basename ${train_config%.*})
-    else
-        expname=${train_set}_${backend}_${tag}
-    fi
-    expdir=exp/${expname}
     outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 
     pids=() # initialize pids

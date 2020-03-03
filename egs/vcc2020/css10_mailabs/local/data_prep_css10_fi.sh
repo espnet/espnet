@@ -1,21 +1,19 @@
 #!/bin/bash -e
 
-# Copyright 2019 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-use_lang_tag=True
 
 . utils/parse_options.sh || exit 1
 
 db=$1
-lang=$2
-spk=$3
-data_dir=$4
-trans_type=$5
+data_dir=$2
+lang=$3
+spk=$4
+trans_type=char
 
 # check arguments
-if [ $# != 5 ]; then
-    echo "Usage: $0 [options] <download_dir> <lang> <spk> <data_dir> <trans_type>"
+if [ $# != 4 ]; then
+    echo "Usage: $0 <db> <data_dir> <lang> <spk>"
     exit 1
 fi
 
