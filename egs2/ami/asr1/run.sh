@@ -24,6 +24,7 @@ asr_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
+speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
     --local_data_opts "--mic ${mic}" \
@@ -38,4 +39,5 @@ decode_config=conf/decode.yaml
     --train_set "${train_set}" \
     --dev_set "${train_dev}" \
     --eval_sets "${train_test}" \
+    --speed_perturb_factors "${speed_perturb_factors}" \
     --srctexts "data/${train_set}/text" "$@"
