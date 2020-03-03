@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Nagoya University (Wen-Chn Huang)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -73,12 +73,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     
     # prepare the M-AILABS dataset
     for spk in judy elliot; do
+        echo "Processing ${spk}..."
         local/data_prep_mailabs.sh ${mailabs_db} data/${spk} en_US ${spk}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done
 
     # prepare the CSS10 dataset
+    echo "Processing css10 fin..."
     local/data_prep_css10_fi.sh ${fin_db}/fin data/fin fi_FI fin
     utils/data/resample_data_dir.sh ${fs} data/fin
     utils/validate_data_dir.sh --no-feats data/fin

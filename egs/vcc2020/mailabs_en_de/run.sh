@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Nagoya University (Wen-Chn Huang)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -33,7 +33,7 @@ trim_win_length=1024
 trim_shift_length=256
 trim_min_silence=0.01
 
-trans_type="phn"
+trans_type=char
 
 # config files
 train_config=conf/train_pytorch_transformer+spkemb.yaml
@@ -45,8 +45,7 @@ n_average=1 # if > 0, the model averaged with n_average ckpts will be used inste
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # specify the downloaded database directories
-csmsc_db=../../csmsc/tts1/downloads
-mailabs_db=../../m_ailabs/tts1/downloads
+db_root=../tts1/downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -65,25 +64,29 @@ eval_set=eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    echo "Please download the CSMSC and M-AILABS datasets in respective recipes."
+    echo "Please download the M-AILABS datasets in the recipe."
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     
-    # prepare the M-AILABS dataset
-    for spk in judy elliot; do
+    # German
+    for spk in angela rebecca ramona eva karlsson; do
         echo "Processing ${spk}..."
-        local/data_prep_mailabs.sh ${mailabs_db} data/${spk} en_US ${spk}
+        local/data_prep.sh ${db_root} data/${spk} de_DE ${spk}
+        utils/data/resample_data_dir.sh ${fs} data/${spk}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done
     
-    # prepare the CSMSC dataset
-    echo "Processing csmsc..."
-    local/data_prep_csmsc.sh ${csmsc_db}/CSMSC data/csmsc zh_ZH
-    utils/data/resample_data_dir.sh ${fs} data/csmsc
-    utils/validate_data_dir.sh --no-feats data/csmsc
+    # English
+    for spk in judy elliot; do
+        echo "Processing ${spk}..."
+        local/data_prep.sh ${db_root} data/${spk } en_US ${spk}
+        utils/fix_data_dir.sh data/${spk}
+        utils/validate_data_dir.sh --no-feats data/${spk}
+    done
+    
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -93,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     fbankdir=fbank
-    for x in judy elliot csmsc; do
+    for x in judy elliot angela rebecca ramona eva karlsson; do
         # Trim silence parts at the begining and the end of audio
         if ${do_trimming}; then
             trim_silence.sh --cmd "${train_cmd}" \
@@ -160,8 +163,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make a non-linguistic symbol list"
     [ -e ${nlsyms} ] && rm ${nlsyms}
     echo "<en_US>" >> ${nlsyms}
-    echo "<zh_ZH>" >> ${nlsyms}
-    
+    echo "<de_DE>" >> ${nlsyms}
+   
     text2token.py -s 1 -n 1 -l ${nlsyms} --trans_type ${trans_type} \
         data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
@@ -189,7 +192,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --nj ${nj} --cmd "$train_cmd" \
             data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
         utils/fix_data_dir.sh data/${name}_mfcc_16k
-        sid/compute_vad_decision.sh --nj 3 --cmd "$train_cmd" \
+        sid/compute_vad_decision.sh --nj 7 --cmd "$train_cmd" \
             data/${name}_mfcc_16k exp/make_vad ${vaddir}
         utils/fix_data_dir.sh data/${name}_mfcc_16k
     done
@@ -205,7 +208,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
     # Extract x-vector
     for name in ${train_set} ${dev_set} ${eval_set}; do
-        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 3 \
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 7 \
             ${nnet_dir} data/${name}_mfcc_16k \
             ${nnet_dir}/xvectors_${name}
     done
