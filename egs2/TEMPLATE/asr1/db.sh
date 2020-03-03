@@ -81,7 +81,7 @@ else
     TIMIT=
     VOXFORGE=downloads
     AMI=
-    COMMONVOICE=
+    COMMONVOICE=downloads
     BABEL_101=
     BABEL_102=
     BABEL_103=
