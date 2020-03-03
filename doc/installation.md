@@ -3,6 +3,13 @@
 
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
+- cmake3 for some extensions
+    ```bash
+    # e.g. Ubuntu
+    $ sudo apt-get install cmake
+    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    $ conda install cmake
+    ```
 
 We often use audio converter tools in several recipes:
 
@@ -142,15 +149,15 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0
-    $ make -j clean depend; make -j <NCPU>
+    $ make -j clean depend; make -j <NUM-CPU>
     ```
 
 ### Step 3-A) installation of espnet
 
-    ```bash
-    $ git clone https://github.com/espnet/espnet
-    $ cd espnet
-    ```
+```bash
+$ git clone https://github.com/espnet/espnet
+$ cd espnet
+```
 
 #### using miniconda (default)
 
