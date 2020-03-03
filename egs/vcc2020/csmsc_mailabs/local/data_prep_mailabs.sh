@@ -1,51 +1,19 @@
 #!/bin/bash -e
 
-# Copyright 2019 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-use_lang_tag=True
 
 . utils/parse_options.sh || exit 1
 
 db=$1
-lang=$2
-spk=$3
-data_dir=$4
+data_dir=$2
+lang=$3
+spk=$4
+trans_type=phn
 
 # check arguments
 if [ $# != 4 ]; then
-    echo "Usage: $0 [options] <download_dir> <lang> <spk> <data_dir>"
-    exit 1
-fi
-
-# check language
-if [ ${lang} = "de_DE" ]; then
-    available_spks=("angela" "rebecca" "ramona" "eva" "karlsson")
-elif [ ${lang} = "en_UK" ]; then
-    available_spks=("elizabeth")
-elif [ ${lang} = "it_IT" ]; then
-    available_spks=("lisa" "riccardo")
-elif [ ${lang} = "es_ES" ]; then
-    available_spks=("karen" "tux" "victor")
-elif [ ${lang} = "en_US" ]; then
-    available_spks=("judy" "mary" "elliot")
-elif [ ${lang} = "fr_FR" ]; then
-    available_spks=("ezwa" "nadine" "bernard" "gilles" "zeckou")
-elif [ ${lang} = "uk_UK" ]; then
-    available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
-elif [ ${lang} = "ru_RU" ]; then
-    available_spks=("hajdurova" "minaev" "nikolaev")
-elif [ ${lang} = "pl_PL" ]; then
-    available_spks=("nina" "piotr")
-else
-    echo "${lang} is not supported."
-    exit 1
-fi
-
-# check speaker
-if ! $(echo ${available_spks[*]} | grep -q ${spk}); then
-    echo "Specified speaker is not available."
-    echo "Available speakers: ${available_spks[*]}"
+    echo "Usage: $0 <db> <data_dir> <lang> <spk>"
     exit 1
 fi
 
@@ -80,5 +48,5 @@ local/parse_text.py \
     --spk_tag ${spk} \
     $(printf "%s" "${jsons[@]}") \
     ${data_dir}/text \
-    phn
+    ${trans_type}
 echo "Successfully finished making text."
