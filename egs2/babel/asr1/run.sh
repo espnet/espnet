@@ -17,9 +17,9 @@ for l in ${recog}; do
 done
 train_test=${train_test%% }
 
-asr_config=conf/train.yaml
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+asr_config=conf/train_asr.yaml
+lm_config=conf/train_lm.yaml
+decode_config=conf/decode_asr.yaml
 
 nlsyms_txt=data/nlsym.txt
 
