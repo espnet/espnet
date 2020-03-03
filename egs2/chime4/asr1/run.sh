@@ -15,8 +15,8 @@ dt05_real_beamformit_2mics dt05_simu_beamformit_2mics et05_real_beamformit_2mics
 dt05_real_beamformit_5mics dt05_simu_beamformit_5mics et05_real_beamformit_5mics et05_simu_beamformit_5mics \
 "
 
-asr_config=conf/train_rnn.yaml
-decode_config=conf/decode_rnn.yaml
+asr_config=conf/train_asr_rnn.yaml
+decode_config=conf/decode_asr_rnn.yaml
 lm_config=conf/train_lm.yaml
 
 
