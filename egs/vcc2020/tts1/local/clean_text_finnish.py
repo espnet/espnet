@@ -40,12 +40,13 @@ def g2p(text):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('transcription_path', type=str, help='path for the transcription text file')
-    parser.add_argument('transcription_path_en', type=str, help='path for the English transcription text file')
     parser.add_argument('utt2spk', type=str, help='utt2spk file for the speaker')
-    parser.add_argument("trans_type", type=str, default="kana",
+    parser.add_argument("trans_type", type=str, default="char",
                         choices=["char", "phn"],
                         help="Input transcription type")
     parser.add_argument('lang_tag', type=str, help='lang tag')
+    parser.add_argument('--transcription_path_en', type=str, default=None,
+                        help='path for the English transcription text file')
     args = parser.parse_args()
 
     # clean every line in transcription file first
@@ -68,17 +69,18 @@ if __name__ == "__main__":
             else:
                 transcription_dict[id] = clean_content
     
-    with codecs.open(args.transcription_path_en, 'r', 'utf-8') as fid:
-        for line in fid.readlines():
-            segments = line.split(" ")
-            id = "E" + segments[0] # ex. E10001
-            content = ' '.join(segments[1:])
-            clean_content = custom_english_cleaners(content.rstrip())
-            if args.trans_type == "phn":
-                text = clean_content.lower()
-                clean_content = g2p(text)
+    if args.transcription_path_en:
+        with codecs.open(args.transcription_path_en, 'r', 'utf-8') as fid:
+            for line in fid.readlines():
+                segments = line.split(" ")
+                id = "E" + segments[0] # ex. E10001
+                content = ' '.join(segments[1:])
+                clean_content = custom_english_cleaners(content.rstrip())
+                if args.trans_type == "phn":
+                    text = clean_content.lower()
+                    clean_content = g2p(text)
 
-            transcription_dict[id] = "<" + E_lang_tag + "> " + clean_content
+                transcription_dict[id] = "<" + E_lang_tag + "> " + clean_content
     
     # read the utt2spk file and actually write
     with codecs.open(args.utt2spk, 'r', 'utf-8') as fid:
