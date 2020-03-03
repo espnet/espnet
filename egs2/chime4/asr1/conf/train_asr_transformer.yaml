@@ -25,17 +25,16 @@ e2e_conf:
     length_normalized_loss: false
 
 # optimization related
-optim: noam
-init: chainer
+optim: adam
 accum_grad: 2
 grad_clip: 5
 patience: 0
 max_epoch: 100
 optim_conf:
-    lr: 10.0
-scheduler: noamlr
+    lr: 0.005
+scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 20000
 
 # minibatch related
 batch_size: 32
