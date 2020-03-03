@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from contextlib import contextmanager
 import dataclasses
@@ -34,7 +32,7 @@ Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 _reserved = {"time", "total_count"}
 
 
-def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
+def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
     assert check_argument_types()
     if isinstance(v, (torch.Tensor, np.ndarray)):
         if np.prod(v.shape) != 1:
@@ -54,7 +52,7 @@ def to_reported_value(v: Num, weight: Num = None) -> ReportedValue:
     return retval
 
 
-def aggregate(values: Sequence[ReportedValue]) -> Num:
+def aggregate(values: Sequence["ReportedValue"]) -> Num:
     assert check_argument_types()
 
     for v in values:

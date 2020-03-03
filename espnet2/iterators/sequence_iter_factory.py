@@ -1,19 +1,25 @@
-from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import Sequence
 
 import numpy as np
-from torch.utils.data.dataloader import DataLoader
+import torch
+from torch.utils.data import DataLoader
+from typeguard import check_argument_types
+
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 
 
-class AbsIterFactory(ABC):
-    @abstractmethod
-    def build_iter(self, epoch: int, shuffle: bool = None) -> DataLoader:
-        raise NotImplementedError
+class SequenceIterFactory(AbsIterFactory):
+    """Build iterator for each epoch.
 
+    This class simply creates pytorch DataLoader except for the following points:
+    - The random seed is decided according to the number of epochs. This feature
+      guarantees reproducibility when resuming from middle of training process.
+    - Enable to restrict the number of samples for one epoch. This features
+      controls the interval number between training and evaluation.
 
-class EpochIterFactory(AbsIterFactory):
+    """
+
     def __init__(
         self,
         dataset,
@@ -24,16 +30,10 @@ class EpochIterFactory(AbsIterFactory):
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
+        distributed: bool = False,
     ):
-        """Build iterator for each epoch.
+        assert check_argument_types()
 
-        This class simply creates pytorch DataLoader except for the following points:
-        - The random seed is decided according to the number of epochs. This feature
-          guarantees reproducibility when resuming from middle of training process.
-        - Enable to restrict the number of samples for one epoch. This features
-          controls the interval number between training and evaluation.
-
-        """
         self.batches = list(batches)
         self.dataset = dataset
         if num_iters_per_epoch is not None and num_iters_per_epoch < len(batches):
@@ -46,6 +46,7 @@ class EpochIterFactory(AbsIterFactory):
         self.collate_fn = collate_fn
         # https://discuss.pytorch.org/t/what-is-the-disadvantage-of-using-pin-memory/1702
         self.pin_memory = pin_memory
+        self.distributed = distributed
 
     def build_iter(self, epoch: int, shuffle: bool = None) -> DataLoader:
         if shuffle is None:
@@ -80,6 +81,17 @@ class EpochIterFactory(AbsIterFactory):
             batches = list(self.batches)
             if shuffle:
                 np.random.RandomState(epoch + self.seed).shuffle(batches)
+
+        if self.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
 
         # For backward compatibility for pytorch DataLoader
         if self.collate_fn is not None:

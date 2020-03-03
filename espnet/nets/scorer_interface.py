@@ -1,6 +1,7 @@
 """Scorer interface module."""
 
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import torch
@@ -35,6 +36,19 @@ class ScorerInterface:
         """
         return None
 
+    def select_state(self, state: Any, i: int) -> Any:
+        """Select state with relative ids in the main beam search.
+
+        Args:
+            state: Decoder state for prefix tokens
+            i (int): Index to select a state in the main beam search
+
+        Returns:
+            state: pruned state
+
+        """
+        return None if state is None else state[i]
+
     def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).
 
@@ -64,6 +78,26 @@ class ScorerInterface:
         return 0.0
 
 
+class BatchScorerInterface(ScorerInterface):
+    """Batch scorer interface."""
+
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        raise NotImplementedError
+
+
 class PartialScorerInterface(ScorerInterface):
     """Partial scorer interface for beam search.
 
@@ -76,19 +110,6 @@ class PartialScorerInterface(ScorerInterface):
              * :class:`espnet.nets.scorers.ctc.CTCPrefixScorer`
 
     """
-
-    def select_state(self, state: Any, i: int) -> Any:
-        """Select state with relative ids in the main beam search (required).
-
-        Args:
-            state: Decoder state for prefix tokens
-            i (int): Index to select a state in the main beam search
-
-        Returns:
-            state: pruned state
-
-        """
-        raise NotImplementedError
 
     def score_partial(self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor) \
             -> Tuple[torch.Tensor, Any]:

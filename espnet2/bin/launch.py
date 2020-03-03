@@ -183,7 +183,7 @@ EOF
 
                 if args.log != "-":
                     Path(args.log).parent.mkdir(parents=True, exist_ok=True)
-                    f = Path(args.log).open("w")
+                    f = Path(args.log).open("w", encoding="utf-8")
                 else:
                     # Output to stdout/stderr
                     f = None
@@ -257,6 +257,8 @@ EOF
                 str(args.num_nodes),
                 args.log,
                 "srun",
+                # Inherit all enviroment variable from parent process
+                "--export=ALL",
             ]
             # arguments for *_train.py
             + args.args

@@ -61,7 +61,7 @@ class DatadirWriter:
 
         if self.fd is None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.fd = self.path.open("w")
+            self.fd = self.path.open("w", encoding="utf-8")
 
         self.keys.add(key)
         self.fd.write(f"{key} {value}\n")
@@ -100,7 +100,7 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     assert check_argument_types()
 
     data = {}
-    with Path(path).open("r") as f:
+    with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
             sps = line.rstrip().split(maxsplit=1)
             if len(sps) != 2:
@@ -239,7 +239,7 @@ class SoundScpWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
         scpfile.parent.mkdir(parents=True, exist_ok=True)
-        self.fscp = scpfile.open("w")
+        self.fscp = scpfile.open("w", encoding="utf-8")
         self.format = format
         self.dtype = dtype
 
@@ -298,7 +298,7 @@ class NpyScpWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
         scpfile.parent.mkdir(parents=True, exist_ok=True)
-        self.fscp = scpfile.open("w")
+        self.fscp = scpfile.open("w", encoding="utf-8")
 
         self.data = {}
 

@@ -88,7 +88,7 @@ class Stft(torch.nn.Module, InversibleInterface):
 
         if ilens is not None:
             if self.center:
-                pad = self.n_fft // 2
+                pad = self.win_length // 2
                 ilens = ilens + 2 * pad
 
             olens = (ilens - self.win_length) // self.hop_length + 1
