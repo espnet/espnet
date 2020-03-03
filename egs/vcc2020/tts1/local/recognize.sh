@@ -9,7 +9,7 @@ echo "$0 $*"  # Print the command line for logging
 nj=1
 db_root=""
 backend=pytorch
-wer=false
+wer=true
 api=v2
 help_message="Usage: $0 <asr_model_dir> <expdir> <wavdir> <list> <transcription>" 
 
@@ -59,16 +59,18 @@ utils/validate_data_dir.sh --no-text --no-feats ${asr_data_dir}
 echo "step 2: Feature extraction for ASR"
 # Feature extraction for ASR
 steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} \
-  --write_utt2num_frames true \
-  --write_utt2dur false \
-  ${asr_data_dir} \
-  ${expdir}/make_fbank \
-  ${asr_fbank_dir}
+    --write_utt2num_frames true \
+    --write_utt2dur false \
+    ${asr_data_dir} \
+    ${expdir}/make_fbank \
+    ${asr_fbank_dir}
 
+# fix_data_dir only works when text exists
 if [ ! -z ${transcription} ]; then
     utils/fix_data_dir.sh ${asr_data_dir}
 fi
 
+# dump features
 dump.sh --cmd "$train_cmd" --nj ${nj} \
   ${asr_data_dir}/feats.scp ${asr_cmvn} ${expdir}/dump_feats/ \
   ${asr_feat_dir}
@@ -104,7 +106,9 @@ ${decode_cmd} JOB=1:${nj} ${asr_result_dir}/log/decode.JOB.log \
       --api ${api} \
       --rnnlm ${lang_model}
 
-# calculate CER
+# calculate CER if ground truth transcription available
+# (the script will parse the recognition automatically)
+# if not, parse the recognition result.
 if [ ! -z ${transcription} ]; then
     score_sclite_wo_dict.sh --wer ${wer} ${asr_result_dir}
 else

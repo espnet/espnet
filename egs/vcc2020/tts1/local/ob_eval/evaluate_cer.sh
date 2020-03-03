@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Okayama University (Katsuki Inoue)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 echo "$0 $*"  # Print the command line for logging
@@ -8,10 +8,9 @@ echo "$0 $*"  # Print the command line for logging
 
 nj=1
 do_delta=false
-eval_tts_model=true
 db_root=""
 backend=pytorch
-wer=false
+wer=true
 vocoder=
 api=v2
 help_message="Usage: $0 <asr_model> <outdir> <subset>"
@@ -60,14 +59,6 @@ case "${asr_model}" in
       recog_model="${asr_model_dir}/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best" \
       lang_model="${asr_model_dir}/exp/irielm.ep11.last5.avg/rnnlm.model.best" \
       asr_dict="data/decode_dict/X.txt" ;;
-    
-    "aishell.transformer") asr_url="https://drive.google.com/open?id=1BIQBpLRRy3XSMT5IRxnLcgLMirGzu8dg" \
-      asr_cmvn="${asr_model_dir}/data/train_sp/cmvn.ark" \
-      asr_pre_decode_config="${asr_model_dir}/conf/decode.yaml" \
-      recog_model="${asr_model_dir}/exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/results/model.last10.avg.best" \
-      new_recog_model="${asr_model_dir}/exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/results/model.last10.avg.best." \
-      lang_model="${asr_model_dir}/exp/train_rnnlm_pytorch_lm/rnnlm.model.best" \
-      asr_dict="${asr_model_dir}/data/train_sp_units.txt" ;;
 
     *) echo "No such models: ${asr_model}"; exit 1 ;;
 esac
@@ -80,30 +71,15 @@ if [ ! -e ${asr_model_dir}/.complete ]; then
 fi
 echo "ASR model: ${asr_model_dir} exits."
 
-# Change "input_layer" to "embed" in the recog_model if using aishell
-# Due to backward compatibility
-if [ ${asr_model} = "aishell.transformer" ]; then
-    new_recog_model=${recog_model}.new
-    if [ ! -e ${new_recog_model} ]; then
-        local/ob_eval/change_key_name.py ${recog_model} ${new_recog_model}
-    fi
-    recog_model=${new_recog_model}
-fi
-
 # setting dir
 asr_data_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.data"
 asr_fbank_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.fbank"
 asr_feat_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.dump"
 asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
-
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-if [ ${asr_model} = "aishell.transformer" ]; then
-    local/ob_eval/data_prep_for_asr_mandarin.sh ${wavdir} ${asr_data_dir}/${name} ${db_root}/prompts/Man_transcriptions.txt
-elif [ ${asr_model} = "librispeech.transformer.ngpu4" ]; then
-    local/ob_eval/data_prep_for_asr_english.sh ${wavdir} ${asr_data_dir}/${name} ${db_root}/prompts/Eng_transcriptions.txt
-fi
+local/ob_eval/data_prep_for_asr_english.sh ${wavdir} ${asr_data_dir}/${name} ${db_root}/prompts/Eng_transcriptions.txt
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${name}
 
 
