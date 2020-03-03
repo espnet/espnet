@@ -20,9 +20,9 @@ train_set=${mic}_train
 train_dev=${mic}_dev
 train_test=${mic}_eval
 
-asr_config=conf/train.yaml
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+asr_config=conf/train_asr.yaml
+lm_config=conf/train_lm.yaml
+decode_config=conf/decode_asr.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
 

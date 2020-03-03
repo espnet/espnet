@@ -11,9 +11,9 @@ train_set=valid_train_${lang}
 train_dev=valid_dev_${lang}
 train_test=valid_test_${lang}
 
-asr_config=conf/train.yaml
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+asr_config=conf/train_asr.yaml
+lm_config=conf/train_lm.yaml
+decode_config=conf/decode_asr.yaml
 
 
 ./asr.sh \
