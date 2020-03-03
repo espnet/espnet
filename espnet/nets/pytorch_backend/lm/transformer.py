@@ -1,6 +1,7 @@
 """Transformer language model."""
 
 from typing import Any
+from typing import List
 from typing import Tuple
 
 import torch
@@ -11,9 +12,10 @@ from espnet.nets.lm_interface import LMInterface
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-class TransformerLM(nn.Module, LMInterface):
+class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
     """Transformer language model."""
 
     @staticmethod
@@ -115,3 +117,36 @@ class TransformerLM(nn.Module, LMInterface):
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
         return logp, cache
+
+    # batch beam search API (see BatchScorerInterface)
+    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        # merge states
+        n_batch = len(ys)
+        n_layers = len(self.encoder.encoders)
+        if states[0] is None:
+            batch_state = None
+        else:
+            # transpose state of [batch, layer] into [layer, batch]
+            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+
+        # batch decoding
+        h, _, states = self.encoder.forward_one_step(self.embed(ys), self._target_mask(ys), cache=batch_state)
+        h = self.decoder(h[:, -1])
+        logp = h.log_softmax(dim=-1)
+
+        # transpose state of [layer, batch] into [batch, layer]
+        state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        return logp, state_list

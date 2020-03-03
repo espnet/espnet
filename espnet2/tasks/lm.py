@@ -16,7 +16,6 @@ from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.e2e import LanguageE2E
 from espnet2.lm.seq_rnn import SequentialRNNLM
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.abs_task import IteratorOption
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -42,7 +41,6 @@ class LMTask(AbsTask):
 
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
-    iterator_option = IteratorOption
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -156,7 +154,7 @@ class LMTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> LanguageE2E:
         assert check_argument_types()
         if isinstance(args.token_list, str):
-            with open(args.token_list) as f:
+            with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().

@@ -9,7 +9,7 @@ def build_dataclass(dataclass, args: argparse.Namespace):
     kwargs = {}
     for field in dataclasses.fields(dataclass):
         if not hasattr(args, field.name):
-            raise RuntimeError(
+            raise ValueError(
                 f"args doesn't have {field.name}. You need to set it to ArgumentsParser"
             )
         check_type(field.name, getattr(args, field.name), field.type)

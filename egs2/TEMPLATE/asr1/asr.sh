@@ -52,6 +52,8 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
+bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
+bpe_char_cover=1.0  # character coverage when modeling BPE
 
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
@@ -114,7 +116,7 @@ Options:
     --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type   # Feature type (raw or fbank_pitch, default="${feats_type}").
+    --feats_type   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
 
@@ -126,7 +128,8 @@ Options:
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos=                # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-
+    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
+    --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_config       # Config for language model training (default="${lm_config}").
@@ -187,6 +190,8 @@ elif [ "${feats_type}" = fbank_pitch ]; then
     data_feats=${dumpdir}/fbank_pitch
 elif [ "${feats_type}" = fbank ]; then
     data_feats=${dumpdir}/fbank
+elif [ "${feats_type}" == extracted ]; then
+    data_feats=${dumpdir}/extracted
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -213,7 +218,7 @@ if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
-    bpemodel=""
+    bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
@@ -288,10 +293,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
-           scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
-           _dirs+="data/${train_set}_sp${factor} "
+           if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+               _dirs+="data/${train_set}_sp${factor} "
+           else
+               # If speed factor is 1, same as the original
+               _dirs+="data/${train_set} "
+           fi
        done
-       utils/combine_data.sh "data/${train_set}" ${_dirs}
+       utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
     else
        log "Skip stage 2: Speed perturbation"
     fi
@@ -315,7 +325,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp}
+            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -361,6 +371,19 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
         log "${feats_type} is not supported yet."
         exit 1
+
+    elif  [ "${feats_type}" = extracted ]; then
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        done
 
     else
         log "Error: not supported: --feats_type ${feats_type}"
@@ -422,12 +445,20 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # shellcheck disable=SC2002
         <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
 
+        if [ -n "${bpe_nlsyms}" ]; then
+            _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+        else
+            _opts_spm=""
+        fi
+
         spm_train \
             --input="${bpedir}"/train.txt \
             --vocab_size="${nbpe}" \
             --model_type="${bpemode}" \
             --model_prefix="${bpeprefix}" \
-            --input_sentence_size="${bpe_input_sentence_size}"
+            --character_coverage=${bpe_char_cover} \
+            --input_sentence_size="${bpe_input_sentence_size}" \
+            ${_opts_spm}
 
         _opts="--bpemodel ${bpemodel}"
 
@@ -833,13 +864,27 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
             mkdir -p "${_scoredir}"
 
             if [ "${_type}" = wer ]; then
-                # Covert text to "trn" format
-                <"${_data}/text" \
-                    awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
+                # Tokenize text to word level
+                paste \
+                    <(<"${_data}/text" \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
-                <"${_dir}/text" \
-                    awk ' { s=""; for(i=2;i<=NF;++i){ s=s $i " "; }; print s "(" $1 ")"; } ' \
+
+                paste \
+                    <(<"${_dir}/text"  \
+                          python3 -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true) \
+                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
+
 
             elif [ "${_type}" = cer ]; then
                 # Tokenize text to char level
