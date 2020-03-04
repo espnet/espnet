@@ -13,41 +13,29 @@
 
 We often use audio converter tools in several recipes:
 
-
-- lame (mp3 support)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install lame
-    # e.g. CentOS7: You need to register EPEL repo
-    $ sudo yum install lame
-    ```
-- flac support
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install flac
-    ```
-- libsndfile (Soundfile)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install libsndfile1-dev
-    # e.g. CentOS
-    $ sudo yum install libsndfile libsndfile-devel
-    ```
 - sox
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install sox
-    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    # e.g CentOS
+    $ sudo yum install sox
+    # e.g Using anaconda
     $ conda install -c conda-forge sox
     ```
 - ffmpeg
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install ffmpeg
+    # e.g CentOS
+    $ sudo yum install ffmpeg
     # Using anaconda
     $ conda install -c conda-forge ffmpeg
     ```
-
+- flac support
+    ```bash
+    # e.g. Ubuntu
+    $ sudo apt-get install flac
+    ```
 
 Optionally, GPU environment requires the following libraries:
 
@@ -120,7 +108,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd tools
-    $ make -j <NCPU>
+    $ make -j <NUM-CPU>
     ```
     1. Select BLAS library from ATLAS, OpenBLAS, or MKL
 
