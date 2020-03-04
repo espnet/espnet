@@ -68,7 +68,7 @@ decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
 decode_tag=""  # Suffix for decoding directory.
 decode_model=valid.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=train.loss.best.pth
-                                 # decode_model=3epoch/model.pth
+                                 # decode_model=3epoch.pth
                                  # decode_model=valid.acc.best.pth
                                  # decode_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
@@ -480,6 +480,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
+
+    if [[ ! ${decode_model} =~ [0-9]*epoch.pth ]]; then
+          # e.g decode_model=valid.acc.max.pth
+          # => _criterion=valid,acc,max
+          _criterion="$(sed -e 's/\./,/g' <<<${decode_model} | cut -d, -f1-3)"
+          python3 -m espnet2.bin.average_nbest_models \
+              --output_dir "${tts_exp}" \
+              --criterion "${_criterion}"
+    fi
 fi
 
 

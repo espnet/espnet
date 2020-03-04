@@ -81,7 +81,7 @@ decode_lm=valid.loss.best.pth       # Language modle path for decoding.
 decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # e.g.
                                     # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch/model.pth
+                                    # decode_asr_model=3epoch.pth
                                     # decode_asr_model=valid.acc.best.pth
                                     # decode_asr_model=valid.loss.ave.pth
 
@@ -602,6 +602,14 @@ if "${use_lm}"; then
               --output_dir "${lm_exp}" \
               ${_opts} ${lm_args}
 
+    if [[ ! ${decode_lm} =~ [0-9]*epoch.pth ]]; then
+          # e.g decode_lm=valid.loss.min.pth
+          # => _criterion=valid,loss,min
+          _criterion="$(sed -e 's/\./,/g' <<<${decode_lm} | cut -d, -f1-3)"
+          python3 -m espnet2.bin.average_nbest_models \
+              --output_dir "${lm_exp}" \
+              --criterion "${_criterion}"
+    fi
   fi
 
 
@@ -775,6 +783,14 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
 
+    if [[ ! ${decode_asr_model} =~ [0-9]*epoch.pth ]]; then
+          # e.g decode_asr_model=valid.acc.max.pth
+          # => _criterion=valid,acc,max
+          _criterion="$(sed -e 's/\./,/g' <<<${decode_asr_model} | cut -d, -f1-3)"
+          python3 -m espnet2.bin.average_nbest_models \
+              --output_dir "${asr_exp}" \
+              --criterion "${_criterion}"
+    fi
 fi
 
 

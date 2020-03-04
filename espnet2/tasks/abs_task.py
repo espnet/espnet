@@ -31,7 +31,6 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.noam_lr import NoamLR
@@ -397,7 +396,7 @@ class AbsTask(ABC):
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
-            "--keep_n_best_checkpoints",
+            "--keep_nbest_models",
             type=int,
             default=10,
             help="Remove previous snapshots excluding the n-best scored epochs",
@@ -1040,22 +1039,13 @@ class AbsTask(ABC):
                 max_epoch=args.max_epoch,
                 seed=args.seed,
                 patience=args.patience,
-                keep_n_best_checkpoints=args.keep_n_best_checkpoints,
+                keep_nbest_models=args.keep_nbest_models,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
             )
-
-            if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # Generated n-best averaged model
-                average_nbest_models(
-                    reporter=reporter,
-                    output_dir=output_dir,
-                    best_model_criterion=args.best_model_criterion,
-                    nbest=args.keep_n_best_checkpoints,
-                )
 
     @classmethod
     def build_iter_factory(
