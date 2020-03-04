@@ -1,0 +1,1 @@
+../../../../egs/ami/asr1/local/ami_beamform.sh
