@@ -39,7 +39,7 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
 def get_partial_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
 
-    Note that please use get_partial_lm_state_dict for LM.
+    Note that get_partial_lm_state_dict is used if a LM specified.
 
     Args:
         model_state_dict (OrderedDict): trained model state_dict
@@ -150,7 +150,7 @@ def get_trained_model_state_dict(model_path):
 
     Return:
         model.state_dict() (OrderedDict): the loaded model state_dict
-        (bool): Flag representing the model is LM or not
+        (bool): Boolean defining whether the model is an LM
 
     """
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
