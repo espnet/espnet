@@ -11,6 +11,7 @@ from espnet.asr.asr_utils import torch_load
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
+from espnet.nets.tts_interface import TTSInterface
 
 from espnet.utils.dynamic_import import dynamic_import
 
@@ -35,8 +36,10 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
     return len(partial_modules) > 0
 
 
-def get_partial_asr_mt_state_dict(model_state_dict, modules):
+def get_partial_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
+
+    Note that please use get_partial_lm_state_dict for LM.
 
     Args:
         model_state_dict (OrderedDict): trained model state_dict
@@ -147,14 +150,14 @@ def get_trained_model_state_dict(model_path):
 
     Return:
         model.state_dict() (OrderedDict): the loaded model state_dict
-        (str): Type of model. Either ASR/MT or LM.
+        (bool): Flag representing the model is LM or not
 
     """
     conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
     if 'rnnlm' in model_path:
         logging.warning('reading model parameters from %s', model_path)
 
-        return torch.load(model_path), 'lm'
+        return torch.load(model_path), True
 
     idim, odim, args = get_model_conf(model_path, conf_path)
 
@@ -168,9 +171,11 @@ def get_trained_model_state_dict(model_path):
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, args)
     torch_load(model_path, model)
-    assert isinstance(model, MTInterface) or isinstance(model, ASRInterface)
+    assert isinstance(model, MTInterface) or \
+        isinstance(model, ASRInterface) or \
+        isinstance(model, TTSInterface)
 
-    return model.state_dict(), 'asr-mt'
+    return model.state_dict(), False
 
 
 def load_trained_modules(idim, odim, args, interface=ASRInterface):
@@ -180,7 +185,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
         idim (int): initial input dimension.
         odim (int): initial output dimension.
         args (Namespace): The initial model arguments.
-        interface (Interface): ASRInterface or STInterface
+        interface (Interface): ASRInterface or STInterface or TTSInterface.
 
     Return:
         model (torch.nn.Module): The model with pretrained modules.
@@ -202,13 +207,13 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
                                 (dec_model_path, dec_modules)]:
         if model_path is not None:
             if os.path.isfile(model_path):
-                model_state_dict, mode = get_trained_model_state_dict(model_path)
+                model_state_dict, is_lm = get_trained_model_state_dict(model_path)
 
                 modules = filter_modules(model_state_dict, modules)
-                if mode == 'lm':
+                if is_lm:
                     partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
                 else:
-                    partial_state_dict = get_partial_asr_mt_state_dict(model_state_dict, modules)
+                    partial_state_dict = get_partial_state_dict(model_state_dict, modules)
 
                     if partial_state_dict:
                         if transfer_verification(main_state_dict, partial_state_dict, modules):
