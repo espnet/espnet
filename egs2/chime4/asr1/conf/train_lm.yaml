@@ -1,0 +1,10 @@
+optim: sgd
+patience: 3
+max_length: 150 # 40 for word LMs
+max_epoch: 20
+batch_size: 1024 # 300 for word LMs
+lm: seq_rnn
+lm_conf:
+    rnn_type: lstm
+    nlayers: 2  # 1 for word LMs
+    unit: 650   # 1000 for word LMs
