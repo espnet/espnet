@@ -36,7 +36,7 @@ trim_min_silence=0.01
 trans_type=  # char or phn
 
 # config files
-train_config=conf/train_pytorch_transformer.v1.single.finetune.yaml
+train_config=conf/train_pytorch_transformer+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -46,29 +46,19 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 # pretrained model related
 download_dir=downloads
 pretrained_model=  
-tts_train_config=
-
-# root directory of db
-db_root=downloads/official_v1.0_training
 
 # dataset configuration
-spk=TMF1  # see local/data_prep.sh to check available speakers
+db_root=downloads/official_v1.0_training
+spk=TMF1 
 lang=Man
-trg_lang=Eng
 
 # vc configuration
 srcspk=
 trgspk=
 pairname=${srcspk}_${trgspk}_eval
-
-# VCC2020 baseline: cascade ASR + TTS
-list_file=${db_root}/lists/eval_list.txt 
-transciption_file=  # optional, should not be available at test time
-tts_model_dir=
-
-# objective evaluation related
 asr_model="librispeech.transformer.ngpu4"
-vocoder=GL
+list_file=conf/lists/eval_list.txt 
+tts_model_dir=
 
 # exp tag
 tag=""  # tag for managing experiments.
@@ -89,6 +79,11 @@ dev_set=${spk}_dev
 
 # TTS training (finetuning)
 
+if [ -z "$pretrained_model" ]; then
+    echo "Please specify pretrained model."
+    exit 1
+fi
+
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     # local/data_download.sh ${download_dir} ${spk}
@@ -97,7 +92,7 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root} ${spk} data/${org_set} ${trans_type} ${lang}
+    local/data_prep.sh ${db_root} data/${org_set} ${lang} ${spk} ${trans_type}
     utils/data/resample_data_dir.sh ${fs} data/${org_set} # Downsample to fs from 24k
     utils/fix_data_dir.sh data/${org_set}
     utils/validate_data_dir.sh --no-feats data/${org_set}
@@ -105,13 +100,13 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     lang_char=$(echo ${spk} | head -c 2 | tail -c 1)
     
     # Trim silence parts at the begining and the end of audio
+    mkdir -p exp/trim_silence/${org_set}/figs  # avoid error
     trim_silence.sh --cmd "${train_cmd}" \
         --fs ${fs} \
         --win_length ${trim_win_length} \
@@ -135,9 +130,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         exp/make_fbank/${org_set} \
         ${fbankdir}
 
-    # make train/dev set
-    utils/subset_data_dir.sh --utt-list ${db_root}/lists/${lang_char}_train_list.txt data/${org_set} data/${train_set}
-    utils/subset_data_dir.sh --utt-list ${db_root}/lists/${lang_char}_dev_list.txt data/${org_set} data/${dev_set}
+    # make train/dev set (60/10)
+    utils/subset_data_dir.sh --first data/${org_set} 60 data/${train_set}
+    utils/subset_data_dir.sh --last data/${org_set} 10 data/${dev_set}
 
     # use pretrained model cmvn
     cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)

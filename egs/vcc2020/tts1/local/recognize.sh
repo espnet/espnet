@@ -87,7 +87,7 @@ data2json.sh --feat ${asr_feat_dir}/feats.scp \
 
 echo "step 4: ASR decoding"
 # ASR decoding
-asr_decode_config="conf/decode_asr.yaml"A
+asr_decode_config="conf/decode_asr.yaml"
 cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
 
 # split data

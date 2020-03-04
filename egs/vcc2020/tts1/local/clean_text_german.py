@@ -44,6 +44,7 @@ if __name__ == "__main__":
                         choices=["char", "phn"],
                         help="Input transcription type")
     parser.add_argument('lang_tag', type=str, help='lang tag')
+    parser.add_argument('spk', type=str, help='speaker name')
     parser.add_argument('--transcription_path_en', type=str, default=None,
                         help='path for the English transcription text file')
     args = parser.parse_args()
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         for line in fid.readlines():
             segments = line.split(" ")
             lang_char = args.transcription_path.split('/')[-1][0]
-            id = lang_char + segments[0] # ex. E10001
+            id = args.spk + '_' + lang_char + segments[0] # ex. TGF1_M10001
             content = ' '.join(segments[1:])
             text = content.rstrip().upper()
             if args.trans_type == "phn":
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         with codecs.open(args.transcription_path_en, 'r', 'utf-8') as fid:
             for line in fid.readlines():
                 segments = line.split(" ")
-                id = "E" + segments[0] # ex. E10001
+                id = args.spk + '_' + "E" + segments[0] # ex. TGF1_E10001
                 content = ' '.join(segments[1:])
                 clean_content = custom_english_cleaners(content.rstrip())
                 if args.trans_type == "phn":
