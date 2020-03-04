@@ -22,6 +22,7 @@ best_model_criterion:
 -   - valid
     - loss
     - min
+keep_nbest_models: 1
 
 # MTL
 e2e_conf:

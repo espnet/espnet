@@ -31,14 +31,6 @@ decoder_conf:
 e2e_conf:
     ctc_weight: 0.2
 
-
-
-    #mtlalpha: 0.2
-
-# label smoothing
-#lsm-type: unigram
-#lsm-weight: 0.05
-
 # minibatch related
 batch_size: 15
 
@@ -52,6 +44,8 @@ optim_conf:
 max_epoch: 30
 patience: 3
 
-
-
-
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 1
