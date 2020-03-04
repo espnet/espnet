@@ -103,8 +103,6 @@ feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
-    lang_char=$(echo ${spk} | head -c 2 | tail -c 1)
-    
     # Trim silence parts at the begining and the end of audio
     mkdir -p exp/trim_silence/${org_set}/figs  # avoid error
     trim_silence.sh --cmd "${train_cmd}" \
@@ -315,8 +313,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         ${expdir} \
         ${db_root}/${srcspk} \
         ${srcspk} \
-        ${list_file} \
-        ${transciption_file}
+        ${list_file}
 
 fi
     
