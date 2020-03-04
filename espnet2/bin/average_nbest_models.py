@@ -15,7 +15,7 @@ from espnet2.utils.types import str2triple_str
 
 @torch.no_grad()
 def average_nbest_models(
-    output_dir: Path,
+    output_dir: str,
     criterion: Tuple[str, str, str],
     nbest: int,
     log_level: Union[int, str],
@@ -26,7 +26,7 @@ def average_nbest_models(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) (levelname)s: %(message)s",
     )
-
+    output_dir = Path(output_dir)
     checkpoint = output_dir / "checkpoint.pth"
     if not checkpoint.exists():
         raise RuntimeError(f"{checkpoint} is not found.")
