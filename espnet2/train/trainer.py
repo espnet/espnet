@@ -106,7 +106,7 @@ class Trainer:
         max_epoch: int,
         seed: int,
         patience: Optional[int],
-        keep_n_best_checkpoints: int,
+        keep_nbest_models: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
@@ -247,7 +247,7 @@ class Trainer:
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_n_best_checkpoints])
+                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
                         for ph, k, m in best_model_criterion
                         if reporter.has(ph, k)
                     ]
