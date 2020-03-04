@@ -41,7 +41,6 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # specify the downloaded database directories
@@ -99,6 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in judy elliot angela rebecca ramona eva karlsson; do
         # Trim silence parts at the begining and the end of audio
         if ${do_trimming}; then
+            mkdir -p exp/trim_silence/${x}/figs  # avoid error
             trim_silence.sh --cmd "${train_cmd}" \
                 --fs ${fs} \
                 --win_length ${trim_win_length} \

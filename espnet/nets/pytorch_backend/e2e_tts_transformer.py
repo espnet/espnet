@@ -202,6 +202,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate in postnet")
         group.add_argument("--pretrained-model", default=None, type=str,
                            help="Pretrained model path")
+        group.add_argument("--train-embedding", default=True, type=strtobool,
+                           help="Whether to train the embeddings")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -434,6 +436,12 @@ class Transformer(TTSInterface, torch.nn.Module):
         # load pretrained model
         if args.pretrained_model is not None:
             self.load_pretrained_model(args.pretrained_model)
+
+        # freeze embedding
+        if not args.train_embedding:
+            for name, param in self.state_dict().items():
+                if "encoder.embed" in name:
+                    param.requires_grad = False
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters

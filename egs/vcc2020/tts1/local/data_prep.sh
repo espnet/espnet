@@ -55,19 +55,19 @@ case "${lang_char}" in
         lang_tag=zh_ZH
         local/clean_text_mandarin.py \
             ${db}/prompts/${lang}_transcriptions.txt \
-            ${utt2spk} $trans_type ${lang_tag} > ${text}
+            ${utt2spk} $trans_type ${lang_tag} ${spk} > ${text}
         ;;
     "F") 
         lang_tag=fi_FI
         local/clean_text_finnish.py \
             ${db}/prompts/${lang}_transcriptions.txt \
-            ${utt2spk} $trans_type ${lang_tag} > ${text}
+            ${utt2spk} $trans_type ${lang_tag} ${spk} > ${text}
         ;;
     "G") 
         lang_tag=de_DE
         local/clean_text_german.py \
             ${db}/prompts/${lang}_transcriptions.txt \
-            ${utt2spk} $trans_type ${lang_tag} > ${text}
+            ${utt2spk} $trans_type ${lang_tag} ${spk}> ${text}
         ;;
 esac
 echo "finished making text."
