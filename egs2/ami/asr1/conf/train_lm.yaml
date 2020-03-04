@@ -6,3 +6,8 @@ batch_size: 64
 max_epoch: 20    # number of epochs
 patience: 3
 max_length: 40   # 150 for character LMs
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1

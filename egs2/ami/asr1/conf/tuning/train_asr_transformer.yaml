@@ -42,3 +42,8 @@ scheduler_conf:
 # others:
 init: chainer # previous version uses pytorch normalization
 
+best_model_criterion:
+    -   - valid
+        - acc
+        - max
+keep_nbest_models: 1
