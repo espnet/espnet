@@ -47,6 +47,6 @@ find ${db}/PhoneLabeling -name "*.interval" -follow | sort | while read -r filen
     content=$(tail -n +13 ${filename} | grep "\"" | grep -v "sil" | sed -e "s/\"//g" | tr "\n" " " | sed -e "s/ $//g")
     start_sec=$(tail -n +14 ${filename} | head -n 1)
     end_sec=$(head -n -2 ${filename} | tail -n 1)
-    echo "${id} <${lang}> ${content}" >> ${text}
+    echo "${spk}_${id} <${lang}> ${content}" >> ${text}
 done
 echo "Successfully finished making text. One of the segment info is wrong so let's not to use it."

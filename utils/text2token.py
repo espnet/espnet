@@ -87,22 +87,22 @@ def main():
                 else:
                     break
 
-        if len(match_pos) > 0:
-            chars = []
-            i = 0
-            while i < len(a):
-                start_pos, end_pos = exist_or_not(i, match_pos)
-                if start_pos is not None:
-                    chars.append(a[start_pos:end_pos])
-                    i = end_pos
-                else:
-                    chars.append(a[i])
-                    i += 1
-            a = chars
-
         if(args.trans_type == "phn"):
             a = a.split(" ")
         else:
+            if len(match_pos) > 0:
+                chars = []
+                i = 0
+                while i < len(a):
+                    start_pos, end_pos = exist_or_not(i, match_pos)
+                    if start_pos is not None:
+                        chars.append(a[start_pos:end_pos])
+                        i = end_pos
+                    else:
+                        chars.append(a[i])
+                        i += 1
+                a = chars
+            
             a = [a[j:j + n] for j in range(0, len(a), n)]
 
         a_flat = []
