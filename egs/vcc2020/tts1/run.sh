@@ -49,6 +49,7 @@ pretrained_model=
 
 # dataset configuration
 db_root=downloads/official_v1.0_training
+eval_db_root=../vc/downloads
 spk=TMF1 
 lang=Man
 
@@ -267,7 +268,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     
-    echo "Synthesis"
+    echo "Synthesis..."
     pids=() # initialize pids
     for name in ${dev_set}; do
     (
@@ -311,20 +312,19 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         --api v2 \
         exp/${asr_model}_asr \
         ${expdir} \
-        ${db_root}/${srcspk} \
+        ${eval_db_root}/${srcspk} \
         ${srcspk} \
         ${list_file}
 
 fi
     
+if [ -z ${tts_model_dir} ]; then
+    echo "Please specify tts_model_dir!"
+    exit 1
+fi
 outdir=${expdir}/$(basename ${tts_model_dir})_${model}; mkdir -p ${outdir}
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     echo "stage 12: Decoding, Synthesis"
-    
-    if [ -z ${tts_model_dir} ]; then
-        echo "Please specify tts_model_dir!"
-        exit 1
-    fi
     
     dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
     nlsyms=$(find ${download_dir}/${pretrained_model} -name "*_non_lang_syms.txt" | head -n 1)
@@ -372,7 +372,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         cat "${outdir}/${pairname}/feats.$n.scp" || exit 1;
     done > ${outdir}/${pairname}/feats.scp
     
-    echo "Synthesis"
+    echo "Synthesis..."
     [ ! -e ${outdir}_denorm/${pairname} ] && mkdir -p ${outdir}_denorm/${pairname}
     # use pretrained model cmvn
     cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)

@@ -9,7 +9,9 @@ import nltk
 import os
 
 from text.cleaners import custom_english_cleaners
-from text.cleaners import custom_finnish_cleaners
+from text.cleaners import (lowercase, expand_numbers, expand_abbreviations,
+                           expand_symbols, remove_unnecessary_symbols,
+                           uppercase, collapse_whitespace)
 
 E_lang_tag="en_US"
 
@@ -36,6 +38,16 @@ def g2p(text):
     """Convert grapheme to phoneme."""
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
+
+def custom_finnish_cleaners(text):
+    text = lowercase(text)
+    text = expand_numbers(text)
+    text = expand_abbreviations(text)
+    text = expand_symbols(text)
+    text = remove_unnecessary_symbols(text)
+    text = uppercase(text)
+    text = collapse_whitespace(text)
+    return text
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
