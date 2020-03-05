@@ -37,9 +37,6 @@ use_valbest_average=true     # if true, the validation `n_average`-best ST model
 asr_model=
 mt_model=
 
-# distillation related
-teacher_mt_model=
-
 # preprocessing related
 src_case=lc.rm
 tgt_case=lc.rm
@@ -272,9 +269,6 @@ if [ -z ${tag} ]; then
     if [ -n "${mt_model}" ]; then
         expname=${expname}_mttrans
     fi
-    if [ -n "${teacher_mt_model}" ]; then
-        expname=${expname}_distill
-    fi
 else
     expname=${train_set}_${tgt_case}_${backend}_${tag}
 fi
@@ -302,8 +296,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
         --enc-init ${asr_model} \
-        --dec-init ${mt_model} \
-        --teacher-mt-model ${teacher_mt_model}
+        --dec-init ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -346,8 +339,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
-            # --model2 exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans_mttrans/results/${trans_model} \
-            # --model3 exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_bpe1000_asrtrans/results/${trans_model} \
 
         # Fisher has 4 references per utterance
         if [ ${ttask} = "fisher_dev.en" ] || [ ${ttask} = "fisher_dev2.en" ] || [ ${ttask} = "fisher_test.en" ]; then
