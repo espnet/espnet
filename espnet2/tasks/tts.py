@@ -107,7 +107,7 @@ class TTSTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word"],
+            choices=["bpe", "char", "word", "phn"],
             help="The text will be tokenized " "in the specified level token",
         )
         group.add_argument(

@@ -29,7 +29,8 @@ def calculate_all_attentions(
     }
 
     # 1. Register forward_hook fn to save the output from specific layers
-    outputs = {}
+    # outputs = {}
+    outputs = defaultdict(list)
     handles = {}
     for name, modu in model.named_modules():
 
@@ -39,7 +40,8 @@ def calculate_all_attentions(
                 outputs[name] = output
             else:
                 c, w = output
-                outputs[name] = w
+                # outputs[name] = w
+                outputs[name].append(w)
 
         if isinstance(modu, AbsAttention):
             handle = modu.register_forward_hook(hook)
@@ -53,6 +55,7 @@ def calculate_all_attentions(
             keys.append(k)
 
     return_dict = defaultdict(list)
+    # return_dict = {} 
     for ibatch in range(bs):
         # *: (B, L, ...) -> (1, L2, ...)
         _sample = {
@@ -61,7 +64,7 @@ def calculate_all_attentions(
             else batch[k][ibatch, None]
             for k in keys
         }
-
+    
         # *_lengths: (B,) -> (1,)
         _sample.update(
             {
@@ -71,10 +74,13 @@ def calculate_all_attentions(
             }
         )
         model(**_sample)
+        
 
         # Derive the attention results
         for name, output in outputs.items():
+            output = torch.stack(output).squeeze()
             return_dict[name].append(output)
+        outputs.clear()
 
     # 3. Remove all hooks
     for _, handle in handles.items():

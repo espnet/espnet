@@ -117,7 +117,7 @@ class Encoder(torch.nn.Module):
                     xs = self.convs[l](xs)
         if self.blstm is None:
             return xs.transpose(1, 2)
-        xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
+        xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True, enforce_sorted=False)
         self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
         xs, hlens = pad_packed_sequence(xs, batch_first=True)

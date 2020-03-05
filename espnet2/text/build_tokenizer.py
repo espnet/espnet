@@ -30,7 +30,8 @@ def build_tokenizer(
             )
         return SentencepiecesTokenizer(bpemodel)
 
-    elif token_type == "word":
+    # 'phn' token type is the same as 'word' token type during tokenization.
+    elif token_type == "word" or token_type == "phn":
         if remove_non_linguistic_symbols and non_linguistic_symbols is not None:
             return WordTokenizer(
                 delimiter=delimiter,

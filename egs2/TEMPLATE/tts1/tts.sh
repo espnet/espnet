@@ -41,7 +41,7 @@ local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw    # Feature type (fbank or stft or raw).
-audio_format=flac # Audio format (only in feats_type=raw).
+audio_format=wav # Audio format (only in feats_type=raw).
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -53,7 +53,7 @@ win_length=null   # Window length.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol
-sos_eos="<sos/eos>" # sos and eos symbole
+sos_eos="<sos/eos>" # sos and eos symbol
 
 # Training related
 train_config= # Config for training.
@@ -148,6 +148,11 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
+train_set="${trans_type}_train_nodev"
+dev_set="${trans_type}_dev"
+eval_set="${trans_type}_eval"
+
+
 . ./path.sh
 . ./cmd.sh
 
@@ -176,7 +181,7 @@ if [ -z "${tag}" ]; then
     if [ -n "${train_args}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
-fi
+  fi
 if [ -z "${decode_tag}" ]; then
     if [ -n "${decode_config}" ]; then
         decode_tag="$(basename "${decode_config}" .yaml)"
@@ -188,7 +193,7 @@ if [ -z "${decode_tag}" ]; then
         decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-fi
+  fi
 
 # The directory used for collect-stats mode
 tts_stats_dir="${expdir}/tts_stats"
@@ -201,7 +206,8 @@ tts_exp="${expdir}/tts_${tag}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh ${local_data_opts}
+    local/data.sh --train_set ${train_set} --dev_set ${dev_set} --eval_set ${eval_set} \
+      --trans_type ${trans_type}
 fi
 
 
@@ -235,7 +241,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+        for dset in "${train_set}" "${dev_set}" ${eval_set}; do
             # 1. Copy datadir
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
@@ -277,7 +283,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+    for dset in "${train_set}" "${dev_set}" ${eval_set}; do
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -328,7 +334,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
     python3 -m espnet2.bin.tokenize_text \
-          --token_type char -f 2- \
+          --token_type ${trans_type} -f 2- \
           --input "${data_feats}/srctexts" --output "${token_list}" \
           --non_linguistic_symbols ${nlsyms_txt} \
           --write_vocabulary true \
@@ -338,7 +344,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 # ========================== Data preparation is done here. ==========================
-
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -399,7 +404,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         python3 -m espnet2.bin.tts_train \
             --collect_stats true \
             --use_preprocessor true \
-            --token_type char \
+            --token_type ${trans_type} \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
@@ -419,7 +424,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
-fi
+  fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -445,10 +450,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=feats.scp
         _type=kaldi_ark
         # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
+        _max_length=2000
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
-    fi
+      fi
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -462,7 +467,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         python3 -m espnet2.bin.tts_train \
             --token_list "${_train_dir}/tokens.txt" \
             --use_preprocessor true \
-            --token_type char \
+            --token_type ${trans_type} \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize global_mvn \
@@ -476,7 +481,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
-            --max_length 150 \
+            --max_length 500 \
             --max_length ${_max_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
