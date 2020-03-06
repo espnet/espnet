@@ -86,8 +86,8 @@ dev_set=${spk}_dev
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    # local/data_download.sh ${download_dir} ${spk}
-    # local/pretrained_model_download.sh ${download_dir} ${pretrained_model}
+    echo "Please download the dataset by following the README."
+    echo "Also, please prepare the pretrained model for finetuning."
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

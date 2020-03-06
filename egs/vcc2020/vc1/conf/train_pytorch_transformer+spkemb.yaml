@@ -28,7 +28,7 @@ decoder-concat-after: False
 reduction-factor: 2
 use-speaker-embedding: true
 spk-embed-integration-type: add
-train-embedding: false # freeze embedding when finetuning
+freeze-mods: ["encoder.embed"] # freeze embedding when finetuning
 
 # minibatch related
 batch-sort-key: output # shuffle or input or output
