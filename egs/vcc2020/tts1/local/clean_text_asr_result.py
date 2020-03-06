@@ -37,11 +37,11 @@ def g2p(text):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('transcription_path', type=str, help='path for the transcription text file')
-    parser.add_argument("trans_type", type=str, default="kana",
-                        choices=["char", "phn"],
-                        help="Input transcription type")
     parser.add_argument("lang_tag", type=str, default=None,
                         help="language tag (can be used for multi lingual case)")
+    parser.add_argument("trans_type", type=str, default="char",
+                        choices=["char", "phn"],
+                        help="Input transcription type")
     args = parser.parse_args()
 
     # clean every line in transcription file first

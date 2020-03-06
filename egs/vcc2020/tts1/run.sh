@@ -56,7 +56,6 @@ lang=Man
 # vc configuration
 srcspk=
 trgspk=
-pairname=${srcspk}_${trgspk}_eval
 asr_model="librispeech.transformer.ngpu4"
 list_file=conf/lists/eval_list.txt 
 tts_model_dir=
@@ -80,10 +79,10 @@ dev_set=${spk}_dev
 
 # TTS training (finetuning)
 
-if [ -z "$pretrained_model" ]; then
-    echo "Please specify pretrained model."
-    exit 1
-fi
+#if [ -z "$pretrained_model" ]; then
+#    echo "Please specify pretrained model."
+#    exit 1
+#fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -301,6 +300,7 @@ fi
 
 # Cascade ASR + TTS
 
+pairname=${srcspk}_${trgspk}_eval
 expdir=exp/${srcspk}_eval_asr
 [ ! -e ${expdir} ] && mkdir -p ${expdir}
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
@@ -309,7 +309,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     local/recognize.sh --nj ${nj} \
         --db_root ${db_root} \
         --backend pytorch \
-        --api v2 \
+        --api v1 \
         exp/${asr_model}_asr \
         ${expdir} \
         ${eval_db_root}/${srcspk} \
@@ -333,15 +333,15 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     tts_datadir=exp/${srcspk}_eval_asr/data_tts/${trgspk}; mkdir -p ${tts_datadir}
     text=${tts_datadir}/text
     local/clean_text_asr_result.py \
-        ${expdir}/result/hyp.wrd.trn \
-        $trans_type en_US > ${text}
-    sed -i "s~${srcspk}~${trgspk}~g" ${text}
+        ${expdir}/result/hyp.wrd.trn en_US $trans_type > ${text}
+    sed -i "s~${srcspk}_~${srcspk}_${trgspk}_~g" ${text}
 
     echo "Json file preparation ..."
     dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
     nlsyms=$(find ${download_dir}/${pretrained_model} -name "*_non_lang_syms.txt" | head -n 1)
     cp ${expdir}/data_asr/utt2spk ${tts_datadir}/utt2spk # data2json.sh needs utt2spk
     sed -i "s~${srcspk}~${trgspk}~g" ${tts_datadir}/utt2spk
+    sed -i "s~${trgspk}_~${srcspk}_${trgspk}_~g" ${tts_datadir}/utt2spk
     data2json.sh --nlsyms "${nlsyms}" --trans_type ${trans_type} \
          ${tts_datadir} ${dict} > ${tts_datadir}/data.json
     
@@ -391,5 +391,12 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         ${outdir}_denorm/${pairname}/ \
         ${outdir}_denorm/${pairname}/log \
         ${outdir}_denorm/${pairname}/wav
+    
+    echo "Generate hdf5"
+    # generate h5 for neural vocoder
+    local/feats2hdf5.py \
+        --scp_file ${outdir}_denorm/${pairname}/feats.scp \
+        --out_dir ${outdir}_denorm/${pairname}/hdf5/
+    (find "$(cd ${outdir}_denorm/${pairname}/hdf5; pwd)" -name "*.h5" -print &) | head > ${outdir}_denorm/${pairname}/hdf5_feats.scp
 
 fi
