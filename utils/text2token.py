@@ -102,7 +102,7 @@ def main():
                         chars.append(a[i])
                         i += 1
                 a = chars
-            
+
             a = [a[j:j + n] for j in range(0, len(a), n)]
 
         a_flat = []
