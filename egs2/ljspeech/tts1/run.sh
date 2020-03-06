@@ -7,11 +7,12 @@ set -u
 set -o pipefail
 
 
-tts_config=conf/train_tacotron2.v3.yaml
+tts_config=conf/train_transformer.v3.yaml
 decode_config=conf/decode.yaml
 
 
 ./tts.sh \
+  --ngpu 1 \
   --audio_format wav \
   --feats_type fbank \
   --fs 22050 \

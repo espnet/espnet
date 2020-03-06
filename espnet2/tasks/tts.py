@@ -25,6 +25,7 @@ from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -45,7 +46,10 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 tts_choices = ClassChoices(
-    "tts", classes=dict(tacotron2=Tacotron2), type_check=AbsTTS, default="tacotron2"
+    "tts", 
+    classes=dict(tacotron2=Tacotron2,
+                 transformer=Transformer), 
+    type_check=AbsTTS, default="tacotron2"
 )
 
 

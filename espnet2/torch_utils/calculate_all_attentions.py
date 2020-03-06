@@ -37,7 +37,9 @@ def calculate_all_attentions(
         def hook(module, input, output, name=name):
             # TODO(kamo): Should unify the interface?
             if isinstance(module, MultiHeadedAttention):
-                outputs[name] = output
+                if "src_attn" in name:
+                    # only visualize encoder-decoder attention weights
+                    outputs[name].append(module.attn)  # (batch, head, time1, time2)
             else:
                 c, w = output
                 # outputs[name] = w

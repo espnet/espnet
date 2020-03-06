@@ -181,7 +181,7 @@ if [ -z "${tag}" ]; then
     if [ -n "${train_args}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
-  fi
+fi
 if [ -z "${decode_tag}" ]; then
     if [ -n "${decode_config}" ]; then
         decode_tag="$(basename "${decode_config}" .yaml)"
@@ -193,7 +193,7 @@ if [ -z "${decode_tag}" ]; then
         decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-  fi
+fi
 
 # The directory used for collect-stats mode
 tts_stats_dir="${expdir}/tts_stats"
@@ -424,7 +424,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
-  fi
+fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then

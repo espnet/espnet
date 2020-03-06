@@ -1,0 +1,87 @@
+# This configuration is for ESPnet2 to train Transformer TTS. 
+# Use 3 gpus.
+
+##########################################################
+#                 E2E-TTS MODEL SETTING                  #
+##########################################################
+tts: transformer
+tts_conf:
+  embed_dim: 0 
+  eprenet_conv_layers: 0  # one more linear layer w/o non-linear will be added for 0-centor
+  eprenet_conv_filts: 0
+  eprenet_conv_chans: 0
+  dprenet_layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
+  dprenet_units: 256
+  adim: 512
+  aheads: 8
+  elayers: 6
+  eunits: 1024
+  dlayers: 6
+  dunits: 1024
+  positionwise_layer_type: "conv1d"
+  positionwise_conv_kernel_size: 1
+  postnet_layers: 5
+  postnet_filts: 5
+  postnet_chans: 256
+  use_masking: True
+  loss_type: "L1" 
+  bce_pos_weight: 5.0
+  use_batch_norm: True
+  use_scaled_pos_enc: True
+  encoder_normalize_before: False
+  decoder_normalize_before: False
+  encoder_concat_after: False
+  decoder_concat_after: False
+  reduction_factor: 1
+  spk_embed_dim: null          # speaker embedding dimension
+  spk_embed_integration_type: "add"
+  initial_encoder_alpha: 1.0
+  initial_decoder_alpha: 1.0
+  eprenet_dropout_rate: 0.0
+  dprenet_dropout_rate: 0.5
+  postnet_dropout_rate: 0.5
+  transformer_enc_dropout_rate: 0.1
+  transformer_enc_positional_dropout_rate: 0.1
+  transformer_enc_attn_dropout_rate: 0.1
+  transformer_dec_dropout_rate: 0.1
+  transformer_dec_positional_dropout_rate: 0.1
+  transformer_dec_attn_dropout_rate: 0.1
+  transformer_enc_dec_attn_dropout_rate: 0.1
+  use_guided_attn_loss: true
+  num_heads_applied_guided_attn: 2
+  num_layers_applied_guided_attn: 2
+  modules_applied_guided_attn: ["encoder-decoder"]
+  guided_attn_loss_sigma: 0.4  # sigma of guided attention loss
+  guided_attn_loss_lambda: 1.0 # strength of guided attention loss
+
+
+##########################################################
+#                  OPTIMIZER SETTING                     #
+##########################################################
+optim: adam           # optimizer type
+optim_conf:           # keyword arguments for selected optimizer
+  lr: 1.0             # learning rate org: 1.0
+  eps: 1.0e-06        # epsilon
+  weight_decay: 0.0   # weight decay coefficient
+scheduler: noamlr     # The lr scheduler type
+scheduler_conf:
+  model_size: 512     # should be equal to attention dimension
+  warmup_steps: 4000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+max_epoch: 100               # number of epochs
+grad_clip: 1.0              # gradient clipping norm
+grad_noise: false           # whether to use gradient noise injection
+accum_grad: 2               # gradient accumulation
+batch_size: 32              # batch size
+batch_type: seq             # how to make batch
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+num_workers: 1              # number of workers of data loader
+train_dtype: float32        # dtype in training
+log_interval: null          # log interval in iterations
+keep_n_best_checkpoints: 10 # number of checkpoints to keep
+num_att_plot: 3             # number of attention figures to be saved in every check
+seed: 0                     # random seed number
