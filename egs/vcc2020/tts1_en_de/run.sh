@@ -57,9 +57,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-dev_set=dev
-eval_set=eval
+train_set="train"
+dev_set="dev"
+eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
