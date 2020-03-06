@@ -19,7 +19,7 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=16000      # sampling frequency
+fs=24000      # sampling frequency
 fmax=7600     # maximum frequency
 fmin=80       # minimum frequency
 n_mels=80     # number of mel basis
@@ -33,7 +33,7 @@ trim_win_length=1024
 trim_shift_length=256
 trim_min_silence=0.01
 
-trans_type=  # char or phn
+trans_type=char  # char or phn
 
 # config files
 train_config=conf/train_pytorch_transformer+spkemb.yaml
@@ -50,8 +50,7 @@ pretrained_model=
 # dataset configuration
 db_root=downloads/official_v1.0_training
 eval_db_root=../vc/downloads
-spk=TMF1 
-lang=Man
+spk=TEF1 
 
 # vc configuration
 srcspk=
@@ -86,13 +85,13 @@ dev_set=${spk}_dev
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    echo "Please download the dataset by following the README."
+    echo "Please download the dataset following the README."
     echo "Also, please prepare the pretrained model for finetuning."
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root} data/${org_set} ${lang} ${spk} ${trans_type}
+    local/data_prep_task1.sh ${db_root} data/${org_set} ${spk} ${trans_type}
     utils/data/resample_data_dir.sh ${fs} data/${org_set} # Downsample to fs from 24k
     utils/fix_data_dir.sh data/${org_set}
     utils/validate_data_dir.sh --no-feats data/${org_set}
@@ -146,13 +145,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
 
     dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
-    nlsyms=$(find ${download_dir}/${pretrained_model} -name "*_non_lang_syms.txt" | head -n 1)
     echo "dictionary: ${dict}"
 
     # make json labels using pretrained model dict
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms "${nlsyms}" --trans_type ${trans_type} \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms "${nlsyms}" --trans_type ${trans_type} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --trans_type ${trans_type} \
          data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
 fi
 
@@ -199,7 +197,7 @@ fi
 # add pretrained model info in config
 pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "snapshot*" | head -n 1)
 if [ -z "$pretrained_model_path" ]; then
-    pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "model.loss*" | head -n 1)
+    pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "model.last*" | head -n 1)
 fi
 if [ -z "$pretrained_model_path" ]; then
     echo "Cannot find pretrained model"
@@ -326,29 +324,27 @@ outdir=${expdir}/$(basename ${tts_model_dir})_${model}; mkdir -p ${outdir}
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     echo "stage 12: Decoding, Synthesis"
     
-    dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
-    nlsyms=$(find ${download_dir}/${pretrained_model} -name "*_non_lang_syms.txt" | head -n 1)
-
     echo "Data preparation (cleaning text from ASR results) ..."
     tts_datadir=exp/${srcspk}_eval_asr/data_tts/${trgspk}; mkdir -p ${tts_datadir}
     text=${tts_datadir}/text
     local/clean_text_asr_result.py \
-        ${expdir}/result/hyp.wrd.trn en_US $trans_type > ${text}
+        ${expdir}/result/hyp.wrd.trn \
+        --trans_type $trans_type \
+        --lowercase true > ${text}
     sed -i "s~${srcspk}_~${srcspk}_${trgspk}_~g" ${text}
 
     echo "Json file preparation ..."
     dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
-    nlsyms=$(find ${download_dir}/${pretrained_model} -name "*_non_lang_syms.txt" | head -n 1)
     cp ${expdir}/data_asr/utt2spk ${tts_datadir}/utt2spk # data2json.sh needs utt2spk
     sed -i "s~${srcspk}~${trgspk}~g" ${tts_datadir}/utt2spk
     sed -i "s~${trgspk}_~${srcspk}_${trgspk}_~g" ${tts_datadir}/utt2spk
-    data2json.sh --nlsyms "${nlsyms}" --trans_type ${trans_type} \
+    data2json.sh --trans_type ${trans_type} \
          ${tts_datadir} ${dict} > ${tts_datadir}/data.json
     
     # use the avg x-vector in target speaker training set
     echo "Updating x vector..."
     nnet_dir=exp/xvector_nnet_1a
-    trgspk_train_set=${trgspk}_train_no_dev
+    trgspk_train_set=${trgspk}_train
     x_vector_ark=$(awk -v spk=$spk '/spk/{print $NF}' ${nnet_dir}/xvectors_${trgspk_train_set}/spk_xvector.scp)
     sed "s~ ${trgspk}~ $x_vector_ark~" ${tts_datadir}/utt2spk > ${tts_datadir}/xvector.scp
     local/update_json.sh ${tts_datadir}/data.json ${tts_datadir}/xvector.scp
