@@ -37,11 +37,13 @@ def g2p(text):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('transcription_path', type=str, help='path for the transcription text file')
-    parser.add_argument("lang_tag", type=str, default=None,
+    parser.add_argument("--lang_tag", type=str, default="",
                         help="language tag (can be used for multi lingual case)")
-    parser.add_argument("trans_type", type=str, default="char",
+    parser.add_argument("--trans_type", type=str, default="char",
                         choices=["char", "phn"],
                         help="Input transcription type")
+    parser.add_argument("--lowercase", type=bool, default=False,
+                        help="Lower case the result or not")
     args = parser.parse_args()
 
     # clean every line in transcription file first
@@ -60,4 +62,10 @@ if __name__ == "__main__":
                 text = clean_content.lower()
                 clean_content = g2p(text)
 
-            print("{} {}".format(id, "<" + args.lang_tag + "> " + clean_content))
+            if args.lowercase:
+                clean_content = clean_content.lower()
+
+            if args.lang_tag == "":
+                print("{} {}".format(id, clean_content))
+            else:
+                print("{} {}".format(id, "<" + args.lang_tag + "> " + clean_content))
