@@ -48,8 +48,9 @@ def main():
                         help="*_mls.json filenames")
     parser.add_argument("out", type=str,
                         help="output filename")
-    parser.add_argument("trans_type", type=str, default="char",
-                        help="transcription type (char or phn)")
+    parser.add_argument("trans_type", type=str, default="phn",
+                        choices=["char", "phn"],
+                        help="Input transcription type")
     args = parser.parse_args()
 
     dirname = os.path.dirname(args.out)
@@ -62,8 +63,13 @@ def main():
                 js = json.load(f)
             for key in sorted(js.keys()):
                 uid = args.spk_tag + "_" + key.replace(".wav", "")
+                
                 content = js[key]["clean"]
                 text = custom_english_cleaners(content.rstrip())
+                if args.trans_type == "phn":
+                    clean_content = text.lower()
+                    text = g2p(clean_content)
+
                 if args.lang_tag is None:
                     line = "%s %s \n" % (uid, text)
                 else:
