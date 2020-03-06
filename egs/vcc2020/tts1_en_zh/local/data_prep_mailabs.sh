@@ -43,7 +43,7 @@ echo "Successfully finished making spk2utt."
 
 jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | tr "\n" " ")
 lang_tag=${lang}
-local/parse_text.py \
+local/clean_text_mailabs.py \
     --lang_tag ${lang_tag} \
     --spk_tag ${spk} \
     $(printf "%s" "${jsons[@]}") \

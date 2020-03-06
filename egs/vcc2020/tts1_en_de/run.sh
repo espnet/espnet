@@ -72,7 +72,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # German
     for spk in angela rebecca ramona eva karlsson; do
         echo "Processing ${spk}..."
-        local/data_prep.sh ${db_root} data/${spk} de_DE ${spk}
+        local/data_prep.sh ${db_root} data/${spk} de_DE ${spk} ${trans_type}
         utils/data/resample_data_dir.sh ${fs} data/${spk}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
@@ -81,7 +81,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # English
     for spk in judy elliot; do
         echo "Processing ${spk}..."
-        local/data_prep.sh ${db_root} data/${spk } en_US ${spk}
+        local/data_prep.sh ${db_root} data/${spk } en_US ${spk} ${trans_type}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done

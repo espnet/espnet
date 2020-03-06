@@ -73,7 +73,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # prepare the M-AILABS dataset
     for spk in judy elliot; do
         echo "Processing ${spk}..."
-        local/data_prep_mailabs.sh ${mailabs_db} data/${spk} en_US ${spk}
+        local/data_prep_mailabs.sh ${mailabs_db} data/${spk} en_US ${spk} ${trans_type}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done

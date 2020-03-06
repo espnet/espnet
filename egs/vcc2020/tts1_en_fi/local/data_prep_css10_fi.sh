@@ -42,7 +42,7 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "Successfully finished making spk2utt."
 
 lang_tag=${lang}
-local/parse_text_css10.py \
+local/clean_text_css10.py \
     --lang_tag ${lang_tag} \
     --spk_tag ${spk} \
     ${db}/transcript.txt \
