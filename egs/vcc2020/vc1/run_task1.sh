@@ -44,19 +44,21 @@ model=model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # pretrained model related
-download_dir=downloads
-pretrained_model=  
+pretrained_model_dir=downloads  # If use manually trained models, set to `../libritts`
+                                # If use provided pretrained models, set to desired dir, ex. `downloads`
+pretrained_model_name=          # Recommended choices: tts1
 
 # dataset configuration
 db_root=downloads/official_v1.0_training
-eval_db_root=../vc/downloads
+eval_db_root=../vc/downloads    # Same as `db_root` in training
 spk=TEF1 
 
 # vc configuration
 srcspk=
 trgspk=
 asr_model="librispeech.transformer.ngpu4"
-list_file=conf/lists/eval_list.txt 
+test_list_file=conf/lists/E_train_list.txt  # use source training set as development set
+test_name=dev_asr
 tts_model_dir=
 
 # exp tag
@@ -78,15 +80,15 @@ dev_set=${spk}_dev
 
 # TTS training (finetuning)
 
-#if [ -z "$pretrained_model" ]; then
-#    echo "Please specify pretrained model."
-#    exit 1
-#fi
-
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    echo "stage -1: Data Download"
+    echo "stage -1: Data and Pretrained model download"
     echo "Please download the dataset following the README."
-    echo "Also, please prepare the pretrained model for finetuning."
+
+    if [ ! -d ${pretrained_model_dir}/${pretrained_model_name} ]; then
+        echo "Downloading pretrained model..."
+        local/pretrained_model_download.sh ${pretrained_model_dir} ${pretrained_model_name}
+    fi
+    echo "Pretrained model exists: ${pretrained_model_name}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -132,7 +134,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/${org_set} 10 data/${dev_set}
 
     # use pretrained model cmvn
-    cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
+    cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
@@ -144,7 +146,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
 
-    dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
+    dict=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "*_units.txt" | head -n 1)
     echo "dictionary: ${dict}"
 
     # make json labels using pretrained model dict
@@ -195,9 +197,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 # add pretrained model info in config
-pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "snapshot*" | head -n 1)
+pretrained_model_path=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "snapshot*" | head -n 1)
 if [ -z "$pretrained_model_path" ]; then
-    pretrained_model_path=$(find ${download_dir}/${pretrained_model} -name "model.last*" | head -n 1)
+    pretrained_model_path=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "model.loss*" | head -n 1)
+fi
+if [ -z "$pretrained_model_path" ]; then
+    pretrained_model_path=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "model.last*" | head -n 1)
 fi
 if [ -z "$pretrained_model_path" ]; then
     echo "Cannot find pretrained model"
@@ -205,7 +210,7 @@ if [ -z "$pretrained_model_path" ]; then
 fi
 
 train_config="$(change_yaml.py -a pretrained-model="${pretrained_model_path}" \
-    -o "conf/$(basename "${train_config}" .yaml).${pretrained_model}.yaml" "${train_config}")"
+    -o "conf/$(basename "${train_config}" .yaml).${pretrained_model_name}.yaml" "${train_config}")"
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
@@ -271,7 +276,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         # use pretrained model cmvn
-        cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
+        cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
         apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
             scp:${outdir}/${name}/feats.scp \
             ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
@@ -299,7 +304,7 @@ fi
 # Cascade ASR + TTS
 
 pairname=${srcspk}_${trgspk}_eval
-expdir=exp/${srcspk}_eval_asr
+expdir=exp/${srcspk}_${test_name}
 [ ! -e ${expdir} ] && mkdir -p ${expdir}
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     echo "stage 11: Recognize the eval set"
@@ -312,7 +317,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         ${expdir} \
         ${eval_db_root}/${srcspk} \
         ${srcspk} \
-        ${list_file}
+        ${test_list_file}
 
 fi
     
@@ -323,9 +328,9 @@ fi
 outdir=${expdir}/$(basename ${tts_model_dir})_${model}; mkdir -p ${outdir}
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     echo "stage 12: Decoding, Synthesis"
-    
+
     echo "Data preparation (cleaning text from ASR results) ..."
-    tts_datadir=exp/${srcspk}_eval_asr/data_tts/${trgspk}; mkdir -p ${tts_datadir}
+    tts_datadir=${expdir}/data_tts/${trgspk}; mkdir -p ${tts_datadir}
     text=${tts_datadir}/text
     local/clean_text_asr_result.py \
         ${expdir}/result/hyp.wrd.trn \
@@ -334,7 +339,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     sed -i "s~${srcspk}_~${srcspk}_${trgspk}_~g" ${text}
 
     echo "Json file preparation ..."
-    dict=$(find ${download_dir}/${pretrained_model} -name "*_units.txt" | head -n 1)
+    dict=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "*_units.txt" | head -n 1)
     cp ${expdir}/data_asr/utt2spk ${tts_datadir}/utt2spk # data2json.sh needs utt2spk
     sed -i "s~${srcspk}~${trgspk}~g" ${tts_datadir}/utt2spk
     sed -i "s~${trgspk}_~${srcspk}_${trgspk}_~g" ${tts_datadir}/utt2spk
@@ -371,7 +376,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     echo "Synthesis..."
     [ ! -e ${outdir}_denorm/${pairname} ] && mkdir -p ${outdir}_denorm/${pairname}
     # use pretrained model cmvn
-    cmvn=$(find ${download_dir}/${pretrained_model} -name "cmvn.ark" | head -n 1)
+    cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
         scp:${outdir}/${pairname}/feats.scp \
         ark,scp:${outdir}_denorm/${pairname}/feats.ark,${outdir}_denorm/${pairname}/feats.scp
