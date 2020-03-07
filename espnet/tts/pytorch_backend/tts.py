@@ -26,6 +26,7 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dataset import ChainerDataLoader
@@ -300,8 +301,11 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # specify model architecture
-    model_class = dynamic_import(args.model_module)
-    model = model_class(idim, odim, args)
+    if args.enc_init is not None or args.dec_init is not None:
+        model = load_trained_modules(idim, odim, args, TTSInterface)
+    else:
+        model_class = dynamic_import(args.model_module)
+        model = model_class(idim, odim, args)
     assert isinstance(model, TTSInterface)
     logging.info(model)
     reporter = model.reporter

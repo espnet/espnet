@@ -3,44 +3,39 @@
 
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
+- cmake3 for some extensions
+    ```bash
+    # e.g. Ubuntu
+    $ sudo apt-get install cmake
+    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    $ conda install cmake
+    ```
 
 We often use audio converter tools in several recipes:
 
-
-- lame (mp3 support)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install lame
-    # e.g. CentOS7: You need to register EPEL repo
-    $ sudo yum install lame
-    ```
-- flac support
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install flac
-    ```
-- libsndfile (Soundfile)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install libsndfile1-dev
-    # e.g. CentOS
-    $ sudo yum install libsndfile libsndfile-devel
-    ```
 - sox
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install sox
-    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    # e.g CentOS
+    $ sudo yum install sox
+    # e.g Using anaconda
     $ conda install -c conda-forge sox
     ```
 - ffmpeg
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install ffmpeg
+    # e.g CentOS
+    $ sudo yum install ffmpeg
     # Using anaconda
     $ conda install -c conda-forge ffmpeg
     ```
-
+- flac support
+    ```bash
+    # e.g. Ubuntu
+    $ sudo apt-get install flac
+    ```
 
 Optionally, GPU environment requires the following libraries:
 
@@ -113,7 +108,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd tools
-    $ make -j <NCPU>
+    $ make -j <NUM-CPU>
     ```
     1. Select BLAS library from ATLAS, OpenBLAS, or MKL
 
@@ -125,7 +120,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     - MKL (You need sudo privilege)
 
     ```bash
-    $ sudo ./extras/install_openblas.sh
+    $ sudo ./extras/install_mkl.sh
     ```
     - ATLAS (You need sudo privilege)
 
@@ -138,19 +133,19 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd src
-    # ESPnet uses only feature extractor, so you can disable CUDA
+    # [e.g. With OpenBLAS] ESPnet uses only feature extractor, so you can disable CUDA
     $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0
-    $ make -j clean depend; make -j <NCPU>
+    $ make -j clean depend; make -j <NUM-CPU>
     ```
 
 ### Step 3-A) installation of espnet
 
-    ```bash
-    $ git clone https://github.com/espnet/espnet
-    $ cd espnet
-    ```
+```bash
+$ git clone https://github.com/espnet/espnet
+$ cd espnet
+```
 
 #### using miniconda (default)
 
