@@ -22,7 +22,10 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.ctc_type = ctc_type
+
+        # In case of Pytorch >= 1.2.0, CTC will be always builtin
+        torch_ver = int(torch.__version__.replace('.', ''))
+        self.ctc_type = ctc_type if torch_ver < 120 else 'builtin'
 
         if self.ctc_type == 'builtin':
             reduction_type = 'sum' if reduce else 'none'
