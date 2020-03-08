@@ -41,11 +41,15 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-griffin_lim_iters=64  # the number of iterations of Griffin-Lim
+voc=                            # GL or PWG
+voc_expdir=downloads/pwg_task2  # If use provided pretrained models, set to desired dir, ex. `downloads/pwg_task2`
+                                # If use manually trained models, set to `../voc1/exp/<expdir>`
+voc_checkpoint= 
+griffin_lim_iters=64            # the number of iterations of Griffin-Lim
 
 # pretrained model related
-pretrained_model_dir=downloads  # If use manually trained models, set to `..`
-                                # If use provided pretrained models, set to desired dir, ex. `downloads`
+pretrained_model_dir=downloads  # If use provided pretrained models, set to desired dir, ex. `downloads`
+                                # If use manually trained models, set to `..`
 pretrained_model_name=          # Recommended choices: tts1_en_[de,fi,zh]
 
 # dataset configuration
@@ -89,7 +93,13 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         echo "Downloading pretrained model..."
         local/pretrained_model_download.sh ${pretrained_model_dir} ${pretrained_model_name}
     fi
-    echo "Pretrained model exists: ${pretrained_model_name}"
+    echo "Pretrained TTS model exists: ${pretrained_model_name}"
+    
+    if [ ! -d ${voc_expdir} ]; then
+        echo "Downloading pretrained PWG model..."
+        local/pretrained_model_download.sh ${pretrained_model_dir} pwg_task2
+    fi
+    echo "Pretrained PWG model exists: pwg_task2"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -329,7 +339,7 @@ if [ -z ${tts_model_dir} ]; then
 fi
 outdir=${expdir}/$(basename ${tts_model_dir})_${model}; mkdir -p ${outdir}
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    echo "stage 12: Decoding, Synthesis"
+    echo "stage 12: Decoding"
 
     echo "Data preparation (cleaning text from ASR results) ..."
     tts_datadir=${expdir}/data_tts/${trgspk}; mkdir -p ${tts_datadir}
@@ -337,8 +347,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     local/clean_text_asr_result.py \
         ${expdir}/result/hyp.wrd.trn \
         --lang_tag en_US \
-        --trans_type $trans_type \
-        --lowercase true > ${text}
+        --trans_type $trans_type > ${text}
     sed -i "s~${srcspk}_~${srcspk}_${trgspk}_~g" ${text}
 
     echo "Json file preparation ..."
@@ -376,32 +385,75 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     for n in $(seq ${nj}); do
         cat "${outdir}/${pairname}/feats.$n.scp" || exit 1;
     done > ${outdir}/${pairname}/feats.scp
-    
-    echo "Synthesis..."
+fi
+
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+    echo "stage 13: Synthesis"
+
     [ ! -e ${outdir}_denorm/${pairname} ] && mkdir -p ${outdir}_denorm/${pairname}
-    # use pretrained model cmvn
+    # Denormalizing use pretrained model cmvn
     cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
         scp:${outdir}/${pairname}/feats.scp \
         ark,scp:${outdir}_denorm/${pairname}/feats.ark,${outdir}_denorm/${pairname}/feats.scp
-    convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        --iters ${griffin_lim_iters} \
-        ${outdir}_denorm/${pairname}/ \
-        ${outdir}_denorm/${pairname}/log \
-        ${outdir}_denorm/${pairname}/wav
-    
-    echo "Generate hdf5"
-    # generate h5 for neural vocoder
-    local/feats2hdf5.py \
-        --scp_file ${outdir}_denorm/${pairname}/feats.scp \
-        --out_dir ${outdir}_denorm/${pairname}/hdf5/
-    (find "$(cd ${outdir}_denorm/${pairname}/hdf5; pwd)" -name "*.h5" -print &) | head > ${outdir}_denorm/${pairname}/hdf5_feats.scp
 
+    # GL
+    if [ ${voc} = "GL" ]; then
+        echo "Using Griffin-Lim phase recovery."
+        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
+            ${outdir}_denorm/${pairname}/ \
+            ${outdir}_denorm/${pairname}/log \
+            ${outdir}_denorm/${pairname}/wav
+    # PWG
+    elif [ ${voc} = "PWG" ]; then
+        echo "Using Parallel WaveGAN vocoder."
+
+        # variable settings
+        [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
+        voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
+        voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
+        wav_dir=${outdir}_denorm/${pairname}/pwg_wav
+        hdf5_dir=${outdir}_denorm/${pairname}/hdf5
+        hdf5_norm_dir=${outdir}_denorm/${pairname}/hdf5_norm
+        [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
+        [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
+        
+        # generate h5 for neural vocoder
+        local/feats2hdf5.py \
+            --scp_file ${outdir}_denorm/${pairname}/feats.scp \
+            --out_dir ${hdf5_dir} 
+        #(find "$(cd ${hdf5_dir}; pwd)" -name "*.h5" -print &) | head > ${outdir}_denorm/${pairname}/hdf5_feats.scp
+
+        # normalize and dump them
+        echo "Normalizing..."
+        ${train_cmd} --num-threads "${nj}" "${hdf5_norm_dir}/normalize.log" \
+            local/normalize_for_pwg.py \
+                --config "${voc_conf}" \
+                --stats "${voc_stats}" \
+                --rootdir ${hdf5_dir} \
+                --dumpdir ${hdf5_norm_dir} \
+                --n_jobs "${nj}" \
+                --verbose "${verbose}"
+        echo "successfully finished normalization."
+
+        # decoding
+        echo "Decoding start. See the progress via ${wav_dir}/decode.log."
+        ${cuda_cmd} --gpu 1 "${wav_dir}/decode.log" \
+            parallel-wavegan-decode \
+                --dumpdir ${hdf5_norm_dir} \
+                --checkpoint "${voc_checkpoint}" \
+                --outdir ${wav_dir} \
+                --verbose "${verbose}"
+        echo "successfully finished decoding."
+    else
+        echo "Vocoder type not supported. Only GL and PWG are available."
+    fi
 fi

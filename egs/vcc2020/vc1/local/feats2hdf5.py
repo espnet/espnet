@@ -33,12 +33,12 @@ def write_hdf5(hdf5_name, hdf5_path, write_data, is_overwrite=True):
         # check dataset existence
         if hdf5_path in hdf5_file:
             if is_overwrite:
-                logging.warning("dataset in hdf5 file already exists.")
-                logging.warning("recreate dataset in hdf5.")
+                print("dataset in hdf5 file already exists.")
+                print("recreate dataset in hdf5.")
                 hdf5_file.__delitem__(hdf5_path)
             else:
-                logging.error("dataset in hdf5 file already exists.")
-                logging.error("if you want to overwrite, please set is_overwrite = True.")
+                print("dataset in hdf5 file already exists.")
+                print("if you want to overwrite, please set is_overwrite = True.")
                 hdf5_file.close()
                 sys.exit(1)
     else:
@@ -64,5 +64,5 @@ if __name__ == "__main__":
     os.makedirs(args.out_dir, exist_ok=True)
     with ReadHelper(f"scp:{args.scp_file}") as f:
         for utt_id, arr in f:
-            out_path = join(args.out_dir, "{}-feats.h5".format(utt_id))
+            out_path = join(args.out_dir, "{}.h5".format(utt_id))
             write_hdf5(out_path, "/melspc", np.float32(arr))
