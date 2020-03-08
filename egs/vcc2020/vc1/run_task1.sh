@@ -98,7 +98,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         echo "Downloading pretrained PWG model..."
         local/pretrained_model_download.sh ${pretrained_model_dir} pwg_task1
     fi
-    echo "Pretrained PWG model exists: pwg_task1"
+    echo "PWG model exists: ${voc_expdir}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -423,21 +423,15 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
         [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
         
-        # generate h5 for neural vocoder
-        local/feats2hdf5.py \
-            --scp_file ${outdir}_denorm/${pairname}/feats.scp \
-            --out_dir ${hdf5_dir} 
-        #(find "$(cd ${hdf5_dir}; pwd)" -name "*.h5" -print &) | head > ${outdir}_denorm/${pairname}/hdf5_feats.scp
-
         # normalize and dump them
         echo "Normalizing..."
-        ${train_cmd} --num-threads "${nj}" "${hdf5_norm_dir}/normalize.log" \
-            local/normalize_for_pwg.py \
+        ${train_cmd} "${hdf5_norm_dir}/normalize.log" \
+            parallel-wavegan-normalize \
+                --skip-wav-copy \
                 --config "${voc_conf}" \
                 --stats "${voc_stats}" \
-                --rootdir ${hdf5_dir} \
+                --feats-scp "${outdir}_denorm/${pairname}/feats.scp" \
                 --dumpdir ${hdf5_norm_dir} \
-                --n_jobs "${nj}" \
                 --verbose "${verbose}"
         echo "successfully finished normalization."
 

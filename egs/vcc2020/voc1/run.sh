@@ -31,7 +31,7 @@ checkpoint=""
 out_rootdir=
 
 # shellcheck disable=SC1091
-. parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
 train_set="train_${task}"
 dev_set="dev_${task}"
@@ -137,63 +137,15 @@ if [ "${stage}" -le 3 ] && [ "${stop_stage}" -ge 3 ]; then
     # shellcheck disable=SC2012
     [ -z "${checkpoint}" ] && checkpoint="$(ls -dt "${expdir}"/*.pkl | head -1 || true)"
     outdir="${expdir}/wav/$(basename "${checkpoint}" .pkl)"
-    pids=()
-    for name in "${dev_set}"; do
-    (
-        [ ! -e "${outdir}/${name}" ] && mkdir -p "${outdir}/${name}"
-        [ "${n_gpus}" -gt 1 ] && n_gpus=1
-        echo "Decoding start. See the progress via ${outdir}/${name}/decode.log."
-        ${cuda_cmd} --gpu "${n_gpus}" "${outdir}/${name}/decode.log" \
-            parallel-wavegan-decode \
-                --dumpdir "${dumpdir}/${name}/norm" \
-                --checkpoint "${checkpoint}" \
-                --outdir "${outdir}/${name}" \
-                --verbose "${verbose}"
-        echo "Successfully finished decoding of ${name} set."
-    ) &
-    pids+=($!)
-    done
-    i=0; for pid in "${pids[@]}"; do wait "${pid}" || ((++i)); done
-    [ "${i}" -gt 0 ] && echo "$0: ${i} background jobs are failed." && exit 1;
+    [ ! -e "${outdir}/${dev_set}" ] && mkdir -p "${outdir}/${name}"
+    [ "${n_gpus}" -gt 1 ] && n_gpus=1
+    echo "Decoding start. See the progress via ${outdir}/${dev_set}/decode.log."
+    ${cuda_cmd} --gpu "${n_gpus}" "${outdir}/${dev_set}/decode.log" \
+        parallel-wavegan-decode \
+            --dumpdir "${dumpdir}/${dev_set}/norm" \
+            --checkpoint "${checkpoint}" \
+            --outdir "${outdir}/${dev_set}" \
+            --verbose "${verbose}"
+    echo "Successfully finished decoding of ${dev_set} set."
     echo "Successfully finished decoding."
 fi
-
-if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
-    echo "Stage 4: Custom decoding"
-    [ -z "${checkpoint}" ] && checkpoint="$(find "${expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
-
-    # check necessary arguments
-    if [ ! -n ${out_rootdir}  ]; then
-        echo "Please specify out_rootdir." 2>&1
-        exit 1;
-    fi
-
-    # set parameters
-    outdir=${out_rootdir}/pwg_wav
-    hdf5_dir=${out_rootdir}/hdf5
-    hdf5_norm_dir=${out_rootdir}/hdf5_norm
-    [ ! -e "${outdir}" ] && mkdir -p ${outdir}
-
-    # normalize and dump them
-    echo "Normalizing..."
-    [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
-    ${train_cmd} --num-threads "${n_jobs}" "${hdf5_norm_dir}/normalize.log" \
-        local/custom_normalize.py \
-            --config "${conf}" \
-            --stats "${dumpdir}/${train_set}/stats.h5" \
-            --rootdir ${hdf5_dir} \
-            --dumpdir ${hdf5_norm_dir} \
-            --n_jobs "${n_jobs}" \
-            --verbose "${verbose}"
-    echo "successfully finished normalization."
-
-    # decoding
-    ${cuda_cmd} --gpu 1 "${outdir}/decode.log" \
-        parallel-wavegan-decode \
-            --dumpdir ${hdf5_norm_dir} \
-            --checkpoint "${checkpoint}" \
-            --outdir ${outdir} \
-            --verbose "${verbose}"
-    echo "successfully finished decoding."
-fi
-echo "Finished."
