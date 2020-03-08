@@ -24,7 +24,7 @@ class CTC(torch.nn.Module):
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
 
         # In case of Pytorch >= 1.2.0, CTC will be always builtin
-        torch_ver = int(torch.__version__.replace('.', ''))
+        torch_ver = int(torch.__version__.replace('.', '').replace('post2', ''))
         self.ctc_type = ctc_type if torch_ver < 120 else 'builtin'
 
         if self.ctc_type == 'builtin':
