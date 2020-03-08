@@ -53,6 +53,6 @@ if ${has_segments}; then
         split_segments+=" ${dst_dir}/segments.${i}"
     done
     # shellcheck disable=SC2086
-    split_scp.pl "${src_scp}" ${split_scps}
+    split_scp.pl "${src_segments}" ${split_segments}
 fi
 echo "Successfully make subsets."
