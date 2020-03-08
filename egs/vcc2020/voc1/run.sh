@@ -28,7 +28,6 @@ task=       # "task1" or "task2"
 
 # decoding related setting
 checkpoint=""
-out_rootdir=
 
 # shellcheck disable=SC1091
 . utils/parse_options.sh || exit 1;
