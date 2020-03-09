@@ -27,6 +27,19 @@ The training flow is as following:
 - `voc1`: PWG training.
 - `vc1_task[1/2]`: TTS finetuning, and the conversion phase for task 1 and task 2.
 
+## Requirements
+
+The following packages do not come with the installation of ESPnet. Please install them via `pip`.
+
+```
+cd <recipe>
+. ./path.sh
+pip install -U <package>
+```
+
+- [pypinyin](https://pypi.org/project/pypinyin/): used in `tts1_en_zh` and `vc1_task2`.
+- [parallel-wavegan](https://pypi.org/project/parallel-wavegan/): used in `voc1`, `vc1_task1` and `vc1_task2`.
+
 ## Datasets and preparation.
 
 The following datasets are used to train this baseline method.
