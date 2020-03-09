@@ -334,6 +334,7 @@ class Tacotron2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
+        speech: torch.Tensor = None, 
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -383,3 +384,43 @@ class Tacotron2(AbsTTS):
             return cbhg_outs, probs, att_ws
         else:
             return outs, probs, att_ws
+    
+
+    def calculate_gt_forced_alignments(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        spembs: torch.Tensor = None,
+    ):
+        """Calculate groundtruth mel-spech forced alignments for fastspeech training.
+
+        Args:
+            text: Batch of padded character ids (B, Tmax).
+            text_lengths: Batch of lengths of each input batch (B,).
+            speech: Batch of padded target features (B, Lmax, odim).
+            speech_lengths: Batch of the lengths of each target (B,).
+            spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
+        """
+        text = text[:, : text_lengths.max()]  # for data-parallel
+        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+
+        batch_size = text.size(0)
+        # Add eos at the last of sequence
+        xs = F.pad(text, [0, 1], "constant", 0.0)
+        for i, l in enumerate(text_lengths):
+            xs[i, l] = self.eos
+        ilens = text_lengths + 1
+
+        ys = speech
+        olens = speech_lengths
+
+        # calculate tacotron2 outputs
+        hs, hlens = self.enc(xs, ilens)
+        if self.spk_embed_dim is not None:
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
+
+        return after_outs.squeeze(0), att_ws.squeeze(0)

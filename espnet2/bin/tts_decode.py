@@ -15,6 +15,7 @@ import configargparse
 import kaldiio
 import soundfile as sf
 import torch
+import numpy as np
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -26,6 +27,7 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from espnet2.torch_utils.device_funcs import to_device
 
 
 @torch.no_grad()
@@ -48,6 +50,8 @@ def tts_decode(
     backward_window: int,
     forward_window: int,
     allow_variable_data_keys: bool,
+    save_durations: bool,
+    save_focus_rates: bool,
     vocoder_conf: dict,
 ):
     """Perform E2E-TTS decoding."""
@@ -100,59 +104,148 @@ def tts_decode(
         logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
     # 5. Start for-loop
-    output_dir = Path(output_dir)
-    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "wav").mkdir(parents=True, exist_ok=True)
+    if not save_durations:
+        # Normal decoding mode.
+        output_dir = Path(output_dir)
+        (output_dir / "norm").mkdir(parents=True, exist_ok=True)
+        (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+        (output_dir / "wav").mkdir(parents=True, exist_ok=True)
 
-    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
-    #  How about numpy or HDF5?
-    #  >>> with NpyScpWriter() as f:
-    with kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
-    ) as f, kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
-    ) as g:
-        for idx, (keys, batch) in enumerate(loader, 1):
-            assert isinstance(batch, dict), type(batch)
-            assert all(isinstance(s, str) for s in keys), keys
-            _bs = len(next(iter(batch.values())))
-            assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+        # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
+        #  How about numpy or HDF5?
+        #  >>> with NpyScpWriter() as f:
+        with kaldiio.WriteHelper(
+            "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
+        ) as f, kaldiio.WriteHelper(
+            "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
+        ) as g:
+            for idx, (keys, batch) in enumerate(loader, 1):
+                assert isinstance(batch, dict), type(batch)
+                assert all(isinstance(s, str) for s in keys), keys
+                _bs = len(next(iter(batch.values())))
+                assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+                
+                batch = to_device(batch, device)
+                key = keys[0]
+                # Change to single sequence and remove *_length
+                # because inference() requires 1-seq, not mini-batch.
+                _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+                start_time = time.perf_counter()
 
-            key = keys[0]
-            # Change to single sequence and remove *_length
-            # because inference() requires 1-seq, not mini-batch.
-            _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
-            start_time = time.perf_counter()
-
-            # TODO(kamo): Now att_ws is not used.
-            outs, probs, att_ws = tts.inference(
-                **_data,
-                threshold=threshold,
-                maxlenratio=maxlenratio,
-                minlenratio=minlenratio,
-            )
-            outs_denorm = normalize.inverse(outs[None])[0][0]
-            insize = next(iter(_data.values())).size(0)
-            logging.info(
-                "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
+                # TODO(kamo): Now att_ws is not used.
+                outs, probs, att_ws = tts.inference(
+                    **_data,
+                    threshold=threshold,
+                    maxlenratio=maxlenratio,
+                    minlenratio=minlenratio,
                 )
-            )
-            if outs.size(0) == insize * maxlenratio:
-                logging.warning(f"output length reaches maximum length ({key}).")
-            logging.info(
-                f"({idx}/{len(batch_sampler)}) {key} "
-                f"(size:{insize}->{outs.size(0)})"
-            )
-            f[key] = outs.cpu().numpy()
-            g[key] = outs_denorm.cpu().numpy()
+                outs_denorm = normalize.inverse(outs[None])[0][0]
+                insize = next(iter(_data.values())).size(0)
+                logging.info(
+                    "inference speed = {} msec / frame.".format(
+                        (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
+                    )
+                )
+                if outs.size(0) == insize * maxlenratio:
+                    logging.warning(f"output length reaches maximum length ({key}).")
+                logging.info(
+                    f"({idx}/{len(batch_sampler)}) {key} "
+                    f"(size:{insize}->{outs.size(0)})"
+                )
+                f[key] = outs.cpu().numpy()
+                g[key] = outs_denorm.cpu().numpy()
 
-            # TODO(kamo): Write scp
-            if spc2wav is not None:
-                wav = spc2wav(outs_denorm.cpu().numpy())
-                sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
+                # TODO(kamo): Write scp
+                if spc2wav is not None:
+                    wav = spc2wav(outs_denorm.cpu().numpy())
+                    sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
+    else:
+        # Preparing feats, durations and focus_rate (optional) for fastspeech training.
+        # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
+        def _calculate_focus_rate(att_ws):
+            if att_ws is None:
+                # fastspeech case -> None
+                return 1.0
+            elif len(att_ws.shape) == 2:
+                # tacotron 2 case -> (L, T)
+                return float(att_ws.max(dim=-1)[0].mean())
+            elif len(att_ws.shape) == 4:
+                # transformer case -> (#layers, #heads, L, T)
+                return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
+            else:
+                raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+        
+        # define function to convert attention to duration
+        def _convert_att_to_duration(att_ws):
+            if len(att_ws.shape) == 2:
+                # tacotron 2 case -> (L, T)
+                pass
+            elif len(att_ws.shape) == 4:
+                # transformer case -> (#layers, #heads, L, T)
+                # get the most diagonal head according to focus rate
+                att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
+                diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
+                diagonal_head_idx = diagonal_scores.argmax()
+                att_ws = att_ws[diagonal_head_idx]  # (L, T)
+            else:
+                raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+            # calculate duration from 2d attention weight
+            durations = torch.stack([att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])])
+            return durations.view(-1, 1).float()
 
+        with kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(o=output_dir)
+        ) as feat_writer, kaldiio.WriteHelper(
+            'ark,scp:{o}.ark,{o}.scp'.format(
+                o=output_dir.replace("feats", "durations"))
+        ) as dur_writer:
+            if save_focus_rates:
+                fr_writer = kaldiio.WriteHelper(
+                    'ark,scp:{o}.ark,{o}.scp'.format(o=output_dir.replace("feats", "focus_rates")))
+            for idx, (keys, batch) in enumerate(loader, 1):
+                assert isinstance(batch, dict), type(batch)
+                assert all(isinstance(s, str) for s in keys), keys
+                _bs = len(next(iter(batch.values())))
+                assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+                
+                batch['speech'] = normalize(batch['speech'], batch['speech_lengths'])[0]
+                batch = to_device(batch, device)
+                key = keys[0]
+                # Change to single sequence and remove *_length
+                # because inference() requires 1-seq, not mini-batch.
+                # _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+                start_time = time.perf_counter()
+
+                # outs, probs, att_ws = tts.inference(
+                    # **_data,
+                    # threshold=threshold,
+                    # maxlenratio=maxlenratio,
+                    # minlenratio=minlenratio,
+                # )
+                # Use groud-truth mel to get teacher-forcing alignments.
+                outs, att_ws = tts.calculate_gt_forced_alignments(**batch)
+                insize = next(iter(batch.values())).size(1)
+                logging.info(
+                    "inference speed = {} msec / utterance.".format(
+                        (time.perf_counter() - start_time) * 1000)
+                )
+                # Calculate durations and forcus rate
+                ds = _convert_att_to_duration(att_ws)
+                focus_rate = _calculate_focus_rate(att_ws)
+                logging.info(
+                    f"({idx}/{len(batch_sampler)}) {key} "
+                    f"(size:{insize}->{outs.size(0)}) "
+                    f"focus rate: {focus_rate}"
+                )
+
+                feat_writer[key] = outs.cpu().numpy()
+                dur_writer[key] = ds.cpu().numpy()
+                if save_focus_rates:
+                    fr_writer[key] = np.array(focus_rate).reshape(1, 1)
+
+        if save_focus_rates:
+            fr_writer.close()
+    
 
 def get_parser():
     """Get argument parser."""
@@ -244,6 +337,20 @@ def get_parser():
         type=int,
         default=3,
         help="Forward window value in attention constraint",
+    )
+    
+    group = parser.add_argument_group("Save related")
+    parser.add_argument(
+        "--save_durations",
+        type=str2bool,
+        default=False,
+        help="Whether to save durations converted from attentions"
+    )
+    parser.add_argument(
+        "--save_focus_rates",
+        type=str2bool,
+        default=False,
+        help="Whether to save focus rates of attentions"
     )
 
     group = parser.add_argument_group(" Grriffin-Lim related")

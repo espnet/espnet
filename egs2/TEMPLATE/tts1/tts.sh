@@ -81,6 +81,14 @@ srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
 
+# knowledge distillation related
+teacher_model_path=
+teacher_model_config=
+teacher_decode_config=conf/decode_for_knowledge_dist.yaml
+do_filtering=false     # whether to do filtering using focus rate
+focus_rate_thres=0.65  # for phn taco2 around 0.65, phn transformer around 0.9
+                       # if you want to do filtering please carefully check this threshold
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
 
@@ -387,7 +395,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    #utils/split_scp.pl "${key_file}" ${split_scps}
 
     key_file="${_dev_dir}/${_scp}"
     split_scps=""
@@ -395,35 +403,35 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    #utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
-    # shellcheck disable=SC2086
-    ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        python3 -m espnet2.bin.tts_train \
-            --collect_stats true \
-            --use_preprocessor true \
-            --token_type ${trans_type} \
-            --token_list "${token_list}" \
-            --non_linguistic_symbols "${nlsyms_txt}" \
-            --normalize none \
-            --batch_type const_no_sort \
-            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${_logdir}/train.JOB.scp" \
-            --valid_shape_file "${_logdir}/dev.JOB.scp" \
-            --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${train_args}
+    #log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
+    ## shellcheck disable=SC2086
+    #${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+        #python3 -m espnet2.bin.tts_train \
+            #--collect_stats true \
+            #--use_preprocessor true \
+            #--token_type ${trans_type} \
+            #--token_list "${token_list}" \
+            #--non_linguistic_symbols "${nlsyms_txt}" \
+            #--normalize none \
+            #--batch_type const_no_sort \
+            #--train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
+            #--train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
+            #--valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            #--valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            #--train_shape_file "${_logdir}/train.JOB.scp" \
+            #--valid_shape_file "${_logdir}/dev.JOB.scp" \
+            #--output_dir "${_logdir}/stats.JOB" \
+            #${_opts} ${train_args}
 
-    # 3. Aggregate shape files
-    _opts=
-    for i in $(seq "${_nj}"); do
-        _opts+="--input_dir ${_logdir}/stats.${i} "
-    done
-    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+    ## 3. Aggregate shape files
+    #_opts=
+    #for i in $(seq "${_nj}"); do
+        #_opts+="--input_dir ${_logdir}/stats.${i} "
+    #done
+    #python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
 fi
 
 
@@ -431,8 +439,49 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
     log "Stage 5: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
-
+    
     _opts=
+    if [ -n "${teacher_model_path}" ] && echo "${train_config}" | grep -q "fastspeech"; then
+      # Setup feature and duration for fastspeech knowledge distillation training
+      teacher_expdir=$(dirname "${teacher_model_path}")
+      teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
+      teacher_outdir=${teacher_expdir}/${teacher_outdir}
+      if [ ! -e ${teacher_outdir}/.done ]; then
+        local/setup_knowledge_dist.sh \
+          --nj ${nj} \
+          --teacher_model_path ${teacher_model_path} \
+          --teacher_model_config ${teacher_model_config} \
+          --decode_config ${teacher_decode_config} \
+          --feats_dir ${data_feats} \
+          --tts_stats_dir ${tts_stats_dir} \
+          --train_set ${train_set} \
+          --dev_set ${dev_set} \
+          --do_filtering ${do_filtering} \
+          --focus_rate_thres ${focus_rate_thres} \
+          --outdir ${teacher_outdir}
+      fi
+      if ${do_filtering}; then
+        _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations_filtered.scp,ds,kaldi_ark "
+        _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations_filtered.scp,ds,kaldi_ark "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape_filtered "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape_filtered "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape_filtered "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape_filtered "
+      else
+        _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations.scp,ds,kaldi_ark "
+        _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations.scp,ds,kaldi_ark "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape "
+      fi
+    else
+      _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+      _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
+      _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+      _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape "
+    fi
+
     if [ -n "${train_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
@@ -476,10 +525,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${tts_stats_dir}/train/speech_shape" \
-            --train_shape_file "${tts_stats_dir}/train/text_shape" \
-            --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
-            --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
             --max_length 500 \
             --max_length ${_max_length} \

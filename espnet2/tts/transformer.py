@@ -28,6 +28,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_tts_transformer import GuidedMultiHeadAttentionLoss
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_model import AbsTTS
 
@@ -69,6 +70,7 @@ class Transformer(AbsTTS):
         postnet_filts: int = 5,
         postnet_chans: int = 256,
         use_masking: bool = True,
+        use_weighted_masking: bool = False,
         loss_type: str = "L1",
         bce_pos_weight: float = 5.0,
         use_batch_norm: bool = True,
@@ -97,7 +99,8 @@ class Transformer(AbsTTS):
         num_layers_applied_guided_attn: int = 2,
         modules_applied_guided_attn: Sequence[str] = ["encoder-decoder"],
         guided_attn_loss_sigma: float = 0.4,
-        guided_attn_loss_lambda: float = 1.0
+        guided_attn_loss_lambda: float = 1.0,
+        transformer_init: str = "pytorch"
     ):
         assert check_argument_types()
         super().__init__()

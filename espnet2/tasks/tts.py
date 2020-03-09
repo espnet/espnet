@@ -26,6 +26,7 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
+from espnet2.tts.fastspeech import FeedForwardTransformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -47,8 +48,9 @@ normalize_choices = ClassChoices(
 )
 tts_choices = ClassChoices(
     "tts", 
-    classes=dict(tacotron2=Tacotron2,
-                 transformer=Transformer), 
+    classes=dict(tacotron2=Tacotron2, 
+                 transformer=Transformer,
+                 feedforwardtransformer=FeedForwardTransformer), 
     type_check=AbsTTS, default="tacotron2"
 )
 
@@ -66,7 +68,7 @@ class TTSTask(AbsTask):
         # --tts and --tts_conf
         tts_choices,
     ]
-
+    
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
@@ -139,7 +141,7 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
+            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs", "ds"]
         )
 
     @classmethod
@@ -172,10 +174,10 @@ class TTSTask(AbsTask):
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "spcs")
+            retval = ("spembs", "spcs", "ds")
         else:
             # Inference mode
-            retval = ("spembs",)
+            retval = ("spembs", "ds")
         return retval
 
     @classmethod
