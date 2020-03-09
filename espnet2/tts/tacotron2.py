@@ -334,7 +334,7 @@ class Tacotron2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: torch.Tensor = None, 
+        speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -384,7 +384,6 @@ class Tacotron2(AbsTTS):
             return cbhg_outs, probs, att_ws
         else:
             return outs, probs, att_ws
-    
 
     def calculate_gt_forced_alignments(
         self,
@@ -406,7 +405,6 @@ class Tacotron2(AbsTTS):
         text = text[:, : text_lengths.max()]  # for data-parallel
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
-        batch_size = text.size(0)
         # Add eos at the last of sequence
         xs = F.pad(text, [0, 1], "constant", 0.0)
         for i, l in enumerate(text_lengths):
@@ -414,7 +412,6 @@ class Tacotron2(AbsTTS):
         ilens = text_lengths + 1
 
         ys = speech
-        olens = speech_lengths
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)

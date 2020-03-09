@@ -6,10 +6,8 @@
 
 """FastSpeech related modules."""
 
-import logging
 from typing import Dict
 from typing import Tuple
-from typing import Sequence
 
 import torch
 import torch.nn.functional as F
@@ -17,20 +15,17 @@ from typeguard import check_argument_types
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformerLoss
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictorLoss
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformerLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_model import AbsTTS
 
@@ -192,7 +187,7 @@ class FeedForwardTransformer(AbsTTS):
                                init_enc_alpha=initial_encoder_alpha,
                                init_dec_alpha=initial_decoder_alpha)
 
-         # define teacher model
+        # define teacher model
         if teacher_model is not None:
             self.teacher = self._load_teacher_model(teacher_model)
         else:
@@ -289,11 +284,11 @@ class FeedForwardTransformer(AbsTTS):
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
-        # TODO: need to append <eos> to text?
+        # TODO(Songxiang): need to append <eos> to text?
         # Add eos at the last of sequence
         xs = F.pad(text, [0, 1], "constant", 0.0)
         for i, l in enumerate(text_lengths):
-           xs[i, l] = self.eos
+            xs[i, l] = self.eos
         ilens = text_lengths + 1
         # xs = text
         # ilens = text_lengths

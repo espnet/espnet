@@ -47,10 +47,10 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 tts_choices = ClassChoices(
-    "tts", 
-    classes=dict(tacotron2=Tacotron2, 
+    "tts",
+    classes=dict(tacotron2=Tacotron2,
                  transformer=Transformer,
-                 feedforwardtransformer=FeedForwardTransformer), 
+                 feedforwardtransformer=FeedForwardTransformer),
     type_check=AbsTTS, default="tacotron2"
 )
 

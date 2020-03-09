@@ -29,7 +29,6 @@ def calculate_all_attentions(
     }
 
     # 1. Register forward_hook fn to save the output from specific layers
-    # outputs = {}
     outputs = defaultdict(list)
     handles = {}
     for name, modu in model.named_modules():
@@ -57,7 +56,6 @@ def calculate_all_attentions(
             keys.append(k)
 
     return_dict = defaultdict(list)
-    # return_dict = {} 
     for ibatch in range(bs):
         # *: (B, L, ...) -> (1, L2, ...)
         _sample = {
@@ -77,7 +75,6 @@ def calculate_all_attentions(
         )
         model(**_sample)
         
-
         # Derive the attention results
         for name, output in outputs.items():
             output = torch.stack(output).squeeze()
