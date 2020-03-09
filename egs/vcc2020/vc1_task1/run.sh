@@ -418,7 +418,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
         voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
         wav_dir=${outdir}_denorm/${pairname}/pwg_wav
-        hdf5_dir=${outdir}_denorm/${pairname}/hdf5
         hdf5_norm_dir=${outdir}_denorm/${pairname}/hdf5_norm
         [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
         [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
