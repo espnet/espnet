@@ -395,7 +395,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
-    #utils/split_scp.pl "${key_file}" ${split_scps}
+    utils/split_scp.pl "${key_file}" ${split_scps}
 
     key_file="${_dev_dir}/${_scp}"
     split_scps=""
@@ -403,35 +403,35 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
-    #utils/split_scp.pl "${key_file}" ${split_scps}
+    utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    #log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
-    ## shellcheck disable=SC2086
-    #${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        #python3 -m espnet2.bin.tts_train \
-            #--collect_stats true \
-            #--use_preprocessor true \
-            #--token_type ${trans_type} \
-            #--token_list "${token_list}" \
-            #--non_linguistic_symbols "${nlsyms_txt}" \
-            #--normalize none \
-            #--batch_type const_no_sort \
-            #--train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-            #--train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            #--valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            #--valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            #--train_shape_file "${_logdir}/train.JOB.scp" \
-            #--valid_shape_file "${_logdir}/dev.JOB.scp" \
-            #--output_dir "${_logdir}/stats.JOB" \
-            #${_opts} ${train_args}
+    log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
+    # shellcheck disable=SC2086
+    ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+        python3 -m espnet2.bin.tts_train \
+            --collect_stats true \
+            --use_preprocessor true \
+            --token_type ${trans_type} \
+            --token_list "${token_list}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
+            --normalize none \
+            --batch_type const_no_sort \
+            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
+            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --train_shape_file "${_logdir}/train.JOB.scp" \
+            --valid_shape_file "${_logdir}/dev.JOB.scp" \
+            --output_dir "${_logdir}/stats.JOB" \
+            ${_opts} ${train_args}
 
-    ## 3. Aggregate shape files
-    #_opts=
-    #for i in $(seq "${_nj}"); do
-        #_opts+="--input_dir ${_logdir}/stats.${i} "
-    #done
-    #python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+    # 3. Aggregate shape files
+    _opts=
+    for i in $(seq "${_nj}"); do
+        _opts+="--input_dir ${_logdir}/stats.${i} "
+    done
+    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
 fi
 
 
