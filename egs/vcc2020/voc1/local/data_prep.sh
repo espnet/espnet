@@ -61,14 +61,7 @@ do
     # make scp
     find "${db_root}/${spk}" -name "*.wav" -follow | sort | while read -r filename;do
         id="${spk}_$(basename "${filename}" | sed -e "s/\.[^\.]*$//g")"
-        
-        # task 1: 24kHz fbanks -> 24kHz waveform
-        # task 2: 16kHz fbanks -> 24kHz waveform
-        if [ ${task} = "task1" ]; then
-            echo "${id} ${filename}" >> "${scp}"
-        elif [ ${task} = "task2" ]; then
-            echo "${id} cat ${filename} | sox -t wav - -c 1 -b 16 -t wav - rate 16000 |" >> "${scp}"
-        fi
+        echo "${id} ${filename}" >> "${scp}"
     done
 done
     

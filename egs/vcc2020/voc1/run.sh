@@ -60,7 +60,7 @@ if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
         echo "Feature extraction start. See the progress via ${dumpdir}/${name}/raw/preprocessing.*.log."
         local/make_subset_data.sh "data/${name}" "${n_jobs}" "${dumpdir}/${name}/raw"
         ${train_cmd} JOB=1:${n_jobs} "${dumpdir}/${name}/raw/preprocessing.JOB.log" \
-            local/preprocess.py \
+            parallel-wavegan-preprocess \
                 --config "${conf}" \
                 --scp "${dumpdir}/${name}/raw/wav.JOB.scp" \
                 --dumpdir "${dumpdir}/${name}/raw/dump.JOB" \
