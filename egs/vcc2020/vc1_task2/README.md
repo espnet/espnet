@@ -11,7 +11,7 @@ In VCC2020, there are 70 training utterances for each speaker. The list files th
 Execute the main script to finetune `TMF1`-dependent TTS:
 
 ```
-$ ./run_task2.sh --stop_stage 5 \
+$ ./run.sh --stop_stage 5 \
   --spk TMF1 --lang Man \
   --trans_type phn \
   --pretrained_model_name tts1_en_zh
@@ -41,7 +41,7 @@ With this main script, a full procedure of TTS training is performed:
 Execute the main script to convert `SEF1` to `TMF1`:
 
 ```
-$ ./run_task2.sh --stage 11 \
+$ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TMF1 --trans_type char \
   --tts_model_dir exp/<expdir> \
   --pretrained_model tts1_en_zh \
