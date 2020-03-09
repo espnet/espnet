@@ -4,21 +4,22 @@
 ###########################################################
 #                FEATURE EXTRACTION SETTING               #
 ###########################################################
-sampling_rate: 24000     # Sampling rate.
-fft_size: 1024           # FFT size.
-hop_size: 384            # Hop size.
-win_length: null         # Window length.
-                         # If set to null, it will be the same as fft_size.
-window: "hann"           # Window function.
-num_mels: 80             # Number of mel basis.
-fmin: 80                 # Minimum freq in mel basis calculation.
-fmax: 7600               # Maximum frequency in mel basis calculation.
-global_gain_scale: 1.0   # Will be multiplied to all of waveform.
-trim_silence: false      # Whether to trim the start and end of silence.
-trim_threshold_in_db: 60 # Need to tune carefully if the recording is not good.
-trim_frame_size: 2048    # Frame size in trimming.
-trim_hop_size: 512       # Hop size in trimming.
-format: "hdf5"           # Feature file format. "npy" or "hdf5" is supported.
+sampling_rate: 24000            # Sampling rate.
+sampling_rate_for_feats: 16000  # Sampling rate for features.
+fft_size: 1024                  # FFT size.
+hop_size: 384                   # Hop size.
+win_length: null                # Window length.
+                                # If set to null, it will be the same as fft_size.
+window: "hann"                  # Window function.
+num_mels: 80                    # Number of mel basis.
+fmin: 80                        # Minimum freq in mel basis calculation.
+fmax: 7600                      # Maximum frequency in mel basis calculation.
+global_gain_scale: 1.0          # Will be multiplied to all of waveform.
+trim_silence: false             # Whether to trim the start and end of silence.
+trim_threshold_in_db: 60        # Need to tune carefully if the recording is not good.
+trim_frame_size: 2048           # Frame size in trimming.
+trim_hop_size: 512              # Hop size in trimming.
+format: "hdf5"                  # Feature file format. "npy" or "hdf5" is supported.
 
 ###########################################################
 #         GENERATOR NETWORK ARCHITECTURE SETTING          #
@@ -76,7 +77,7 @@ lambda_adv: 4.0  # Loss balancing coefficient.
 ###########################################################
 #                  DATA LOADER SETTING                    #
 ###########################################################
-batch_size: 10             # Batch size.
+batch_size:  8             # Batch size.
 batch_max_steps: 15360     # Length of each audio in batch. Make sure dividable by hop_size.
 pin_memory: true           # Whether to pin memory in Pytorch DataLoader.
 num_workers: 2             # Number of workers in Pytorch DataLoader.
