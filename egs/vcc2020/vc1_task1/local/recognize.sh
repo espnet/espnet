@@ -29,6 +29,8 @@ fi
 
 set -euo pipefail
 
+# We use the pretrained Transformer-ASR model trained on LibriSpeech.
+# https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--large-lstm-lm
 echo "step 0: Model preparation"
 asr_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6"
 asr_cmvn="${asr_model_dir}/data/train_960/cmvn.ark"
@@ -86,7 +88,7 @@ data2json.sh --feat ${asr_feat_dir}/feats.scp \
 
 
 echo "step 4: ASR decoding"
-# ASR decoding
+# ASR decoding. We decrease beam-size from 60 to 10 to speed up decoding.
 asr_decode_config="conf/decode_asr.yaml"
 cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr_decode_config}
 

@@ -44,7 +44,7 @@ model=model.loss.best
 voc=                            # GL or PWG
 voc_expdir=downloads/pwg_task1  # If use provided pretrained models, set to desired dir, ex. `downloads/pwg_task1`
                                 # If use manually trained models, set to `../voc1/exp/<expdir>`
-voc_checkpoint= 
+voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint 
 griffin_lim_iters=64            # the number of iterations of Griffin-Lim
 
 # pretrained model related
@@ -55,13 +55,14 @@ pretrained_model_name=          # Recommended choices: tts1
 # dataset configuration
 db_root=downloads/official_v1.0_training
 eval_db_root=downloads/official_v1.0_training    # Same as `db_root` in training
+list_dir=local/lists
 spk=TEF1 
 
 # vc configuration
 srcspk=
 trgspk=
 asr_model="librispeech.transformer.ngpu4"
-test_list_file=conf/lists/E_train_list.txt  # use source training set as development set
+test_list_file=local/lists/E_train_list.txt  # use source training set as development set
 test_name=dev_asr
 tts_model_dir=
 
@@ -103,6 +104,13 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
+
+    if [ ! -e ${db_root} ]; then
+        echo "${db_root} not found."
+        echo "cd ${db_root}; ./run.sh --stop_stage -1; cd -"
+        exit 1;
+    fi
+
     local/data_prep_task1.sh ${db_root} data/${org_set} ${spk} ${trans_type}
     utils/data/resample_data_dir.sh ${fs} data/${org_set} # Downsample to fs from 24k
     utils/fix_data_dir.sh data/${org_set}
@@ -139,9 +147,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         exp/make_fbank/${org_set} \
         ${fbankdir}
 
-    # make train/dev set (60/10)
-    utils/subset_data_dir.sh --first data/${org_set} 60 data/${train_set}
-    utils/subset_data_dir.sh --last data/${org_set} 10 data/${dev_set}
+    # make train/dev set according to lists
+    sed -e "s/^/${spk}_/" ${list_dir}/E_train_list.txt > data/${org_set}/E_train_list.txt
+    sed -e "s/^/${spk}_/" ${list_dir}/E_dev_list.txt > data/${org_set}/E_dev_list.txt
+    utils/subset_data_dir.sh --utt-list data/${org_set}/E_train_list.txt data/${org_set} data/${train_set}
+    utils/subset_data_dir.sh --utt-list data/${org_set}/E_dev_list.txt data/${org_set} data/${dev_set}
 
     # use pretrained model cmvn
     cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)

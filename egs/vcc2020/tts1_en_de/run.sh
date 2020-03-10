@@ -44,10 +44,7 @@ model=model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # specify the downloaded database directories
-db_root=../tts1/downloads
-
-# specify the directories for finetuning
-pack_destination=../vc1/downloads/tts1_en_de
+db_root=../m_ailabs/tts1/downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -71,6 +68,12 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
+
+    if [ ! -e ${db_root} ]; then
+        echo "${db_root} not found."
+        echo "cd ${db_root}; ./run.sh --stop_stage -1; cd -"
+        exit 1;
+    fi
     
     # German
     for spk in angela rebecca ramona eva karlsson; do
@@ -304,22 +307,4 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
-fi
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Pack model for finetuning"
-
-    mkdir -p ${pack_destination}
-
-    pack_model.sh \
-        --dict data/lang_1${trans_type} \
-        --outfile ${pack_destination} \
-        ${train_config} \
-        ${decode_config} \
-        data/${train_set}/cmvn.ark \
-        ${expdir}/results/${model}
-
-    tar xvzf ${pack_destination}.tar.gz -C ${pack_destination}
-    
-
 fi

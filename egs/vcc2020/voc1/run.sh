@@ -13,17 +13,17 @@ verbose=1
 n_gpus=1
 n_jobs=16
 
+# config file
 conf=
 
 # directory path setting
-download_dir=/home/huang18/VC/Experiments/espnet/egs/vcc2020/vc/downloads
-list_dir=../vc1/conf/lists
-dumpdir=dump
-
+download_dir=../vc1_task1/downloads  # set this depending on which task you participate in
+list_dir=../vc1_task1/local/lists    # set this depending on which task you participate in
+dumpdir=dump                         # directory to dump features
 
 # training related setting
-tag=""
-resume=""
+tag=""      # tag to manage expreiments
+resume=""   # checkpoint file to resume to
 task=       # "task1" or "task2"
 
 # decoding related setting
@@ -44,6 +44,13 @@ fi
 
 if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
     echo "Stage 0: Data preparation"
+    
+    if [ ! -e ${download_dir} ]; then
+        echo "${download_dir} not found."
+        echo "cd ${download_dir}; ./run.sh --stop_stage -1; cd -"
+        exit 1;
+    fi
+    
     local/data_prep.sh \
         --train_set "${train_set}" \
         --dev_set "${dev_set}" \
