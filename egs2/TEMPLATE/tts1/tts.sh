@@ -209,10 +209,7 @@ tts_exp="${expdir}/tts_${tag}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh ${local_data_opts} \
-        --train_set ${train_set} \
-        --dev_set ${dev_set} \ 
-        --eval_sets ${eval_sets} 
+    local/data.sh ${local_data_opts} 
 fi
 
 

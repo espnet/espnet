@@ -16,9 +16,6 @@ SECONDS=0
 stage=1
 stop_stage=100
 
-train_set=
-dev_set=
-eval_sets=
 trans_type=
 
 datasets_root=${LJSPEECH}
@@ -28,6 +25,10 @@ log "$0 $*"
 
 . ./path.sh
 . ./cmd.sh
+
+train_set="${trans_type}_train_nodev"
+dev_set="${trans_type}_dev"
+eval_sets="${trans_type}_eval"
 
 cwd=$(pwd)
 if [ ! -e "${datasets_root}/LJSpeech-1.1" ]; then
