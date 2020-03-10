@@ -62,3 +62,17 @@ With this main script, a full procedure of TTS training is performed:
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.
 - Stage 13: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to waveform.
+
+## Notes
+
+### Text normalization mismatch between ASR and TTS
+
+LibriTTS itself provides normalized text, and the pretrained model is directly trained on such text. Ex:
+
+`100_121669_000001_000000 Tom, the Piper's Son`
+
+However, the output of the pretrained ASR is always uppercased:
+
+`IN REALITY THE EUROPEAN PARLIAMENT IS PRACTISING DIALECTICS (SEF1_E30001)`
+
+Considering that recovering the true case is not easy, and training ASR models with the true case is not so successful, we simply lowercase the ASR results. This will cause a small mismatch, but we think it should be acceptable.
