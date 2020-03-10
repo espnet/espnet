@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+from distutils.version import LooseVersion
 import importlib
 import logging
 import sys
@@ -13,6 +14,8 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-cupy', action='store_true', default=False,
                         help='Disable CUPY tests')
+    parser.add_argument('--torch-version', default='0.4.1', type=str,
+                        help='Disable CUPY tests')
     args = parser.parse_args(args)
 
     # you should add the libraries which are not included in setup.py
@@ -20,15 +23,24 @@ def main(args):
         ('espnet', None),
         ('kaldiio', None),
         ('matplotlib', None),
-        ('torch', ("0.4.1", "1.0.0", "1.0.1.post2")),
+        ('torch', ("0.4.1",
+                   "1.0.0", 
+                   "1.0.1.post2", 
+                   "1.1.0", 
+                   "1.2.0", 
+                   "1.3.0", 
+                   "1.3.1",
+                   "1.4.0")),
         ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
-        ('warpctc_pytorch', ("0.1.1", "0.1.3")),
         ('warprnnt_pytorch', ("0.1"))
     ]
 
     if not args.no_cupy:
         MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("6.0.0")))
+    
+    if LooseVersion(args.torch_version) < LooseVersion('1.2.0'):
+        MANUALLY_INSTALLED_LIBRARIES.append(('warpctc_pytorch', ("0.1.1", "0.1.3")))
 
     logging.basicConfig(
         level=logging.INFO,
