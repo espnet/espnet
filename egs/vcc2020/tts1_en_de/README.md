@@ -2,7 +2,7 @@
 
 ## Dataset preparation
 
-The M-AILABS dataset contains speech from English and German speakers and will be used in this pretraining recipe. Please download the M-AILABS dataset in the original recipe.
+The M-AILABS dataset contains speech from English and German speakers and will be used in this pretraining recipe.
 
 ## Execution
 
@@ -14,6 +14,7 @@ $ ./run.sh
 
 With this main script, a full procedure of TTS pretraining is performed:
 
+Stage -1: Data download. The M-AILABS dataset will be downloaded.
 - Stage 0: Data preparation. This includes transcription parsing.
 - Stage 1: Feature extraction. The features are normalized using the stats calculated using the pooled dataset.
 - Stage 2: JSON format data preparation.
