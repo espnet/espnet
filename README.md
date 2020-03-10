@@ -27,6 +27,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
 - Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
 - Support speech separation and recognition recipe (WSJ-2mix)
+- Support voice conversion recipe (VCC2020 baseline) (new!)
 
 
 ### ASR: Automatic Speech Recognition
@@ -52,6 +53,10 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
 - Transformer based end-to-end MT (new!)
+
+### VC: Voice conversion
+- End-to-end VC based on cascaded ASR+TTS (new!)
+- Baseline system for Voice Conversion Challenge 2020!
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
