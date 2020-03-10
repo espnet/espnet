@@ -57,6 +57,7 @@ Please see the readme in each recipe.
 
 ## Author
 
-Wen-Chin Huang @ Nagoya University (2020/03)  
+Main development: Wen-Chin Huang @ Nagoya University (2020/03)  
+Advisors: Tomoki Hayashi (Nagoya U), Shinji Watanabe (JHU), Tomoki Toda (Nagoya U)  
 If you have any questions, please open an issue.  
-Or contact trhough email: wen.chinhuang@g.sp.m.is.nagoya-u.ac.jp
+Or contact through email: wen.chinhuang@g.sp.m.is.nagoya-u.ac.jp
