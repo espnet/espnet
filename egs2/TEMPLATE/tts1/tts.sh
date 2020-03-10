@@ -458,15 +458,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 --outdir ${teacher_outdir}
         fi
         if ${do_filtering}; then
-            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations_filtered.scp,ds,kaldi_ark "
-            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations_filtered.scp,ds,kaldi_ark "
+            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations_filtered.scp,durations,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations_filtered.scp,durations,kaldi_ark "
             _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape_filtered "
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape_filtered "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape_filtered "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape_filtered "
         else
-            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations.scp,ds,kaldi_ark "
-            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations.scp,ds,kaldi_ark "
+            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations.scp,durations,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations.scp,durations,kaldi_ark "
             _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
