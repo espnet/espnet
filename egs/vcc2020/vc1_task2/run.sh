@@ -54,7 +54,7 @@ pretrained_model_name=          # Recommended choices: tts1_en_[de,fi,zh]
 
 # dataset configuration
 db_root=downloads/official_v1.0_training
-eval_db_root=../vc/downloads    # Same as `db_root` in training
+eval_db_root=downloads/official_v1.0_training    # Same as `db_root` in training
 spk=TMF1 
 lang=Man
 

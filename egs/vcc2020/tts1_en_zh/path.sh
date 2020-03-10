@@ -17,5 +17,12 @@ export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
 export OMP_NUM_THREADS=1
 
+# check extra module installation
+if ! python -c "import pypinyin" > /dev/null; then
+    echo "Error: pypinyin is not installed." >&2
+    echo "Error: Please install via \`. ./path.sh && pip install -U pypinyin\`" >&2
+    return 1
+fi
+
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
 export PYTHONIOENCODING=UTF-8
