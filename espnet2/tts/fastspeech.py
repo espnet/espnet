@@ -261,7 +261,7 @@ class FeedForwardTransformer(AbsTTS):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        ds: torch.Tensor,
+        durations: torch.Tensor,
         spembs: torch.Tensor = None,
         spcs: torch.Tensor = None,
         spcs_lengths: torch.Tensor = None,
@@ -274,7 +274,7 @@ class FeedForwardTransformer(AbsTTS):
             text_lengths: Batch of lengths of each input batch (B,).
             speech: Batch of padded target features (B, Lmax, odim).
             speech_lengths: Batch of the lengths of each target (B,).
-            ds: Batch of precalculated durations (B, Tmax, 1).
+            durations: Batch of precalculated durations (B, Tmax, 1).
             spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
             spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
             spcs_lengths: Batch of the lengths of each spc (B,).
@@ -290,11 +290,10 @@ class FeedForwardTransformer(AbsTTS):
         for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
-        # xs = text
-        # ilens = text_lengths
 
         ys = speech
         olens = speech_lengths
+        ds = durations
 
         if ds is not None:
             ds = ds[:, :max(ilens)].squeeze(-1)

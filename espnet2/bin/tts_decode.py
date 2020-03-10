@@ -30,6 +30,44 @@ from espnet2.utils.types import str_or_none
 from espnet2.torch_utils.device_funcs import to_device
 
 
+def _calculate_focus_rate(att_ws):
+    """Define function to calculate focus rate. 
+     
+    Refer to section 3.3 in https://arxiv.org/abs/1905.09263.
+    
+    """
+    if att_ws is None:
+        # fastspeech case -> None
+        return 1.0
+    elif len(att_ws.shape) == 2:
+        # tacotron 2 case -> (L, T)
+        return float(att_ws.max(dim=-1)[0].mean())
+    elif len(att_ws.shape) == 4:
+        # transformer case -> (#layers, #heads, L, T)
+        return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
+    else:
+        raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+
+
+def _convert_att_to_duration(att_ws):
+    """Define function to convert attention weights to durations."""
+    if len(att_ws.shape) == 2:
+        # tacotron 2 case -> (L, T)
+        pass
+    elif len(att_ws.shape) == 4:
+        # transformer case -> (#layers, #heads, L, T)
+        # get the most diagonal head according to focus rate
+        att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
+        diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
+        diagonal_head_idx = diagonal_scores.argmax()
+        att_ws = att_ws[diagonal_head_idx]  # (L, T)
+    else:
+        raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+    # calculate duration from 2d attention weight
+    durations = torch.stack([att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])])
+    return durations.view(-1, 1).float()
+
+
 @torch.no_grad()
 def tts_decode(
     output_dir: str,
@@ -161,38 +199,6 @@ def tts_decode(
                     sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
     else:
         # Preparing feats, durations and focus_rate (optional) for fastspeech training.
-        # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
-        def _calculate_focus_rate(att_ws):
-            if att_ws is None:
-                # fastspeech case -> None
-                return 1.0
-            elif len(att_ws.shape) == 2:
-                # tacotron 2 case -> (L, T)
-                return float(att_ws.max(dim=-1)[0].mean())
-            elif len(att_ws.shape) == 4:
-                # transformer case -> (#layers, #heads, L, T)
-                return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
-            else:
-                raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
-        
-        # define function to convert attention to duration
-        def _convert_att_to_duration(att_ws):
-            if len(att_ws.shape) == 2:
-                # tacotron 2 case -> (L, T)
-                pass
-            elif len(att_ws.shape) == 4:
-                # transformer case -> (#layers, #heads, L, T)
-                # get the most diagonal head according to focus rate
-                att_ws = torch.cat([att_w for att_w in att_ws], dim=0)  # (#heads * #layers, L, T)
-                diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
-                diagonal_head_idx = diagonal_scores.argmax()
-                att_ws = att_ws[diagonal_head_idx]  # (L, T)
-            else:
-                raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
-            # calculate duration from 2d attention weight
-            durations = torch.stack([att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])])
-            return durations.view(-1, 1).float()
-
         with kaldiio.WriteHelper(
             'ark,scp:{o}.ark,{o}.scp'.format(o=output_dir)
         ) as feat_writer, kaldiio.WriteHelper(

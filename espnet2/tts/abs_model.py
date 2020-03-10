@@ -14,7 +14,7 @@ class AbsTTS(torch.nn.Module, ABC):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        ds: torch.Tensor = None,
+        durations: torch.Tensor = None,
         spembs: torch.Tensor = None,
         spcs: torch.Tensor = None,
         spcs_lengths: torch.Tensor = None,
@@ -28,7 +28,7 @@ class AbsTTS(torch.nn.Module, ABC):
         threshold: float,
         minlenratio: float,
         maxlenratio: float,
-        ds: torch.Tensor = None,
+        durations: torch.Tensor = None,
         spembs: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         raise NotImplementedError

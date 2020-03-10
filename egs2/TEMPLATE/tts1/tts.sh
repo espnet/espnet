@@ -14,14 +14,14 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 min() {
-  local a b
-  a=$1
-  for b in "$@"; do
+    local a b
+    a=$1
+    for b in "$@"; do
       if [ "${b}" -le "${a}" ]; then
           a="${b}"
-      fi
-  done
-  echo "${a}"
+        fi
+    done
+    echo "${a}"
 }
 SECONDS=0
 
@@ -41,7 +41,7 @@ local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw    # Feature type (fbank or stft or raw).
-audio_format=wav # Audio format (only in feats_type=raw).
+audio_format=flac # Audio format (only in feats_type=raw).
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -156,11 +156,6 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-train_set="${trans_type}_train_nodev"
-dev_set="${trans_type}_dev"
-eval_set="${trans_type}_eval"
-
-
 . ./path.sh
 . ./cmd.sh
 
@@ -214,8 +209,10 @@ tts_exp="${expdir}/tts_${tag}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh --train_set ${train_set} --dev_set ${dev_set} --eval_set ${eval_set} \
-      --trans_type ${trans_type}
+    local/data.sh ${local_data_opts} \
+        --train_set ${train_set} \
+        --dev_set ${dev_set} \ 
+        --eval_sets ${eval_sets} 
 fi
 
 
@@ -249,7 +246,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
-        for dset in "${train_set}" "${dev_set}" ${eval_set}; do
+        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
             # 1. Copy datadir
             utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
@@ -291,7 +288,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Remove short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}" ${eval_set}; do
+    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -342,13 +339,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
     python3 -m espnet2.bin.tokenize_text \
-          --token_type ${trans_type} -f 2- \
-          --input "${data_feats}/srctexts" --output "${token_list}" \
-          --non_linguistic_symbols ${nlsyms_txt} \
-          --write_vocabulary true \
-          --add_symbol "${blank}:0" \
-          --add_symbol "${oov}:1" \
-          --add_symbol "${sos_eos}:-1"
+            --token_type ${trans_type} -f 2- \
+            --input "${data_feats}/srctexts" --output "${token_list}" \
+            --non_linguistic_symbols ${nlsyms_txt} \
+            --write_vocabulary true \
+            --add_symbol "${blank}:0" \
+            --add_symbol "${oov}:1" \
+            --add_symbol "${sos_eos}:-1"
 fi
 
 # ========================== Data preparation is done here. ==========================
@@ -442,44 +439,44 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     
     _opts=
     if [ -n "${teacher_model_path}" ] && echo "${train_config}" | grep -q "fastspeech"; then
-      # Setup feature and duration for fastspeech knowledge distillation training
-      teacher_expdir=$(dirname "${teacher_model_path}")
-      teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
-      teacher_outdir=${teacher_expdir}/${teacher_outdir}
-      if [ ! -e ${teacher_outdir}/.done ]; then
-        local/setup_knowledge_dist.sh \
-          --nj ${nj} \
-          --teacher_model_path ${teacher_model_path} \
-          --teacher_model_config ${teacher_model_config} \
-          --decode_config ${teacher_decode_config} \
-          --feats_dir ${data_feats} \
-          --tts_stats_dir ${tts_stats_dir} \
-          --train_set ${train_set} \
-          --dev_set ${dev_set} \
-          --do_filtering ${do_filtering} \
-          --focus_rate_thres ${focus_rate_thres} \
-          --outdir ${teacher_outdir}
-      fi
-      if ${do_filtering}; then
-        _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations_filtered.scp,ds,kaldi_ark "
-        _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations_filtered.scp,ds,kaldi_ark "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape_filtered "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape_filtered "
-        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape_filtered "
-        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape_filtered "
-      else
-        _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations.scp,ds,kaldi_ark "
-        _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations.scp,ds,kaldi_ark "
+        # Setup feature and duration for fastspeech knowledge distillation training
+        teacher_expdir=$(dirname "${teacher_model_path}")
+        teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
+        teacher_outdir=${teacher_expdir}/${teacher_outdir}
+        if [ ! -e ${teacher_outdir}/.done ]; then
+            scripts/utils/setup_knowledge_dist.sh \
+                --nj ${nj} \
+                --teacher_model_path ${teacher_model_path} \
+                --teacher_model_config ${teacher_model_config} \
+                --decode_config ${teacher_decode_config} \
+                --feats_dir ${data_feats} \
+                --tts_stats_dir ${tts_stats_dir} \
+                --train_set ${train_set} \
+                --dev_set ${dev_set} \
+                --do_filtering ${do_filtering} \
+                --focus_rate_thres ${focus_rate_thres} \
+                --outdir ${teacher_outdir}
+        fi
+        if ${do_filtering}; then
+            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations_filtered.scp,ds,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations_filtered.scp,ds,kaldi_ark "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape_filtered "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape_filtered "
+            _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape_filtered "
+            _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape_filtered "
+        else
+            _opts+="--train_data_path_and_name_and_type ${teacher_outdir}/${train_set}/durations.scp,ds,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${teacher_outdir}/${dev_set}/durations.scp,ds,kaldi_ark "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
+            _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+            _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape "
+        fi
+    else
         _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
         _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape "
-      fi
-    else
-      _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
-      _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape "
-      _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
-      _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape "
     fi
 
     if [ -n "${train_config}" ]; then

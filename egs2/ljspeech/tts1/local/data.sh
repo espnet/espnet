@@ -18,10 +18,10 @@ stop_stage=100
 
 train_set=
 dev_set=
-eval_set=
+eval_sets=
 trans_type=
 
-datasets_root=/home/shaunxliu/data/datasets
+datasets_root=${LJSPEECH}
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -48,7 +48,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   mkdir -p data/${train_set} data/${dev_set} data/${eval_set}
   
   utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
-  utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}
+  utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_sets}
   utils/subset_data_dir.sh --first data/${trans_type}_deveval 250 data/${dev_set}
   n=$(( $(wc -l < data/${trans_type}_train/wav.scp) - 500 ))
   utils/subset_data_dir.sh --first data/${trans_type}_train ${n} data/${train_set}
