@@ -4,7 +4,7 @@
 
 Please download the VCC2020 dataset following the instruction from the organizers. Then, correctly place the data. The default is `db_root=downloads/official_v1.0_training`
 
-In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `conf/lists`. Default is 60/10 split. Feel free to adjust them.
+In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `local/lists`. The default is 60/10 split. Feel free to adjust them.
 
 ## Target speaker finetuning
 
@@ -61,4 +61,4 @@ With this main script, a full procedure of TTS training is performed:
 
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.
-- Stage 13: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to waveform.
+- Stage 13: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to the waveform.
