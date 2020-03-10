@@ -65,7 +65,7 @@ eval_set="eval"
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     echo "Please download the CSS10 dataset by following the instruction in the readme."
-    local/download.sh ${db_root} en_US
+    local/download.sh ${mailabs_db} en_US
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
