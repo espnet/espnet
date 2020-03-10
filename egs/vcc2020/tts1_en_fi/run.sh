@@ -64,21 +64,15 @@ eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    echo "Please download the CSS10 and M-AILABS datasets in respective recipes"
+    echo "Please download the CSS10 dataset by following the instruction in the readme."
+    local/download.sh ${db_root} en_US
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     
     if [ ! -e ${fin_db} ]; then
-        echo "${fin_db} not found."
-        echo "cd ${fin_db}; ./run.sh --stop_stage -1; cd -"
-        exit 1;
-    fi
-    
-    if [ ! -e ${mailabs_db} ]; then
-        echo "${mailabs_db} not found."
-        echo "cd ${mailabs_db}; ./run.sh --stop_stage -1; cd -"
+        echo "${fin_db} not found. Please download the dataset and put it in ${fin_db}."
         exit 1;
     fi
     
