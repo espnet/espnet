@@ -47,9 +47,6 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 fin_db=downloads
 mailabs_db=../../m_ailabs/tts1/downloads
 
-# specify the directories for finetuning
-pack_destination=../vc1/downloads/tts1_en_fi
-
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -72,6 +69,18 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
+    
+    if [ ! -e ${fin_db} ]; then
+        echo "${fin_db} not found."
+        echo "cd ${fin_db}; ./run.sh --stop_stage -1; cd -"
+        exit 1;
+    fi
+    
+    if [ ! -e ${mailabs_db} ]; then
+        echo "${mailabs_db} not found."
+        echo "cd ${mailabs_db}; ./run.sh --stop_stage -1; cd -"
+        exit 1;
+    fi
     
     # prepare the M-AILABS dataset
     for spk in judy elliot; do
