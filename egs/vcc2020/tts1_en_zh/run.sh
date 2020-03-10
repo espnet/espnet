@@ -64,23 +64,12 @@ eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    echo "Please download the CSMSC and M-AILABS datasets in respective recipes."
+    local/download_mailabs.sh ${mailabs_db} en_US
+    local/download_csmsc.sh ${csmsc_db}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-    
-    if [ ! -e ${csmsc_db} ]; then
-        echo "${csmsc_db} not found."
-        echo "cd ${csmsc_db}; ./run.sh --stop_stage -1; cd -"
-        exit 1;
-    fi
-    
-    if [ ! -e ${mailabs_db} ]; then
-        echo "${mailabs_db} not found."
-        echo "cd ${mailabs_db}; ./run.sh --stop_stage -1; cd -"
-        exit 1;
-    fi
 
     # prepare the M-AILABS dataset
     for spk in judy elliot; do

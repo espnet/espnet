@@ -9,11 +9,11 @@ db=$1
 data_dir=$2
 lang=$3
 spk=$4
-trans_type=phn
+trans_type=$5
 
 # check arguments
-if [ $# != 4 ]; then
-    echo "Usage: $0 <db> <data_dir> <lang> <spk>"
+if [ $# != 5 ]; then
+    echo "Usage: $0 <db> <data_dir> <lang> <spk> <trans_type>"
     exit 1
 fi
 

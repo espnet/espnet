@@ -44,7 +44,7 @@ model=model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # specify the downloaded database directories
-db_root=../m_ailabs/tts1/downloads
+db_root=../../m_ailabs/tts1/downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -63,18 +63,13 @@ eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    echo "Please download the M-AILABS datasets in the recipe."
+    local/download.sh ${db_root} en_US
+    local/download.sh ${db_root} de_DE
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
-    if [ ! -e ${db_root} ]; then
-        echo "${db_root} not found."
-        echo "cd ${db_root}; ./run.sh --stop_stage -1; cd -"
-        exit 1;
-    fi
-    
     # German
     for spk in angela rebecca ramona eva karlsson; do
         echo "Processing ${spk}..."
@@ -87,7 +82,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # English
     for spk in judy elliot; do
         echo "Processing ${spk}..."
-        local/data_prep.sh ${db_root} data/${spk } en_US ${spk} ${trans_type}
+        local/data_prep.sh ${db_root} data/${spk} en_US ${spk} ${trans_type}
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done
