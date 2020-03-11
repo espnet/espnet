@@ -32,4 +32,5 @@ With this main script, a full procedure of TTS pretraining is performed:
 ## Notes
 
 - Since Mandarin characters are ideographic (not directly associated with pronunciations like other phonetic languages), we convert them into pinyin, the romanization system for Mandarin. Because of this, we also convert English characters into phonemes.
+- The CSMSC dataset provides transcription in pinyin, where the punctuations are removed, while the text cleaner for the M-AILABS dataset preserves the punctuations. We assume that this mismatch does not seriously affect the performance.
 - An extra language token is added at the beginning of each utterance. E.g. `<en_US> BUT JUST NOW MY LOVING TYRANTS WON'T ALLOW ME.`

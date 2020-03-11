@@ -62,3 +62,17 @@ With this main script, a full procedure of TTS training is performed:
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.
 - Stage 13: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to the waveform.
+
+## Notes
+
+### Text normalization mismatch between ASR and TTS
+
+The text cleaner functions converts all text into uppercase and perserves punctuations. Ex:
+
+`<fi_FI> MAROKON MAATALOUSALA SAA OSAKSEEN ETUOIKEUTETTUA KOHTELUA, KUN SE VIE TUOTTEITAAN EUROOPPAAN`
+
+However, in the output of the pretrained ASR, there is no punctuation:
+
+`IN REALITY THE EUROPEAN PARLIAMENT IS PRACTISING DIALECTICS (SEF1_E30001)`
+
+This will cause a small mismatch, but we think it should be acceptable.
