@@ -25,7 +25,7 @@ case "${pretrained_model}" in
     "tts1_en_fi") share_url="https://drive.google.com/open?id=1XYpBZe9-9AgAxGpKfrgQPDjlW2S6duac" ;;
     "tts1_en_zh") share_url="https://drive.google.com/open?id=1E6vzNaXT6r7Zybefat_p9ncnMOQCXtem" ;;
     "tts1")       share_url="https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3" ;;
-    "pwg_task1")  share_url="https://drive.google.com/open?id=" ;;
+    "pwg_task1")  share_url="https://drive.google.com/open?id=11KKux-du6fvsMMB4jNk9YH23YUJjRcDV" ;;
     "pwg_task2")  share_url="https://drive.google.com/open?id=1li9DLZGnAheWZrB4oXGo0KWq-fHuFH_l" ;;
     *) echo "No such pretrained model: ${pretrained_model}"; exit 1 ;;
 esac
