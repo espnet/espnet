@@ -72,7 +72,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     
     if [ ! -e ${fin_db} ]; then
-        echo "${fin_db} not found. Please download the dataset and put it in ${fin_db}."
+        echo "${fin_db} not found. Please download the dataset and put it in ${fin_db}." >&2
         exit 1;
     fi
     

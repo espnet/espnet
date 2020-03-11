@@ -39,6 +39,7 @@ def g2p(text):
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
 
+
 def custom_finnish_cleaners(text):
     text = lowercase(text)
     text = expand_numbers(text)
@@ -48,6 +49,7 @@ def custom_finnish_cleaners(text):
     text = uppercase(text)
     text = collapse_whitespace(text)
     return text
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

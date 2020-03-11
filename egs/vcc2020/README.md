@@ -34,7 +34,7 @@ The following packages do not come with the installation of ESPnet. Please insta
 ```
 cd <recipe>
 . ./path.sh
-pip install -U <package>
+pip install -U pypiyin parallel-wavagan
 ```
 
 - [pypinyin](https://pypi.org/project/pypinyin/): used in `tts1_en_zh` and `vc1_task2`.
@@ -44,7 +44,7 @@ pip install -U <package>
 
 The following datasets are used to train this baseline method.
 
-- **LibriSpeech** contains English data for ASR training.
+- **LibriSpeech** contains English data for ASR training. It can be downloaded automatically in the recipe.
 - **LibriTTS** contains English data for task 1 TTS pretraining. It can be downloaded automatically in the recipe.
 - **M-AILABS** contains English and German data for task 2 TTS pretraining. It can be downloaded automatically in the recipe.
 - **[CSS10](https://www.kaggle.com/bryanpark/finnish-single-speaker-speech-dataset)** contains Finnish data for task2 TTS pretraining. To download this dataset, Kaggle membership is required. Please download and put it in the desired directory. (default is `tts_en_fi/downloads/`)

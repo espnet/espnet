@@ -29,7 +29,7 @@ text=${data_dir}/text
 [ -e ${utt2spk} ] && rm ${utt2spk}
 [ -e ${text} ] && rm ${text}
 
-#make scp, utt2spk, and spk2utt
+# make scp, utt2spk, and spk2utt
 while read f; do
     filename=${wavdir}/${f}.wav
     echo "${spk}_${f} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
