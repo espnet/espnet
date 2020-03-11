@@ -6,7 +6,7 @@ Official homepage: [http://www.vc-challenge.org/](http://www.vc-challenge.org/)
 
 This recipe describes a baseline for the Voice Conversion (VC) Challenge 2020 (VCC2020 for short). VCC2020 contains two tasks. In either task, the source speaker is always native English and the source speech is always  English. Task 1 requires to convert to a English target speaker with a small amount of English parallel training set, and task 2 requires to convert to a non-English (German/Finnish/Mandarin) target speaker with a non-English training set. Task 2 is also referred to as cross-lingual VC.
 
-## Method
+## Method and flow
 
 A naive approach for VC is a cascade of an automatic speech recognition (ASR) model and a text-to-speech (TTS) model. In this recipe, we revisit this method under an end-to-end (E2E) framework.
 
@@ -53,11 +53,14 @@ The following datasets are used to train this baseline method.
 
 ## Usage
 
-Please see the readme in each recipe.
+To speed up experiments and development, we provide pretrained models for the `tts1*` and `voc1` recipes. So, users can skip `tts1*` and `voc1` recipes, and run `vc1_task[1/2]` directly. The pretrained model will be downloaded automatically in `vc1_task[1/2]`. In other words, users may run only the fine-tuning recipes.
+
+For detailed usage, please see the readme in each recipe.
 
 ## Author
 
 Main development: Wen-Chin Huang @ Nagoya University (2020/03)  
 Advisors: Tomoki Hayashi (Nagoya U), Shinji Watanabe (JHU), Tomoki Toda (Nagoya U)  
+Special thanks: Matthew Wiesner (JHU)  
 If you have any questions, please open an issue.  
 Or contact through email: wen.chinhuang@g.sp.m.is.nagoya-u.ac.jp
