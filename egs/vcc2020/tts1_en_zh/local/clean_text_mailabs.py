@@ -38,6 +38,7 @@ def g2p(text):
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lang_tag", type=str, default=None, nargs="?",

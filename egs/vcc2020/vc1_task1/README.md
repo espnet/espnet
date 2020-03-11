@@ -42,7 +42,7 @@ With this main script, a full procedure of TTS training is performed:
 Execute the main script to convert `SEF1` to `TEF1`:
 
 ```
-$ ./run_task2.sh --stage 11 \
+$ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TEF1 \
   --tts_model_dir exp/<expdir> \
   --pretrained_model tts1 \

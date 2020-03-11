@@ -47,6 +47,7 @@ def g2p(text):
     tokens = filter(lambda s: s != " ", f_g2p(text))
     return ' '.join(tokens)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('transcription_path', type=str, help='path for the transcription text file')

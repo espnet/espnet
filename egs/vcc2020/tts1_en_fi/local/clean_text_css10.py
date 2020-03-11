@@ -31,6 +31,7 @@ except LookupError:
         ssl._create_default_https_context = _create_unverified_https_context
     nltk.download("punkt")
 
+
 def custom_finnish_cleaners(text):
     text = lowercase(text)
     text = expand_numbers(text)
@@ -40,6 +41,7 @@ def custom_finnish_cleaners(text):
     text = uppercase(text)
     text = collapse_whitespace(text)
     return text
+
 
 def main():
     parser = argparse.ArgumentParser()
