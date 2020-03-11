@@ -24,5 +24,5 @@ With this main script, a full procedure of TTS pretraining is performed:
 
 ## Notes
 
-- All texts are capitalized.
+- All texts are capitalized, but the punctuations are preserved.
 - An extra language token is added at the beginning of each utterance. E.g. `<en_US> BUT JUST NOW MY LOVING TYRANTS WON'T ALLOW ME.`

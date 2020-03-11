@@ -32,8 +32,10 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 while read f; do
     filename=${wavdir}/${f}.wav
-    echo "${spk}_${f} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
-    echo "${spk}_${f} ${spk}" >> ${utt2spk}
+    if [[ -e ${filename} ]]; then
+        echo "${spk}_${f} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
+        echo "${spk}_${f} ${spk}" >> ${utt2spk}
+    fi
 done < ${list}
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
@@ -48,6 +50,9 @@ if [ ! -z ${transcription} ]; then
 else
     # make dump text
     while read f; do
-        echo "${spk}_${f} ." >> ${text}
+        filename=${wavdir}/${f}.wav
+        if [[ -e ${filename} ]]; then
+            echo "${spk}_${f} ." >> ${text}
+        fi
     done < ${list}
 fi

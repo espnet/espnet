@@ -41,7 +41,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-voc=                            # GL or PWG
+voc=PWG                         # GL or PWG
 voc_expdir=downloads/pwg_task1  # If use provided pretrained models, set to desired dir, ex. `downloads/pwg_task1`
                                 # If use manually trained models, set to `../voc1/exp/<expdir>`
 voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint 
@@ -59,12 +59,12 @@ list_dir=local/lists
 spk=TEF1 
 
 # vc configuration
-srcspk=
-trgspk=
+srcspk=                                         # Ex. SEF1
+trgspk=                                         # Ex. TEF1
 asr_model="librispeech.transformer.ngpu4"
-test_list_file=local/lists/E_train_list.txt  # use source training set as development set
+test_list_file=local/lists/E_train_list.txt     # use source training set as development set
 test_name=dev_asr
-tts_model_dir=
+tts_model_dir=                                  # Ex. exp/TEF1_train_pytorch_train_pytorch_transformer+spkemb.tts1
 
 # exp tag
 tag=""  # tag for managing experiments.
@@ -239,7 +239,7 @@ else
 fi
 expdir=exp/${expname}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Text-to-speech model training"
+    echo "stage 4: Text-to-speech model fine-tuning"
     
     mkdir -p ${expdir}
 

@@ -71,7 +71,7 @@ LibriTTS itself provides normalized text, and the pretrained model is directly t
 
 `100_121669_000001_000000 Tom, the Piper's Son`
 
-However, the output of the pretrained ASR is always uppercased:
+However, the output of the pretrained ASR is always uppercased, and there is no punctuation:
 
 `IN REALITY THE EUROPEAN PARLIAMENT IS PRACTISING DIALECTICS (SEF1_E30001)`
 
