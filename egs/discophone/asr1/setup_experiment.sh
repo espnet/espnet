@@ -16,5 +16,6 @@ cd ${expname}
 cp ../asr1/{cmd,path,run}.sh .
 cp -P ../asr1/steps .
 cp -P ../asr1/utils .
+cp -P ../asr1/espnet_utils .
 ln -s ../asr1/local .
 ln -s ../asr1/conf .
