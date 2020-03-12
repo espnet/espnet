@@ -23,4 +23,4 @@ With this main script, a full procedure of PWG training is performed:
 
 ## Notes
 
-The VCC2020 dataset is of 24 kHz. In task 1, since the LibriTTS dataset is also of 24kHz, we directly train a PWG that conditions on natural mel filterbanks extracted from 24kHz waveform samples to generate 24kHz waveform output. Such PWG would be referred to as a 16kHz-24kHz PWG. However, in task 2, since some datasets that are used for pretraining are of 16kHz, we train a 16kHz-24kHz PWG.
+The VCC2020 dataset is of 24 kHz. In task 1, since the LibriTTS dataset is also of 24kHz, we directly train a PWG that conditions on natural mel filterbanks extracted from 24kHz waveform samples to generate 24kHz waveform output. Such PWG would be referred to as a 24kHz-24kHz PWG. However, in task 2, since some datasets that are used for pretraining are of 16kHz, we train a 16kHz-24kHz PWG.

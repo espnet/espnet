@@ -6,6 +6,8 @@ Please download the VCC2020 dataset following the instruction from the organizer
 
 In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `local/lists`. The default is 60/10 split. Feel free to adjust them.
 
+Note that since the release of the training data does not come with the actual evaluation set, and the training data of the source English speakers is not used, they are used as the development set by default.
+
 ## Pretrained TTS model
 
 Task 1 is monolingual (English) VC, so we can utilize the rich English resource thanks to the community. We strongly recommend users to use the pretrained TTS model trained on LibriTTS provided by ESPnet. However, if you wish to pretrain your own model, please refer to the [LibriTTS](https://github.com/espnet/espnet/tree/master/egs/libritts/tts1) recipe.
@@ -45,7 +47,7 @@ Execute the main script to convert `SEF1` to `TEF1`:
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TEF1 \
   --tts_model_dir exp/<expdir> \
-  --pretrained_model tts1 \
+  --pretrained_model_name tts1 \
   --voc PWG
 ```
 
@@ -57,7 +59,7 @@ Please make sure the parameters are carefully set:
 5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
 6. Specify `stage` to larger than 11.
 
-With this main script, a full procedure of TTS training is performed:
+With this main script, conversion is performed as follows:
 
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.

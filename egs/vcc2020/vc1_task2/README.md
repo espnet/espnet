@@ -6,6 +6,8 @@ Please download the VCC2020 dataset following the instruction from the organizer
 
 In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `local/lists`. The default is 60/10 split. Feel free to adjust them.
 
+Note that since the release of the training data does not come with the actual evaluation set, and the training data of the source English speakers is not used, they are used as the development set by default.
+
 ## Target speaker finetuning
 
 Execute the main script to finetune `TMF1`-dependent TTS:
@@ -44,7 +46,7 @@ Execute the main script to convert `SEF1` to `TMF1`:
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TMF1 --trans_type char \
   --tts_model_dir exp/<expdir> \
-  --pretrained_model tts1_en_zh \
+  --pretrained_model_name tts1_en_zh \
   --voc PWG
 ```
 
@@ -57,7 +59,7 @@ Please make sure the parameters are carefully set:
 5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
 6. Specify `stage` to larger than 11.
 
-With this main script, a full procedure of TTS training is performed:
+With this main script, conversion is performed as follows:
 
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.
