@@ -133,6 +133,9 @@ def get_parser():
     parser.add_argument('--dec-init-mods', default='dec.',
                         type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
                         help='List of decoder modules to initialize, separated by a comma.')
+    parser.add_argument('--freeze-mods', default=None,
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of modules to freeze (not to train), separated by a comma.')
 
     return parser
 
