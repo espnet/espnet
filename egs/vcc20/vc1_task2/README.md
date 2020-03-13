@@ -8,12 +8,18 @@ In VCC2020, there are 70 training utterances for each speaker. The list files th
 
 Note that since the release of the training data does not come with the actual evaluation set, and the training data of the source English speakers is not used, they are used as the development set by default.
 
-## Target speaker finetuning
+## Flow
+
+We provide pretrained TTS models for users to finetune the models manually, and we also provide finetuned models for users to directly use.
+
+### 1-1. Option 1: Target speaker finetuning
+
+#### Execution
 
 Execute the main script to finetune `TMF1`-dependent TTS:
 
 ```
-$ ./run.sh --stop_stage 5 \
+$ ./run.sh --stop_stage 6 \
   --spk TMF1 --lang Man \
   --trans_type phn \
   --pretrained_model_name tts1_en_zh
@@ -25,7 +31,8 @@ Please make sure the parameters are carefully set:
 2. Specify `trans_type` depending on `lang`. If `lang` is `Man`, set to `phn`; if `Ger/Fin`, set to `char`.
 3. Specify `pretrained_model_dir`. If you wish to use the pretrained model we provide, leave `pretrained_model_dir` to the default value (`downloads`). If it does not exist, it will be automatically downloaded. If you wish to use your own trained model, set `pretrained_model_dir` to (`../tts1_en_[de/fi/zh]`).
 4. Specify `pretrained_model_name` depending on `lang`: `tts1_en_[de/fi/zh]`.
-5. Specify `stop_stage` to no larger than 5.
+5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
+6. Specify `stop_stage` to no larger than 6.
 
 With this main script, a full procedure of TTS training is performed:
 
@@ -36,16 +43,31 @@ With this main script, a full procedure of TTS training is performed:
 - Stage 3: X-vector extraction. This is based on the pre-trained, Kaldi-based x-vector extraction.
 - Stage 4: Model training.
 - Stage 5: Decoding. We decode the development set, which is the same language.
+- Stage 6: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to the waveform.
 
+### 1-2. Option 2: Download finetuned TTS model
 
-## Conversion phase
+Execute the following script to download finetuned model for `TMF1`:
+
+```
+$ ./run.sh --stage 10 --stop_stage 10 \
+  --pretrained_model_name tts1_en_zh \
+  --finetuned_model_name tts1_en_zh_TMF1
+```
+
+Please make sure the parameters are carefully set:
+
+1. Must set `finetuned_model_name` to `tts1_en_[de/fi/zh]_[trgspk]`.
+2. It is recommended to also set `pretrained_model_name` to avoid generating redundant config files.
+
+### 2. Conversion
 
 Execute the main script to convert `SEF1` to `TMF1`:
 
 ```
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TMF1 --trans_type char \
-  --tts_model_dir exp/<expdir> \
+  --tts_model_dir <expdir> \
   --pretrained_model_name tts1_en_zh \
   --voc PWG
 ```
@@ -54,8 +76,8 @@ Please make sure the parameters are carefully set:
 
 1. Specify the `srcspk` and `trgspk`.
 2. Specify `trans_type` depending on the language of the TTS model.
-3. Specify `tts_model_dir` to the exp
-4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used.
+3. Specify `tts_model_dir` to the finetuned TTS experiment directory. If you wish to use your own trained model, set to `exp/<expdir>`. If you wish to use the finetuned model we provide, set to, for example, `downloads/tts1_en_[de/fi/zh]_[trgspk]/exp/<expdir>`.
+4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used. **Note that this is still necessary even if you choose to use the finetuned model we provide.**
 5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
 6. Specify `stage` to larger than 11.
 
