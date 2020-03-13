@@ -34,7 +34,7 @@ $ cd docker
 $ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker_env "CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B" --ngpu 1
 ```
 
-Remember that for some recipes, you first need to download the Corpus before running the experiments, such as CHiME, WSJ, and LDC corporas. You will need to set the directories where these where downloaded and replace them in the recipe (e.g.: `CHIME4_CORPUS=/<dir_where_chime4_where_downloaded>/CHiME4/CHiME3`)
+Remember that for some recipes, you first need to download the Corpus before running the experiments, such as CHiME, WSJ, and LDC corporas. You will need to set the directories were these where downloaded and replace them in the recipe (e.g.: `CHIME4_CORPUS=/<dir_where_chime4_was_downloaded>/CHiME4/CHiME3`)
 
 ### Using CPU-based container
 
