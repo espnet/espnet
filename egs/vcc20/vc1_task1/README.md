@@ -8,18 +8,25 @@ In VCC2020, there are 70 training utterances for each speaker. The list files th
 
 Note that since the release of the training data does not come with the actual evaluation set, and the training data of the source English speakers is not used, they are used as the development set by default.
 
-## Pretrained TTS model
+## Flow
+
+We provide pretrained TTS models for users to finetune the models manually, and we also provide finetuned models for users to directly use.
+
+### 1-1. Option 1: Target speaker finetuning
+
+#### Pretrained TTS model
 
 Task 1 is monolingual (English) VC, so we can utilize the rich English resource thanks to the community. We strongly recommend users to use the pretrained TTS model trained on LibriTTS provided by ESPnet. However, if you wish to pretrain your own model, please refer to the [LibriTTS](https://github.com/espnet/espnet/tree/master/egs/libritts/tts1) recipe.
 
-## Target speaker finetuning
+#### Execution
 
 Execute the main script to finetune `TEF1`-dependent TTS:
 
 ```
-$ ./run.sh --stop_stage 5 \
+$ ./run.sh --stop_stage 6 \
   --spk TEF1 \
-  --pretrained_model_name tts1
+  --pretrained_model_name tts1 \
+  --voc PWG
 ```
 
 Please make sure the parameters are carefully set:
@@ -27,9 +34,10 @@ Please make sure the parameters are carefully set:
 1. Specify the `spk`.
 2. Specify `pretrained_model_dir`. If you wish to use the pretrained model we provide, leave `pretrained_model_dir` to the default value (`downloads`). If it does not exist, it will be automatically downloaded. If you wish to use your own trained model, set `pretrained_model_dir` to, for example, `../libritts`.
 3. Specify `pretrained_model_name`. Default: `tts1`.
-4. Specify `stop_stage` to no larger than 5.
+4. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
+5. Specify `stop_stage` to no larger than 5.
 
-With this main script, a full procedure of TTS training is performed:
+With this main script, a full procedure of TTS finetuning is performed:
 
 - Stage -1: Pretrained model downloading, including the pretrained TTS and PWG models.
 - Stage 0: Data preparation. The rules of transcription parsing is consistent with the parsing performed in TTS pretraining.
@@ -38,15 +46,31 @@ With this main script, a full procedure of TTS training is performed:
 - Stage 3: X-vector extraction. This is based on the pre-trained, Kaldi-based x-vector extraction.
 - Stage 4: Model training.
 - Stage 5: Decoding. We decode the development set.
+- Stage 6: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to the waveform.
 
-## Conversion phase
+### 1-2. Option 2: Download finetuned TTS model
+
+Execute the following script to download finetuned model for `TEF1`:
+
+```
+$ ./run.sh --stage 10 --stop_stage 10 \
+  --pretrained_model_name tts1 \
+  --finetuned_model_name tts1_TEF1
+```
+
+Please make sure the parameters are carefully set:
+
+1. Must set `finetuned_model_name` to `tts1_[trgspk]`.
+2. It is recommended to also set `pretrained_model_name` to avoid generating redundant config files.
+
+### 2. Conversion
 
 Execute the main script to convert `SEF1` to `TEF1`:
 
 ```
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TEF1 \
-  --tts_model_dir exp/<expdir> \
+  --tts_model_dir <expdir> \
   --pretrained_model_name tts1 \
   --voc PWG
 ```
@@ -54,8 +78,8 @@ $ ./run.sh --stage 11 \
 Please make sure the parameters are carefully set:
 
 1. Specify the `srcspk` and `trgspk`.
-2. Specify `tts_model_dir` to the finetuned TTS experiment directory.
-4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used.
+2. Specify `tts_model_dir` to the finetuned TTS experiment directory. If you wish to use your own trained model, set to `exp/<expdir>`. If you wish to use the finetuned model we provide, set to, for example, `downloads/tts1_[trgspk]/exp/<expdir>`.
+4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used. **Note that this is still necessary even if you choose to use the finetuned model we provide.**
 5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
 6. Specify `stage` to larger than 11.
 
