@@ -305,6 +305,8 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Synthesis"
 
+    [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
+
     pids=() # initialize pids
     for name in ${dev_set}; do
     (
@@ -335,7 +337,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             echo "Using Parallel WaveGAN vocoder."
 
             # variable settings
-            [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
             voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
             voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
             wav_dir=${outdir}_denorm/${name}/pwg_wav
@@ -434,7 +435,6 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     # use the avg x-vector in target speaker training set
     echo "Updating x vector..."
     sed "s~spk~${tts_model_dir}/spk~g" ${tts_model_dir}/spk_xvector.scp > ${tts_datadir}/spk_xvector.scp
-    trgspk_train_set=${trgspk}_train
     x_vector_ark=$(awk -v spk=$spk '/spk/{print $NF}' ${tts_datadir}/spk_xvector.scp)
     sed "s~ ${trgspk}~ $x_vector_ark~" ${tts_datadir}/utt2spk > ${tts_datadir}/xvector.scp
     local/update_json.sh ${tts_datadir}/data.json ${tts_datadir}/xvector.scp
@@ -461,6 +461,8 @@ fi
 
 if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     echo "stage 13: Synthesis"
+
+    [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
 
     [ ! -e ${outdir}_denorm/${pairname} ] && mkdir -p ${outdir}_denorm/${pairname}
     # Denormalizing use pretrained model cmvn
@@ -489,7 +491,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         echo "Using Parallel WaveGAN vocoder."
 
         # variable settings
-        [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
         voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
         voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
         wav_dir=${outdir}_denorm/${pairname}/pwg_wav
