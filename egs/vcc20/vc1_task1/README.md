@@ -25,8 +25,7 @@ Execute the main script to finetune `TEF1`-dependent TTS:
 ```
 $ ./run.sh --stop_stage 6 \
   --spk TEF1 \
-  --pretrained_model_name tts1 \
-  --voc PWG
+  --pretrained_model_name tts1
 ```
 
 Please make sure the parameters are carefully set:
@@ -35,7 +34,7 @@ Please make sure the parameters are carefully set:
 2. Specify `pretrained_model_dir`. If you wish to use the pretrained model we provide, leave `pretrained_model_dir` to the default value (`downloads`). If it does not exist, it will be automatically downloaded. If you wish to use your own trained model, set `pretrained_model_dir` to, for example, `../libritts`.
 3. Specify `pretrained_model_name`. Default: `tts1`.
 4. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
-5. Specify `stop_stage` to no larger than 5.
+5. Specify `stop_stage` to no larger than 6.
 
 With this main script, a full procedure of TTS finetuning is performed:
 
@@ -71,17 +70,16 @@ Execute the main script to convert `SEF1` to `TEF1`:
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TEF1 \
   --tts_model_dir <expdir> \
-  --pretrained_model_name tts1 \
-  --voc PWG
+  --pretrained_model_name tts1
 ```
 
 Please make sure the parameters are carefully set:
 
 1. Specify the `srcspk` and `trgspk`.
 2. Specify `tts_model_dir` to the finetuned TTS experiment directory. If you wish to use your own trained model, set to `exp/<expdir>`. If you wish to use the finetuned model we provide, set to, for example, `downloads/tts1_[trgspk]/exp/<expdir>`.
-4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used. **Note that this is still necessary even if you choose to use the finetuned model we provide.**
-5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
-6. Specify `stage` to larger than 11.
+3. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used. **Note that this is still necessary even if you choose to use the finetuned model we provide.**
+4. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
+5. Specify `stage` to larger than 11.
 
 With this main script, conversion is performed as follows:
 
