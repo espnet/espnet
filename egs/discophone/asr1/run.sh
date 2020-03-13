@@ -21,7 +21,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
+train_config=conf/train_li10.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
@@ -237,6 +237,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+	    --batchsize 0 \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
