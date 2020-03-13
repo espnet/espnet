@@ -7,7 +7,8 @@
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 tags="cpu-u18
-      gpu-cuda10.0-cudnn7-u18"
+      gpu-cuda10.0-cudnn7-u18
+      gpu-cuda10.1-cudnn7-u18"
 cuda_vers="10.0
            10.1"
 docker_ver=$(docker version -f '{{.Server.Version}}')
@@ -123,6 +124,9 @@ testing(){
     echo "Testing docker containers"
     # Test Docker Containers with cpu setup
     run_stage=-1
+    if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+        run_stage=3
+    fi
     for cuda_ver in cpu ${cuda_vers};do    
         for backend in pytorch chainer;do
             if [ "${cuda_ver}" != "cpu" ];then
