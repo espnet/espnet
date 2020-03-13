@@ -57,6 +57,10 @@ To speed up experiments and development, we provide pretrained models for the `t
 
 For detailed usage, please see the readme in each recipe.
 
+## Converted samples
+
+The evaluation set has not been released yet, so we use the training set of the source English speakers as the development set. You can find the converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+
 ## Author
 
 Main development: Wen-Chin Huang @ Nagoya University (2020/03)  
