@@ -34,7 +34,7 @@ Please make sure the parameters are carefully set:
 5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
 6. Specify `stop_stage` to no larger than 6.
 
-With this main script, a full procedure of TTS training is performed:
+With this main script, a full procedure of TTS finetuning is performed:
 
 - Stage -1: Pretrained model downloading, including the pretrained TTS and PWG models.
 - Stage 0: Data preparation. The rules of transcription parsing depends on `lang` and is consistent with the parsing performed in TTS pretraining.
@@ -68,8 +68,7 @@ Execute the main script to convert `SEF1` to `TMF1`:
 $ ./run.sh --stage 11 \
   --srcspk SEF1 --trgspk TMF1 --trans_type char \
   --tts_model_dir <expdir> \
-  --pretrained_model_name tts1_en_zh \
-  --voc PWG
+  --pretrained_model_name tts1_en_zh
 ```
 
 Please make sure the parameters are carefully set:
