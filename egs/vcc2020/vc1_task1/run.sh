@@ -50,7 +50,9 @@ griffin_lim_iters=64            # the number of iterations of Griffin-Lim
 # pretrained model related
 pretrained_model_dir=downloads  # If use provided pretrained models, set to desired dir, ex. `downloads`
                                 # If use manually trained models, set to `../libritts`
-pretrained_model_name=          # Recommended choices: tts1
+pretrained_model_name=          # If use provided pretrained models, only set to `tts1`
+                                # If use manually trained models, only set to `tts1`, too
+finetuned_model_name=           # Only set to `tts1_[trgspk]`
 
 # dataset configuration
 db_root=downloads/official_v1.0_training
@@ -64,7 +66,10 @@ trgspk=                                         # Ex. TEF1
 asr_model="librispeech.transformer.ngpu4"
 test_list_file=local/lists/E_train_list.txt     # use source training set as development set
 test_name=dev_asr
-tts_model_dir=                                  # Ex. exp/TEF1_train_pytorch_train_pytorch_transformer+spkemb.tts1
+tts_model_dir=                                  # If use downloaded model,
+                                                # set to, ex. `downloads/tts1_TEF1/exp/TEF1_train_pytorch_train_pytorch_transformer+spkemb.tts1`
+                                                # If use manually trained model,
+                                                # set to, ex. `exp/TEF1_train_pytorch_train_pytorch_transformer+spkemb.tts1`
 
 # exp tag
 tag=""  # tag for managing experiments.
@@ -243,6 +248,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     
     mkdir -p ${expdir}
 
+    # copy x-vector into expdir
+    # empty the scp file
+    xvec_dir=exp/xvector_nnet_1a/xvectors_${train_set}
+    cp ${xvec_dir}/spk_xvector.ark ${expdir}
+    sed "s~${xvec_dir}/~~" ${xvec_dir}/spk_xvector.scp > ${expdir}/spk_xvector.scp
+
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -289,8 +300,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+fi
     
-    echo "Synthesis..."
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Synthesis"
+
     pids=() # initialize pids
     for name in ${dev_set}; do
     (
@@ -300,18 +314,59 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
             scp:${outdir}/${name}/feats.scp \
             ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
-        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
-            --fs ${fs} \
-            --fmax "${fmax}" \
-            --fmin "${fmin}" \
-            --n_fft ${n_fft} \
-            --n_shift ${n_shift} \
-            --win_length "${win_length}" \
-            --n_mels ${n_mels} \
-            --iters ${griffin_lim_iters} \
-            ${outdir}_denorm/${name} \
-            ${outdir}_denorm/${name}/log \
-            ${outdir}_denorm/${name}/wav
+
+        # GL
+        if [ ${voc} = "GL" ]; then
+            echo "Using Griffin-Lim phase recovery."
+            convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+                --fs ${fs} \
+                --fmax "${fmax}" \
+                --fmin "${fmin}" \
+                --n_fft ${n_fft} \
+                --n_shift ${n_shift} \
+                --win_length "${win_length}" \
+                --n_mels ${n_mels} \
+                --iters ${griffin_lim_iters} \
+                ${outdir}_denorm/${name} \
+                ${outdir}_denorm/${name}/log \
+                ${outdir}_denorm/${name}/wav
+        # PWG
+        elif [ ${voc} = "PWG" ]; then
+            echo "Using Parallel WaveGAN vocoder."
+
+            # variable settings
+            [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t | head -n 1)"
+            voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
+            voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
+            wav_dir=${outdir}_denorm/${name}/pwg_wav
+            hdf5_norm_dir=${outdir}_denorm/${name}/hdf5_norm
+            [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
+            [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
+
+            # normalize and dump them
+            echo "Normalizing..."
+            ${train_cmd} "${hdf5_norm_dir}/normalize.log" \
+                parallel-wavegan-normalize \
+                    --skip-wav-copy \
+                    --config "${voc_conf}" \
+                    --stats "${voc_stats}" \
+                    --feats-scp "${outdir}_denorm/${name}/feats.scp" \
+                    --dumpdir ${hdf5_norm_dir} \
+                    --verbose "${verbose}"
+            echo "successfully finished normalization."
+
+            # decoding
+            echo "Decoding start. See the progress via ${wav_dir}/decode.log."
+            ${cuda_cmd} --gpu 1 "${wav_dir}/decode.log" \
+                parallel-wavegan-decode \
+                    --dumpdir ${hdf5_norm_dir} \
+                    --checkpoint "${voc_checkpoint}" \
+                    --outdir ${wav_dir} \
+                    --verbose "${verbose}"
+            echo "successfully finished decoding."
+        else
+            echo "Vocoder type not supported. Only GL and PWG are available."
+        fi
     ) &
     pids+=($!) # store background pids
     done
@@ -322,6 +377,16 @@ fi
 ################################################
 
 # Cascade ASR + TTS
+
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    echo "stage 10: Prefinetuned model download"
+
+    if [ ! -d ${pretrained_model_dir}/${finetuned_model_name} ]; then
+        echo "Downloading finetuned TTS model..."
+        local/pretrained_model_download.sh ${pretrained_model_dir} ${finetuned_model_name}
+    fi
+    echo "Finetuned TTS model downloaded: ${finetuned_model_name}"
+fi
 
 pairname=${srcspk}_${trgspk}_eval
 expdir=exp/${srcspk}_${test_name}
@@ -368,9 +433,9 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     
     # use the avg x-vector in target speaker training set
     echo "Updating x vector..."
-    nnet_dir=exp/xvector_nnet_1a
+    sed "s~spk~${tts_model_dir}/spk~g" ${tts_model_dir}/spk_xvector.scp > ${tts_datadir}/spk_xvector.scp
     trgspk_train_set=${trgspk}_train
-    x_vector_ark=$(awk -v spk=$spk '/spk/{print $NF}' ${nnet_dir}/xvectors_${trgspk_train_set}/spk_xvector.scp)
+    x_vector_ark=$(awk -v spk=$spk '/spk/{print $NF}' ${tts_datadir}/spk_xvector.scp)
     sed "s~ ${trgspk}~ $x_vector_ark~" ${tts_datadir}/utt2spk > ${tts_datadir}/xvector.scp
     local/update_json.sh ${tts_datadir}/data.json ${tts_datadir}/xvector.scp
 
