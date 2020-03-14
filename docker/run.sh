@@ -74,7 +74,7 @@ fi
 
 if [ ${UID} -eq 0 ] && [ ${docker_user} = true ]; then
     echo "Warning: Your user ID belongs to root users.
-        Using Docker container with root using instead of User-built container."
+        Using Docker container with root instead of User-built container."
         docker_user=false
 fi
 
