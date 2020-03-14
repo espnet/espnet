@@ -25,7 +25,7 @@ WORKDIR /espnet/tools
 # Docker build does not load libcuda.so.1
 # Replace nvidia-smi for nvcc because docker does not load nvidia-smi
 RUN if [ -z "$( nvcc -V )" ]; then \
-        echo "Build withoug CUDA" && \
+        echo "Build without CUDA" && \
         MY_OPTS="CUPY_VERSION="; \
     else \
         echo "Build with CUDA" && \
