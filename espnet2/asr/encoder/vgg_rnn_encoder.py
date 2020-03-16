@@ -42,7 +42,6 @@ class VGGRNNEncoder(AbsEncoder):
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type
-        self.rnn_type = rnn_type
         self.bidirectional = bidirectional
         self.use_projection = use_projection
         if rnn_type not in {"lstm", "gru"}:
