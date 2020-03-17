@@ -2,6 +2,7 @@ ARG FROM_TAG
 FROM espnet/espnet:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
+ARG CUDA_VER
 WORKDIR /
 
 # IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
