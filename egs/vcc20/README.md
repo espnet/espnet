@@ -59,7 +59,12 @@ For detailed usage, please see the readme in each recipe.
 
 ## Converted samples
 
-The evaluation set has not been released yet, so we use the training set of the source English speakers as the development set. You can find the converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+The evaluation set has not been released yet, so we provide two sets of converted samples as reference:
+
+1. Since the training set of the source English speakers (Numbers `E10001` to `E10060`) is not used in this baseline method, we use it as the development set. You can find the converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+
+1. The organizers prepared another reference set (Numbers `E20001` to `E20020`). You can find the converted samples [here](https://drive.google.com/drive/folders/1C2BlumRiSNPsOCHgJNZVhpCbOXlBTT1w?usp=sharing).
+
 
 ## Author
 
