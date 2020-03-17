@@ -476,7 +476,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
     python3 -m espnet2.bin.tokenize_text  \
-        --token_type "${token_type}" -f 2- \
+        --token_type "${token_type}" \
         --input "${data_feats}/srctexts" --output "${token_list}" ${_opts} \
         --field 2- \
         --write_vocabulary true \
@@ -488,7 +488,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if ${use_word_lm}; then
         log "Generate word level token_list from ${data_feats}/srctexts"
         python3 -m espnet2.bin.tokenize_text \
-            --token_type word -f 2- \
+            --token_type word \
             --input "${data_feats}/srctexts" --output "${lm_token_list}" \
             --field 2- \
             --write_vocabulary true \
