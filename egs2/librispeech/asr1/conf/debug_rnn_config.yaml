@@ -1,0 +1,47 @@
+config: conf/rnn_config.yaml
+print_config: false
+log_level: INFO
+max_epoch: 15
+grad_clip: 5.0
+accum_grad: 4
+patience: 3
+batch_size: 20
+batch_type: seq
+optim: adadelta
+optim_conf:
+    rho: 0.95
+    eps: 0.00000001
+    weight_decay: 0.0
+e2e_conf:
+    ctc_weight: 0.5
+    ignore_id: -1
+    lsm_weight: 0.0
+    length_normalized_loss: false
+    report_cer: false
+    report_wer: false
+    sym_space: <space>
+    sym_blank: <blank>
+use_preprocessor: true
+token_type: bpe
+bpemodel: data/token_list/bpe_unigram5000/model.model
+non_linguistic_symbols: null
+normalize: global_mvn
+normalize_conf:
+    stats_file: exp/asr_stats/train/feats_stats.npz
+encoder: vgg_rnn
+encoder_conf:
+    rnn_type: lstm
+    num_layers: 5
+    hidden_size: 1024
+    output_size: 1024
+    dropout: 0.2
+decoder: rnn
+decoder_conf:
+    num_layers: 2
+    hidden_size: 1024
+    dropout: 0.2
+    att_conf:
+        atype: location
+        adim: 1024
+        aconv_chans: 10
+        aconv_filts: 100
