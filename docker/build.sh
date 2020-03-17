@@ -108,9 +108,15 @@ build_local(){
                      -f prebuilt/local/Dockerfile -t espnet/espnet:cpu-local . || exit 1
     elif [[ ${ver} =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
         echo "building ESPnet GPU Image for ${ver}"
-        docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
-        docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
-                     -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-local . || exit 1
+        if [ "${build_base_image}" = true ] ; then
+            docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+        else
+            docker pull espnet/espnet:cuda${ver}-cudnn7
+        fi
+        build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
+        build_args="${build_args} --build-arg CUDA_VER=${ver}"
+        build_args="${build_args} --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE}"
+        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-local . || exit 1
     else
         echo "Parameter invalid: " ${ver}
     fi
