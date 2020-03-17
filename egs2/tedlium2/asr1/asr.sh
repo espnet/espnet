@@ -519,7 +519,6 @@ if "${use_lm}"; then
       # Get the minimum number among ${nj} and the number lines of input files
       _nj=$(min "${nj}" "$(<${data_feats}/srctexts wc -l)" "$(<${lm_dev_text} wc -l)")
 
-      #key_file="${data_feats}/srctexts"
       key_file=${lm_train_text}
       split_scps=""
       for n in $(seq ${_nj}); do
