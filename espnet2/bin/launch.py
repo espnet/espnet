@@ -126,7 +126,7 @@ def main(cmd=None):
     if args.host is not None:
         hosts = []
         ids_list = []
-        # e.g. args.host = "host1:0:2,host2:0,1"
+        # e.g. args.host = "host1:0:2,host2:0:1"
         for host in args.host.split(","):
             # e.g host = "host1:0:2"
             sps = host.split(":")
