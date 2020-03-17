@@ -22,8 +22,7 @@
 
 - Results (obtained with `$ show_results.sh`)
 
-```
-# CER
+## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -34,7 +33,7 @@
 |decode_train_dev_decode_transducer_lm|100|4007|84.4|12.9|2.7|2.8|18.4|97.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|4007|84.9|12.2|2.9|2.8|17.9|97.0|
 
-# WER
+## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -44,7 +43,6 @@
 |decode_train_dev_decode_transducer|100|927|60.7|39.1|0.2|0.2|39.5|98.0|
 |decode_train_dev_decode_transducer_lm|100|927|62.5|37.3|0.2|0.0|37.5|97.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|927|63.1|36.5|0.4|0.0|36.9|97.0|
-```
 
 # pytorch Transducer (enc: VGG2L + 8 x Transformer, dec: 2 x Transformer)
 
@@ -59,7 +57,8 @@
 
 - Results (obtained with `$ show_results.sh`)
 
-```
+## CER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_test_decode_transducer|760|32771|84.3|11.6|4.1|3.4|19.1|97.1|
@@ -69,7 +68,7 @@
 |decode_train_dev_decode_transducer_lm|100|4007|85.7|11.6|2.8|2.4|16.8|98.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|4007|86.2|11.2|2.6|2.2|16.0|96.0|
 
-# WER
+## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -79,7 +78,6 @@
 |decode_train_dev_decode_transducer|100|927|58.1|41.6|0.2|0.1|42.0|100.0|
 |decode_train_dev_decode_transducer_lm|100|927|62.7|36.8|0.5|0.1|37.4|98.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|927|64.6|34.8|0.5|0.1|35.5|96.0|
-```
 
 # pytorch Transducer (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
@@ -94,8 +92,7 @@
 
 - Results (obtained with `$ show_results.sh`)
 
-```
-# CER
+## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -106,7 +103,7 @@
 |decode_train_dev_decode_transducer_lm|100|4007|44.2|5.6|50.1|0.5|56.2|100.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|4007|85.8|10.6|3.5|1.9|16.0|96.0|
 
-# WER
+## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -116,12 +113,10 @@
 |decode_train_dev_decode_transducer|100|927|62.5|37.3|0.2|0.0|37.5|97.0|
 |decode_train_dev_decode_transducer_lm|100|927|31.9|18.1|49.9|0.0|68.1|100.0|
 |decode_train_dev_decode_transducer_lm_word7184|100|927|64.9|34.3|0.8|0.1|35.2|96.0|
-```
 
 # pytorch CTC model (4 x BLSTMP)
 
-```
-# CER
+## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
@@ -131,4 +126,3 @@
 |decode_train_dev_decode_ctcweight1.0|100|4007|82.6|12.0|5.4|1.7|19.1|99.0|
 |decode_train_dev_decode_ctcweight1.0_lm|100|4007|85.3|11.5|3.2|2.1|16.9|93.0|
 |decode_train_dev_decode_ctcweight1.0_lm_word7184|100|4007|84.1|12.3|3.5|2.2|18.1|99.0|
-```
