@@ -48,7 +48,6 @@ class ChunkIterFactory(AbsIterFactory):
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
-        distributed: bool = False,
     ):
         assert check_argument_types()
         assert all(len(x) == 1 for x in batches), f"batch-size must be 1"
@@ -91,18 +90,18 @@ class ChunkIterFactory(AbsIterFactory):
         self.batch_size = batch_size
         self.seed = seed
         self.shuffle = shuffle
-        self.distributed = distributed
 
     def build_iter(
         self, epoch: int, shuffle: bool = None,
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
         per_sample_loader = self.per_sample_iter_factory.build_iter(epoch, shuffle)
+
         if shuffle is None:
             shuffle = self.shuffle
         state = np.random.RandomState(epoch + self.seed)
 
-        cache_chunks = {}
-        cache_id_list = []
+        cache_chunks_dict = {}
+        cache_id_list_dict = {}
         for ids, batch in per_sample_loader:
             # Must be per-sample-loader
             assert len(ids) == 1, f"Must be per-sample-loader: {len(ids)}"
@@ -125,6 +124,9 @@ class ChunkIterFactory(AbsIterFactory):
 
             # Select chunk length
             L = int(state.choice(self.chunk_lengths, 1))
+            cache_id_list = cache_id_list_dict.setdefault(L, [])
+            cache_chunks = cache_chunks_dict.setdefault(L, {})
+
             # Shift width to the next chunk
             S = int(L * self.chunk_shift_ratio)
             # Number of chunks
@@ -155,10 +157,18 @@ class ChunkIterFactory(AbsIterFactory):
                 num_samples = N % self.batch_size
                 cache_chunks = {k: v[-num_samples:] for k, v in cache_chunks.items()}
                 cache_id_list = cache_id_list[-num_samples:]
+
+            cache_id_list_dict[L] = cache_id_list
+            cache_chunks_dict[L] = cache_chunks
+
         else:
-            yield from self._generate_mini_batches(
-                cache_id_list, cache_chunks, shuffle, state,
-            )
+            for L in cache_id_list_dict:
+                cache_id_list = cache_id_list_dict.setdefault(L, [])
+                cache_chunks = cache_chunks_dict.setdefault(L, {})
+
+                yield from self._generate_mini_batches(
+                    cache_id_list, cache_chunks, shuffle, state,
+                )
 
     def _generate_mini_batches(
         self,
@@ -175,18 +185,10 @@ class ChunkIterFactory(AbsIterFactory):
 
         bs = self.batch_size
         while len(id_list) >= bs:
-            if self.distributed:
-                world_size = torch.distributed.get_world_size()
-                rank = torch.distributed.get_rank()
-                batches = [batch[rank::world_size] for batch in batches]
-                slc = slice(rank, None, world_size)
-            else:
-                slc = slice(None)
-
             # Make mini-batch and yield
             yield (
-                id_list[:bs][slc],
-                {k: torch.stack(v[:bs][slc], 0) for k, v in batches.items()},
+                id_list[:bs],
+                {k: torch.stack(v[:bs], 0) for k, v in batches.items()},
             )
             id_list = id_list[bs:]
             batches = {k: v[bs:] for k, v in batches.items()}
