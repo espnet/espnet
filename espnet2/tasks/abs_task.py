@@ -507,7 +507,7 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Chunk iterator related")
-        group.add_argument("--chunk_length", type=int, default=500)
+        group.add_argument("--chunk_length", type=str, default=500)
         group.add_argument("--chunk_shift_ratio", type=float, default=0.5)
         group.add_argument(
             "--num_cache_chunks",
@@ -1214,6 +1214,17 @@ class AbsTask(ABC):
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
+        if distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
+
         return (
             SequenceIterFactory(
                 dataset=dataset,
@@ -1224,7 +1235,6 @@ class AbsTask(ABC):
                 num_workers=num_workers,
                 collate_fn=collate_fn,
                 pin_memory=ngpu > 0,
-                distributed=distributed,
             ),
             dataset,
             batches,
@@ -1276,6 +1286,26 @@ class AbsTask(ABC):
             batches = batches[:num_batches]
         logging.info(f"[{name}] dataset:\n{dataset}")
 
+        if distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            if len(batches) < world_size:
+                raise RuntimeError("Number of samples is smaller than world_size")
+            if batch_size < world_size:
+                raise RuntimeError("batch_size must be equal or more than world_size")
+
+            if rank < batch_size % world_size:
+                batch_size = batch_size // world_size + 1
+            else:
+                batch_size = batch_size // world_size
+            num_cache_chunks = num_cache_chunks // world_size
+            # NOTE(kamo): Split whole corpus by sample numbers without considering
+            #   each of the lengths, therefore the number of iteration counts are not
+            #   always equal to each other and the iterations are limitted
+            #   by the fewest iterations.
+            #   i.e. the samples over the counts are discarded.
+            batches = batches[rank::world_size]
+
         return (
             ChunkIterFactory(
                 dataset=dataset,
@@ -1293,7 +1323,6 @@ class AbsTask(ABC):
                 chunk_length=chunk_length,
                 chunk_shift_ratio=chunk_shift_ratio,
                 num_cache_chunks=num_cache_chunks,
-                distributed=distributed,
             ),
             dataset,
             batches,
