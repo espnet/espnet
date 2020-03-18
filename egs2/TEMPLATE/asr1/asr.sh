@@ -771,7 +771,6 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --valid_shape_file "${asr_stats_dir}/valid/text_shape" \
             --resume true \
             --max_length "${_max_length}" \
-            --max_length 150 \
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
 
