@@ -321,7 +321,7 @@ class Trainer:
             loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
-                loss = (loss * weight).sum()
+                loss = (loss * weight.to(loss.dtype)).sum()
 
                 # if distributed, this method can also apply all_reduce()
                 stats, weight = recursive_average(stats, weight, distributed)
