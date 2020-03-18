@@ -269,7 +269,7 @@ if [ -z "${decode_tag}" ]; then
         decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     if "${use_lm}"; then
-        decode_tag+="_lm_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        decode_tag+="_lm_model_${lm_tag}_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
@@ -805,7 +805,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}${decode_tag}"
+        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -856,7 +856,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}${decode_tag}"
+        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
 
         for _type in cer wer ter; do
             [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
