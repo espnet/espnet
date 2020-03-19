@@ -42,7 +42,10 @@ def collect_stats(
     npy_scp_writers = {}
     for itr, mode in zip([train_iter, valid_iter], ["train", "valid"]):
         if log_interval is None:
-            log_interval = max(len(itr) // 20, 10)
+            try:
+                log_interval = max(len(itr) // 20, 10)
+            except TypeError:
+                log_interval = 100
 
         sum_dict = defaultdict(lambda: 0)
         sq_dict = defaultdict(lambda: 0)
