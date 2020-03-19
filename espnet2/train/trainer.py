@@ -15,9 +15,9 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
@@ -29,7 +29,6 @@ from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
-from espnet2.train.epoch_iter_factory import AbsIterFactory
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
@@ -38,6 +37,10 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
 else:
     from tensorboardX import SummaryWriter
+if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
+    from torch.distributed import ReduceOp
+else:
+    from torch.distributed import reduce_op as ReduceOp
 
 
 @dataclasses.dataclass
@@ -101,7 +104,7 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
-        plot_attention_iter_factory: AbsIterFactory,
+        plot_attention_iter_factory: Optional[AbsIterFactory],
         reporter: Reporter,
         output_dir: Path,
         max_epoch: int,
@@ -283,7 +286,7 @@ class Trainer:
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
-        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         reporter: SubReporter,
@@ -307,12 +310,23 @@ class Trainer:
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         if log_interval is None:
-            log_interval = max(len(iterator) // 20, 10)
+            try:
+                log_interval = max(len(iterator) // 20, 10)
+            except TypeError:
+                log_interval = 100
 
         model.train()
         all_steps_are_invalid = True
+        # [For distributed] Because iteration counts are not always equals between
+        # processes, send stop-flag to the other processes if iterator is finished
+        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for iiter, (_, batch) in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
+            if distributed:
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
+
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 all_steps_are_invalid = False
@@ -322,7 +336,7 @@ class Trainer:
             loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
-                loss = (loss * weight).sum()
+                loss = (loss * weight.type(loss.dtype)).sum()
 
                 # if distributed, this method can also apply all_reduce()
                 stats, weight = recursive_average(stats, weight, distributed)
@@ -385,6 +399,12 @@ class Trainer:
 
             if iiter % log_interval == 0:
                 reporter.logging(nlatest=log_interval)
+
+        else:
+            if distributed:
+                iterator_stop.fill_(1)
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+
         return all_steps_are_invalid
 
     @classmethod
@@ -392,7 +412,7 @@ class Trainer:
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
-        iterator: DataLoader and Iterable[Dict[str, torch.Tensor]],
+        iterator: Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:
@@ -402,8 +422,17 @@ class Trainer:
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         model.eval()
+
+        # [For distributed] Because iteration counts are not always equals between
+        # processes, send stop-flag to the other processes if iterator is finished
+        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for (_, batch) in iterator:
             assert isinstance(batch, dict), type(batch)
+            if distributed:
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
+
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 reporter.register({})
@@ -417,6 +446,11 @@ class Trainer:
 
             reporter.register(stats, weight)
 
+        else:
+            if distributed:
+                iterator_stop.fill_(1)
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+
     @classmethod
     @torch.no_grad()
     def plot_attention(
@@ -424,7 +458,7 @@ class Trainer:
         model: torch.nn.Module,
         output_dir: Optional[Path],
         summary_writer: Optional[SummaryWriter],
-        iterator: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:

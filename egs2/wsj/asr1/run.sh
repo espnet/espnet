@@ -11,6 +11,7 @@ eval_sets="test_eval92 "
 
 ./asr.sh \
     --nbpe 5000 \
+    --nlsyms_txt data/nlsyms.txt \
     --token_type char \
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \

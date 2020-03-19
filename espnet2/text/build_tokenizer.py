@@ -23,10 +23,22 @@ def build_tokenizer(
     if token_type == "bpe":
         if bpemodel is None:
             raise ValueError('bpemodel is required if token_type = "bpe"')
+
+        if remove_non_linguistic_symbols:
+            raise RuntimeError(
+                "remove_non_linguistic_symbols is not implemented for token_type=bpe"
+            )
         return SentencepiecesTokenizer(bpemodel)
 
     elif token_type == "word":
-        return WordTokenizer(delimiter=delimiter)
+        if remove_non_linguistic_symbols and non_linguistic_symbols is not None:
+            return WordTokenizer(
+                delimiter=delimiter,
+                non_linguistic_symbols=non_linguistic_symbols,
+                remove_non_linguistic_symbols=True,
+            )
+        else:
+            return WordTokenizer(delimiter=delimiter)
 
     elif token_type == "char":
         return CharTokenizer(

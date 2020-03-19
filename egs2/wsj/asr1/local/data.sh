@@ -23,6 +23,7 @@ fi
 . ./db.sh
 
 other_text=data/local/other_text/text
+nlsyms=data/nlsyms,txt
 
 if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' of db.sh"
@@ -46,3 +47,9 @@ mkdir -p "$(dirname ${other_text})"
 zcat ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | \
     grep -v "<" | tr "[:lower:]" "[:upper:]" | \
     awk '{ printf("wsj1_lng_%07d %s\n",NR,$0) } ' > ${other_text}
+
+
+
+log "Create non linguistic symbols: ${nlsyms}"
+cut -f 2- data/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+cat ${nlsyms}
