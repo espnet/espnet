@@ -481,14 +481,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
 
-    if [[ ! ${decode_model} =~ [0-9]*epoch.pth ]]; then
-          # e.g decode_model=valid.acc.max.pth
-          # => _criterion=valid,acc,max
-          _criterion="$(sed -e 's/\./,/g' <<<${decode_model} | cut -d, -f1-3)"
-          python3 -m espnet2.bin.average_nbest_models \
-              --output_dir "${tts_exp}" \
-              --criterion "${_criterion}"
-    fi
 fi
 
 
