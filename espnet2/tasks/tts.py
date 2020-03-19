@@ -90,7 +90,7 @@ class TTSTask(AbsTask):
             help="The number of dimension of output feature",
         )
         group.add_argument(
-            "--e2e_conf",
+            "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetTTSModel),
             help="The keyword arguments for E2E class.",
@@ -218,7 +218,10 @@ class TTSTask(AbsTask):
 
         # 4. Build model
         model = ESPnetTTSModel(
-            feats_extract=feats_extract, normalize=normalize, tts=tts, **args.e2e_conf,
+            feats_extract=feats_extract,
+            normalize=normalize,
+            tts=tts,
+            **args.model_conf,
         )
         assert check_return_type(model)
         return model

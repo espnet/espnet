@@ -22,7 +22,7 @@ decoder_conf:
         adim: 1024
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.5
     lsm_weight: 0.0     # label smoothing option
 
