@@ -31,6 +31,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.schedulers.noam_lr import NoamLR
@@ -1046,6 +1047,15 @@ class AbsTask(ABC):
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
             )
+
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                # Generated n-best averaged model
+                average_nbest_models(
+                    reporter=reporter,
+                    output_dir=output_dir,
+                    best_model_criterion=args.best_model_criterion,
+                    nbest=args.keep_nbest_models,
+                )
 
     @classmethod
     def build_iter_factory(
