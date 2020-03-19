@@ -28,7 +28,7 @@ decoder_conf:
 
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.2
 
 

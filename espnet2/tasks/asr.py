@@ -130,7 +130,7 @@ class ASRTask(AbsTask):
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
-            "--e2e_conf",
+            "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRModel),
             help="The keyword arguments for E2E class.",
@@ -278,7 +278,7 @@ class ASRTask(AbsTask):
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
-            **args.e2e_conf,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?

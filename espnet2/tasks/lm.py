@@ -74,7 +74,7 @@ class LMTask(AbsTask):
             ],
         )
         group.add_argument(
-            "--e2e_conf",
+            "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetLanguageModel),
             help="The keyword arguments for E2E class.",
@@ -174,7 +174,7 @@ class LMTask(AbsTask):
 
         # 2. Build E2E
         # Assume the last-id is sos_and_eos
-        model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.e2e_conf)
+        model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.model_conf)
 
         # FIXME(kamo): Should be done in model?
         # 3. Initialize

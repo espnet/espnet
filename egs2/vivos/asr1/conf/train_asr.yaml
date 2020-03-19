@@ -24,7 +24,7 @@ best_model_criterion:
     - min
 
 # MTL
-e2e_conf:
+model_conf:
     ctc_weight: 1.0
 
 # network
