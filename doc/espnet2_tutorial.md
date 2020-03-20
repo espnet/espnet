@@ -163,7 +163,7 @@ See  about the usage of training tool.
 (The following is the case of ASR training and you need to replace it accordingly)
 
 ```bash
-# Give configuration file
+# Give a configuration file
 ./run.sh --asr_train_config conf/train_asr.yaml
 # Give arguments to training tool directly
 ./run.sh --asr_args "--foo arg --bar arg2"
