@@ -44,6 +44,7 @@ best_model_criterion:
 -   - valid
     - acc
     - max
+keep_nbest_models: 10
 
 # NoamLR is deprecated. Use WarmupLR.
 # The following is equivalent setting for NoamLR:

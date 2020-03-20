@@ -35,6 +35,11 @@ scheduler_conf:
 val_scheduler_criterion:
     - valid
     - loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
 
 init: xavier_uniform
 
