@@ -143,7 +143,7 @@ See: https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html
   - You can check your environment by `ifconfig` for example. https://www.cyberciti.biz/faq/linux-list-network-interfaces-names-command/
   - Note that `lo` is the first normally, so `lo` must be filtered.
 
-My recommended setting for not virtual environment
+My recommended setting for a non-virtual environment
 -  `NCCL_SOCKET_IFNAME=en,eth,em,bond`
  -  Or, `NCCL_SOCKET_IFNAME=^lo,docker,virbr,vmnet,vboxnet,wl,ww,ppp`
 
