@@ -81,6 +81,19 @@ optim_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
+try:
+    import apex
+
+    optim_classes.update(
+        fusedadam=apex.optimizers.FusedAdam,
+        fusedlamb=apex.optimizers.FusedLAMB,
+        fusednovograd=apex.optimizers.FusedNovoGrad,
+        fusedsgd=apex.optimizers.FusedSGD,
+    )
+    del apex
+except ImportError:
+    pass
+
 scheduler_classes = dict(
     ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
     lambdalr=torch.optim.lr_scheduler.LambdaLR,
