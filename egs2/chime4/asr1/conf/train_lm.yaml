@@ -8,3 +8,9 @@ lm_conf:
     rnn_type: lstm
     nlayers: 2  # 1 for word LMs
     unit: 650   # 1000 for word LMs
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1

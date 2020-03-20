@@ -41,4 +41,10 @@ scheduler_conf:
     warmup_steps: 25000
 
 # others:
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 10
+
 init: chainer

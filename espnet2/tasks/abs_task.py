@@ -81,6 +81,19 @@ optim_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
+try:
+    import apex
+
+    optim_classes.update(
+        fusedadam=apex.optimizers.FusedAdam,
+        fusedlamb=apex.optimizers.FusedLAMB,
+        fusednovograd=apex.optimizers.FusedNovoGrad,
+        fusedsgd=apex.optimizers.FusedSGD,
+    )
+    del apex
+except ImportError:
+    pass
+
 scheduler_classes = dict(
     ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
     lambdalr=torch.optim.lr_scheduler.LambdaLR,
@@ -397,7 +410,7 @@ class AbsTask(ABC):
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
-            "--keep_n_best_checkpoints",
+            "--keep_nbest_models",
             type=int,
             default=10,
             help="Remove previous snapshots excluding the n-best scored epochs",
@@ -1001,6 +1014,15 @@ class AbsTask(ABC):
             for scheduler, state in zip(schedulers, states["schedulers"]):
                 if scheduler is not None:
                     scheduler.load_state_dict(state)
+            if use_apex and states["amp"] is not None:
+                try:
+                    from apex import amp
+                except ImportError:
+                    logging.error(
+                        f"You need to install apex. "
+                        f"See https://github.com/NVIDIA/apex#linux"
+                    )
+                amp.load_state_dict(states["amp"])
 
             logging.info(
                 f"The training was resumed using {output_dir / 'checkpoint.pth'}"
@@ -1040,7 +1062,7 @@ class AbsTask(ABC):
                 max_epoch=args.max_epoch,
                 seed=args.seed,
                 patience=args.patience,
-                keep_n_best_checkpoints=args.keep_n_best_checkpoints,
+                keep_nbest_models=args.keep_nbest_models,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
@@ -1054,7 +1076,7 @@ class AbsTask(ABC):
                     reporter=reporter,
                     output_dir=output_dir,
                     best_model_criterion=args.best_model_criterion,
-                    nbest=args.keep_n_best_checkpoints,
+                    nbest=args.keep_nbest_models,
                 )
 
     @classmethod

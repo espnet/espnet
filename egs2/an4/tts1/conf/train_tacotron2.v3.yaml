@@ -63,6 +63,10 @@ sort_batch: descending      # how to sort created batches
 num_workers: 1              # number of workers of data loader
 train_dtype: float32        # dtype in training
 log_interval: null          # log interval in iterations
-keep_n_best_checkpoints: 10 # number of checkpoints to keep
+keep_nbest_models: 10       # number of models to keep
 num_att_plot: 3             # number of attention figures to be saved in every check
 seed: 0                     # random seed number
+best_model_criterion:
+-   - valid
+    - acc
+    - max

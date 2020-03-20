@@ -4,6 +4,11 @@ max_epoch: 200
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
 
 encoder: transformer
 encoder_conf:

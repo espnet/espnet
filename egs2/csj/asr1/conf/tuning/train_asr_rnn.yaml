@@ -41,3 +41,9 @@ patience: 3
 
 # minibatch related
 batch_size: 24
+
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 1
