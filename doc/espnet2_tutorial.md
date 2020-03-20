@@ -19,7 +19,7 @@ The developing status is still **under construction** yet, so please be very car
 - **On the fly** feature extraction & text preprocessing for training
   - You don't need to create the feature file before training, but just input wave data directly.
       - We support both raw wave inputting and extracted feature.
-  - The preprocessing for Text, tokenization to characters, or sentencepieces, can be also applied in training time.
+  - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
 - Discarding JSON format for describing training corpus in espnet1.
     - Why do we discard JSON format? Because a dict object generated from large JSON file requires much memory and it also takes much times to parse such large JSON file.
 - Support distributed data-parallel training (Not enough tested)
