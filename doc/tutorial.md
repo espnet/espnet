@@ -10,7 +10,7 @@ egs/                 # The complete recipe for each corpora
     an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
       asr1/          # ASR recipe
           - run.sh   # Executable script
-          - cmd.sh   # To select the backend for job scheduler 
+          - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
           - conf/    # Containing COnfiguration files
           - steps/   # The utils scripts from Kaldi
@@ -44,23 +44,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 ### Setup in your cluster
-Change `cmd.sh` according to your cluster setup.
-If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see [Parallelization in Kaldi
-](http://kaldi-asr.org/doc/queue.html).
-It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
-
-You also changing the configuration to use specified backend:
-
-
-|cmd     |Backend                                  | configuration file|
-|--------| :--------------------------------------:| :---------------: |
-|run.pl  | Local machine (default)                 |-                  |
-|queue.pl|Sun grid engine, or grid endine like tool|conf/queue.conf    |
-|slurm.pl|Slurm                                    |conf/queue.conf    |
-|pbs.pl  |PBS/Torque                               |conf/pbs.conf      |
-|ssh.pl  |SSH                                      |.queue/machines    |
-
+See [Using Job scheduling system](./parallelization.md)
 
 ### Logging
 
@@ -97,7 +81,7 @@ Note that we would not include the installation of Tensorboard to simplify our i
 
 ### Change options in run.sh
 
-We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's used in run.sh: 
+We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's used in run.sh:
 
 e.g. If the script has `ngpu` option
 
@@ -151,7 +135,7 @@ echo 2
 
 ### Start from the middle stage or stop at specified stage
 
-`run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start 
+`run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start
 from the specified stage if some stages are failed by some reason for example.
 
 You can start from specified stage as following and stop the process at the specifed stage:
