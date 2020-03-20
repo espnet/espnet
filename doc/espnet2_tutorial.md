@@ -20,7 +20,7 @@ The developing status is still **under construction** yet, so please be very car
   - You don't need to create the feature file before training, but just input wave data directly.
       - We support both raw wave input and extracted feature.
   - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
-- Discarding JSON format for describing training corpus in espnet1.
+- Discarding the JSON format for describing the training corpus in espnet1.
     - Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.
 - Support distributed data-parallel training (Not enough tested)
    - Single node multi GPU training with `DistributedDataParallel` is also supported.
