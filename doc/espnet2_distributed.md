@@ -6,7 +6,7 @@
 % python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed true
 ```
 
-You can disable distributed mode and switch to threading based data parallel as following:
+You can disable distributed mode and switch to threading based data parallel as follows:
 
 ```bash
 % python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed false
