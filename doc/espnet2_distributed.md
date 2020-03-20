@@ -84,7 +84,7 @@ There are two ways to initialize:
     --dist_master_port <any-free-port>
 ```
 
-### 2Nodes and 2GPUs for each nodes using `Slurm` with multiprocessing distributed
+### 2Nodes and 2GPUs for each node using `Slurm` with multiprocessing distributed
 
 ```bash
  % srun -c2 -N2 --gres gpu:2 \
@@ -161,4 +161,3 @@ My recommended setting for not virtual environment
 |virbr|Virtual bridge|
 |docker,vmnet,vboxnet|Virtual machine|
 |ppp|Point to point|
-
