@@ -7,12 +7,12 @@ from typeguard import check_argument_types
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet2.train.abs_e2e import AbsE2E
-from espnet2.tts.abs_model import AbsTTS
+from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 
-class TTSE2E(AbsE2E):
+class ESPnetTTSModel(AbsESPnetModel):
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
