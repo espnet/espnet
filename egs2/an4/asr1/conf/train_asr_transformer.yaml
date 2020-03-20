@@ -32,7 +32,7 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 
-model_conf:
+e2e_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false

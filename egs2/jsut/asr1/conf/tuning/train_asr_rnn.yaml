@@ -36,3 +36,9 @@ optim_conf:
 init: xavier_uniform
 max_epoch: 50
 batch_size: 35
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1

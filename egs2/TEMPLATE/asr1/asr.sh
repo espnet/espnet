@@ -81,7 +81,7 @@ decode_lm=valid.loss.best.pth       # Language modle path for decoding.
 decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # e.g.
                                     # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch/model.pth
+                                    # decode_asr_model=3epoch.pth
                                     # decode_asr_model=valid.acc.best.pth
                                     # decode_asr_model=valid.loss.ave.pth
 

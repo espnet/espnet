@@ -110,7 +110,7 @@ class Trainer:
         max_epoch: int,
         seed: int,
         patience: Optional[int],
-        keep_n_best_checkpoints: int,
+        keep_nbest_models: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
@@ -121,6 +121,22 @@ class Trainer:
         assert check_argument_types()
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
+
+        # NOTE(kamo): trainer_options doesn't always have "train_dtype"
+        use_apex = getattr(trainer_options, "train_dtype", "") in (
+            "O0",
+            "O1",
+            "O2",
+            "O3",
+        )
+        if use_apex:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    f"You need to install apex. "
+                    f"See https://github.com/NVIDIA/apex#linux"
+                )
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -221,6 +237,7 @@ class Trainer:
                             s.state_dict() if s is not None else None
                             for s in schedulers
                         ],
+                        "amp": amp.state_dict() if use_apex else None,
                     },
                     output_dir / "checkpoint.pth",
                 )
@@ -251,7 +268,7 @@ class Trainer:
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_n_best_checkpoints])
+                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
                         for ph, k, m in best_model_criterion
                         if reporter.has(ph, k)
                     ]
@@ -306,8 +323,8 @@ class Trainer:
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
-        train_dtype = options.train_dtype
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
+        use_apex = options.train_dtype in ("O0", "O1", "O2", "O3")
 
         if log_interval is None:
             try:
@@ -351,8 +368,14 @@ class Trainer:
             reporter.register(stats, weight)
 
             loss /= accum_grad
-            if train_dtype in ("O0", "O1", "O2", "O3"):
-                from apex import amp
+            if use_apex:
+                try:
+                    from apex import amp
+                except ImportError:
+                    logging.error(
+                        f"You need to install apex. "
+                        f"See https://github.com/NVIDIA/apex#linux"
+                    )
 
                 with amp.scale_loss(loss, optimizers) as scaled_loss:
                     scaled_loss.backward()
