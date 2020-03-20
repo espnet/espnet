@@ -38,12 +38,10 @@ scheduler_conf:
 
 # minibatch related
 batch_size: 32
-#max_length:
-#    - 512
-#    - 150
 
 # criterion
 best_model_criterion:
--  - eval
+-  - valid
    - acc
    - max
+keep_nbest_models: 10

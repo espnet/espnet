@@ -410,7 +410,7 @@ class AbsTask(ABC):
             'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
         )
         group.add_argument(
-            "--keep_n_best_checkpoints",
+            "--keep_nbest_models",
             type=int,
             default=10,
             help="Remove previous snapshots excluding the n-best scored epochs",
@@ -1062,7 +1062,7 @@ class AbsTask(ABC):
                 max_epoch=args.max_epoch,
                 seed=args.seed,
                 patience=args.patience,
-                keep_n_best_checkpoints=args.keep_n_best_checkpoints,
+                keep_nbest_models=args.keep_nbest_models,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
@@ -1076,7 +1076,7 @@ class AbsTask(ABC):
                     reporter=reporter,
                     output_dir=output_dir,
                     best_model_criterion=args.best_model_criterion,
-                    nbest=args.keep_n_best_checkpoints,
+                    nbest=args.keep_nbest_models,
                 )
 
     @classmethod
