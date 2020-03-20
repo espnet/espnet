@@ -145,7 +145,7 @@ The behavior for batch-size when multi-GPU mode is **different from that of ESPN
 Note that even espnet1, if using `bin` or `frame` batch-count, this changing of batch_size is not done.
 
 ## Gradient accumulating
-There are several measures to deal large model architecture than your GPU device memory when training.
+There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.
 
 - Using more number of GPUs
 - Using half decision tensor
