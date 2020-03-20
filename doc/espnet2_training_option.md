@@ -89,7 +89,7 @@ Sometimes the examination after training with whole corpus is too coarse if usin
 python -m espnet2.bin.asr_train --num_iters_per_epoch 1000
 ```
 
-Note that he training process can't be resumed at the middle of an epoch because data iterators is stateless, but instead of it, the iterators for each epochs can be built with the specific epoch number deterministically, just like:
+Note that the training process can't be resumed at the middle of an epoch because data iterators are stateless, but instead of it, the iterators for each epoch can be built with the specific epoch number deterministically, just like:
 
 ```python
 epoch_iter_factory = Task.build_epoch_iter_factory()
