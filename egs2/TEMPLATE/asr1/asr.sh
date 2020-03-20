@@ -829,10 +829,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/asr_recog.*.log'"
+        log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_recog.JOB.log \
-            python3 -m espnet2.bin.asr_decode \
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
+            python3 -m espnet2.bin.asr_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \

@@ -19,8 +19,8 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.tts.abs_model import AbsTTS
-from espnet2.tts.e2e import TTSE2E
+from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
@@ -90,9 +90,9 @@ class TTSTask(AbsTask):
             help="The number of dimension of output feature",
         )
         group.add_argument(
-            "--e2e_conf",
+            "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(TTSE2E),
+            default=get_default_kwargs(ESPnetTTSModel),
             help="The keyword arguments for E2E class.",
         )
 
@@ -175,7 +175,7 @@ class TTSTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> TTSE2E:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetTTSModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -217,8 +217,11 @@ class TTSTask(AbsTask):
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
         # 4. Build model
-        model = TTSE2E(
-            feats_extract=feats_extract, normalize=normalize, tts=tts, **args.e2e_conf,
+        model = ESPnetTTSModel(
+            feats_extract=feats_extract,
+            normalize=normalize,
+            tts=tts,
+            **args.model_conf,
         )
         assert check_return_type(model)
         return model

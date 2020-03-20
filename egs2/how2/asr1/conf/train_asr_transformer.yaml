@@ -30,7 +30,7 @@ best_model_criterion:
 keep_nbest_models: 10
 
 # MTL
-e2e_conf:
+model_conf:
     ctc_weight: 0.4
     lsm_weight: 0.1
     length_normalized_loss: false

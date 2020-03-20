@@ -39,7 +39,7 @@ from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.batch_sampler import build_batch_sampler
 from espnet2.train.batch_sampler import ConstantBatchSampler
 from espnet2.train.class_choices import ClassChoices
@@ -165,8 +165,8 @@ class AbsTask(ABC):
         >>> cls.check_task_requirements()
         If your model is defined as following,
 
-        >>> from espnet2.train.abs_e2e import AbsE2E
-        >>> class Model(AbsE2E):
+        >>> from espnet2.train.abs_espnet_model import AbsESPnetModel
+        >>> class Model(AbsESPnetModel):
         ...     def forward(self, input, output, opt=None):  pass
 
         then "required_data_names" should be as
@@ -184,8 +184,8 @@ class AbsTask(ABC):
         >>> cls.check_task_requirements()
         If your model is defined as following,
 
-        >>> from espnet2.train.abs_e2e import AbsE2E
-        >>> class Model(AbsE2E):
+        >>> from espnet2.train.abs_espnet_model import AbsESPnetModel
+        >>> class Model(AbsESPnetModel):
         ...     def forward(self, input, output, opt=None):  pass
 
         then "optional_data_names" should be as
@@ -196,7 +196,7 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def build_model(cls, args: argparse.Namespace) -> AbsE2E:
+    def build_model(cls, args: argparse.Namespace) -> AbsESPnetModel:
         raise NotImplementedError
 
     @classmethod
@@ -926,9 +926,9 @@ class AbsTask(ABC):
 
         # 3. Build model
         model = cls.build_model(args=args)
-        if not isinstance(model, AbsE2E):
+        if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
-                f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
+                f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
         if args.train_dtype in ("float16", "float32", "float64"):
             dtype = getattr(torch, args.train_dtype)
@@ -1357,7 +1357,7 @@ class AbsTask(ABC):
         config_file: Union[Path, str],
         model_file: Union[Path, str] = None,
         device: str = "cpu",
-    ) -> Tuple[AbsE2E, argparse.Namespace]:
+    ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
         """This method is used for inference or fine-tuning.
 
         Args:
@@ -1373,9 +1373,9 @@ class AbsTask(ABC):
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
         model = cls.build_model(args)
-        if not isinstance(model, AbsE2E):
+        if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
-                f"model must inherit {AbsE2E.__name__}, but got {type(model)}"
+                f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
         model.to(device)
         if model_file is not None:

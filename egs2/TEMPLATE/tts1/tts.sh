@@ -533,11 +533,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/tts_decode.*.log'"
+        log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
         # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
-            python3 -m espnet2.bin.tts_decode \
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
+            python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
                 --key_file "${_logdir}"/keys.JOB.scp \
