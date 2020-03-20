@@ -17,7 +17,7 @@ The developing status is still **under construction** yet, so please be very car
   - We still support the features made by Kaldi optionally.
   - We still follow Kaldi style. i.e. depending on `utils/` of Kaldi.
 - **On the fly** feature extraction & text preprocessing for training
-  - You don't need to create the features file before training, but just inputting wave data directly.
+  - You don't need to create the feature file before training, but just input wave data directly.
       - We support both raw wave inputting and extracted feature.
   - The preprocessing for Text, tokenization to characters, or sentencepieces, can be also applied in training time.
 - Discarding JSON format for describing training corpus in espnet1.
