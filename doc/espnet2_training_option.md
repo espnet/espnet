@@ -29,7 +29,7 @@ You can find the configuration files for DNN training in `conf/train_*.yaml`.
 ls conf/
 ```
 
-We adopts [ConfigArgParse](https://github.com/bw2/ConfigArgParse) for this configuration system. The configuration in yaml format has equivalent effect to the command line argument. e.g. The following two are equivalent:
+We adopt [ConfigArgParse](https://github.com/bw2/ConfigArgParse) for this configuration system. The configuration in yaml format has an equivalent effect to the command line argument. e.g. The following two are equivalent:
 
 ```yaml
 # config.yaml
@@ -206,4 +206,3 @@ By default, CuDNN performs non-deterministic mode and it can be changed by:
 ```bash
 python -m espnet.bin.asr_train --cudnn_deterministic true
 ```
-
