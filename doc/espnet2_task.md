@@ -213,7 +213,7 @@ We provide common collate_fn and this function can support many cases, so you mi
     ```python
     batch = {"speech": ..., "speech_lengths": ..., "text": ..., "text_lengths": ...}
     ```
-- If the feature is not sequence data, this behavior can be disable.
+- If the feature is not sequential data, this behavior can be disabled.
     ```bash
     python -m new_task --train_data_path_and_name_and_type=filepath,foo,npy
     ```
