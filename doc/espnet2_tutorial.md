@@ -80,7 +80,7 @@ The usage of recipes is **almost same** as that of ESPnet1.
 
     - You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, you'll the recipe of `egs2/wsj`, you need to change the value of `WSJ0` and `WSJ1`.
         - Some corpus can be freely obtained from WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
-    - `path.sh` is used to setup the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use the Python.
+    - `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
     ```bash
     source path.sh
     python
