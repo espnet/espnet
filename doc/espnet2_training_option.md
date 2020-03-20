@@ -148,7 +148,7 @@ Note that even espnet1, if using `bin` or `frame` batch-count, this changing of 
 There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.
 
 - Using a larger number of GPUs
-- Using half decision tensor
+- Using a half decision tensor
 - Using [torch.utils.checkpoint](https://pytorch.org/docs/stable/checkpoint.html)
 - Gradient accumulating
 
