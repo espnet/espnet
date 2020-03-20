@@ -13,7 +13,7 @@ You can disable distributed mode and switch to threading based data parallel as 
 ```
 
 ### 2Nodes and 2GPUs for each node with multiprocessing distributed mode
-Note that multiprocessing distributed mode assumes same number of GPUs for each nodes.
+Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
 
 ```bash
 (host1) % python -m espnet2.bin.asr_train \
