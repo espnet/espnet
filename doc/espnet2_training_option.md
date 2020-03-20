@@ -191,7 +191,7 @@ python -m espnet.bin.asr_train --train_dtype O2  # opt_level of apex
 python -m espnet.bin.asr_train --train_dtype O3  # opt_level of apex
 ```
 
-## Reprodusibility and determinism
+## Reproducibility and determinization
 There are some possibilities to make training non-reproducible.
 
 - Initialization of parameters which comes from pytorch/espnet version difference.
