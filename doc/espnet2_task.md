@@ -200,7 +200,7 @@ for ids, batch in data_loader:
 We provide common collate_fn and this function can support many cases, so you might not need to customize it. This collate_fn is aware of variable sequence features for seq2seq task:
 
 - The first axis of the sequence tensor from dataset must be length axis: e.g. (Length, Dim), (Length, Dim, Dim2), or (Length, ...)
-- It's not necessary to be unified the lengths of each samples and they are stacked with zero-padding.
+- It's not necessary to make the lengths of each sample unified and they are stacked with zero-padding.
     - The value of padding can be changed.
     ```python
     from espnet2.train.collate_fn import CommonCollateFn
