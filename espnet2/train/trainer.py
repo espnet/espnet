@@ -202,7 +202,7 @@ class Trainer:
                 )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # att_plot don't support distributed
+                # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
                     with reporter.observe("att_plot") as sub_reporter:
                         cls.plot_attention(
@@ -283,7 +283,7 @@ class Trainer:
                         f"The model files were removed: " + ", ".join(_removed)
                     )
 
-            # 7. If any updating haven't happen, stops the training
+            # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
                 logging.warning(
                     f"The gradients at all steps are invalid in this epoch. "
