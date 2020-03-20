@@ -157,7 +157,10 @@ def train(args):
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit,
+                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
+            )
+        )
         torch.load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
@@ -400,7 +403,10 @@ def recog(args):
             raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit,
+                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
+            )
+        )
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
