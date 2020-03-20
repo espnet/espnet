@@ -121,7 +121,7 @@ In ESPnet1, we support three type of mini-batch type:
 - --batch-count bin
 - --batch-count frame
 
-For now, ESPnet2 supports only `seq` mode. Do as following to change the batch-size.
+For now, ESPnet2 supports only `seq` mode. The batch-size can be changed as follows:
 
 ```bash
 # Change both of the batch_size for training and validation
