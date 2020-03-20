@@ -59,7 +59,7 @@ There are two ways to initialize:
 
 
 
-### 2Nodes which have 2GPUs and 1GPUs respectively
+### 2Nodes which have 2GPUs and 1GPU respectively
 ```bash
 (host1) % python -m espnet2.bin.asr_train \
     --ngpu 1 \
@@ -161,5 +161,4 @@ My recommended setting for not virtual environment
 |virbr|Virtual bridge|
 |docker,vmnet,vboxnet|Virtual machine|
 |ppp|Point to point|
-
 
