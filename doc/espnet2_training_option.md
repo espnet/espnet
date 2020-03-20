@@ -45,7 +45,7 @@ python -m espnet2.bin.asr_train --foo 3 --bar 4
 
 ## Change the configuration for dict type value
 
-Come parameters are named as `*_conf`, e.g. `optim_conf`, `decoder_conf` and they has the `dict` type value. We also provide the way to configure the nested value in such dict object.
+Some parameters are named as `*_conf`, e.g. `optim_conf`, `decoder_conf` and they has the `dict` type value. We also provide a way to configure the nested value in such a dict object.
 
 ```bash
 # e.g. Change parameters one by one
