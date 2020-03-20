@@ -26,7 +26,11 @@ sort data/${set}/text.tc.en > data/${set}.en/text.tc
 sort data/${set}/text.lc.en > data/${set}.en/text.lc
 sort data/${set}/text.lc.rm.en > data/${set}.en/text.lc.rm
 utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}.en
-utils/validate_data_dir.sh --no-wav data/${set}.en || exit 1;
+if [ -f data/${set}.en/feats.scp ]; then
+    utils/validate_data_dir.sh --no-wav data/${set}.en || exit 1;
+else
+    utils/validate_data_dir.sh --no-feats --no-wav data/${set}.en || exit 1;
+fi
 
 # for Pt
 if [ ! ${set} = test_set_iwslt2019 ]; then
@@ -41,5 +45,9 @@ if [ ! ${set} = test_set_iwslt2019 ]; then
     sort data/${set}/text.lc.pt > data/${set}.pt/text.lc
     sort data/${set}/text.lc.rm.pt > data/${set}.pt/text.lc.rm
     utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${set}.pt
-    utils/validate_data_dir.sh --no-wav data/${set}.pt || exit 1;
+    if [ -f data/${set}.pt/feats.scp ]; then
+        utils/validate_data_dir.sh --no-wav data/${set}.pt || exit 1;
+    else
+        utils/validate_data_dir.sh --no-feats --no-wav data/${set}.pt || exit 1;
+    fi
 fi

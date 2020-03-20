@@ -17,4 +17,4 @@ fi
 # espnet2 follows "black" style.
 pycodestyle -r espnet2 test/espnet2 setup.py --max-line-length 88 --ignore E203,W503 --show-source --show-pep8 
 
-LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" pytest
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" pytest -q
