@@ -21,7 +21,7 @@ The developing status is still **under construction** yet, so please be very car
       - We support both raw wave inputting and extracted feature.
   - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
 - Discarding JSON format for describing training corpus in espnet1.
-    - Why do we discard JSON format? Because a dict object generated from large JSON file requires much memory and it also takes much times to parse such large JSON file.
+    - Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.
 - Support distributed data-parallel training (Not enough tested)
    - Single node multi GPU training with `DistributedDataParallel` is also supported.
 
