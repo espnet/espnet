@@ -120,7 +120,7 @@ tensorboard --logdir exp/asr_train_<some-name>/tensorboard/
 ```
 
 # Instruction for run.sh
-We uses all python commands via `run.sh` and you may need to invoke Python script directly in some cases, but `run.sh` itself is configurable and you can live comfortably with it in many cases without any modifications.
+We use all python commands via `run.sh` and you may need to invoke a Python script directly in some cases, but `run.sh` itself is configurable and you can live comfortably with it in many cases without any modifications.
 
 ## How to parse command line arguments in shell scripts?
 
@@ -168,5 +168,4 @@ See  about the usage of training tool.
 # Give arguments to training tool directly
 ./run.sh --asr_args "--foo arg --bar arg2"
 ```
-
 
