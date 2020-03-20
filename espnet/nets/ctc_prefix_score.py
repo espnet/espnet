@@ -161,6 +161,9 @@ class CTCPrefixScoreTH(object):
         for si in range(self.n_bb):
             log_psi[si, self.eos] = r_sum[self.end_frames[si], si]
 
+        # exclude blank probs
+        log_psi[:, self.blank] = self.logzero
+
         return (r, log_psi, f_min, f_max, scoring_idmap), log_psi - s_prev
 
     def index_select_state(self, state, best_ids):
@@ -265,6 +268,11 @@ class CTCPrefixScore(object):
         eos_pos = self.xp.where(cs == self.eos)[0]
         if len(eos_pos) > 0:
             log_psi[eos_pos] = r_sum[-1]  # log(r_T^n(g) + r_T^b(g))
+
+        # exclude blank probs
+        blank_pos = self.xp.where(cs == self.blank)[0]
+        if len(blank_pos) > 0:
+            log_psi[blank_pos] = self.logzero
 
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily

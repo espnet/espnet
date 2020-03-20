@@ -134,6 +134,8 @@ if __name__ == '__main__':
             new_dic[key_id] = {'input': orgdic['input'],
                                'output': output_list,
                                'utt2spk': orgdic['utt2spk']}
+            if 'lang' in orgdic.keys():
+                new_dic[key_id]['lang'] = orgdic['lang']
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False,

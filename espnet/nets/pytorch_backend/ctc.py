@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import logging
 
 import numpy as np
@@ -22,8 +23,11 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.ctc_type = ctc_type
 
+        # In case of Pytorch >= 1.2.0, CTC will be always builtin
+        self.ctc_type = ctc_type if LooseVersion(torch.__version__) < LooseVersion('1.2.0') else 'builtin'
+        if ctc_type != self.ctc_type:
+            logging.warning(f'CTC was set to {self.ctc_type} due to PyTorch version.')
         if self.ctc_type == 'builtin':
             reduction_type = 'sum' if reduce else 'none'
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)

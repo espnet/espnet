@@ -74,6 +74,7 @@ requirements = {
         "recommonmark>=0.4.0",
         "travis-sphinx>=2.0.1",
         "nbsphinx>=0.4.2",
+        "sphinx-markdown-tables>=0.0.12",
     ],
 }
 install_requires = requirements["install"]

@@ -1,4 +1,4 @@
-# Summary (BLEU)
+# Summary (4-gram BLEU)
 |model                   |De   |Pt   |Fr   |Es   |Ro   |Ru   |Nl   |It   |
 |------------------------|-----|-----|-----|-----|-----|-----|-----|-----|
 |Transformer (tc->tc) [[Di Gangi et al.]](https://www.aclweb.org/anthology/N19-1202/)|28.09|32.44|42.23|34.16|28.16|18.30|33.43|30.40|
