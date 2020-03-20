@@ -1001,6 +1001,15 @@ class AbsTask(ABC):
             for scheduler, state in zip(schedulers, states["schedulers"]):
                 if scheduler is not None:
                     scheduler.load_state_dict(state)
+            if use_apex and states["amp"] is not None:
+                try:
+                    from apex import amp
+                except ImportError:
+                    logging.error(
+                        f"You need to install apex. "
+                        f"See https://github.com/NVIDIA/apex#linux"
+                    )
+                amp.load_state_dict(states["amp"])
 
             logging.info(
                 f"The training was resumed using {output_dir / 'checkpoint.pth'}"
