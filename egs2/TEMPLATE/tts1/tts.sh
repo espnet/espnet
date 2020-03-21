@@ -80,6 +80,8 @@ eval_sets=      # Names of evaluation sets. Multiple items can be specified.
 srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
+text_fold_length=150   # fold_length for text data
+speech_fold_length=800 # fold_length for speech data
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
@@ -136,6 +138,8 @@ Options:
                  # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
+    --text_fold_length   # fold_length for text data
+    --speech_fold_length # fold_length for speech data
 EOF
 )
 
@@ -358,11 +362,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _fold_length=80000
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _fold_length=800
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -437,11 +439,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _fold_length=80000
+        _fold_length="$((speech_fold_length * 100))"
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _fold_length=800
+        _fold_length="${speech_fold_length}"
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -472,7 +474,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
-            --fold_length 150 \
+            --fold_length "${text_fold_length}" \
             --fold_length ${_fold_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
