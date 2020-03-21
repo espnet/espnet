@@ -1,6 +1,5 @@
 optim: sgd
 patience: 3
-max_length: 100
 max_epoch: 40
 batch_size: 256
 lm: seq_rnn

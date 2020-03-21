@@ -9,9 +9,6 @@ init: chainer
 batch_size: 20
 max_epoch: 15
 patience: 3
-max_length:
-    - 800
-    - 150
 
 # criterion
 val_scheduler_criterion:
