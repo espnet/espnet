@@ -51,7 +51,7 @@ There are two ways to initialize:
    --dist_init_method "file:///nfs/some/where/filename"
    ```
 
-   This initialization might be failed if the previous file is existing. I recommend you to use random file name to avoid to reuse it. e.g.
+   This initialization might be failed if the previous file is existing. I recommend you to use a random file name to avoid to reuse it. e.g.
 
    ```bash
    --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
@@ -137,8 +137,8 @@ See: https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html
 - The default value is  `NCCL_SOCKET_IFNAME=^lo,docker`.
 - Support two syntax: white list or black list
 - White list e.g.: `NCCL_SOCKET_IFNAME=eth,em`
-  - It's enough to specify the prefix only. You don't need to  set it as `eth0`.
-- Black list e.g.: `^virbr,lo,docker`.
+  - It's enough to specify the prefix only. You don't need to set it as `eth0`.
+- Blacklist e.g.: `^virbr,lo,docker`.
 - If multiple network interfaces are found in your environment, the first is selected.
   - You can check your environment by `ifconfig` for example. https://www.cyberciti.biz/faq/linux-list-network-interfaces-names-command/
   - Note that `lo` is the first normally, so `lo` must be filtered.
@@ -152,12 +152,12 @@ My recommended setting for a non-virtual environment
 |lo|Loopback.|
 |eth|Ethernet. Classically used.|
 |em|Ethernet. Dell machine?|
-|en|Ethernet (Used in recent linux. e.g CentOS7)|
+|en|Ethernet (Used in recent Linux. e.g CentOS7)|
 |wlan|Wireless|
-|wl|Wireless lan (Used in recent linux)|
-|ww|Wireless wan (Used in recent linux)|
+|wl|Wireless LAN (Used in recent Linux)|
+|ww|Wireless wan (Used in recent Linux)|
 |ib|IP over IB|
-|bond|Bonding of multiple ethernet |
+|bond|Bonding of multiple ethernets |
 |virbr|Virtual bridge|
 |docker,vmnet,vboxnet|Virtual machine|
 |ppp|Point to point|
