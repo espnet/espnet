@@ -19,7 +19,7 @@ def build_batch_sampler(
     type: str,
     batch_size: int,
     shape_files: Union[Tuple[str, ...], List[str]],
-    max_lengths: Sequence[int] = (),
+    fold_lengths: Sequence[int] = (),
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
     drop_last: bool = False,
@@ -32,7 +32,7 @@ def build_batch_sampler(
         batch_size: The mini-batch size
         shape_files: Text files describing the length and dimension
             of each features. e.g. uttA 1330,80
-        max_lengths: Used for "seq" mode
+        fold_lengths: Used for "seq" mode
         sort_in_batch:
         sort_batch:
         drop_last:
@@ -55,16 +55,16 @@ def build_batch_sampler(
         )
 
     elif type == "seq":
-        if len(max_lengths) != len(shape_files):
+        if len(fold_lengths) != len(shape_files):
             raise ValueError(
-                f"The number of max_lengths must be equal to "
+                f"The number of fold_lengths must be equal to "
                 f"the number of shape_files: "
-                f"{len(max_lengths)} != {len(shape_files)}"
+                f"{len(fold_lengths)} != {len(shape_files)}"
             )
         retval = SequenceBatchSampler(
             batch_size=batch_size,
             shape_files=shape_files,
-            max_lengths=max_lengths,
+            fold_lengths=fold_lengths,
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
             drop_last=drop_last,
@@ -246,7 +246,7 @@ class SequenceBatchSampler(AbsSampler):
         self,
         batch_size: int,
         shape_files: Union[Tuple[str, ...], List[str]],
-        max_lengths: Sequence[int],
+        fold_lengths: Sequence[int],
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
@@ -285,7 +285,7 @@ class SequenceBatchSampler(AbsSampler):
         batch_sizes = []
         while True:
             k = keys[start]
-            factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, max_lengths))
+            factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, fold_lengths))
             bs = max(min_batch_size, int(batch_size / (1 + factor)))
             if self.drop_last and start + bs > len(keys):
                 # This if-block avoids 0-batches

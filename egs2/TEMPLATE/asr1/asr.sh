@@ -539,7 +539,9 @@ if "${use_lm}"; then
 
       # 2. Submit jobs
       log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
-      # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
+      # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+      #       but it's used only for deciding the sample ids.
+
       # shellcheck disable=SC2086
       ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
           python3 -m espnet2.bin.lm_train \
@@ -597,7 +599,7 @@ if "${use_lm}"; then
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --train_shape_file "${lm_stats_dir}/train/text_shape" \
               --valid_shape_file "${lm_stats_dir}/valid/text_shape" \
-              --max_length 150 \
+              --fold_length 150 \
               --resume true \
               --output_dir "${lm_exp}" \
               ${_opts} ${lm_args}
@@ -676,12 +678,11 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
-
     # 2. Submit jobs
     log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
 
-    # NOTE: --*_shape_file doesn't require length information if --batch_type=const --sort_in_batch=none
+    # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+    #       but it's used only for deciding the sample ids.
 
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -729,12 +730,12 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _max_length=80000
+        _fold_length=80000
         _opts+="--frontend_conf fs=${fs} "
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _max_length=800
+        _fold_length=800
         _input_size="$(<${_asr_train_dir}/feats_dim)"
         _opts+="--input_size=${_input_size} "
 
@@ -743,8 +744,6 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
     fi
-
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
 
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -770,8 +769,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${asr_stats_dir}/valid/text_shape" \
             --resume true \
-            --max_length "${_max_length}" \
-            --max_length 150 \
+            --fold_length "${_fold_length}" \
+            --fold_length 150 \
             --output_dir "${asr_exp}" \
             ${_opts} ${asr_args}
 

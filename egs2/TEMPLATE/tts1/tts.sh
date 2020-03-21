@@ -358,13 +358,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
+        _fold_length=80000
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
+        _fold_length=800
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -439,13 +437,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
+        _fold_length=80000
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
+        _fold_length=800
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -476,8 +472,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
-            --max_length 150 \
-            --max_length ${_max_length} \
+            --fold_length 150 \
+            --fold_length ${_fold_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
 

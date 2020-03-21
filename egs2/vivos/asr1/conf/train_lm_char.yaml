@@ -1,5 +1,4 @@
 optim: sgd
-max_length: 150
 max_epoch: 20
 lm: seq_rnn
 lm_conf:

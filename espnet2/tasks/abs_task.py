@@ -502,7 +502,7 @@ class AbsTask(ABC):
             choices=_batch_type_choices + (None,),
             help="If not given, the value of --batch_type is used",
         )
-        group.add_argument("--max_length", type=int, action="append", default=[])
+        group.add_argument("--fold_length", type=int, action="append", default=[])
         group.add_argument(
             "--sort_in_batch",
             type=str,
@@ -859,7 +859,7 @@ class AbsTask(ABC):
             seed=args.seed,
             allow_variable_data_keys=args.allow_variable_data_keys,
             ngpu=args.ngpu,
-            max_length=args.max_length,
+            fold_length=args.fold_length,
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
             chunk_length=args.chunk_length,
@@ -1099,7 +1099,7 @@ class AbsTask(ABC):
         max_cache_size: float,
         distributed: bool,
         name: str,
-        max_length: Sequence[int],
+        fold_length: Sequence[int],
         sort_in_batch: str,
         sort_batch: str,
         chunk_length: Union[int, str],
@@ -1159,7 +1159,7 @@ class AbsTask(ABC):
             return cls.build_sequence_iter_factory(
                 **kwargs,
                 batch_type=batch_type,
-                max_length=max_length,
+                fold_length=fold_length,
                 sort_in_batch=sort_in_batch,
                 sort_batch=sort_batch,
             )
@@ -1187,7 +1187,7 @@ class AbsTask(ABC):
         batch_size: int,
         collate_fn,
         train_dtype: str,
-        max_length: Sequence[int],
+        fold_length: Sequence[int],
         num_workers: int,
         sort_in_batch: str,
         sort_batch: str,
@@ -1215,7 +1215,7 @@ class AbsTask(ABC):
         batch_sampler = build_batch_sampler(
             type=batch_type,
             shape_files=shape_files,
-            max_lengths=max_length,
+            fold_lengths=fold_length,
             batch_size=batch_size,
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
