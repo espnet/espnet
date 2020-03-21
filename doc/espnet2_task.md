@@ -130,7 +130,7 @@ class NewTask(AbsTask):
 `required_data_names()` determines the mandatory data names and `optional_data_names()` gives optional data.  It means that the other names is allowed to given by command line arguments.
 
 ```bash
-# The following is expected argument
+# The following is the expected argument
 python -m new_task \
     --train_data_path_and_name_and_type=filepath,input,sometype \
     --train_data_path_and_name_and_type=filepath,target,sometype \
