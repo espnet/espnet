@@ -580,7 +580,7 @@ if "${use_lm}"; then
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
-          --cmd "${cuda_cmd}" \
+          --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
           --log "${lm_exp}"/train.log \
           --ngpu "${ngpu}" \
           --num_nodes "${num_nodes}" \
@@ -749,7 +749,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${asr_exp}/train.log" \
         --log "${asr_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \

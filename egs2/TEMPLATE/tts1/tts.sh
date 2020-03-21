@@ -453,7 +453,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${tts_exp}/train.log" \
         --log "${tts_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
