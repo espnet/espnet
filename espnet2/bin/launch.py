@@ -350,7 +350,7 @@ EOF
                     lines = list(f)
                 raise RuntimeError(
                     f"\n################### The last 1000 lines of {args.log} "
-                    f"################### \n" + "\n".join(lines[-1000:])
+                    f"###################\n" + "\n".join(lines[-1000:])
                 )
             else:
                 raise RuntimeError
