@@ -322,6 +322,12 @@ def train(args):
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
     model = model.to(device)
 
+    # freeze modules, if specified
+    if args.freeze_mods:
+        for mod, param in model.state_dict().items():
+            if any(key.startswith(mod) for key in args.freeze_mods):
+                param.requires_grad = False
+
     # Setup an optimizer
     if args.opt == 'adam':
         optimizer = torch.optim.Adam(

@@ -120,7 +120,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     - MKL (You need sudo privilege)
 
     ```bash
-    $ sudo ./extras/install_openblas.sh
+    $ sudo ./extras/install_mkl.sh
     ```
     - ATLAS (You need sudo privilege)
 
@@ -133,7 +133,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd src
-    # ESPnet uses only feature extractor, so you can disable CUDA
+    # [e.g. With OpenBLAS] ESPnet uses only feature extractor, so you can disable CUDA
     $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0

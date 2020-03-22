@@ -6,8 +6,13 @@ PYTHON :=
 PYTHON_VERSION := 3.7.3
 CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0
 TH_VERSION := 1.0.1
+ifeq ($(shell expr $(strip $(subst .,,$(TH_VERSION))) \< 120), 1)
+INSTALL_WARPCTC := 1
+else
+INSTALL_WARPCTC :=
+endif
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 WGET := wget --tries=3
@@ -37,6 +42,7 @@ extra: nkf.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
+	test -d $(KALDI)
 	ln -s $(abspath $(KALDI)) kaldi
 	touch kaldi.done
 else
@@ -79,6 +85,7 @@ ifneq ($(strip $(CUPY_VERSION)),)
 endif
 
 warp-ctc.done: espnet.done
+ifneq ($(strip $(INSTALL_WARPCTC)),)
 	if . venv/bin/activate && python -c 'import torch as t;major=t.__version__.split(".")[0];assert major == "1"' &> /dev/null; then \
 		if [ ! -z "$(strip $(CUPY_VERSION))" ]; then \
 			. venv/bin/activate && pip install warpctc-pytorch10-cuda$(strip $(subst .,,$(CUDA_VERSION))); \
@@ -93,6 +100,7 @@ warp-ctc.done: espnet.done
 		. ../venv/bin/activate; pip install cffi; cd pytorch_binding && python setup.py install; \
 	fi
 	touch warp-ctc.done
+endif
 
 warp-transducer.done: espnet.done
 	rm -rf warp-transducer
@@ -151,9 +159,9 @@ mwerSegmenter.done:
 
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate; python check_install.py
+	. venv/bin/activate; python check_install.py --torch-version $(TH_VERSION)
 else
-	. venv/bin/activate; python check_install.py --no-cupy
+	. venv/bin/activate; python check_install.py --no-cupy --torch-version $(TH_VERSION)
 endif
 
 
