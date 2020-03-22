@@ -57,7 +57,7 @@ if [ ${use_transfer} == true ]; then
     dec_type=$(get_yaml.py ${train_config} dtype)
     dec_is_transformer="$( [[ $dec_type == *transformer* ]]; echo $? )"
 
-    if [[ $dec_is_transformer -eq 0 ]]; then
+    if [[ $dec_is_transformer -eq 0 && $type_transfer != 'enc' ]]; then
        echo "Finetuning: decoder init. for transformer model is not supported yet."
        echo "Finetuning: Switching to 'enc' transfer mode."
 
