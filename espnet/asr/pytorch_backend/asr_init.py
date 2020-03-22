@@ -46,6 +46,7 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
 
     return len_match and module_match
 
+
 def get_partial_state_dict(model_state_dict, modules):
     """Create state_dict with specified modules matching input model modules.
 
