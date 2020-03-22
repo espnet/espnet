@@ -4,6 +4,7 @@ from dataclasses import is_dataclass
 from distutils.version import LooseVersion
 import logging
 from pathlib import Path
+import time
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -11,6 +12,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+import humanfriendly
 import numpy as np
 import torch
 import torch.nn
@@ -177,8 +179,21 @@ class Trainer:
         else:
             summary_writer = None
 
+        start_time = time.perf_counter()
         for iepoch in range(start_epoch, max_epoch + 1):
-            logging.info(f"{iepoch}epoch started")
+            if iepoch != start_epoch:
+                logging.info(
+                    "{}epoch started. Estimated time to finish: {}".format(
+                        iepoch,
+                        humanfriendly.format_timespan(
+                            (time.perf_counter() - start_time)
+                            / (iepoch - start_epoch)
+                            * (max_epoch - iepoch + 1)
+                        ),
+                    )
+                )
+            else:
+                logging.info(f"{iepoch}epoch started")
             set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
@@ -223,7 +238,7 @@ class Trainer:
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
-                reporter.logging()
+                logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
                 reporter.tensorboard_add_scalar(summary_writer)
 
@@ -421,7 +436,7 @@ class Trainer:
                 )
 
             if iiter % log_interval == 0:
-                reporter.logging(nlatest=log_interval)
+                logging.info(reporter.log_message(nlatest=log_interval))
 
         else:
             if distributed:

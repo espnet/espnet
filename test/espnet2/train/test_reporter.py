@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
 import uuid
 
@@ -185,11 +186,11 @@ def test_logging():
             sub.register(stats_list[e])
         with reporter.observe(key2) as sub:
             sub.register(stats_list[e])
-            sub.logging()
+            logging.info(sub.log_message())
         with pytest.raises(RuntimeError):
-            sub.logging()
+            logging.info(sub.log_message())
 
-    reporter.logging()
+    logging.info(reporter.log_message())
 
 
 def test_has_key():
