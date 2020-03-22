@@ -178,6 +178,7 @@ def main(cmd_args):
                 ngpu = 0
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
+        args.ngpu = ngpu
     else:
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
