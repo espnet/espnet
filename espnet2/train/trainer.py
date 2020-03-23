@@ -183,8 +183,9 @@ class Trainer:
         for iepoch in range(start_epoch, max_epoch + 1):
             if iepoch != start_epoch:
                 logging.info(
-                    "{}epoch started. Estimated time to finish: {}".format(
+                    "{}/{}epoch started. Estimated time to finish: {}".format(
                         iepoch,
+                        max_epoch,
                         humanfriendly.format_timespan(
                             (time.perf_counter() - start_time)
                             / (iepoch - start_epoch)
@@ -193,7 +194,7 @@ class Trainer:
                     )
                 )
             else:
-                logging.info(f"{iepoch}epoch started")
+                logging.info(f"{iepoch}/{max_epoch}epoch started")
             set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
