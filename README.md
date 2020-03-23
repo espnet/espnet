@@ -74,8 +74,8 @@ See https://espnet.github.io/espnet/tutorial.html
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
 ## Contribution
-Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
-If you are the first commiter, please follow the [contribution guide](CONTRIBUTING.md).
+Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
+If it's the first contribution to ESPnet2 for you,  please follow the [contribution guide](CONTRIBUTING.md).
 
 ## Results and demo
 
