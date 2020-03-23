@@ -6,6 +6,7 @@ from pathlib import Path
 import shlex
 import shutil
 import subprocess
+import sys
 import uuid
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -146,6 +147,13 @@ def main(cmd=None):
         else:
             env = ""
 
+        if args.log != "-":
+            Path(args.log).parent.mkdir(parents=True, exist_ok=True)
+            f = Path(args.log).open("w", encoding="utf-8")
+        else:
+            # Output to stdout/stderr
+            f = None
+
         rank = 0
         for host, ids in zip(hosts, ids_list):
             ngpu = 1 if len(ids) > 0 else 0
@@ -180,13 +188,6 @@ cd {os.getcwd()}
 {" ".join([c if len(c) != 0 else "''" for c in cmd])}
 EOF
 """
-
-                if args.log != "-":
-                    Path(args.log).parent.mkdir(parents=True, exist_ok=True)
-                    f = Path(args.log).open("w", encoding="utf-8")
-                else:
-                    # Output to stdout/stderr
-                    f = None
 
                 # FIXME(kamo): The process will be alive
                 #  even if this program is stopped because we don't set -t here,
@@ -339,7 +340,20 @@ EOF
 
     for process in processes:
         if process.returncode != 0:
-            raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+            print(
+                subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd),
+                file=sys.stderr,
+            )
+            p = Path(args.log)
+            if p.exists():
+                with p.open() as f:
+                    lines = list(f)
+                raise RuntimeError(
+                    f"\n################### The last 1000 lines of {args.log} "
+                    f"###################\n" + "\n".join(lines[-1000:])
+                )
+            else:
+                raise RuntimeError
 
 
 if __name__ == "__main__":
