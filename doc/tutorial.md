@@ -175,13 +175,13 @@ $ ./run.sh
 $ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 
 # attention mode
-$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
+$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 ```
 
-The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
+- The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
 (i.e., `--recog_model model.loss.best`).
-About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
-
+- The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
+- About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
 
 ### Changing the training configuration
 
