@@ -431,7 +431,8 @@ class Trainer:
                 if isinstance(scheduler, AbsBatchStepScheduler):
                     scheduler.step()
 
-                # Register lr and train/load time[sec/step]. where step refers to batch_size * accum_grad
+                # Register lr and train/load time[sec/step],
+                # where step refers to accum_grad * mini-batch
                 reporter.register(
                     dict(
                         {
