@@ -353,8 +353,13 @@ class Trainer:
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+
+        start_time = start_load_time = time.perf_counter()
+        load_time = 0
         for iiter, (_, batch) in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
+            load_time += time.perf_counter() - start_load_time
+
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
@@ -364,6 +369,7 @@ class Trainer:
             if no_forward_run:
                 all_steps_are_invalid = False
                 reporter.register({})
+                start_load_time = time.perf_counter()
                 continue
 
             loss, stats, weight = model(**batch)
@@ -425,19 +431,28 @@ class Trainer:
                 if isinstance(scheduler, AbsBatchStepScheduler):
                     scheduler.step()
 
-                # Register lr
+                # Register lr and train/load time[sec/step]. where step refers to batch_size * accum_grad
                 reporter.register(
-                    {
-                        f"lr_{i}": pg["lr"]
-                        for i, pg in enumerate(optimizer.param_groups)
-                        if "lr" in pg
-                    },
+                    dict(
+                        {
+                            f"lr_{i}": pg["lr"]
+                            for i, pg in enumerate(optimizer.param_groups)
+                            if "lr" in pg
+                        },
+                        train_time_per_step=time.perf_counter()
+                        - start_time
+                        - load_time,
+                        load_time_per_step=load_time,
+                    ),
                     # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
+                start_time = time.perf_counter()
+                load_time = 0
 
             if iiter % log_interval == 0:
                 logging.info(reporter.log_message(nlatest=log_interval))
+            start_load_time = time.perf_counter()
 
         else:
             if distributed:
