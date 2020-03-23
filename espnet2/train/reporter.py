@@ -174,7 +174,12 @@ class SubReporter:
                 message += ", "
 
             v = aggregate(values)
-            message += f"{key2}={v:.3f}"
+            if abs(v) > 1.0e3:
+                message += f"{key2}={v:.3e}"
+            elif abs(v) > 1.0e-3:
+                message += f"{key2}={v:.3f}"
+            else:
+                message += f"{key2}={v:.3e}"
         return message
 
     def finished(self) -> None:
@@ -341,7 +346,12 @@ class Reporter:
                     if len(_message) != 0:
                         _message += ", "
                     if isinstance(v, float):
-                        _message += f"{key2}={v:.3f}"
+                        if abs(v) > 1.0e3:
+                            _message += f"{key2}={v:.3e}"
+                        elif abs(v) > 1.0e-3:
+                            _message += f"{key2}={v:.3f}"
+                        else:
+                            _message += f"{key2}={v:.3e}"
                     elif isinstance(v, datetime.timedelta):
                         _v = humanfriendly.format_timespan(v)
                         _message += f"{key2}={_v}"
