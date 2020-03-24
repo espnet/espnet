@@ -10,6 +10,7 @@ from espnet2.utils.types import remove_parenthesis
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2pair_str
 from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 
 
@@ -59,6 +60,13 @@ def test_float_or_none(value: str, desired: Any):
 def test_humanfriendly_parse_size_or_none(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
         assert humanfriendly_parse_size_or_none(value) == desired
+
+
+@pytest.mark.parametrize(
+    "value, desired", [("3", 3), ("3 ", 3), ("aa", "aa")],
+)
+def test_str_or_int(value: str, desired: Any):
+    assert str_or_int(value) == desired
 
 
 @pytest.mark.parametrize("value, desired", [("none", None), ("aa", "aa")])
