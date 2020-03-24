@@ -179,8 +179,6 @@ python -m espnet.bin.asr_train --accum_grad 2
 - The case that the batch_size is not unified for each iteration.
 
 ## Using apex: mixed-precision training
-See also: https://github.com/NVIDIA/apex
-
 ```bash
 python -m espnet.bin.asr_train --train_dtype float16 # Just training with half precision
 python -m espnet.bin.asr_train --train_dtype float32 # default
@@ -191,6 +189,8 @@ python -m espnet.bin.asr_train --train_dtype O2 # opt_level of apex
 python -m espnet.bin.asr_train --train_dtype O3 # opt_level of apex
 ```
 
+Note that you need to install apex manually to use mixed-precision: https://github.com/NVIDIA/apex#linux
+
 ## Reproducibility and determinization
 There are some possibilities to make training non-reproducible.
 
@@ -198,11 +198,11 @@ There are some possibilities to make training non-reproducible.
 - Reducing order for float values when multi GPUs
   - I don't know whether NCCL is deterministic or not.
 - Random seed difference
-  - We fixed the random seed for each epoch, so the randomness should be reproduced even if the process is resumed.
+  - We fixed the random seed for each epoch, thus the randomness should be reproduced even if the process is resumed.
 - CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html
 
-By default, CuDNN performs non-deterministic mode and it can be changed by:
+By default, CuDNN performs deterministic mode and it can be changed by:
 
 ```bash
-python -m espnet.bin.asr_train --cudnn_deterministic true
+python -m espnet.bin.asr_train --cudnn_deterministic false
 ```
