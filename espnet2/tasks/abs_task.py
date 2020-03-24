@@ -344,7 +344,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--cudnn_deterministic",
             type=str2bool,
-            default=torch.backends.cudnn.deterministic,
+            default=True,
             help="Enable cudnn-deterministic mode",
         )
 
