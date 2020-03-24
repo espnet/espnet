@@ -1,6 +1,7 @@
 from distutils.util import strtobool
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import humanfriendly
 
@@ -66,6 +67,13 @@ def humanfriendly_parse_size_or_none(value) -> Optional[float]:
     if value.strip().lower() in ("none", "null", "nil"):
         return None
     return humanfriendly.parse_size(value)
+
+
+def str_or_int(value: str) -> Union[str, int]:
+    try:
+        return int(value)
+    except ValueError:
+        return value
 
 
 def str_or_none(value: str) -> Optional[str]:
