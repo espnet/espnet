@@ -1,6 +1,6 @@
 # the default corpus as provided by ELRA should be
 # unpacked to this location.
-download_dir: "downloads/FR-Polyphone"
+download_dir: "downloads/fr-CH_Polyphone"
 
 # first all data in the corpus is organized
 # splits are later made from this

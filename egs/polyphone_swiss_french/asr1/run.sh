@@ -58,7 +58,7 @@ recog_set="valid_dev valid_test"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    # Prepare the French Polyphone corpus; reuse the train/dev/test splits by default
+    # Prepare the Swiss French Polyphone corpus; reuse the train/dev/test splits by default
     local/data_prep -c ${dataprep_config}
     echo "Data preparation already complete"
 fi

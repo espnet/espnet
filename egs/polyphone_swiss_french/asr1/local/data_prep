@@ -4,10 +4,10 @@ from collections import defaultdict
 from random import shuffle
 
 class FrPolyphonePrepper () :
-    """Data preparation script for the French Polyphone corpus.
+    """Data preparation script for the Swiss French Polyphone corpus.
 
     This class provides the scripting backbone for preparing the
-    French Polyphone corpus for ASR training with espnet.  This
+    Swiss French Polyphone corpus for ASR training with espnet.  This
     script was written in reference to the following version of the
     corpus as listed on ELRA:
 
@@ -25,8 +25,8 @@ class FrPolyphonePrepper () :
         This __init__ function requires a root datadir, and optionally takes
         pre-set train/dev/test lists as arguments for experiment replication.
         If the lists are not provided, new, randomized partitions are created.
-        The French Polyphone corpus provides detailed speaker information, thus
-        all splits take into account speaker ID information by default.
+        The Swiss French Polyphone corpus provides detailed speaker information,
+        thus all splits take into account speaker ID information by default.
 
         Args:
             datadir (str): The output data directory location.
@@ -503,7 +503,7 @@ class FrPolyphonePrepper () :
     def _generate_random (self, corpus, splits) :
         """Generate a new, randomized partition.
 
-        Generate a new, randomized partition for the corpus for 
+        Generate a new, randomized partition for the corpus for
         train/dev/test using the breakdowns provided in `splits`.
 
         Args:
