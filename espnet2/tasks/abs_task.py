@@ -997,7 +997,11 @@ class AbsTask(ABC):
                 # if pretrain_key is None -> model
                 # elif pretrain_key is str e.g. "encoder" -> model.encoder
                 pretrain_key=k,
-                map_location="cuda" if args.ngpu > 0 else "cpu",
+                # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                #   in PyTorch<=1.4
+                map_location=f"cuda:{torch.cuda.current_device()}"
+                if args.ngpu > 0
+                else "cpu",
             )
 
         # 8. Resume the training state from the previous epoch
@@ -1005,7 +1009,9 @@ class AbsTask(ABC):
         if args.resume and (output_dir / "checkpoint.pth").exists():
             states = torch.load(
                 output_dir / "checkpoint.pth",
-                map_location="cuda" if args.ngpu > 0 else "cpu",
+                map_location=f"cuda:{torch.cuda.current_device()}"
+                if args.ngpu > 0
+                else "cpu",
             )
             model.load_state_dict(states["model"])
             reporter.load_state_dict(states["reporter"])
@@ -1379,6 +1385,10 @@ class AbsTask(ABC):
             )
         model.to(device)
         if model_file is not None:
+            if device == "cuda":
+                # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                #   in PyTorch<=1.4
+                device = f"cuda:{torch.cuda.current_device()}"
             model.load_state_dict(torch.load(model_file, map_location=device))
 
         return model, args
