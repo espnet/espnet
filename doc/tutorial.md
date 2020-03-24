@@ -136,7 +136,6 @@ echo 2
     $ ./run.sh --ngpu 0
   ```
   - Default setup uses a single GPU (`--ngpu 1`).
-  - If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by `--n-iter-processes 2` to mitigate the problem. Note that this data prefetch consumes a lot of CPU memory, so please be careful when you increase the number of processes.
 - ASR decoding:
   ESPnet also supports the GPU-based decoding for fast recognition.
   - Please manually remove the following lines in `run.sh`:
@@ -147,8 +146,11 @@ echo 2
   - Set 1 or more values for `--batchsize` option in `asr_recog.py` to enable GPU decoding
   - And execute the script (e.g., `run.sh --stage 5 --ngpu 1`)
   - You'll achieve significant speed improvement by using the GPU decoding
-- Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
+### Multiple GPU TIPs
+- Note that if you want to use multiple GPUs, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
+- Currently, we only support multiple GPU training within a single node. We don't support the distributed setup across multiple nodes. We also don't support GPU decoding.
+- If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by `--n-iter-processes 2` in your `run.sh` to mitigate the problem. Note that this data prefetching consumes a lot of CPU memory, so please be careful when you increase the number of processes.
 
 ### Start from the middle stage or stop at specified stage
 
