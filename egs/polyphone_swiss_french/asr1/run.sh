@@ -33,8 +33,6 @@ lmtag=            # tag for managing LMs
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
-datadir=downloads # original data directory to be stored
-
 # bpemode (unigram or bpe)
 nbpe=800
 bpemode=unigram
@@ -52,7 +50,6 @@ set -o pipefail
 
 train_set=valid_train
 train_dev=valid_dev
-test_set=valid_test
 recog_set="valid_dev valid_test"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
