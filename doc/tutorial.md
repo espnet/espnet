@@ -136,6 +136,7 @@ echo 2
     $ ./run.sh --ngpu 0
   ```
   - Default setup uses a single GPU (`--ngpu 1`).
+  - If you could not get enough speed improvement with multiple GPUs, you should fast check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low the bottleneck would come from the disk access. You can apply the data prefetch by `--n-iter-processes 2` to mitigate the problem. Note that this data prefetch consumes a lot of CPU memory, so please be careful when you increase the number of processes.
 - ASR decoding:
   ESPnet also supports the GPU-based decoding for fast recognition.
   - Please manually remove the following lines in `run.sh`:
