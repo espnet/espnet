@@ -154,7 +154,7 @@ class SubReporter:
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def log_message(self, nlatest: int = None) -> None:
+    def log_message(self, nlatest: int = None) -> str:
         if self._finished:
             raise RuntimeError("Already finished")
 
@@ -334,7 +334,7 @@ class Reporter:
             and key2 in self.stats[epoch][key]
         )
 
-    def log_message(self, epoch: int = None):
+    def log_message(self, epoch: int = None) -> str:
         if epoch is None:
             epoch = self.get_epoch()
 
