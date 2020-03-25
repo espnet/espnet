@@ -38,7 +38,7 @@ nbpe=800
 bpemode=unigram
 
 # exp tag
-tag="specaug" # tag for managing experiments.
+tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -155,6 +155,9 @@ if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
+    fi
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
     expname=${train_set}_${backend}_${tag}
