@@ -30,7 +30,7 @@ def get_parser():
     parser.add_argument(
         "--max_num_log_files",
         help="The maximum number of log-files to be kept",
-        default=30,
+        default=1000,
     )
     parser.add_argument(
         "--ngpu", type=int, default=1, help="The number of GPUs per node"
