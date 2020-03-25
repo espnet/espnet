@@ -194,7 +194,7 @@ class ErrorCalculator(object):
             y_true = ys_pad[i]
             eos_true = np.where(y_true == -1)[0]
             eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-            # To avoid wrong higger WER than the one obtained from the decoding
+            # To avoid wrong higher WER than the one obtained from the decoding
             # eos from y_true is used to mark the eos in y_hat
             # because of that y_hats has not padded outs with -1.
             seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
