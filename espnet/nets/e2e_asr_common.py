@@ -64,12 +64,14 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
     if lsm_type == 'unigram':
         assert transcript is not None, 'transcript is required for %s label smoothing' % lsm_type
         labelcount = np.zeros(odim)
+        cnt = 0
         for k, v in trans_json.items():
             ids = np.array([int(n) for n in v['output'][0]['tokenid'].split()])
             # to avoid an error when there is no text in an uttrance
             if len(ids) > 0:
                 labelcount[ids] += 1
-        labelcount[odim - 1] = len(transcript)  # count <eos>
+                cnt += 1
+        labelcount[odim - 1] = cnt  # count <eos>
         labelcount[labelcount == 0] = 1  # flooring
         labelcount[blank] = 0  # remove counts for blank
         labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
