@@ -3,9 +3,12 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import torch
+
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 
 import argparse
 import importlib
@@ -43,6 +46,7 @@ def make_arg(**kwargs):
         ctc_window_margin=0,
         verbose=2,
         char_list=["a", "i", "u", "e", "o"],
+        word_list=["<blank>", "<unk>", "ai", "iu", "ue", "eo", "oa", "<eos>"],
         outdir=None,
         ctc_type="warpctc",
         report_cer=False,
@@ -63,6 +67,14 @@ def init_torch_weight_const(m, val):
         p.data.fill_(val)
 
 
+def init_torch_weight_random(m, rand_range):
+    for name, p in m.named_parameters():
+        p.data.uniform_(rand_range[0], rand_range[1])
+        # set small bias for <blank> output
+        if 'wordlm.lo.bias' in name or 'dec.output.bias' in name:
+            p.data[0] = -10.0
+
+
 def init_chainer_weight_const(m, val):
     for p in m.params():
         p.data[:] = val
@@ -81,14 +93,14 @@ def init_chainer_weight_const(m, val):
 def test_recognition_results(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
-    seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]])
+    seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "iuiuiuiuiuiuiuo", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "iuiuiuiuiuiuiuo", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "iuiuiuiuiuiuiuo", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "iuiuiuiuiuiuiuo", "ieieieieieieieieo"]])
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
@@ -131,14 +143,14 @@ def test_recognition_results(etype, dtype, m_str, text_idx1):
 def test_recognition_results_with_lm(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
-    seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
-                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
-                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]]
+    seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "o", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "o", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "o", "ieieieieieieieieo"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "o", "ieieieieieieieieo"]])
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
@@ -186,21 +198,23 @@ def test_recognition_results_with_lm(etype, dtype, m_str, text_idx1):
     ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
 def test_batch_beam_search(etype, dtype, m_str):
-    const = 1e-4
     numpy.random.seed(1)
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
-    for ctc_weight in [0.0, 0.5]:
+    for ctc_weight in [0.0, 0.5, 1.0]:
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
         model = m.E2E(40, 5, args)
 
         if "pytorch" in m_str:
+            torch.manual_seed(1)
             rnnlm = lm_pytorch.ClassifierWithState(
                 lm_pytorch.RNNLM(len(args.char_list), 2, 10))
-            init_torch_weight_const(model, const)
-            init_torch_weight_const(rnnlm, const)
+            init_torch_weight_random(model, (-0.1, 0.1))
+            init_torch_weight_random(rnnlm, (-0.1, 0.1))
+            model.eval()
+            rnnlm.eval()
         else:
             # chainer module
             continue
@@ -222,4 +236,30 @@ def test_batch_beam_search(etype, dtype, m_str):
             args.ctc_window_margin = 40
             s_nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
             b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list, rnnlm)
+            assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']
+
+        # Test word LM in batch decoding
+        if "pytorch" in m_str:
+            rand_range = (-0.01, 0.01)
+            torch.manual_seed(1)
+            char_list = ['<blank>', '<space>'] + args.char_list + ['<eos>']
+            args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
+                            ctc_window_margin=40, lm_weight=0.3, beam_size=5)
+            m = importlib.import_module(m_str)
+            model = m.E2E(40, len(char_list), args)
+
+            char_dict = {x: i for i, x in enumerate(char_list)}
+            word_dict = {x: i for i, x in enumerate(args.word_list)}
+
+            word_rnnlm = lm_pytorch.ClassifierWithState(
+                lm_pytorch.RNNLM(len(args.word_list), 2, 10))
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
+            init_torch_weight_random(model, rand_range)
+            init_torch_weight_random(rnnlm, rand_range)
+            model.eval()
+            rnnlm.eval()
+            s_nbest_hyps = model.recognize(in_data, args, char_list, rnnlm)
+            b_nbest_hyps = model.recognize_batch([in_data], args, char_list, rnnlm)
             assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']

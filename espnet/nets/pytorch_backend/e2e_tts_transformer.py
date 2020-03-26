@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss as TransformerLoss
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
@@ -62,57 +63,6 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
             self._reset_masks()
 
         return self.alpha * loss
-
-
-class TransformerLoss(torch.nn.Module):
-    """Loss function module for TTS-Transformer."""
-
-    def __init__(self, use_masking=True, bce_pos_weight=5.0):
-        """Initialize Transformer loss module.
-
-        Args:
-            use_masking (bool, optional): Whether to mask padded part in loss calculation.
-            bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True).
-
-        """
-        super(TransformerLoss, self).__init__()
-        # store hyperparameters
-        self.use_masking = use_masking
-        self.bce_pos_weight = bce_pos_weight
-
-    def forward(self, after_outs, before_outs, logits, ys, labels, olens):
-        """Calculate forward propagation.
-
-        Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
-            logits (Tensor): Batch of stop logits (B, Lmax).
-            ys (Tensor): Batch of padded target features (B, Lmax, odim).
-            labels (LongTensor): Batch of the sequences of stop token labels (B, Lmax).
-            olens (LongTensor): Batch of the lengths of each target (B,).
-
-        Returns:
-            Tensor: L1 loss value.
-            Tensor: Mean square error loss value.
-            Tensor: Binary cross entropy loss value.
-
-        """
-        # perform masking for padded values
-        if self.use_masking:
-            mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            ys = ys.masked_select(mask)
-            after_outs = after_outs.masked_select(mask)
-            before_outs = before_outs.masked_select(mask)
-            labels = labels.masked_select(mask[:, :, 0])
-            logits = logits.masked_select(mask[:, :, 0])
-
-        # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        l2_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(
-            logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
-
-        return l1_loss, l2_loss, bce_loss
 
 
 class TTSPlot(PlotAttentionReport):
@@ -187,6 +137,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d", "conv1d-linear"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=1, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
         group.add_argument("--postnet-chans", default=256, type=int,
@@ -245,9 +200,13 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate in decoder prenet")
         group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in postnet")
+        group.add_argument("--pretrained-model", default=None, type=str,
+                           help="Pretrained model path")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
+        group.add_argument("--use-weighted-masking", default=False, type=strtobool,
+                           help="Whether to use weighted masking in calculation of loss")
         group.add_argument("--loss-type", default="L1", choices=["L1", "L2", "L1+L2"],
                            help="How to calc loss")
         group.add_argument("--bce-pos-weight", default=5.0, type=float,
@@ -318,7 +277,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
                 - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
                 - postnet_dropout_rate (float): Dropout rate in postnet.
-                - use_masking (bool): Whether to use masking in calculation of loss.
+                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
                 - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
                 - loss_type (str): How to calculate loss.
                 - use_guided_attn_loss (bool): Whether to use guided attention loss.
@@ -398,7 +358,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define projection layer
@@ -456,6 +418,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define loss function
         self.criterion = TransformerLoss(use_masking=args.use_masking,
+                                         use_weighted_masking=args.use_weighted_masking,
                                          bce_pos_weight=args.bce_pos_weight)
         if self.use_guided_attn_loss:
             self.attn_criterion = GuidedMultiHeadAttentionLoss(
@@ -467,6 +430,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
                                init_dec_alpha=args.initial_decoder_alpha)
+
+        # load pretrained model
+        if args.pretrained_model is not None:
+            self.load_pretrained_model(args.pretrained_model)
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
@@ -506,7 +473,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward encoder
         x_masks = self._source_mask(ilens)
-        hs, _ = self.encoder(xs, x_masks)
+        hs, h_masks = self.encoder(xs, x_masks)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -524,8 +491,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         y_masks = self._target_mask(olens_in)
-        xy_masks = self._source_to_target_mask(ilens, olens_in)
-        zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
+        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
         # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, Lmax//r, r) -> (B, Lmax//r * r)
@@ -630,6 +596,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        if use_att_constraint:
+            logging.warning("Attention constraint is not yet supported in Transformer. Not enabled.")
 
         # forward encoder
         xs = x.unsqueeze(0)
@@ -650,18 +619,30 @@ class Transformer(TTSInterface, torch.nn.Module):
         outs, probs = [], []
 
         # forward decoder step-by-step
+        z_cache = self.decoder.init_state(x)
         while True:
             # update index
             idx += 1
 
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0).to(x.device)
-            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            z, z_cache = self.decoder.forward_one_step(ys, y_masks, hs, cache=z_cache)  # (B, adim)
             outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
             probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
             # update next inputs
             ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
+
+            # get attention weights
+            att_ws_ = []
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention) and "src" in name:
+                    att_ws_ += [m.attn[0, :, -1].unsqueeze(1)]  # [(#heads, 1, T),...]
+            if idx == 1:
+                att_ws = att_ws_
+            else:
+                # [(#heads, l, T), ...]
+                att_ws = [torch.cat([att_w, att_w_], dim=1) for att_w, att_w_ in zip(att_ws, att_ws_)]
 
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
@@ -675,12 +656,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # get attention weights
-        att_ws = []
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) and "src" in name:
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=0)
+        # concatenate attention weights -> (#layers, #heads, L, T)
+        att_ws = torch.stack(att_ws, dim=0)
 
         return outs, probs, att_ws
 
@@ -704,7 +681,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
-            hs, _ = self.encoder(xs, x_masks)
+            hs, h_masks = self.encoder(xs, x_masks)
 
             # integrate speaker embedding
             if self.spk_embed_dim is not None:
@@ -722,8 +699,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # forward decoder
             y_masks = self._target_mask(olens_in)
-            xy_masks = self._source_to_target_mask(ilens, olens_in)
-            zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
+            zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
 
             # calculate final outputs
             if not skip_output:
@@ -797,26 +773,34 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _source_mask(self, ilens):
         """Make masks for self-attention.
 
+        Args:
+            ilens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+
         Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
             tensor([[[1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1],
-                     [1, 1, 1, 1, 1]],
-                    [[1, 1, 1, 0, 0],
-                     [1, 1, 1, 0, 0],
-                     [1, 1, 1, 0, 0],
-                     [0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                    [[1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2) & x_masks.unsqueeze(-1)
+        return x_masks.unsqueeze(-2)
 
     def _target_mask(self, olens):
         """Make masks for masked self-attention.
+
+        Args:
+            olens (LongTensor or List): Batch of lengths (B,).
+
+        Returns:
+            Tensor: Mask tensor for masked self-attention.
+                    dtype=torch.uint8 in PyTorch 1.2-
+                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> olens = [5, 3]
@@ -829,36 +813,13 @@ class Transformer(TTSInterface, torch.nn.Module):
                     [[1, 0, 0, 0, 0],
                      [1, 1, 0, 0, 0],
                      [1, 1, 1, 0, 0],
-                     [0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+                     [1, 1, 1, 0, 0],
+                     [1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
-        return y_masks.unsqueeze(-2) & s_masks & y_masks.unsqueeze(-1)
-
-    def _source_to_target_mask(self, ilens, olens):
-        """Make masks for encoder-decoder attention.
-
-        Examples:
-            >>> ilens = [4, 2]
-            >>> olens = [5, 3]
-            >>> self._source_to_target_mask(ilens)
-            tensor([[[1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1],
-                     [1, 1, 1, 1]],
-                    [[1, 1, 0, 0],
-                     [1, 1, 0, 0],
-                     [1, 1, 0, 0],
-                     [0, 0, 0, 0],
-                     [0, 0, 0, 0]]], dtype=torch.uint8)
-
-        """
-        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2) & y_masks.unsqueeze(-1)
+        return y_masks.unsqueeze(-2) & s_masks
 
     @property
     def base_plot_keys(self):

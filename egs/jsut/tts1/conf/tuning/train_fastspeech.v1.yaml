@@ -1,0 +1,62 @@
+# This configuration reuqires 1 gpu in the case of each gpu memory = 12GB.
+# To use this configuration, you need the model trained with `conf/train_transformer`.
+
+# network architecture related
+model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
+adim: 384
+aheads: 2
+elayers: 6
+eunits: 1536
+dlayers: 6
+dunits: 1536
+duration-predictor-layers: 2
+duration-predictor-chans: 256
+duration-predictor-kernel-size: 3
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 3
+postnet-layers: 5
+postnet-filts: 5
+postnet-chans: 256
+use-batch-norm: True
+use-scaled-pos-enc: True
+encoder-normalize-before: False
+decoder-normalize-before: False
+encoder-concat-after: False
+decoder-concat-after: False
+reduction-factor: 3
+
+# minibatch related
+# 64 * (343.1 * 80 + 60.049 * 43)
+batch-sort-key: output # shuffle or input or output
+batch-bins: 1921927    # avg batch-size * (mean_out * dim_out + mean_in * dim_in)
+                       # 115 batches containing from 17 to 141 samples (avg 62 samples).
+
+# training related
+transformer-init: pytorch
+transformer-warmup-steps: 4000
+transformer-lr: 1.0
+initial-encoder-alpha: 1.0
+initial-decoder-alpha: 1.0
+transformer-enc-dropout-rate: 0.1
+transformer-enc-positional-dropout-rate: 0.1
+transformer-enc-attn-dropout-rate: 0.1
+transformer-dec-dropout-rate: 0.1
+transformer-dec-positional-dropout-rate: 0.1
+transformer-dec-attn-dropout-rate: 0.1
+transformer-enc-dec-attn-dropout-rate: 0.1
+postnet-dropout-rate: 0.5
+duration-predictor-dropout-rate: 0.1
+transfer-encoder-from-teacher: False
+transferred-encoder-module: embed
+
+# optimization related
+opt: noam
+accum-grad: 1
+grad-clip: 1.0
+weight-decay: 0.0
+patience: 0
+epochs: 1000  # 1000 epochs * 115 batches / 1 accum-grad = 115,000 iters
+teacher-model: exp/phn_train_no_dev_pytorch_train_pytorch_transformer/results/model.last1.avg.best
+
+# other
+save-interval-epoch: 50

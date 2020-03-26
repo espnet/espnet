@@ -6,8 +6,13 @@ PYTHON :=
 PYTHON_VERSION := 3.7.3
 CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0
 TH_VERSION := 1.0.1
+ifeq ($(shell expr $(strip $(subst .,,$(TH_VERSION))) \< 120), 1)
+INSTALL_WARPCTC := 1
+else
+INSTALL_WARPCTC :=
+endif
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 WGET := wget --tries=3
@@ -33,10 +38,11 @@ all: kaldi.done python check_install
 
 python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done
 
-extra: nkf.done mecab.done moses.done mwerSegmenter.done pesq
+extra: nkf.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
+	test -d $(KALDI)
 	ln -s $(abspath $(KALDI)) kaldi
 	touch kaldi.done
 else
@@ -61,6 +67,8 @@ miniconda.sh:
 	test -f miniconda.sh || $(WGET) $(CONDA_URL) -O miniconda.sh
 venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
+	. venv/bin/activate && conda install -y setuptools -c anaconda
+	. venv/bin/activate && conda install -y pip -c anaconda
 	. venv/bin/activate && conda update -y conda
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
@@ -77,21 +85,22 @@ ifneq ($(strip $(CUPY_VERSION)),)
 endif
 
 warp-ctc.done: espnet.done
-	rm -rf warp-ctc
-	git clone https://github.com/espnet/warp-ctc.git
-	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
-	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
-        . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
+ifneq ($(strip $(INSTALL_WARPCTC)),)
+	if . venv/bin/activate && python -c 'import torch as t;major=t.__version__.split(".")[0];assert major == "1"' &> /dev/null; then \
+		if [ ! -z "$(strip $(CUPY_VERSION))" ]; then \
+			. venv/bin/activate && pip install warpctc-pytorch10-cuda$(strip $(subst .,,$(CUDA_VERSION))); \
+		else \
+			. venv/bin/activate && pip install warpctc-pytorch10-cpu; \
+		fi \
+	else \
+		rm -rf warp-ctc; \
+		git clone https://github.com/espnet/warp-ctc.git; \
+		cd warp-ctc; git checkout -b pytorch-0.4 remotes/origin/pytorch-0.4; \
+		mkdir build && cd build && cmake .. && $(MAKE) && cd ..; \
+		. ../venv/bin/activate; pip install cffi; cd pytorch_binding && python setup.py install; \
 	fi
-	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
-        cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; \
-	elif . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "0"' &> /dev/null; then \
-        cd warp-ctc; git checkout -b pytorch-0.4.0 remotes/origin/pytorch-0.4; \
-	fi
-	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && $(MAKE); true
-	. venv/bin/activate; pip install cffi
-	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
+endif
 
 warp-transducer.done: espnet.done
 	rm -rf warp-transducer
@@ -119,32 +128,24 @@ nkf.done:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
-mecab.done: espnet.done
-	rm -rf mecab
-	git clone https://github.com/taku910/mecab.git
-	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
-	cd mecab/mecab-ipadic && ./configure --with-charset=utf8 --with-mecab-config=$(PWD)/mecab/bin/mecab-config --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) install
-	cd mecab && git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
-	cd mecab/mecab-ipadic-neologd && export PATH=$(PWD)/mecab/bin:$(PATH) && ./bin/install-mecab-ipadic-neologd -n -y -p $(PWD)/mecab/mecab-ipadic-neologd
-	. venv/bin/activate; pip install mojimoji pykakasi
-	. venv/bin/activate; if [ `python --version | cut -c 8` -eq 3 ]; then \
-		if [ ! -e swig.done ]; then \
-			rm -rf swig; \
-			mkdir -p swig; \
-			cd swig; \
-			$(WGET) https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/swig-3.0.12.tar.gz; \
-			tar zxvf swig-3.0.12.tar.gz; \
-			cd swig-3.0.12 && ./configure prefix=$(PWD)/swig && $(MAKE) && $(MAKE) install; \
-			touch $(PWD)/swig.done; \
-		fi; \
-		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
-		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
-		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
-	else \
-		pip install mecab-python; \
-	fi
-	touch mecab.done
+hts_engine_API.done: espnet.done
+	rm -rf hts_engine_API
+	git clone https://github.com/r9y9/hts_engine_API.git
+	cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
+	touch hts_engine_API.done
+
+open_jtalk.done: hts_engine_API.done
+	rm -rf open_jtalk
+	git clone https://github.com/r9y9/open_jtalk.git
+	mkdir -p open_jtalk/src/build
+	cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ .. && make install
+	touch open_jtalk.done
+
+pyopenjtalk.done: open_jtalk.done
+	rm -rf pyopenjtalk
+	git clone https://github.com/r9y9/pyopenjtalk.git
+	. venv/bin/activate; cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(PWD) pip install -e .
+	touch pyopenjtalk.done
 
 moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
@@ -158,9 +159,9 @@ mwerSegmenter.done:
 
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate; python check_install.py
+	. venv/bin/activate; python check_install.py --torch-version $(TH_VERSION)
 else
-	. venv/bin/activate; python check_install.py --no-cupy
+	. venv/bin/activate; python check_install.py --no-cupy --torch-version $(TH_VERSION)
 endif
 
 
@@ -190,6 +191,7 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf.done swig.done moses.done mwerSegmenter.done
+	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

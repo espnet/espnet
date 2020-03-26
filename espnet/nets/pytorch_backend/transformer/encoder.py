@@ -8,10 +8,13 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -68,6 +71,8 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+        elif input_layer == 'vgg2l':
+            self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
@@ -91,6 +96,9 @@ class Encoder(torch.nn.Module):
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
             positionwise_layer_args = (attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
+        elif positionwise_layer_type == "conv1d-linear":
+            positionwise_layer = Conv1dLinear
+            positionwise_layer_args = (attention_dim, linear_units, positionwise_conv_kernel_size, dropout_rate)
         else:
             raise NotImplementedError("Support only linear or conv1d.")
         self.encoders = repeat(
@@ -108,14 +116,14 @@ class Encoder(torch.nn.Module):
             self.after_norm = LayerNorm(attention_dim)
 
     def forward(self, xs, masks):
-        """Embed positions in tensor.
+        """Encode input sequence.
 
         :param torch.Tensor xs: input tensor
         :param torch.Tensor masks: input mask
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.embed, Conv2dSubsampling):
+        if isinstance(self.embed, (Conv2dSubsampling, VGG2L)):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
@@ -123,3 +131,26 @@ class Encoder(torch.nn.Module):
         if self.normalize_before:
             xs = self.after_norm(xs)
         return xs, masks
+
+    def forward_one_step(self, xs, masks, cache=None):
+        """Encode input frame.
+
+        :param torch.Tensor xs: input tensor
+        :param torch.Tensor masks: input mask
+        :param List[torch.Tensor] cache: cache tensors
+        :return: position embedded tensor, mask and new cache
+        :rtype Tuple[torch.Tensor, torch.Tensor, List[torch.Tensor]]:
+        """
+        if isinstance(self.embed, Conv2dSubsampling):
+            xs, masks = self.embed(xs, masks)
+        else:
+            xs = self.embed(xs)
+        if cache is None:
+            cache = [None for _ in range(len(self.encoders))]
+        new_cache = []
+        for c, e in zip(cache, self.encoders):
+            xs, masks = e(xs, masks, cache=c)
+            new_cache.append(xs)
+        if self.normalize_before:
+            xs = self.after_norm(xs)
+        return xs, masks, new_cache
