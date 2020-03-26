@@ -45,12 +45,15 @@ class CTCPrefixScoreTH(object):
             if l < self.input_length:
                 x[i, l:, :] = self.logzero
                 x[i, l:, blank] = 0
-        # Expand input posteriors for fast computation
+        # Set the number of scoring hypotheses (scoring_num=0 means all)
         self.scoring_num = int(beam * scoring_ratio)
-        if self.scoring_num > 0 and self.scoring_num < self.odim:
-            xn = x.transpose(0, 1)
-        else:
+        if self.scoring_num >= self.odim:
+            self.scoring_num = 0
+        # Expand input posteriors for fast computation
+        if self.scoring_num == 0:
             xn = x.transpose(0, 1).unsqueeze(2).repeat(1, 1, beam, 1).view(-1, self.n_bb, self.odim)
+        else:
+            xn = x.transpose(0, 1)
         xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
         self.x = torch.stack([xn, xb])  # (2, T, B, O) or (2, T, BW, O)
         # Setup CTC windowing
@@ -158,6 +161,9 @@ class CTCPrefixScoreTH(object):
         for si in range(self.n_bb):
             log_psi[si, self.eos] = r_sum[self.end_frames[si], si]
 
+        # exclude blank probs
+        log_psi[:, self.blank] = self.logzero
+
         return (r, log_psi, f_min, f_max, scoring_idmap), log_psi - s_prev
 
     def index_select_state(self, state, best_ids):
@@ -262,6 +268,11 @@ class CTCPrefixScore(object):
         eos_pos = self.xp.where(cs == self.eos)[0]
         if len(eos_pos) > 0:
             log_psi[eos_pos] = r_sum[-1]  # log(r_T^n(g) + r_T^b(g))
+
+        # exclude blank probs
+        blank_pos = self.xp.where(cs == self.blank)[0]
+        if len(blank_pos) > 0:
+            log_psi[blank_pos] = self.logzero
 
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily

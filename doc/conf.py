@@ -38,7 +38,9 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
     "sphinxarg.ext",
+    "sphinx_markdown_tables",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -205,3 +207,6 @@ texinfo_documents = [
 ]
 
 autoclass_content = 'both'
+
+# NOTE(kan-bayashi): Do not update outputs in notebook automatically.
+nbsphinx_execute = 'never'

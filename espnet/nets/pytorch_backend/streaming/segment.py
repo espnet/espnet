@@ -32,8 +32,8 @@ class SegmentStreamingE2E(object):
         self._encoder_states = []
         self._ctc_posteriors = []
 
-        assert self._recog_args.ctc_weight > 0.0, \
-            "SegmentStreamingE2E works only with combined CTC and attention decoders."
+        assert self._recog_args.batchsize <= 1, \
+            "SegmentStreamingE2E works only with batch size <= 1"
         assert "b" not in self._e2e.etype, \
             "SegmentStreamingE2E works only with uni-directional encoders"
 
@@ -77,10 +77,24 @@ class SegmentStreamingE2E(object):
                     # Run decoder with a detected segment
                     h = torch.cat(self._encoder_states[:seg_len], dim=0).view(
                         -1, self._encoder_states[0].size(0))
-                    lpz = torch.cat(self._ctc_posteriors[:seg_len], dim=0).view(
-                        -1, self._ctc_posteriors[0].size(0))
-                    hyp = self._e2e.dec.recognize_beam(
-                        h, lpz, self._recog_args, self._char_list, self._rnnlm)
+                    if self._recog_args.ctc_weight > 0.0:
+                        lpz = torch.cat(self._ctc_posteriors[:seg_len], dim=0).view(
+                            -1, self._ctc_posteriors[0].size(0))
+                        if self._recog_args.batchsize > 0:
+                            lpz = lpz.unsqueeze(0)
+                        normalize_score = False
+                    else:
+                        lpz = None
+                        normalize_score = True
+
+                    if self._recog_args.batchsize == 0:
+                        hyp = self._e2e.dec.recognize_beam(
+                            h, lpz, self._recog_args, self._char_list, self._rnnlm)
+                    else:
+                        hlens = torch.tensor([h.shape[0]])
+                        hyp = self._e2e.dec.recognize_beam_batch(
+                            h.unsqueeze(0), hlens, lpz, self._recog_args,
+                            self._char_list, self._rnnlm, normalize_score=normalize_score)[0]
 
                     self._activates = 0
                     self._blank_dur = 0

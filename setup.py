@@ -22,13 +22,13 @@ requirements = {
         'chainer==6.0.0',
         # 'cupy==6.0.0',  # Do not install cupy as default
         'setuptools>=38.5.1',
-        'scipy>=1.3.0',
+        'scipy<=1.3.3',
         'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
-        'h5py>=2.9.0',
+        'h5py==2.9.0',
         'tensorboardX>=1.8',
         'pillow>=6.1.0',
         'nara_wpe>=0.0.5',
@@ -42,6 +42,9 @@ requirements = {
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
         'nltk>=3.4.5',
+        'nnmnkwii',
+        'jaconv',
+        'g2p_en',
         'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
         'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
@@ -67,7 +70,8 @@ requirements = {
         'commonmark==0.8.1',
         'recommonmark>=0.4.0',
         'travis-sphinx>=2.0.1',
-        'nbsphinx>=0.4.2'
+        'nbsphinx>=0.4.2',
+        'sphinx-markdown-tables>=0.0.12',
     ]}
 install_requires = requirements['install']
 setup_requires = requirements['setup']
@@ -77,7 +81,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.5.2',
+      version='0.6.2',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
@@ -94,8 +98,9 @@ setup(name='espnet',
       extras_require=extras_require,
       classifiers=[
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
           'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Science/Research',
           'Operating System :: POSIX :: Linux',

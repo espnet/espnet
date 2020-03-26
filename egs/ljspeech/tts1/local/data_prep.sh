@@ -5,6 +5,13 @@
 
 db=$1
 data_dir=$2
+trans_type=$3
+
+# check arguments
+if [ $# != 3 ]; then
+    echo "Usage: $0 <db> <data_dir> <trans_type>"
+    exit 1
+fi
 
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
@@ -20,7 +27,7 @@ text=${data_dir}/text
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
 # make scp, utt2spk, and spk2utt
-find ${db} -name "*.wav" | sort | while read -r filename;do
+find ${db} -follow -name "*.wav" | sort | while read -r filename;do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
     echo "${id} ${filename}" >> ${scp}
     echo "${id} LJ" >> ${utt2spk}
@@ -29,5 +36,5 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-PYTHONPATH=local/text python local/clean_text.py ${db}/metadata.csv > ${text}
+local/clean_text.py ${db}/metadata.csv $trans_type > ${text}
 echo "finished making text."

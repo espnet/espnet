@@ -12,9 +12,12 @@ lm=""
 dict=""
 etc=""
 outfile="model"
+preprocess_conf=""
 
 help_message=$(cat <<EOF
-Usage: $0 <tr_conf> <dec_conf> <cmvn> <e2e>, for example:
+Usage: $0 --lm <lm> --dict <dict> <tr_conf> <dec_conf> <cmvn> <e2e>, for example:
+<lm>:       exp/train_rnnlm/rnnlm.model.best
+<dict>:     data/lang_char
 <tr_conf>:  conf/train.yaml
 <dec_conf>: conf/decode.yaml
 <cmvn>:     data/tr_it/cmvn.ark
@@ -52,6 +55,12 @@ if [ -e ${dec_conf} ]; then
 else
     echo "missing ${dec_conf}"
     exit 1
+fi
+# NOTE(kan-bayashi): preprocess conf is optional
+if [ -n "${preprocess_conf}" ]; then
+    tar rfh ${outfile}.tar ${preprocess_conf}
+    echo -n "    - preprocess config file: \`"
+    echo ${preprocess_conf} | sed -e "s/$/\`/"
 fi
 
 # cmvn

@@ -6,17 +6,22 @@
 
 """End-to-end speech translation model training script."""
 
-import configargparse
 import logging
 import os
 import random
 import subprocess
 import sys
 
+from distutils.version import LooseVersion
+
+import configargparse
 import numpy as np
+import torch
 
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2')
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -62,6 +67,8 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
+    parser.add_argument('--save-interval-iters', default=0, type=int,
+                        help="Save snapshot interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -71,13 +78,18 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--model-module', type=str, default=None,
                         help='model defined module (default: espnet.nets.xxx_backend.e2e_st:E2E)')
     # loss related
+    parser.add_argument('--ctc_type', default='warpctc', type=str,
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss.')
     parser.add_argument('--mtlalpha', default=0.0, type=float,
-                        help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
-    # TODO(hirofumi0810): remove this after adding e2e_st_transformer.py
+                        help='Multitask learning coefficient, alpha: \
+                                alpha*ctc_loss + (1-alpha)*att_loss')
     parser.add_argument('--asr-weight', default=0.0, type=float,
-                        help='Multitask learning coefficient, weight: weight*asr_loss + (1-weight)*st_loss')
-    parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
-                        help='Apply label smoothing with a specified distribution type')
+                        help='Multitask learning coefficient for ASR task, weight: \
+                                asr_weight*(alpha*ctc_loss + (1-alpha)*att_loss) + (1-asr_weight-mt_weight)*st_loss')
+    parser.add_argument('--mt-weight', default=0.0, type=float,
+                        help='Multitask learning coefficient for MT task, weight: \
+                                mt_weight*mt_loss + (1-mt_weight-asr_weight)*st_loss')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     # recognition options to compute CER/WER
@@ -180,7 +192,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--dec-init-mods', default='att., dec.',
                         type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
                         help='List of decoder modules to initialize, separated by a comma.')
-
     # multilingual related
     parser.add_argument('--multilingual', default=False, type=strtobool,
                         help='Prepend target language ID to the source sentence. \
@@ -188,7 +199,6 @@ def get_parser(parser=None, required=True):
     parser.add_argument('--replace-sos', default=False, type=strtobool,
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
-
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='The stats file for the feature normalization')
@@ -265,7 +275,11 @@ def main(cmd_args):
                 ngpu = 0
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
+        args.ngpu = ngpu
     else:
+        if is_torch_1_2_plus and args.ngpu != 1:
+            logging.debug("There are some bugs with multi-GPU processing in PyTorch 1.2+" +
+                          " (see https://github.com/pytorch/pytorch/issues/21108)")
         ngpu = args.ngpu
     logging.info(f"ngpu: {ngpu}")
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [ ! -e tools/kaldi ]; then
+    git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
+fi
+
 PATH=$(pwd)/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
@@ -25,4 +29,4 @@ if grep -q "SC[0-9]\{4\}" check_shellcheck; then
 fi
 
 echo "=== run bats ==="
-bats test_utils
+bats test_utils/test_*.bats

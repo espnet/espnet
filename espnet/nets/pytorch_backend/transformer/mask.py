@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright 2019 Shigeki Karita
@@ -6,10 +5,15 @@
 
 """Mask module."""
 
+from distutils.version import LooseVersion
+
 import torch
 
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2.0')
+datatype = torch.bool if is_torch_1_2_plus else torch.uint8
 
-def subsequent_mask(size, device="cpu", dtype=torch.uint8):
+
+def subsequent_mask(size, device="cpu", dtype=datatype):
     """Create mask for subsequent steps (1, size, size).
 
     :param int size: size of mask

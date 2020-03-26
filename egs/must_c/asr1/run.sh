@@ -11,6 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+nj=16           # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -20,6 +21,7 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
+preprocess_config=
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -54,7 +56,7 @@ tgt_lang=de
 # if you want to use all languages, set tgt_lang="all"
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=5000
 bpemode=bpe
 
 # exp tag
@@ -145,8 +147,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
-        cut -f -1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
+        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
+        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
         comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
 
         for lang in ${tgt_lang} en; do
@@ -183,7 +185,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${case}.txt
 bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -202,15 +204,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
+    # NOTE: ASR vocab is created with a source language only
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 fi
@@ -250,6 +253,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${case}_${backend}_${tag}
 fi
@@ -262,6 +268,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -276,12 +283,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
 fi
-
-for rtask in ${recog_set}; do
-    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-    local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
-        data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
-done
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
@@ -301,7 +302,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${recog_model} \
             --num ${n_average}
     fi
-    nj=16
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
@@ -323,7 +323,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${recog_model} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         local/score_sclite.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}

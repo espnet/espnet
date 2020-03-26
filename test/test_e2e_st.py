@@ -30,12 +30,12 @@ def make_arg(**kwargs):
         dtype="lstm",
         dlayers=1,
         dunits=16,
-        atype="location",
+        atype="add",
         aheads=2,
         awin=5,
         aconv_chans=4,
         aconv_filts=10,
-        asr_weight=0.5,
+        mtlalpha=0.0,
         lsm_type="",
         lsm_weight=0.0,
         sampling_probability=0.0,
@@ -47,8 +47,8 @@ def make_arg(**kwargs):
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
-        ctc_weight=0.0,  # dummy
-        ctc_window_margin=0,
+        ctc_weight=0.0,
+        ctc_window_margin=0,  # dummy
         lm_weight=0.0,
         rnnlm=None,
         streaming_min_blank_dur=10,
@@ -57,6 +57,7 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
+        ctc_type="warpctc",
         report_bleu=False,
         report_cer=False,
         report_wer=False,
@@ -68,17 +69,19 @@ def make_arg(**kwargs):
         multilingual=False,
         replace_sos=False,
         tgt_lang=False,
+        asr_weight=0.0,
+        mt_weight=0.0,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[20, 15], olens=[4, 3], olens_asr=[3, 2], is_cuda=False):
+def prepare_inputs(mode, ilens=[20, 15], olens_tgt=[4, 3], olens_src=[3, 2], is_cuda=False):
     np.random.seed(1)
-    assert len(ilens) == len(olens)
+    assert len(ilens) == len(olens_tgt)
     xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
-    ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
-    ys_asr = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens_asr]
+    ys_tgt = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens_tgt]
+    ys_src = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens_src]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
     if mode == "chainer":
@@ -87,42 +90,42 @@ def prepare_inputs(mode, ilens=[20, 15], olens=[4, 3], olens_asr=[3, 2], is_cuda
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
-        ys_pad_asr = pad_list([torch.from_numpy(y).long() for y in ys_asr], -1)
+        ys_pad_tgt = pad_list([torch.from_numpy(y).long() for y in ys_tgt], -1)
+        ys_pad_src = pad_list([torch.from_numpy(y).long() for y in ys_src], -1)
         if is_cuda:
             xs_pad = xs_pad.cuda()
             ilens = ilens.cuda()
-            ys_pad = ys_pad.cuda()
-            ys_pad_asr = ys_pad_asr.cuda()
+            ys_pad_tgt = ys_pad_tgt.cuda()
+            ys_pad_src = ys_pad_src.cuda()
 
-        return xs_pad, ilens, ys_pad, ys_pad_asr
+        return xs_pad, ilens, ys_pad_tgt, ys_pad_src
     else:
         raise ValueError("Invalid mode")
 
 
 def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
     ilens = np.array([x[1]['input'][0]['shape'][0] for x in batch])
-    olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
-    olens_asr = np.array([x[1]['output'][1]['shape'][0] for x in batch])
+    olens_tgt = np.array([x[1]['output'][0]['shape'][0] for x in batch])
+    olens_src = np.array([x[1]['output'][1]['shape'][0] for x in batch])
     xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
-    ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
-    ys_asr = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens_asr]
+    ys_tgt = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens_tgt]
+    ys_src = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens_src]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
         xs = pad_list([torch.from_numpy(x).float() for x in xs], 0)
         ilens = torch.from_numpy(ilens).long()
-        ys = pad_list([torch.from_numpy(y).long() for y in ys], -1)
-        ys_asr = pad_list([torch.from_numpy(y).long() for y in ys_asr], -1)
+        ys_tgt = pad_list([torch.from_numpy(y).long() for y in ys_tgt], -1)
+        ys_src = pad_list([torch.from_numpy(y).long() for y in ys_src], -1)
 
         if is_cuda:
             xs = xs.cuda()
             ilens = ilens.cuda()
-            ys = ys.cuda()
-            ys_asr = ys_asr.cuda()
+            ys_tgt = ys_tgt.cuda()
+            ys_src = ys_src.cuda()
     else:
         raise NotImplementedError
 
-    return xs, ilens, ys, ys_asr
+    return xs, ilens, ys_tgt, ys_src
 
 
 @pytest.mark.parametrize(
@@ -154,17 +157,31 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
         ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_loc'}),
         ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_multi_res_loc'}),
         ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.0, 'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.5, 'mt_weight': 0.2}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 1.0, 'mt_weight': 0.2}),
         ('espnet.nets.pytorch_backend.e2e_st', {'sampling_probability': 0.5}),
         ('espnet.nets.pytorch_backend.e2e_st', {'context_residual': True}),
         ('espnet.nets.pytorch_backend.e2e_st', {'grad_noise': True}),
         ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
         ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
         ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'report_wer': True}),
         ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'report_wer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'report_wer': True, 'asr_weight': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
+                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
+                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
+        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
+                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
     ]
 )
 def test_model_trainable_and_decodable(module, model_dict):
@@ -352,7 +369,7 @@ def test_zero_length_target(etype):
     args = make_arg(etype=etype)
     th_model = th.E2E(40, 5, args)
 
-    th_batch = prepare_inputs("pytorch", olens=[4, 0], olens_asr=[3, 0])
+    th_batch = prepare_inputs("pytorch", olens_tgt=[4, 0], olens_src=[3, 0])
 
     th_model(*th_batch)
 

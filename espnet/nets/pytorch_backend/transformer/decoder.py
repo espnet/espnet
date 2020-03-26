@@ -98,9 +98,13 @@ class Decoder(ScorerInterface, torch.nn.Module):
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out) if input_layer == "embed"
                                  input tensor (batch, maxlen_out, #mels) in the other cases
-        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
+        :param torch.Tensor tgt_mask: input token mask,  (batch, maxlen_out)
+                                      dtype=torch.uint8 in PyTorch 1.2-
+                                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
-        :param torch.Tensor memory_mask: encoded memory mask, uint8  (batch, maxlen_in)
+        :param torch.Tensor memory_mask: encoded memory mask,  (batch, maxlen_in)
+                                         dtype=torch.uint8 in PyTorch 1.2-
+                                         dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :return x: decoded token score before softmax (batch, maxlen_out, token) if use_output_layer is True,
                    final block outputs (batch, maxlen_out, attention_dim) in the other cases
         :rtype: torch.Tensor
@@ -115,30 +119,43 @@ class Decoder(ScorerInterface, torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def recognize(self, tgt, tgt_mask, memory):
-        """Recognize one step.
+    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+        """Forward one step.
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
-        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
+        :param torch.Tensor tgt_mask: input token mask,  (batch, maxlen_out)
+                                      dtype=torch.uint8 in PyTorch 1.2-
+                                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
-        :return x: decoded token score before softmax (batch, maxlen_out, token)
-        :rtype: torch.Tensor
+        :param List[torch.Tensor] cache: cached output list of (batch, max_time_out-1, size)
+        :return y, cache: NN output value and cache per `self.decoders`.
+            `y.shape` is (batch, maxlen_out, token)
+        :rtype: Tuple[torch.Tensor, List[torch.Tensor]]
         """
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
+        if cache is None:
+            cache = self.init_state()
+        new_cache = []
+        for c, decoder in zip(cache, self.decoders):
+            x, tgt_mask, memory, memory_mask = decoder(x, tgt_mask, memory, None, cache=c)
+            new_cache.append(x)
+
         if self.normalize_before:
-            x_ = self.after_norm(x[:, -1])
+            y = self.after_norm(x[:, -1])
         else:
-            x_ = x[:, -1]
+            y = x[:, -1]
         if self.output_layer is not None:
-            return torch.log_softmax(self.output_layer(x_), dim=-1)
-        else:
-            return x_
+            y = torch.log_softmax(self.output_layer(y), dim=-1)
+
+        return y, new_cache
 
     # beam search API (see ScorerInterface)
+    def init_state(self, x=None):
+        """Get an initial state for decoding."""
+        return [None for i in range(len(self.decoders))]
+
     def score(self, ys, state, x):
         """Score."""
-        # TODO(karita) cache previous attentions in state
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        logp = self.recognize(ys.unsqueeze(0), ys_mask, x.unsqueeze(0))
-        return logp.squeeze(0), None
+        logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
+        return logp.squeeze(0), state

@@ -1,3 +1,5 @@
+"""Attention modules for RNN."""
+
 import math
 import six
 
@@ -6,6 +8,36 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
+
+
+def _apply_attention_constraint(e, last_attended_idx, backward_window=1, forward_window=3):
+    """Apply monotonic attention constraint.
+
+    This function apply the monotonic attention constraint introduced in `Deep Voice 3: Scaling
+    Text-to-Speech with Convolutional Sequence Learning`_.
+
+    Args:
+        e (Tensor): Attention energy before applying softmax (1, T).
+        last_attended_idx (int): The index of the inputs of the last attended [0, T].
+        backward_window (int, optional): Backward window size in attention constraint.
+        forward_window (int, optional): Forward window size in attetion constraint.
+
+    Returns:
+        Tensor: Monotonic constrained attention energy (1, T).
+
+    .. _`Deep Voice 3: Scaling Text-to-Speech with Convolutional Sequence Learning`:
+        https://arxiv.org/abs/1710.07654
+
+    """
+    if e.size(0) != 1:
+        raise NotImplementedError("Batch attention constraining is not yet supported.")
+    backward_idx = last_attended_idx - backward_window
+    forward_idx = last_attended_idx + forward_window
+    if backward_idx > 0:
+        e[:, :backward_idx] = -float('inf')
+    if forward_idx < e.size(1):
+        e[:, forward_idx:] = -float('inf')
+    return e
 
 
 class NoAtt(torch.nn.Module):
@@ -60,9 +92,10 @@ class AttDot(torch.nn.Module):
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim):
+    def __init__(self, eprojs, dunits, att_dim, han_mode=False):
         super(AttDot, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim)
@@ -74,6 +107,7 @@ class AttDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -98,7 +132,7 @@ class AttDot(torch.nn.Module):
 
         batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -131,9 +165,10 @@ class AttAdd(torch.nn.Module):
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim):
+    def __init__(self, eprojs, dunits, att_dim, han_mode=False):
         super(AttAdd, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -145,6 +180,7 @@ class AttAdd(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -154,7 +190,7 @@ class AttAdd(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """AttLoc forward
+        """AttAdd forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -169,7 +205,7 @@ class AttAdd(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -202,7 +238,7 @@ class AttAdd(torch.nn.Module):
 
 
 class AttLoc(torch.nn.Module):
-    """location-aware attention
+    """location-aware attention module.
 
     Reference: Attention-Based Models for Speech Recognition
         (https://arxiv.org/pdf/1506.07503.pdf)
@@ -212,9 +248,10 @@ class AttLoc(torch.nn.Module):
     :param int att_dim: attention dimension
     :param int aconv_chans: # channels of attention convolution
     :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, han_mode=False):
         super(AttLoc, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -230,6 +267,7 @@ class AttLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -238,14 +276,19 @@ class AttLoc(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """AttLoc forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
+                scaling=2.0, last_attended_idx=None, backward_window=1, forward_window=3):
+        """Calcualte AttLoc forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: previous attention weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
+        :param torch.Tensor forward_window: forward window size when constraining attention
+        :param int last_attended_idx: index of the inputs of the last attended
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
         :rtype: torch.Tensor
         :return: previous attention weights (B x T_max)
@@ -253,7 +296,7 @@ class AttLoc(torch.nn.Module):
         """
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -284,10 +327,15 @@ class AttLoc(torch.nn.Module):
         # utt x frame x att_dim -> utt x frame
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
-        # NOTE consider zero padding when compute w.
+        # NOTE: consider zero padding when compute w.
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # apply monotonic attention constraint (mainly for TTS)
+        if last_attended_idx is not None:
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -306,9 +354,10 @@ class AttCov(torch.nn.Module):
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim):
+    def __init__(self, eprojs, dunits, att_dim, han_mode=False):
         super(AttCov, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -322,6 +371,7 @@ class AttCov(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -346,7 +396,7 @@ class AttCov(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -402,9 +452,10 @@ class AttLoc2D(torch.nn.Module):
     :param int aconv_chans: # channels of attention convolution
     :param int aconv_filts: filter size of attention convolution
     :param int att_win: attention window size (default=5)
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim, att_win, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, att_dim, att_win, aconv_chans, aconv_filts, han_mode=False):
         super(AttLoc2D, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -422,6 +473,7 @@ class AttLoc2D(torch.nn.Module):
         self.aconv_chans = aconv_chans
         self.att_win = att_win
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -446,7 +498,7 @@ class AttLoc2D(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -508,9 +560,10 @@ class AttLocRec(torch.nn.Module):
     :param int att_dim: attention dimension
     :param int aconv_chans: # channels of attention convolution
     :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, han_mode=False):
         super(AttLocRec, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -526,6 +579,7 @@ class AttLocRec(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -552,7 +606,7 @@ class AttLocRec(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -617,9 +671,10 @@ class AttCovLoc(torch.nn.Module):
     :param int att_dim: attention dimension
     :param int aconv_chans: # channels of attention convolution
     :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_enc_h
     """
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, han_mode=False):
         super(AttCovLoc, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -636,6 +691,7 @@ class AttCovLoc(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.aconv_chans = aconv_chans
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -660,7 +716,7 @@ class AttCovLoc(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        if self.pre_compute_enc_h is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -720,9 +776,10 @@ class AttMultiHeadDot(torch.nn.Module):
     :param int aheads: # heads of multi head attention
     :param int att_dim_k: dimension k in multi head attention
     :param int att_dim_v: dimension v in multi head attention
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_k and pre_compute_v
     """
 
-    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, han_mode=False):
         super(AttMultiHeadDot, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
@@ -743,6 +800,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -767,14 +825,14 @@ class AttMultiHeadDot(torch.nn.Module):
 
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
-        if self.pre_compute_k is None:
+        if self.pre_compute_k is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
                 torch.tanh(self.mlp_k[h](self.enc_h)) for h in six.moves.range(self.aheads)]
 
-        if self.pre_compute_v is None:
+        if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -822,9 +880,10 @@ class AttMultiHeadAdd(torch.nn.Module):
     :param int aheads: # heads of multi head attention
     :param int att_dim_k: dimension k in multi head attention
     :param int att_dim_v: dimension v in multi head attention
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_k and pre_compute_v
     """
 
-    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, han_mode=False):
         super(AttMultiHeadAdd, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
@@ -847,6 +906,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -871,14 +931,14 @@ class AttMultiHeadAdd(torch.nn.Module):
 
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
-        if self.pre_compute_k is None:
+        if self.pre_compute_k is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
                 self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
-        if self.pre_compute_v is None:
+        if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -928,9 +988,10 @@ class AttMultiHeadLoc(torch.nn.Module):
     :param int att_dim_v: dimension v in multi head attention
     :param int aconv_chans: # channels of attention convolution
     :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_k and pre_compute_v
     """
 
-    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts, han_mode=False):
         super(AttMultiHeadLoc, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
@@ -958,6 +1019,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -983,14 +1045,14 @@ class AttMultiHeadLoc(torch.nn.Module):
 
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
-        if self.pre_compute_k is None:
+        if self.pre_compute_k is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
                 self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
-        if self.pre_compute_v is None:
+        if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -1055,9 +1117,10 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         each head use #ch = aconv_chans * (head + 1) / aheads
         e.g. aheads=4, aconv_chans=100 => filter size = 25, 50, 75, 100
     :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention and not store pre_compute_k and pre_compute_v
     """
 
-    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts, han_mode=False):
         super(AttMultiHeadMultiResLoc, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
@@ -1086,6 +1149,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
         self.mask = None
+        self.han_mode = han_mode
 
     def reset(self):
         """reset states"""
@@ -1110,14 +1174,14 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
-        if self.pre_compute_k is None:
+        if self.pre_compute_k is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
                 self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
-        if self.pre_compute_v is None:
+        if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
@@ -1165,7 +1229,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
 
 class AttForward(torch.nn.Module):
-    """Forward attention
+    """Forward attention module.
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
@@ -1200,14 +1264,18 @@ class AttForward(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=1.0):
-        """AttForward forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev,
+                scaling=1.0, last_attended_idx=None, backward_window=1, forward_window=3):
+        """Calculate AttForward forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: attention weights of previous step
         :param float scaling: scaling parameter before applying softmax
+        :param int last_attended_idx: index of the inputs of the last attended
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, D_enc)
         :rtype: torch.Tensor
         :return: previous attention weights (B x T_max)
@@ -1245,10 +1313,15 @@ class AttForward(torch.nn.Module):
         # utt x frame x att_dim -> utt x frame
         e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled + att_conv)).squeeze(2)
 
-        # NOTE consider zero padding when compute w.
+        # NOTE: consider zero padding when compute w.
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # apply monotonic attention constraint (mainly for TTS)
+        if last_attended_idx is not None:
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+
         w = F.softmax(scaling * e, dim=1)
 
         # forward attention
@@ -1266,7 +1339,7 @@ class AttForward(torch.nn.Module):
 
 
 class AttForwardTA(torch.nn.Module):
-    """Forward attention with transition agent
+    """Forward attention with transition agent module.
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
@@ -1304,8 +1377,9 @@ class AttForwardTA(torch.nn.Module):
         self.mask = None
         self.trans_agent_prob = 0.5
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
-        """AttForwardTA forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev,
+                scaling=1.0, last_attended_idx=None, backward_window=1, forward_window=3):
+        """Calculate AttForwardTA forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1313,6 +1387,9 @@ class AttForwardTA(torch.nn.Module):
         :param torch.Tensor att_prev: attention weights of previous step
         :param torch.Tensor out_prev: decoder outputs of previous step (B, odim)
         :param float scaling: scaling parameter before applying softmax
+        :param int last_attended_idx: index of the inputs of the last attended
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
         :return: attention weighted encoder state (B, dunits)
         :rtype: torch.Tensor
         :return: previous attention weights (B, Tmax)
@@ -1354,6 +1431,11 @@ class AttForwardTA(torch.nn.Module):
         if self.mask is None:
             self.mask = to_device(self, make_pad_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
+
+        # apply monotonic attention constraint (mainly for TTS)
+        if last_attended_idx is not None:
+            e = _apply_attention_constraint(e, last_attended_idx, backward_window, forward_window)
+
         w = F.softmax(scaling * e, dim=1)
 
         # forward attention
@@ -1374,53 +1456,93 @@ class AttForwardTA(torch.nn.Module):
         return c, w
 
 
-def att_for(args, num_att=1):
+def att_for(args, num_att=1, han_mode=False):
     """Instantiates an attention module given the program arguments
 
     :param Namespace args: The arguments
     :param int num_att: number of attention modules (in multi-speaker case, it can be 2 or more)
+    :param bool han_mode: switch on/off mode of hierarchical attention network (HAN)
     :rtype torch.nn.Module
     :return: The attention module
     """
     att_list = torch.nn.ModuleList()
-    for i in range(num_att):
-        att = None
-        if args.atype == 'noatt':
-            att = NoAtt()
-        elif args.atype == 'dot':
-            att = AttDot(args.eprojs, args.dunits, args.adim)
-        elif args.atype == 'add':
-            att = AttAdd(args.eprojs, args.dunits, args.adim)
-        elif args.atype == 'location':
-            att = AttLoc(args.eprojs, args.dunits,
-                         args.adim, args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'location2d':
-            att = AttLoc2D(args.eprojs, args.dunits,
-                           args.adim, args.awin, args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'location_recurrent':
-            att = AttLocRec(args.eprojs, args.dunits,
-                            args.adim, args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'coverage':
-            att = AttCov(args.eprojs, args.dunits, args.adim)
-        elif args.atype == 'coverage_location':
-            att = AttCovLoc(args.eprojs, args.dunits, args.adim,
-                            args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'multi_head_dot':
-            att = AttMultiHeadDot(args.eprojs, args.dunits,
-                                  args.aheads, args.adim, args.adim)
-        elif args.atype == 'multi_head_add':
-            att = AttMultiHeadAdd(args.eprojs, args.dunits,
-                                  args.aheads, args.adim, args.adim)
-        elif args.atype == 'multi_head_loc':
-            att = AttMultiHeadLoc(args.eprojs, args.dunits,
-                                  args.aheads, args.adim, args.adim,
-                                  args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'multi_head_multi_res_loc':
-            att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
-                                          args.aheads, args.adim, args.adim,
-                                          args.aconv_chans, args.aconv_filts)
-        att_list.append(att)
+    num_encs = getattr(args, "num_encs", 1)  # use getattr to keep compatibility
+    aheads = getattr(args, 'aheads', None)
+    awin = getattr(args, 'awin', None)
+    aconv_chans = getattr(args, 'aconv_chans', None)
+    aconv_filts = getattr(args, 'aconv_filts', None)
+
+    if num_encs == 1:
+        for i in range(num_att):
+            att = initial_att(args.atype, args.eprojs, args.dunits, aheads, args.adim, awin, aconv_chans,
+                              aconv_filts)
+            att_list.append(att)
+    elif num_encs > 1:  # no multi-speaker mode
+        if han_mode:
+            att = initial_att(args.han_type, args.eprojs, args.dunits, args.han_heads, args.han_dim,
+                              args.han_win, args.han_conv_chans, args.han_conv_filts, han_mode=True)
+            return att
+        else:
+            att_list = torch.nn.ModuleList()
+            for idx in range(num_encs):
+                att = initial_att(args.atype[idx], args.eprojs, args.dunits, aheads[idx], args.adim[idx],
+                                  awin[idx], aconv_chans[idx], aconv_filts[idx])
+                att_list.append(att)
+    else:
+        raise ValueError("Number of encoders needs to be more than one. {}".format(num_encs))
     return att_list
+
+
+def initial_att(atype, eprojs, dunits, aheads, adim, awin, aconv_chans, aconv_filts, han_mode=False):
+    """Instantiates a single attention module
+
+    :param str atype: attention type
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int adim: attention dimension
+    :param int awin: attention window size
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention
+    :return: The attention module
+    """
+
+    if atype == 'noatt':
+        att = NoAtt()
+    elif atype == 'dot':
+        att = AttDot(eprojs, dunits, adim, han_mode)
+    elif atype == 'add':
+        att = AttAdd(eprojs, dunits, adim, han_mode)
+    elif atype == 'location':
+        att = AttLoc(eprojs, dunits,
+                     adim, aconv_chans, aconv_filts, han_mode)
+    elif atype == 'location2d':
+        att = AttLoc2D(eprojs, dunits,
+                       adim, awin, aconv_chans, aconv_filts, han_mode)
+    elif atype == 'location_recurrent':
+        att = AttLocRec(eprojs, dunits,
+                        adim, aconv_chans, aconv_filts, han_mode)
+    elif atype == 'coverage':
+        att = AttCov(eprojs, dunits, adim, han_mode)
+    elif atype == 'coverage_location':
+        att = AttCovLoc(eprojs, dunits, adim,
+                        aconv_chans, aconv_filts, han_mode)
+    elif atype == 'multi_head_dot':
+        att = AttMultiHeadDot(eprojs, dunits,
+                              aheads, adim, adim, han_mode)
+    elif atype == 'multi_head_add':
+        att = AttMultiHeadAdd(eprojs, dunits,
+                              aheads, adim, adim, han_mode)
+    elif atype == 'multi_head_loc':
+        att = AttMultiHeadLoc(eprojs, dunits,
+                              aheads, adim, adim,
+                              aconv_chans, aconv_filts, han_mode)
+    elif atype == 'multi_head_multi_res_loc':
+        att = AttMultiHeadMultiResLoc(eprojs, dunits,
+                                      aheads, adim, adim,
+                                      aconv_chans, aconv_filts, han_mode)
+    return att
 
 
 def att_to_numpy(att_ws, att):
@@ -1437,7 +1559,7 @@ def att_to_numpy(att_ws, att):
         att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).cpu().numpy()
     elif isinstance(att, (AttCov, AttCovLoc)):
         # att_ws => list of list of previous attentions
-        att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).cpu().numpy()
+        att_ws = torch.stack([aw[idx] for idx, aw in enumerate(att_ws)], dim=1).cpu().numpy()
     elif isinstance(att, AttLocRec):
         # att_ws => list of tuple of attention and hidden states
         att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).cpu().numpy()

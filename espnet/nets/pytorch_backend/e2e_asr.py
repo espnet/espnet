@@ -29,6 +29,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
 from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
@@ -134,6 +135,9 @@ class E2E(ASRInterface, torch.nn.Module):
                            help='Dropout rate for the decoder')
         group.add_argument('--sampling-probability', default=0.0, type=float,
                            help='Ratio of predicted labels fed back to decoder')
+        group.add_argument('--lsm-type', const='', default='', type=str, nargs='?',
+                           choices=['', 'unigram'],
+                           help='Apply label smoothing with a specified distribution type')
         return parser
 
     def __init__(self, idim, odim, args):
@@ -163,17 +167,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.eos = odim - 1
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
-        subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype.endswith("p") and not args.etype.startswith("vgg"):
-            ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
-                subsample[j] = int(ss[j])
-        else:
-            logging.warning(
-                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
-        self.subsample = subsample
+        self.subsample = get_subsample(args, mode='asr', arch='rnn')
 
         # label smoothing info
         if args.lsm_type and os.path.isfile(args.train_json):
@@ -250,7 +244,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -487,7 +481,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).

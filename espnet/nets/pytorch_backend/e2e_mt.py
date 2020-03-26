@@ -23,6 +23,7 @@ from chainer import reporter
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.initialization import uniform_init_parameters
+from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
@@ -120,6 +121,9 @@ class E2E(MTInterface, torch.nn.Module):
                            help='Dropout rate for the decoder')
         group.add_argument('--sampling-probability', default=0.0, type=float,
                            help='Ratio of predicted labels fed back to decoder')
+        group.add_argument('--lsm-type', const='', default='', type=str, nargs='?',
+                           choices=['', 'unigram'],
+                           help='Apply label smoothing with a specified distribution type')
         return parser
 
     def __init__(self, idim, odim, args):
@@ -152,11 +156,7 @@ class E2E(MTInterface, torch.nn.Module):
         # we use index:0 for padding instead of adding one more class.
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
-        subsample = np.ones(args.elayers + 1, dtype=np.int)
-        logging.warning('Subsampling is not performed for machine translation.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
-        self.subsample = subsample
+        self.subsample = get_subsample(args, mode='mt', arch='rnn')
 
         # label smoothing info
         if args.lsm_type and os.path.isfile(args.train_json):

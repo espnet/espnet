@@ -35,10 +35,10 @@ guided-attn-loss-sigma: 0.4
 reduction-factor: 1
 
 # minibatch related
-batch-size: 32
-batch-sort-key: shuffle # shuffle or input or output
-maxlen-in: 150     # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
-maxlen-out: 400    # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
+batch-sort-key: input # shuffle or input or output
+batch-bins: 2428800   # 32 * (870 * 80 + 180 * 35)
+                      # batch-size * (max_out * dim_out + max_in * dim_in)
+                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
 
 # optimization related
 lr: 1e-3
