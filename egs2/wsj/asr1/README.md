@@ -9,7 +9,23 @@
   - Commit date: `Wed Mar 18 10:41:54 2020 +0900`
 
 
-## [Transformer, bs=32, accum_grad=8, warmup_steps=60000, 200epoch](./conf/tuning/train_asr_transformer.yaml) with [Char-LM](./conf/tuning/train_lm.yaml)
+## FBANK without pitch, [Transformer, bs=32, accum_grad=8, warmup_steps=30000, 100epoch](./conf/tuning/train_asr_transformer2.yaml) with [Char-LM](./conf/tuning/train_lm.yaml)
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_dev93_decode_lm_train_char_valid.loss.best_asr_model_valid.acc.ave|503|8234|92.2|6.9|0.9|1.3|9.1|62.2|
+|decode_test_eval92_decode_lm_train_char_valid.loss.best_asr_model_valid.acc.ave|333|5643|95.1|4.6|0.3|0.8|5.7|49.2|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_dev93_decode_lm_train_char_valid.loss.best_asr_model_valid.acc.ave|503|48634|97.0|1.3|1.6|0.8|3.7|67.4|
+|decode_test_eval92_decode_lm_train_char_valid.loss.best_asr_model_valid.acc.ave|333|33341|98.2|0.8|0.9|0.6|2.3|56.5|
+
+
+## FBANK without pitch, [Transformer, bs=32, accum_grad=8, warmup_steps=60000, 200epoch](./conf/tuning/train_asr_transformer.yaml) with [Char-LM](./conf/tuning/train_lm.yaml)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -25,7 +41,7 @@
 |decode_test_eval92decode_lm_valid.loss.best_asr_model_valid.acc.ave|333|33341|98.1|1.0|1.0|0.7|2.6|61.6|
 
 
-## [VGG-BLSTMP](./conf/tuning/train_asr_rnn.yaml) with [Char-LM](./conf/tuning/train_lm.yaml)
+## FBANK without pitch, [VGG-BLSTMP](./conf/tuning/train_asr_rnn.yaml) with [Char-LM](./conf/tuning/train_lm.yaml)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
