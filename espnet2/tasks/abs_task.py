@@ -23,6 +23,7 @@ import torch.multiprocessing
 import torch.nn
 import torch.optim
 from torch.utils.data import DataLoader
+import torch_optimizer
 from typeguard import check_argument_types
 from typeguard import check_return_type
 import yaml
@@ -78,6 +79,19 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    accagd=torch_optimizer.AccSGD,
+    adabound=torch_optimizer.AdaBound,
+    adamod=torch_optimizer.AdaMod,
+    diffgrad=torch_optimizer.DiffGrad,
+    lamb=torch_optimizer.Lamb,
+    novograd=torch_optimizer.NovoGrad,
+    pid=torch_optimizer.PID,
+    # torch_optimizer<=0.0.1a10 doesn't support
+    # qhadam=torch_optimizer.QHAdam,
+    qhm=torch_optimizer.QHM,
+    radam=torch_optimizer.RAdam,
+    sgdw=torch_optimizer.SGDW,
+    yogi=torch_optimizer.Yogi,
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
