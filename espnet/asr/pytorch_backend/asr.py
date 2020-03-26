@@ -500,18 +500,18 @@ def train(args):
     # actual bathsize is included in a list
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
-    train_iter = {'main': ChainerDataLoader(
+    train_iter = ChainerDataLoader(
         dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
-        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
-    valid_iter = {'main': ChainerDataLoader(
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])
+    valid_iter = ChainerDataLoader(
         dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
         batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
-        num_workers=args.n_iter_processes)}
+        num_workers=args.n_iter_processes)
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer,
+        model, args.grad_clip, {'main': train_iter}, optimizer,
         device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
@@ -527,10 +527,10 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     if args.save_interval_iters > 0:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+        trainer.extend(CustomEvaluator(model, {'main': valid_iter}, reporter, device, args.ngpu),
                        trigger=(args.save_interval_iters, 'iteration'))
     else:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+        trainer.extend(CustomEvaluator(model, {'main': valid_iter}, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
