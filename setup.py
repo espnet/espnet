@@ -50,7 +50,6 @@ requirements = {
         "humanfriendly",
         "resampy",
         "dataclasses",  # For Python<3.7
-        "torch_optimizer",
         "torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git",
         "pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git",
     ],
@@ -78,6 +77,15 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
+try:
+    import torch
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+        requirements["install"].append("torch_optimizer")
+    del torch
+except ImportError:
+    pass
+
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
 tests_require = requirements["test"]
