@@ -486,6 +486,18 @@ class AbsTask(ABC):
             default=None,
             help="If not given, the value of --batch_size is used",
         )
+        group.add_argument(
+            "--batch_bins",
+            type=int,
+            default=1000000,
+            help="The number of batch bins. Used if batch_type='bin'",
+        )
+        group.add_argument(
+            "--valid_batch_bins",
+            type=int_or_none,
+            default=None,
+            help="If not given, the value of --valid_batch_size is used",
+        )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
@@ -872,6 +884,7 @@ class AbsTask(ABC):
             data_path_and_name_and_type=args.train_data_path_and_name_and_type,
             shape_files=args.train_shape_file,
             batch_size=args.batch_size,
+            batch_bins=args.batch_bins,
             batch_type=args.batch_type,
             train=not args.collect_stats,
             preprocess_fn=cls.build_preprocess_fn(args, train=True),
@@ -886,6 +899,8 @@ class AbsTask(ABC):
             args.valid_batch_type = args.batch_type
         if args.valid_batch_size is None:
             args.valid_batch_size = args.batch_size
+        if args.valid_batch_bins is None:
+            args.valid_batch_bins = args.batch_bins
         if args.valid_max_cache_size is None:
             # Cache 5% of maximum size for validation loader
             args.valid_max_cache_size = 0.05 * args.max_cache_size
@@ -893,6 +908,7 @@ class AbsTask(ABC):
             data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
             shape_files=args.valid_shape_file,
             batch_size=args.valid_batch_size,
+            batch_bins=args.valid_batch_bins,
             batch_type=args.batch_type,
             train=False,
             preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -909,6 +925,7 @@ class AbsTask(ABC):
                 shape_files=args.valid_shape_file,
                 batch_type="const_no_sort",
                 batch_size=1,
+                batch_bins=0,
                 train=False,
                 preprocess_fn=cls.build_preprocess_fn(args, train=False),
                 collate_fn=cls.build_collate_fn(args),
@@ -1090,6 +1107,7 @@ class AbsTask(ABC):
         cls,
         iterator_type: str,
         batch_size: int,
+        batch_bins: int,
         preprocess_fn,
         collate_fn,
         train_dtype: str,
@@ -1165,6 +1183,7 @@ class AbsTask(ABC):
             return cls.build_sequence_iter_factory(
                 **kwargs,
                 batch_type=batch_type,
+                batch_bins=batch_bins,
                 fold_length=fold_length,
                 sort_in_batch=sort_in_batch,
                 sort_batch=sort_batch,
@@ -1191,6 +1210,7 @@ class AbsTask(ABC):
         train: bool,
         preprocess_fn,
         batch_size: int,
+        batch_bins: int,
         collate_fn,
         train_dtype: str,
         fold_length: Sequence[int],
@@ -1223,6 +1243,7 @@ class AbsTask(ABC):
             shape_files=shape_files,
             fold_lengths=fold_length,
             batch_size=batch_size,
+            batch_bins=batch_bins,
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
             drop_last=False,
