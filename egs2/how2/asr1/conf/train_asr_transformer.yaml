@@ -8,9 +8,6 @@ init: chainer
 batch_size: 32
 max_epoch: 100
 patience: 0
-max_length:
-    - 800
-    - 150
 
 scheduler_conf:
     warmup_steps: 25000
