@@ -11,10 +11,19 @@ def str2bool(value: str) -> bool:
 
 def remove_parenthesis(value: str):
     value = value.strip()
-    if value.startswith("(") or value.startswith("["):
-        value = value[1:]
-    if value.endswith(")") or value.endswith("]"):
-        value = value[:-1]
+    if value.startswith("(") and value.endswith(")"):
+        value = value[1:-1]
+    elif value.startswith("[") and value.endswith("]"):
+        value = value[1:-1]
+    return value
+
+
+def remove_quotes(value: str):
+    value = value.strip()
+    if value.startswith('"') and value.endswith('"'):
+        value = value[1:-1]
+    elif value.startswith("'") and value.endswith("'"):
+        value = value[1:-1]
     return value
 
 
@@ -105,7 +114,13 @@ def str2pair_str(value: str) -> Tuple[str, str]:
     """
     value = remove_parenthesis(value)
     a, b = value.split(",")
-    return a.strip(), b.strip()
+
+    # Workaround for configargparse issues:
+    # If the list values are given from yaml file,
+    # the value givent to type() is shaped as python-list,
+    # e.g. ['a', 'b', 'c'],
+    # so we need to remove double quotes from it.
+    return remove_quotes(a), remove_quotes(b)
 
 
 def str2triple_str(value: str) -> Tuple[str, str, str]:
@@ -115,6 +130,13 @@ def str2triple_str(value: str) -> Tuple[str, str, str]:
         >>> str2triple_str('abc,def ,ghi')
         ('abc', 'def', 'ghi')
     """
+    print(value)
     value = remove_parenthesis(value)
     a, b, c = value.split(",")
-    return a.strip(), b.strip(), c.strip()
+
+    # Workaround for configargparse issues:
+    # If the list values are given from yaml file,
+    # the value givent to type() is shaped as python-list,
+    # e.g. ['a', 'b', 'c'],
+    # so we need to remove quotes from it.
+    return remove_quotes(a), remove_quotes(b), remove_quotes(c)
