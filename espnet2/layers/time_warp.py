@@ -1,9 +1,18 @@
+from distutils.version import LooseVersion
+
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-def time_warp(x, window: int = 80, mode: str = "bicubic"):
+if LooseVersion(torch.__version__) >= LooseVersion("1.1"):
+    DEFAULT_TIME_WARP_MODE = "bicubic"
+else:
+    # pytorch1.0 doesn't implement bicubic
+    DEFAULT_TIME_WARP_MODE = "bilinear"
+
+
+def time_warp(x, window: int = 80, mode: str = DEFAULT_TIME_WARP_MODE):
     """Time warping using torch.interpolate.
 
     Args:
@@ -51,7 +60,7 @@ class TimeWarp(torch.nn.Module):
         mode: Interpolate mode
     """
 
-    def __init__(self, window: int = 80, mode: str = "bicubic"):
+    def __init__(self, window: int = 80, mode: str = DEFAULT_TIME_WARP_MODE):
         super().__init__()
         self.window = window
         self.mode = mode
