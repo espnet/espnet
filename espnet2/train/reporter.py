@@ -123,8 +123,11 @@ class SubReporter:
         self.epoch = epoch
         self.start_time = time.perf_counter()
         self.stats = defaultdict(list)
-        self.total_count = total_count
         self._finished = False
+        self.total_count = total_count
+        self.count = 0
+        self.prev_count = 0
+        self.prev_positions = {}
 
     def get_total_count(self) -> int:
         """Returns the number of iterations over all epochs."""
@@ -144,6 +147,7 @@ class SubReporter:
             raise RuntimeError("Already finished")
         if not not_increment_count:
             self.total_count += 1
+            self.count += 1
 
         for key2, v in stats.items():
             if key2 in _reserved:
@@ -154,23 +158,25 @@ class SubReporter:
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def log_message(self, nlatest: int = None) -> str:
+    def log_message(self) -> str:
         if self._finished:
             raise RuntimeError("Already finished")
+        if self.count == 0:
+            return ""
 
-        if nlatest is None:
-            nlatest = 0
+        message = (
+            f"{self.epoch}epoch:{self.key}:"
+            f"{self.prev_count + 1}-{self.count}batch: "
+        )
 
-        message = ""
-        for key2, stats in self.stats.items():
+        stats = list(self.stats.items())
+
+        for idx, (key2, stats) in enumerate(stats):
             # values: List[ReportValue]
-            values = stats[-nlatest:]
-            if len(message) == 0:
-                message += (
-                    f"{self.epoch}epoch:{self.key}:"
-                    f"{len(stats) - nlatest + 1}-{len(stats)}batch: "
-                )
-            else:
+            pos = self.prev_positions.setdefault(key2, 0)
+            self.prev_positions[key2] = len(stats)
+            values = stats[pos:]
+            if idx != 0 and idx != len(stats):
                 message += ", "
 
             v = aggregate(values)
@@ -180,6 +186,8 @@ class SubReporter:
                 message += f"{key2}={v:.3f}"
             else:
                 message += f"{key2}={v:.3e}"
+
+        self.prev_count = self.count
         return message
 
     def finished(self) -> None:
