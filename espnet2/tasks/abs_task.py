@@ -59,6 +59,7 @@ from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
@@ -520,13 +521,31 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Chunk iterator related")
-        group.add_argument("--chunk_length", type=str, default=500)
-        group.add_argument("--chunk_shift_ratio", type=float, default=0.5)
+        group.add_argument(
+            "--chunk_length",
+            type=str_or_int,
+            default=500,
+            help="Specify chunk length. e.g. '300', '300,400,500', or '300-400'."
+            "If multiple numbers separated by command are given, "
+            "one of them is selected randomly for each samples. "
+            "If two numbers are given with '-', it indicates the range of the choices. "
+            "Note that if the sequence length is shorter than the all chunk_lengths, "
+            "the sample is discarded. ",
+        )
+        group.add_argument(
+            "--chunk_shift_ratio",
+            type=float,
+            default=0.5,
+            help="Specify the shift width of chunks. If it's less than 1, "
+            "allows the overlapping and if bigger than 1, there are some gaps "
+            "between each chunk.",
+        )
         group.add_argument(
             "--num_cache_chunks",
             type=int,
             default=1024,
-            help="Shuffle in the specified number of chunks and generate mini-batches",
+            help="Shuffle in the specified number of chunks and generate mini-batches "
+            "More larger this value, more randomness can be obtained.",
         )
 
         group = parser.add_argument_group("Dataset related")
