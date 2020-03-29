@@ -83,6 +83,27 @@ optim_classes = dict(
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
 try:
+    import torch_optimizer
+
+    optim_classes.update(
+        accagd=torch_optimizer.AccSGD,
+        adabound=torch_optimizer.AdaBound,
+        adamod=torch_optimizer.AdaMod,
+        diffgrad=torch_optimizer.DiffGrad,
+        lamb=torch_optimizer.Lamb,
+        novograd=torch_optimizer.NovoGrad,
+        pid=torch_optimizer.PID,
+        # torch_optimizer<=0.0.1a10 doesn't support
+        # qhadam=torch_optimizer.QHAdam,
+        qhm=torch_optimizer.QHM,
+        radam=torch_optimizer.RAdam,
+        sgdw=torch_optimizer.SGDW,
+        yogi=torch_optimizer.Yogi,
+    )
+    del torch_optimizer
+except ImportError:
+    pass
+try:
     import apex
 
     optim_classes.update(
