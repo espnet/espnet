@@ -193,6 +193,25 @@ class SubReporter:
     def finished(self) -> None:
         self._finished = True
 
+    @contextmanager
+    def measure_time(self, name: str):
+        start = time.perf_counter()
+        yield start
+        t = time.perf_counter() - start
+        self.register({name: t}, not_increment_count=True)
+
+    def measure_iter_time(self, iterable, name: str):
+        iterator = iter(iterable)
+        while True:
+            try:
+                start = time.perf_counter()
+                retval = next(iterator)
+                t = time.perf_counter() - start
+                self.register({name: t}, not_increment_count=True)
+                yield retval
+            except StopIteration:
+                break
+
 
 class Reporter:
     """Reporter class.
