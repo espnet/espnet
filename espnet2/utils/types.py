@@ -130,7 +130,6 @@ def str2triple_str(value: str) -> Tuple[str, str, str]:
         >>> str2triple_str('abc,def ,ghi')
         ('abc', 'def', 'ghi')
     """
-    print(value)
     value = remove_parenthesis(value)
     a, b, c = value.split(",")
 
