@@ -369,7 +369,6 @@ class Trainer:
             if no_forward_run:
                 all_steps_are_invalid = False
                 reporter.register({})
-                start_load_time = time.perf_counter()
                 continue
 
             with reporter.measure_time("forward_time"):
