@@ -420,7 +420,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--best_model_criterion",
             type=str2triple_str,
-            action="append",
+            nargs="+",
             default=[
                 ("train", "loss", "min"),
                 ("valid", "loss", "min"),

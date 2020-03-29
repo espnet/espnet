@@ -76,7 +76,13 @@ def test_str_or_none(value: str, desired: Any):
 
 
 @pytest.mark.parametrize(
-    "value, desired", [("a, b", ("a", "b")), ("a,b,c", ValueError), ("a", ValueError)],
+    "value, desired",
+    [
+        ("a, b", ("a", "b")),
+        ("a,b,c", ValueError),
+        ("a", ValueError),
+        ("['a', 'b']", ("a", "b")),
+    ],
 )
 def test_str2pair_str(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
@@ -85,7 +91,12 @@ def test_str2pair_str(value: str, desired: Any):
 
 @pytest.mark.parametrize(
     "value, desired",
-    [("a,b, c", ("a", "b", "c")), ("a,b", ValueError), ("a", ValueError)],
+    [
+        ("a,b, c", ("a", "b", "c")),
+        ("a,b", ValueError),
+        ("a", ValueError),
+        ("['a', 'b', 'c']", ("a", "b", "c")),
+    ],
 )
 def test_str2triple_str(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
