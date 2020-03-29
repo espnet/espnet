@@ -402,3 +402,17 @@ def test_aggregate():
     with pytest.raises(NotImplementedError):
         vs = [DummyReportedValue()]
         aggregate(vs)
+
+
+def test_measure_time():
+    reporter = Reporter()
+    with reporter.observe("train", 2) as sub:
+        with sub.measure_time("foo"):
+            pass
+
+
+def test_measure_iter_time():
+    reporter = Reporter()
+    with reporter.observe("train", 2) as sub:
+        for _ in sub.measure_iter_time(range(3), "foo"):
+            pass
