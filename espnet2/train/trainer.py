@@ -429,9 +429,9 @@ class Trainer:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):
                         optimizer.step()
+                    if isinstance(scheduler, AbsBatchStepScheduler):
+                        scheduler.step()
                 optimizer.zero_grad()
-                if isinstance(scheduler, AbsBatchStepScheduler):
-                    scheduler.step()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
