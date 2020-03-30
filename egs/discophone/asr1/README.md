@@ -1,4 +1,4 @@
-# BABEL RECIPE
+# DiscoPhone Recipe
 
 ## Setting Up Experiments
 To setup an experiment (using one or more languages in training) simply run

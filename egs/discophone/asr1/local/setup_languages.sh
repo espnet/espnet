@@ -129,9 +129,15 @@ done
 ./utils/combine_data.sh data/dev ${dev_dirs}
 
 for l in ${recog}; do
-  ln -s ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
+  target_link=${cwd}/data/eval_${l}
+  if [ ! -L $target_link ]; then
+    ln -s ${cwd}/data/${l}/data/eval_${l} $target_link
+  fi
 done
 
 for l in ${gp_recog}; do
-  ln -s ${cwd}/data/GlobalPhone/gp_${l}_eval ${cwd}/data/eval_${l}
+  target_link=${cwd}/data/eval_${l}
+  if [ ! -L $target_link ]; then
+    ln -s ${cwd}/data/GlobalPhone/gp_${l}_eval $target_link
+  fi
 done

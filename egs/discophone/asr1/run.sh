@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Copyright 2020 Johns Hopkins University (Piotr Żelasko)
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 

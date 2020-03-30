@@ -3,16 +3,15 @@
 # Copyright 2020 Johns Hopkins University (Piotr Żelasko)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import re
 import logging
-from collections import defaultdict
-from sys import stdout
+import re
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from collections import defaultdict
 from pathlib import Path
+from sys import stdout
 from typing import NamedTuple, Dict, Optional
 
 from tqdm import tqdm
-
 
 logger = logging.getLogger()
 
@@ -43,7 +42,7 @@ def main():
     if args.verbose:
         fancy_logging()
 
-    data_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True)
     assert gp_path.exists()
 
     for lang in tqdm(train_languages, desc='Preparing per-language data dirs'):
