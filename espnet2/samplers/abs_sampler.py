@@ -8,7 +8,7 @@ from torch.utils.data import Sampler
 
 class AbsSampler(Sampler, ABC):
     @abstractmethod
-    def __len__(self):
+    def __len__(self) -> int:
         raise NotImplementedError
 
     @abstractmethod
