@@ -23,6 +23,15 @@ class BatchBinSampler(AbsSampler):
     ):
         assert check_argument_types()
         assert batch_bins > 0
+        if sort_batch != "ascending" and sort_batch != "descending":
+            raise ValueError(
+                f"sort_batch must be ascending or descending: {sort_batch}"
+            )
+        if sort_in_batch != "descending" and sort_in_batch != "ascending":
+            raise ValueError(
+                f"sort_in_batch must be ascending or descending: {sort_in_batch}"
+            )
+
         self.batch_bins = batch_bins
         self.shape_files = shape_files
         self.sort_in_batch = sort_in_batch
