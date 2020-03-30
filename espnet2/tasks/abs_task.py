@@ -496,7 +496,7 @@ class AbsTask(ABC):
             "--valid_batch_bins",
             type=int_or_none,
             default=None,
-            help="If not given, the value of --valid_batch_size is used",
+            help="If not given, the value of --batch_bins is used",
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
