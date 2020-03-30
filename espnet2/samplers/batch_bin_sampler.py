@@ -149,5 +149,4 @@ class BatchBinSampler(AbsSampler):
         return len(self.batch_list)
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
-        for batch in self.batch_list:
-            yield batch
+        return iter(self.batch_list)
