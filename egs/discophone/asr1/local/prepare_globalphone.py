@@ -5,18 +5,20 @@
 
 import logging
 import re
+import subprocess
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import defaultdict
 from pathlib import Path
 from sys import stdout
-from typing import NamedTuple, Dict, Optional
+from typing import NamedTuple, Dict, Optional, List
 
 from tqdm import tqdm
 
-logger = logging.getLogger()
+logger = logging.getLogger('prepare_globalphone')
 
 
 def main():
+    # noinspection PyTypeChecker
     parser = ArgumentParser(
         description='Prepare train/dev/eval splits for various GlobalPhone languages.',
         formatter_class=ArgumentDefaultsHelpFormatter
@@ -42,7 +44,7 @@ def main():
     if args.verbose:
         fancy_logging()
 
-    data_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
     assert gp_path.exists()
 
     for lang in tqdm(train_languages, desc='Preparing per-language data dirs'):
@@ -65,6 +67,16 @@ CODE2LANG = {
 }
 
 LANG2CODE = {l: c for c, l in CODE2LANG.items()}
+
+LANG2ENCODING = {
+    'Arabic': 'ISO8859-1',
+    'Czech': 'ISO8859-2',
+    'French': 'ISO8859-2',
+    'Korean': 'EUC-KR',
+    'Mandarin': 'GB18030',
+    'Spanish': 'ISO8859-1',
+    'Thai': 'TIS-620'
+}
 
 LANG2SPLIT = {
     'Arabic': {
@@ -104,22 +116,25 @@ class Segment(NamedTuple):
     end_seconds: float
 
 
+KaldiTable = Dict[str, str]
+
+
 class DataDir(NamedTuple):
-    wav_scp: Dict[bytes, bytes]
-    text: Dict[bytes, bytes]
-    utt2spk: Dict[bytes, bytes]
+    wav_scp: KaldiTable
+    text: KaldiTable
+    utt2spk: KaldiTable
 
     def write(self, data_dir: Path):
         data_dir.mkdir(parents=True, exist_ok=True)
-        with open(data_dir / 'wav.scp', 'wb') as f:
+        with open(data_dir / 'wav.scp', 'w') as f:
             for k, v in self.wav_scp.items():
-                f.write(k + b' ' + v + b'\n')
-        with open(data_dir / 'text', 'wb') as f:
+                f.write(k + ' ' + v + '\n')
+        with open(data_dir / 'text', 'w') as f:
             for k, v in self.text.items():
-                f.write(k + b' ' + v + b'\n')
-        with open(data_dir / 'utt2spk', 'wb') as f:
+                f.write(k + ' ' + v + '\n')
+        with open(data_dir / 'utt2spk', 'w') as f:
             for k, v in self.utt2spk.items():
-                f.write(k + b' ' + v + b'\n')
+                f.write(k + ' ' + v + '\n')
 
 
 class GpDataset(NamedTuple):
@@ -135,94 +150,38 @@ class GpDataset(NamedTuple):
 
 
 def parse_gp(path: Path, lang: str, romanized=True):
-    def make_id(path: Path) -> str:
-        try:
-            stem = path.stem
-            if stem.endswith('adc.'):
-                stem = stem[:-4] + '.adc'
-            id = stem.split('.')[0]
-            parts = id.split('_')
-            return f'{parts[0]}_UTT{int(parts[1]):03d}'
-        except:
-            logging.error(f'Can\'t parse from {path}')
-            raise
-
-    audio_paths = list((path / 'adc').rglob('*.shn'))
-    if not audio_paths:
-        raise ValueError(f"No recordings found for {lang}! "
-                         f"(looking for extension \".shn\" here: {path / 'adc'})")
-    wav_scp = {
-        make_id(p).encode('utf-8'): decompressed(p).encode('utf-8')
-        for p in sorted(audio_paths)
-    }
-    logging.debug(f'There are {len(wav_scp)} audio files')
-
-    tr_sfx = ('rmn' if romanized else 'trl')
-    transcript_paths = list((path / tr_sfx).rglob(f'*.{tr_sfx}'))
-    # If nothing found and romanized version was requested, try to fall back to non-romanized
-    if not transcript_paths and tr_sfx == 'rmn':
-        tr_sfx = 'trl'
-        transcript_paths = list((path / tr_sfx).rglob(f'*.{tr_sfx}'))
-        if not transcript_paths:
-            raise ValueError(f"No transcripts found for {lang}! "
-                             f"(looking for extensions (rmn,trl) in: {path}/(rmn,trl))")
-    logging.debug(f'There are {len(transcript_paths)} transcript files')
+    wav_scp: KaldiTable = create_wav_scp(path, lang)
+    transcript_paths = find_transcripts(path, lang, romanized)
 
     # NOTE: We are using bytes instead of str because some GP transcripts have non-Unicode symbols which fail to parse
 
-    # easy to find parsing errors, as these values should never be used
     lang_short = next(iter(wav_scp.keys()))[:2]
-    text = {}
-    utt2spk = {}
-    utt_id: Optional[bytes] = None  # e.g. AR059_UTT003
-    spk_id: Optional[bytes] = None  # e.g. AR059
+    text: KaldiTable = {}
+    utt2spk: KaldiTable = {}
+    # "None" makes it easier to pinpoint the error in debug when we fail to parse some file
+    utt_id: Optional[str] = None  # e.g. AR059_UTT003
+    spk_id: Optional[str] = None  # e.g. AR059
     num_utts = defaultdict(int)
     for p in sorted(transcript_paths):
-        with p.open('rb') as f:
-            for line in map(bytes.strip, f):
-                m = re.match(rb';SprecherID .*?(\d+)', line, flags=re.I)  # case-independent because "SpReChErId"...
-                if m is not None:
-                    spk_id = f'{lang_short.decode()}{int(m.group(1).decode()):03d}'.encode('utf-8')
-                    continue
-                m = re.match(rb'; (\d+):', line)
-                if m is not None:
-                    utt_id = f'{spk_id.decode()}_UTT{int(m.group(1).decode()):03d}'.encode('utf-8')
-                    continue
-                assert spk_id is not None, f"No speaker ID at line {line}"
-                assert utt_id is not None, f"No utterance ID at line {line}"
-                text[utt_id] = remove_special_symbols(line)
-                utt2spk[utt_id] = spk_id
-                num_utts[spk_id] += 1
+        for line in read_as_utf8(p, lang=lang):
+            m = re.match(r';SprecherID .*?(\d+)', line, flags=re.I)  # case-independent because "SpReChErId"...
+            if m is not None:
+                spk_id = f'{lang_short}{int(m.group(1)):03d}'
+                continue
+            m = re.match(r'; (\d+):', line)
+            if m is not None:
+                utt_id = f'{spk_id}_UTT{int(m.group(1)):03d}'
+                continue
+            assert spk_id is not None, f"No speaker ID at line {line}"
+            assert utt_id is not None, f"No utterance ID at line {line}"
+            # TODO: likely language-dependent text normalization would be adequate before adding transcript to text
+            text[utt_id] = remove_special_symbols(line)
+            utt2spk[utt_id] = spk_id
+            num_utts[spk_id] += 1
 
-    # Diagnostics
+    run_utterance_diagnostics(lang, num_utts, text, utt2spk, wav_scp)
 
-    logging.debug(f'There is a total of {sum(num_utts.values())} utterances.')
-
-    no_utt_speakers = [u for u, n in num_utts.items() if n == 0]
-    if no_utt_speakers:
-        logging.warning(f'There are {len(no_utt_speakers)}'
-                        f' speakers with 0 utterances in language {lang}.')
-
-    missing_recordings = set(wav_scp).difference(utt2spk)
-    if missing_recordings:
-        logging.warning(f'There are {len(missing_recordings)} missing {lang} utterance IDs out of {len(wav_scp)} total '
-                        f'in wav.scp (use -v for details)')
-        logging.debug(f'The following utterance IDs are missing in wav.scp: {b" ".join(sorted(missing_recordings))}')
-    missing_transcripts = set(utt2spk).difference(wav_scp)
-    if missing_transcripts:
-        logging.warning(f'There are {len(missing_transcripts)} missing {lang} utterance IDs out of {len(text)} total '
-                        f'in text and utt2spk (use -v for details)')
-        logging.debug(
-            f'The following utterance IDs are missing in text and utt2spk: {b" ".join(sorted(missing_transcripts))}')
-
-    def number_of(utt_id):
-        try:
-            return int(utt_id[2:5])
-        except:
-            logging.error(f'Can\'t extract the number of utterance id {utt_id}')
-            raise
-
-    def select(table, split):
+    def select(table: KaldiTable, split: str):
         if split == 'train':
             selected_ids = {
                 utt_id for utt_id in text
@@ -237,7 +196,7 @@ def parse_gp(path: Path, lang: str, romanized=True):
                 if number_of(utt_id) in LANG2SPLIT[lang][split]
             }
         subset = {k: v for k, v in table.items() if k in selected_ids}
-        assert all(k in subset for k in selected_ids)
+        # assert all(k in subset for k in selected_ids)
         return subset
 
     return GpDataset(
@@ -260,6 +219,89 @@ def parse_gp(path: Path, lang: str, romanized=True):
     )
 
 
+def find_transcripts(path: Path, lang: str, romanized: bool):
+    tr_sfx = ('rmn' if romanized else 'trl')
+    transcript_paths = list((path / tr_sfx).rglob(f'*.{tr_sfx}'))
+    # If nothing found and romanized version was requested, try to fall back to non-romanized
+    if not transcript_paths and tr_sfx == 'rmn':
+        tr_sfx = 'trl'
+        transcript_paths = list((path / tr_sfx).rglob(f'*.{tr_sfx}'))
+        if not transcript_paths:
+            raise ValueError(f"No transcripts found for {lang}! "
+                             f"(looking for extensions (rmn,trl) in: {path}/(rmn,trl))")
+    logging.debug(f'There are {len(transcript_paths)} transcript files')
+    return transcript_paths
+
+
+def read_as_utf8(path: Path, lang: str) -> List[str]:
+    try:
+        return subprocess.run(
+            f'iconv -f {LANG2ENCODING[lang]} -t UTF-8 {path}',
+            text=True,
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE
+        ).stdout.splitlines()
+    except Exception as e:
+        logger.error(f'Could not process file {path} with "{type(e).__name__}" "{e}" - skipping')
+        return []
+
+
+def number_of(utt_id):
+    try:
+        return int(utt_id[2:5])
+    except:
+        logging.error(f'Can\'t extract the number of utterance id {utt_id}')
+        raise
+
+
+def run_utterance_diagnostics(
+        lang: str,
+        num_utts: Dict[str, int],
+        text: KaldiTable,
+        utt2spk: KaldiTable,
+        wav_scp: KaldiTable
+):
+    logging.debug(f'There is a total of {sum(num_utts.values())} utterances.')
+    no_utt_speakers = [u for u, n in num_utts.items() if n == 0]
+    if no_utt_speakers:
+        logging.warning(f'There are {len(no_utt_speakers)}'
+                        f' speakers with 0 utterances in language {lang}.')
+    missing_recordings = set(wav_scp).difference(utt2spk)
+    if missing_recordings:
+        logging.warning(f'There are {len(missing_recordings)} missing {lang} utterance IDs out of {len(wav_scp)} total '
+                        f'in wav.scp (use -v for details)')
+        logging.debug(f'The following utterance IDs are missing in wav.scp: {" ".join(sorted(missing_recordings))}')
+    missing_transcripts = set(utt2spk).difference(wav_scp)
+    if missing_transcripts:
+        logging.warning(f'There are {len(missing_transcripts)} missing {lang} utterance IDs out of {len(text)} total '
+                        f'in text and utt2spk (use -v for details)')
+        logging.debug(
+            f'The following utterance IDs are missing in text and utt2spk: {" ".join(sorted(missing_transcripts))}')
+
+
+def create_wav_scp(path: Path, lang: str) -> KaldiTable:
+    def make_id(path: Path) -> str:
+        try:
+            stem = path.stem
+            if stem.endswith('adc.'):
+                stem = stem[:-4] + '.adc'
+            id = stem.split('.')[0]
+            parts = id.split('_')
+            return f'{parts[0]}_UTT{int(parts[1]):03d}'
+        except:
+            logging.error(f'Can\'t parse from {path}')
+            raise
+
+    audio_paths = list((path / 'adc').rglob('*.shn'))
+    if not audio_paths:
+        raise ValueError(f"No recordings found for {lang}! "
+                         f"(looking for extension \".shn\" here: {path / 'adc'})")
+    wav_scp = {make_id(p): decompressed(p) for p in sorted(audio_paths)}
+    logging.debug(f'There are {len(wav_scp)} audio files')
+    return wav_scp
+
+
 def fancy_logging(level=logging.DEBUG, stream=stdout):
     logging.basicConfig(
         level=level,
@@ -273,9 +315,16 @@ def decompressed(path: Path) -> str:
     return f'shorten -x {path} - | sox -t raw -r 16000 -b 16 -e signed-integer - -t wav - |'
 
 
-def remove_special_symbols(utt: bytes) -> bytes:
+ANY_WHITESPACE = re.compile(r"\s", re.UNICODE)
+
+
+def remove_special_symbols(utt: str) -> str:
+    # Remove begin-of-sentence and end-of-sentence
     # TODO: I don't know why these symbols appear in GP transcripts, we should find that out eventually
-    return utt.replace(b'<s>', b'').replace(b'</s>', b'')
+    utt = utt.replace('<s>', '').replace('</s>', '')
+    # Remove Unicode fancy whitespaces
+    utt = ANY_WHITESPACE.sub(' ', utt)
+    return utt
 
 
 if __name__ == '__main__':
