@@ -354,11 +354,11 @@ class Trainer:
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
-        start_time = start_load_time = time.perf_counter()
-        load_time = 0
-        for iiter, (_, batch) in enumerate(iterator, 1):
+        start_time = time.perf_counter()
+        for iiter, (_, batch) in enumerate(
+            reporter.measure_iter_time(iterator, "iter_time"), 1
+        ):
             assert isinstance(batch, dict), type(batch)
-            load_time += time.perf_counter() - start_load_time
 
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -369,10 +369,10 @@ class Trainer:
             if no_forward_run:
                 all_steps_are_invalid = False
                 reporter.register({})
-                start_load_time = time.perf_counter()
                 continue
 
-            loss, stats, weight = model(**batch)
+            with reporter.measure_time("forward_time"):
+                loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
                 loss = (loss * weight.type(loss.dtype)).sum()
@@ -390,19 +390,20 @@ class Trainer:
             reporter.register(stats, weight)
 
             loss /= accum_grad
-            if use_apex:
-                try:
-                    from apex import amp
-                except ImportError:
-                    logging.error(
-                        f"You need to install apex. "
-                        f"See https://github.com/NVIDIA/apex#linux"
-                    )
+            with reporter.measure_time("backward_time"):
+                if use_apex:
+                    try:
+                        from apex import amp
+                    except ImportError:
+                        logging.error(
+                            f"You need to install apex. "
+                            f"See https://github.com/NVIDIA/apex#linux"
+                        )
 
-                with amp.scale_loss(loss, optimizers) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+                    with amp.scale_loss(loss, optimizers) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
 
             if iiter % accum_grad == 0:
                 # gradient noise injection
@@ -426,10 +427,11 @@ class Trainer:
                     )
                 else:
                     all_steps_are_invalid = False
-                    optimizer.step()
+                    with reporter.measure_time("optim_step_time"):
+                        optimizer.step()
+                    if isinstance(scheduler, AbsBatchStepScheduler):
+                        scheduler.step()
                 optimizer.zero_grad()
-                if isinstance(scheduler, AbsBatchStepScheduler):
-                    scheduler.step()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
@@ -440,20 +442,15 @@ class Trainer:
                             for i, pg in enumerate(optimizer.param_groups)
                             if "lr" in pg
                         },
-                        train_time_per_step=time.perf_counter()
-                        - start_time
-                        - load_time,
-                        load_time_per_step=load_time,
+                        train_time=time.perf_counter() - start_time,
                     ),
                     # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
                 start_time = time.perf_counter()
-                load_time = 0
 
             if iiter % log_interval == 0:
-                logging.info(reporter.log_message(nlatest=log_interval))
-            start_load_time = time.perf_counter()
+                logging.info(reporter.log_message())
 
         else:
             if distributed:
