@@ -12,7 +12,7 @@ else:
     DEFAULT_TIME_WARP_MODE = "bilinear"
 
 
-def time_warp(x, window: int = 80, mode: str = DEFAULT_TIME_WARP_MODE):
+def time_warp(x: torch.Tensor, window: int = 80, mode: str = DEFAULT_TIME_WARP_MODE):
     """Time warping using torch.interpolate.
 
     Args:
@@ -68,7 +68,7 @@ class TimeWarp(torch.nn.Module):
     def extra_repr(self):
         return f"window={self.window}, mode={self.mode}"
 
-    def forward(self, x, x_lengths=None):
+    def forward(self, x: torch.Tensor, x_lengths: torch.Tensor = None):
         """Forward function.
 
         Args:
@@ -77,6 +77,7 @@ class TimeWarp(torch.nn.Module):
         """
 
         if x_lengths is None or all(le == x_lengths[0] for le in x_lengths):
+            # Note that applying same warping for each sample
             y = time_warp(x, window=self.window, mode=self.mode)
         else:
             # FIXME(kamo): I have no idea to batchify Timewarp
