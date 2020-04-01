@@ -38,11 +38,11 @@ def mask_along_axis(
         0, max(1, D - mask_length.max()), (B, num_mask), device=spec.device
     ).unsqueeze(2)
 
-    # aran: (Batch, num_mask, Dim)
-    aran = torch.arange(D, device=spec.device)[None, None, :].expand(B, num_mask, D)
-    # mask: (Batch, num_mask, Dim)
+    # aran: (1, 1, D)
+    aran = torch.arange(D, device=spec.device)[None, None, :]
+    # mask: (Batch, num_mask, D)
     mask = (mask_pos <= aran) * (aran < (mask_pos + mask_length))
-    # Multiply masks: (Batch, num_mask, Dim) -> (Batch, Dim)
+    # Multiply masks: (Batch, num_mask, D) -> (Batch, D)
     mask = mask.any(dim=1)
     if dim == 1:
         # mask: (Batch, Length, 1)
