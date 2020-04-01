@@ -175,7 +175,11 @@ def parse_gp(path: Path, lang: str, romanized=True):
             assert spk_id is not None, f"No speaker ID at line {line}"
             assert utt_id is not None, f"No utterance ID at line {line}"
             # TODO: likely language-dependent text normalization would be adequate before adding transcript to text
-            text[utt_id] = remove_special_symbols(line)
+            transcript = remove_special_symbols(line)
+            if not transcript:
+                logger.warning(f"Empty utterance {utt_id} in file {p}")
+                continue
+            text[utt_id] = transcript
             utt2spk[utt_id] = spk_id
             num_utts[spk_id] += 1
 
