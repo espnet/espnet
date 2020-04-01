@@ -28,6 +28,7 @@ class SpecAug(AbsSpecAug):
         due to `torch.nn.functional.interpolate`.
     
     """
+
     def __init__(
         self,
         apply_time_warp: bool = True,
