@@ -5,8 +5,8 @@ from typing import Union
 
 
 def mask_along_axis(
-    spec,
-    spec_lengths,
+    spec: torch.Tensor,
+    spec_lengths: torch.Tensor,
     mask_width_range: Sequence[int] = (0, 30),
     dim: int = 1,
     num_mask: int = 2,
@@ -25,28 +25,30 @@ def mask_along_axis(
         # spec: (Batch, Channel, Length, Freq) -> (Batch * Channel, Length, Freq)
         spec = spec.view(-1, spec.size(2), spec.size(3))
 
-    B, L, F = spec.shape
-    # D = L or F
+    B = spec.shape[0]
+    # D = Length or Freq
     D = spec.shape[dim]
+    # mask_length: (B, num_mask, 1)
     mask_length = torch.randint(
         mask_width_range[0], mask_width_range[1], (B, num_mask), device=spec.device,
-    )[..., None]
+    ).unsqueeze(2)
 
+    # mask_pos: (B, num_mask, 1)
     mask_pos = torch.randint(
         0, max(1, D - mask_length.max()), (B, num_mask), device=spec.device
-    )[..., None]
+    ).unsqueeze(2)
 
     # aran: (Batch, num_mask, Dim)
     aran = torch.arange(D, device=spec.device)[None, None, :].expand(B, num_mask, D)
     # mask: (Batch, num_mask, Dim)
     mask = (mask_pos <= aran) * (aran < (mask_pos + mask_length))
-    # mask: (Batch, Dim)
+    # Multiply masks: (Batch, num_mask, Dim) -> (Batch, Dim)
     mask = mask.any(dim=1)
     if dim == 1:
         # mask: (Batch, Length, 1)
         mask = mask.unsqueeze(2)
     elif dim == 2:
-        # mask: (Batch, 1, Freq) or (Batch, Length, 1)
+        # mask: (Batch, 1, Freq)
         mask = mask.unsqueeze(1)
 
     if replace_with_zero:
@@ -106,7 +108,7 @@ class MaskAlongAxis(torch.nn.Module):
             f"num_mask={self.num_mask}, axis={self.mask_axis}"
         )
 
-    def forward(self, spec, spec_lengths=None):
+    def forward(self, spec: torch.Tensor, spec_lengths: torch.Tensor = None):
         """Forward function.
 
         Args:
