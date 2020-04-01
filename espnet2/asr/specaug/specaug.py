@@ -17,6 +17,17 @@ else:
 
 
 class SpecAug(AbsSpecAug):
+    """Implementation of SpecAug.
+    
+    Reference: 
+        Daniel S. Park et al. 
+        "SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition"
+    
+    .. warning::
+        When using cuda mode, time_warp doesn't have reproducibility 
+        due to `torch.nn.functional.interpolate`.
+    
+    """
     def __init__(
         self,
         apply_time_warp: bool = True,
