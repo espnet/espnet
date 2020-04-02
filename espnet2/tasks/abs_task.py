@@ -34,6 +34,7 @@ from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
+from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
@@ -202,6 +203,7 @@ class AbsTask(ABC):
     @classmethod
     def get_parser(cls) -> configargparse.ArgumentParser:
         assert check_argument_types()
+
         parser = configargparse.ArgumentParser(
             description="base parser",
             config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -478,7 +480,8 @@ class AbsTask(ABC):
             "--batch_size",
             type=int,
             default=20,
-            help="The mini-batch size used for training",
+            help="The mini-batch size used for training. Used if batch_type='unsorted',"
+            " 'sorted', or 'folded'.",
         )
         group.add_argument(
             "--valid_batch_size",
@@ -490,7 +493,7 @@ class AbsTask(ABC):
             "--batch_bins",
             type=int,
             default=1000000,
-            help="The number of batch bins. Used if batch_type='bin'",
+            help="The number of batch bins. Used if batch_type='length' or 'numel'",
         )
         group.add_argument(
             "--valid_batch_bins",
@@ -503,15 +506,21 @@ class AbsTask(ABC):
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
 
         group = parser.add_argument_group("Sequence iterator related")
-        _batch_type_choices = ("unsorted", "sorted", "folded", "length", "numel")
+        _batch_type_help = ""
+        for key, value in BATCH_TYPES.items():
+            _batch_type_help += f'"{key}":\n{value}\n'
         group.add_argument(
-            "--batch_type", type=str, default="seq", choices=_batch_type_choices,
+            "--batch_type",
+            type=str,
+            default="unsorted",
+            choices=list(BATCH_TYPES),
+            help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=_batch_type_choices + (None,),
+            choices=list(BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])

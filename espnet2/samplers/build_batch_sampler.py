@@ -14,6 +14,65 @@ from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 
 
+BATCH_TYPES = dict(
+    unsorted="UnsortedBatchSampler has nothing in paticular feature and "
+    "just creates mini-batches which has constant batch_size. "
+    "This sampler doesn't require any length "
+    "information for each feature. "
+    "'key_file' is just a text file which describes each sample name."
+    "\n\n"
+    "    utterance_id_a\n"
+    "    utterance_id_b\n"
+    "    utterance_id_c\n"
+    "\n"
+    "The fist column is referred, so 'shape file' can be used, too.\n\n"
+    "    utterance_id_a 100,80\n"
+    "    utterance_id_b 400,80\n"
+    "    utterance_id_c 512,80\n",
+    sorted="SortedBatchSampler sorts samples by the length of the first input "
+    " in order to make each sample in a mini-batch has close length. "
+    "This sampler requires a text file which describes the length for each sample "
+    "\n\n"
+    "    utterance_id_a 1000\n"
+    "    utterance_id_b 1453\n"
+    "    utterance_id_c 1241\n"
+    "\n"
+    "The first element of feature dimensions is referred, "
+    "so 'shape_file' can be also used.\n\n"
+    "    utterance_id_a 1000,80\n"
+    "    utterance_id_b 1453,80\n"
+    "    utterance_id_c 1241,80\n",
+    folded="FoldedBatchSampler supports variable batch_size. "
+    "The batch_size is decided by\n"
+    "    batch_size = base_batch_size // (L // fold_length)\n"
+    "L is referred to the largest length of samples in the mini-batch. "
+    "This samples requires length information as same as SortedBatchSampler\n",
+    length="LengthBatchSampler supports variable batch_size. "
+    "This sampler makes mini-batches which have same number of 'bins' as possible "
+    "counting by the length of each feature in the mini-batch. "
+    "This sampler requires a text file which describes the length for each sample. "
+    "\n\n"
+    "    utterance_id_a 1000\n"
+    "    utterance_id_b 1453\n"
+    "    utterance_id_c 1241\n"
+    "\n"
+    "The first element of feature dimensions is referred, "
+    "so 'shape_file' can be also used.\n\n"
+    "    utterance_id_a 1000,80\n"
+    "    utterance_id_b 1453,80\n"
+    "    utterance_id_c 1241,80\n",
+    numel="NumElementsBatchSampler supports variable batch_size. "
+    "Just like LengthBatchSampler, this sampler makes mini-batches"
+    " which have same number of 'bins' as possible, "
+    "but counting by the number of elements of each feature instead of the length. "
+    "Thus this sampler requires the full information of the dimension of the features. "
+    "\n\n"
+    "    utterance_id_a 1000,80\n"
+    "    utterance_id_b 1453,80\n"
+    "    utterance_id_c 1241,80\n",
+)
+
+
 def build_batch_sampler(
     type: str,
     batch_size: int,
