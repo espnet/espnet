@@ -28,6 +28,11 @@ def get_parser():
         "--log", help="The path of log file used by cmd", default="run.log",
     )
     parser.add_argument(
+        "--max_num_log_files",
+        help="The maximum number of log-files to be kept",
+        default=1000,
+    )
+    parser.add_argument(
         "--ngpu", type=int, default=1, help="The number of GPUs per node"
     )
     egroup = parser.add_mutually_exclusive_group()
@@ -121,6 +126,22 @@ def main(cmd=None):
                     "--dist_master_addr",
                     args.host.split(",")[0].split(":")[0],
                 ]
+
+    # Log-rotation
+    for i in range(args.max_num_log_files - 1, -1, -1):
+        if i == 0:
+            p = Path(args.log)
+            pn = p.parent / (p.stem + f".1" + p.suffix)
+        else:
+            _p = Path(args.log)
+            p = _p.parent / (_p.stem + f".{i}" + _p.suffix)
+            pn = _p.parent / (_p.stem + f".{i + 1}" + _p.suffix)
+
+        if p.exists():
+            if i == args.max_num_log_files - 1:
+                p.unlink()
+            else:
+                shutil.move(p, pn)
 
     processes = []
     # Submit command via SSH

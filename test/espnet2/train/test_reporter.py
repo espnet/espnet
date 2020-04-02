@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
 import uuid
 
@@ -185,11 +186,11 @@ def test_logging():
             sub.register(stats_list[e])
         with reporter.observe(key2) as sub:
             sub.register(stats_list[e])
-            sub.logging()
+            logging.info(sub.log_message())
         with pytest.raises(RuntimeError):
-            sub.logging()
+            logging.info(sub.log_message())
 
-    reporter.logging()
+    logging.info(reporter.log_message())
 
 
 def test_has_key():
@@ -401,3 +402,17 @@ def test_aggregate():
     with pytest.raises(NotImplementedError):
         vs = [DummyReportedValue()]
         aggregate(vs)
+
+
+def test_measure_time():
+    reporter = Reporter()
+    with reporter.observe("train", 2) as sub:
+        with sub.measure_time("foo"):
+            pass
+
+
+def test_measure_iter_time():
+    reporter = Reporter()
+    with reporter.observe("train", 2) as sub:
+        for _ in sub.measure_iter_time(range(3), "foo"):
+            pass
