@@ -43,9 +43,7 @@ def test_SortedBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SortedBatchSampler_repr(
-    shape_files, sort_in_batch, sort_batch, drop_last
-):
+def test_SortedBatchSampler_repr(shape_files, sort_in_batch, sort_batch, drop_last):
     sampler = SortedBatchSampler(
         2,
         shape_file=shape_files[0],
@@ -59,9 +57,7 @@ def test_SortedBatchSampler_repr(
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SortedBatchSampler_len(
-    shape_files, sort_in_batch, sort_batch, drop_last
-):
+def test_SortedBatchSampler_len(shape_files, sort_in_batch, sort_batch, drop_last):
     sampler = SortedBatchSampler(
         2,
         shape_file=shape_files[0],
