@@ -545,7 +545,7 @@ if "${use_lm}"; then
 
       # 2. Submit jobs
       log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
-      # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+      # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
       #       but it's used only for deciding the sample ids.
 
       # shellcheck disable=SC2086
@@ -559,7 +559,7 @@ if "${use_lm}"; then
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --batch_type const_no_sort \
+              --batch_type unsorted \
               --train_shape_file "${_logdir}/train.JOB.scp" \
               --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
@@ -696,7 +696,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     # 2. Submit jobs
     log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
 
-    # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+    # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
 
     # shellcheck disable=SC2086
@@ -708,7 +708,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --batch_type const_no_sort \
+            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \

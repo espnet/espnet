@@ -26,7 +26,7 @@ def shape_files(tmp_path):
     return str(p1), str(p2)
 
 
-@pytest.mark.parametrize("type", ["const_no_sort", "const", "seq", "bin", "foo"])
+@pytest.mark.parametrize("type", ["unsorted", "sorted", "folded", "numel", "foo"])
 def test_build_batch_sampler(shape_files, type):
     if type == "foo":
         with pytest.raises(ValueError):

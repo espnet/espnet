@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.samplers.constant_batch_sampler import ConstantBatchSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 
 
 @pytest.fixture()
@@ -27,18 +27,18 @@ def shape_files(tmp_path):
 
 
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantBatchSampler(shape_files, drop_last):
-    sampler = ConstantBatchSampler(2, key_file=shape_files[0], drop_last=drop_last)
+def test_UnsortedBatchSampler(shape_files, drop_last):
+    sampler = UnsortedBatchSampler(2, key_file=shape_files[0], drop_last=drop_last)
     list(sampler)
 
 
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantBatchSampler_repr(shape_files, drop_last):
-    sampler = ConstantBatchSampler(2, key_file=shape_files[0], drop_last=drop_last,)
+def test_UnsortedBatchSampler_repr(shape_files, drop_last):
+    sampler = UnsortedBatchSampler(2, key_file=shape_files[0], drop_last=drop_last)
     print(sampler)
 
 
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantBatchSampler_len(shape_files, drop_last):
-    sampler = ConstantBatchSampler(2, key_file=shape_files[0], drop_last=drop_last,)
+def test_UnsortedBatchSampler_len(shape_files, drop_last):
+    sampler = UnsortedBatchSampler(2, key_file=shape_files[0], drop_last=drop_last)
     len(sampler)

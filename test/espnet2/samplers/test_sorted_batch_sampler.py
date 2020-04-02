@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.samplers.sequence_batch_sampler import SequenceBatchSampler
+from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 
 
 @pytest.fixture()
@@ -29,11 +29,10 @@ def shape_files(tmp_path):
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SequenceBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = SequenceBatchSampler(
+def test_SortedBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
+    sampler = SortedBatchSampler(
         2,
-        shape_files=shape_files,
-        fold_lengths=[500, 80],
+        shape_file=shape_files[0],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
@@ -44,11 +43,12 @@ def test_SequenceBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last)
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SequenceBatchSampler_repr(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = SequenceBatchSampler(
+def test_SortedBatchSampler_repr(
+    shape_files, sort_in_batch, sort_batch, drop_last
+):
+    sampler = SortedBatchSampler(
         2,
-        shape_files=shape_files,
-        fold_lengths=[500, 80],
+        shape_file=shape_files[0],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
@@ -59,11 +59,12 @@ def test_SequenceBatchSampler_repr(shape_files, sort_in_batch, sort_batch, drop_
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SequenceBatchSampler_len(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = SequenceBatchSampler(
+def test_SortedBatchSampler_len(
+    shape_files, sort_in_batch, sort_batch, drop_last
+):
+    sampler = SortedBatchSampler(
         2,
-        shape_files=shape_files,
-        fold_lengths=[500, 80],
+        shape_file=shape_files[0],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,

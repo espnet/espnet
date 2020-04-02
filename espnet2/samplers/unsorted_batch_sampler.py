@@ -8,7 +8,7 @@ from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.utils.fileio import read_2column_text
 
 
-class ConstantBatchSampler(AbsSampler):
+class UnsortedBatchSampler(AbsSampler):
     """BatchSampler with constant batch-size.
 
     Any sorting is not done in this class,

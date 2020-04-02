@@ -8,7 +8,7 @@ from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.utils.fileio import load_num_sequence_text
 
 
-class ConstantSortedBatchSampler(AbsSampler):
+class SortedBatchSampler(AbsSampler):
     """BatchSampler with sorted samples by length.
 
     Args:

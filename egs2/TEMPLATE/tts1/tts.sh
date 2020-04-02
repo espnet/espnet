@@ -403,7 +403,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type const_no_sort \
+            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \

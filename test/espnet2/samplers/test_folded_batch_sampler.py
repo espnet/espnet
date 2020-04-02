@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.samplers.batch_bin_sampler import BatchBinSampler
+from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
 
 
 @pytest.fixture()
@@ -29,15 +29,14 @@ def shape_files(tmp_path):
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-@pytest.mark.parametrize("padding", [True, False])
-def test_BatchBinSampler(shape_files, sort_in_batch, sort_batch, drop_last, padding):
-    sampler = BatchBinSampler(
-        60000,
+def test_FoldedBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
+    sampler = FoldedBatchSampler(
+        2,
         shape_files=shape_files,
+        fold_lengths=[500, 80],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
-        padding=padding,
     )
     list(sampler)
 
@@ -45,17 +44,14 @@ def test_BatchBinSampler(shape_files, sort_in_batch, sort_batch, drop_last, padd
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-@pytest.mark.parametrize("padding", [True, False])
-def test_BatchBinSampler_repr(
-    shape_files, sort_in_batch, sort_batch, drop_last, padding
-):
-    sampler = BatchBinSampler(
-        60000,
+def test_FoldedBatchSampler_repr(shape_files, sort_in_batch, sort_batch, drop_last):
+    sampler = FoldedBatchSampler(
+        2,
         shape_files=shape_files,
+        fold_lengths=[500, 80],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
-        padding=padding,
     )
     print(sampler)
 
@@ -63,16 +59,13 @@ def test_BatchBinSampler_repr(
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-@pytest.mark.parametrize("padding", [True, False])
-def test_BatchBinSampler_len(
-    shape_files, sort_in_batch, sort_batch, drop_last, padding
-):
-    sampler = BatchBinSampler(
-        60000,
+def test_FoldedBatchSampler_len(shape_files, sort_in_batch, sort_batch, drop_last):
+    sampler = FoldedBatchSampler(
+        2,
         shape_files=shape_files,
+        fold_lengths=[500, 80],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
-        padding=padding,
     )
     len(sampler)

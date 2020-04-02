@@ -10,7 +10,7 @@ from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.utils.fileio import load_num_sequence_text
 
 
-class BatchBinSampler(AbsSampler):
+class NumElementsBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_bins: int,
