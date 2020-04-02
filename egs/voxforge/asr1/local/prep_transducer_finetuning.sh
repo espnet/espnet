@@ -142,12 +142,13 @@ if [ "${create_enc}" == "true" ]; then
     sed -n -r "${net_section}" ${exp_conf} | \
         sed -n "${tt_section}" | \
         sed -e "/dropout/d" -e "/embed/d" >> ${enc_conf} && \
-        echo -e "\n# CTC mode\nmtlalpha: 1.0" >> ${enc_conf}
+        echo -e "# CTC mode\nmtlalpha: 1.0" >> ${enc_conf}
 
     if [ -n "${enc_is_transformer}" ]; then
         sed -i -e "/etype/d" -e "/joint-dim/d" -e "/dtype/d" ${enc_conf} && \
             echo -e "model-module: \"espnet.nets.pytorch_backend.e2e_asr_transformer:E2E\"" \
-                 >> ${enc_conf}
+                 >> ${enc_conf} && \
+            echo -e "criterion: loss" >> ${enc_conf}
 
         if [ -n "${use_vgg2l}" ]; then
            echo "VGG2L is only available for transducer, thus it can't be used in transfer learning."
