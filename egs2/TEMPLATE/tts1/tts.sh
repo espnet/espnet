@@ -457,6 +457,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--odim=${_odim} "
     fi
 
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \

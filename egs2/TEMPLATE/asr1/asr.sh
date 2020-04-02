@@ -594,6 +594,8 @@ if "${use_lm}"; then
           _opts+="--config ${lm_config} "
       fi
 
+      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
@@ -768,6 +770,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
     fi
+
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
 
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
