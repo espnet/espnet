@@ -77,6 +77,15 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
+try:
+    import torch
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+        requirements["install"].append("torch_optimizer")
+    del torch
+except ImportError:
+    pass
+
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
 tests_require = requirements["test"]

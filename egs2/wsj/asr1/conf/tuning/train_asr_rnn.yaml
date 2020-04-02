@@ -1,6 +1,7 @@
 optim: adadelta
 init: xavier_uniform
 max_epoch: 25
+batch_type: folded
 batch_size: 30
 optim_conf:
     lr: 1.0
@@ -11,6 +12,11 @@ patience: 4
 val_scheduler_criterion:
 - valid
 - loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
 scheduler: reducelronplateau
 scheduler_conf:
     mode: min

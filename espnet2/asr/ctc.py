@@ -46,10 +46,7 @@ class CTC(torch.nn.Module):
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen) -> torch.Tensor:
         if self.ctc_type == "builtin":
             th_pred = th_pred.log_softmax(2)
-            # Use the deterministic CuDNN implementation of CTC loss to avoid
-            #  [issue#17798](https://github.com/pytorch/pytorch/issues/17798)
-            with torch.backends.cudnn.flags(deterministic=True):
-                loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             # Batch-size average
             loss = loss / th_pred.size(1)
             return loss

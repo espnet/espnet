@@ -60,6 +60,7 @@ from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
@@ -82,6 +83,27 @@ optim_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
     optim_classes["adamw"] = torch.optim.AdamW
+try:
+    import torch_optimizer
+
+    optim_classes.update(
+        accagd=torch_optimizer.AccSGD,
+        adabound=torch_optimizer.AdaBound,
+        adamod=torch_optimizer.AdaMod,
+        diffgrad=torch_optimizer.DiffGrad,
+        lamb=torch_optimizer.Lamb,
+        novograd=torch_optimizer.NovoGrad,
+        pid=torch_optimizer.PID,
+        # torch_optimizer<=0.0.1a10 doesn't support
+        # qhadam=torch_optimizer.QHAdam,
+        qhm=torch_optimizer.QHM,
+        radam=torch_optimizer.RAdam,
+        sgdw=torch_optimizer.SGDW,
+        yogi=torch_optimizer.Yogi,
+    )
+    del torch_optimizer
+except ImportError:
+    pass
 try:
     import apex
 
@@ -346,7 +368,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--cudnn_deterministic",
             type=str2bool,
-            default=torch.backends.cudnn.deterministic,
+            default=True,
             help="Enable cudnn-deterministic mode",
         )
 
@@ -400,7 +422,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--best_model_criterion",
             type=str2triple_str,
-            action="append",
+            nargs="+",
             default=[
                 ("train", "loss", "min"),
                 ("valid", "loss", "min"),
@@ -541,13 +563,31 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Chunk iterator related")
-        group.add_argument("--chunk_length", type=str, default=500)
-        group.add_argument("--chunk_shift_ratio", type=float, default=0.5)
+        group.add_argument(
+            "--chunk_length",
+            type=str_or_int,
+            default=500,
+            help="Specify chunk length. e.g. '300', '300,400,500', or '300-400'."
+            "If multiple numbers separated by command are given, "
+            "one of them is selected randomly for each samples. "
+            "If two numbers are given with '-', it indicates the range of the choices. "
+            "Note that if the sequence length is shorter than the all chunk_lengths, "
+            "the sample is discarded. ",
+        )
+        group.add_argument(
+            "--chunk_shift_ratio",
+            type=float,
+            default=0.5,
+            help="Specify the shift width of chunks. If it's less than 1, "
+            "allows the overlapping and if bigger than 1, there are some gaps "
+            "between each chunk.",
+        )
         group.add_argument(
             "--num_cache_chunks",
             type=int,
             default=1024,
-            help="Shuffle in the specified number of chunks and generate mini-batches",
+            help="Shuffle in the specified number of chunks and generate mini-batches "
+            "More larger this value, more randomness can be obtained.",
         )
 
         group = parser.add_argument_group("Dataset related")
