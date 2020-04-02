@@ -35,6 +35,7 @@ optim_conf:
     weight_decay: 0
 init: xavier_uniform
 max_epoch: 50
+batch_type: folded
 batch_size: 35
 
 best_model_criterion:

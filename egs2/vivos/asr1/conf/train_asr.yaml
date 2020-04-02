@@ -6,6 +6,7 @@ optim_conf:
     eps: 1.0e-08
     weight_decay: 0
 init: chainer
+batch_type: folded
 batch_size: 30
 max_epoch: 20
 patience: 3
