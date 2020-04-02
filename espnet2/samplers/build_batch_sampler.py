@@ -7,10 +7,10 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.samplers.batch_bin_sampler import BatchBinSampler
-from espnet2.samplers.constant_batch_sampler import ConstantBatchSampler
-from espnet2.samplers.constant_sorted_batch_sampler import ConstantSortedBatchSampler
-from espnet2.samplers.sequence_batch_sampler import SequenceBatchSampler
+from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
+from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
+from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 
 
 def build_batch_sampler(
@@ -18,38 +18,38 @@ def build_batch_sampler(
     batch_size: int,
     batch_bins: int,
     shape_files: Union[Tuple[str, ...], List[str]],
-    fold_lengths: Sequence[int] = (),
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
     drop_last: bool = False,
     min_batch_size: int = 1,
+    fold_lengths: Sequence[int] = (),
     padding: bool = True,
 ) -> AbsSampler:
-    """Helper function to instantiate BatchSampler
+    """Helper function to instantiate BatchSampler.
 
     Args:
-        type: mini-batch type. "constant", "seq", "bin", or, "frame"
-        batch_size: The mini-batch size
-        batch_bins:
+        type: mini-batch type. "unsorted", "sorted", "folded", "numel", or, "length"
+        batch_size: The mini-batch size. Used for "unsorted", "sorted", "folded" mode
+        batch_bins: Used for "numel" model
         shape_files: Text files describing the length and dimension
             of each features. e.g. uttA 1330,80
-        fold_lengths: Used for "seq" mode
         sort_in_batch:
         sort_batch:
         drop_last:
-        min_batch_size: Used for "seq" or "bin" mode
+        min_batch_size:  Used for "numel" or "folded" mode
+        fold_lengths: Used for "folded" mode
         padding: Whether sequences are input as a padded tensor or not.
-            used for "bin" mode
+            used for "numel" mode
     """
     assert check_argument_types()
 
-    if type == "const_no_sort":
-        retval = ConstantBatchSampler(
+    if type == "unsorted":
+        retval = UnsortedBatchSampler(
             batch_size=batch_size, key_file=shape_files[0], drop_last=drop_last
         )
 
-    elif type == "const":
-        retval = ConstantSortedBatchSampler(
+    elif type == "sorted":
+        retval = SortedBatchSampler(
             batch_size=batch_size,
             shape_file=shape_files[0],
             sort_in_batch=sort_in_batch,
@@ -57,14 +57,14 @@ def build_batch_sampler(
             drop_last=drop_last,
         )
 
-    elif type == "seq":
+    elif type == "folded":
         if len(fold_lengths) != len(shape_files):
             raise ValueError(
                 f"The number of fold_lengths must be equal to "
                 f"the number of shape_files: "
                 f"{len(fold_lengths)} != {len(shape_files)}"
             )
-        retval = SequenceBatchSampler(
+        retval = FoldedBatchSampler(
             batch_size=batch_size,
             shape_files=shape_files,
             fold_lengths=fold_lengths,
@@ -74,8 +74,8 @@ def build_batch_sampler(
             min_batch_size=min_batch_size,
         )
 
-    elif type == "bin":
-        retval = BatchBinSampler(
+    elif type == "numel":
+        retval = NumElementsBatchSampler(
             batch_bins=batch_bins,
             shape_files=shape_files,
             sort_in_batch=sort_in_batch,
@@ -85,7 +85,7 @@ def build_batch_sampler(
             min_batch_size=min_batch_size,
         )
 
-    elif type == "frame":
+    elif type == "length":
         raise NotImplementedError
 
     else:

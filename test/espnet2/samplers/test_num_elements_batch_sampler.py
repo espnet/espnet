@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.samplers.constant_sorted_batch_sampler import ConstantSortedBatchSampler
+from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 
 
 @pytest.fixture()
@@ -29,13 +29,17 @@ def shape_files(tmp_path):
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantSortedBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = ConstantSortedBatchSampler(
-        2,
-        shape_file=shape_files[0],
+@pytest.mark.parametrize("padding", [True, False])
+def test_NumElementsBatchSampler(
+    shape_files, sort_in_batch, sort_batch, drop_last, padding,
+):
+    sampler = NumElementsBatchSampler(
+        60000,
+        shape_files=shape_files,
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
+        padding=padding,
     )
     list(sampler)
 
@@ -43,15 +47,17 @@ def test_ConstantSortedBatchSampler(shape_files, sort_in_batch, sort_batch, drop
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantSortedBatchSampler_repr(
-    shape_files, sort_in_batch, sort_batch, drop_last
+@pytest.mark.parametrize("padding", [True, False])
+def test_NumElementsBatchSampler_repr(
+    shape_files, sort_in_batch, sort_batch, drop_last, padding
 ):
-    sampler = ConstantSortedBatchSampler(
-        2,
-        shape_file=shape_files[0],
+    sampler = NumElementsBatchSampler(
+        60000,
+        shape_files=shape_files,
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
+        padding=padding,
     )
     print(sampler)
 
@@ -59,14 +65,16 @@ def test_ConstantSortedBatchSampler_repr(
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_ConstantSortedBatchSampler_len(
-    shape_files, sort_in_batch, sort_batch, drop_last
+@pytest.mark.parametrize("padding", [True, False])
+def test_NumElementsBatchSampler_len(
+    shape_files, sort_in_batch, sort_batch, drop_last, padding
 ):
-    sampler = ConstantSortedBatchSampler(
-        2,
-        shape_file=shape_files[0],
+    sampler = NumElementsBatchSampler(
+        60000,
+        shape_files=shape_files,
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
+        padding=padding,
     )
     len(sampler)

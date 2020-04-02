@@ -35,7 +35,7 @@ from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
-from espnet2.samplers.constant_batch_sampler import ConstantBatchSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
@@ -503,7 +503,7 @@ class AbsTask(ABC):
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
 
         group = parser.add_argument_group("Sequence iterator related")
-        _batch_type_choices = ("const_no_sort", "const", "seq", "bin", "frame")
+        _batch_type_choices = ("unsorted", "sorted", "folded", "length", "numel")
         group.add_argument(
             "--batch_type", type=str, default="seq", choices=_batch_type_choices,
         )
@@ -1329,7 +1329,7 @@ class AbsTask(ABC):
         else:
             key_file = shape_files[0]
 
-        batch_sampler = ConstantBatchSampler(batch_size=1, key_file=key_file)
+        batch_sampler = UnsortedBatchSampler(batch_size=1, key_file=key_file)
         batches = list(batch_sampler)
         if num_batches is not None:
             batches = batches[:num_batches]
@@ -1427,7 +1427,7 @@ class AbsTask(ABC):
         collate_fn=None,
         inference: bool = True,
         allow_variable_data_keys: bool = False,
-    ) -> Tuple[DataLoader, ESPnetDataset, ConstantBatchSampler]:
+    ) -> Tuple[DataLoader, ESPnetDataset, UnsortedBatchSampler]:
         """Create mini-batch iterator w/o shuffling and sorting by sequence lengths.
 
         Note that unlike the iterator for training, the shape files are not required
@@ -1445,7 +1445,7 @@ class AbsTask(ABC):
 
         if key_file is None:
             key_file, _, _ = data_path_and_name_and_type[0]
-        batch_sampler = ConstantBatchSampler(batch_size=batch_size, key_file=key_file)
+        batch_sampler = UnsortedBatchSampler(batch_size=batch_size, key_file=key_file)
 
         logging.info(f"dataset:\n{dataset}")
         logging.info(f"Batch sampler: {batch_sampler}")
