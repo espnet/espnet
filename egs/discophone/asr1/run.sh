@@ -106,6 +106,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/fix_data_dir.sh data/${x}
   done
 
+  mv data/${train_set} data/${train_set}_org
+  mv data/${train_dev} data/${train_dev}_org
+  remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
+  remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+
   # compute global CMVN
   compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
   utils/fix_data_dir.sh data/${train_set}
