@@ -17,6 +17,9 @@ else
 fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
+SHORTEN_BIN_PATH="$PWD/shorten-3.6.1/src"
+export PATH="$SHORTEN_BIN_PATH:$PATH"
+
 export OMP_NUM_THREADS=1
 
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C

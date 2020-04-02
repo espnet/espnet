@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Copyright 2020 Johns Hopkins University (Piotr Żelasko)
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -36,8 +37,21 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # exp tag
 tag="" # tag for managing experiments.
 
-langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
-recog="107 201 307 404"
+# BABEL TRAIN:
+# Amharic - 307
+# Bengali - 103
+# Cantonese - 101
+# Javanese - 402
+# Vietnamese - 107
+# Zulu - 206
+# BABEL TEST:
+# Georgian - 404
+# Lao - 203
+babel_langs="307 103 101 402 107 206"
+babel_recog="${babel_langs} 404 203"
+gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
+gp_recog="${gp_langs}"
+gp_romanized=false
 
 . utils/parse_options.sh || exit 1;
 
@@ -61,14 +75,20 @@ lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
 recog_set=""
-for l in ${recog}; do
+for l in ${babel_recog} ${gp_recog}; do
   recog_set="eval_${l} ${recog_set}"
 done
 recog_set=${recog_set%% }
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   echo "stage 0: Setting up individual languages"
-  ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
+
+  local/setup_languages.sh \
+    --langs "${babel_langs}" \
+    --recog "${babel_recog}" \
+    --gp-langs "${gp_langs}" \
+    --gp-recog "${gp_recog}" \
+    --gp-romanized "${gp_romanized}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
 	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
@@ -81,9 +101,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
-          data/${x} exp/make_fbank/${x} ${fbankdir}
-      utils/fix_data_dir.sh data/${x}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 30 --write_utt2num_frames true \
+        data/${x} exp/make_fbank/${x} ${fbankdir}
+    utils/fix_data_dir.sh data/${x}
   done
 
   # compute global CMVN
