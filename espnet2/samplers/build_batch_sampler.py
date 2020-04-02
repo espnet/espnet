@@ -49,7 +49,7 @@ BATCH_TYPES = dict(
     "This samples requires length information as same as SortedBatchSampler\n",
     length="LengthBatchSampler supports variable batch_size. "
     "This sampler makes mini-batches which have same number of 'bins' as possible "
-    "counting by the length of each feature in the mini-batch. "
+    "counting by the total lengths of each feature in the mini-batch. "
     "This sampler requires a text file which describes the length for each sample. "
     "\n\n"
     "    utterance_id_a 1000\n"
@@ -63,8 +63,9 @@ BATCH_TYPES = dict(
     "    utterance_id_c 1241,80\n",
     numel="NumElementsBatchSampler supports variable batch_size. "
     "Just like LengthBatchSampler, this sampler makes mini-batches"
-    " which have same number of 'bins' as possible, "
-    "but counting by the number of elements of each feature instead of the length. "
+    " which have same number of 'bins' as possible "
+    "counting by the total number of elements of each feature "
+    "instead of the length. "
     "Thus this sampler requires the full information of the dimension of the features. "
     "\n\n"
     "    utterance_id_a 1000,80\n"
