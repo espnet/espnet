@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-config="conf/transformer_config.yaml"
+config="conf/train_asr_transformer.yaml"
 
 decode_asr_model=valid.loss.ave.pth # valid.acc.best.pth
 
@@ -14,8 +14,8 @@ decode_asr_model=valid.loss.ave.pth # valid.acc.best.pth
     --train_set train_960 \
     --dev_set dev \
     --eval_sets "test_clean test_other dev_clean dev_other " \
-    --srctexts "dump/fbank_pitch/train_960/text" \
-    --feats_type fbank_pitch \
+    --srctexts "dump/raw/train_960/text" \
+    --feats_type raw \
     --lm_train_text "data/local/lm_train/train.txt" \
     --lm_dev_text "data/local/lm_train/dev.txt" \
     --asr_config ${config} \

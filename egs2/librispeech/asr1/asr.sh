@@ -295,8 +295,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
-           scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
-           _dirs+="data/${train_set}_sp${factor} "
+           if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+               _dirs+="data/${train_set}_sp${factor} "
+           else
+               # If speed factor is 1, same as the original
+               _dirs+="data/${train_set} "
+           fi
        done
        utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
     else
@@ -340,6 +345,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
+        utils/combine_data.sh --extra_files utt2num_samples ${data_feats}/org/${train_set} ${data_feats}/org/train_clean_100 ${data_feats}/org/train_clean_360 ${data_feats}/org/train_other_500
+        echo "${feats_type}" > "${data_feats}/org/${train_set}/feats_type"
+        utils/combine_data.sh --extra_files utt2num_samples ${data_feats}/org/${dev_set} ${data_feats}/org/dev_clean ${data_feats}/org/dev_other
+        echo "${feats_type}" > "${data_feats}/org/${dev_set}/feats_type"
+
     elif [ "${feats_type}" = fbank_pitch ]; then
         log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
 
@@ -364,13 +374,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
-        utils/combine_data.sh --extra_files utt2num_frames ${data_feats}/org/${train_set}_org ${data_feats}/org/train_clean_100 ${data_feats}/org/train_clean_360 ${data_feats}/org/train_other_500
-        utils/combine_data.sh --extra_files utt2num_frames ${data_feats}/org/${dev_set}_org ${data_feats}/org/dev_clean ${data_feats}/org/dev_other
-
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 ${data_feats}/${train_set}_org ${data_feats}/${train_set}
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 ${data_feats}/${dev_set}_org ${data_feats}/${dev_set}
+        utils/combine_data.sh --extra_files utt2num_frames ${data_feats}/org/${train_set} ${data_feats}/org/train_clean_100 ${data_feats}/org/train_clean_360 ${data_feats}/org/train_other_500
+        utils/combine_data.sh --extra_files utt2num_frames ${data_feats}/org/${dev_set} ${data_feats}/org/dev_clean ${data_feats}/org/dev_other
 
     elif [ "${feats_type}" = fbank ]; then
         log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
@@ -401,6 +406,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -445,10 +451,10 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ "${token_type}" = bpe ]; then
         log "Stage 5: Generate token_list from ${data_feats}/srctexts using BPE"
-
+false && {
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
-        <"${data_feats}/srctexts" | cut -f 2- -d" "  > "${bpedir}"/train.txt
+        <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
 
         if [ -n "${bpe_nlsyms}" ]; then
             _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
@@ -480,7 +486,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
     python3 -m espnet2.bin.tokenize_text  \
-        --token_type "${token_type}" -f 2- \
+        --token_type "${token_type}" \
         --input "${data_feats}/srctexts" --output "${token_list}" ${_opts} \
         --field 2- \
         --write_vocabulary true \
@@ -492,7 +498,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if ${use_word_lm}; then
         log "Generate word level token_list from ${data_feats}/srctexts"
         python3 -m espnet2.bin.tokenize_text \
-            --token_type word -f 2- \
+            --token_type word \
             --input "${data_feats}/srctexts" --output "${lm_token_list}" \
             --field 2- \
             --write_vocabulary true \
@@ -501,9 +507,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --add_symbol "${oov}:1" \
             --add_symbol "${sos_eos}:-1"
     fi
+}
 
-    cat data/local/lm_train_librispeech-lm-norm.txt ${data_feats}/${train_set}/text > ${lm_train_text}
-    cat ${data_feats}/${train_dev}/text > ${lm_train_text}
+    cat data/local/lm_train/librispeech-lm-norm.txt ${data_feats}/${train_set}/text > ${lm_train_text}
+    cat ${data_feats}/${dev_set}/text > ${lm_train_text}
 
 fi
 
@@ -575,7 +582,7 @@ if "${use_lm}"; then
 
 
   if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-      log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+      log "Stage 7: LM Training: train_set=${lm_train_text}, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then

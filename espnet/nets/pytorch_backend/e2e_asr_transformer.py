@@ -18,6 +18,7 @@ from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
@@ -94,6 +95,20 @@ class E2E(ASRInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
+
+        if getattr(args, "use_frontend", False):  # use getattr to keep compatibility
+            # Relative importing because of using python3 syntax
+            from espnet.nets.pytorch_backend.frontends.feature_transform \
+                import feature_transform_for
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
+
+            self.frontend = frontend_for(args, idim)
+            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
+            idim = args.n_mels
+        else:
+            self.frontend = None
+
         self.encoder = Encoder(
             idim=idim,
             attention_dim=args.adim,
@@ -162,8 +177,15 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
+        # 0. Frontend
+        if self.frontend is not None:
+            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+        else:
+            hs_pad, hlens = xs_pad, ilens
+
         # 1. forward encoder
-        xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
+        xs_pad = hs_pad[:, :max(ilens)]  # for data parallel
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
