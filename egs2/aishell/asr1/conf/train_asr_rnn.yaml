@@ -22,7 +22,7 @@ decoder_conf:
         adim: 1024
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.5
     lsm_weight: 0.0     # label smoothing option
 
@@ -46,8 +46,9 @@ best_model_criterion:
 -   - valid
     - acc
     - max
+keep_nbest_models: 1
 scheduler: reducelronplateau
 scheduler_conf:
-    mode: min
+    mode: max
     factor: 0.5
     patience: 1

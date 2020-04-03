@@ -122,6 +122,20 @@ def get_parser():
                         help='Number of samples of attention to be saved')
     parser.add_argument('--keep-all-data-on-mem', default=False, type=strtobool,
                         help='Whether to keep all data on memory')
+    # finetuning related
+    parser.add_argument('--enc-init', default=None, type=str,
+                        help='Pre-trained TTS model path to initialize encoder.')
+    parser.add_argument('--enc-init-mods', default='enc.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of encoder modules to initialize, separated by a comma.')
+    parser.add_argument('--dec-init', default=None, type=str,
+                        help='Pre-trained TTS model path to initialize decoder.')
+    parser.add_argument('--dec-init-mods', default='dec.',
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of decoder modules to initialize, separated by a comma.')
+    parser.add_argument('--freeze-mods', default=None,
+                        type=lambda s: [str(mod) for mod in s.split(',') if s != ''],
+                        help='List of modules to freeze (not to train), separated by a comma.')
 
     return parser
 

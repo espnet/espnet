@@ -68,7 +68,7 @@ decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
 decode_tag=""  # Suffix for decoding directory.
 decode_model=valid.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=train.loss.best.pth
-                                 # decode_model=3epoch/model.pth
+                                 # decode_model=3epoch.pth
                                  # decode_model=valid.acc.best.pth
                                  # decode_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
@@ -80,6 +80,8 @@ eval_sets=      # Names of evaluation sets. Multiple items can be specified.
 srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
+text_fold_length=150   # fold_length for text data
+speech_fold_length=800 # fold_length for speech data
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
@@ -136,6 +138,8 @@ Options:
                  # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
+    --text_fold_length   # fold_length for text data
+    --speech_fold_length # fold_length for speech data
 EOF
 )
 
@@ -358,13 +362,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -439,13 +439,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
+        _fold_length="$((speech_fold_length * 100))"
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
+        _fold_length="${speech_fold_length}"
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -453,7 +451,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${tts_exp}/train.log" \
         --log "${tts_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
@@ -476,10 +474,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
             --resume true \
-            --max_length 150 \
-            --max_length ${_max_length} \
+            --fold_length "${text_fold_length}" \
+            --fold_length ${_fold_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
+
 fi
 
 
@@ -532,11 +531,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/tts_decode.*.log'"
+        log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
         # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_decode.JOB.log \
-            python3 -m espnet2.bin.tts_decode \
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
+            python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
                 --key_file "${_logdir}"/keys.JOB.scp \

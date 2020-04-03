@@ -3,7 +3,6 @@ LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ## FROM CUDA 10.0 base 
 
-
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg2 curl ca-certificates && \
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add - && \
     echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
@@ -38,7 +37,7 @@ ENV CUDA_HOME /usr/local/cuda
 
 ## FROM CUDA 10.0 runtime
 
-ENV NCCL_VERSION 2.4.2
+ENV NCCL_VERSION 2.4.8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-libraries-$CUDA_PKG_VERSION \
@@ -62,7 +61,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ## FROM CUDA 10.0-CUDNN 7 devel
 
-ENV CUDNN_VERSION 7.6.0.64
+ENV CUDNN_VERSION 7.6.5.32
 LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

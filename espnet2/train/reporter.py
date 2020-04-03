@@ -123,8 +123,11 @@ class SubReporter:
         self.epoch = epoch
         self.start_time = time.perf_counter()
         self.stats = defaultdict(list)
-        self.total_count = total_count
         self._finished = False
+        self.total_count = total_count
+        self.count = 0
+        self.prev_count = 0
+        self.prev_positions = {}
 
     def get_total_count(self) -> int:
         """Returns the number of iterations over all epochs."""
@@ -144,6 +147,7 @@ class SubReporter:
             raise RuntimeError("Already finished")
         if not not_increment_count:
             self.total_count += 1
+            self.count += 1
 
         for key2, v in stats.items():
             if key2 in _reserved:
@@ -154,34 +158,59 @@ class SubReporter:
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def logging(self, logger=None, level: str = "INFO", nlatest: int = None) -> None:
+    def log_message(self) -> str:
         if self._finished:
             raise RuntimeError("Already finished")
-        if logger is None:
-            logger = logging
-        level = logging.getLevelName(level)
+        if self.count == 0:
+            return ""
 
-        if nlatest is None:
-            nlatest = 0
+        message = (
+            f"{self.epoch}epoch:{self.key}:"
+            f"{self.prev_count + 1}-{self.count}batch: "
+        )
 
-        message = ""
-        for key2, stats in self.stats.items():
+        stats = list(self.stats.items())
+
+        for idx, (key2, stats) in enumerate(stats):
             # values: List[ReportValue]
-            values = stats[-nlatest:]
-            if len(message) == 0:
-                message += (
-                    f"{self.epoch}epoch:{self.key}:"
-                    f"{len(stats) - nlatest + 1}-{len(stats)}batch: "
-                )
-            else:
+            pos = self.prev_positions.setdefault(key2, 0)
+            self.prev_positions[key2] = len(stats)
+            values = stats[pos:]
+            if idx != 0 and idx != len(stats):
                 message += ", "
 
             v = aggregate(values)
-            message += f"{key2}={v:.3f}"
-        logger.log(level, message)
+            if abs(v) > 1.0e3:
+                message += f"{key2}={v:.3e}"
+            elif abs(v) > 1.0e-3:
+                message += f"{key2}={v:.3f}"
+            else:
+                message += f"{key2}={v:.3e}"
+
+        self.prev_count = self.count
+        return message
 
     def finished(self) -> None:
         self._finished = True
+
+    @contextmanager
+    def measure_time(self, name: str):
+        start = time.perf_counter()
+        yield start
+        t = time.perf_counter() - start
+        self.register({name: t}, not_increment_count=True)
+
+    def measure_iter_time(self, iterable, name: str):
+        iterator = iter(iterable)
+        while True:
+            try:
+                start = time.perf_counter()
+                retval = next(iterator)
+                t = time.perf_counter() - start
+                self.register({name: t}, not_increment_count=True)
+                yield retval
+            except StopIteration:
+                break
 
 
 class Reporter:
@@ -332,12 +361,9 @@ class Reporter:
             and key2 in self.stats[epoch][key]
         )
 
-    def logging(self, logger=None, level: str = "INFO", epoch: int = None):
-        if logger is None:
-            logger = logging
+    def log_message(self, epoch: int = None) -> str:
         if epoch is None:
             epoch = self.get_epoch()
-        level = logging.getLevelName(level)
 
         message = ""
         for key, d in self.stats[epoch].items():
@@ -347,7 +373,12 @@ class Reporter:
                     if len(_message) != 0:
                         _message += ", "
                     if isinstance(v, float):
-                        _message += f"{key2}={v:.3f}"
+                        if abs(v) > 1.0e3:
+                            _message += f"{key2}={v:.3e}"
+                        elif abs(v) > 1.0e-3:
+                            _message += f"{key2}={v:.3f}"
+                        else:
+                            _message += f"{key2}={v:.3e}"
                     elif isinstance(v, datetime.timedelta):
                         _v = humanfriendly.format_timespan(v)
                         _message += f"{key2}={_v}"
@@ -359,7 +390,7 @@ class Reporter:
                 else:
                     message += ", "
                 message += f"[{key}] {_message}"
-        logger.log(level, message)
+        return message
 
     def get_value(self, key: str, key2: str, epoch: int = None):
         if not self.has(key, key2):

@@ -19,11 +19,6 @@ lm_resume=     # Resume the LM training from snapshot
 voxforge=downloads # original data directory to be stored
 lang=it # de, en, es, fr, it, nl, pt, ru
 
-# datasets
-train_set=tr_${lang}
-train_dev=dt_${lang}
-recog_set="dt_${lang} et_${lang}"
-
 # feature configuration
 do_delta=false
 
@@ -48,6 +43,11 @@ tag="" # tag for managing experiments.
 set -e
 set -u
 set -o pipefail
+
+# datasets
+train_set=tr_${lang}
+train_dev=dt_${lang}
+recog_set="dt_${lang} et_${lang}"
 
 if [ ${use_transfer} == true ]; then
     finetuning_conf=$(dirname ${train_config})/finetuning.yaml

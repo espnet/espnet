@@ -25,7 +25,7 @@ decoder_conf:
         aconv_filts: 100
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.5
 
 # optimization related
@@ -41,3 +41,9 @@ patience: 3
 
 # minibatch related
 batch_size: 24
+
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 1

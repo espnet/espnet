@@ -4,6 +4,7 @@ from dataclasses import is_dataclass
 from distutils.version import LooseVersion
 import logging
 from pathlib import Path
+import time
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -11,6 +12,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+import humanfriendly
 import numpy as np
 import torch
 import torch.nn
@@ -27,7 +29,7 @@ from espnet2.torch_utils.calculate_all_attentions import calculate_all_attention
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
@@ -37,6 +39,10 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
 else:
     from tensorboardX import SummaryWriter
+if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
+    from torch.distributed import ReduceOp
+else:
+    from torch.distributed import reduce_op as ReduceOp
 
 
 @dataclasses.dataclass
@@ -95,18 +101,18 @@ class Trainer:
     @classmethod
     def run(
         cls,
-        model: AbsE2E,
+        model: AbsESPnetModel,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
-        plot_attention_iter_factory: AbsIterFactory,
+        plot_attention_iter_factory: Optional[AbsIterFactory],
         reporter: Reporter,
         output_dir: Path,
         max_epoch: int,
         seed: int,
         patience: Optional[int],
-        keep_n_best_checkpoints: int,
+        keep_nbest_models: int,
         early_stopping_criterion: Sequence[str],
         best_model_criterion: Sequence[Sequence[str]],
         val_scheduler_criterion: Sequence[str],
@@ -117,6 +123,22 @@ class Trainer:
         assert check_argument_types()
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
+
+        # NOTE(kamo): trainer_options doesn't always have "train_dtype"
+        use_apex = getattr(trainer_options, "train_dtype", "") in (
+            "O0",
+            "O1",
+            "O2",
+            "O3",
+        )
+        if use_apex:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    f"You need to install apex. "
+                    f"See https://github.com/NVIDIA/apex#linux"
+                )
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
@@ -157,8 +179,22 @@ class Trainer:
         else:
             summary_writer = None
 
+        start_time = time.perf_counter()
         for iepoch in range(start_epoch, max_epoch + 1):
-            logging.info(f"{iepoch}epoch started")
+            if iepoch != start_epoch:
+                logging.info(
+                    "{}/{}epoch started. Estimated time to finish: {}".format(
+                        iepoch,
+                        max_epoch,
+                        humanfriendly.format_timespan(
+                            (time.perf_counter() - start_time)
+                            / (iepoch - start_epoch)
+                            * (max_epoch - iepoch + 1)
+                        ),
+                    )
+                )
+            else:
+                logging.info(f"{iepoch}/{max_epoch}epoch started")
             set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
@@ -182,7 +218,7 @@ class Trainer:
                 )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # att_plot don't support distributed
+                # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
                     with reporter.observe("att_plot") as sub_reporter:
                         cls.plot_attention(
@@ -203,7 +239,7 @@ class Trainer:
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
-                reporter.logging()
+                logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
                 reporter.tensorboard_add_scalar(summary_writer)
 
@@ -217,6 +253,7 @@ class Trainer:
                             s.state_dict() if s is not None else None
                             for s in schedulers
                         ],
+                        "amp": amp.state_dict() if use_apex else None,
                     },
                     output_dir / "checkpoint.pth",
                 )
@@ -247,7 +284,7 @@ class Trainer:
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_n_best_checkpoints])
+                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
                         for ph, k, m in best_model_criterion
                         if reporter.has(ph, k)
                     ]
@@ -262,7 +299,7 @@ class Trainer:
                         f"The model files were removed: " + ", ".join(_removed)
                     )
 
-            # 7. If any updating haven't happen, stops the training
+            # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
                 logging.warning(
                     f"The gradients at all steps are invalid in this epoch. "
@@ -302,26 +339,43 @@ class Trainer:
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
-        train_dtype = options.train_dtype
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
+        use_apex = options.train_dtype in ("O0", "O1", "O2", "O3")
 
         if log_interval is None:
-            log_interval = max(len(iterator) // 20, 10)
+            try:
+                log_interval = max(len(iterator) // 20, 10)
+            except TypeError:
+                log_interval = 100
 
         model.train()
         all_steps_are_invalid = True
-        for iiter, (_, batch) in enumerate(iterator, 1):
+        # [For distributed] Because iteration counts are not always equals between
+        # processes, send stop-flag to the other processes if iterator is finished
+        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+
+        start_time = time.perf_counter()
+        for iiter, (_, batch) in enumerate(
+            reporter.measure_iter_time(iterator, "iter_time"), 1
+        ):
             assert isinstance(batch, dict), type(batch)
+
+            if distributed:
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
+
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 all_steps_are_invalid = False
                 reporter.register({})
                 continue
 
-            loss, stats, weight = model(**batch)
+            with reporter.measure_time("forward_time"):
+                loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
-                loss = (loss * weight).sum()
+                loss = (loss * weight.type(loss.dtype)).sum()
 
                 # if distributed, this method can also apply all_reduce()
                 stats, weight = recursive_average(stats, weight, distributed)
@@ -336,13 +390,20 @@ class Trainer:
             reporter.register(stats, weight)
 
             loss /= accum_grad
-            if train_dtype in ("O0", "O1", "O2", "O3"):
-                from apex import amp
+            with reporter.measure_time("backward_time"):
+                if use_apex:
+                    try:
+                        from apex import amp
+                    except ImportError:
+                        logging.error(
+                            f"You need to install apex. "
+                            f"See https://github.com/NVIDIA/apex#linux"
+                        )
 
-                with amp.scale_loss(loss, optimizers) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+                    with amp.scale_loss(loss, optimizers) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
 
             if iiter % accum_grad == 0:
                 # gradient noise injection
@@ -366,24 +427,36 @@ class Trainer:
                     )
                 else:
                     all_steps_are_invalid = False
-                    optimizer.step()
+                    with reporter.measure_time("optim_step_time"):
+                        optimizer.step()
+                    if isinstance(scheduler, AbsBatchStepScheduler):
+                        scheduler.step()
                 optimizer.zero_grad()
-                if isinstance(scheduler, AbsBatchStepScheduler):
-                    scheduler.step()
 
-                # Register lr
+                # Register lr and train/load time[sec/step],
+                # where step refers to accum_grad * mini-batch
                 reporter.register(
-                    {
-                        f"lr_{i}": pg["lr"]
-                        for i, pg in enumerate(optimizer.param_groups)
-                        if "lr" in pg
-                    },
+                    dict(
+                        {
+                            f"lr_{i}": pg["lr"]
+                            for i, pg in enumerate(optimizer.param_groups)
+                            if "lr" in pg
+                        },
+                        train_time=time.perf_counter() - start_time,
+                    ),
                     # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
+                start_time = time.perf_counter()
 
             if iiter % log_interval == 0:
-                reporter.logging(nlatest=log_interval)
+                logging.info(reporter.log_message())
+
+        else:
+            if distributed:
+                iterator_stop.fill_(1)
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+
         return all_steps_are_invalid
 
     @classmethod
@@ -401,8 +474,17 @@ class Trainer:
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         model.eval()
+
+        # [For distributed] Because iteration counts are not always equals between
+        # processes, send stop-flag to the other processes if iterator is finished
+        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for (_, batch) in iterator:
             assert isinstance(batch, dict), type(batch)
+            if distributed:
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
+
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 reporter.register({})
@@ -415,6 +497,11 @@ class Trainer:
                 stats, weight = recursive_average(stats, weight, distributed)
 
             reporter.register(stats, weight)
+
+        else:
+            if distributed:
+                iterator_stop.fill_(1)
+                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
 
     @classmethod
     @torch.no_grad()

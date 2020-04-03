@@ -15,14 +15,14 @@ from typeguard import check_argument_types
 
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
-from espnet2.train.abs_e2e import AbsE2E
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.fileio import NpyScpWriter
 
 
 @torch.no_grad()
 def collect_stats(
-    model: AbsE2E,
+    model: AbsESPnetModel,
     train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
     valid_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
     output_dir: Path,
@@ -42,7 +42,10 @@ def collect_stats(
     npy_scp_writers = {}
     for itr, mode in zip([train_iter, valid_iter], ["train", "valid"]):
         if log_interval is None:
-            log_interval = max(len(itr) // 20, 10)
+            try:
+                log_interval = max(len(itr) // 20, 10)
+            except TypeError:
+                log_interval = 100
 
         sum_dict = defaultdict(lambda: 0)
         sq_dict = defaultdict(lambda: 0)

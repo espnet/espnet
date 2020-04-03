@@ -11,7 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=16           # numebr of parallel jobs for decoding
+nj=16           # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -29,6 +29,11 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of NMT models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
                              # if false, the last `n_average` NMT models will be averaged.
+
+# cascaded-ST related
+asr_model=
+decode_config_asr=
+dict_asr=
 
 # preprocessing related
 src_case=lc.rm
@@ -48,8 +53,8 @@ tgt_lang=de
 # e.g., tgt_lang="de_es_fr"
 # if you want to use all languages, set tgt_lang="all"
 
-use_st_dict=true
 # use the same dict as in the ST task
+use_st_dict=true
 
 # bpemode (unigram or bpe)
 nbpe=8000
@@ -152,13 +157,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     echo "make json files"
-    local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model \
+    data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    local/data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model \
+    data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}; mkdir -p ${feat_trans_dir}
-        local/data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model \
+        data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
             data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
@@ -166,7 +171,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for x in ${train_set} ${train_dev} ${trans_set}; do
         feat_dir=${dumpdir}/${x}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").en-${tgt_lang}.en
-        local/update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
+        update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
 fi
@@ -226,6 +231,66 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     (
         decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${ttask}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+
+        #### use CPU for decoding
+        ngpu=0
+
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            mt_trans.py \
+            --config ${decode_config} \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --batchsize 0 \
+            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${trans_model}
+
+        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished"
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ]; then
+    echo "stage 6: Cascaded-ST decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        # Average NMT models
+        if ${use_valbest_average}; then
+            trans_model=model.val${n_average}.avg.best
+        else
+            trans_model=model.last${n_average}.avg.best
+        fi
+    fi
+
+    for ttask in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${ttask}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        rtask=$(echo ${ttask} | cut -f -2 -d ".").en
+        data_dir=data/${rtask}
+
+        # ASR outputs
+        asr_decode_dir=decode_${rtask}_$(basename ${decode_config_asr%.*})
+        json2text.py ${asr_model}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
+        spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
+            > ${data_dir}/text_asr_hyp.wrd.${src_case}
+
+        data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
+            ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
+    done
+
+    pids=() # initialize pids
+    for ttask in ${trans_set}; do
+    (
+        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})_pipeline
+        feat_trans_dir=${dumpdir}/${ttask}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
 
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json

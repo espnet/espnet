@@ -349,10 +349,8 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
             hyps_best_kept = []
             for hyp in hyps:
-                vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
                 ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
-                ey.unsqueeze(0)
                 if self.num_encs == 1:
                     att_c, att_w = self.att[att_idx](h[0].unsqueeze(0), [h[0].size(0)],
                                                      self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
@@ -663,7 +661,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
             # pick ended hyps
-            if i > minlen:
+            if i >= minlen:
                 k = 0
                 penalty_i = (i + 1) * penalty
                 thr = accum_best_scores[:, -1]
@@ -672,15 +670,20 @@ class Decoder(torch.nn.Module, ScorerInterface):
                         k = k + beam
                         continue
                     for beam_j in six.moves.range(beam):
+                        _vscore = None
                         if eos_vscores[samp_i, beam_j] > thr[samp_i]:
                             yk = y_prev[k][:]
-                            yk.append(self.eos)
-                            if len(yk) < min(hlens[idx][samp_i] for idx in range(self.num_encs)):
+                            if len(yk) <= min(hlens[idx][samp_i] for idx in range(self.num_encs)):
                                 _vscore = eos_vscores[samp_i][beam_j] + penalty_i
-                                if rnnlm:
-                                    _vscore += recog_args.lm_weight * rnnlm.final(rnnlm_state, index=k)
-                                _score = _vscore.data.cpu().numpy()
-                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                        elif i == maxlen - 1:
+                            yk = yseq[k][:]
+                            _vscore = vscores[samp_i][beam_j] + penalty_i
+                        if _vscore:
+                            yk.append(self.eos)
+                            if rnnlm:
+                                _vscore += recog_args.lm_weight * rnnlm.final(rnnlm_state, index=k)
+                            _score = _vscore.data.cpu().numpy()
+                            ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
 
             # end detection

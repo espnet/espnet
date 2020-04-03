@@ -8,9 +8,6 @@ init: chainer
 batch_size: 32
 max_epoch: 100
 patience: 0
-max_length:
-    - 800
-    - 150
 
 scheduler_conf:
     warmup_steps: 25000
@@ -27,9 +24,10 @@ best_model_criterion:
 -   - valid
     - acc
     - max
+keep_nbest_models: 10
 
 # MTL
-e2e_conf:
+model_conf:
     ctc_weight: 0.4
     lsm_weight: 0.1
     length_normalized_loss: false

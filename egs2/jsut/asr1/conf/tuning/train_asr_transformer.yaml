@@ -19,7 +19,7 @@ decoder_conf:
     dropout_rate: 0.1
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
@@ -39,3 +39,9 @@ scheduler_conf:
 
 # minibatch related
 batch_size: 32
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10

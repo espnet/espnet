@@ -25,7 +25,7 @@ decoder_conf:
         aconv_filts: 100
 
 # hybrid CTC/attention
-e2e_conf:
+model_conf:
     ctc_weight: 0.5
 
 # optimization related
@@ -52,6 +52,3 @@ num_iters_per_epoch: 300000
 
 # minibatch related
 batch_size: 24
-max_length:
-    - 800
-    - 150

@@ -16,13 +16,15 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
-from espnet2.asr.e2e import ASRE2E
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
+from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -38,12 +40,18 @@ from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
-
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(default=DefaultFrontend),
     type_check=AbsFrontend,
     default="default",
+)
+specaug_choices = ClassChoices(
+    name="specaug",
+    classes=dict(specaug=SpecAug),
+    type_check=AbsSpecAug,
+    default=None,
+    optional=True,
 )
 normalize_choices = ClassChoices(
     "normalize",
@@ -76,6 +84,8 @@ class ASRTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --specaug and --specaug_conf
+        specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
         # --encoder and --encoder_conf
@@ -131,9 +141,9 @@ class ASRTask(AbsTask):
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
-            "--e2e_conf",
+            "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ASRE2E),
+            default=get_default_kwargs(ESPnetASRModel),
             help="The keyword arguments for E2E class.",
         )
 
@@ -213,7 +223,7 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ASRE2E:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -241,18 +251,25 @@ class ASRTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Normalization layer
+        # 2. Data augmentation for spectrogram
+        if args.specaug is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
+        # 3. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
 
-        # 3. Encoder
+        # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
-        # 4. Decoder
+        # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
         decoder = decoder_class(
@@ -261,29 +278,30 @@ class ASRTask(AbsTask):
             **args.decoder_conf,
         )
 
-        # 4. CTC
+        # 6. CTC
         ctc = CTC(
             odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
         )
 
-        # 5. RNN-T Decoder (Not implemented)
+        # 7. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
-        # 6. Build model
-        model = ASRE2E(
+        # 8. Build model
+        model = ESPnetASRModel(
             vocab_size=vocab_size,
             frontend=frontend,
+            specaug=specaug,
             normalize=normalize,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
             token_list=token_list,
-            **args.e2e_conf,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
-        # 7. Initialize
+        # 9. Initialize
         if args.init is not None:
             initialize(model, args.init)
 

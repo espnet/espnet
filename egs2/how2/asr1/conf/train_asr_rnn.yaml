@@ -9,9 +9,6 @@ init: chainer
 batch_size: 20
 max_epoch: 15
 patience: 3
-max_length:
-    - 800
-    - 150
 
 # criterion
 val_scheduler_criterion:
@@ -25,9 +22,10 @@ best_model_criterion:
 -   - valid
     - acc
     - max
+keep_nbest_models: 1
 
 # MTL
-e2e_conf:
+model_conf:
     ctc_weight: 0.5
     lsm_weight: 0.1
 

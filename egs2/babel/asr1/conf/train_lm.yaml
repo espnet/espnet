@@ -6,5 +6,9 @@ optim: sgd        # or adam
 batch_size: 256  # batch size in LM training
 max_epoch: 20      # if the data size is large, we can reduce this
 patience: 3
-max_length: 100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
