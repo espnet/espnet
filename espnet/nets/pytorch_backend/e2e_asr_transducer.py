@@ -226,7 +226,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
 
-            if self.etype == 'transformer':
+            if self.dtype == 'transformer':
                 self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
             else:
                 self.error_calculator = ErrorCalculatorTrans(self.dec, args)
@@ -354,13 +354,13 @@ class E2E(ASRInterface, torch.nn.Module):
         params = [h, recog_args]
 
         if recog_args.beam_size == 1:
-            if self.etype == 'transformer':
+            if self.dtype == 'transformer':
                 nbest_hyps = self.decoder.recognize(*params)
             else:
                 nbest_hyps = self.dec.recognize(*params)
         else:
             params.append(rnnlm)
-            if self.etype == 'transformer':
+            if self.dtype == 'transformer':
                 nbest_hyps = self.decoder.recognize_beam(*params)
             else:
                 nbest_hyps = self.dec.recognize_beam(*params)
