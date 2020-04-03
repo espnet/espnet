@@ -438,9 +438,17 @@ def train(args):
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
             plot_class = model.module.attention_plot_class
+            reduction_factor = model.module.reduction_factor
         else:
             att_vis_fn = model.calculate_all_attentions
             plot_class = model.attention_plot_class
+            reduction_factor = model.reduction_factor
+        if reduction_factor > 1:
+            # fix the lenght to crop attention weight plot correctly
+            data = copy.deepcopy(data)
+            for idx in range(args.num_save_attention):
+                ilen = data[idx][1]['input'][0]['shape'][0]
+                data[idx][1]['input'][0]['shape'][0] = ilen // reduction_factor
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + '/att_ws',
             converter=converter,
