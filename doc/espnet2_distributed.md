@@ -1,4 +1,20 @@
 # Distributed training
+
+There are several possibilities to launch the job of distributed training.
+
+- Single node with Multi GPUs
+    - Using multi-processing: `torch.nn.DistributedDataParallel`
+        - `--ngpu N-GPU --multiprocessing_distributed true`
+    - Using multi-threading: `torch.nn.DataParallel`
+        - `--ngpu N-GPU --multiprocessing_distributed false`
+- Multi nodes with Multi GPUs: `torch.nn.DistributedDataParallel`
+    - Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)
+        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
+    - Launch `N-NODE` jobs with `1-GPU` for each node
+        - `--dist_world_size N-NODE --ngpu 1`
+    - Using multi-threading
+        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
+
 ## Examples
 
 ### Single node with 4GPUs with distributed mode

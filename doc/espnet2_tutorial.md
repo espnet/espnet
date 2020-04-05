@@ -107,7 +107,12 @@ The usage of recipes is **almost the same** as that of ESPnet1.
 ### Log file
 
 ```bash
-less exp/asr_train_<some-name>/train.log
+% tail -f exp/asr_train_<some-name>/train.log
+[host] 2020-04-05 16:34:54,278 (trainer:192) INFO: 2/40epoch started. Estimated time to finish: 7 minutes and 58.63 seconds
+[host] 2020-04-05 16:34:56,315 (trainer:453) INFO: 2epoch:train:1-10batch: iter_time=0.006, forward_time=0.076, loss=50.873, los
+s_att=35.801, loss_ctc=65.945, acc=0.471, backward_time=0.072, optim_step_time=0.006, lr_0=1.000, train_time=0.203
+[host] 2020-04-05 16:34:58,046 (trainer:453) INFO: 2epoch:train:11-20batch: iter_time=4.280e-05, forward_time=0.068, loss=44.369
+, loss_att=28.776, loss_ctc=59.962, acc=0.506, backward_time=0.055, optim_step_time=0.006, lr_0=1.000, train_time=0.173
 ```
 
 ### Show images
@@ -117,7 +122,7 @@ less exp/asr_train_<some-name>/train.log
 # (eog is Eye of GNOME Image Viewer)
 eog exp/asr_train_<some-name>/images/acc.img
 # Attention plot
-eog exp/asr_train_<some-name>/<sample-id>/<param-name>.img
+eog exp/asr_train_<some-name>/att_ws/<sample-id>/<param-name>.img
 ```
 
 ### Use tensorboard
@@ -127,8 +132,6 @@ tensorboard --logdir exp/asr_train_<some-name>/tensorboard/
 ```
 
 # Instruction for run.sh
-We use all python commands via `run.sh` and you may need to invoke a Python script directly in some cases, but `run.sh` itself is configurable and you can live comfortably with it in many cases without any modifications.
-
 ## How to parse command-line arguments in shell scripts?
 
 All shell script in espnet/espnet2 depends on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to parase command line arguments.
