@@ -16,10 +16,34 @@ Note that ESPnet2 always selects`_` instead of `-` for the separation for the na
 A notable feature of `--print_config` is that it shows the configuration parsing with the given arguments dynamically: You can look up the parameters for a changeable class for example.
 
 ```bash
-# Show parameters of Adam optimizer
-python -m espnet2.bin.asr_train --optim adam --print_config
-# Show parameters of ReduceLROnPlateau scheduler
-python -m espnet2.bin.asr_train --scheduler ReduceLROnPlateau --print_config
+% # Show parameters of Adam optimizer
+% python -m espnet2.bin.asr_train --optim adam --print_config
+...
+optim: adam
+optim_conf:
+    lr: 0.001
+    betas:
+    - 0.9
+    - 0.999
+    eps: 1.0e-08
+    weight_decay: 0
+    amsgrad: false
+...
+% # Show parameters of ReduceLROnPlateau scheduler
+% python -m espnet2.bin.asr_train --scheduler ReduceLROnPlateau --print_config
+...
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.1
+    patience: 10
+    verbose: false
+    threshold: 0.0001
+    threshold_mode: rel
+    cooldown: 0
+    min_lr: 0
+    eps: 1.0e-08
+...
 ```
 
 ## Configuration file
@@ -115,13 +139,7 @@ About distributed training, see [Distributed training](espnet2_distributed.md).
 
 ## The relation between mini-batch size and number of GPUs
 
-In ESPnet1, we support three types of mini-batch type:
-
-- --batch-count seq
-- --batch-count bin
-- --batch-count frame
-
-For now, ESPnet2 supports only `seq` mode. The batch-size can be changed as follows:
+The batch-size can be changed as follows:
 
 ```bash
 # Change both of the batch_size for training and validation
@@ -143,6 +161,123 @@ The behavior for batch-size when multi-GPU mode is **different from that of ESPN
   ```
 
 Note that even espnet1, if using `bin` or `frame` batch-count, this changing of batch_size is not done.
+
+## Change mini-batch type
+We adopts variable mini-batch size with considering the length of each sequence to spread the data in the GPU memory as possible.
+
+There are 5 choices:
+
+### `--batch_type unsorted`
+
+This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order. If you intend to use espnet as **not** Seq2Seq task, this type is suitable.
+
+Unlike the other type, this mode doesn't require the information of the feature dimension, so it's not mandatory to input `shape_file`:
+
+```python
+python -m espnet.bin.asr_train \
+  --batch_size 10 --batch_type unsorted \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --train_shape_file "train.scp" \
+  --valid_shape_file "valid.scp"
+```
+
+### `--batch_type sorted`
+
+
+This mode creates constant-size mini-batches with sorting by the length order. Therefore it requires the information of the length.
+
+e.g. train_length.scp
+
+```
+sample_id1 1230
+sample_id2 156
+sample_id3 890
+...
+```
+
+```python
+python -m espnet.bin.asr_train \
+  --batch_size 10 --batch_type sorted \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --train_shape_file "train_length.scp" \
+  --valid_shape_file "valid_length.scp"
+```
+
+### `--batch_type folded`
+
+**In ESPnet1, this mode is named as seq.**
+
+
+This mode creates mini-batch which has the size of `base_batch_size // max_i(L_i // f_i)`. Where `L_i` is the maximum length in the mini-batch for `i`th feature and `f_i` is the `--fold length` corresponding to the feature. This mode requires the information of length.
+
+
+```python
+python -m espnet.bin.asr_train \
+  --batch_size 20 --batch_type folded \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --train_shape_file "train_length.scp" \
+  --train_shape_file "train_length2.scp" \
+  --valid_shape_file "valid_length.scp" \
+  --valid_shape_file "valid_length2.scp" \
+  --fold_length 5000 \
+  --fold_length 300
+```
+
+Note that the repeat number of `*_shape_file` must equal to the number of `--fold_length`.
+
+
+### `--batch_type length`
+
+**In ESPnet1, this mode is named as frame.**
+
+
+This mode uses `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+Each mini-batch has equal number of bins as possible counting by the length; i.e. `bins = sum(len(feat) for feats in batch for feat in feats)`. This mode requires the information of length.
+
+```python
+python -m espnet.bin.asr_train \
+  --batch_bins 100000 --batch_type length \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --train_shape_file "train_length.scp" \
+  --train_shape_file "train_length2.scp" \
+  --valid_shape_file "valid_length.scp" \
+  --valid_shape_file "valid_length2.scp" \
+```
+
+
+
+
+### `--batch_type numel`
+
+**In ESPnet1, this mode is named as bins.**
+
+This mode uses `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+Each mini-batches has equal number of bins as possible counting by the number of elements; i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`. Where `numel` returns the infinite product of the shape of each feature. 
+
+```python
+python -m espnet.bin.asr_train \
+  --batch_bins 100000 --batch_type length \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --train_shape_file "train_shape.scp" \
+  --train_shape_file "train_shape2.scp" \
+  --valid_shape_file "valid_shape.scp" \
+  --valid_shape_file "valid_shape2.scp" \
+```
+
+
 
 ## Gradient accumulating
 There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.
@@ -195,7 +330,7 @@ Note that you need to install apex manually to use mixed-precision: https://gith
 There are some possibilities to make training non-reproducible.
 
 - Initialization of parameters that come from PyTorch/ESPnet version difference.
-- Reducing order for float values when multi GPUs
+- Reducing order for float values during multi GPUs training.
   - I don't know whether NCCL is deterministic or not.
 - Random seed difference
   - We fixed the random seed for each epoch, thus the randomness should be reproduced even if the process is resumed.
