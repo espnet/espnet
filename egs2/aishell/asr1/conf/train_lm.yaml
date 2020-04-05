@@ -6,6 +6,7 @@ lm_conf:
 
 # optimization related
 grad_clip: 5.0
+batch_type: folded
 batch_size: 64  # batch size in LM training
 max_epoch: 20   # if the data size is large, we can reduce this
 patience: 3
