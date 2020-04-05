@@ -534,7 +534,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--batch_type",
             type=str,
-            default="unsorted",
+            default="folded",
             choices=list(BATCH_TYPES),
             help=_batch_type_help,
         )
