@@ -20,12 +20,12 @@ import torch.optim
 from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
-from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -567,7 +567,7 @@ class Trainer:
                         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
                     if output_dir is not None:
-                        p = output_dir / id_ / (k + ".png")
+                        p = output_dir / id_ / f"{k}.{reporter.get_epoch()}ep.png"
                         p.parent.mkdir(parents=True, exist_ok=True)
                         fig.savefig(p)
 
