@@ -37,7 +37,7 @@ requirements = {
         'kaldiio>=2.13.8',
         'matplotlib>=3.1.0',
         'funcsigs>=1.0.2',  # A backport of inspect.signature for python2
-        'configargparse>=0.14.0',
+        'configargparse==1.1',
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
