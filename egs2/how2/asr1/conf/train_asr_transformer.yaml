@@ -5,6 +5,7 @@ optim_conf:
 accum_grad: 4
 grad_clip: 5
 init: chainer
+batch_type: folded
 batch_size: 32
 max_epoch: 100
 patience: 0

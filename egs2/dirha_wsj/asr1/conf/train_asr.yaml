@@ -32,6 +32,7 @@ model_conf:
     ctc_weight: 0.2
 
 # minibatch related
+batch_type: folded
 batch_size: 15
 
 # optimization related

@@ -1,5 +1,6 @@
 optim: sgd
 max_epoch: 20
+batch_type: folded
 batch_size: 300
 lm: seq_rnn
 lm_conf:
