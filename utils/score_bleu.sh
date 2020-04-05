@@ -71,11 +71,11 @@ if [ ${case} = tc ]; then
     multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
     cat ${dir}/result.tc.txt
+else
+    echo ${set} > ${dir}/result.lc.txt
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.lc.txt
+    echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
+    cat ${dir}/result.lc.txt
 fi
-
-echo ${set} > ${dir}/result.lc.txt
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.lc.txt
-echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
-cat ${dir}/result.lc.txt
 
 # TODO(hirofumi): add TER & METEOR metrics here

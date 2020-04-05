@@ -275,6 +275,7 @@ def main(cmd_args):
                 ngpu = 0
             else:
                 ngpu = len(p.stderr.decode().split('\n')) - 1
+        args.ngpu = ngpu
     else:
         if is_torch_1_2_plus and args.ngpu != 1:
             logging.debug("There are some bugs with multi-GPU processing in PyTorch 1.2+" +
