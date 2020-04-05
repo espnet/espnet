@@ -4,6 +4,8 @@ from chainer.training.extension import Extension
 class TensorboardLogger(Extension):
     """A tensorboard logger extension"""
 
+    default_name = "espnet_tensorboard_logger"
+
     def __init__(self, logger, att_reporter=None, entries=None, epoch=0):
         """Init the extension
 

@@ -1,0 +1,1 @@
+{"process": [{"type": "stft", "win_length": 400, "n_fft": 512, "n_shift": 160}]}

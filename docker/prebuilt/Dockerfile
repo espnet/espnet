@@ -7,7 +7,7 @@ ARG THIS_USER
 ARG THIS_UID
 
 # Add user to container
-RUN if [ ! -z "${THIS_UID}"  ];then \
+RUN if [ ! -z "${THIS_UID}"  ]; then \
     useradd -m -r -u ${THIS_UID} -g root ${THIS_USER}; \
     fi
 

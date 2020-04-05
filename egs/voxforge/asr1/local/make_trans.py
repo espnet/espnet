@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2012 Vassil Panayotov
 # Apache 2.0
@@ -28,7 +28,7 @@ id_prefix = sys.argv[2]
 utt_ids = sys.argv[3:]
 utt2trans = dict()
 unnorm_utt = set() 
-for l in open(sys.argv[1]):
+for l in open(sys.argv[1], encoding='utf-8'):
     u, trans = l.split(None, 1)
     u = u.strip().split('/')[-1]
     trans = trans.strip().replace("-", " ").upper()

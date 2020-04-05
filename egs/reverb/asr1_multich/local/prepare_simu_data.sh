@@ -1,0 +1,1 @@
+../../asr1/local/prepare_simu_data.sh

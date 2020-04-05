@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 from __future__ import print_function
@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
+from distutils.util import strtobool
 from io import open
 import json
 import logging
@@ -40,7 +41,7 @@ def shape(x):
     return list(map(int, x.split(',')))
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Given each file paths with such format as '
                     '<key>:<file>:<type>. type> can be omitted and the default '
@@ -58,10 +59,17 @@ if __name__ == '__main__':
                         help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
+    parser.add_argument('--allow-one-column', type=strtobool, default=False,
+                        help='Allow one column in input scp files. '
+                             'In this case, the value will be empty string.')
     parser.add_argument('--out', '-O', type=str,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
+    return parser
 
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
     args.scps = [args.scps]
 
@@ -162,7 +170,7 @@ if __name__ == '__main__':
         for ls_list in (input_lines, output_lines, lines):
             for ls in ls_list:
                 for line in ls:
-                    if line == ''or first == '':
+                    if line == '' or first == '':
                         if line != first:
                             concat = sum(
                                 input_infos + output_infos + infos, [])
@@ -208,11 +216,16 @@ if __name__ == '__main__':
                 for line, info in zip(line_list, info_list):
                     sps = line.split(None, 1)
                     if len(sps) < 2:
-                        raise RuntimeError(
-                            'Format error {}th line in {}: '
-                            ' Expecting "<key> <value>":\n>>> {}'
-                            .format(nutt, info[1], line))
-                    uttid, value = sps
+                        if not args.allow_one_column:
+                            raise RuntimeError(
+                                'Format error {}th line in {}: '
+                                ' Expecting "<key> <value>":\n>>> {}'
+                                .format(nutt, info[1], line))
+                        uttid = sps[0]
+                        value = ''
+                    else:
+                        uttid, value = sps
+
                     key = info[0]
                     type_func = info[2]
                     value = value.rstrip()

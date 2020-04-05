@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -11,12 +11,13 @@ import kaldiio
 import numpy
 
 from espnet.transform.spectrogram import logmelspectrogram
-from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_writers import file_writer_helper
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='compute FBANK feature from WAV',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
@@ -44,7 +45,8 @@ def main():
     parser.add_argument('--compress', type=strtobool, default=False,
                         help='Save in compressed format')
     parser.add_argument('--compression-method', type=int, default=2,
-                        help='Specify the method(if mat) or gzip-level(if hdf5)')
+                        help='Specify the method(if mat) or '
+                             'gzip-level(if hdf5)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
@@ -58,6 +60,11 @@ def main():
              '<segment-id> <recording-id> <start-time> <end-time>'
              'e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5')
     parser.add_argument('wspecifier', type=str, help='Write specifier')
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
@@ -69,12 +76,12 @@ def main():
 
     with kaldiio.ReadHelper(args.rspecifier,
                             segments=args.segments) as reader, \
-            FileWriterWrapper(args.wspecifier,
-                              filetype=args.filetype,
-                              write_num_frames=args.write_num_frames,
-                              compress=args.compress,
-                              compression_method=args.compression_method
-                              ) as writer:
+            file_writer_helper(args.wspecifier,
+                               filetype=args.filetype,
+                               write_num_frames=args.write_num_frames,
+                               compress=args.compress,
+                               compression_method=args.compression_method
+                               ) as writer:
         for utt_id, (rate, array) in reader:
             assert rate == args.fs
             array = array.astype(numpy.float32)

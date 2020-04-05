@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 import copy
 import json
 import logging
@@ -24,83 +25,20 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
-
 matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1, shortest_first=False):
-    """Make batch set from json dictionary
-
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
-    :param int batch_size: batch size
-    :param int max_length_in: maximum length of input to decide adaptive batch size
-    :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
-    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
-    """
-    # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
-    logging.info('# utts: ' + str(len(sorted_data)))
-
-    # check #utts is more than min_batch_size
-    if len(sorted_data) < min_batch_size:
-        raise ValueError("#utts is less than min_batch_size.")
-
-    # make list of minibatches
-    minibatches = []
-    start = 0
-    while True:
-        _, info = sorted_data[start]
-        ilen = int(info['input'][0]['shape'][0])
-        olen = int(info['output'][0]['shape'][0])
-        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-        # change batchsize depending on the input and output length
-        # if ilen = 1000 and max_length_in = 800
-        # then b = batchsize / 2
-        # and max(min_batches, .) avoids batchsize = 0
-        bs = max(min_batch_size, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + bs)
-        minibatch = sorted_data[start:end]
-        if shortest_first:
-            minibatch.reverse()
-
-        # check each batch is more than minimum batchsize
-        if len(minibatch) < min_batch_size:
-            mod = min_batch_size - len(minibatch) % min_batch_size
-            additional_minibatch = [sorted_data[i]
-                                    for i in np.random.randint(0, start, mod)]
-            if shortest_first:
-                additional_minibatch.reverse()
-            minibatch.extend(additional_minibatch)
-        minibatches.append(minibatch)
-
-        if end == len(sorted_data):
-            break
-        start = end
-
-    # for debugging
-    if num_batches > 0:
-        minibatches = minibatches[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatches)))
-
-    # such like: [('uttid1',
-    #              {'input': [{'shape': ...}],
-    #               'output': [{'shape': ...}]}),
-    #             ...]
-    return minibatches
 
 
 class CompareValueTrigger(object):
-    """Trigger invoked when key value getting bigger or lower than before
+    """Trigger invoked when key value getting bigger or lower than before.
 
-    :param str key : Key of value
-    :param function compare_fn : Function to compare the values
-    :param (int, str) trigger : Trigger that decide the comparison interval
+    Args:
+        key (str) : Key of value.
+        compare_fn ((float, float) -> bool) : Function to compare the values.
+        trigger (tuple(int, str)) : Trigger that decide the comparison interval.
+
     """
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
@@ -111,6 +49,7 @@ class CompareValueTrigger(object):
         self._compare_fn = compare_fn
 
     def __call__(self, trainer):
+        """Get value related to the key and compare with current value."""
         observation = trainer.observation
         summary = self._summary
         key = self._key
@@ -139,54 +78,123 @@ class CompareValueTrigger(object):
 
 
 class PlotAttentionReport(extension.Extension):
-    """Plot attention reporter
+    """Plot attention reporter.
 
-    :param function att_vis_fn: function of attention visualization
-    :param list data: list json utt key items
-    :param str outdir: directory to save figures
-    :param CustomConverter converter: function to convert data
-    :param int | torch.device device: device
-    :param bool reverse: If True, input and output length are reversed
+    Args:
+        att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):
+            Function of attention visualization.
+        data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
+        outdir (str): Directory to save figures.
+        converter (espnet.asr.*_backend.asr.CustomConverter): Function to convert data.
+        device (int | torch.device): Device.
+        reverse (bool): If True, input and output length are reversed.
+        ikey (str): Key to access input (for ASR ikey="input", for MT ikey="output".)
+        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis=1.)
+        okey (str): Key to access output (for ASR okey="input", MT okay="output".)
+        oaxis (int): Dimension to access output (for ASR oaxis=0, for MT oaxis=0.)
+
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False,
+                 ikey="input", iaxis=0, okey="output", oaxis=0):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.transform = transform
         self.device = device
         self.reverse = reverse
+        self.ikey = ikey
+        self.iaxis = iaxis
+        self.okey = okey
+        self.oaxis = oaxis
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
+        """Plot and save image file of att_ws matrix."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            filename = "%s/%s.ep.{.updater.epoch}.png" % (
-                self.outdir, self.data[idx][0])
-            att_w = self.get_attention_weight(idx, att_w)
-            self._plot_and_save_attention(att_w, filename.format(trainer))
+        if isinstance(att_ws, list):  # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    filename = "%s/%s.ep.{.updater.epoch}.att%d.png" % (
+                        self.outdir, self.data[idx][0], i + 1)
+                    att_w = self.get_attention_weight(idx, att_w)
+                    np_filename = "%s/%s.ep.{.updater.epoch}.att%d.npy" % (
+                        self.outdir, self.data[idx][0], i + 1)
+                    np.save(np_filename.format(trainer), att_w)
+                    self._plot_and_save_attention(att_w, filename.format(trainer))
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                filename = "%s/%s.ep.{.updater.epoch}.han.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.han.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer), han_mode=True)
+        else:
+            for idx, att_w in enumerate(att_ws):
+                filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                    self.outdir, self.data[idx][0])
+                att_w = self.get_attention_weight(idx, att_w)
+                np_filename = "%s/%s.ep.{.updater.epoch}.npy" % (
+                    self.outdir, self.data[idx][0])
+                np.save(np_filename.format(trainer), att_w)
+                self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def log_attentions(self, logger, step):
+        """Add image files of att_ws matrix to the tensorboard."""
         att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-            plot.clf()
+        if isinstance(att_ws, list):  # multi-encoder case
+            num_encs = len(att_ws) - 1
+            # atts
+            for i in range(num_encs):
+                for idx, att_w in enumerate(att_ws[i]):
+                    att_w = self.get_attention_weight(idx, att_w)
+                    plot = self.draw_attention_plot(att_w)
+                    logger.add_figure("%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step)
+                    plot.clf()
+            # han
+            for idx, att_w in enumerate(att_ws[num_encs]):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_han_plot(att_w)
+                logger.add_figure("%s_han" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
+        else:
+            for idx, att_w in enumerate(att_ws):
+                att_w = self.get_attention_weight(idx, att_w)
+                plot = self.draw_attention_plot(att_w)
+                logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
+                plot.clf()
 
     def get_attention_weights(self):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        """Return attention weights.
+
+        Returns:
+            numpy.ndarray: attention weights.float. Its shape would be
+                differ from backend.
+                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2) other case => (B, Lmax, Tmax).
+                * chainer-> (B, Lmax, Tmax)
+
+        """
+        batch = self.converter([self.transform(self.data)], self.device)
+        if isinstance(batch, tuple):
+            att_ws = self.att_vis_fn(*batch)
+        else:
+            att_ws = self.att_vis_fn(**batch)
         return att_ws
 
     def get_attention_weight(self, idx, att_w):
+        """Transform attention matrix with regard to self.reverse."""
         if self.reverse:
-            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
         else:
-            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
         if len(att_w.shape) == 3:
             att_w = att_w[:, :dec_len, :enc_len]
         else:
@@ -194,7 +202,14 @@ class PlotAttentionReport(extension.Extension):
         return att_w
 
     def draw_attention_plot(self, att_w):
+        """Plot the att_w matrix.
+
+        Returns:
+            matplotlib.pyplot: pyplot object with attention matrix image.
+
+        """
         import matplotlib.pyplot as plt
+        att_w = att_w.astype(np.float32)
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 plt.subplot(1, len(att_w), h)
@@ -208,15 +223,57 @@ class PlotAttentionReport(extension.Extension):
         plt.tight_layout()
         return plt
 
-    def _plot_and_save_attention(self, att_w, filename):
-        plt = self.draw_attention_plot(att_w)
+    def draw_han_plot(self, att_w):
+        """Plot the att_w matrix for hierarchical attention.
+
+        Returns:
+            matplotlib.pyplot: pyplot object with attention matrix image.
+
+        """
+        import matplotlib.pyplot as plt
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                legends = []
+                plt.subplot(1, len(att_w), h)
+                for i in range(aw.shape[1]):
+                    plt.plot(aw[:, i])
+                    legends.append('Att{}'.format(i))
+                plt.ylim([0, 1.0])
+                plt.xlim([0, aw.shape[0]])
+                plt.grid(True)
+                plt.ylabel("Attention Weight")
+                plt.xlabel("Decoder Index")
+                plt.legend(legends)
+        else:
+            legends = []
+            for i in range(att_w.shape[1]):
+                plt.plot(att_w[:, i])
+                legends.append('Att{}'.format(i))
+            plt.ylim([0, 1.0])
+            plt.xlim([0, att_w.shape[0]])
+            plt.grid(True)
+            plt.ylabel("Attention Weight")
+            plt.xlabel("Decoder Index")
+            plt.legend(legends)
+        plt.tight_layout()
+        return plt
+
+    def _plot_and_save_attention(self, att_w, filename, han_mode=False):
+        if han_mode:
+            plt = self.draw_han_plot(att_w)
+        else:
+            plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    """Extension to restore snapshot"""
+    """Extension to restore snapshot.
 
+    Returns:
+        An extension function.
+
+    """
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)
@@ -230,8 +287,15 @@ def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def adadelta_eps_decay(eps_decay):
-    """Extension to perform adadelta eps decay"""
+    """Extension to perform adadelta eps decay.
 
+    Args:
+        eps_decay (float): Decay rate of eps.
+
+    Returns:
+        An extension function.
+
+    """
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -253,10 +317,45 @@ def _adadelta_eps_decay(trainer, eps_decay):
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
 
 
+def adam_lr_decay(eps_decay):
+    """Extension to perform adam lr decay.
+
+    Args:
+        eps_decay (float): Decay rate of lr.
+
+    Returns:
+        An extension function.
+
+    """
+    @training.make_extension(trigger=(1, 'epoch'))
+    def adam_lr_decay(trainer):
+        _adam_lr_decay(trainer, eps_decay)
+
+    return adam_lr_decay
+
+
+def _adam_lr_decay(trainer, eps_decay):
+    optimizer = trainer.updater.get_optimizer('main')
+    # for chainer
+    if hasattr(optimizer, 'lr'):
+        current_lr = optimizer.lr
+        setattr(optimizer, 'lr', current_lr * eps_decay)
+        logging.info('adam lr decayed to ' + str(optimizer.lr))
+    # pytorch
+    else:
+        for p in optimizer.param_groups:
+            p["lr"] *= eps_decay
+            logging.info('adam lr decayed to ' + str(p["lr"]))
+
+
 def torch_snapshot(savefun=torch.save,
                    filename='snapshot.ep.{.updater.epoch}'):
-    """Returns a trainer extension to take snapshots of the trainer for pytorch."""
+    """Extension to take snapshot of the trainer for pytorch.
 
+    Returns:
+        An extension function.
+
+    """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
         _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
@@ -298,75 +397,78 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
         shutil.rmtree(tmpdir)
 
 
-# * -------------------- general -------------------- *
-class AttributeDict(object):
-    def __init__(self, obj):
-        self.obj = obj
+def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.55):
+    """Adds noise from a standard normal distribution to the gradients.
 
-    def __getstate__(self):
-        return self.obj.items()
+    The standard deviation (`sigma`) is controlled by the three hyper-parameters below.
+    `sigma` goes to zero (no noise) with more iterations.
 
-    def __setstate__(self, items):
-        if not hasattr(self, 'obj'):
-            self.obj = {}
-        for key, val in items:
-            self.obj[key] = val
-
-    def __getattr__(self, name):
-        if name in self.obj:
-            return self.obj.get(name)
-        else:
-            return None
-
-    def __getitem__(self, name):
-        return self.obj[name]
-
-    def __len__(self):
-        return len(self.obj)
-
-    def fields(self):
-        return self.obj
-
-    def items(self):
-        return self.obj.items()
-
-    def keys(self):
-        return self.obj.keys()
-
-
-def get_model_conf(model_path, conf_path=None):
-    """Get model config information by reading a model config file (model.json)
-
-    :param str model_path: model path
-    :param str conf_path: optional model config path
+    Args:
+        model (torch.nn.model): Model.
+        iteration (int): Number of iterations.
+        duration (int) {100, 1000}: Number of durations to control the interval of the `sigma` change.
+        eta (float) {0.01, 0.3, 1.0}: The magnitude of `sigma`.
+        scale_factor (float) {0.55}: The scale of `sigma`.
     """
+    interval = (iteration // duration) + 1
+    sigma = eta / interval ** scale_factor
+    for param in model.parameters():
+        if param.grad is not None:
+            _shape = param.grad.size()
+            noise = sigma * torch.randn(_shape).to(param.device)
+            param.grad += noise
 
+
+# * -------------------- general -------------------- *
+def get_model_conf(model_path, conf_path=None):
+    """Get model config information by reading a model config file (model.json).
+
+    Args:
+        model_path (str): Model path.
+        conf_path (str): Optional model config path.
+
+    Returns:
+        list[int, int, dict[str, Any]]: Config information loaded from json file.
+
+    """
     if conf_path is None:
         model_conf = os.path.dirname(model_path) + '/model.json'
     else:
         model_conf = conf_path
     with open(model_conf, "rb") as f:
         logging.info('reading a config file from ' + model_conf)
-        return json.load(f, object_hook=AttributeDict)
+        confs = json.load(f)
+    if isinstance(confs, dict):
+        # for lm
+        args = confs
+        return argparse.Namespace(**args)
+    else:
+        # for asr, tts, mt
+        idim, odim, args = confs
+        return idim, odim, argparse.Namespace(**args)
 
 
 def chainer_load(path, model):
-    """Function to load chainer model parameters
+    """Load chainer model parameters.
 
-    :param str path: model file or snapshot file to be loaded
-    :param chainer.Chain model: chainer model
+    Args:
+        path (str): Model path or snapshot file path to be loaded.
+        model (chainer.Chain): Chainer model.
+
     """
-    if 'snapshot' in path:
+    if 'snapshot' in os.path.basename(path):
         chainer.serializers.load_npz(path, model, path='updater/model:main/')
     else:
         chainer.serializers.load_npz(path, model)
 
 
 def torch_save(path, model):
-    """Function to save torch model states
+    """Save torch model states.
 
-    :param str path: file path to be saved
-    :param torch.nn.Module model: torch model
+    Args:
+        path (str): Model path to be saved.
+        model (torch.nn.Module): Torch model.
+
     """
     if hasattr(model, 'module'):
         torch.save(model.module.state_dict(), path)
@@ -374,16 +476,41 @@ def torch_save(path, model):
         torch.save(model.state_dict(), path)
 
 
-def torch_load(path, model):
-    """Function to load torch model states
+def snapshot_object(target, filename):
+    """Returns a trainer extension to take snapshots of a given object.
 
-    :param str path: model file or snapshot file to be loaded
-    :param torch.nn.Module model: torch model
+    Args:
+        target (model): Object to serialize.
+        filename (str): Name of the file into which the object is serialized.It can
+            be a format string, where the trainer object is passed to
+            the :meth: `str.format` method. For example,
+            ``'snapshot_{.updater.iteration}'`` is converted to
+            ``'snapshot_10000'`` at the 10,000th iteration.
+
+    Returns:
+        An extension function.
+
     """
-    if 'snapshot' in path:
+    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
+    def snapshot_object(trainer):
+        torch_save(os.path.join(trainer.out, filename.format(trainer)), target)
+
+    return snapshot_object
+
+
+def torch_load(path, model):
+    """Load torch model states.
+
+    Args:
+        path (str): Model path or snapshot file path to be loaded.
+        model (torch.nn.Module): Torch model.
+
+    """
+    if 'snapshot' in os.path.basename(path):
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
     else:
         model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)
+
     if hasattr(model, 'module'):
         model.module.load_state_dict(model_state_dict)
     else:
@@ -393,10 +520,12 @@ def torch_load(path, model):
 
 
 def torch_resume(snapshot_path, trainer):
-    """Function to resume from snapshot for pytorch
+    """Resume from snapshot for pytorch.
 
-    :param str snapshot_path: snapshot file path
-    :param instance trainer: chainer trainer instance
+    Args:
+        snapshot_path (str): Snapshot file path.
+        trainer (chainer.training.Trainer): Chainer's trainer instance.
+
     """
     # load snapshot
     snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
@@ -428,13 +557,15 @@ def torch_resume(snapshot_path, trainer):
 
 # * ------------------ recognition related ------------------ *
 def parse_hypothesis(hyp, char_list):
-    """Function to parse hypothesis
+    """Parse hypothesis.
 
-    :param list hyp: recognition hypothesis
-    :param list char_list: list of characters
-    :return: recognition text string
-    :return: recognition token string
-    :return: recognition tokenid string
+    Args:
+        hyp (list[dict[str, Any]]): Recognition hypothesis.
+        char_list (list[str]): List of characters.
+
+    Returns:
+        tuple(str, str, str, float)
+
     """
     # remove sos and get results
     tokenid_as_list = list(map(int, hyp['yseq'][1:]))
@@ -450,12 +581,16 @@ def parse_hypothesis(hyp, char_list):
 
 
 def add_results_to_json(js, nbest_hyps, char_list):
-    """Function to add N-best results to json
+    """Add N-best results to json.
 
-    :param dict js: groundtruth utterance dict
-    :param list nbest_hyps: list of hypothesis
-    :param list char_list: list of characters
-    :return: N-best results added utterance dict
+    Args:
+        js (dict[str, Any]): Groundtruth utterance dict.
+        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers: nutts x nspkrs.
+        char_list (list[str]): List of characters.
+
+    Returns:
+        dict[str, Any]: N-best results added utterance dict.
+
     """
     # copy old json info
     new_js = dict()
@@ -467,7 +602,11 @@ def add_results_to_json(js, nbest_hyps, char_list):
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
         # copy ground-truth
-        out_dic = dict(js['output'][0].items())
+        if len(js['output']) > 0:
+            out_dic = dict(js['output'][0].items())
+        else:
+            # for no reference case (e.g., speech translation)
+            out_dic = {'name': ''}
 
         # update name
         out_dic['name'] += '[%d]' % n
@@ -488,3 +627,104 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
+                     bottom=True, left=True, right=True, top=False,
+                     labelbottom=True, labelleft=True, labelright=True,
+                     labeltop=False, cmap='inferno'):
+    """Plot spectrogram using matplotlib.
+
+    Args:
+        plt (matplotlib.pyplot): pyplot object.
+        spec (numpy.ndarray): Input stft (Freq, Time)
+        mode (str): db or linear.
+        fs (int): Sample frequency. To convert y-axis to kHz unit.
+        frame_shift (int): The frame shift of stft. To convert x-axis to second unit.
+        bottom (bool):Whether to draw the respective ticks.
+        left (bool):
+        right (bool):
+        top (bool):
+        labelbottom (bool):Whether to draw the respective tick labels.
+        labelleft (bool):
+        labelright (bool):
+        labeltop (bool):
+        cmap (str): Colormap defined in matplotlib.
+
+    """
+    spec = np.abs(spec)
+    if mode == 'db':
+        x = 20 * np.log10(spec + np.finfo(spec.dtype).eps)
+    elif mode == 'linear':
+        x = spec
+    else:
+        raise ValueError(mode)
+
+    if fs is not None:
+        ytop = fs / 2000
+        ylabel = 'kHz'
+    else:
+        ytop = x.shape[0]
+        ylabel = 'bin'
+
+    if frame_shift is not None and fs is not None:
+        xtop = x.shape[1] * frame_shift / fs
+        xlabel = 's'
+    else:
+        xtop = x.shape[1]
+        xlabel = 'frame'
+
+    extent = (0, xtop, 0, ytop)
+    plt.imshow(x[::-1], cmap=cmap, extent=extent)
+
+    if labelbottom:
+        plt.xlabel('time [{}]'.format(xlabel))
+    if labelleft:
+        plt.ylabel('freq [{}]'.format(ylabel))
+    plt.colorbar().set_label('{}'.format(mode))
+
+    plt.tick_params(bottom=bottom, left=left, right=right, top=top,
+                    labelbottom=labelbottom, labelleft=labelleft,
+                    labelright=labelright, labeltop=labeltop)
+    plt.axis('auto')
+
+
+# * ------------------ recognition related ------------------ *
+def format_mulenc_args(args):
+    """Format args for multi-encoder setup.
+
+    It deals with following situations:  (when args.num_encs=2):
+    1. args.elayers = None -> args.elayers = [4, 4];
+    2. args.elayers = 4 -> args.elayers = [4, 4];
+    3. args.elayers = [4, 4, 4] -> args.elayers = [4, 4].
+
+    """
+    # default values when None is assigned.
+    default_dict = {'etype': 'blstmp',
+                    'elayers': 4,
+                    'eunits': 300,
+                    'subsample': '1',
+                    'dropout_rate': 0.0,
+                    'atype': 'dot',
+                    'adim': 320,
+                    'awin': 5,
+                    'aheads': 4,
+                    'aconv_chans': -1,
+                    'aconv_filts': 100
+                    }
+    for k in default_dict.keys():
+        if isinstance(vars(args)[k], list):
+            if len(vars(args)[k]) != args.num_encs:
+                logging.warning("Length mismatch {}: Convert {} to {}.".format(
+                    k, vars(args)[k], vars(args)[k][:args.num_encs]))
+            vars(args)[k] = vars(args)[k][:args.num_encs]
+        else:
+            if not vars(args)[k]:
+                # assign default value if it is None
+                vars(args)[k] = default_dict[k]
+                logging.warning("{} is not specified, use default value {}.".format(k, default_dict[k]))
+            # duplicate
+            logging.warning("Type mismatch {}: Convert {} to {}.".format(
+                k, vars(args)[k], [vars(args)[k] for _ in range(args.num_encs)]))
+            vars(args)[k] = [vars(args)[k] for _ in range(args.num_encs)]
+    return args

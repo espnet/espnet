@@ -1,0 +1,35 @@
+# network architecture
+# encoder related
+etype: blstm     # encoder architecture type
+elayers: 2
+eunits: 1024
+eprojs: 1024
+subsample: "1_1" # skip every n frame from input to nth layers
+# decoder related
+dlayers: 2
+dunits: 1024
+context-residual: true
+tie-src-tgt-embedding: false
+# attention related
+atype: add
+adim: 1024
+
+# minibatch related
+batch-size: 64
+maxlen-in: 100  # if input length  > maxlen-in, batchsize is automatically reduced
+maxlen-out: 100 # if output length > maxlen-out, batchsize is automatically reduced
+
+# other config
+dropout-rate: 0.3
+dropout-rate-decoder: 0.3
+lsm-weight: 0.1
+weight-decay: 1e-6
+
+# optimization related
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+opt: adam
+epochs: 30
+patience: 3
+
+# scheduled sampling option
+sampling-probability: 0.0

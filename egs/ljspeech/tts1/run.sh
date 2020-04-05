@@ -1,77 +1,59 @@
 #!/bin/bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
+# [stage 6] 2019 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
 stage=-1
 stop_stage=100
-ngpu=1       # number of gpu in training
+ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
+
 # feature extraction related
-fs=22050    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+fs=22050      # sampling frequency
+fmax=7600     # maximum frequency
+fmin=80       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=256   # number of shift points
 win_length="" # window length
-# encoder related
-embed_dim=512
-elayers=1
-eunits=512
-econv_layers=3 # if set 0, no conv layer is used
-econv_chans=512
-econv_filts=5
-# decoder related
-dlayers=2
-dunits=1024
-prenet_layers=2  # if set 0, no prenet is used
-prenet_units=256
-postnet_layers=5 # if set 0, no postnet is used
-postnet_chans=512
-postnet_filts=5
-# attention related
-atype=forward_ta
-adim=128
-aconv_chans=32
-aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
-cumulate_att_w=true # whether to cumulate attetion weight
-use_batch_norm=true # whether to use batch normalization in conv layer
-use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
-use_residual=false  # whether to use residual connection in encoder convolution
-use_masking=true    # whether to mask the padded part in loss calculation
-bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
-reduction_factor=1
-# minibatch related
-batchsize=32
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-batch_sort_key=shuffle # shuffle or input or output
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
-# optimization related
-lr=1e-3
-eps=1e-6
-weight_decay=0.0
-dropout=0.5
-zoneout=0.1
-epochs=200
-patience=20
+
+# char or phn
+# In the case of phn, input transcription is convered to phoneem using https://github.com/Kyubyong/g2p.
+trans_type="char"
+
+# config files
+train_config=conf/train_pytorch_tacotron2.yaml # you can select from conf or conf/tuning.
+                                               # now we support tacotron2, transformer, and fastspeech
+                                               # see more info in the header of each config.
+decode_config=conf/decode.yaml
+
+# knowledge distillation related
+teacher_model_path=""
+teacher_decode_config=conf/decode_for_knowledge_dist.yaml
+do_filtering=false     # whether to do filtering using focus rate
+focus_rate_thres=0.65  # for phn taco2 around 0.65, phn transformer around 0.9
+                       # if you want to do filtering please carefully check this threshold
+
 # decoding related
 model=model.loss.best
-threshold=0.5    # threshold to stop the generation
-maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
-minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+griffin_lim_iters=64  # the number of iterations of Griffin-Lim
+
+# objective evaluation related
+asr_model="librispeech.transformer.ngpu4"
+eval_tts_model=true                            # true: evaluate tts model, false: evaluate ground truth
+wer=true                                       # true: evaluate CER & WER, false: evaluate only CER
 
 # root directory of db
 db_root=downloads
@@ -87,21 +69,21 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_no_dev
-dev_set=dev
-eval_set=eval
+train_set="${trans_type}_train_no_dev"
+dev_set="${trans_type}_dev"
+eval_set="${trans_type}_eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    local/data_download.sh ${db_root}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
-    utils/validate_data_dir.sh --no-feats data/train
+    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/${trans_type}_train ${trans_type}
+    utils/validate_data_dir.sh --no-feats data/${trans_type}_train
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -122,92 +104,83 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --n_shift ${n_shift} \
         --win_length "${win_length}" \
         --n_mels ${n_mels} \
-        data/train \
-        exp/make_fbank/train \
+        data/${trans_type}_train \
+        exp/${trans_type}_make_fbank/train \
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
+    utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}
+    utils/subset_data_dir.sh --first data/${trans_type}_deveval 250 data/${dev_set}
+    n=$(( $(wc -l < data/${trans_type}_train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --first data/${trans_type}_train ${n} data/${train_set}
 
-    # compute global CMVN
+    # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
+        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_eval ${feat_ev_dir}
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_1${trans_type}/${train_set}_units.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
+    mkdir -p data/lang_1${trans_type}/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 --trans_type ${trans_type} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --trans_type ${trans_type} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --trans_type ${trans_type} \
          data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+    data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
 
-if [ -z ${tag} ];then
-    expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
-    if [ ${econv_layers} -gt 0 ];then
-        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
-    fi
-    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
-    if [ ${prenet_layers} -gt 0 ];then
-        expname=${expname}_pre${prenet_layers}x${prenet_units}
-    fi
-    if [ ${postnet_layers} -gt 0 ];then
-        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
-    fi
-    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
-    if ${cumulate_att_w};then
-        expname=${expname}_cm
-    fi
-    if ${use_batch_norm};then
-        expname=${expname}_bn
-    fi
-    if ${use_residual};then
-        expname=${expname}_rs
-    fi
-    if ${use_concate};then
-        expname=${expname}_cc
-    fi
-    if ${use_masking};then
-        expname=${expname}_msk_pw${bce_pos_weight}
-    fi
-    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
-    if [ ! ${batch_sort_key} = "shuffle" ];then
-        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
-    fi
-    expname=${expname}_sd${seed}
+if [ -z ${tag} ]; then
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
-    tr_json=${feat_tr_dir}/data.json
-    dt_json=${feat_dt_dir}/data.json
+    if [ -n "${teacher_model_path}" ] && echo "${train_config}" | grep -q "fastspeech"; then
+        # setup feature and duration for fastspeech knowledge distillation training
+        teacher_expdir=$(dirname "$(dirname "${teacher_model_path}")")
+        teacher_outdir=outputs_$(basename ${teacher_model_path})_$(basename ${teacher_decode_config%.*})
+        teacher_outdir=${teacher_expdir}/${teacher_outdir}
+        if [ ! -e ${teacher_outdir}/.done ]; then
+            local/setup_knowledge_dist.sh \
+                --nj ${nj} \
+                --verbose ${verbose} \
+                --dict ${dict} \
+                --trans_type ${trans_type} \
+                --teacher_model_path ${teacher_model_path} \
+                --decode_config ${teacher_decode_config} \
+                --train_set ${train_set} \
+                --dev_set ${dev_set} \
+                --do_filtering ${do_filtering} \
+                --focus_rate_thres ${focus_rate_thres}
+        fi
+        tr_json=${teacher_outdir}/dump/${train_set}/data.json
+        dt_json=${teacher_outdir}/dump/${dev_set}/data.json
+    else
+        tr_json=${feat_tr_dir}/data.json
+        dt_json=${feat_dt_dir}/data.json
+    fi
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
            --backend ${backend} \
@@ -220,49 +193,25 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
-           --embed_dim ${embed_dim} \
-           --elayers ${elayers} \
-           --eunits ${eunits} \
-           --econv_layers ${econv_layers} \
-           --econv_chans ${econv_chans} \
-           --econv_filts ${econv_filts} \
-           --dlayers ${dlayers} \
-           --dunits ${dunits} \
-           --prenet_layers ${prenet_layers} \
-           --prenet_units ${prenet_units} \
-           --postnet_layers ${postnet_layers} \
-           --postnet_chans ${postnet_chans} \
-           --postnet_filts ${postnet_filts} \
-           --atype ${atype} \
-           --adim ${adim} \
-           --aconv-chans ${aconv_chans} \
-           --aconv-filts ${aconv_filts} \
-           --cumulate_att_w ${cumulate_att_w} \
-           --use_batch_norm ${use_batch_norm} \
-           --use_concate ${use_concate} \
-           --use_residual ${use_residual} \
-           --use_masking ${use_masking} \
-           --bce_pos_weight ${bce_pos_weight} \
-           --lr ${lr} \
-           --eps ${eps} \
-           --dropout ${dropout} \
-           --zoneout ${zoneout} \
-           --reduction_factor ${reduction_factor} \
-           --weight-decay ${weight_decay} \
-           --sortagrad ${sortagrad} \
-           --batch_sort_key ${batch_sort_key} \
-           --batch-size ${batchsize} \
-           --maxlen-in ${maxlen_in} \
-           --maxlen-out ${maxlen_out} \
-           --epochs ${epochs} \
-           --patience ${patience}
+           --config ${train_config}
 fi
 
-outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
+if [ ${n_average} -gt 0 ]; then
+    model=model.last${n_average}.avg.best
+fi
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    for name in ${dev_set} ${eval_set};do
-        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+    if [ ${n_average} -gt 0 ]; then
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${model} \
+                               --num ${n_average}
+    fi
+    pids=() # initialize pids
+    for name in ${dev_set} ${eval_set}; do
+    (
+        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
@@ -274,19 +223,23 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
                 --out ${outdir}/${name}/feats.JOB \
                 --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
-                --threshold ${threshold} \
-                --maxlenratio ${maxlenratio} \
-                --minlenratio ${minlenratio}
+                --config ${decode_config}
         # concatenate scp files
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/feats.$n.scp" || exit 1;
         done > ${outdir}/${name}/feats.scp
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
-    for name in ${dev_set} ${eval_set};do
+    pids=() # initialize pids
+    for name in ${dev_set} ${eval_set}; do
+    (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${name}/feats.scp \
@@ -303,5 +256,32 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
             ${outdir}_denorm/${name} \
             ${outdir}_denorm/${name}/log \
             ${outdir}_denorm/${name}/wav
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Objective Evaluation"
+    pids=() # initialize pids
+    for name in ${dev_set} ${eval_set}; do
+    (
+        local/ob_eval/evaluate_cer.sh --nj ${nj} \
+            --do_delta false \
+            --eval_tts_model ${eval_tts_model} \
+            --db_root ${db_root}/LJSpeech-1.1 \
+            --backend pytorch \
+            --wer ${wer} \
+            --api v2 \
+            ${asr_model} \
+            ${outdir} \
+            ${name}
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished."
 fi

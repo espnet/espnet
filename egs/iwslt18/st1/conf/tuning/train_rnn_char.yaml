@@ -1,0 +1,38 @@
+# network architecture
+# encoder related
+etype: vggblstm     # encoder architecture type
+elayers: 5
+eunits: 1024
+eprojs: 1024
+subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
+# decoder related
+dlayers: 2
+dunits: 1024
+context-residual: true
+# attention related
+atype: add
+adim: 1024
+
+# multitask
+asr-weight: 0.0
+
+# minibatch related
+batch-size: 15
+maxlen-in: 800  # if input length  > maxlen-in, batchsize is automatically reduced
+maxlen-out: 150 # if output length > maxlen-out, batchsize is automatically reduced
+
+# other config
+dropout-rate: 0.3
+dropout-rate-decoder: 0.0
+lsm-weight: 0.1
+weight-decay: 1e-6
+
+# optimization related
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+opt: adadelta
+eps-decay: 0.01
+epochs: 15
+patience: 3
+
+# scheduled sampling option
+sampling-probability: 0.2

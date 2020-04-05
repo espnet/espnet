@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -15,10 +15,16 @@ import sys
 
 is_python2 = sys.version_info[0] == 2
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+
+def get_parser():
+    parser = argparse.ArgumentParser(description='convert sclite\'s result.txt file to json')
     parser.add_argument('--key', '-k', type=str,
                         help='key')
+    return parser
+
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
 
     key = re.findall(r"r\d+h\d+", args.key)[0]

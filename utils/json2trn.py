@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -14,15 +14,20 @@ import sys
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def main(args):
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='convert a json to a transcription file with a token dictionary',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('--num-spkrs', type=int, default=1, help='number of speakers')
     parser.add_argument('--refs', type=str, nargs='+', help='ref for all speakers')
     parser.add_argument('--hyps', type=str, nargs='+', help='hyp for all outputs')
-    args = parser.parse_args(args)
+    return parser
+
+
+def main(args):
+    args = get_parser().parse_args(args)
     convert(args.json, args.dict, args.refs, args.hyps, args.num_spkrs)
 
 
@@ -53,21 +58,25 @@ def convert(jsonf, dic, refs, hyps, num_spkrs=1):
         ref_file = codecs.open(refs[ns], 'w', encoding="utf-8")
 
         for x in j['utts']:
-            # hyps
+            # recognition hypothesis
             if num_spkrs == 1:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['rec_tokenid'].split()]
+            # In the recognition hypothesis, the <eos> symbol is usually attached in the last part of the sentence
+            # and it is removed below.
             hyp_file.write(" ".join(seq).replace('<eos>', '')),
             hyp_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
-            # ref
+            # reference
             if num_spkrs == 1:
-                seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
+                seq = j['utts'][x]['output'][0]['token']
             else:
-                seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['tokenid'].split()]
-            ref_file.write(" ".join(seq).replace('<eos>', '')),
-            ref_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
+                seq = j['utts'][x]['output'][ns][0]['token']
+            # Unlike the recognition hypothesis, the reference is directly generated from a token without dictionary
+            # to avoid to include <unk> symbols in the reference to make scoring normal.
+            # The detailed discussion can be found at https://github.com/espnet/espnet/issues/993
+            ref_file.write(seq + " (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         hyp_file.close()
         ref_file.close()

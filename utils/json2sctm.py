@@ -6,15 +6,12 @@ import os
 import subprocess
 import sys
 
-from utils import json2trn
-from utils import trn2ctm
-from utils import trn2stm
 
 is_python2 = sys.version_info[0] == 2
 
 
-def main(args):
-    parser = argparse.ArgumentParser()
+def get_parser():
+    parser = argparse.ArgumentParser(description='convert json to sctm')
     parser.add_argument('json', type=str, default=None, nargs='?',
                         help='input trn')
     parser.add_argument('dict', type=str, help='dict')
@@ -25,6 +22,15 @@ def main(args):
     parser.add_argument('--stm', type=str, default=None, nargs='+', help='output stm')
     parser.add_argument('--ctm', type=str, default=None, nargs='+', help='output ctm')
     parser.add_argument('--bpe', type=str, default=None, nargs='?', help='BPE model if applicable')
+    return parser
+
+
+def main(args):
+    from utils import json2trn
+    from utils import trn2ctm
+    from utils import trn2stm
+
+    parser = get_parser()
     args = parser.parse_args(args)
     if args.refs is None:
         refs = ["ref_tmp.trn"]

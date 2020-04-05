@@ -1,14 +1,21 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-# PYTHON := /usr/bin/python2.7
+# PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
-PYTHON_VERSION := 3.7
-CUPY_VERSION := 5.0.0
+# NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
+PYTHON_VERSION := 3.7.3
+CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0
+TH_VERSION := 1.0.1
+ifeq ($(shell expr $(strip $(subst .,,$(TH_VERSION))) \< 120), 1)
+INSTALL_WARPCTC := 1
+else
+INSTALL_WARPCTC :=
+endif
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
+WGET := wget --tries=3
 
 # Both Miniconda2/3 can install any Python versions
 CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -29,12 +36,13 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) warp-ctc.done warp-transducer.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done
+extra: nkf.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
+	test -d $(KALDI)
 	ln -s $(abspath $(KALDI)) kaldi
 	touch kaldi.done
 else
@@ -52,54 +60,58 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
-	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
-		. venv/bin/activate; pip install matplotlib==2.2.4; \
-	else \
-		. venv/bin/activate; pip install matplotlib; \
-	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
 miniconda.sh:
-	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
+	test -f miniconda.sh || $(WGET) $(CONDA_URL) -O miniconda.sh
 venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
+	. venv/bin/activate && conda install -y setuptools -c anaconda
+	. venv/bin/activate && conda install -y pip -c anaconda
 	. venv/bin/activate && conda update -y conda
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
 espnet.done: venv
 	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
 endif
 
 cupy.done: espnet.done
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	. venv/bin/activate && pip install cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CUPY_VERSION)
 	touch cupy.done
 endif
 
-chainer_patch.done: espnet.done
-	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
-
 warp-ctc.done: espnet.done
-	rm -rf warp-ctc
-	git clone https://github.com/jnishi/warp-ctc.git
-	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
-	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
-        . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
+ifneq ($(strip $(INSTALL_WARPCTC)),)
+	if . venv/bin/activate && python -c 'import torch as t;major=t.__version__.split(".")[0];assert major == "1"' &> /dev/null; then \
+		if [ ! -z "$(strip $(CUPY_VERSION))" ]; then \
+			. venv/bin/activate && pip install warpctc-pytorch10-cuda$(strip $(subst .,,$(CUDA_VERSION))); \
+		else \
+			. venv/bin/activate && pip install warpctc-pytorch10-cpu; \
+		fi \
+	else \
+		rm -rf warp-ctc; \
+		git clone https://github.com/espnet/warp-ctc.git; \
+		cd warp-ctc; git checkout -b pytorch-0.4 remotes/origin/pytorch-0.4; \
+		mkdir build && cd build && cmake .. && $(MAKE) && cd ..; \
+		. ../venv/bin/activate; pip install cffi; cd pytorch_binding && python setup.py install; \
 	fi
-	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
-        cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; \
-    fi
-	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
-	. venv/bin/activate; pip install cffi
-	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
+endif
+
+warp-transducer.done: espnet.done
+	rm -rf warp-transducer
+	git clone https://github.com/HawkAaron/warp-transducer.git
+	# Note: Requires gcc>=5.0 to build extensions with pytorch>=1.0
+	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
+        . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('5.0'), 'Requires gcc>=5.0'"; \
+	fi
+	. venv/bin/activate; cd warp-transducer && mkdir build && cd build && cmake .. && $(MAKE); true
+	. venv/bin/activate; cd warp-transducer/pytorch_binding && python setup.py install
+	touch warp-transducer.done
 
 chainer_ctc.done: espnet.done
 	rm -rf chainer_ctc
@@ -112,66 +124,74 @@ chainer_ctc.done: espnet.done
 nkf.done:
 	rm -rf nkf
 	mkdir -p nkf
-	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
+	cd nkf; $(WGET) https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
-sentencepiece.done:
-	rm -rf sentencepiece
-	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
-	touch sentencepiece.done
+hts_engine_API.done: espnet.done
+	rm -rf hts_engine_API
+	git clone https://github.com/r9y9/hts_engine_API.git
+	cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
+	touch hts_engine_API.done
 
-mecab.done: espnet.done
-	rm -rf mecab
-	git clone https://github.com/taku910/mecab.git
-	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
-	cd mecab/mecab-ipadic && ./configure --with-charset=utf8 --with-mecab-config=$(PWD)/mecab/bin/mecab-config --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) install
-	cd mecab && git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
-	cd mecab/mecab-ipadic-neologd && export PATH=$(PWD)/mecab/bin:$(PATH) && ./bin/install-mecab-ipadic-neologd -n -y -p $(PWD)/mecab/mecab-ipadic-neologd
-	. venv/bin/activate; pip install mojimoji pykakasi
-	. venv/bin/activate; if [ `python --version | cut -c 8` -eq 3 ]; then \
-		if [ ! -e swig.done ]; then \
-			rm -rf swig; \
-			mkdir -p swig; \
-			cd swig; \
-			wget https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/swig-3.0.12.tar.gz; \
-			tar zxvf swig-3.0.12.tar.gz; \
-			cd swig-3.0.12 && ./configure prefix=$(PWD)/swig && $(MAKE) && $(MAKE) install; \
-			touch $(PWD)/swig.done; \
-		fi; \
-		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
-		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
-		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
-	else \
-		pip install mecab-python; \
-	fi
-	touch mecab.done
+open_jtalk.done: hts_engine_API.done
+	rm -rf open_jtalk
+	git clone https://github.com/r9y9/open_jtalk.git
+	mkdir -p open_jtalk/src/build
+	cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ .. && make install
+	touch open_jtalk.done
+
+pyopenjtalk.done: open_jtalk.done
+	rm -rf pyopenjtalk
+	git clone https://github.com/r9y9/pyopenjtalk.git
+	. venv/bin/activate; cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(PWD) pip install -e .
+	touch pyopenjtalk.done
 
 moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
+mwerSegmenter.done:
+	$(WGET) https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	tar zxvf mwerSegmenter.tar.gz
+	rm mwerSegmenter.tar.gz
+	touch mwerSegmenter.done
+
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate; python check_install.py
+	. venv/bin/activate; python check_install.py --torch-version $(TH_VERSION)
 else
-	. venv/bin/activate; python check_install.py --no-cupy
+	. venv/bin/activate; python check_install.py --no-cupy --torch-version $(TH_VERSION)
 endif
 
+
+pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
+PESQ/P862_annex_A_2005_CD/source/PESQ: PESQ
+	cd PESQ/P862_annex_A_2005_CD/source; gcc *.c -lm -o PESQ
+PESQ: PESQ.zip
+	mkdir -p PESQ_P.862.2
+	unzip PESQ.zip -d PESQ_P.862.2
+	unzip "PESQ_P.862.2/Software/P862_annex_A_2005_CD  wav final.zip" -d PESQ_P.862.2
+	rm -rf PESQ
+	ln -s PESQ_P.862.2 PESQ
+PESQ.zip:
+	$(WGET) 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
+
+
 clean: clean_extra
-	rm -rf kaldi venv warp-ctc chainer_ctc
+	rm -rf kaldi venv warp-ctc warp-transducer chainer_ctc
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc chainer_ctc
+	rm -rf venv warp-ctc warp-transducer chainer_ctc
 	rm -f miniconda.sh
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
+	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
-	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf nkf.done swig.done moses.done mwerSegmenter.done
+	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
+	rm -rf nkf mecab swig moses mwerSegmenter
+	rm -rf PESQ PESQ.zip

@@ -10,11 +10,14 @@ minframes=10
 maxchars=200
 minchars=0
 nlsyms=""
+no_feat=false
+
+help_message="usage: $0 olddatadir newdatadir"
 
 . utils/parse_options.sh || exit 1;
 
 if [ $# != 2 ]; then
-    echo "usage: $0 olddatadir newdatadir"
+    echo "${help_message}"
     exit 1;
 fi
 
@@ -22,14 +25,19 @@ sdir=$1
 odir=$2
 mkdir -p ${odir}/tmp
 
-echo "extract utterances having less than $maxframes or more than $minframes frames"
-utils/data/get_utt2num_frames.sh ${sdir}
-< ${sdir}/utt2num_frames  awk -v maxframes="$maxframes" '{ if ($2 < maxframes) print }' \
-    | awk -v minframes="$minframes" '{ if ($2 > minframes) print }' \
-    | awk '{print $1}' > ${odir}/tmp/reclist1
+if [ ${no_feat} = true ]; then
+    # for machine translation
+    cut -d' ' -f 1 ${sdir}/text > ${odir}/tmp/reclist1
+else
+    echo "extract utterances having less than $maxframes or more than $minframes frames"
+    utils/data/get_utt2num_frames.sh ${sdir}
+    < ${sdir}/utt2num_frames  awk -v maxframes="$maxframes" '{ if ($2 < maxframes) print }' \
+        | awk -v minframes="$minframes" '{ if ($2 > minframes) print }' \
+        | awk '{print $1}' > ${odir}/tmp/reclist1
+fi
 
 echo "extract utterances having less than $maxchars or more than $minchars characters"
-# counting number of chars. Use (NF -1) instead of NF to exclude the utterance ID column
+# counting number of chars. Use (NF - 1) instead of NF to exclude the utterance ID column
 if [ -z ${nlsyms} ]; then
 text2token.py -s 1 -n 1 ${sdir}/text \
     | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars) print }' \

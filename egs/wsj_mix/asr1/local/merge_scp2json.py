@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python33
 # encoding: utf-8
 
-#!/usr/bin/env python
+#!/usr/bin/env python33
 # encoding: utf-8
 
 from __future__ import print_function

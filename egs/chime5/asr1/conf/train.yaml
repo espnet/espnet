@@ -1,0 +1,27 @@
+accum-grad: 2
+adim: 256
+aheads: 4
+batch-size: 64
+dlayers: 6
+dropout-rate: 0.1
+dunits: 2048
+elayers: 12
+epochs: 100
+eunits: 2048
+grad-clip: 5
+# lsm-type: unigram
+lsm-weight: 0.1
+maxlen-in: 512
+maxlen-out: 150
+model-module: espnet.nets.pytorch_backend.e2e_asr_transformer:E2E
+mtlalpha: 0.3
+opt: noam
+patience: 0
+# sampling-probability: 0.0
+sortagrad: 0
+transformer-attn-dropout-rate: 0.0
+transformer-init: pytorch
+transformer-input-layer: conv2d
+transformer-length-normalized-loss: false
+transformer-lr: 10.0
+transformer-warmup-steps: 25000

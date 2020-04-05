@@ -28,4 +28,3 @@ do
   utils/fix_data_dir.sh $data_dir/$dirName
   utils/validate_data_dir.sh $data_dir/$dirName
 done
-

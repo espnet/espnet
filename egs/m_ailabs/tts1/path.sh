@@ -14,3 +14,6 @@ fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
 export OMP_NUM_THREADS=1
+
+# NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
+export PYTHONIOENCODING=UTF-8

@@ -27,4 +27,3 @@ do
   utils/fix_data_dir.sh $data_dir/$split
   utils/validate_data_dir.sh $data_dir/$split
 done
-

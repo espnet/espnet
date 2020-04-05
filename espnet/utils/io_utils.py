@@ -26,13 +26,15 @@ class LoadInputsAndTargets(object):
     >>> feat, target = l(batch)
 
     :param: str mode: Specify the task mode, "asr" or "tts"
-    :param: str preproces_conf: The path of a json file for pre-processing
+    :param: str preprocess_conf: The path of a json file for pre-processing
     :param: bool load_input: If False, not to load the input data
     :param: bool load_output: If False, not to load the output data
     :param: bool sort_in_input_length: Sort the mini-batch in descending order
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
+    :param: dict preprocess_args: Set some optional arguments for preprocessing
+    :param: Optional[dict] preprocess_args: Used for tts mode only
     """
 
     def __init__(self, mode='asr',
@@ -42,15 +44,17 @@ class LoadInputsAndTargets(object):
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False,
+                 preprocess_args=None,
+                 keep_all_data_on_mem=False,
                  ):
         self._loaders = {}
-        if mode not in ['asr', 'tts']:
+        if mode not in ['asr', 'tts', 'mt']:
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
             logging.warning(
-                '[Experimental feature] Some pre-transform will be done '
+                '[Experimental feature] Some preprocessing will be done '
                 'for the mini-batch creation using {}'
                 .format(self.preprocessing))
         else:
@@ -71,6 +75,13 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        if preprocess_args is None:
+            self.preprocess_args = {}
+        else:
+            assert isinstance(preprocess_args, dict), type(preprocess_args)
+            self.preprocess_args = dict(preprocess_args)
+
+        self.keep_all_data_on_mem = keep_all_data_on_mem
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -93,19 +104,20 @@ class LoadInputsAndTargets(object):
             uttid_list.append(uttid)
 
             if self.load_input:
+                # Note(kamo): This for-loop is for multiple inputs
                 for idx, inp in enumerate(info['input']):
                     # {"input":
                     #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                     #    "filetype": "hdf5",
+                    #    "name": "input1", ...}], ...}
                     x = self._get_from_loader(
                         filepath=inp['feat'],
                         filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
-
             # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
             elif self.mode == 'tts' and self.use_speaker_embedding:
                 for idx, inp in enumerate(info['input']):
-                    if idx != 1:
+                    if idx != 1 and len(info['input']) > 1:
                         x = None
                     else:
                         x = self._get_from_loader(
@@ -114,6 +126,11 @@ class LoadInputsAndTargets(object):
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
             if self.load_output:
+                if self.mode == 'mt':
+                    x = np.fromiter(map(int, info['output'][1]['tokenid'].split()),
+                                    dtype=np.int64)
+                    x_feats_dict.setdefault(info['output'][1]['name'], []).append(x)
+
                 for idx, inp in enumerate(info['output']):
                     if 'tokenid' in inp:
                         # ======= Legacy format for output =======
@@ -125,6 +142,7 @@ class LoadInputsAndTargets(object):
                         # {"input":
                         #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                         #    "filetype": "hdf5",
+                        #    "name": "target1", ...}], ...}
                         x = self._get_from_loader(
                             filepath=inp['feat'],
                             filetype=inp.get('filetype', 'mat'))
@@ -134,26 +152,94 @@ class LoadInputsAndTargets(object):
         if self.mode == 'asr':
             return_batch, uttid_list = self._create_batch_asr(
                 x_feats_dict, y_feats_dict, uttid_list)
-
         elif self.mode == 'tts':
             _, info = batch[0]
             eos = int(info['output'][0]['shape'][1]) - 1
             return_batch, uttid_list = self._create_batch_tts(
                 x_feats_dict, y_feats_dict, uttid_list, eos)
+        elif self.mode == 'mt':
+            return_batch, uttid_list = self._create_batch_mt(
+                x_feats_dict, y_feats_dict, uttid_list)
         else:
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            # Apply pre-processing only to input1 feature, now
-            if 'input1' in return_batch:
-                return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'],
-                                       uttid_list)
+            # Apply pre-processing all input features
+            for x_name in return_batch.keys():
+                if x_name.startswith("input"):
+                    return_batch[x_name] = self.preprocessing(
+                        return_batch[x_name], uttid_list, **self.preprocess_args)
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
 
     def _create_batch_asr(self, x_feats_dict, y_feats_dict, uttid_list):
+        """Create a OrderedDict for the mini-batch
+
+        :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
+        :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
+            Give uttid_list to sort in the same order as the mini-batch
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
+        """
+        # handle single-input and multi-input (paralell) asr mode
+        xs = list(x_feats_dict.values())
+
+        if self.load_output:
+            if len(y_feats_dict) == 1:
+                ys = list(y_feats_dict.values())[0]
+                assert len(xs[0]) == len(ys), (len(xs[0]), len(ys))
+
+                # get index of non-zero length samples
+                nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
+            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
+                ys = list(y_feats_dict.values())
+                assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
+
+                # get index of non-zero length samples
+                nonzero_idx = list(filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0]))))
+                for n in range(1, len(y_feats_dict)):
+                    nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
+        else:
+            # Note(kamo): Be careful not to make nonzero_idx to a generator
+            nonzero_idx = list(range(len(xs[0])))
+
+        if self.sort_in_input_length:
+            # sort in input lengths based on the first input
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[0][i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
+
+        if len(nonzero_sorted_idx) != len(xs[0]):
+            logging.warning(
+                'Target sequences include empty tokenid (batch {} -> {}).'
+                .format(len(xs[0]), len(nonzero_sorted_idx)))
+
+        # remove zero-length samples
+        xs = [[x[i] for i in nonzero_sorted_idx] for x in xs]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
+
+        x_names = list(x_feats_dict.keys())
+        if self.load_output:
+            if len(y_feats_dict) == 1:
+                ys = [ys[i] for i in nonzero_sorted_idx]
+            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
+                ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
+
+            y_name = list(y_feats_dict.keys())[0]
+
+            # Keeping x_name and y_name, e.g. input1, for future extension
+            return_batch = OrderedDict([*[(x_name, x) for x_name, x in zip(x_names, xs)], (y_name, ys)])
+        else:
+            return_batch = OrderedDict([(x_name, x) for x_name, x in zip(x_names, xs)])
+        return return_batch, uttid_list
+
+    def _create_batch_mt(self, x_feats_dict, y_feats_dict, uttid_list):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
@@ -165,20 +251,11 @@ class LoadInputsAndTargets(object):
         xs = list(x_feats_dict.values())[0]
 
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = list(y_feats_dict.values())[0]
-                assert len(xs) == len(ys), (len(xs), len(ys))
+            ys = list(y_feats_dict.values())[0]
+            assert len(xs) == len(ys), (len(xs), len(ys))
 
-                # get index of non-zero length samples
-                nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = list(y_feats_dict.values())
-                assert len(xs) == len(ys[0]), (len(xs), len(ys[0]))
-
-                # get index of non-zero length samples
-                nonzero_idx = list(filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0]))))
-                for n in range(1, len(y_feats_dict)):
-                    nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
+            # get index of non-zero length samples
+            nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(ys)))
         else:
             nonzero_idx = range(len(xs))
 
@@ -199,12 +276,9 @@ class LoadInputsAndTargets(object):
 
         x_name = list(x_feats_dict.keys())[0]
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = [ys[i] for i in nonzero_sorted_idx]
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
-
+            ys = [ys[i] for i in nonzero_sorted_idx]
             y_name = list(y_feats_dict.keys())[0]
+
             return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
             return_batch = OrderedDict([(x_name, xs)])
@@ -214,7 +288,12 @@ class LoadInputsAndTargets(object):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
         :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
         :param int eos:
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
@@ -263,11 +342,18 @@ class LoadInputsAndTargets(object):
                                         (spembs_name, spembs),
                                         (spcs_name, spcs)])
         elif self.use_speaker_embedding:
-            spembs = list(x_feats_dict.values())[1]
+            if len(x_feats_dict) == 0:
+                raise IndexError('No speaker embedding is provided')
+            elif len(x_feats_dict) == 1:
+                spembs_idx = 0
+            else:
+                spembs_idx = 1
+
+            spembs = list(x_feats_dict.values())[spembs_idx]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
 
             x_name = list(y_feats_dict.keys())[0]
-            spembs_name = list(x_feats_dict.keys())[1]
+            spembs_name = list(x_feats_dict.keys())[spembs_idx]
 
             return_batch = OrderedDict([(x_name, xs),
                                         (spembs_name, spembs)])
@@ -283,59 +369,95 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
+        >>> ndarray = loader.get_from_loader(
+        ...     'some/path.h5:F01_050C0101_PED_REAL', filetype='hdf5')
+
         :param: str filepath:
         :param: str filetype:
         :return:
         :rtype: np.ndarray
         """
         if filetype == 'hdf5':
+            # e.g.
+            #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+            #                "filetype": "hdf5",
+            # -> filepath = "some/path.h5", key = "F01_050C0101_PED_REAL"
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "hdf5",
+                # To avoid disk access, create loader only for the first time
                 loader = h5py.File(filepath, 'r')
                 self._loaders[filepath] = loader
             return loader[key][()]
         elif filetype == 'sound.hdf5':
+            # e.g.
+            #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+            #                "filetype": "sound.hdf5",
+            # -> filepath = "some/path.h5", key = "F01_050C0101_PED_REAL"
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "sound.hdf5",
+                # To avoid disk access, create loader only for the first time
                 loader = SoundHDF5File(filepath, 'r', dtype='int16')
                 self._loaders[filepath] = loader
             array, rate = loader[key]
             return array
         elif filetype == 'sound':
+            # e.g.
+            #    {"input": [{"feat": "some/path.wav",
+            #                "filetype": "sound"},
             # Assume PCM16
-            array, rate = soundfile.read(filepath, dtype='int16')
-            return array
+            if not self.keep_all_data_on_mem:
+                array, _ = soundfile.read(filepath, dtype='int16')
+                return array
+            if filepath not in self._loaders:
+                array, _ = soundfile.read(filepath, dtype='int16')
+                self._loaders[filepath] = array
+            return self._loaders[filepath]
         elif filetype == 'npz':
+            # e.g.
+            #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
+            #                "filetype": "npz",
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
-                #                "filetype": "npz",
+                # To avoid disk access, create loader only for the first time
                 loader = np.load(filepath)
                 self._loaders[filepath] = loader
             return loader[key]
         elif filetype == 'npy':
+            # e.g.
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
-            return np.load(filepath)
+            if not self.keep_all_data_on_mem:
+                return np.load(filepath)
+            if filepath not in self._loaders:
+                self._loaders[filepath] = np.load(filepath)
+            return self._loaders[filepath]
         elif filetype in ['mat', 'vec']:
+            # e.g.
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
+            # In this case, "123" indicates the starting points of the matrix
             # load_mat can load both matrix and vector
-            return kaldiio.load_mat(filepath)
+            if not self.keep_all_data_on_mem:
+                return kaldiio.load_mat(filepath)
+            if filepath not in self._loaders:
+                self._loaders[filepath] = kaldiio.load_mat(filepath)
+            return self._loaders[filepath]
         elif filetype == 'scp':
+            # e.g.
+            #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
+            #                "filetype": "scp",
             filepath, key = filepath.split(':', 1)
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
-                #                "filetype": "scp",
+                # To avoid disk access, create loader only for the first time
                 loader = kaldiio.load_scp(filepath)
+                self._loaders[filepath] = loader
             return loader[key]
         else:
             raise NotImplementedError(

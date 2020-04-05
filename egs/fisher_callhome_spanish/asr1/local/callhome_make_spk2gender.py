@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2014  Gaurav Kumar.   Apache 2.0
 # Gets the unique speakers from the file created by fsp_make_trans.pl

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)

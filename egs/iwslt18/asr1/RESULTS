@@ -1,0 +1,59 @@
+# character unit
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_dev.en_decode
+|  SPKR       |  # Snt    # Wrd   |  Corr      Sub       Del      Ins       Err    S.Err   |
+|  Sum/Avg    |  2084     31479   |  84.3     12.1       3.6      8.6      24.3     75.8   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_test.en_decode
+|  SPKR       |  # Snt    # Wrd   |  Corr      Sub       Del      Ins       Err    S.Err    |
+|  Sum/Avg    |  2092     32538   |  84.4      12.0      3.6       6.5      22.1     75.4   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_dev2010.en_decode
+|   SPKR     |  # Snt      # Wrd    |  Corr        Sub       Del        Ins       Err      S.Err   |
+|   Sum/Avg  |   888       17708    |  74.6       12.3      13.1        3.5      28.9       86.8   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_tst2010.en_decode
+|   SPKR     |  # Snt      # Wrd    |  Corr        Sub       Del        Ins       Err      S.Err   |
+|  Sum/Avg  |    1568      27605    |   71.4      10.0       18.7       2.5       31.1      88.1   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_tst2013.en_decode
+|   SPKR     |  # Snt      # Wrd    |  Corr        Sub       Del        Ins       Err      S.Err   |
+|   Sum/Avg  |   993       18160    |  65.3       16.2      18.5        3.1      37.8       91.0   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_tst2014.en_decode
+|   SPKR     |  # Snt      # Wrd    |  Corr        Sub       Del        Ins       Err      S.Err   |
+|  Sum/Avg  |    1305      21685    |   68.1      12.3       19.6       2.7       34.5      87.9   |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train/decode_tst2015.en_decode
+|   SPKR     |  # Snt      # Wrd    |  Corr        Sub       Del        Ins       Err      S.Err   |
+|  Sum/Avg  |    1080      18288    |   61.5      15.4       23.1       8.0       46.5      88.9   |
+
+# BPE1k
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_dev.en_decode
+|   SPKR        |   # Snt        # Wrd    |   Corr         Sub         Del          Ins         Err       S.Err    |
+|   Sum/Avg     |   2084         31492    |   86.8        10.0         3.3          9.0        22.3        71.0    |
+|   SPKR        |   # Snt       # Wrd    |   Corr           Sub         Del         Ins         Err       S.Err    |
+|   Sum         |   2084        31492    |  27323          3138        1031        2843        7012        1480    |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_test.en_decode
+|   SPKR        |   # Snt       # Wrd    |   Corr         Sub        Del         Ins         Err       S.Err    |
+|   Sum/Avg     |   2092        60585    |   88.7         7.5        3.8         5.3        16.6        71.4    |
+|   SPKR        |   # Snt       # Wrd   |   Corr          Sub         Del         Ins        Err       S.Err    |
+|   Sum         |   2092        60585   |  53727         4536        2322        3215      10073        1493    |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_dev2010.en_decode
+|   SPKR        |    # Snt       # Wrd    |   Corr          Sub         Del         Ins          Err       S.Err    |
+|   Sum/Avg     |    2092        32546    |   87.1         10.0         2.9         6.3         19.2        71.4    |
+|   SPKR        |   # Snt        # Wrd    |   Corr          Sub         Del          Ins         Err       S.Err    |
+|   Sum         |   2092         32546    |  28359         3258         929         2049        6236        1493    |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_tst2010.en_decode
+|    SPKR      |    # Snt         # Wrd     |    Corr          Sub           Del          Ins          Err        S.Err    |
+|    Sum/Avg   |     1568         27605     |    75.9          8.2          15.9          2.7         26.8         84.4    |
+|    SPKR     |   # Snt         # Wrd     |    Corr           Sub          Del           Ins         Err          S.Err    |
+|    Sum      |    1568         27605     |   20942          2268         4395           743        7406          1324     |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_tst2013.en_decode
+|    SPKR      |    # Snt        # Wrd      |    Corr          Sub          Del          Ins           Err        S.Err    |
+|    Sum/Avg   |     993         18160      |    71.1         14.1         14.9          3.6          32.5         88.2    |
+|    SPKR     |    # Snt       # Wrd     |     Corr           Sub           Del          Ins          Err         S.Err    |
+|    Sum      |     993        18160     |    12905          2552          2703          653         5908           876    |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_tst2014.en_decode
+|    SPKR      |    # Snt         # Wrd     |    Corr          Sub           Del          Ins          Err        S.Err    |
+|    Sum/Avg   |     1305         21685     |    73.0         10.8          16.2          3.0         30.0         84.4    |
+|    SPKR     |   # Snt         # Wrd     |    Corr           Sub          Del           Ins         Err          S.Err    |
+|    Sum      |    1305         21685     |   15825          2348         3512           652        6512          1102     |
+exp/train_nodevtest_sp.en_lc.rm_pytorch_train_rnn_spm_bpe1000/decode_tst2015.en_decode
+|    SPKR      |    # Snt         # Wrd     |    Corr          Sub           Del          Ins          Err        S.Err    |
+|    Sum/Avg   |     1080         18288     |    71.6         13.1          15.3         11.7         40.1         85.0    |
+|    SPKR     |   # Snt         # Wrd     |    Corr           Sub          Del           Ins          Err         S.Err    |
+|    Sum      |    1080         18288     |   13099          2393         2796          2148         7337           918    |

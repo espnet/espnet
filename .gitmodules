@@ -1,0 +1,3 @@
+[submodule "doc/notebook"]
+	path = doc/notebook
+	url = https://github.com/espnet/notebook

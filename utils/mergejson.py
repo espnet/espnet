@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -11,6 +11,7 @@ import argparse
 import codecs
 import json
 import logging
+import os
 import sys
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -18,8 +19,9 @@ from espnet.utils.cli_utils import get_commandline_args
 is_python2 = sys.version_info[0] == 2
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='merge json files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--input-jsons', type=str, nargs='+', action='append',
                         default=[], help='Json files for the inputs')
@@ -31,6 +33,11 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('-O', dest='output', type=str, help='Output json file')
+    return parser
+
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info
@@ -51,18 +58,19 @@ if __name__ == '__main__':
         for jsons in jsons_list:
             js = []
             for x in jsons:
-                with codecs.open(x, encoding="utf-8") as f:
-                    j = json.load(f)
-                ks = list(j['utts'].keys())
-                logging.info(x + ': has ' + str(len(ks)) + ' utterances')
-                if intersec_ks is not None:
-                    intersec_ks = intersec_ks.intersection(set(ks))
-                    if len(intersec_ks) == 0:
-                        logging.warning("No intersection")
-                        break
-                else:
-                    intersec_ks = set(ks)
-                js.append(j)
+                if os.path.isfile(x):
+                    with codecs.open(x, encoding="utf-8") as f:
+                        j = json.load(f)
+                    ks = list(j['utts'].keys())
+                    logging.info(x + ': has ' + str(len(ks)) + ' utterances')
+                    if intersec_ks is not None:
+                        intersec_ks = intersec_ks.intersection(set(ks))
+                        if len(intersec_ks) == 0:
+                            logging.warning("No intersection")
+                            break
+                    else:
+                        intersec_ks = set(ks)
+                    js.append(j)
             js_dict[jtype].append(js)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
 

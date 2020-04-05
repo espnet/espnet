@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+from distutils.version import LooseVersion
 import importlib
 import logging
 import sys
@@ -13,21 +14,34 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-cupy', action='store_true', default=False,
                         help='Disable CUPY tests')
-    args = parser.parse_args(args)                
+    parser.add_argument('--torch-version', default='0.4.1', type=str,
+                        help='Disable CUPY tests')
+    args = parser.parse_args(args)
 
     # you should add the libraries which are not included in setup.py
     MANUALLY_INSTALLED_LIBRARIES = [
         ('espnet', None),
         ('kaldiio', None),
         ('matplotlib', None),
-        ('torch', ("0.4.1", "1.0.0")),
-        ('chainer', ("5.0.0")),
+        ('torch', ("0.4.1",
+                   "1.0.0", 
+                   "1.0.1", 
+                   "1.0.1.post2", 
+                   "1.1.0", 
+                   "1.2.0", 
+                   "1.3.0", 
+                   "1.3.1",
+                   "1.4.0")),
+        ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
-        ('warpctc_pytorch', ("0.1.1"))
+        ('warprnnt_pytorch', ("0.1"))
     ]
 
     if not args.no_cupy:
-        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("5.0.0")))
+        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("6.0.0")))
+    
+    if LooseVersion(args.torch_version) < LooseVersion('1.2.0'):
+        MANUALLY_INSTALLED_LIBRARIES.append(('warpctc_pytorch', ("0.1.1", "0.1.3")))
 
     logging.basicConfig(
         level=logging.INFO,
@@ -65,15 +79,21 @@ def main(args):
     is_correct_version_list = []
     for idx, (name, version) in enumerate(library_list):
         if version is not None:
-            lib = importlib.import_module(name)
-            if hasattr(lib, "__version__"):
-                is_correct = lib.__version__ in version
+            # Note: temp. fix for warprnnt_pytorch
+            # not found version with importlib
+            if name == "warprnnt_pytorch":
+                import pkg_resources
+                vers = pkg_resources.get_distribution(name).version
+            else:
+                vers = importlib.import_module(name).__version__
+            if vers != None:
+                is_correct = vers in version
                 if is_correct:
                     logging.info("--> %s version is matched." % name)
                     is_correct_version_list.append(True)
                 else:
                     logging.warning("--> %s version is not matched (%s is not in %s)." % (
-                        name, lib.__version__, str(version)))
+                        name, vers, str(version)))
                     is_correct_version_list.append(False)
             else:
                 logging.info("--> %s has no version info, but version is specified." % name)

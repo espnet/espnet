@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -20,8 +20,9 @@ from espnet.utils.cli_utils import get_commandline_args
 is_python2 = sys.version_info[0] == 2
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser(
+        description='add multiple json values to an input or output value',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
@@ -29,6 +30,11 @@ if __name__ == '__main__':
                         help='If true, add to input. If false, add to output')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    return parser
+
+
+if __name__ == '__main__':
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info
@@ -76,6 +82,11 @@ if __name__ == '__main__':
     for key_id in intersec_org_dic:
         orgdic = intersec_org_dic[key_id]
         adddic = intersec_add_dic[key_id]
+
+        if 'utt2spk' not in orgdic:
+            orgdic['utt2spk'] = ''
+        # NOTE: for machine translation
+
         # add as input
         if args.is_input:
             # original input
@@ -123,6 +134,8 @@ if __name__ == '__main__':
             new_dic[key_id] = {'input': orgdic['input'],
                                'output': output_list,
                                'utt2spk': orgdic['utt2spk']}
+            if 'lang' in orgdic.keys():
+                new_dic[key_id]['lang'] = orgdic['lang']
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False,

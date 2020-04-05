@@ -1,7 +1,0 @@
-# Initial trial with CTC and LM weight tuning
-$ grep -e Avg -e SPKR -m 2 exp/train_worn_u200k_ch_vggblstmp_mtlalpha0.1/decode_dev_beamformit_ref_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.1_rnnlm0.1/result.wrd.txt
-|     SPKR       |    # Snt          # Wrd     |    Corr            Sub           Del            Ins           Err          S.Err     |
-|     Sum/Avg    |    7437           58881     |    28.2           46.7          25.1           16.3          88.1           85.3     |
-$ grep -e Avg -e SPKR -m 2 exp/train_worn_u200k_ch_vggblstmp_mtlalpha0.1/decode_dev_worn_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.1_rnnlm0.1/result.wrd.txt
-|    SPKR      |    # Snt         # Wrd    |    Corr           Sub          Del           Ins          Err         S.Err    |
-|    Sum/Avg   |    7437          58881    |    50.2          38.2         11.5           9.6         59.3          73.6    |

@@ -3,14 +3,14 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=chainer # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -77,9 +77,6 @@ bpemode=unigram
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',

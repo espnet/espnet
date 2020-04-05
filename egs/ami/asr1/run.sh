@@ -3,14 +3,14 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -21,68 +21,19 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network architecture
-# encoder related
-etype=blstmp     # encoder architecture type
-elayers=8
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=300
-# attention related
-atype=location
-adim=320
-awin=5
-aheads=4
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# label smoothing
-lsm_type=unigram
-lsm_weight=0.05
-
-# minibatch related
-batchsize=30
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=15
-patience=3
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=20000  # effective only for word LMs
-lm_layers=1         # 2 for character LMs
-lm_units=1000       # 650 for character LMs
-lm_opt=sgd          # adam for character LMs
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=64    # 1024 for character LMs
-lm_epochs=20        # number of epochs
-lm_patience=3
-lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 use_lm=true
 
 # decoding parameter
-lm_weight=0.5
-beam_size=20
-penalty=0.2
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-
-# scheduled sampling option
-samp_prob=0.0
 
 # You may set 'mic' to:
 #  ihm [individual headset mic- the default which gives best results]
@@ -99,9 +50,6 @@ mic=ihm
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -143,14 +91,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
     # common data prep
-    if [ ! -d data/local/downloads ]; then
+    if [ ! -d data/local/downloads/annotations ]; then
 	local/ami_text_prep.sh data/local/downloads
     fi
 
     # beamforming
     if [ "$base_mic" == "mdm" ]; then
 	PROCESSED_AMI_DIR=${PWD}/beamformed
-	if [ -z ${BEAMFORMIT} ] ; then
+	if [ -z ${BEAMFORMIT} ]; then
 	    export BEAMFORMIT=${KALDI_ROOT}/tools/BeamformIt
 	fi
 	export PATH=${PATH}:${BEAMFORMIT}
@@ -160,6 +108,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	PROCESSED_AMI_DIR=${AMI_DIR}
     fi
     local/ami_${base_mic}_data_prep.sh ${PROCESSED_AMI_DIR} ${mic}
+    # data augmentation
+    utils/perturb_data_dir_speed.sh 0.9 data/${mic}/train_orig data/${mic}_tmp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${mic}/train_orig data/${mic}_tmp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${mic}/train_orig data/${mic}_tmp3
+    rm -r data/${mic}/train_orig
+    utils/combine_data.sh --extra-files utt2uniq data/${mic}/train_orig data/${mic}_tmp1 data/${mic}_tmp2 data/${mic}_tmp3
+    
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} dev
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} eval
     for dset in train dev eval; do
@@ -237,7 +192,7 @@ fi
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    lmtag=$(basename ${lm_config%.*})
     if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
@@ -267,12 +222,10 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         text2token.py -s 1 -n 1 data/${train_test}/text | cut -f 2- -d" " \
             > ${lmdatadir}/test.txt
     fi
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
+
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
+        --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
@@ -282,22 +235,11 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         --valid-label ${lmdatadir}/valid.txt \
         --test-label ${lmdatadir}/test.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --sortagrad ${lm_sortagrad} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --patience ${lm_patience} \
-        --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-    if [ "${lsm_type}" != "" ]; then
-        expname=${expname}_lsm${lsm_type}${lsm_weight}
-    fi
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -312,6 +254,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -324,31 +267,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --awin ${awin} \
-        --aheads ${aheads} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --lsm-type ${lsm_type} \
-        --lsm-weight ${lsm_weight} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
+        --valid-json ${feat_dt_dir}/data.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -358,10 +277,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
 
         if [ ${use_lm} = true ]; then
-            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
             if [ ${use_wordlm} = true ]; then
                 recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
             else
@@ -382,17 +300,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --lm-weight ${lm_weight} \
             ${recog_opts}
 
         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
