@@ -35,7 +35,7 @@ def test_decoder_cache(normalize_before):
         # decoder-level test
         x = torch.randint(0, odim, x.shape[:2])
         y, _ = decoder.forward_one_step(x, mask, memory)
-        y_, cache = decoder.forward_one_step(x[:, :-1], prev_mask, memory, cache=decoder.init_state())
+        y_, cache = decoder.forward_one_step(x[:, :-1], prev_mask, memory, cache=decoder.init_state(None))
         y_fast, _ = decoder.forward_one_step(x, mask, memory, cache=cache)
         numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=1e-5)
 
