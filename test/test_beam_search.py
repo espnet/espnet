@@ -164,6 +164,7 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
         token_list=train_args.char_list,
         sos=model.sos,
         eos=model.eos,
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder"
     )
     beam.to(device, dtype=dtype)
     beam.eval()
