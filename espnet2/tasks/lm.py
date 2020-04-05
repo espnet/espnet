@@ -77,7 +77,7 @@ class LMTask(AbsTask):
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetLanguageModel),
-            help="The keyword arguments for E2E class.",
+            help="The keyword arguments for model class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -172,7 +172,7 @@ class LMTask(AbsTask):
         lm_class = lm_choices.get_class(args.lm)
         lm = lm_class(vocab_size=vocab_size, **args.lm_conf)
 
-        # 2. Build E2E
+        # 2. Build ESPnetModel
         # Assume the last-id is sos_and_eos
         model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.model_conf)
 

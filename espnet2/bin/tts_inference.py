@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""E2E-TTS decoding."""
+"""TTS mode decoding."""
 
 import logging
 from pathlib import Path
@@ -51,7 +51,7 @@ def inference(
     allow_variable_data_keys: bool,
     vocoder_conf: dict,
 ):
-    """Perform E2E-TTS decoding."""
+    """Perform TTS model decoding."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -259,7 +259,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    """Run E2E-TTS decoding."""
+    """Run TTS model decoding."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
