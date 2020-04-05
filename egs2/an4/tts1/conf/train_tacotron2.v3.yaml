@@ -4,7 +4,7 @@
 # only a single GPU and it takes ~3 days to finish the training.
 
 ##########################################################
-#                 E2E-TTS MODEL SETTING                  #
+#                 TTS MODEL SETTING                  #
 ##########################################################
 tts: tacotron2                   # model architecture
 tts_conf:                        # keyword arguments for the selected model
