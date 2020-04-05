@@ -81,11 +81,11 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
 
         # feat: (B, T, D)
         if norm_means:
-            if x.is_leaf and x.requires_grad:
+            if x.requires_grad:
                 x = x - self.mean
             else:
                 x -= self.mean
-        if x.is_leaf and x.requires_grad:
+        if x.requires_grad:
             x = x.masked_fill(mask, 0.0)
         else:
             x.masked_fill_(mask, 0.0)
@@ -106,7 +106,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         self.std = self.std.to(x.device, x.dtype)
         mask = make_pad_mask(ilens, x, 1)
 
-        if x.is_leaf and x.requires_grad:
+        if x.requires_grad:
             x = x.masked_fill(mask, 0.0)
         else:
             x.masked_fill_(mask, 0.0)

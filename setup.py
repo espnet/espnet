@@ -38,7 +38,7 @@ requirements = {
         "pystoi>=0.2.2",
         "kaldiio>=2.15.0",
         "matplotlib>=3.1.0",
-        "configargparse>=0.14.0",
+        "configargparse==1.1",
         "PyYAML>=5.1.2",
         "sentencepiece>=0.1.82",
         "pysptk>=0.1.17",
@@ -77,6 +77,15 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
+try:
+    import torch
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+        requirements["install"].append("torch_optimizer")
+    del torch
+except ImportError:
+    pass
+
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
 tests_require = requirements["test"]

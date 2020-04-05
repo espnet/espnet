@@ -40,6 +40,7 @@ max_epoch: 8
 patience: 3
 
 # minibatch related
+batch_type: folded
 batch_size: 24
 
 best_model_criterion:

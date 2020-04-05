@@ -4,6 +4,7 @@ from dataclasses import is_dataclass
 from distutils.version import LooseVersion
 import logging
 from pathlib import Path
+import time
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -11,6 +12,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+import humanfriendly
 import numpy as np
 import torch
 import torch.nn
@@ -18,12 +20,12 @@ import torch.optim
 from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
-from espnet2.torch_utils.calculate_all_attentions import calculate_all_attentions
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -177,8 +179,22 @@ class Trainer:
         else:
             summary_writer = None
 
+        start_time = time.perf_counter()
         for iepoch in range(start_epoch, max_epoch + 1):
-            logging.info(f"{iepoch}epoch started")
+            if iepoch != start_epoch:
+                logging.info(
+                    "{}/{}epoch started. Estimated time to finish: {}".format(
+                        iepoch,
+                        max_epoch,
+                        humanfriendly.format_timespan(
+                            (time.perf_counter() - start_time)
+                            / (iepoch - start_epoch)
+                            * (max_epoch - iepoch + 1)
+                        ),
+                    )
+                )
+            else:
+                logging.info(f"{iepoch}/{max_epoch}epoch started")
             set_all_random_seed(seed + iepoch)
 
             reporter.set_epoch(iepoch)
@@ -223,7 +239,7 @@ class Trainer:
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
-                reporter.logging()
+                logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
                 reporter.tensorboard_add_scalar(summary_writer)
 
@@ -337,8 +353,13 @@ class Trainer:
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
-        for iiter, (_, batch) in enumerate(iterator, 1):
+
+        start_time = time.perf_counter()
+        for iiter, (_, batch) in enumerate(
+            reporter.measure_iter_time(iterator, "iter_time"), 1
+        ):
             assert isinstance(batch, dict), type(batch)
+
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
@@ -350,7 +371,8 @@ class Trainer:
                 reporter.register({})
                 continue
 
-            loss, stats, weight = model(**batch)
+            with reporter.measure_time("forward_time"):
+                loss, stats, weight = model(**batch)
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
                 loss = (loss * weight.type(loss.dtype)).sum()
@@ -368,19 +390,20 @@ class Trainer:
             reporter.register(stats, weight)
 
             loss /= accum_grad
-            if use_apex:
-                try:
-                    from apex import amp
-                except ImportError:
-                    logging.error(
-                        f"You need to install apex. "
-                        f"See https://github.com/NVIDIA/apex#linux"
-                    )
+            with reporter.measure_time("backward_time"):
+                if use_apex:
+                    try:
+                        from apex import amp
+                    except ImportError:
+                        logging.error(
+                            f"You need to install apex. "
+                            f"See https://github.com/NVIDIA/apex#linux"
+                        )
 
-                with amp.scale_loss(loss, optimizers) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+                    with amp.scale_loss(loss, optimizers) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
 
             if iiter % accum_grad == 0:
                 # gradient noise injection
@@ -404,24 +427,30 @@ class Trainer:
                     )
                 else:
                     all_steps_are_invalid = False
-                    optimizer.step()
+                    with reporter.measure_time("optim_step_time"):
+                        optimizer.step()
+                    if isinstance(scheduler, AbsBatchStepScheduler):
+                        scheduler.step()
                 optimizer.zero_grad()
-                if isinstance(scheduler, AbsBatchStepScheduler):
-                    scheduler.step()
 
-                # Register lr
+                # Register lr and train/load time[sec/step],
+                # where step refers to accum_grad * mini-batch
                 reporter.register(
-                    {
-                        f"lr_{i}": pg["lr"]
-                        for i, pg in enumerate(optimizer.param_groups)
-                        if "lr" in pg
-                    },
+                    dict(
+                        {
+                            f"lr_{i}": pg["lr"]
+                            for i, pg in enumerate(optimizer.param_groups)
+                            if "lr" in pg
+                        },
+                        train_time=time.perf_counter() - start_time,
+                    ),
                     # Suppress to increment the internal counter.
                     not_increment_count=True,
                 )
+                start_time = time.perf_counter()
 
             if iiter % log_interval == 0:
-                reporter.logging(nlatest=log_interval)
+                logging.info(reporter.log_message())
 
         else:
             if distributed:
@@ -538,7 +567,7 @@ class Trainer:
                         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
                     if output_dir is not None:
-                        p = output_dir / id_ / (k + ".png")
+                        p = output_dir / id_ / f"{k}.{reporter.get_epoch()}ep.png"
                         p.parent.mkdir(parents=True, exist_ok=True)
                         fig.savefig(p)
 

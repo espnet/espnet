@@ -30,6 +30,7 @@ model_conf:
     length_normalized_loss: false
 
 # minibatch related
+batch_type: folded
 batch_size: 32
 
 # optimization related

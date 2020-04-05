@@ -80,6 +80,8 @@ eval_sets=      # Names of evaluation sets. Multiple items can be specified.
 srctexts=       # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none # Non-linguistic symbol list (needed if existing).
 trans_type=char # Transcription type.
+text_fold_length=150   # fold_length for text data
+speech_fold_length=800 # fold_length for speech data
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
@@ -136,6 +138,8 @@ Options:
                  # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
     --trans_type # Transcription type (default="${trans_type}").
+    --text_fold_length   # fold_length for text data
+    --speech_fold_length # fold_length for speech data
 EOF
 )
 
@@ -358,13 +362,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
@@ -403,7 +403,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type const_no_sort \
+            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
@@ -419,6 +419,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+
+    # Append the num-tokens at the last dimensions. This is used for batch-bins count
+    <"${tts_stats_dir}/train/text_shape" \
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${tts_stats_dir}/train/text_shape.${trans_type}"
+
+    <"${tts_stats_dir}/valid/text_shape" \
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${tts_stats_dir}/valid/text_shape.${trans_type}"
 fi
 
 
@@ -439,21 +448,21 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=80000
+        _fold_length="$((speech_fold_length * 100))"
     else
         _scp=feats.scp
         _type=kaldi_ark
-        # FIXME(kamo): max_length is confusing name. How about fold_length?
-        _max_length=800
+        _fold_length="${speech_fold_length}"
         _odim="$(<${_train_dir}/feats_dim)"
         _opts+="--odim=${_odim} "
     fi
 
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${tts_exp}/train.log" \
         --log "${tts_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
@@ -472,12 +481,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${tts_stats_dir}/train/speech_shape" \
-            --train_shape_file "${tts_stats_dir}/train/text_shape" \
+            --train_shape_file "${tts_stats_dir}/train/text_shape.${trans_type}" \
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
-            --valid_shape_file "${tts_stats_dir}/valid/text_shape" \
+            --valid_shape_file "${tts_stats_dir}/valid/text_shape.${trans_type}" \
             --resume true \
-            --max_length 150 \
-            --max_length ${_max_length} \
+            --fold_length "${text_fold_length}" \
+            --fold_length ${_fold_length} \
             --output_dir "${tts_exp}" \
             ${_opts} ${train_args}
 
