@@ -6,12 +6,10 @@ optim_conf:
     eps: 1.0e-08
     weight_decay: 0
 init: chainer
+batch_type: folded
 batch_size: 20
 max_epoch: 15
 patience: 3
-max_length:
-    - 800
-    - 150
 
 # criterion
 val_scheduler_criterion:

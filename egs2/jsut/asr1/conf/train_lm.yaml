@@ -1,7 +1,7 @@
 optim: sgd
 patience: 3
-max_length: 150
 max_epoch: 20
+batch_type: folded
 batch_size: 512
 lm: seq_rnn
 lm_conf:

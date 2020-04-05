@@ -8,6 +8,7 @@ optim_conf:
 init: chainer
 max_epoch: 20
 patience: 3
+batch_type: folded
 batch_size: 5
 
 # criterion

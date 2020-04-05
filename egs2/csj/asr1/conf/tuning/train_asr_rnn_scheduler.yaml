@@ -51,7 +51,5 @@ num_iters_per_epoch: 300000
 
 
 # minibatch related
+batch_type: folded
 batch_size: 24
-max_length:
-    - 800
-    - 150

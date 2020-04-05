@@ -10,6 +10,7 @@ from espnet2.utils.types import remove_parenthesis
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2pair_str
 from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 
 
@@ -61,6 +62,13 @@ def test_humanfriendly_parse_size_or_none(value: str, desired: Any):
         assert humanfriendly_parse_size_or_none(value) == desired
 
 
+@pytest.mark.parametrize(
+    "value, desired", [("3", 3), ("3 ", 3), ("aa", "aa")],
+)
+def test_str_or_int(value: str, desired: Any):
+    assert str_or_int(value) == desired
+
+
 @pytest.mark.parametrize("value, desired", [("none", None), ("aa", "aa")])
 def test_str_or_none(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
@@ -68,7 +76,13 @@ def test_str_or_none(value: str, desired: Any):
 
 
 @pytest.mark.parametrize(
-    "value, desired", [("a, b", ("a", "b")), ("a,b,c", ValueError), ("a", ValueError)],
+    "value, desired",
+    [
+        ("a, b", ("a", "b")),
+        ("a,b,c", ValueError),
+        ("a", ValueError),
+        ("['a', 'b']", ("a", "b")),
+    ],
 )
 def test_str2pair_str(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):
@@ -77,7 +91,12 @@ def test_str2pair_str(value: str, desired: Any):
 
 @pytest.mark.parametrize(
     "value, desired",
-    [("a,b, c", ("a", "b", "c")), ("a,b", ValueError), ("a", ValueError)],
+    [
+        ("a,b, c", ("a", "b", "c")),
+        ("a,b", ValueError),
+        ("a", ValueError),
+        ("['a', 'b', 'c']", ("a", "b", "c")),
+    ],
 )
 def test_str2triple_str(value: str, desired: Any):
     with pytest_raise_or_nothing(desired):

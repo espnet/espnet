@@ -6,6 +6,7 @@ from pathlib import Path
 import shlex
 import shutil
 import subprocess
+import sys
 import uuid
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -25,6 +26,11 @@ def get_parser():
     )
     parser.add_argument(
         "--log", help="The path of log file used by cmd", default="run.log",
+    )
+    parser.add_argument(
+        "--max_num_log_files",
+        help="The maximum number of log-files to be kept",
+        default=1000,
     )
     parser.add_argument(
         "--ngpu", type=int, default=1, help="The number of GPUs per node"
@@ -121,6 +127,22 @@ def main(cmd=None):
                     args.host.split(",")[0].split(":")[0],
                 ]
 
+    # Log-rotation
+    for i in range(args.max_num_log_files - 1, -1, -1):
+        if i == 0:
+            p = Path(args.log)
+            pn = p.parent / (p.stem + f".1" + p.suffix)
+        else:
+            _p = Path(args.log)
+            p = _p.parent / (_p.stem + f".{i}" + _p.suffix)
+            pn = _p.parent / (_p.stem + f".{i + 1}" + _p.suffix)
+
+        if p.exists():
+            if i == args.max_num_log_files - 1:
+                p.unlink()
+            else:
+                shutil.move(p, pn)
+
     processes = []
     # Submit command via SSH
     if args.host is not None:
@@ -145,6 +167,13 @@ def main(cmd=None):
             env = f"source {args.envfile}"
         else:
             env = ""
+
+        if args.log != "-":
+            Path(args.log).parent.mkdir(parents=True, exist_ok=True)
+            f = Path(args.log).open("w", encoding="utf-8")
+        else:
+            # Output to stdout/stderr
+            f = None
 
         rank = 0
         for host, ids in zip(hosts, ids_list):
@@ -180,13 +209,6 @@ cd {os.getcwd()}
 {" ".join([c if len(c) != 0 else "''" for c in cmd])}
 EOF
 """
-
-                if args.log != "-":
-                    Path(args.log).parent.mkdir(parents=True, exist_ok=True)
-                    f = Path(args.log).open("w", encoding="utf-8")
-                else:
-                    # Output to stdout/stderr
-                    f = None
 
                 # FIXME(kamo): The process will be alive
                 #  even if this program is stopped because we don't set -t here,
@@ -339,7 +361,20 @@ EOF
 
     for process in processes:
         if process.returncode != 0:
-            raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+            print(
+                subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd),
+                file=sys.stderr,
+            )
+            p = Path(args.log)
+            if p.exists():
+                with p.open() as f:
+                    lines = list(f)
+                raise RuntimeError(
+                    f"\n################### The last 1000 lines of {args.log} "
+                    f"###################\n" + "".join(lines[-1000:])
+                )
+            else:
+                raise RuntimeError
 
 
 if __name__ == "__main__":
