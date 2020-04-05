@@ -621,7 +621,7 @@ class AbsTask(ABC):
             type=humanfriendly_parse_size_or_none,
             default=None,
             help="The maximum cache size for validation data loader. e.g. 10MB, 20GB. "
-            "If None, the 5% size of --max_cache_size",
+            "If None, the 5 percent size of --max_cache_size",
         )
 
         group = parser.add_argument_group("Optimizer related")
