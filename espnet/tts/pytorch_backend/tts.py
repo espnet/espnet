@@ -444,7 +444,7 @@ def train(args):
             plot_class = model.attention_plot_class
             reduction_factor = model.reduction_factor
         if reduction_factor > 1:
-            # fix the lenght to crop attention weight plot correctly
+            # fix the length to crop attention weight plot correctly
             data = copy.deepcopy(data)
             for idx in range(args.num_save_attention):
                 ilen = data[idx][1]['input'][0]['shape'][0]
