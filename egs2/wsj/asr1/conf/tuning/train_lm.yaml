@@ -1,4 +1,5 @@
 grad_clip: 5.0
+batch_type: folded
 batch_size: 30
 optim: adam
 optim_conf:

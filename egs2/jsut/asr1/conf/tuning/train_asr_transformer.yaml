@@ -38,6 +38,7 @@ scheduler_conf:
     warmup_steps: 18000
 
 # minibatch related
+batch_type: folded
 batch_size: 32
 
 best_model_criterion:
