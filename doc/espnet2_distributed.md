@@ -2,17 +2,17 @@
 
 There are several possibilities to launch the job of distributed training.
 
-- Single node with Multi GPUs
-    - Using multi-processing: `torch.nn.DistributedDataParallel`
+1. Single node with Multi GPUs
+    1. Using multi-processing: `torch.nn.DistributedDataParallel`
         - `--ngpu N-GPU --multiprocessing_distributed true`
-    - Using multi-threading: `torch.nn.DataParallel`
+    1. Using multi-threading: `torch.nn.DataParallel`
         - `--ngpu N-GPU --multiprocessing_distributed false`
-- Multi nodes with Multi GPUs: `torch.nn.DistributedDataParallel`
-    - Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)
+1. Multi nodes with Multi GPUs: `torch.nn.DistributedDataParallel`
+    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
-    - Launch `N-NODE` jobs with `1-GPU` for each node
+    1. Launch `N-NODE` jobs with `1-GPU` for each node
         - `--dist_world_size N-NODE --ngpu 1`
-    - Using multi-threading
+    1. Using multi-threading
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
 
 ## Examples
@@ -55,7 +55,7 @@ Note that multiprocessing distributed mode assumes the same number of GPUs for e
 i.e., they indicate the id of each processe and the number of processes respectively.
 It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
 
- 
+
 #### About init method
 See: https://pytorch.org/docs/stable/distributed.html#tcp-initialization
 
