@@ -545,7 +545,7 @@ if "${use_lm}"; then
 
       # 2. Submit jobs
       log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
-      # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+      # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
       #       but it's used only for deciding the sample ids.
 
       # shellcheck disable=SC2086
@@ -559,7 +559,7 @@ if "${use_lm}"; then
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --batch_type const_no_sort \
+              --batch_type unsorted \
               --train_shape_file "${_logdir}/train.JOB.scp" \
               --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
@@ -572,6 +572,15 @@ if "${use_lm}"; then
       done
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+
+      # Append the num-tokens at the last dimensions. This is used for batch-bins count
+      <"${lm_stats_dir}/train/text_shape" \
+          awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+          >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
+
+      <"${lm_stats_dir}/valid/text_shape" \
+          awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+          >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
   fi
 
 
@@ -584,6 +593,8 @@ if "${use_lm}"; then
           #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
           _opts+="--config ${lm_config} "
       fi
+
+      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
 
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
@@ -603,8 +614,8 @@ if "${use_lm}"; then
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --train_shape_file "${lm_stats_dir}/train/text_shape" \
-              --valid_shape_file "${lm_stats_dir}/valid/text_shape" \
+              --train_shape_file "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+              --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
               --fold_length "${lm_fold_length}" \
               --resume true \
               --output_dir "${lm_exp}" \
@@ -687,7 +698,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     # 2. Submit jobs
     log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
 
-    # NOTE: --*_shape_file doesn't require length information if --batch_type=const_no_sort,
+    # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
 
     # shellcheck disable=SC2086
@@ -699,7 +710,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --batch_type const_no_sort \
+            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
@@ -716,6 +727,15 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     done
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
+
+    # Append the num-tokens at the last dimensions. This is used for batch-bins count
+    <"${asr_stats_dir}/train/text_shape" \
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${asr_stats_dir}/train/text_shape.${token_type}"
+
+    <"${asr_stats_dir}/valid/text_shape" \
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${asr_stats_dir}/valid/text_shape.${token_type}"
 fi
 
 
@@ -751,6 +771,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
     fi
 
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
@@ -771,9 +793,9 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
             --train_shape_file "${asr_stats_dir}/train/speech_shape" \
-            --train_shape_file "${asr_stats_dir}/train/text_shape" \
+            --train_shape_file "${asr_stats_dir}/train/text_shape.${token_type}" \
             --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-            --valid_shape_file "${asr_stats_dir}/valid/text_shape" \
+            --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
             --resume true \
             --fold_length "${_fold_length}" \
             --fold_length "${asr_text_fold_length}" \

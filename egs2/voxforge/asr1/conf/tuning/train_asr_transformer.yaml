@@ -1,3 +1,4 @@
+batch_type: folded
 batch_size: 64
 accum_grad: 2
 max_epoch: 200

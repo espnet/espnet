@@ -38,7 +38,7 @@ requirements = {
         "pystoi>=0.2.2",
         "kaldiio>=2.15.0",
         "matplotlib>=3.1.0",
-        "configargparse>=0.14.0",
+        "configargparse==1.1",
         "PyYAML>=5.1.2",
         "sentencepiece>=0.1.82",
         "pysptk>=0.1.17",

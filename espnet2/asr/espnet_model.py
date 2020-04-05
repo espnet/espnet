@@ -17,6 +17,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -30,6 +31,7 @@ class ESPnetASRModel(AbsESPnetModel):
         vocab_size: int,
         token_list: Union[Tuple[str, ...], List[str]],
         frontend: Optional[AbsFrontend],
+        specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
@@ -58,6 +60,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.token_list = token_list.copy()
 
         self.frontend = frontend
+        self.specaug = specaug
         self.normalize = normalize
         self.encoder = encoder
         self.decoder = decoder
@@ -174,11 +177,15 @@ class ESPnetASRModel(AbsESPnetModel):
         # 1. Extract feats
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-        # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+        # 2. Data augmentation for spectrogram
+        if self.specaug is not None and self.training:
+            feats, feats_lengths = self.specaug(feats, feats_lengths)
+
+        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.normalize is not None:
             feats, feats_lengths = self.normalize(feats, feats_lengths)
 
-        # 3. Forward encoder
+        # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)

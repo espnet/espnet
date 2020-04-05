@@ -60,7 +60,7 @@ def utterance_mvn(
         ilens = x.new_full([x.size(0)], x.size(1))
     ilens_ = ilens.to(x.device, x.dtype).view(-1, *[1 for _ in range(x.dim() - 1)])
     # Zero padding
-    if x.is_leaf and x.requires_grad:
+    if x.requires_grad:
         x = x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
     else:
         x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)

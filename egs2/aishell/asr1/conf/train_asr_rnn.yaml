@@ -27,6 +27,7 @@ model_conf:
     lsm_weight: 0.0     # label smoothing option
 
 # minibatch related
+batch_type: folded
 batch_size: 30
 
 # optimization related

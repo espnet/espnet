@@ -18,6 +18,7 @@ decoder_conf:
 
 
 # minibatch related
+batch_type: folded
 batch_size: 30
 
 # optimization related
