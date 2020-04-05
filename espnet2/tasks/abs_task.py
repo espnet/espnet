@@ -44,6 +44,7 @@ from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
+from espnet2.train.dataset import DATA_TYPES
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.distributed_utils import free_port
@@ -226,10 +227,16 @@ class AbsTask(ABC):
     def get_parser(cls) -> configargparse.ArgumentParser:
         assert check_argument_types()
 
+        class ArgumentDefaultsRawTextHelpFormatter(
+            configargparse.RawTextHelpFormatter,
+            configargparse.ArgumentDefaultsHelpFormatter,
+        ):
+            pass
+
         parser = configargparse.ArgumentParser(
             description="base parser",
             config_file_parser_class=configargparse.YAMLConfigFileParser,
-            formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+            formatter_class=ArgumentDefaultsRawTextHelpFormatter,
         )
 
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion.
@@ -591,11 +598,24 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Dataset related")
+        _data_path_and_name_and_type_help = (
+            "Give three words splitted by comma. It's used for the training data. "
+            "e.g. '--train_data_path_and_name_and_type some/path/a.scp,foo,sound'. "
+            "The first value, some/path/a.scp, indicates the file path, "
+            "and the second, foo, is the key name used for the mini-batch data, "
+            "and the last, sound, decides the file type. "
+            "This option is repeatable, so you can input any number of features "
+            "for your task. Supported file types are as follows:\n\n"
+        )
+        for key, dic in DATA_TYPES.items():
+            _data_path_and_name_and_type_help += f'"{key}":\n{dic["help"]}\n\n'
+
         group.add_argument(
             "--train_data_path_and_name_and_type",
             type=str2triple_str,
             action="append",
             default=[],
+            help=_data_path_and_name_and_type_help,
         )
         group.add_argument(
             "--valid_data_path_and_name_and_type",
@@ -806,7 +826,6 @@ class AbsTask(ABC):
                 f"Task.num_optimizers != Task.trainer.num_optimizers: "
                 f"{cls.num_optimizers} != {cls.trainer.num_optimizers}"
             )
-
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
