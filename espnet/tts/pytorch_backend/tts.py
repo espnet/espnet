@@ -446,7 +446,7 @@ def train(args):
         if reduction_factor > 1:
             # fix the length to crop attention weight plot correctly
             data = copy.deepcopy(data)
-            for idx in range(args.num_save_attention):
+            for idx in range(len(data)):
                 ilen = data[idx][1]['input'][0]['shape'][0]
                 data[idx][1]['input'][0]['shape'][0] = ilen // reduction_factor
         att_reporter = plot_class(
