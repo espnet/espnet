@@ -209,7 +209,7 @@ We provide common collate_fn and this function can support many cases, so you mi
     # float_pad_value is used for float-tensor and int_pad_value is used for int-tensor
     return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
   ```
-- The a tensor to keep the length of each samples is also appended
+- Tensors which represent the length of each samples are also appended
   ```python
   batch = {"speech": ..., "speech_lengths": ..., "text": ..., "text_lengths": ...}
   ```

@@ -28,26 +28,34 @@ You can disable distributed mode and switch to threading based data parallel as 
 % python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed false
 ```
 
+If you meet some errors with distributed mode, please try single gpu mode and multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
+
 ### 2Nodes and 2GPUs for each node with multiprocessing distributed mode
 Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
 
 ```bash
 (host1) % python -m espnet2.bin.asr_train \
-    --ngpu 2 \
     --multiprocessing_distributed true \
+    --ngpu 2 \
     --dist_rank 0  \
     --dist_world_size 2  \
     --dist_master_addr host1  \
     --dist_master_port <any-free-port>
 (host2) % python -m espnet2.bin.asr_train \
+    --multiprocessing_distributed true \
     --ngpu 2 \
     --dist_rank 1  \
-    --multiprocessing_distributed true \
     --dist_world_size 2  \
     --dist_master_addr host1  \
     --dist_master_port <any-free-port>
 ```
 
+#### RANK and WORLD_SIZE
+`--dist_rank` and `--dist_world_size` indicate `RANK` and `WORLD_SIZE` in terms of MPI;
+i.e., they indicate the id of each processe and the number of processes respectively.
+It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
+
+ 
 #### About init method
 See: https://pytorch.org/docs/stable/distributed.html#tcp-initialization
 
@@ -60,7 +68,6 @@ There are two ways to initialize:
    --dist_init_method "tcp://<rank0-host>:<any-free-port>"
    export MASTER_ADDR=<rank0-host> MASTER_PORT=<any-free-port>
    ```
-
 
 - Shared file system initialization
    ```bash
@@ -108,6 +115,8 @@ There are two ways to initialize:
     --dist_launcher slurm \
     --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
 ```
+
+I recommend shared-file initialization in this case because the host is determined after submitting the job, so we can't tell the free port number before.
 
 ### 5GPUs with 3nodes using `Slurm`
 (Not tested)
