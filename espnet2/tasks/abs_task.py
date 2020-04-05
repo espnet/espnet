@@ -972,7 +972,7 @@ class AbsTask(ABC):
             plot_attention_iter_factory, _, _ = cls.build_iter_factory(
                 data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
                 shape_files=args.valid_shape_file,
-                batch_type="const_no_sort",
+                batch_type="unsorted",
                 batch_size=1,
                 batch_bins=0,
                 train=False,
