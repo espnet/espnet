@@ -144,7 +144,7 @@ class ASRTask(AbsTask):
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRModel),
-            help="The keyword arguments for E2E class.",
+            help="The keyword arguments for model class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
