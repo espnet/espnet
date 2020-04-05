@@ -243,7 +243,7 @@ Each mini-batch has equal number of bins as possible counting by the length; i.e
 
 ```python
 python -m espnet.bin.asr_train \
-  --batch_bins 100000 --batch_type length \
+  --batch_bins 10000 --batch_type length \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
   --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
@@ -255,18 +255,16 @@ python -m espnet.bin.asr_train \
 ```
 
 
-
-
 ### `--batch_type numel`
 
 **In ESPnet1, this mode is named as bins.**
 
 This mode uses `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
-Each mini-batches has equal number of bins as possible counting by the number of elements; i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`. Where `numel` returns the infinite product of the shape of each feature. 
+Each mini-batches has equal number of bins as possible counting by the number of elements; i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`, where `numel` returns the infinite product of the shape of each feature; `shape[0] * shape[1] * ...`
 
 ```python
 python -m espnet.bin.asr_train \
-  --batch_bins 100000 --batch_type length \
+  --batch_bins 200000 --batch_type numel \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
   --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
