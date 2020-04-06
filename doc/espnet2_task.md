@@ -1,9 +1,9 @@
 # Task class and data input system for training
 ## Task class
 
-In ESpnet1, we have too many duplication parts in python modules. One of the big purposes of ESPnet2 is to provide a common interface and enable us to focus more on the unique parts of each task.
+In ESpnet1, we have too many duplicated python modules. One of the big purposes of ESPnet2 is to provide a common interface and enable us to focus more on the unique parts of each task.
 
-`Task` class is a common system for building training tools among each task, ASR, TTS, LM, etc. inspired by `Fairseq Task` idea. To build your task in ESPnet2, only you have to do is just inheriting `AbsTask` class:
+`Task` class is a common system to build training tools among each task, ASR, TTS, LM, etc. inspired by `Fairseq Task` idea. To build your task in ESPnet2, only you have to do is just inheriting `AbsTask` class:
 
 ```python
 from espnet2.tasks.abs_task import AbsTask
@@ -49,6 +49,8 @@ if __name__ == "__main__":
 ```
 
 ## Data input system
+ Wspnet2 also provides a command line interface for inputting and loading data used in training. On the contrary, unlike `fairseq` or training system such as `pytorch-lightining`, our `Task` class doesn't have an interface for building the dataset explicitly. This is because we are aimed at the task related only speech/text, so it is enough to describle a set of such sequence data and we don't need general system so far.
+
 
 ```bash
 % python -m espnet2.bin.asr_train \
