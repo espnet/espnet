@@ -177,7 +177,7 @@ The behavior for batch-size during multi-GPU training is **different from that o
   python -m espnet.bin.asr_train --batch_size 10 --ngpu 2 # Actual batch_size is 20 and each GPU devices are assigned to 10
   ```
 - ESPnet2: The batch-size is not changed regardless of the number of GPUs.
-  - Therefore, you should more number of batch-size than the number of GPUs.
+  - Therefore, you should set a more number of batch-size than that of GPUs.
   ```bash
   python -m espnet.bin.asr_train --batch_size 10 --ngpu 2 # Actual batch_size is 10 and each GPU devices are assigned to 5
   ```
