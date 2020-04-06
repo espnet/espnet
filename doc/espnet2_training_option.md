@@ -10,11 +10,11 @@ python -m espnet2.bin.asr_train --print_config
 ```
 
 In this section, we use `espnet2.bin.asr_train` for an example, 
-but the other training tools based on `Task` class has the same interface, 
+but the other training tools based on `Task` class have the same interface, 
 so you can replace it to another command.
 
 Note that ESPnet2 always selects`_` instead of `-` for the separation 
-for the name of an option to avoid confusion.
+for the option name to avoid confusion.
 
 ```
 # Bad
@@ -181,8 +181,6 @@ The behavior for batch-size during multi-GPU training is **different from that o
   ```bash
   python -m espnet.bin.asr_train --batch_size 10 --ngpu 2 # Actual batch_size is 10 and each GPU devices are assigned to 5
   ```
-
-Note that even if using ESPnet1, the batch_size is not changed if using `bin` or `frame` batch-count,.
 
 ## Change mini-batch type
 We adopt variable mini-batch size with considering the length of each sequence 
@@ -417,7 +415,7 @@ There are some possibilities to make training non-reproducible.
   - We fixed the random seed for each epoch.
 - CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html
 
-By default, CuDNN performs deterministic mode and it can be changed by:
+By default, CuDNN performs deterministic mode in our training and it can be turned off by:
 
 ```bash
 python -m espnet.bin.asr_train --cudnn_deterministic false
