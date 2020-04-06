@@ -5,9 +5,9 @@ In ESpnet1, we have too many duplicated python modules.
 One of the big purposes of ESPnet2 is to provide a common interface and 
 enable us to focus more on the unique parts of each task.
 
-`Task` class is a common system to build training tools among each task, 
+`Task` class is a common system to build training tools for each task, 
 ASR, TTS, LM, etc. inspired by `Fairseq Task` idea. 
-To build your task in ESPnet2, only you have to do is just inheriting `AbsTask` class:
+To build your task, only you have to do is just inheriting `AbsTask` class:
 
 ```python
 from espnet2.tasks.abs_task import AbsTask
@@ -54,9 +54,8 @@ if __name__ == "__main__":
 ```
 
 ## Data input system
-Espnet2 also provides a command line interface for inputting and 
-loading data used in training. On the contrary, unlike `fairseq` or 
-training system such as `pytorch-lightining`, 
+Espnet2 also provides a command line interface to describe the training corpus.
+On the contrary, unlike `fairseq` or training system such as `pytorch-lightining`, 
 our `Task` class doesn't have an interface for building the dataset explicitly.
 This is because we aim at the task related to speech/text only, 
 so we don't need such general system so far.
@@ -70,7 +69,6 @@ python -m espnet2.bin.asr_train \
   --valid_data_path_and_name_and_type=/some/path/dev/wav.scp,speech,sound \
   --valid_data_path_and_name_and_type=/some/path/dev/token_int,text,text_int
 ```
-
 
 First of all, our mini-batch is always a `dict` object:
 
