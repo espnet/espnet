@@ -22,7 +22,7 @@ requirements = {
         'chainer==6.0.0',
         # 'cupy==6.0.0',  # Do not install cupy as default
         'setuptools>=38.5.1',
-        'scipy>=1.3.0',
+        'scipy<=1.3.3',
         'librosa>=0.7.0',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
@@ -37,7 +37,7 @@ requirements = {
         'kaldiio>=2.13.8',
         'matplotlib>=3.1.0',
         'funcsigs>=1.0.2',  # A backport of inspect.signature for python2
-        'configargparse>=0.14.0',
+        'configargparse==1.1',
         'PyYAML>=5.1.2',
         'sentencepiece>=0.1.82',
         'pysptk>=0.1.17',
@@ -70,7 +70,8 @@ requirements = {
         'commonmark==0.8.1',
         'recommonmark>=0.4.0',
         'travis-sphinx>=2.0.1',
-        'nbsphinx>=0.4.2'
+        'nbsphinx>=0.4.2',
+        'sphinx-markdown-tables>=0.0.12',
     ]}
 install_requires = requirements['install']
 setup_requires = requirements['setup']
@@ -80,7 +81,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.6.0',
+      version='0.6.2',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

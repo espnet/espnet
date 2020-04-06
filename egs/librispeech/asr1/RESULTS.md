@@ -6,7 +6,46 @@
 |exp/train_960_pytorch_train_pytorch_DC_specaug/decode_test_clean_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2620|52576|96.9|2.9|0.3|0.4|3.5|37.9|
 |exp/train_960_pytorch_train_pytorch_SA-DC2D_specaug/decode_test_other_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2939|52343|92.5|6.7|0.8|1.0|8.5|60.2|
 
-# pytorch large Transformer with specaug (4 GPUs) + Large LM
+# pytorch large Transformer with specaug (4 GPUs) + Transformer LM (4 GPUs)
+
+We used the same ASR model in the previous report.
+
+- Environments
+  - date: `Tue Feb  4 14:50:50 JST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.0`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `83799e69a0269450587a6857882c73bfb27551d5`
+  - Commit date: `Tue Feb 4 14:21:11 2020 +0900`
+
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p
+    - training config file: `./conf/train.yaml`
+    - decoding config file: `./conf/decode.yaml`
+    - cmvn file: `./data/train_960/cmvn.ark`
+    - e2e file: `./librispeech.transformer.v1/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best`
+    - e2e JSON file: `./librispeech.transformer.v1/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.json`
+    - lm file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/rnnlm.model.best`
+    - lm JSON file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/model.json`
+    - dict file: `./data/lang_char`
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/decode_dev_clean_decode_ep43/result.wrd.txt
+|    SPKR            |    # Snt        # Wrd     |    Corr            Sub           Del           Ins           Err         S.Err     |
+|    Sum/Avg         |    2703         54402     |    98.1            1.7           0.2           0.2           2.1          26.9     |
+./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/decode_dev_other_decode_ep43/result.wrd.txt
+|    SPKR            |    # Snt        # Wrd     |    Corr            Sub           Del           Ins           Err         S.Err     |
+|    Sum/Avg         |    2864         50948     |    95.3            4.2           0.5           0.6           5.3          43.8     |
+./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/decode_test_clean_decode_ep43/result.wrd.txt
+|    SPKR            |    # Snt         # Wrd     |    Corr           Sub           Del            Ins           Err         S.Err     |
+|    Sum/Avg         |    2620          52576     |    97.8           1.9           0.2            0.3           2.5          28.3     |
+./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/decode_test_other_decode_ep43/result.wrd.txt
+|    SPKR            |    # Snt         # Wrd     |    Corr           Sub           Del            Ins           Err         S.Err     |
+|    Sum/Avg         |    2939          52343     |    95.1           4.3           0.6            0.6           5.5          46.7     |
+```
+
+# pytorch large Transformer with specaug (4 GPUs) + Large LSTM LM
 
 ## Models
 - Model files (archived to `train_960_pytorch_train_pytorch_transformer_large_ngpu4_specaug.tar.gz` by `$ pack_model.sh`)
@@ -30,14 +69,13 @@
 
 ## WER
 
-```
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_dev_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2703|54402|98.0|1.8|0.2|0.2|2.2|27.9|
 |decode_dev_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2864|50948|95.1|4.3|0.6|0.6|5.6|44.9|
 |decode_test_clean_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2620|52576|97.7|2.0|0.3|0.3|2.6|29.9|
 |decode_test_other_model.val5.avg.best_decode_pytorch_transformer_large_lm_large|2939|52343|95.0|4.4|0.6|0.6|5.7|47.7|
-```
+
 
 # pytorch Transformer (accum grad 8, single GPU)
   - Environments (obtained by `$ get_sys_info.sh`)

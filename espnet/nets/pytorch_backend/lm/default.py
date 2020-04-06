@@ -27,6 +27,9 @@ class DefaultRNNLM(LMInterface, nn.Module):
                             help='Number of hidden layers')
         parser.add_argument('--unit', '-u', type=int, default=650,
                             help='Number of hidden units')
+        parser.add_argument('--embed-unit', default=None,
+                            help='Number of hidden units in embedding layer, \
+                            if it is not specified, it keeps the same number with hidden units.')
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
         return parser
@@ -42,7 +45,10 @@ class DefaultRNNLM(LMInterface, nn.Module):
         nn.Module.__init__(self)
         # NOTE: for a compatibility with less than 0.5.0 version models
         dropout_rate = getattr(args, "dropout_rate", 0.0)
-        self.model = ClassifierWithState(RNNLM(n_vocab, args.layer, args.unit, args.type, dropout_rate))
+        # NOTE: for a compatibility with less than 0.6.1 version models
+        embed_unit = getattr(args, "embed_unit", None)
+        self.model = ClassifierWithState(
+            RNNLM(n_vocab, args.layer, args.unit, embed_unit, args.type, dropout_rate))
 
     def state_dict(self):
         """Dump state dict."""
@@ -227,7 +233,7 @@ class ClassifierWithState(nn.Module):
 class RNNLM(nn.Module):
     """A pytorch RNNLM."""
 
-    def __init__(self, n_vocab, n_layers, n_units, typ="lstm", dropout_rate=0.5):
+    def __init__(self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5):
         """Initialize class.
 
         :param int n_vocab: The size of the vocabulary
@@ -236,10 +242,16 @@ class RNNLM(nn.Module):
         :param str typ: The RNN type
         """
         super(RNNLM, self).__init__()
-        self.embed = nn.Embedding(n_vocab, n_units)
-        self.rnn = nn.ModuleList(
-            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
-                                                                                            for _ in range(n_layers)])
+        if n_embed is None:
+            n_embed = n_units
+        self.embed = nn.Embedding(n_vocab, n_embed)
+        if typ == "lstm":
+            self.rnn = nn.ModuleList(
+                [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)])
+        else:
+            self.rnn = nn.ModuleList(
+                [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)])
+
         self.dropout = nn.ModuleList(
             [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)

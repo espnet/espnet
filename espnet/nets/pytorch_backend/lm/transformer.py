@@ -25,12 +25,14 @@ class TransformerLM(nn.Module, LMInterface):
                             help='Number of hidden units in feedforward layer')
         parser.add_argument('--att-unit', type=int, default=256,
                             help='Number of hidden units in attention layer')
+        parser.add_argument('--embed-unit', type=int, default=128,
+                            help='Number of hidden units in embedding layer')
         parser.add_argument('--head', type=int, default=2,
                             help='Number of multi head attention')
         parser.add_argument('--dropout-rate', type=float, default=0.5,
                             help='dropout probability')
-        parser.add_argument('--posenc-len', type=int, default=10000,
-                            help='Predefined length of positional encoding cache')
+        parser.add_argument('--pos-enc', default="sinusoidal", choices=["sinusoidal", "none"],
+                            help='positional encoding')
         return parser
 
     def __init__(self, n_vocab, args):
@@ -42,14 +44,24 @@ class TransformerLM(nn.Module, LMInterface):
 
         """
         nn.Module.__init__(self)
-        self.model_type = 'Transformer'
-        self.src_mask = None
+        if args.pos_enc == "sinusoidal":
+            pos_enc_class = PositionalEncoding
+        elif args.pos_enc == "none":
+            def pos_enc_class(*args, **kwargs):
+                return nn.Sequential()  # indentity
+        else:
+            raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
+
+        self.embed = nn.Embedding(n_vocab, args.embed_unit)
         self.encoder = Encoder(
-            n_vocab, args.att_unit, args.head, args.unit, args.layer,
-            args.dropout_rate, args.dropout_rate, args.dropout_rate,
-            input_layer="embed")
-        # reset posenc
-        self.encoder.embed[1] = PositionalEncoding(args.att_unit, args.dropout_rate, args.posenc_len)
+            idim=args.embed_unit,
+            attention_dim=args.att_unit,
+            attention_heads=args.head,
+            linear_units=args.unit,
+            num_blocks=args.layer,
+            dropout_rate=args.dropout_rate,
+            input_layer="linear",
+            pos_enc_class=pos_enc_class)
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
     def _target_mask(self, ys_in_pad):
@@ -75,7 +87,7 @@ class TransformerLM(nn.Module, LMInterface):
 
         """
         xm = (x != 0)
-        h, _ = self.encoder(x, self._target_mask(x))
+        h, _ = self.encoder(self.embed(x), self._target_mask(x))
         y = self.decoder(h)
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         mask = xm.to(dtype=loss.dtype)
@@ -99,7 +111,7 @@ class TransformerLM(nn.Module, LMInterface):
 
         """
         y = y.unsqueeze(0)
-        h, _ = self.encoder(y, self._target_mask(y))
-        h = self.decoder(h)[:, -1]
+        h, _, cache = self.encoder.forward_one_step(self.embed(y), self._target_mask(y), cache=state)
+        h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
-        return logp, None
+        return logp, cache

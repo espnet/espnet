@@ -65,6 +65,14 @@ else:
     from itertools import zip_longest as zip_longest
 
 
+def _recursive_to(xs, device):
+    if torch.is_tensor(xs):
+        return xs.to(device)
+    if isinstance(xs, tuple):
+        return tuple(_recursive_to(x, device) for x in xs)
+    return xs
+
+
 class CustomEvaluator(BaseEvaluator):
     """Custom Evaluator for Pytorch.
 
@@ -111,8 +119,7 @@ class CustomEvaluator(BaseEvaluator):
         self.model.eval()
         with torch.no_grad():
             for batch in it:
-                x = tuple(arr.to(self.device) if arr is not None else None
-                          for arr in batch)
+                x = _recursive_to(batch, self.device)
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -170,8 +177,7 @@ class CustomUpdater(StandardUpdater):
         # Get the next batch (a list of json files)
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report, which is done in other place automatically.
-        x = tuple(arr.to(self.device) if arr is not None else None
-                  for arr in batch)
+        x = _recursive_to(batch, self.device)
         is_new_epoch = train_iter.epoch != epoch
         # When the last minibatch in the current epoch is given,
         # gradient accumulation is turned off in order to evaluate the model
@@ -196,7 +202,6 @@ class CustomUpdater(StandardUpdater):
         if self.grad_noise:
             from espnet.asr.asr_utils import add_gradient_noise
             add_gradient_noise(self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55)
-        loss.detach()  # Truncate the graph
 
         # update parameters
         self.forward_count += 1
@@ -297,7 +302,7 @@ class CustomConverterMulEnc(object):
         self.dtype = dtype
         self.num_encs = len(subsamping_factors)
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device=torch.device('cpu')):
         """Transform a batch and send it to a device.
 
         Args:
@@ -497,18 +502,18 @@ def train(args):
     # actual bathsize is included in a list
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
-    train_iter = {'main': ChainerDataLoader(
+    train_iter = ChainerDataLoader(
         dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
         batch_size=1, num_workers=args.n_iter_processes,
-        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])}
-    valid_iter = {'main': ChainerDataLoader(
+        shuffle=not use_sortagrad, collate_fn=lambda x: x[0])
+    valid_iter = ChainerDataLoader(
         dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
         batch_size=1, shuffle=False, collate_fn=lambda x: x[0],
-        num_workers=args.n_iter_processes)}
+        num_workers=args.n_iter_processes)
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer,
+        model, args.grad_clip, {'main': train_iter}, optimizer,
         device, args.ngpu, args.grad_noise, args.accum_grad, use_apex=use_apex)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
@@ -524,10 +529,10 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     if args.save_interval_iters > 0:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+        trainer.extend(CustomEvaluator(model, {'main': valid_iter}, reporter, device, args.ngpu),
                        trigger=(args.save_interval_iters, 'iteration'))
     else:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+        trainer.extend(CustomEvaluator(model, {'main': valid_iter}, reporter, device, args.ngpu))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -633,6 +638,7 @@ def recog(args):
 
     Args:
         args (namespace): The program arguments.
+
     """
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
@@ -648,7 +654,10 @@ def recog(args):
             raise ValueError("use '--api v2' option to decode with non-default language model")
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit,
+                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
+            )
+        )
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
@@ -658,8 +667,12 @@ def recog(args):
         rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
+        word_rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(word_dict), rnnlm_args.layer, rnnlm_args.unit,
+                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
+            )
+        )
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 

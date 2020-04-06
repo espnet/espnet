@@ -23,6 +23,8 @@ check_shellcheck*
 test_spm.vocab
 test_spm.model
 .vscode*
+*.vim
+*.swp
 
 # recipe related
 egs/*/*/data*
