@@ -8,8 +8,6 @@
 
 import logging
 
-from distutils.util import strtobool
-
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -23,6 +21,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 
 
@@ -510,7 +509,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if args.pretrained_model is not None:
             self.load_pretrained_model(args.pretrained_model)
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, extras=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -519,7 +518,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
+            extras (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
 
         Returns:
             Tensor: Loss value.
@@ -575,12 +574,12 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         # caluculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
-            if max_out != spcs.shape[1]:
-                spcs = spcs[:, :max_out]
+            if max_out != extras.shape[1]:
+                extras = extras[:, :max_out]
 
             # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
+            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, extras, olens)
             loss = loss + cbhg_l1_loss + cbhg_mse_loss
             report_keys += [
                 {'cbhg_l1_loss': cbhg_l1_loss.item()},
@@ -613,13 +612,19 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         threshold = inference_args.threshold
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
+        use_att_constraint = getattr(inference_args, "use_att_constraint", False)  # keep compatibility
+        backward_window = inference_args.backward_window if use_att_constraint else 0
+        forward_window = inference_args.forward_window if use_att_constraint else 0
 
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
             spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
             h = torch.cat([h, spemb], dim=-1)
-        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
+        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio,
+                                                 use_att_constraint=use_att_constraint,
+                                                 backward_window=backward_window,
+                                                 forward_window=forward_window)
 
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)
@@ -627,7 +632,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -636,9 +641,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            keep_tensor (bool, optional): Whether to keep original tensor.
 
         Returns:
-            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).
+            Union[ndarray, Tensor]: Batch of attention weights (B, Lmax, Tmax).
 
         """
         # check ilens type (should be list of int)
@@ -654,7 +660,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         self.train()
 
-        return att_ws.cpu().numpy()
+        if keep_tensor:
+            return att_ws
+        else:
+            return att_ws.cpu().numpy()
 
     @property
     def base_plot_keys(self):

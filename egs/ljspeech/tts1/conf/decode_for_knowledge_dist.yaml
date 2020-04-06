@@ -1,0 +1,9 @@
+# decoding setting for knowledge distillation
+threshold: 0.5            # threshold to stop the generation
+maxlenratio: 10.0         # maximum length of generated samples = input length * maxlenratio
+minlenratio: 0.0          # minimum length of generated samples = input length * minlenratio
+use-att-constraint: true  # Whether to use attention constraint, which is introduced in Deep Voice 3
+backward-window: 1        # Backward window size in the attention constraint
+forward-window: 3         # Forward window size in the attention constraint
+save-durations: true      # Whether to save durations calculated from attention weights
+save-focus-rates: true    # Whether to save focus rate calculated from attention weights
