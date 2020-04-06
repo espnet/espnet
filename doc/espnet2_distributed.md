@@ -1,6 +1,6 @@
 # Distributed training
 
-There are several possibilities to launch the job of distributed training.
+There are some ways to launch the job of distributed training.
 
 1. Single node with Multi GPUs
     1. Using multi-processing: `torch.nn.DistributedDataParallel`
@@ -10,10 +10,10 @@ There are several possibilities to launch the job of distributed training.
 1. Multi nodes with Multi GPUs: `torch.nn.DistributedDataParallel`
     1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
-    1. Launch `N-NODE` jobs with `1-GPU` for each node
-        - `--dist_world_size N-NODE --ngpu 1`
     1. Using multi-threading
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
+    1. Launch `N-NODE` jobs with `1-GPU` for each node
+        - `--dist_world_size N-NODE --ngpu 1`
 
 ## Examples
 
@@ -28,7 +28,7 @@ You can disable distributed mode and switch to threading based data parallel as 
 % python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed false
 ```
 
-If you meet some errors with distributed mode, please try single gpu mode and multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
+If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
 
 ### 2Nodes and 2GPUs for each node with multiprocessing distributed mode
 Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
@@ -59,7 +59,7 @@ It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZ
 #### About init method
 See: https://pytorch.org/docs/stable/distributed.html#tcp-initialization
 
-There are two ways to initialize:
+There are two ways to initializeand **these methods can be interchanged** in all examples.
 
 - TCP initialization
    ```bash
@@ -79,7 +79,6 @@ There are two ways to initialize:
    ```bash
    --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
    ```
-
 
 
 ### 2Nodes which have 2GPUs and 1GPU respectively
@@ -116,7 +115,7 @@ There are two ways to initialize:
     --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
 ```
 
-I recommend shared-file initialization in this case because the host is determined after submitting the job, so we can't tell the free port number before.
+I recommend shared-file initialization in this case because the host will be determined after submitting the job, therefore we can't tell the free port number before.
 
 ### 5GPUs with 3nodes using `Slurm`
 (Not tested)
