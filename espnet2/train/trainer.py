@@ -260,6 +260,13 @@ class Trainer:
 
                 # 5. Save the model and update the link to the best model
                 torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
+
+                # Creates a sym link latest.pth -> {iepoch}epoch.pth
+                p = output_dir / f"latest.pth"
+                if p.is_symlink() or p.exists():
+                    p.unlink()
+                p.symlink_to(f"{iepoch}epoch.pth")
+
                 _improved = []
                 for _phase, k, _mode in best_model_criterion:
                     # e.g. _phase, k, _mode = "train", "loss", "min"
@@ -279,7 +286,7 @@ class Trainer:
                         f"The best model has been updated: " + ", ".join(_improved)
                     )
 
-                # 6. Remove the model files excluding n-best epoch
+                # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
@@ -289,7 +296,7 @@ class Trainer:
                         if reporter.has(ph, k)
                     ]
                 )
-                for e in range(1, iepoch + 1):
+                for e in range(1, iepoch):
                     p = output_dir / f"{e}epoch.pth"
                     if p.exists() and e not in nbests:
                         p.unlink()
