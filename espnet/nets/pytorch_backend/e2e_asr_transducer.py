@@ -305,6 +305,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
             x (torch.Tensor): encoded features (T, attention_dim)
+
         """
         self.eval()
 
