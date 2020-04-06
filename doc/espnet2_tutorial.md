@@ -88,7 +88,7 @@ The usage of recipes is **almost the same** as that of ESPnet1.
         source path.sh
         python
         ```
-    - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
+    - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your local machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
 
 1. Run `run.sh`
 
