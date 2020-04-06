@@ -87,7 +87,7 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         dtype = ys_hat.dtype
         ys_hat = ys_hat.transpose(0, 1)
-        if self.ctc_type == "warpctc":
+        if self.ctc_type == "warpctc" or dtype == torch.float16:
             # warpctc only supports float32
             ys_hat = ys_hat.to(dtype=torch.float32)
         else:
