@@ -11,7 +11,6 @@ import os
 from os.path import join
 import re
 import shutil
-import six
 import subprocess
 import tempfile
 
@@ -62,7 +61,7 @@ def download_zip_from_google_drive(download_dir, file_id):
 # TODO(kan-bayashi): make it to be compatible with python2
 # file id in google drive can be obtain from sharing link
 # ref: https://qiita.com/namakemono/items/c963e75e0af3f7eed732
-@pytest.mark.skipif(not six.PY3, reason="not support python 2")
+@pytest.mark.skipif(True, reason="Skip due to unstable download")
 @pytest.mark.parametrize("module, download_info", [
     ("espnet.nets.pytorch_backend.e2e_asr", ("v.0.3.0 egs/an4/asr1 pytorch", "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg")),
     ("espnet.nets.chainer_backend.e2e_asr", ("v.0.3.0 egs/an4/asr1 chainer", "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx"))
