@@ -69,9 +69,9 @@ class E2E(ASRInterface, torch.nn.Module):
         parser.add_argument('--wshare', default=4, type=int,
                            help='Number of parameter shargin for lightweight convolution')
         parser.add_argument('--ldconv-encoder-kernel-length', default="21-23-25-27-29-31-33-35-37-39-41-43", type=str,
-                           help='kernel size for lightweight/dynamic convolution: Encoder side. For exmaple, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
+                           help='kernel size for lightweight/dynamic convolution: Encoder side. For example, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
         parser.add_argument('--ldconv-decoder-kernel-length', default="11-13-15-17-19-21", type=str,
-                           help='kernel size for lightweight/dynamic convolution: Decoder side. For exmaple, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
+                           help='kernel size for lightweight/dynamic convolution: Decoder side. For example, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
         parser.add_argument('--ldconv-usebias', type=strtobool, default=False,
                            help='use bias term in lightweight/dynamic convolution')
         group.add_argument('--dropout-rate', default=0.0, type=float,

@@ -107,7 +107,7 @@ class Encoder(torch.nn.Module):
         else:
             raise NotImplementedError("Support only linear or conv1d.")
         if selfattention_layer_type == "selfattn":
-            logging.warning('encoder self-attention layer type = self-attention')
+            logging.info('encoder self-attention layer type = self-attention')
             self.encoders = repeat(
                 num_blocks,
                 lambda lnum: EncoderLayer(
@@ -120,7 +120,7 @@ class Encoder(torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "lightconv":
-            logging.warning('encoder self-attention layer type = lightweight convolution')
+            logging.info('encoder self-attention layer type = lightweight convolution')
             self.encoders = repeat(
                 num_blocks,
                 lambda lnum: EncoderLayer(
@@ -133,7 +133,7 @@ class Encoder(torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "lightconv2d":
-            logging.warning('encoder self-attention layer type = lightweight convolution 2-dimentional')
+            logging.info('encoder self-attention layer type = lightweight convolution 2-dimentional')
             self.encoders = repeat(
                 num_blocks,
                 lambda lnum: EncoderLayer(
@@ -146,7 +146,7 @@ class Encoder(torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "dynamicconv":
-            logging.warning('encoder self-attention layer type = dynamic convolution')
+            logging.info('encoder self-attention layer type = dynamic convolution')
             self.encoders = repeat(
                 num_blocks,
                 lambda lnum: EncoderLayer(
@@ -159,7 +159,7 @@ class Encoder(torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "dynamicconv2d":
-            logging.warning('encoder self-attention layer type = dynamic convolution 2-dimentional')
+            logging.info('encoder self-attention layer type = dynamic convolution 2-dimentional')
             self.encoders = repeat(
                 num_blocks,
                 lambda lnum: EncoderLayer(
