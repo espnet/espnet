@@ -1,6 +1,6 @@
 # Distributed training
 
-There are some ways to launch the job of distributed training.
+ESPnet2 provides some kinds of data-parallel distributed training.
 
 1. Single node with Multi GPUs
     1. Using multi-processing: `torch.nn.DistributedDataParallel`
@@ -14,6 +14,8 @@ There are some ways to launch the job of distributed training.
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
     1. Launch `N-NODE` jobs with `1-GPU` for each node
         - `--dist_world_size N-NODE --ngpu 1`
+        
+
 
 ## Examples
 
