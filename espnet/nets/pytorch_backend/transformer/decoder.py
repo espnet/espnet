@@ -84,7 +84,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
             raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
         self.normalize_before = normalize_before
         if selfattention_layer_type == "selfattn":
-            logging.warning('decoder self-attention layer type = self-attention')
+            logging.info('decoder self-attention layer type = self-attention')
             self.decoders = repeat(
                 num_blocks,
                 lambda lnum: DecoderLayer(
@@ -98,7 +98,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "lightconv":
-            logging.warning('decoder self-attention layer type = lightweight convolution')
+            logging.info('decoder self-attention layer type = lightweight convolution')
             self.decoders = repeat(
                 num_blocks,
                 lambda lnum: DecoderLayer(
@@ -112,7 +112,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "lightconv2d":
-            logging.warning('decoder self-attention layer type = lightweight convolution 2-dimentional')
+            logging.info('decoder self-attention layer type = lightweight convolution 2-dimentional')
             self.decoders = repeat(
                 num_blocks,
                 lambda lnum: DecoderLayer(
@@ -126,7 +126,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "dynamicconv":
-            logging.warning('decoder self-attention layer type = dynamic convolution')
+            logging.info('decoder self-attention layer type = dynamic convolution')
             self.decoders = repeat(
                 num_blocks,
                 lambda lnum: DecoderLayer(
@@ -140,7 +140,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 )
             )
         elif selfattention_layer_type == "dynamicconv2d":
-            logging.warning('decoder self-attention layer type = dynamic convolution 2-dimentional')
+            logging.info('decoder self-attention layer type = dynamic convolution 2-dimentional')
             self.decoders = repeat(
                 num_blocks,
                 lambda lnum: DecoderLayer(
