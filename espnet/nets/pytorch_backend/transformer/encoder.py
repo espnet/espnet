@@ -21,6 +21,28 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
+def _pre_hook(state_dict, prefix, local_metadata, strict,
+              missing_keys, unexpected_keys, error_msgs):
+    """Perform pre-hook in load_state_dict for backward compatibility.
+
+    Note:
+        We named self.embed.* as self.input_layer.* until v.0.4.0
+        For v.0.3.x models, we should rename them for backward compatibility.
+
+    See also:
+        https://github.com/espnet/espnet/issues/1750
+
+    """
+    old_prefix = prefix + "input_layer."
+    new_prefix = prefix + "embed."
+    # need this list not to break the dict iterator
+    old_keys = [k for k in state_dict if k.startswith(old_prefix)]
+    for k in old_keys:
+        v = state_dict.pop(k)
+        new_k = k.replace(old_prefix, new_prefix)
+        state_dict[new_k] = v
+
+
 class Encoder(torch.nn.Module):
     """Transformer encoder module.
 
@@ -60,6 +82,7 @@ class Encoder(torch.nn.Module):
                  padding_idx=-1):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
+        self._register_load_state_dict_pre_hook(_pre_hook)
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
