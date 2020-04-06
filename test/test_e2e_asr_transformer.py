@@ -304,5 +304,21 @@ def test_transformer_parallel():
     assert max_acc > 0.8
 
 
+# https://github.com/espnet/espnet/issues/1750
+def test_v0_3_transformer_input_compatibility():
+    args = make_arg()
+    model, x, ilens, y, data = prepare("pytorch", args)
+    # replace embed with input_layer used in v.0.3
+    states = model.state_dict()
+    new_keys = [k for k in states if k.startswith("encoder.embed.")]
+    assert len(new_keys) > 0
+    old_keys = [k for k in states if k.startswith("encoder.input_layer.")]
+    assert len(old_keys) == 0
+    for k in new_keys:
+        v = states.pop(k)
+        states[k.replace("encoder.embed.", "encoder.input_layer.")] = v
+    model.load_state_dict(states)
+
+
 if __name__ == "__main__":
     run_transformer_copy()
