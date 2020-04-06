@@ -6,6 +6,8 @@ import numpy
 import pytest
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
+
 
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
@@ -308,16 +310,14 @@ def test_transformer_parallel():
 def test_v0_3_transformer_input_compatibility():
     args = make_arg()
     model, x, ilens, y, data = prepare("pytorch", args)
-    # replace embed with input_layer used in v.0.3
-    states = model.state_dict()
-    new_keys = [k for k in states if k.startswith("encoder.embed.")]
-    assert len(new_keys) > 0
-    old_keys = [k for k in states if k.startswith("encoder.input_layer.")]
-    assert len(old_keys) == 0
-    for k in new_keys:
-        v = states.pop(k)
-        states[k.replace("encoder.embed.", "encoder.input_layer.")] = v
-    model.load_state_dict(states)
+    # these old names are used in v.0.3.x
+    state_dict = model.state_dict()
+    prefix = "encoder."
+    rename_state_dict(prefix + "embed.", prefix + "input_layer.", state_dict)
+    rename_state_dict(prefix + "after_norm.", prefix + "norm.", state_dict)
+    prefix = "decoder."
+    rename_state_dict(prefix + "after_norm.", prefix + "output_norm.", state_dict)
+    model.load_state_dict(state_dict)
 
 
 if __name__ == "__main__":
