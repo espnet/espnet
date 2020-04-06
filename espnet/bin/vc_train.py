@@ -61,9 +61,9 @@ def get_parser():
     parser.add_argument('--report-interval-iters', default=10, type=int,
                         help="Report interval iterations")
     # task related
-    parser.add_argument('--srcspk', type=str, required=True,
+    parser.add_argument('--srcspk', type=str,
                         help='Source speaker')
-    parser.add_argument('--trgspk', type=str, required=True,
+    parser.add_argument('--trgspk', type=str,
                         help='Target speaker')
     parser.add_argument('--train-json', type=str, required=True,
                         help='Filename of training json')
@@ -105,7 +105,7 @@ def get_parser():
                         help='Whether to use second target')
     # optimization related
     parser.add_argument('--opt', default='adam', type=str,
-                        choices=['adam', 'noam'],
+                        choices=['adam', 'noam', 'lamb'],
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
                         help='Number of gradient accumuration')

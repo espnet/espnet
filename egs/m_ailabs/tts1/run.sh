@@ -46,9 +46,10 @@ n_average=1 # if > 0, the model averaged with n_average ckpts will be used inste
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # pretrained model related
-tts_train_config=
 pretrained_decoder_path=
+pretrained_encoder_path="librispeech.transformer_large"
 ept_train_config="conf/ept.v1.yaml"
+dpt_train_config="conf/dpt.v1.single.yaml"
 ept_decode_config="conf/ae_decode.yaml"
 ept_eval=false
 
@@ -65,7 +66,9 @@ lang=en_US  # en_UK, de_DE, es_ES, it_IT
 spk=judy    # see local/data_prep.sh to check available speakers
 
 # exp tag
-tag="" # tag for managing experiments.
+tag=""     # tag for managing experiments.
+ept_tag="" # tag for managing experiments.
+dpt_tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -328,13 +331,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Objective Evaluation for TTS"
 
     for name in ${dev_set} ${eval_set}; do
-        local/ob_eval/evaluate_cer.sh --nj ${nj} \
+        local/ob_eval/evaluate.sh --nj ${nj} \
             --do_delta false \
-            --eval_gt ${eval_gt} \
-            --eval_tts ${eval_tts} \
             --db_root ${db_root} \
             --backend pytorch \
-            --wer ${wer} \
+            --wer true \
             --api v2 \
             ${asr_model} \
             ${outdir} \
@@ -353,36 +354,32 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Encoder pretraining"
 
     # Suggested usage:
-    # 1. If the exp dirrectory of the TTS model uses tag, then specify both --tag and --tts_train_config
-    #    else, specify --train_config
-    # 2. Specify --model and --n_average 0
-    # 3. Specify --ept_train_config
+    # 1. Specify --pretrained_decoder_path (eg. exp/<..>/results/snapshot.ep.xxx)
+    # 2. Specify --n_average 0
+    # 3. Specify --train_config (original config for TTS) and --ept_train_config (new config for ept)
+    # 4. Specfiy --ept_tag
 
     # check input arguments
-    if [[ ! -z ${tag} ]] && [[ -z ${tts_train_config} ]]; then
-        echo "Please specify --tts_train_config (pre-trained TTS model config)"
-        exit 1
-    elif [ -z ${train_config} ]; then
+    if [ -z ${train_config} ]; then
         echo "Please specify --train_config"
+        exit 1
     fi
-
-    tts_train_config=${train_config}
-
-    if [ -z ${tag} ]; then
-        expname=${train_set}_${backend}_$(basename ${train_config%.*})
-    else
-        expname=${train_set}_${backend}_${tag}
+    if [ -z ${ept_tag} ]; then
+        echo "Please specify --ept_tag"
+        exit 1
     fi
+ 
+    expname=${train_set}_${backend}_ept_${ept_tag}
     expdir=exp/${expname}
+    mkdir -p ${expdir}
 
-    pretrained_decoder_path=${expdir}/results/${model}
     train_config="$(change_yaml.py \
         -a dec-init="${pretrained_decoder_path}" \
         -d model-module \
         -d batch-bins \
         -d accum-grad \
         -d epochs \
-        -o "conf/$(basename "${tts_train_config}" .yaml).ept.yaml" "${tts_train_config}")"
+        -o "conf/$(basename "${train_config}" .yaml).ept.yaml" "${train_config}")"
 
     tr_json=${feat_tr_dir}/ae_data.json
     dt_json=${feat_dt_dir}/ae_data.json
@@ -408,16 +405,14 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     echo "stage 8: Encoder pretraining: decoding, synthesis, evaluation"
     
     # Suggested usage:
-    # 1. If the exp dirrectory of the TTS model uses tag, then specify both --tag and --tts_train_config
-    #    else, specify --train_config
+    # 1. Specify --ept_tag
     # 2. Specify --model and --n_average 0
-    # 3. Specify --ept_train_config
 
-    if [ -z ${tag} ]; then
-        echo "Please specify --tag"
+    if [ -z ${ept_tag} ]; then
+        echo "Please specify --ept_tag"
         exit 1
     fi
-    expdir=exp/${train_set}_${backend}_${tag}
+    expdir=exp/${train_set}_${backend}_${ept_tag}
     outdir=${expdir}/ept_outputs_${model}
 
     pids=() # initialize pids
@@ -489,17 +484,145 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     echo "Finished."
 fi
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-    echo "stage 10: Mel autoencoder: generate hdf5"
+###############################################################
 
-    # generate h5 for WaveNet vocoder
+# Decoder pretraining
+# For VTN-TASLP experiment
+
+# Note that we also use a pretrained decoder from TTS
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    echo "stage 9: Decoder pretraining (using ASR encoder)"
+
+    # Suggested usage:
+    # 1. Specify --pretrained_encoder_path (eg. exp/<..>/results/snapshot.ep.xxx)
+    # 2. Specify --pretrained_decoder_path (eg. exp/<..>/results/snapshot.ep.xxx)
+    # 3. Specify --n_average 0  (to maintain capability with original script)
+    # 4. Specify --train_config (original config for TTS) and --dpt_train_config (new config for dpt)
+    # 5. Specfiy --dpt_tag
+
+    # check input arguments
+    if [ -z ${train_config} ]; then
+        echo "Please specify --train_config"
+        exit 1
+    fi
+    if [ -z ${dpt_tag} ]; then
+        echo "Please specify --dpt_tag"
+        exit 1
+    fi
+ 
+    expname=${train_set}_${backend}_dpt_${dpt_tag}
+    expdir=exp/${expname}
+    mkdir -p ${expdir}
+
+    train_config="$(change_yaml.py \
+        -a dec-init="${pretrained_decoder_path}" \
+        -a enc-init="${pretrained_encoder_path}" \
+        -d model-module \
+        -d batch-bins \
+        -d accum-grad \
+        -d epochs \
+        -o "conf/$(basename "${train_config}" .yaml).dpt.yaml" "${train_config}")"
+
+    tr_json=${feat_tr_dir}/pitch_ae_data.json
+    dt_json=${feat_dt_dir}/pitch_ae_data.json
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/dpt_train.log \
+        vc_train.py \
+           --backend ${backend} \
+           --ngpu ${ngpu} \
+           --minibatches ${N} \
+           --outdir ${expdir}/dpt_results \
+           --tensorboard-dir tensorboard/${expname} \
+           --verbose ${verbose} \
+           --seed ${seed} \
+           --resume ${resume} \
+           --train-json ${tr_json} \
+           --valid-json ${dt_json} \
+           --config ${train_config} \
+           --config2 ${dpt_train_config}
+fi
+
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    echo "stage 10: Decoder pretraining: decoding, synthesis, evaluation"
+    
+    # Suggested usage:
+    # 1. Specify --dpt_tag
+    # 2. Specify --model and --n_average 0
+
+    if [ -z ${dpt_tag} ]; then
+        echo "Please specify --dpt_tag"
+        exit 1
+    fi
+    expdir=exp/${train_set}_${backend}_${ept_tag}
+    outdir=${expdir}/ept_outputs_${model}
+
+    pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
-        feats2hdf5.py \
-            --scp_file ${outdir}_denorm/${name}/feats.scp \
-            --out_dir ${outdir}_denorm/${name}/hdf5/
-        (find "$(cd ${outdir}_denorm/${name}/hdf5; pwd)" -name "*.h5" -print &) | head > ${outdir}_denorm/${name}/hdf5_feats.scp
-        echo "generated hdf5 for ${name} set"
+    (
+        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        cp ${dumpdir}/${name}/ae_data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/ae_data.json
+        # decode in parallel
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
+            vc_decode.py \
+                --backend ${backend} \
+                --ngpu 0 \
+                --verbose ${verbose} \
+                --out ${outdir}/${name}/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/ae_data.JOB.json \
+                --model ${expdir}/ept_results/${model} \
+                --config ${ept_decode_config}
+        # concatenate scp files
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/feats.scp
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
+    pids=() # initialize pids
+    for name in ${dev_set} ${eval_set}; do
+    (
+        [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
+        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
+            scp:${outdir}/${name}/feats.scp \
+            ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
+        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
+            ${outdir}_denorm/${name} \
+            ${outdir}_denorm/${name}/log \
+            ${outdir}_denorm/${name}/wav
+
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    
+    echo "Objective Evaluation"
+    for name in ${dev_set} ${eval_set}; do
+        local/ob_eval/evaluate.sh --nj ${nj} \
+            --do_delta false \
+            --db_root ${db_root} \
+            --backend pytorch \
+            --wer true \
+            --api v2 \
+            ${asr_model} \
+            ${outdir} \
+            ${name} \
+            ${spk}
+    done
+
+    echo "Finished."
 fi
 
 ###############################################################

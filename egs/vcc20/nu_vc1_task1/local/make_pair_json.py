@@ -69,6 +69,7 @@ if __name__ == '__main__':
         if args.trg_json:
             entry["output"] = trg_json[trgspk + '_' + number]['input']
             entry["output"][0]["name"] = "target1"
+            entry["output"].pop()
 
         data["utts"][number] = entry
         count += 1

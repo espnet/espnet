@@ -1,0 +1,12 @@
+# This is config of decoder training.
+# Note that the following arguments are deleted in `run.sh` so must be specified in this config.
+# model-module, batch-bins, accum-grad, epochs
+
+transformer-input-layer: conv2d-scaled-pos-enc
+dec-init-mods: decoder,postnet,feat_out,prob_out
+freeze-mods: decoder,postnet,feat_out,prob_out
+
+model-module: espnet.nets.pytorch_backend.vc_transformer:Transformer
+batch-bins: 2772000
+accum-grad: 2
+epochs: 500

@@ -433,7 +433,7 @@ class LoadInputsAndTargets(object):
             spembs = list(x_feats_dict.values())[spembs_idx]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
 
-            x_name = list(y_feats_dict.keys())[0]
+            x_name = list(x_feats_dict.keys())[0]
             spembs_name = list(x_feats_dict.keys())[spembs_idx]
 
             return_batch = OrderedDict([(x_name, xs),

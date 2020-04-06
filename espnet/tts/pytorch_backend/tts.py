@@ -336,6 +336,9 @@ def train(args):
     elif args.opt == 'noam':
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
         optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
+    elif args.opt == 'lamb':
+        from pytorch_lamb import Lamb, log_lamb_rs
+        optimizer = Lamb(model.parameters(), lr=args.lr, weight_decay=.01, betas=(.9, .999))
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 

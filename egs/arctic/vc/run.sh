@@ -230,8 +230,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # make dummy dict
     dict="data/dummy_dict/X.txt"
-    mkdir -p ${dict%/*}
-    echo "<unk> 1" > ${dict}
+    if [ -e ${dict} ]; then
+        mkdir -p ${dict%/*}
+        echo "<unk> 1" > ${dict}
+    fi
     
     # make json labels
     data2json.sh --feat ${src_feat_tr_dir}/feats.scp \
@@ -324,8 +326,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \
-           --srcspk ${srcspk} \
-           --trgspk ${trgspk} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
            --config ${train_config}
@@ -351,7 +351,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     for name in ${pair_dev_set} ${pair_eval_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        cp ${dumpdir}/${name}_${norm_name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
