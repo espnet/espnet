@@ -1,6 +1,11 @@
 # Using Job scheduling system
 
-Our recipes support some Job scheduling systems, SGE, PBS/Torque, and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html). By default, the feature extraction and decoding run at the local machine with multiprocessing, but if there are any Job scheduling systems in your environment, you can submit more number of Jobs with multiple machines. Please ask the administrator to install it.
+Our recipes support some Job scheduling systems, SGE, PBS/Torque, 
+and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html). 
+By default, the feature extraction and decoding run at the local machine with multiprocessing, 
+but if there are any Job scheduling systems in your environment, 
+you can submit more number of Jobs with multiple machines. 
+Please ask the administrator to install it.
 
 ## Select Job scheduler
 
@@ -18,14 +23,19 @@ Our recipes support some Job scheduling systems, SGE, PBS/Torque, and Slurm, acc
 
 ## Usage of run.pl
 
-`run.pl`, `queue.pl`, `slurm.pl`, `pbs.pl` and `ssh.pl` have same interface, therefore we can assign any one of them to `${cmd}` in the shell script:
+`run.pl`, `queue.pl`, `slurm.pl`, `pbs.pl` and `ssh.pl` have a unified interface, 
+therefore we can assign any one of them to `${cmd}` in the shell script:
 
 ```bash
 nj=4
 ${cmd} JOB=1:${nj} JOB.log echo JOB
 ```
 
-`JOB=1:${nj}` indicates the parallelization, which is known as "array-job", with `${nj}` number of jobs. `JOB.log` is a destination of the stdout and stderr from jobs. The string of `JOB` will be changed to the job number if it's included in the log file name or command line arguments. i.e. The following commands are almost the same as the above:
+`JOB=1:${nj}` indicates the parallelization, which is known as "array-job", with `${nj}` number of jobs. 
+`JOB.log` is a destination of the stdout and stderr from jobs. 
+The string of `JOB` will be changed to the job number 
+if it's included in the log file name or command line arguments. 
+i.e. The following commands are almost equivalent to the above:
 
 ```bash
 echo 1 &> 1.log &
@@ -59,7 +69,8 @@ Take a look at the following:
 option gpu=* -l gpu=$0 -q g.q
 ```
 
-This line means that the optional argument specified the second column will be changed the options after it:
+This line means that the optional argument specified by the second column, `gpu=*`, 
+will be changed the options after it, `gpu=$0 -q g.q`:
 
 ```bash
 queue.pl --gpu 2
@@ -71,4 +82,4 @@ will be converted to
 qsub -v PATH -cwd -S /bin/bash -j y -l arch=*64* -l gpu=2 -q g.q
 ```
 
-Thanks to this system, our shell script can switch any job scheduling system with unified options
+Thanks to this system, our shell script can switch any job scheduling system with unified options.

@@ -1,6 +1,6 @@
 # Change the configuration for training
 ## Show usage
-There are two ways to know the command line options: `--help` and `--print_config`
+There are two ways to show the command line options: `--help` and `--print_config`
 
 ```bash
 # Show the command line option
@@ -9,11 +9,23 @@ python -m espnet2.bin.asr_train --help
 python -m espnet2.bin.asr_train --print_config
 ```
 
-In this section, we use `espnet2.bin.asr_train` for an example, but the other training tools based on `Task` class has the same interface, so you can replace it to another command.
+In this section, we use `espnet2.bin.asr_train` for an example, 
+but the other training tools based on `Task` class has the same interface, 
+so you can replace it to another command.
 
-Note that ESPnet2 always selects`_` instead of `-` for the separation for the name of an option to avoid confusion.
+Note that ESPnet2 always selects`_` instead of `-` for the separation 
+for the name of an option to avoid confusion.
 
-A notable feature of `--print_config` is that it shows the configuration parsing with the given arguments dynamically: You can look up the parameters for a changeable class for example.
+```
+# Bad
+--batch-size
+# Good
+--batch_size
+```
+
+A notable feature of `--print_config` is that 
+it shows the configuration parsing with the given arguments dynamically: 
+You can look up the parameters for a **changeable** class.
 
 ```bash
 % # Show parameters of Adam optimizer
@@ -53,7 +65,9 @@ You can find the configuration files for DNN training in `conf/train_*.yaml`.
 ls conf/
 ```
 
-We adopt [ConfigArgParse](https://github.com/bw2/ConfigArgParse) for this configuration system. The configuration in YAML format has an equivalent effect to the command line argument. e.g. The following two are equivalent:
+We adopt [ConfigArgParse](https://github.com/bw2/ConfigArgParse) for this configuration system. 
+The configuration in YAML format has an equivalent effect to the command line argument. 
+e.g. The following two are equivalent:
 
 ```yaml
 # config.yaml
@@ -84,7 +98,9 @@ python -m espnet2.bin.asr_train --optim_conf "{lr: 0.1, rho: 0.8}"
 python -m espnet2.bin.asr_train --resume true
 ```
 
-The state of the training process is saved at the end of every epoch as `checkpoint.pth` and the training process can be resumed from the start of the next epoch. Checkpoint includes the following states.
+The state of the training process is saved at the end of every epoch as `checkpoint.pth` and 
+the training process can be resumed from the start of the next epoch. 
+Checkpoint includes the following states.
 
 - Model state
 - Optimizer states
@@ -101,19 +117,25 @@ python -m espnet2.bin.asr_train --log_interval 100
 
 ## Change the number of iterations in each epoch
 
-By default, an ``epoch`` indicates using up whole data in the training corpus and the following steps will also run after training for every epoch:
+By default, an `epoch` indicates using up whole data in the training corpus and 
+the following steps will also run after training for every epoch:
 
 - Validation
 - Saving model and checkpoint
 - Show result in the epoch
 
-Sometimes the examination after training with a whole corpus is too coarse if using large corpus: `--num_iters_per_epoch` restrict the number of iteration of each epoch.
+Sometimes the validation after training with a whole corpus is too coarse 
+if using large corpus. 
+For that case, `--num_iters_per_epoch` can restrict the number of iteration of each epoch.
 
 ```bash
 python -m espnet2.bin.asr_train --num_iters_per_epoch 1000
 ```
 
-Note that the training process can't be resumed at the middle of an epoch because data iterators are stateless, but instead of it, the iterators for each epoch can be built with the specific epoch number deterministically, just like:
+Note that the training process can't be resumed at the middle of an epoch 
+because data iterators are stateless, but don't worry it!
+Our iterator is built at the start of each epoch 
+and the random seed is fixed by the epoch number, just like:
 
 ```python
 epoch_iter_factory = Task.build_epoch_iter_factory()
@@ -148,7 +170,7 @@ python -m espnet2.bin.asr_train --batch_size 20
 python -m espnet2.bin.asr_train --valid_batch_size 200
 ```
 
-The behavior for batch-size during multi-GPU training is **different from that of ESPNe1**.
+The behavior for batch-size during multi-GPU training is **different from that of ESPNet1**.
 
 - ESPNet1: The batch-size will be multiplied by the number of GPUs.
   ```bash
@@ -160,46 +182,55 @@ The behavior for batch-size during multi-GPU training is **different from that o
   python -m espnet.bin.asr_train --batch_size 10 --ngpu 2 # Actual batch_size is 10 and each GPU devices are assigned to 5
   ```
 
-Note that even in espnet1 the batch_size is not changed if using `bin` or `frame` batch-count,.
+Note that even if using ESPnet1, the batch_size is not changed if using `bin` or `frame` batch-count,.
 
 ## Change mini-batch type
-We adopts variable mini-batch size with considering the length of each sequence to spread the data in the GPU memory as possible.
+We adopt variable mini-batch size with considering the length of each sequence 
+to spread the data in the GPU memory as possible.
 
 There are 5 choices:
 
 ### `--batch_type unsorted`
 
-This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order. If you intend to use espnet as **not** Seq2Seq task, this type is suitable.
+This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order. 
+If you intend to use ESPnet as **not** Seq2Seq task, this type may be suitable.
 
-Unlike the other type, this mode doesn't require the information of the feature dimension, so it's not mandatory to input `shape_file`:
+Unlike the other mode, this mode doesn't require the information of the feature dimension.
+In other words, it's not mandatory to prepare `shape_file`:
 
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_size 10 --batch_type unsorted \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
-  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type "valid.scp,feats,npy" \
   --train_shape_file "train.scp" \
   --valid_shape_file "valid.scp"
 ```
 
-This system might seem strange because the corpus can be described totally, so you might feel `--*_shape_file` is verbose.
-In ESPnet2, we separated the data source for the `Dataset` and `BatchSampler` in the term of PyTorch and this feature enables us to 
+This system might seem strange and you might also feel `--*_shape_file` is verbose
+because the training corpus can be described totally only using `--*_data_path_and_name_and_type`.
 
+From the viewpoint of the implementation, 
+we separate the data source for the `Dataset` and `BatchSampler` in the term of PyTorch
+and  `--*_data_path_and_name_and_type` and `--*_shape_file` correspond to them respectively.
+From the viewpoint of the training strategy, 
+because variable batch-size is supported according to the length/dimension of each feature,
+thus we need to prepare the shape information before training.
 
 ### `--batch_type sorted`
 
 
-This mode creates constant-size mini-batches with sorting by the length order. Therefore it requires the information of the length.
+This mode creates constant-size mini-batches with sorting by the length order. 
+This mode requires the information of the length.
 
 
-
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_size 10 --batch_type sorted \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
-  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
-  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type "valid2.scp,feats2,npy" \
   --train_shape_file "train_length.txt" \
   --valid_shape_file "valid_length.txt"
 ```
@@ -213,8 +244,8 @@ sample_id3 890
 ...
 ```
 
-Where the fist column indicates the sample id and the second is the length of the coresponding feature.
-We input `shape file` instead in our recipes actually for using `--batch_type numel`:
+Where the fist column indicates the sample id and the second is the length of the corresponding feature.
+You can see that `shape file` is input instead in our recipes. 
 
 e.g. shape.txt
 
@@ -225,23 +256,33 @@ sample_id3 890,80
 ...
 ```
 
-The second column must be a sequence of numbers separated commas and the first number is reffered for the length in this case.
+This file describes the full information of the feature shape;
+The first number is the length of the sequence and 
+the second or later are the dimension of feature: `Length,Dim1,Dim2,...`.
+
+Only the first number is referred for
+`--batch_type sorted`, `--batch_type folded` and `--batch_type length`,
+and the shape information is required only when `--batch_type numel`.
+
 
 ### `--batch_type folded`
 
 **In ESPnet1, this mode is named as seq.**
 
 
-This mode creates mini-batch which has the size of `base_batch_size // max_i(L_i // f_i)`. Where `L_i` is the maximum length in the mini-batch for `i`th feature and `f_i` is the `--fold length` corresponding to the feature. This mode requires the information of length.
+This mode creates mini-batch which has the size of `base_batch_size // max_i(L_i // f_i)`. 
+Where `L_i` is the maximum length in the mini-batch for `i`th feature and 
+`f_i` is the `--fold length` corresponding to the feature. 
+This mode requires the information of length.
 
 
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_size 20 --batch_type folded \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
-  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
-  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type "valid2.scp,feats2,npy" \
   --train_shape_file "train_length.scp" \
   --train_shape_file "train_length2.scp" \
   --valid_shape_file "valid_length.scp" \
@@ -251,21 +292,23 @@ python -m espnet.bin.asr_train \
 ```
 
 Note that the repeat number of `*_shape_file` must equal to the number of `--fold_length`, but 
-**you don't need to input same number of shape files as the number of data file**. i.e. You can give it as follows:
+**you don't need to input same number of shape files as the number of data file**. 
+i.e. You can give it as follows:
 
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_size 20 --batch_type folded \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
-  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
-  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type "valid2.scp,feats2,npy" \
   --train_shape_file "train_length.txt" \
   --valid_shape_file "valid_length.txt" \
   --fold_length 5000
 ```
 
-In this example, the length of the first feature is considered whether the second can be ignored. This technique can be also applied for `length` and `numel`.
+In this example, the length of the first feature is considered while the second can be ignored. 
+This technique can be also applied for `--batch_type length` and `--batch_type numel`.
 
 
 ### `--batch_type length`
@@ -273,16 +316,18 @@ In this example, the length of the first feature is considered whether the secon
 **In ESPnet1, this mode is referred as frame.**
 
 
-This mode uses `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
-Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch; i.e. `bins = sum(len(feat) for feats in batch for feat in feats)`. This mode requires the information of length.
+You need to specify `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch; 
+i.e. `bins = sum(len(feat) for feats in batch for feat in feats)`. 
+This mode requires the information of length.
 
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_bins 10000 --batch_type length \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
   --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
-  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
-  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type "valid2.scp,feats2,npy" \
   --train_shape_file "train_length.txt" \
   --train_shape_file "train_length2.txt" \
   --valid_shape_file "valid_length.txt" \
@@ -293,12 +338,15 @@ python -m espnet.bin.asr_train \
 ### `--batch_type numel`
 
 **In ESPnet1, this mode is referred as bins.**
+You need to specify `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+Each mini-batches has equal number of bins as possible 
+counting by the total number of elements; 
+i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`, 
+where `numel` returns the infinite product of the shape of each feature; 
+`shape[0] * shape[1] * ...`
 
-This mode uses `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
-Each mini-batches has equal number of bins as possible counting by the total number of elements; i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`, where `numel` returns the infinite product of the shape of each feature; `shape[0] * shape[1] * ...`
 
-
-```python
+```bash
 python -m espnet.bin.asr_train \
   --batch_bins 200000 --batch_type numel \
   --train_data_path_and_name_and_type "train.scp,feats,npy" \
@@ -321,16 +369,17 @@ There are several ways to deal with larger model architectures than the capacity
 
 Gradient accumulating is a technique to handle larger mini-batch than available size.
 
-Split a mini-batch into several numbers and forward and backward for each pieces and accumulate the gradients, while optimizer's updating is invoked every the number of forwarding just like following:
+Split a mini-batch into several numbers and forward and backward for each piece and accumulate the gradients ony by one, 
+while optimizer's updating is invoked every the number of forwarding just like following:
 
 ```python
 # accum_grad is the number of pieces
 for i, batch in enumerate(iterator):
-  loss = net(batch)
-  (loss / accum_grad).backward() # Gradients are accumulated
-  if i % accum_grad:
-    optim.update()
-    optim.zero_grads()
+    loss = net(batch)
+    (loss / accum_grad).backward() # Gradients are accumulated
+    if i % accum_grad:
+        optim.update()
+        optim.zero_grads()
 ```
 
 Give `--accum_grad <int>` to use this option.
@@ -365,7 +414,7 @@ There are some possibilities to make training non-reproducible.
 - Reducing order for float values during multi GPUs training.
   - I don't know whether NCCL is deterministic or not.
 - Random seed difference
-  - We fixed the random seed for each epoch, thus the randomness should be reproduced even if the process is resumed.
+  - We fixed the random seed for each epoch.
 - CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html
 
 By default, CuDNN performs deterministic mode and it can be changed by:

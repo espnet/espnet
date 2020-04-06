@@ -1,7 +1,5 @@
 # ESPnet2
-We are planning a super major update, called `ESPnet2`.
-
-The developing status is still **under construction** yet, so please be very careful to use with understanding following cautions:
+We are planning a super major update, called `ESPnet2`. The developing status is still **under construction** yet, so please be very careful to use with understanding following cautions:
 
 - There might be fatal bugs related to essential parts.
 - We haven't achieved comparable results to espnet1 on each task yet.
@@ -9,21 +7,21 @@ The developing status is still **under construction** yet, so please be very car
 ## Main changing from ESPnet1
 
 - **Chainer free**
- - Discarding Chainer completely.
- - The development of Chainer is stopped at v7: https://chainer.org/announcement/2019/12/05/released-v7.html
+  - Discarding Chainer completely.
+  - The development of Chainer is stopped at v7: https://chainer.org/announcement/2019/12/05/released-v7.html
 - **Kaldi free**
- - It's not mandatory to compile Kaldi.
+   - It's not mandatory to compile Kaldi.
    - **If you find some recipes requiring Kaldi mandatory, please report it. It should be dealt with as a bug in ESPnet2.**
- - We still support the features made by Kaldi optionally.
- - We still follow Kaldi style. i.e. depending on `utils/` of Kaldi.
+   - We still support the features made by Kaldi optionally.
+   - We still follow Kaldi style. i.e. depending on `utils/` of Kaldi.
 - **On the fly** feature extraction & text preprocessing for training
- - You don't need to create the feature file before training, but just input wave data directly.
+   - You don't need to create the feature file before training, but just input wave data directly.
    - We support both raw wave input and extracted features.
- - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
-- Discarding the JSON format for describing the training corpus in espnet1.
-  - Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.
+   - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
+- Discarding the JSON format describing the training corpus.
+   - Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.
 - Support distributed data-parallel training (Not enough tested)
-  - Single node multi GPU training with `DistributedDataParallel` is also supported.
+   - Single node multi GPU training with `DistributedDataParallel` is also supported.
 
 ## Recipes using ESPnet2
 
@@ -32,8 +30,8 @@ You can find the new recipes in `egs2`:
 ```
 espnet/  # Python modules of epsnet1
 espnet2/ # Python modules of epsnet2
-egs/   # espnet1 recipes
-egs2/   # espnet2 recipes
+egs/     # espnet1 recipes
+egs2/    # espnet2 recipes
 ```
 
 The usage of recipes is **almost the same** as that of ESPnet1.
@@ -41,70 +39,68 @@ The usage of recipes is **almost the same** as that of ESPnet1.
 
 1. Change directory to the base directory
 
-  ```bash
-  # e.g.
-  cd egs2/an4/asr1/
-  ```
+    ```bash
+    # e.g.
+    cd egs2/an4/asr1/
+    ```
+    `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial. 
+    You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
 
-  `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
-
-  Note that all shell scripts are supposed to be executed in the same level directory, `egs2/*/asr1`, and they can't be used in other places.
-
-  ```bash
-  # Doesn't work
-  cd egs2/an4/
-  ./asr1/run.sh
-  ./asr1/scripts/<some-script>.sh
-  ```
-
-  ```bash
-  # Doesn't work
-  cd egs2/an4/asr1/local/
-  ./data.sh
-  ```
-  ```bash
-  # Work
-  cd egs2/an4/asr1
-  ./run.sh
-  ./scripts/<some-script>.sh
-  ```
-
+    Keep in mind that all scripts should be ran at the level of `egs2/*/{asr1,tts1,...}`.
+    
+    ```bash
+    # Doesn't work
+    cd egs2/an4/
+    ./asr1/run.sh
+    ./asr1/scripts/<some-script>.sh
+    
+    # Doesn't work
+    cd egs2/an4/asr1/local/
+    ./data.sh
+    
+    # Work
+    cd egs2/an4/asr1
+    ./run.sh
+    ./scripts/<some-script>.sh
+    ```
+    
 1. Change the configuration
+    Describing the directory structure as follows:
+    
+    ```
+    egs2/an4/asr1/
+     - conf/      # Configuration files for training, inference, etc.
+     - scripts/   # Bash utilities of espnet2
+     - pyscripts/ # Python utilities of espnet2
+     - steps/     # From Kaldi utilities
+     - utils/     # From Kaldi utilities
+     - db.sh      # The directory path of each corpora
+     - path.sh    # Setup script for environment variables
+     - cmd.sh     # Configuration for your backend of job scheduler
+     - run.sh     # Entry point
+     - asr.sh     # Invoked by run.sh
+    ```
 
-  ```
-  egs2/an4/asr1/
-   - conf/   # Configuration files for training, inference, etc.
-   - scripts/  # Bash utilities of espnet2
-   - pyscripts/ # Python utilities of espnet2
-   - steps/   # Kaldi utilities
-   - utils/   # Kaldi utilities
-   - db.sh   # The directory path of each corpora
-   - path.sh  # Setup script for environment variables
-   - cmd.sh   # Configuration for your backend of job scheduler
-   - run.sh   # Entry point
-   - asr.sh   # Invoked by run.sh
-  ```
-
-  - You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
-    - Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
-  - `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
-  ```bash
-  source path.sh
-  python
-  ```
-  - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
+    - You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
+      - Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
+    - `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
+        ```bash
+        source path.sh
+        python
+        ```
+    - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
 
 1. Run `run.sh`
 
-  ```bash
-  ./run.sh
-  ```
+    ```bash
+    ./run.sh
+    ```
 
-  `run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
+    `run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
 
 ## See training status
 
-### Log file
+### Show the log file
 
 ```bash
 % tail -f exp/asr_train_<some-name>/train.log
@@ -115,7 +111,7 @@ s_att=35.801, loss_ctc=65.945, acc=0.471, backward_time=0.072, optim_step_time=0
 , loss_att=28.776, loss_ctc=59.962, acc=0.506, backward_time=0.055, optim_step_time=0.006, lr_0=1.000, train_time=0.173
 ```
 
-### Show images
+### Show the training status in a image file
 
 ```bash
 # Accuracy plot
