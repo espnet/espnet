@@ -646,7 +646,7 @@ def recog(args):
     model.recog_args = args
 
     logging.info(' Total parameter of the model = ' + str(sum(p.numel() for p in model.parameters())))
-    
+
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
