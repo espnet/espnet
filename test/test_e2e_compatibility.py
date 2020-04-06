@@ -11,7 +11,6 @@ import os
 from os.path import join
 import re
 import shutil
-import six
 import subprocess
 import tempfile
 
