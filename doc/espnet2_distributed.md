@@ -2,15 +2,15 @@
 
 ESPnet2 provides some kinds of data-parallel distributed training.
 
-1. Single node with Multi GPUs
+1. Single node with multi GPUs
     1. Using multi-processing: `torch.nn.DistributedDataParallel`
         - `--ngpu N-GPU --multiprocessing_distributed true`
     1. Using multi-threading: `torch.nn.DataParallel`
         - `--ngpu N-GPU --multiprocessing_distributed false`
-1. Multi nodes with Multi GPUs: `torch.nn.DistributedDataParallel`
-    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)
+1. Multi nodes with multi GPUs: `torch.nn.DistributedDataParallel`
+    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-processing
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
-    1. Using multi-threading
+    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-threading
         - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
     1. Launch `N-NODE` jobs with `1-GPU` for each node
         - `--dist_world_size N-NODE --ngpu 1`
@@ -61,7 +61,7 @@ It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZ
 #### About init method
 See: https://pytorch.org/docs/stable/distributed.html#tcp-initialization
 
-There are two ways to initializeand **these methods can be interchanged** in all examples.
+There are two ways to initialize and **these methods can be interchanged** in all examples.
 
 - TCP initialization
    ```bash

@@ -95,7 +95,7 @@ like `<file-path>,<key-name>,<file-format>`.
 
 - `key-name` specify the key of dict
 - `file-path` is a file/directory path for the data source.
-- `file-format` indicates the format of file specified by `file-path`. 
+- `file-format` indicates the format of file specified by `file-path`. e.g. `sound`, `kaldi_ark`, or etc.
 
 
 ### `scp` file
@@ -133,8 +133,8 @@ e.g. file path, transcription, a sequence of numbers.
     ```
 - format=text
     ```
-    sample_id_a hello
-    sample_id_b world
+    sample_id_a hello world
+    sample_id_b It is rainy today
     ```
 
 
