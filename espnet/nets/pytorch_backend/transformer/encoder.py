@@ -6,19 +6,19 @@
 
 """Encoder definition."""
 
-import torch
 import logging
+import torch
 
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
@@ -129,7 +129,8 @@ class Encoder(torch.nn.Module):
                 num_blocks,
                 lambda lnum: EncoderLayer(
                     attention_dim,
-                    LightweightConvolution(conv_wshare, attention_dim, attention_dropout_rate, conv_kernel_length, lnum, use_bias=conv_usebias),
+                    LightweightConvolution(conv_wshare, attention_dim, attention_dropout_rate,
+                                           conv_kernel_length, lnum, use_bias=conv_usebias),
                     positionwise_layer(*positionwise_layer_args),
                     dropout_rate,
                     normalize_before,
@@ -142,7 +143,8 @@ class Encoder(torch.nn.Module):
                 num_blocks,
                 lambda lnum: EncoderLayer(
                     attention_dim,
-                    LightweightConvolution2D(conv_wshare, attention_dim, attention_dropout_rate, conv_kernel_length, lnum, use_bias=conv_usebias),
+                    LightweightConvolution2D(conv_wshare, attention_dim, attention_dropout_rate,
+                                             conv_kernel_length, lnum, use_bias=conv_usebias),
                     positionwise_layer(*positionwise_layer_args),
                     dropout_rate,
                     normalize_before,
@@ -155,7 +157,8 @@ class Encoder(torch.nn.Module):
                 num_blocks,
                 lambda lnum: EncoderLayer(
                     attention_dim,
-                    DynamicConvolution(conv_wshare, attention_dim, attention_dropout_rate, conv_kernel_length, lnum, use_bias=conv_usebias),
+                    DynamicConvolution(conv_wshare, attention_dim, attention_dropout_rate,
+                                       conv_kernel_length, lnum, use_bias=conv_usebias),
                     positionwise_layer(*positionwise_layer_args),
                     dropout_rate,
                     normalize_before,
@@ -168,7 +171,8 @@ class Encoder(torch.nn.Module):
                 num_blocks,
                 lambda lnum: EncoderLayer(
                     attention_dim,
-                    DynamicConvolution2D(conv_wshare, attention_dim, attention_dropout_rate, conv_kernel_length, lnum, use_bias=conv_usebias),
+                    DynamicConvolution2D(conv_wshare, attention_dim, attention_dropout_rate,
+                                         conv_kernel_length, lnum, use_bias=conv_usebias),
                     positionwise_layer(*positionwise_layer_args),
                     dropout_rate,
                     normalize_before,
