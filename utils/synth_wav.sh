@@ -58,7 +58,7 @@ Note:
     For our provided models, you can find them in the tables at
     https://github.com/espnet/espnet#tts-demo.
     If you are beginner, instead of this script, I strongly recommend trying
-    the following colab notebook at first , which includes all of the procedure
+    the following colab notebook at first, which includes all of the procedure
     from text frontend, feature generation, and waveform generation.
     https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb
 
