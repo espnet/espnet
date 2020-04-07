@@ -14,7 +14,7 @@ fi
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=4
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
@@ -50,16 +50,29 @@ help_message=$(cat <<EOF
 Usage:
     $ $0 <text>
 
+Note:
+    This code does not include text frontend part. Please clean the input
+    text manually. Also, you need to modify feature configuration according
+    to the model. Default setting is for ljspeech models, so if you want to
+    use other pretrained models, please modify the parameters by yourself.
+    For our provided models, you can find them in the tables at
+    https://github.com/espnet/espnet#tts-demo.
+    If you are beginner, instead of this script, I strongly recommend trying
+    the following colab notebook at first , which includes all of the procedure
+    from text frontend, feature generation, and waveform generation.
+    https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb
+
 Example:
     # make text file and then generate it
-    echo "This is a demonstration of text to speech." > example.txt
+    # (for the default model, ljspeech, we use upper-case char sequence as the input)
+    echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
     $0 example.txt
 
     # you can specify the pretrained models
     $0 --models ljspeech.transformer.v3 example.txt
 
     # also you can specify vocoder model
-    $0 --vocoder_models ljspeech.wavenet.mol.v2 --stop_stage 4 example.txt
+    $0 --vocoder_models ljspeech.wavenet.mol.v2 example.txt
 
 Available models:
     - ljspeech.tacotron2.v1
