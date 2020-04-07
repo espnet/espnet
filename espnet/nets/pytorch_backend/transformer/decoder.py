@@ -8,6 +8,7 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -16,6 +17,12 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.scorer_interface import ScorerInterface
+
+
+def _pre_hook(state_dict, prefix, local_metadata, strict,
+              missing_keys, unexpected_keys, error_msgs):
+    # https://github.com/espnet/espnet/commit/3d422f6de8d4f03673b89e1caef698745ec749ea#diff-bffb1396f038b317b2b64dd96e6d3563
+    rename_state_dict(prefix + "output_norm.", prefix + "after_norm.", state_dict)
 
 
 class Decoder(ScorerInterface, torch.nn.Module):
@@ -53,6 +60,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                  concat_after=False):
         """Construct an Decoder object."""
         torch.nn.Module.__init__(self)
+        self._register_load_state_dict_pre_hook(_pre_hook)
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),
