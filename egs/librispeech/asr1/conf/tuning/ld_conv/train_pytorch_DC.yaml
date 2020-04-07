@@ -43,8 +43,8 @@ transformer-init: pytorch
 transformer-encoder-selfattn-layer-type: dynamicconv
 transformer-decoder-selfattn-layer-type: dynamicconv
 wshare: 4
-ldconv-encoder-kernel-length: 101-101-101-101-101-101-101-101-101-101-101-101
-ldconv-decoder-kernel-length: 71-71-71-71-71-71
+ldconv-encoder-kernel-length: "101_101_101_101_101_101_101_101_101_101_101_101"
+ldconv-decoder-kernel-length: "71_71_71_71_71_71"
 
 # RESULTS
 #                                                                                                                                    # Snt     # Wrd    |   Corr         Sub        Del         Ins         Err      S.Err    |

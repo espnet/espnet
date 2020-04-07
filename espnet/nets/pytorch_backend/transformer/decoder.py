@@ -6,17 +6,17 @@
 
 """Decoder definition."""
 
-import torch
 import logging
+import torch
 
-from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
-from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
-from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -103,7 +103,8 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 num_blocks,
                 lambda lnum: DecoderLayer(
                     attention_dim,
-                    LightweightConvolution(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    LightweightConvolution(conv_wshare, attention_dim, self_attention_dropout_rate,
+                                           conv_kernel_length, lnum, use_kernel_mask=True, use_bias=conv_usebias),
                     MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
                     PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                     dropout_rate,
@@ -117,7 +118,8 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 num_blocks,
                 lambda lnum: DecoderLayer(
                     attention_dim,
-                    LightweightConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    LightweightConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate,
+                                             conv_kernel_length, lnum, use_kernel_mask=True, use_bias=conv_usebias),
                     MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
                     PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                     dropout_rate,
@@ -131,7 +133,8 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 num_blocks,
                 lambda lnum: DecoderLayer(
                     attention_dim,
-                    DynamicConvolution(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    DynamicConvolution(conv_wshare, attention_dim, self_attention_dropout_rate,
+                                       conv_kernel_length, lnum, use_kernel_mask=True, use_bias=conv_usebias),
                     MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
                     PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                     dropout_rate,
@@ -145,7 +148,8 @@ class Decoder(ScorerInterface, torch.nn.Module):
                 num_blocks,
                 lambda lnum: DecoderLayer(
                     attention_dim,
-                    DynamicConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate, conv_kernel_length, lnum, use_kernel_mask=True,use_bias=conv_usebias),
+                    DynamicConvolution2D(conv_wshare, attention_dim, self_attention_dropout_rate,
+                                         conv_kernel_length, lnum, use_kernel_mask=True, use_bias=conv_usebias),
                     MultiHeadedAttention(attention_heads, attention_dim, src_attention_dropout_rate),
                     PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                     dropout_rate,

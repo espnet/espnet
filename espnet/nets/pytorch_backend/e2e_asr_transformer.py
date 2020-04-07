@@ -20,9 +20,9 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
-from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
@@ -62,19 +62,29 @@ class E2E(ASRInterface, torch.nn.Module):
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
         group.add_argument("--transformer-encoder-selfattn-layer-type", type=str, default="selfattn",
-                           choices=["selfattn", "lightconv", "lightconv2d", "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
+                           choices=["selfattn", "lightconv", "lightconv2d",
+                                    "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
                            help='transformer encoder self-attention layer type')
         group.add_argument("--transformer-decoder-selfattn-layer-type", type=str, default="selfattn",
-                           choices=["selfattn", "lightconv", "lightconv2d", "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
+                           choices=["selfattn", "lightconv", "lightconv2d",
+                                    "dynamicconv", "dynamicconv2d", "light-dynamicconv2d"],
                            help='transformer decoder self-attention layer type')
+        # Lightweight/Dynamic convolution related parameters.
+        # See https://arxiv.org/abs/1912.11793v2 and https://arxiv.org/abs/1901.10430 for detail of the method.
+        # Configurations used in the first paper are in egs/{csj, librispeech}/asr1/conf/tuning/ld_conv/
         parser.add_argument('--wshare', default=4, type=int,
-                           help='Number of parameter shargin for lightweight convolution')
-        parser.add_argument('--ldconv-encoder-kernel-length', default="21-23-25-27-29-31-33-35-37-39-41-43", type=str,
-                           help='kernel size for lightweight/dynamic convolution: Encoder side. For example, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
-        parser.add_argument('--ldconv-decoder-kernel-length', default="11-13-15-17-19-21", type=str,
-                           help='kernel size for lightweight/dynamic convolution: Decoder side. For example, "21-23-25" means kernel length 21 for First layer, 23 for Second layer and so on.')
+                            help='Number of parameter shargin for lightweight convolution')
+        parser.add_argument('--ldconv-encoder-kernel-length', default="21_23_25_27_29_31_33_35_37_39_41_43",
+                            type=str,
+                            help='kernel size for lightweight/dynamic convolution: \
+                            Encoder side. For example, "21_23_25" means kernel length 21 for \
+                            First layer, 23 for Second layer and so on.')
+        parser.add_argument('--ldconv-decoder-kernel-length', default="11_13_15_17_19_21", type=str,
+                            help='kernel size for lightweight/dynamic convolution: \
+                            Decoder side. For example, "21_23_25" means kernel length 21 for \
+                            First layer, 23 for Second layer and so on.')
         parser.add_argument('--ldconv-usebias', type=strtobool, default=False,
-                           help='use bias term in lightweight/dynamic convolution')
+                            help='use bias term in lightweight/dynamic convolution')
         group.add_argument('--dropout-rate', default=0.0, type=float,
                            help='Dropout rate for the encoder')
         # Encoder
@@ -461,6 +471,6 @@ class E2E(ASRInterface, torch.nn.Module):
             if isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution):
                 ret[name] = m.attn.cpu().numpy()
             if isinstance(m, DynamicConvolution2D):
-                ret[name+"_time"] = m.attn_t.cpu().numpy()
-                ret[name+"_freq"] = m.attn_f.cpu().numpy()
+                ret[name + "_time"] = m.attn_t.cpu().numpy()
+                ret[name + "_freq"] = m.attn_f.cpu().numpy()
         return ret

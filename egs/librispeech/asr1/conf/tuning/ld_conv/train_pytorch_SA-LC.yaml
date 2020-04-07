@@ -43,7 +43,7 @@ transformer-init: pytorch
 transformer-encoder-selfattn-layer-type: selfattn
 transformer-decoder-selfattn-layer-type: lightconv
 wshare: 8
-ldconv-decoder-kernel-length: 31-31-31-31-31-31
+ldconv-decoder-kernel-length: "31_31_31_31_31_31"
 
 # RESULTS
 #                                                                                                                                        # Snt       # Wrd    |   Corr          Sub         Del          Ins         Err        S.Err    |
