@@ -448,11 +448,10 @@ def train(args):
             model, optimizer = amp.initialize(model, optimizer, opt_level=args.train_dtype)
         use_apex = True
 
-        if args.ctc_type == "builtin":
-            from espnet.nets.pytorch_backend.ctc import CTC
-            amp.register_float_function(CTC, "loss_fn")
-            amp.init()
-            logging.warning('register pytorch builtin ctc as float function')
+        from espnet.nets.pytorch_backend.ctc import CTC
+        amp.register_float_function(CTC, "loss_fn")
+        amp.init()
+        logging.warning('register ctc as float function')
     else:
         use_apex = False
 
