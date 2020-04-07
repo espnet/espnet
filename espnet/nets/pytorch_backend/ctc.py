@@ -87,10 +87,11 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         dtype = ys_hat.dtype
         ys_hat = ys_hat.transpose(0, 1)
-        if self.ctc_type == "warpctc":
+        if self.ctc_type == "warpctc" or dtype == torch.float16:
             # warpctc only supports float32
+            # torch.ctc does not support float16 (#1751)
             ys_hat = ys_hat.to(dtype=torch.float32)
-        else:
+        if self.ctc_type == "builtin":
             # use GPU when using the cuDNN implementation
             ys_true = to_device(self, ys_true)
         self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(dtype=dtype)
