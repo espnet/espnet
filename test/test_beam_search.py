@@ -66,12 +66,18 @@ transformer_args = Namespace(
     dunits=16,
     sym_space="<space>",
     sym_blank="<blank>",
+    transformer_decoder_selfattn_layer_type="selfattn",
+    transformer_encoder_selfattn_layer_type="selfattn",
     transformer_init="pytorch",
     transformer_input_layer="conv2d",
     transformer_length_normalized_loss=True,
     report_cer=False,
     report_wer=False,
     ctc_type="warpctc",
+    wshare=4,
+    ldconv_encoder_kernel_length="21_23_25_27_29_31_33_35_37_39_41_43",
+    ldconv_decoder_kernel_length="11_13_15_17_19_21",
+    ldconv_usebias=False,
     lsm_weight=0.001,
 )
 
