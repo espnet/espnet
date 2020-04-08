@@ -1,0 +1,50 @@
+# network architecture
+# encoder related
+encoder: vgg_rnn
+encoder_conf:
+    rnn_type: lstm
+    bidirectional: True
+    use_projection: True
+    num_layers: 4
+    hidden_size: 1024
+    output_size: 1024
+
+# decoder related
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 1024
+    sampling_probability: 0.0
+    att_conf:
+        atype: location
+        adim: 1024
+        awin: 5
+        aheads: 4
+        aconv_chans: 10
+        aconv_filts: 100
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.5
+
+# optimization related
+optim: adadelta
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
+init: chainer
+max_epoch: 8
+patience: 3
+
+# minibatch related
+batch_type: folded
+batch_size: 24
+
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 1
