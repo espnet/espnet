@@ -63,7 +63,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
+    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train char
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
