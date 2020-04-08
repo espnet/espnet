@@ -259,12 +259,13 @@ Please access the notebook from the following button and enjoy the real-time syn
 
 ---
 
-You can synthesize speech in a TXT file using pretrained models.
+You can synthesize speech in a TXT file using pretrained models.  
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
 ```sh
-# we use upper-case char sequence for the default model.
+# go to recipe directory and source path of espnet tools
 cd egs/ljspeech/tts1 && . ./path.sh
+# we use upper-case char sequence for the default model.
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
 synth_wav.sh example.txt
 
@@ -283,7 +284,7 @@ synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
 You can change the pretrained vocoder model as follows:
 
-```
+```sh
 synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 ```
 
