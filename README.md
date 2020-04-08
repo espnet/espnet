@@ -115,8 +115,10 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 You can recognize speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
-cd egs/tedlium2/asr1
-../../../utils/recog_wav.sh --models tedlium2.transformer.v1 example.wav
+# go to recipe directory and source path of espnet tools
+cd egs/tedlium2/asr1 && . ./path.sh
+# let's recognize speech!
+recog_wav.sh --models tedlium2.transformer.v1 example.wav
 ```
 where `example.wav` is a WAV file to be recognized.
 The sampling rate must be consistent with that of data used in training.
@@ -171,8 +173,12 @@ Please access the notebook from the following button and enjoy the real-time spe
 You can translate speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/translate_wav.sh` as follows:
 ```sh
-cd egs/fisher_callhome_spanish/st1/
-wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf - ../../../utils/translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
+# go to recipe directory and source path of espnet tools
+cd egs/fisher_callhome_spanish/st1 && . ./path.sh
+# download example wav file
+wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf -
+# let's translate speech!
+translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
 ```
 where `test.wav` is a WAV file to be translated.
 The sampling rate must be consistent with that of data used in training.
@@ -267,6 +273,7 @@ Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 cd egs/ljspeech/tts1 && . ./path.sh
 # we use upper-case char sequence for the default model.
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
+# let's synthesize speech!
 synth_wav.sh example.txt
 
 # also you can use multiple sentences
