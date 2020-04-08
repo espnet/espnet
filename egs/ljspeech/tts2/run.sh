@@ -188,7 +188,7 @@ fi
 if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
-outdir=${expdir}/outputs_${model}_$(basename ${train_config%.*})
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [ ${n_average} -gt 0 ]; then
