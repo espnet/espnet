@@ -112,7 +112,7 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 
 ### ASR demo
 
-You can recognize speech in a WAV file using pretrained models.
+You can recognize speech in a WAV file using pretrained models.  
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
 # go to recipe directory and source path of espnet tools
@@ -170,7 +170,7 @@ Please access the notebook from the following button and enjoy the real-time spe
 
 ---
 
-You can translate speech in a WAV file using pretrained models.
+You can translate speech in a WAV file using pretrained models.  
 Go to a recipe directory and run `utils/translate_wav.sh` as follows:
 ```sh
 # go to recipe directory and source path of espnet tools
