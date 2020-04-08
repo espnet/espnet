@@ -115,8 +115,10 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 You can recognize speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
-cd egs/tedlium2/asr1
-../../../utils/recog_wav.sh --models tedlium2.transformer.v1 example.wav
+# go to recipe directory and source path of espnet tools
+cd egs/tedlium2/asr1 && . ./path.sh
+# let's recognize speech!
+recog_wav.sh --models tedlium2.transformer.v1 example.wav
 ```
 where `example.wav` is a WAV file to be recognized.
 The sampling rate must be consistent with that of data used in training.
@@ -171,8 +173,12 @@ Please access the notebook from the following button and enjoy the real-time spe
 You can translate speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/translate_wav.sh` as follows:
 ```sh
-cd egs/fisher_callhome_spanish/st1/
-wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf - ../../../utils/translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
+# go to recipe directory and source path of espnet tools
+cd egs/fisher_callhome_spanish/st1 && . ./path.sh
+# download example wav file
+wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf -
+# let's translate speech!
+translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
 ```
 where `test.wav` is a WAV file to be translated.
 The sampling rate must be consistent with that of data used in training.
@@ -263,25 +269,43 @@ You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
 ```sh
-cd egs/ljspeech/tts1
+# go to recipe directory and source path of espnet tools
+cd egs/ljspeech/tts1 && . ./path.sh
+# we use upper-case char sequence for the default model.
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
-../../../utils/synth_wav.sh example.txt
+# let's synthesize speech!
+synth_wav.sh example.txt
+
+# also you can use multiple sentences
+echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example_multi.txt
+echo "TEXT TO SPEECH IS A TECHQNIQUE TO CONVERT TEXT INTO SPEECH." >> example_multi.txt
+synth_wav.sh example_multi.txt
 ```
 
 You can change the pretrained model as follows:
 
 ```sh
-../../../utils/synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
+synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
 ```
 
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
 You can change the pretrained vocoder model as follows:
 
-```
-../../../utils/synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
+```sh
+synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 ```
 
-Note that WaveNet vocoder provides very high quality speech but it takes time to generate.
+WaveNet vocoder provides very high quality speech but it takes time to generate.
+
+> **Important Note**:
+>
+> This code does not include text frontend part.
+> Please clean the input text manually.
+> Also, you need to modify feature configuration according to the model.
+> Default setting is for ljspeech models, so if you want to use other pretrained models, please modify the parameters by yourself.
+> For our provided models, you can find them in the below table.
+>
+> If you are beginner, instead of this script, I strongly recommend trying the [colab notebook](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb) at first, which includes all of the procedure from text frontend, feature generation, and waveform generation.
 
 Available pretrained models in the demo script are listed as follows:
 
