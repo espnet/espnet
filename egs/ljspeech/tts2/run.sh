@@ -182,7 +182,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
-           --config ${decode_config}
+           --config ${train_config}
 fi
 
 if [ ${n_average} -gt 0 ]; then
