@@ -263,25 +263,41 @@ You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
 ```sh
-cd egs/ljspeech/tts1
+# we use upper-case char sequence for the default model.
+cd egs/ljspeech/tts1 && . ./path.sh
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
-../../../utils/synth_wav.sh example.txt
+synth_wav.sh example.txt
+
+# also you can use multiple sentences
+echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example_multi.txt
+echo "TEXT TO SPEECH IS A TECHQNIQUE TO CONVERT TEXT INTO SPEECH." >> example_multi.txt
+synth_wav.sh example_multi.txt
 ```
 
 You can change the pretrained model as follows:
 
 ```sh
-../../../utils/synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
+synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
 ```
 
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
 You can change the pretrained vocoder model as follows:
 
 ```
-../../../utils/synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
+synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 ```
 
-Note that WaveNet vocoder provides very high quality speech but it takes time to generate.
+WaveNet vocoder provides very high quality speech but it takes time to generate.
+
+> **Important Note**:
+>
+> This code does not include text frontend part.
+> Please clean the input text manually.
+> Also, you need to modify feature configuration according to the model.
+> Default setting is for ljspeech models, so if you want to use other pretrained models, please modify the parameters by yourself.
+> For our provided models, you can find them in the below table.
+>
+> If you are beginner, instead of this script, I strongly recommend trying the [colab notebook](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb) at first, which includes all of the procedure from text frontend, feature generation, and waveform generation.
 
 Available pretrained models in the demo script are listed as follows:
 
