@@ -157,6 +157,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
                     concat_after
                 )
             )
+        self.selfattention_layer_type = selfattention_layer_type
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
         if use_output_layer:
@@ -228,5 +229,7 @@ class Decoder(ScorerInterface, torch.nn.Module):
     def score(self, ys, state, x):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        if self.selfattention_layer_type != "selfattn":
+            state = None
         logp, state = self.forward_one_step(ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state)
         return logp.squeeze(0), state

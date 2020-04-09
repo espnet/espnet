@@ -83,7 +83,7 @@ class LightweightConvolution2D(nn.Module):
         # convolution along frequency axis
         weight_f = F.softmax(self.weight_f, dim=-1)
         weight_f = F.dropout(weight_f, self.dropout_rate, training=self.training)
-        weight_new = torch.zeros(B * T, 1, self.kernel_size, device=x.device).copy_(weight_f)
+        weight_new = torch.zeros(B * T, 1, self.kernel_size, device=x.device, dtype=x.dtype).copy_(weight_f)
         xf = F.conv1d(x.view(1, B * T, C), weight_new, padding=self.padding_size, groups=B * T).view(B, T, C)
 
         # lightconv
