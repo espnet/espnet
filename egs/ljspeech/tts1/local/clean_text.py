@@ -7,7 +7,7 @@ import argparse
 import codecs
 import nltk
 
-from text.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
 
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.

@@ -6,12 +6,13 @@
 import argparse
 import codecs
 import nltk
-import os
 
-from text.cleaners import custom_english_cleaners
-from text.cleaners import (lowercase, expand_numbers, expand_abbreviations,
-                           expand_symbols, remove_unnecessary_symbols,
-                           uppercase, collapse_whitespace)
+from tacotron_cleaner.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import (
+    lowercase, expand_numbers, expand_abbreviations,
+    expand_symbols, remove_unnecessary_symbols,
+    uppercase, collapse_whitespace
+)
 
 E_lang_tag="en_US"
 

@@ -6,9 +6,9 @@
 import argparse
 import codecs
 import nltk
-import os
 
-from text.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
+
 
 E_lang_tag="en_US"
 
