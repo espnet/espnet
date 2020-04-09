@@ -34,12 +34,11 @@ class DynamicConvolution(nn.Module):
         self.use_kernel_mask = use_kernel_mask
         self.dropout_rate = dropout_rate
         self.kernel_size = int(kernel_size_str.split("_")[lnum])
-        self.padding_size = int(self.kernel_size / 2)
         self.attn = None
 
         # linear -> GLU -- -> lightconv -> linear
         #               \        /
-        #                 Lienar
+        #                 Linear
         self.linear1 = nn.Linear(n_feat, n_feat * 2)
         self.linear2 = nn.Linear(n_feat, n_feat)
         self.linear_weight = nn.Linear(n_feat, self.wshare * 1 * self.kernel_size)
@@ -69,7 +68,7 @@ class DynamicConvolution(nn.Module):
         """
         # linear -> GLU -- -> lightconv -> linear
         #               \        /
-        #                 Lienar
+        #                 Linear
         x = query
         B, T, C = x.size()
         H = self.wshare
@@ -85,7 +84,8 @@ class DynamicConvolution(nn.Module):
         weight = self.linear_weight(x)  # B x T x kH
         weight = F.dropout(weight, self.dropout_rate, training=self.training)
         weight = weight.view(B, T, H, k).transpose(1, 2).contiguous()  # B x H x T x k
-        weight_new = torch.zeros(B * H * T * (T + k - 1)).view(B, H, T, T + k - 1).fill_(float('-inf'))
+        weight_new = torch.zeros(B * H * T * (T + k - 1), dtype=weight.dtype)
+        weight_new = weight_new.view(B, H, T, T + k - 1).fill_(float('-inf'))
         weight_new = weight_new.to(x.device)  # B x H x T x T+k-1
         weight_new.as_strided((B, H, T, k), ((T + k - 1) * T * H, (T + k - 1) * T, T + k, 1)).copy_(weight)
         weight_new = weight_new.narrow(-1, int((k - 1) / 2), T)  # B x H x T x T(k)

@@ -127,9 +127,50 @@ def test_transformer_mask(module):
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
+ldconv_lconv_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv",
+    transformer_encoder_selfattn_layer_type="lightconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv",
+    transformer_encoder_selfattn_layer_type="dynamicconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_lconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv2d",
+    transformer_encoder_selfattn_layer_type="lightconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv2d",
+    transformer_encoder_selfattn_layer_type="dynamicconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+
 @pytest.mark.parametrize(
     "module, model_dict", [
         ('pytorch', {}),
+        ('pytorch', ldconv_lconv_args),
+        ('pytorch', ldconv_dconv_args),
+        ('pytorch', ldconv_lconv2d_args),
+        ('pytorch', ldconv_dconv2d_args),
         ('pytorch', {'report_cer': True}),
         ('pytorch', {'report_wer': True}),
         ('pytorch', {'report_cer': True, 'report_wer': True}),
