@@ -83,7 +83,7 @@ class TransformerDecoder(AbsDecoder):
         self.normalize_before = normalize_before
         self.decoders = repeat(
             num_blocks,
-            lambda: DecoderLayer(
+            lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
                     attention_heads, attention_dim, self_attention_dropout_rate
