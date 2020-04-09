@@ -6,7 +6,7 @@
 import argparse
 import codecs
 
-from text.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
 
 
 if __name__ == "__main__":
