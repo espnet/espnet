@@ -1,0 +1,46 @@
+# network architecture
+# encoder related
+encoder: rnn
+encoder_conf:
+    rnn_type: lstm
+    bidirectional: True
+    use_projection: True
+    num_layers: 6
+    hidden_size: 320
+    output_size: 320
+# decoder related
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 320
+    sampling_probability: 0.0
+
+
+# minibatch related
+batch_type: folded
+batch_size: 30
+
+# optimization related
+optim: adadelta
+max_epoch: 100
+patience: 4
+
+scheduler: reducelronplateau
+scheduler_conf:
+   mode: min
+   factor: 0.5
+   patience: 1
+
+# criterion
+val_scheduler_criterion:
+    - valid
+    - loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+
+init: xavier_uniform
+

@@ -96,7 +96,7 @@ class LogMel(torch.nn.Module):
     """
 
     def __init__(self, fs: int = 16000, n_fft: int = 512, n_mels: int = 80,
-                 fmin: float = None, fmax: float = None,
+                 fmin: float = 0., fmax: float = None,
                  htk: bool = False, norm=1):
         super().__init__()
 
