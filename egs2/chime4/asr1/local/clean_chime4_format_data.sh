@@ -1,0 +1,1 @@
+../../../../egs/chime4/asr1/local/clean_chime4_format_data.sh
