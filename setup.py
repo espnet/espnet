@@ -19,37 +19,44 @@ if LooseVersion(pip.__version__) < LooseVersion("19"):
 
 requirements = {
     "install": [
+        "setuptools>=38.5.1",
+        "configargparse==1.1",
+        "typeguard>=2.7.0",
+        "dataclasses",  # For Python<3.7
+        "humanfriendly",
+        "scipy<=1.3.3",
+        "matplotlib>=3.1.0",
+        "pillow>=6.1.0",
+        "editdistance==0.5.2",
+        # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         "chainer==6.0.0",
         # 'cupy==6.0.0',  # Do not install cupy as default
-        "setuptools>=38.5.1",
-        "scipy<=1.3.3",
-        "librosa>=0.7.0",
-        "soundfile>=0.10.2",
-        "inflect>=1.0.0",
-        "unidecode>=1.0.22",
-        "editdistance==0.5.2",
-        "h5py==2.9.0",
         "tensorboard>=1.14",  # For pytorch>=1.1.0
         "tensorboardX>=1.8",  # For pytorch<1.1.0
-        "pillow>=6.1.0",
-        "nara_wpe>=0.0.5",
-        "museval>=0.2.1",
-        "pystoi>=0.2.2",
-        "kaldiio>=2.15.0",
-        "matplotlib>=3.1.0",
-        "configargparse==1.1",
-        "PyYAML>=5.1.2",
-        "sentencepiece>=0.1.82",
+        # Signal processing related
+        "librosa>=0.7.0",
+        "resampy",
         "pysptk>=0.1.17",
+        # Natural language processing related
+        "sentencepiece>=0.1.82",
         "nltk>=3.4.5",
-        "nnmnkwii",
+        # File IO related
+        "PyYAML>=5.1.2",
+        "soundfile>=0.10.2",
+        "h5py==2.9.0",
+        "kaldiio>=2.15.0",
+        # TTS related
+        "inflect>=1.0.0",
+        "unidecode>=1.0.22",
         "jaconv",
         "g2p_en",
-        "typeguard>=2.7.0",
-        "humanfriendly",
-        "resampy",
-        "dataclasses",  # For Python<3.7
+        "nnmnkwii",
+        "espnet_tts_frontend@git+https://github.com/espnet/espnet_tts_frontend.git",
+        # ASR frontend related
+        "museval>=0.2.1",
+        "pystoi>=0.2.2",
+        "nara_wpe>=0.0.5",
         "torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git",
         "pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git",
     ],

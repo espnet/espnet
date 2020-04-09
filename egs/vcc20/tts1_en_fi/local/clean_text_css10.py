@@ -6,12 +6,14 @@
 
 import argparse
 import codecs
-import json
 import os
 
-from text.cleaners import (lowercase, expand_numbers, expand_abbreviations,
-                           expand_symbols, remove_unnecessary_symbols,
-                           uppercase, collapse_whitespace)
+import nltk
+from tacotron_cleaner.cleaners import (
+    lowercase, expand_numbers, expand_abbreviations,
+    expand_symbols, remove_unnecessary_symbols,
+    uppercase, collapse_whitespace
+)
 
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.

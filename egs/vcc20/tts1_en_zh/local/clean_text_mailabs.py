@@ -9,7 +9,7 @@ import codecs
 import json
 import os
 
-from text.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
 import nltk
 
 try:
