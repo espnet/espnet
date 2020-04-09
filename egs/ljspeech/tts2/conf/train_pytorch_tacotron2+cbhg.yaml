@@ -18,7 +18,7 @@ postnet-chans: 512
 postnet-filts: 5
 
 # attention related
-atype: forward-ta
+atype: forward_ta
 adim: 128
 aconv-chans: 32
 aconv-filts: 15      # resulting in filter-size = aconv-filts * 2 + 1
