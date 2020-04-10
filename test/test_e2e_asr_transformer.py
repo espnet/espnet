@@ -6,6 +6,8 @@ import numpy
 import pytest
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
+
 
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
@@ -302,6 +304,20 @@ def test_transformer_parallel():
         # attn_dict = model.calculate_all_attentions(x, ilens, y)
         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
     assert max_acc > 0.8
+
+
+# https://github.com/espnet/espnet/issues/1750
+def test_v0_3_transformer_input_compatibility():
+    args = make_arg()
+    model, x, ilens, y, data = prepare("pytorch", args)
+    # these old names are used in v.0.3.x
+    state_dict = model.state_dict()
+    prefix = "encoder."
+    rename_state_dict(prefix + "embed.", prefix + "input_layer.", state_dict)
+    rename_state_dict(prefix + "after_norm.", prefix + "norm.", state_dict)
+    prefix = "decoder."
+    rename_state_dict(prefix + "after_norm.", prefix + "output_norm.", state_dict)
+    model.load_state_dict(state_dict)
 
 
 if __name__ == "__main__":

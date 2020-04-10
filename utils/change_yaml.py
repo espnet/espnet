@@ -10,8 +10,10 @@ def get_parser():
         description='change specified attributes of a YAML file',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    egroup = parser.add_mutually_exclusive_group()
     parser.add_argument('inyaml', nargs='?')
-    parser.add_argument('-o', '--outyaml')
+    egroup.add_argument('-o', '--outyaml')
+    egroup.add_argument('--outdir')
     parser.add_argument('-a', '--arg', action='append', default=[],
                         help="e.g -a a.b.c=4 -> {'a': {'b': {'c': 4}}}")
     parser.add_argument('-d', '--delete', action='append', default=[],
@@ -35,7 +37,11 @@ def main():
         eles = []
         if args.inyaml is not None:
             p = Path(args.inyaml)
-            eles.append(str(p.parent / p.stem))
+            if args.outdir is None:
+                outdir = p.parent
+            else:
+                outdir = Path(args.outdir)
+            eles.append(str(outdir / p.stem))
 
         table = str.maketrans('{}[]()', '%%__--', ' |&;#*?~"\'\\')
         for arg in args.delete:
@@ -56,8 +62,10 @@ def main():
         if args.inyaml == outyaml:
             p = Path(args.outyaml)
             outyaml = p.parent / (p.stem + '.2' + p.suffix)
+
+        outyaml = Path(outyaml)
     else:
-        outyaml = args.outyaml
+        outyaml = Path(args.outyaml)
 
     for arg in args.delete + args.arg:
         if '=' in arg:
@@ -91,8 +99,10 @@ def main():
                 if not isinstance(d[k], (dict, tuple, list)):
                     d[k] = {}
                 d = d[k]
-    with open(outyaml, 'w') as f:
-        yaml.dump(indict, f, Dumper=yaml.Dumper)
+
+    outyaml.parent.mkdir(parents=True, exist_ok=True)
+    with outyaml.open('w') as f:
+        yaml.dump(indict, f, Dumper=yaml.Dumper, indent=4, sort_keys=False)
     print(outyaml)
 
 

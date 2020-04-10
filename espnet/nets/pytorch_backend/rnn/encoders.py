@@ -32,10 +32,12 @@ class RNNP(torch.nn.Module):
                 inputdim = idim
             else:
                 inputdim = hdim
-            rnn = torch.nn.LSTM(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=bidir,
-                                batch_first=True) if "lstm" in typ \
-                else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=bidir, batch_first=True)
+
+            RNN = torch.nn.LSTM if "lstm" in typ else torch.nn.GRU
+            rnn = RNN(inputdim, cdim, num_layers=1, bidirectional=bidir, batch_first=True)
+
             setattr(self, "%s%d" % ("birnn" if bidir else "rnn", i), rnn)
+
             # bottleneck layer to merge
             if bidir:
                 setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
@@ -47,6 +49,7 @@ class RNNP(torch.nn.Module):
         self.subsample = subsample
         self.typ = typ
         self.bidir = bidir
+        self.dropout = dropout
 
     def forward(self, xs_pad, ilens, prev_state=None):
         """RNNP forward
@@ -57,7 +60,7 @@ class RNNP(torch.nn.Module):
         :return: batch of hidden state sequences (B, Tmax, hdim)
         :rtype: torch.Tensor
         """
-        # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.debug(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         elayer_states = []
         for layer in six.moves.range(self.elayers):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
@@ -74,12 +77,11 @@ class RNNP(torch.nn.Module):
                 ys_pad = ys_pad[:, ::sub]
                 ilens = [int(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
-            projected = getattr(self, 'bt' + str(layer)
-                                )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
-            if layer == self.elayers - 1:
-                xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
-            else:
-                xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
+            projection_layer = getattr(self, 'bt%d' % layer)
+            projected = projection_layer(ys_pad.contiguous().view(-1, ys_pad.size(2)))
+            xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
+            if layer < self.elayers - 1:
+                xs_pad = torch.tanh(F.dropout(xs_pad, p=self.dropout))
 
         return xs_pad, ilens, elayer_states  # x: utt list of frame x dim
 
@@ -117,7 +119,7 @@ class RNN(torch.nn.Module):
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.debug(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
         self.nbrnn.flatten_parameters()
         if prev_state is not None and self.nbrnn.bidirectional:
@@ -168,7 +170,7 @@ class VGG2L(torch.nn.Module):
         :return: batch of padded hidden state sequences (B, Tmax // 4, 128 * D // 4)
         :rtype: torch.Tensor
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.debug(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
         # x: utt x frame x dim
         # xs_pad = F.pad_sequence(xs_pad)
