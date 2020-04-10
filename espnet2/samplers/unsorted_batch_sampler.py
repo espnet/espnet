@@ -4,8 +4,8 @@ from typing import Tuple
 
 from typeguard import check_argument_types
 
+from espnet2.fileio.read_text import read_2column_text
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.utils.fileio import read_2column_text
 
 
 class UnsortedBatchSampler(AbsSampler):
