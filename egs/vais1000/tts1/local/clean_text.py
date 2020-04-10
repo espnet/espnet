@@ -5,9 +5,8 @@
 
 import argparse
 import codecs
-import os
 
-from vietnamese_cleaners import vietnamese_cleaner
+from vietnamese_cleaner.vietnamese_cleaners import vietnamese_cleaner
 
 
 if __name__ == "__main__":
