@@ -24,7 +24,7 @@ requirements = {
         "typeguard>=2.7.0",
         "dataclasses",  # For Python<3.7
         "humanfriendly",
-        "scipy<=1.3.3",
+        "scipy>=1.4.1",
         "matplotlib>=3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
