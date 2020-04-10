@@ -20,7 +20,7 @@ if LooseVersion(pip.__version__) < LooseVersion("19"):
 requirements = {
     "install": [
         "setuptools>=38.5.1",
-        "configargparse==1.1",
+        "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "dataclasses",  # For Python<3.7
         "humanfriendly",
