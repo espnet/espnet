@@ -13,11 +13,11 @@ from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
+from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.utils.fileio import DatadirWriter
-from espnet2.utils.fileio import NpyScpWriter
 
 
 @torch.no_grad()
