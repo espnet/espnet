@@ -20,11 +20,11 @@ if LooseVersion(pip.__version__) < LooseVersion("19"):
 requirements = {
     "install": [
         "setuptools>=38.5.1",
-        "configargparse==1.1",
+        "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "dataclasses",  # For Python<3.7
         "humanfriendly",
-        "scipy<=1.3.3",
+        "scipy>=1.4.1",
         "matplotlib>=3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
