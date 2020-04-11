@@ -50,7 +50,7 @@ pull_request_rules:
         remove: ["conflicts"]
   - name: "auto add label=ESPnet2"
     conditions:
-      - files~=^espnet2/
+      - files~=^(espnet2/|egs2/)
     actions:
       label:
         add: ["ESPnet2"]
