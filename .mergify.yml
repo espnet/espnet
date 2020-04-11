@@ -68,10 +68,16 @@ pull_request_rules:
         add: ["Documentation"]
   - name: "auto add label=CI"
     conditions:
-      - files~=^(.circleci/|ci/|.travis.yml)
+      - files~=^(.circleci/|ci/|.github/|.travis.yml)
     actions:
       label:
         add: ["CI"]
+  - name: "auto add label=mergify"
+    conditions:
+      - files~=^.mergify.yml
+    actions:
+      label:
+        add: ["mergify"]
   - name: "auto add label=Docker"
     conditions:
       - files~=^docker/
