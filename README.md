@@ -8,12 +8,15 @@
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 [![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
 | [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
+
+[**Master**](https://github.com/espnet/espnet/tree/master)
+| [**Develop**](https://github.com/espnet/espnet/tree/develop)
+| [**Release**](https://github.com/espnet/espnet/releases)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -73,9 +76,18 @@ See https://espnet.github.io/espnet/tutorial.html
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
+## About ESPnet2
+See https://espnet.github.io/espnet/espnet2_tutorial.html
+
 ## Contribution
 Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
 If it's the first contribution to ESPnet for you,  please follow the [contribution guide](CONTRIBUTING.md).
+
+### Branching strategy
+
+- [master](https://github.com/espnet/espnet/tree/master): Hot fix, adding new recipes, fix typo, update README.md
+- [develop](https://github.com/espnet/espnet/tree/develop): Adding new feature, refactoring, adding test codes
+- [release](https://github.com/espnet/espnet/releases): The specific commit by tag
 
 ## Results and demo
 
