@@ -1,3 +1,4 @@
+  
 pull_request_rules:
   - name: automatic merge if label=auto-merge
     conditions:
@@ -31,6 +32,22 @@ pull_request_rules:
       backport:
         branches:
           - develop
+        # Whether to create the pull requests even if they are conflicts when cherry-picking the commits.
+        ignore_conflicts: true
+  - name: warn on conflicts
+    conditions:
+      - conflict
+    actions:
+      comment:
+        message: This pull request is now in conflict :(
+      label:
+        add: ["conflicts"]
+  - name: unlabel conflicts
+    conditions:
+      - -conflict
+    actions:
+      label:
+        remove: ["conflicts"]
   - name: "auto add label=ESPnet2"
     conditions:
       - files~=^espnet2/
@@ -61,9 +78,3 @@ pull_request_rules:
     actions:
       label:
         add: ["Docker"]
-  - name: warn on conflicts
-    conditions:
-      - conflict
-    actions:
-      comment:
-        message: This pull request is now in conflict :(
