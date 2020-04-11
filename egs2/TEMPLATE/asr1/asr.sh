@@ -559,11 +559,11 @@ if "${use_lm}"; then
               --non_linguistic_symbols "${nlsyms_txt}" \
               --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --batch_type unsorted \
               --train_shape_file "${_logdir}/train.JOB.scp" \
               --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
-              ${_opts} ${lm_args}
+              ${_opts} ${lm_args} \
+              --batch_type unsorted
 
       # 3. Aggregate shape files
       _opts=
@@ -710,7 +710,6 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
@@ -718,7 +717,8 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${asr_args}
+            ${_opts} ${asr_args} \
+            --batch_type unsorted
 
     # 3. Aggregate shape files
     _opts=
