@@ -403,7 +403,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize none \
-            --batch_type unsorted \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
@@ -411,7 +410,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${train_args}
+            ${_opts} ${train_args} \
+            --batch_type unsorted
 
     # 3. Aggregate shape files
     _opts=
