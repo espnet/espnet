@@ -1,5 +1,4 @@
-  
-pull_request_rules:
+  pull_request_rules:
   - name: automatic merge if label=auto-merge
     conditions:
       - "label=auto-merge"
@@ -28,6 +27,7 @@ pull_request_rules:
   - name: backport master to develop branch
     conditions:
       - base=master
+      - merged
     actions:
       backport:
         branches:
