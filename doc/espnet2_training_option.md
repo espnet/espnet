@@ -265,10 +265,10 @@ and the shape information is required only when `--batch_type numel`.
 
 ### `--batch_type folded`
 
-**In ESPnet1, this mode is named as seq.**
+**In ESPnet1, this mode is refered as seq.**
 
 
-This mode creates mini-batch which has the size of `base_batch_size // max_i(L_i // f_i)`. 
+This mode creates mini-batch which has the size of `base_batch_size // max_i(1 + L_i // f_i)`. 
 Where `L_i` is the maximum length in the mini-batch for `i`th feature and 
 `f_i` is the `--fold length` corresponding to the feature. 
 This mode requires the information of length.
@@ -336,6 +336,7 @@ python -m espnet.bin.asr_train \
 ### `--batch_type numel`
 
 **In ESPnet1, this mode is referred as bins.**
+
 You need to specify `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
 Each mini-batches has equal number of bins as possible 
 counting by the total number of elements; 
