@@ -44,10 +44,11 @@ tag="" # tag for managing experiments.
 # Javanese - 402
 # Vietnamese - 107
 # Zulu - 206
+# Dutch (CGN) Fake Babel Code - 505
 # BABEL TEST:
 # Georgian - 404
 # Lao - 203
-babel_langs="307 103 101 402 107 206"
+babel_langs="307 103 101 402 107 206 505"
 babel_recog="${babel_langs} 404 203"
 gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
 gp_recog="${gp_langs}"

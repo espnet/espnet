@@ -8,9 +8,14 @@
 . ./cmd.sh
 . ./conf/lang.conf
 
-langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403 505"
 recog="107 201 307 404"
 FLP=true
+
+# CGN related setups
+cgn=/home/jerome/Documents/20151207_CGN_2_0_3/CGN_2.0.3/		# point this to CGN
+lang="nl" # pointed to folder for Dutch spoken in Netherlands #
+comp="o" # pointed to 64hrs read speech #
 
 # GlobalPhone related options
 gp_path="/export/corpora5/GlobalPhone"
@@ -61,7 +66,7 @@ for l in $gp_langs; do
   done
 done
 
-# Now onto Babel
+# Now onto Babel (and CGN)
 
 all_langs=""
 for l in $(cat <(echo ${langs}) <(echo ${recog}) | tr " " "\n" | sort -u); do
@@ -90,17 +95,25 @@ for l in ${all_langs}; do
   cp ${cwd}/cmd.sh .
   cp ${cwd}/path.sh .
   sed -i 's/\.\.\/\.\.\/\.\./\.\.\/\.\.\/\.\.\/\.\.\/\.\./g' path.sh
-  
+
   cd ${cwd}
 done
 
 # Prepare language specific data
 for l in ${all_langs}; do
-  (
-    cd data/${l}
-    ./local/prepare_data.sh --FLP ${FLP} ${l}
-    cd ${cwd}
-  ) &
+  if [ ${l} -ne 505 ];then
+    (
+      cd data/${l}
+      ./local/prepare_data.sh --FLP ${FLP} ${l}
+      cd ${cwd}
+    ) &
+  else
+    (
+      cd data/${l}
+      ./local/cgn_data_prep.sh $cgn $lang $comp || exit 1;
+      cd ${cwd}
+    )&
+  fi
 done
 wait
 
