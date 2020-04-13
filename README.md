@@ -6,6 +6,7 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 [![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
 [![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 [**Docs**](https://espnet.github.io/espnet/)
