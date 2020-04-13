@@ -1,4 +1,4 @@
-  pull_request_rules:
+pull_request_rules:
   - name: automatic merge if label=auto-merge
     conditions:
       - "label=auto-merge"
@@ -34,6 +34,12 @@
           - develop
         # Whether to create the pull requests even if they are conflicts when cherry-picking the commits.
         ignore_conflicts: true
+  - name: "add label=auto-merge for PR by mergify"
+    conditions:
+      - author~=mergify
+    actions:
+      label:
+        add: ["auto-merge"]
   - name: warn on conflicts
     conditions:
       - conflict
