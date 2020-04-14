@@ -36,7 +36,7 @@ pull_request_rules:
         ignore_conflicts: true
   - name: "add label=auto-merge for PR by mergify"
     conditions:
-      - author~=mergify
+      - author=mergify[bot]
     actions:
       label:
         add: ["auto-merge"]
