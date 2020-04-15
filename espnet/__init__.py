@@ -1,3 +1,5 @@
+"""Initialize main package."""
+
 import pkg_resources
 
 try:
