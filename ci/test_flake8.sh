@@ -8,7 +8,6 @@ set -euo pipefail
 
 # TODO: remove files from this list!
 flake8_black_list="\
-espnet/__init__.py
 espnet/asr/asr_utils.py
 espnet/asr/chainer_backend/asr.py
 espnet/asr/pytorch_backend/asr.py
