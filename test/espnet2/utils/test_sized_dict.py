@@ -10,9 +10,9 @@ from espnet2.utils.sized_dict import SizedDict
 
 def test_get_size():
     d = {}
-    size1 = get_size(d)
     x = np.random.randn(10)
     d["a"] = x
+    size1 = sys.getsizeof(d)
     assert size1 + get_size(x) + get_size("a") == get_size(d)
 
 

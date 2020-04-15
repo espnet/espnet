@@ -47,7 +47,7 @@ class MaskEstimator(torch.nn.Module):
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
         xs = (xs.real ** 2 + xs.imag ** 2) ** 0.5
         # xs: (B, C, T, F) -> xs: (B * C, T, F)
-        xs = xs.view(-1, xs.size(-2), xs.size(-1))
+        xs = xs.contiguous().view(-1, xs.size(-2), xs.size(-1))
         # ilens: (B,) -> ilens_: (B * C)
         ilens_ = ilens[:, None].expand(-1, C).contiguous().view(-1)
 
