@@ -170,6 +170,29 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 - The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
 
+### Transducer
+
+ESPnet also support transducer-based models through CTC mode.
+To be used, the following should be set in the training config:
+
+```
+criterion: loss
+mtlalpha: 1.0
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+```
+
+Several transducer architectures are currently available by using different options:
+- RNN-Transducer (default)
+- RNN-Transducer with attention decoder (`rnnt-mode: 'rnnt-att'`)
+- Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
+- Transformer/RNN-Transducer (`etype: transformer` and `dtype: lstm`)
+
+Additional notes:
+- Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
+- There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
+- Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
+- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`). Pre-initialization for transformer-decoder is not supported yet.
+
 ### Changing the training configuration
 
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
