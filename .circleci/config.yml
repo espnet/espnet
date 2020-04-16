@@ -123,7 +123,7 @@ jobs:
         environment:
           ESPNET_PYTHON_VERSION: 3.6
           TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
           CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
