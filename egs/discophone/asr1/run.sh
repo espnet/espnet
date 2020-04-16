@@ -52,6 +52,7 @@ babel_recog="${babel_langs} 404 203"
 gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
 gp_recog="${gp_langs}"
 gp_romanized=false
+ipa_transcript=false
 
 . utils/parse_options.sh || exit 1;
 
@@ -88,7 +89,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     --recog "${babel_recog}" \
     --gp-langs "${gp_langs}" \
     --gp-recog "${gp_recog}" \
-    --gp-romanized "${gp_romanized}"
+    --gp-romanized "${gp_romanized}" \
+    --ipa-transcript "${ipa_transcript}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
 	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
@@ -149,7 +151,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    # The grep trick prevents grep from returning non-zero value when no special symbol is found,
+    # which would have prematurely ended the script.
+    cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | { grep "<" || true; } > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
