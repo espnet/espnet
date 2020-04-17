@@ -15,10 +15,13 @@ import nltk
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.
     from g2p_en import G2p
+
     f_g2p = G2p()
     f_g2p("")
 except ImportError:
-    raise ImportError("g2p_en is not installed. please run `. ./path.sh && pip install g2p_en`.")
+    raise ImportError(
+        "g2p_en is not installed. please run `. ./path.sh && pip install g2p_en`."
+    )
 except LookupError:
     # NOTE: we need to download dict in initial running
 
@@ -36,22 +39,28 @@ except LookupError:
 def g2p(text):
     """Convert grapheme to phoneme."""
     tokens = filter(lambda s: s != " ", f_g2p(text))
-    return ' '.join(tokens)
+    return " ".join(tokens)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lang_tag", type=str, default=None, nargs="?",
-                        help="language tag (can be used for multi lingual case)")
-    parser.add_argument("--spk_tag", type=str,
-                        help="speaker tag")
-    parser.add_argument("jsons", nargs="+", type=str,
-                        help="*_mls.json filenames")
-    parser.add_argument("out", type=str,
-                        help="output filename")
-    parser.add_argument("trans_type", type=str, default="phn",
-                        choices=["char", "phn"],
-                        help="Input transcription type")
+    parser.add_argument(
+        "--lang_tag",
+        type=str,
+        default=None,
+        nargs="?",
+        help="language tag (can be used for multi lingual case)",
+    )
+    parser.add_argument("--spk_tag", type=str, help="speaker tag")
+    parser.add_argument("jsons", nargs="+", type=str, help="*_mls.json filenames")
+    parser.add_argument("out", type=str, help="output filename")
+    parser.add_argument(
+        "trans_type",
+        type=str,
+        default="phn",
+        choices=["char", "phn"],
+        help="Input transcription type",
+    )
     args = parser.parse_args()
 
     dirname = os.path.dirname(args.out)
@@ -64,7 +73,7 @@ def main():
                 js = json.load(f)
             for key in sorted(js.keys()):
                 uid = args.spk_tag + "_" + key.replace(".wav", "")
-                
+
                 content = js[key]["clean"]
                 text = custom_english_cleaners(content.rstrip())
                 if args.trans_type == "phn":

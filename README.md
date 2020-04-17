@@ -13,6 +13,7 @@
 |[docs/coverage] python3.8|||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
 
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
 [![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
