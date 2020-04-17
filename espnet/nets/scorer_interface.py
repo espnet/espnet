@@ -49,7 +49,9 @@ class ScorerInterface:
         """
         return None if state is None else state[i]
 
-    def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
+    def score(
+        self, y: torch.Tensor, state: Any, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).
 
         Args:
@@ -81,13 +83,16 @@ class ScorerInterface:
 class BatchScorerInterface(ScorerInterface):
     """Batch scorer interface."""
 
-    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -111,8 +116,9 @@ class PartialScorerInterface(ScorerInterface):
 
     """
 
-    def score_partial(self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor) \
-            -> Tuple[torch.Tensor, Any]:
+    def score_partial(
+        self, y: torch.Tensor, next_tokens: torch.Tensor, state: Any, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).
 
         Args:
@@ -122,7 +128,8 @@ class PartialScorerInterface(ScorerInterface):
             x (torch.Tensor): The encoder feature that generates ys
 
         Returns:
-            tuple[torch.Tensor, Any]: Tuple of a score tensor for y that has a shape `(len(next_tokens),)`
+            tuple[torch.Tensor, Any]:
+                Tuple of a score tensor for y that has a shape `(len(next_tokens),)`
                 and next state for ys
 
         """

@@ -26,6 +26,7 @@ class ASRInterface:
             ASRinterface: A new instance of ASRInterface.
 
         """
+
         def wrap(parser):
             return get_parser(parser, required=False)
 
@@ -90,6 +91,7 @@ class ASRInterface:
     def attention_plot_class(self):
         """Get attention plot class."""
         from espnet.asr.asr_utils import PlotAttentionReport
+
         return PlotAttentionReport
 
     def encode(self, feat):
@@ -122,7 +124,7 @@ predefined_asr = {
     "chainer": {
         "rnn": "espnet.nets.chainer_backend.e2e_asr:E2E",
         "transformer": "espnet.nets.chainer_backend.e2e_asr_transformer:E2E",
-    }
+    },
 }
 
 
@@ -138,5 +140,7 @@ def dynamic_import_asr(module, backend):
 
     """
     model_class = dynamic_import(module, predefined_asr.get(backend, dict()))
-    assert issubclass(model_class, ASRInterface), f"{module} does not implement ASRInterface"
+    assert issubclass(
+        model_class, ASRInterface
+    ), f"{module} does not implement ASRInterface"
     return model_class

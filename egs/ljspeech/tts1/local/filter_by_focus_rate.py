@@ -16,26 +16,30 @@ import kaldiio
 def main():
     """Run filtering by focus rate."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--focus-rates-scp", type=str,
-                        help="scp file of focus rates")
-    parser.add_argument("--durations-scp", type=str,
-                        help="scp file of focus rates")
-    parser.add_argument("--feats-scp", type=str,
-                        help="scp file of focus rates")
-    parser.add_argument("--threshold", type=float, default=None,
-                        help="threshold value of focus rates (0.0, 1.0)")
-    parser.add_argument("--verbose", default=1, type=int,
-                        help="verbose option")
+    parser.add_argument("--focus-rates-scp", type=str, help="scp file of focus rates")
+    parser.add_argument("--durations-scp", type=str, help="scp file of focus rates")
+    parser.add_argument("--feats-scp", type=str, help="scp file of focus rates")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="threshold value of focus rates (0.0, 1.0)",
+    )
+    parser.add_argument("--verbose", default=1, type=int, help="verbose option")
     args = parser.parse_args()
 
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
-            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+            level=logging.INFO,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
     else:
         logging.basicConfig(
-            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-        logging.warning('Skip DEBUG/INFO messages')
+            level=logging.WARN,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+        logging.warning("Skip DEBUG/INFO messages")
 
     # check threshold is valid
     assert args.threshold > 0 and args.threshold < 1
