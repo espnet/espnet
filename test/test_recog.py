@@ -3,18 +3,19 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import torch
+import argparse
+from distutils.version import LooseVersion
+import importlib
 
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+import numpy
+import pytest
+import torch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
-import argparse
-import importlib
-import numpy
-
-import pytest
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2.0')
 
 
 def make_arg(**kwargs):
@@ -80,6 +81,7 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
+@pytest.mark.skipif(is_torch_1_2_plus, reason='pytestskip')
 @pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
     ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
     ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),
@@ -130,6 +132,7 @@ def test_recognition_results(etype, dtype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
+@pytest.mark.skipif(is_torch_1_2_plus, reason='pytestskip')
 @pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
     ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
     ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),

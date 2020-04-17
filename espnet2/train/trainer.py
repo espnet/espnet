@@ -39,10 +39,13 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
 else:
     from tensorboardX import SummaryWriter
-if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
-    from torch.distributed import ReduceOp
+if torch.distributed.is_available():
+    if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
+        from torch.distributed import ReduceOp
+    else:
+        from torch.distributed import reduce_op as ReduceOp
 else:
-    from torch.distributed import reduce_op as ReduceOp
+    ReduceOp = None
 
 
 @dataclasses.dataclass
