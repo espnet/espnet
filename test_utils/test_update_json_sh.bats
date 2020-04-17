@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    [ ! -z $LC_ALL ] && export LC_ALL="en_US.UTF-8"
+    export LC_ALL="en_US.UTF-8"
 
     cd $BATS_TEST_DIRNAME/../egs/wsj/asr1
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
