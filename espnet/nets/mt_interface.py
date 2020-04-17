@@ -25,6 +25,7 @@ class MTInterface:
             ASRinterface: A new instance of ASRInterface.
 
         """
+
         def wrap(parser):
             return get_parser(parser, required=False)
 
@@ -89,4 +90,5 @@ class MTInterface:
     def attention_plot_class(self):
         """Get attention plot class."""
         from espnet.asr.asr_utils import PlotAttentionReport
+
         return PlotAttentionReport

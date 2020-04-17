@@ -19,8 +19,8 @@ def initializer(model, args):
         args (Namespace): argument Namespace containing options
 
     """
-    if args.dtype != 'transformer':
-        if args.etype == 'transformer':
+    if args.dtype != "transformer":
+        if args.etype == "transformer":
             initialize(model.encoder, args.transformer_init)
             lecun_normal_init_parameters(model.dec)
         else:
@@ -31,7 +31,7 @@ def initializer(model, args):
         for l in six.moves.range(len(model.dec.decoder)):
             set_forget_bias_to_one(model.dec.decoder[l].bias_ih)
     else:
-        if args.etype == 'transformer':
+        if args.etype == "transformer":
             initialize(model, args.transformer_init)
         else:
             lecun_normal_init_parameters(model.encoder)

@@ -46,7 +46,7 @@ def logmelspc_to_linearspc(lmspc, fs, n_mels, n_fft, fmin=None, fmax=None):
     return spc
 
 
-def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
+def griffin_lim(spc, n_fft, n_shift, win_length, window="hann", n_iters=100):
     """Convert linear spectrogram into waveform using Griffin-Lim.
 
     Args:
@@ -64,7 +64,7 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
     # assert the size of input linear spectrogram
     assert spc.shape[1] == n_fft // 2 + 1
 
-    if LooseVersion(librosa.__version__) >= LooseVersion('0.7.0'):
+    if LooseVersion(librosa.__version__) >= LooseVersion("0.7.0"):
         # use librosa's fast Grriffin-Lim algorithm
         spc = np.abs(spc.T)
         y = librosa.griffinlim(
@@ -73,18 +73,23 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
             hop_length=n_shift,
             win_length=win_length,
             window=window,
-            center=True if spc.shape[1] > 1 else False
+            center=True if spc.shape[1] > 1 else False,
         )
     else:
         # use slower version of Grriffin-Lim algorithm
-        logging.warning("librosa version is old. use slow version of Grriffin-Lim algorithm."
-                        "if you want to use fast Griffin-Lim, please update librosa via "
-                        "`source ./path.sh && pip install librosa==0.7.0`.")
+        logging.warning(
+            "librosa version is old. use slow version of Grriffin-Lim algorithm."
+            "if you want to use fast Griffin-Lim, please update librosa via "
+            "`source ./path.sh && pip install librosa==0.7.0`."
+        )
         cspc = np.abs(spc).astype(np.complex).T
         angles = np.exp(2j * np.pi * np.random.rand(*cspc.shape))
         y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
         for i in range(n_iters):
-            angles = np.exp(1j * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window)))
+            angles = np.exp(
+                1j
+                * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window))
+            )
             y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
 
     return y
@@ -92,34 +97,50 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', n_iters=100):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='convert FBANK to WAV using Griffin-Lim algorithm',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--fs', type=int, default=22050,
-                        help='Sampling frequency')
-    parser.add_argument('--fmax', type=int, default=None, nargs='?',
-                        help='Maximum frequency')
-    parser.add_argument('--fmin', type=int, default=None, nargs='?',
-                        help='Minimum frequency')
-    parser.add_argument('--n_fft', type=int, default=1024,
-                        help='FFT length in point')
-    parser.add_argument('--n_shift', type=int, default=512,
-                        help='Shift length in point')
-    parser.add_argument('--win_length', type=int, default=None, nargs='?',
-                        help='Analisys window length in point')
-    parser.add_argument('--n_mels', type=int, default=None, nargs='?',
-                        help='Number of mel basis')
-    parser.add_argument('--window', type=str, default='hann',
-                        choices=['hann', 'hamming'],
-                        help='Type of window')
-    parser.add_argument('--iters', type=int, default=100,
-                        help='Number of iterations in Grriffin Lim')
-    parser.add_argument('--filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
-                        help='Specify the file format for the rspecifier. '
-                             '"mat" is the matrix format in kaldi')
-    parser.add_argument('rspecifier', type=str, help='Input feature')
-    parser.add_argument('outdir', type=str,
-                        help='Output directory')
+        description="convert FBANK to WAV using Griffin-Lim algorithm",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--fs", type=int, default=22050, help="Sampling frequency")
+    parser.add_argument(
+        "--fmax", type=int, default=None, nargs="?", help="Maximum frequency"
+    )
+    parser.add_argument(
+        "--fmin", type=int, default=None, nargs="?", help="Minimum frequency"
+    )
+    parser.add_argument("--n_fft", type=int, default=1024, help="FFT length in point")
+    parser.add_argument(
+        "--n_shift", type=int, default=512, help="Shift length in point"
+    )
+    parser.add_argument(
+        "--win_length",
+        type=int,
+        default=None,
+        nargs="?",
+        help="Analisys window length in point",
+    )
+    parser.add_argument(
+        "--n_mels", type=int, default=None, nargs="?", help="Number of mel basis"
+    )
+    parser.add_argument(
+        "--window",
+        type=str,
+        default="hann",
+        choices=["hann", "hamming"],
+        help="Type of window",
+    )
+    parser.add_argument(
+        "--iters", type=int, default=100, help="Number of iterations in Grriffin Lim"
+    )
+    parser.add_argument(
+        "--filetype",
+        type=str,
+        default="mat",
+        choices=["mat", "hdf5"],
+        help="Specify the file format for the rspecifier. "
+        '"mat" is the matrix format in kaldi',
+    )
+    parser.add_argument("rspecifier", type=str, help="Input feature")
+    parser.add_argument("outdir", type=str, help="Output directory")
     return parser
 
 
@@ -130,7 +151,8 @@ def main():
     # logging info
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    )
     logging.info(get_commandline_args())
 
     # check directory
@@ -138,7 +160,8 @@ def main():
         os.makedirs(args.outdir)
 
     for idx, (utt_id, lmspc) in enumerate(
-            file_reader_helper(args.rspecifier, args.filetype), 1):
+        file_reader_helper(args.rspecifier, args.filetype), 1
+    ):
         if args.n_mels is not None:
             spc = logmelspc_to_linearspc(
                 lmspc,
@@ -146,7 +169,8 @@ def main():
                 n_mels=args.n_mels,
                 n_fft=args.n_fft,
                 fmin=args.fmin,
-                fmax=args.fmax)
+                fmax=args.fmax,
+            )
         else:
             spc = lmspc
         y = griffin_lim(
@@ -155,11 +179,14 @@ def main():
             n_shift=args.n_shift,
             win_length=args.win_length,
             window=args.window,
-            n_iters=args.iters)
+            n_iters=args.iters,
+        )
         logging.info("(%d) %s" % (idx, utt_id))
-        write(args.outdir + "/%s.wav" % utt_id,
-              args.fs,
-              (y * np.iinfo(np.int16).max).astype(np.int16))
+        write(
+            args.outdir + "/%s.wav" % utt_id,
+            args.fs,
+            (y * np.iinfo(np.int16).max).astype(np.int16),
+        )
 
 
 if __name__ == "__main__":

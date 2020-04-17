@@ -17,18 +17,19 @@ class MaskEstimator(torch.nn.Module):
 
         typ = type.lstrip("vgg").rstrip("p")
         if type[-1] == "p":
-            self.brnn = RNNP(idim, layers, units, projs, subsample, dropout,
-                             typ=typ)
+            self.brnn = RNNP(idim, layers, units, projs, subsample, dropout, typ=typ)
         else:
             self.brnn = RNN(idim, layers, units, projs, dropout, typ=typ)
 
         self.type = type
         self.nmask = nmask
         self.linears = torch.nn.ModuleList(
-            [torch.nn.Linear(projs, idim) for _ in range(nmask)])
+            [torch.nn.Linear(projs, idim) for _ in range(nmask)]
+        )
 
-    def forward(self, xs: ComplexTensor, ilens: torch.LongTensor) \
-            -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
+    def forward(
+        self, xs: ComplexTensor, ilens: torch.LongTensor
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
         """The forward function
 
         Args:
