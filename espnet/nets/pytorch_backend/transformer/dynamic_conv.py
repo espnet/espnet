@@ -12,7 +12,8 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 class DynamicConvolution(nn.Module):
     """Dynamic Convolution layer.
 
-    This implementation is based on https://github.com/pytorch/fairseq/tree/master/fairseq
+    This implementation is based on
+    https://github.com/pytorch/fairseq/tree/master/fairseq
 
     Args:
         wshare (int): the number of kernel of convolution

@@ -178,7 +178,8 @@ class Encoder(torch.nn.Module):
             )
         elif selfattention_layer_type == "lightconv2d":
             logging.info(
-                "encoder self-attention layer type = lightweight convolution 2-dimentional"
+                "encoder self-attention layer "
+                "type = lightweight convolution 2-dimentional"
             )
             self.encoders = repeat(
                 num_blocks,
