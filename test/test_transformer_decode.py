@@ -20,7 +20,8 @@ def test_decoder_cache(normalize_before):
         linear_units=3,
         num_blocks=2,
         normalize_before=normalize_before,
-        dropout_rate=0.0)
+        dropout_rate=0.0,
+    )
     dlayer = decoder.decoders[0]
     memory = torch.randn(2, 5, adim)
 
@@ -38,7 +39,9 @@ def test_decoder_cache(normalize_before):
         # decoder-level test
         x = torch.randint(0, odim, x.shape[:2])
         y, _ = decoder.forward_one_step(x, mask, memory)
-        y_, cache = decoder.forward_one_step(x[:, :-1], prev_mask, memory, cache=decoder.init_state(None))
+        y_, cache = decoder.forward_one_step(
+            x[:, :-1], prev_mask, memory, cache=decoder.init_state(None)
+        )
         y_fast, _ = decoder.forward_one_step(x, mask, memory, cache=cache)
         numpy.testing.assert_allclose(y.numpy(), y_fast.numpy(), rtol=RTOL)
 
@@ -54,7 +57,8 @@ def test_encoder_cache(normalize_before):
         num_blocks=2,
         normalize_before=normalize_before,
         dropout_rate=0.0,
-        input_layer="embed")
+        input_layer="embed",
+    )
     elayer = encoder.encoders[0]
     x = torch.randn(2, 5, adim)
     mask = subsequent_mask(x.shape[1]).unsqueeze(0)
@@ -90,7 +94,8 @@ if __name__ == "__main__":
             attention_dim=adim,
             linear_units=3,
             num_blocks=2,
-            dropout_rate=0.0)
+            dropout_rate=0.0,
+        )
         decoder.eval()
     else:
         encoder = Encoder(
@@ -99,7 +104,8 @@ if __name__ == "__main__":
             linear_units=3,
             num_blocks=2,
             dropout_rate=0.0,
-            input_layer="embed")
+            input_layer="embed",
+        )
         encoder.eval()
 
     xlen = 100
@@ -113,15 +119,17 @@ if __name__ == "__main__":
         cache = None
         print(key)
         for i in range(xlen):
-            x = xs[:, :i + 1]
-            m = mask[:, :i + 1, :i + 1]
+            x = xs[:, : i + 1]
+            m = mask[:, : i + 1, : i + 1]
             start = time()
             for _ in range(n_avg):
                 with torch.no_grad():
                     if key == "baseline":
                         cache = None
                     if model == "decoder":
-                        y, new_cache = decoder.forward_one_step(x, m, memory, cache=cache)
+                        y, new_cache = decoder.forward_one_step(
+                            x, m, memory, cache=cache
+                        )
                     else:
                         y, _, new_cache = encoder.forward_one_step(x, m, cache=cache)
             if key == "cached":
