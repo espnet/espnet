@@ -18,6 +18,8 @@ def main():
                 val_scores += [[log["epoch"], log["validation/main/acc"]]]
             elif "val_perplexity" in log.keys():
                 val_scores += [[log["epoch"], 1 / log["val_perplexity"]]]
+            elif "validation/main/loss" in log.keys():
+                val_scores += [[log["epoch"], -log["validation/main/loss"]]]
         if len(val_scores) == 0:
             raise ValueError("`validation/main/acc` or `val_perplexity` is not found in log.")
         val_scores = np.array(val_scores)

@@ -2,6 +2,7 @@
 # -*- mode:sh -*-
 
 setup() {
+    export LC_ALL="en_US.UTF-8"
     tmpdir=$(mktemp -d test_spm.XXXXXX)
     echo $tmpdir
 }

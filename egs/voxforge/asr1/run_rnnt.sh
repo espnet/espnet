@@ -33,6 +33,10 @@ decode_config=conf/tuning/transducer/decode_transducer.yaml
 use_transfer=false # use transfer learning
 type_transfer='enc' # define type of transfer lr. Can be either 'enc', 'dec' or 'both'
 
+# model average related (only works when transformer part(s) are detected)
+n_average=5
+use_valbest_average=false
+
 # experiment tag
 tag="" # tag for managing experiments.
 
@@ -50,6 +54,16 @@ train_dev=dt_${lang}
 recog_set="dt_${lang} et_${lang}"
 
 if [ ${use_transfer} == true ]; then
+    dec_type=$(get_yaml.py ${train_config} dtype)
+    dec_is_transformer="$( [[ $dec_type == *transformer* ]]; echo $? )"
+
+    if [[ $dec_is_transformer -eq 0 && $type_transfer != 'enc' ]]; then
+       echo "Finetuning: decoder init. for transformer model is not supported yet."
+       echo "Finetuning: Switching to 'enc' transfer mode."
+
+       type_transfer='enc'
+    fi
+
     finetuning_conf=$(dirname ${train_config})/finetuning.yaml
     
     local/prep_transducer_finetuning.sh ${train_config}         \
@@ -246,6 +260,27 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=16
 
+    if [[ $(get_yaml.py ${train_config} etype) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = *transformer* ]]; then
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            opt="--log ${main_expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+
+        average_checkpoints.py \
+            ${opt} \
+            --backend ${backend} \
+            --snapshots ${main_expdir}/results/snapshot.ep.* \
+            --out ${main_expdir}/results/${recog_model} \
+            --num ${n_average}
+    else
+        recog_model=model.loss.best
+        opt=""
+    fi
+
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
@@ -266,7 +301,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --debugmode ${debugmode} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${main_expdir}/${decode_dir}/data.JOB.json \
-            --model ${main_expdir}/results/model.loss.best
+            --model ${main_expdir}/results/${recog_model}
 
         score_sclite.sh --wer true ${main_expdir}/${decode_dir} ${dict}
 
