@@ -28,12 +28,23 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
         (boolean): allow transfer
 
     """
+    modules_model = []
     partial_modules = []
+
     for key_p, value_p in partial_state_dict.items():
         if any(key_p.startswith(m) for m in modules):
-            if value_p.shape == model_state_dict[key_p].shape:
-                partial_modules += [(key_p, value_p.shape)]
-    return len(partial_modules) > 0
+            partial_modules += [(key_p, value_p.shape)]
+
+    for key_m, value_m in model_state_dict.items():
+        if any(key_m.startswith(m) for m in modules):
+            modules_model += [(key_m, value_m.shape)]
+
+    len_match = (len(modules_model) == len(partial_modules))
+
+    module_match = (sorted(modules_model, key=lambda x: (x[0], x[1])) ==
+                    sorted(partial_modules, key=lambda x: (x[0], x[1])))
+
+    return len_match and module_match
 
 
 def get_partial_state_dict(model_state_dict, modules):
@@ -191,6 +202,12 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
         model (torch.nn.Module): The model with pretrained modules.
 
     """
+    def print_new_keys(state_dict, modules, model_path):
+        logging.warning('loading %s from model: %s', modules, model_path)
+
+        for k in state_dict.keys():
+            logging.warning('override %s' % k)
+
     enc_model_path = args.enc_init
     dec_model_path = args.dec_init
     enc_modules = args.enc_init_mods
@@ -212,14 +229,13 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
                 modules = filter_modules(model_state_dict, modules)
                 if is_lm:
                     partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
+                    print_new_keys(partial_state_dict, modules, model_path)
                 else:
                     partial_state_dict = get_partial_state_dict(model_state_dict, modules)
 
                     if partial_state_dict:
                         if transfer_verification(main_state_dict, partial_state_dict, modules):
-                            logging.warning('loading %s from model: %s', modules, model_path)
-                            for k in partial_state_dict.keys():
-                                logging.warning('override %s' % k)
+                            print_new_keys(partial_state_dict, modules, model_path)
                             main_state_dict.update(partial_state_dict)
                         else:
                             logging.warning('modules %s in model %s don\'t match your training config',

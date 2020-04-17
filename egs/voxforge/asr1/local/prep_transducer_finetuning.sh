@@ -70,7 +70,14 @@ rm -f ${output}
 [[ "$transfer_type" =~ ^(enc|both)$ ]] && [ -z "${enc_conf}" ] && \
     enc_conf=conf/tuning/transducer/pretrain_ctc.yaml && create_enc=true
 
-enc_mods=${enc_mods:-"'enc.enc.'"}
+enc_is_transformer=$(grep -E "^etype:[[:space:]]*transformer" ${main_conf} || true)
+dec_is_transformer=$(grep -E "^dtype:[[:space:]]*transformer" ${main_conf} || true)
+
+if [ -n "${enc_is_transformer}" ]; then
+    enc_mods=${enc_mods:-"'encoder.'"}
+else
+    enc_mods=${enc_mods:-"'enc.enc.'"}
+fi
 enc_crit=${enc_crit:-loss}
 
 if [[ "$transfer_type" =~ ^(dec|both)$ ]] && [ -z "${dec_conf}" ]; then
@@ -93,8 +100,10 @@ sed '$a\' ${main_conf} > ${exp_conf}
 echo "exp-conf: ${exp_conf}" >> ${output}
 case "${transfer_type}" in
     enc|both)
-        echo "enc-init: 'exp/tr_it_${backend}_$(basename ${enc_conf%.*})/results/model.${enc_crit}.best'" >> ${exp_conf}
         echo "enc-conf: ${enc_conf}" >> ${output}
+        printf '%s\n' \
+               "enc-init: 'exp/tr_it_${backend}_$(basename ${enc_conf%.*})/results/model.${enc_crit}.best'" \
+               "enc-init-mods: ${enc_mods}" >> ${exp_conf}
         ;;&
     dec|both)
         echo "dec-conf: ${dec_conf}" >> ${output}
@@ -114,17 +123,41 @@ esac
 sed -i -r "s/(^rnnt-mode:) ('[a-z-]*')/\1 '${rnnt_mode}'/g" ${exp_conf}
 
 gen_section='/^# network/,/^($ | $)/d'
-net_section='/^# network/,/^## joint/{/^## joint/!p}'
+net_section='/^# network/,$p'
 
 if [ "${create_enc}" == "true" ]; then
     rm -f ${enc_conf}
 
+    use_vgg2l=$(grep -E "^transformer-input-layer:[[:space:]]*vgg2l" ${exp_conf} || true)
+
+    if [ -n "${enc_is_transformer}" ]; then
+        tt_section='1,/^# transducer/{/^# transducer/!p}'
+    else
+        tt_section='1,/^## attention/{/^## attention/!p}'
+    fi
+
     sed "${gen_section}" ${exp_conf} |
         sed -e '/early-stop-criterion/d' -e '/criterion/d' >> ${enc_conf}
+
     sed -n -r "${net_section}" ${exp_conf} | \
-        sed -n "1,/^## attention/{/^## attention/!p}" | \
+        sed -n "${tt_section}" | \
         sed -e "/dropout/d" -e "/embed/d" >> ${enc_conf} && \
-        echo -e "\n# CTC mode\nmtlalpha: 1.0" >> ${enc_conf}
+        echo -e "# CTC mode\nmtlalpha: 1.0" >> ${enc_conf}
+
+    if [ -n "${enc_is_transformer}" ]; then
+        sed -i -e "/etype/d" -e "/joint-dim/d" -e "/dtype/d" ${enc_conf} && \
+            echo -e "model-module: \"espnet.nets.pytorch_backend.e2e_asr_transformer:E2E\"" \
+                 >> ${enc_conf} && \
+            echo -e "criterion: loss" >> ${enc_conf}
+
+        if [ -n "${use_vgg2l}" ]; then
+           echo "VGG2L is only available for transducer, thus it can't be used in transfer learning."
+           echo "Switching to conv2d in main transducer conf and pre-training enc conf."
+
+           sed -i "s/vgg2l/conv2d/g" ${exp_conf}
+           sed -i "s/vgg2l/conv2d/g" ${enc_conf}
+        fi
+    fi
 fi
 
 if [ "${create_dec}" == "true" ]; then
