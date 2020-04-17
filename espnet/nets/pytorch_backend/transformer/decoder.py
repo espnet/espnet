@@ -152,7 +152,8 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             )
         elif selfattention_layer_type == "lightconv2d":
             logging.info(
-                "decoder self-attention layer type = lightweight convolution 2-dimentional"
+                "decoder self-attention layer "
+                "type = lightweight convolution 2-dimentional"
             )
             self.decoders = repeat(
                 num_blocks,
