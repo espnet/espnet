@@ -9,9 +9,11 @@ from distutils.version import LooseVersion
 
 import torch
 
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2.0')
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 # LooseVersion('1.2.0') == LooseVersion(torch.__version__) can't include e.g. 1.2.0+aaa
-is_torch_1_2 = LooseVersion('1.3') > LooseVersion(torch.__version__) >= LooseVersion('1.2')
+is_torch_1_2 = (
+    LooseVersion("1.3") > LooseVersion(torch.__version__) >= LooseVersion("1.2")
+)
 datatype = torch.bool if is_torch_1_2_plus else torch.uint8
 
 

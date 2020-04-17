@@ -43,8 +43,9 @@ class RNNP(chainer.Chain):
                     inputdim = hdim
                 _cdim = 2 * cdim if bidir else cdim
                 # bottleneck layer to merge
-                setattr(self, '{}{:d}'.format(rnn_label, i), rnn(
-                    1, inputdim, cdim, dropout))
+                setattr(
+                    self, "{}{:d}".format(rnn_label, i), rnn(1, inputdim, cdim, dropout)
+                )
                 setattr(self, "bt%d" % i, L.Linear(_cdim, hdim))
 
         self.elayers = elayers
@@ -66,7 +67,7 @@ class RNNP(chainer.Chain):
             chainer.Variable: Subsampled vector of ilens.
 
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.info(self.__class__.__name__ + " input lengths: " + str(ilens))
 
         for layer in six.moves.range(self.elayers):
             if "lstm" in self.typ:
@@ -77,7 +78,7 @@ class RNNP(chainer.Chain):
             # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             # (sum _utt frame_utt) x dim
-            ys = self['bt' + str(layer)](F.vstack(ys))
+            ys = self["bt" + str(layer)](F.vstack(ys))
             xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
 
         # final tanh operation
@@ -129,7 +130,7 @@ class RNN(chainer.Chain):
             chainer.Variable: `ilens` .
 
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.info(self.__class__.__name__ + " input lengths: " + str(ilens))
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
 
@@ -182,14 +183,22 @@ class VGG2L(chainer.Chain):
             chainer.Variable: Subsampled vector of ilens.
 
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.info(self.__class__.__name__ + " input lengths: " + str(ilens))
 
         # x: utt x frame x dim
         xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
         xs = F.swapaxes(
-            xs.reshape(xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel), 1, 2)
+            xs.reshape(
+                xs.shape[0],
+                xs.shape[1],
+                self.in_channel,
+                xs.shape[2] // self.in_channel,
+            ),
+            1,
+            2,
+        )
 
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
@@ -200,15 +209,17 @@ class VGG2L(chainer.Chain):
         xs = F.max_pooling_2d(xs, 2, stride=2)
 
         # change ilens accordingly
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(
+            self.xp.ceil(self.xp.array(ilens, dtype=np.float32) / 2), dtype=np.int32
+        )
+        ilens = self.xp.array(
+            self.xp.ceil(self.xp.array(ilens, dtype=np.float32) / 2), dtype=np.int32
+        )
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
         xs = xs.reshape(xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
-        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+        xs = [xs[i, : ilens[i], :] for i in range(len(ilens))]
 
         return xs, ilens
 
@@ -227,33 +238,55 @@ class Encoder(chainer.Chain):
 
     """
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(
+        self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1
+    ):
         super(Encoder, self).__init__()
         typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
+        if typ not in ["lstm", "gru", "blstm", "bgru"]:
             logging.error("Error: need to specify an appropriate encoder architecture")
         with self.init_scope():
             if etype.startswith("vgg"):
                 if etype[-1] == "p":
-                    self.enc = chainer.Sequential(VGG2L(in_channel),
-                                                  RNNP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                       eprojs,
-                                                       subsample, dropout, typ=typ))
-                    logging.info('Use CNN-VGG + ' + typ.upper() + 'P for encoder')
+                    self.enc = chainer.Sequential(
+                        VGG2L(in_channel),
+                        RNNP(
+                            get_vgg2l_odim(idim, in_channel=in_channel),
+                            elayers,
+                            eunits,
+                            eprojs,
+                            subsample,
+                            dropout,
+                            typ=typ,
+                        ),
+                    )
+                    logging.info("Use CNN-VGG + " + typ.upper() + "P for encoder")
                 else:
-                    self.enc = chainer.Sequential(VGG2L(in_channel),
-                                                  RNN(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                      eprojs,
-                                                      dropout, typ=typ))
-                    logging.info('Use CNN-VGG + ' + typ.upper() + ' for encoder')
+                    self.enc = chainer.Sequential(
+                        VGG2L(in_channel),
+                        RNN(
+                            get_vgg2l_odim(idim, in_channel=in_channel),
+                            elayers,
+                            eunits,
+                            eprojs,
+                            dropout,
+                            typ=typ,
+                        ),
+                    )
+                    logging.info("Use CNN-VGG + " + typ.upper() + " for encoder")
             else:
                 if etype[-1] == "p":
                     self.enc = chainer.Sequential(
-                        RNNP(idim, elayers, eunits, eprojs, subsample, dropout, typ=typ))
-                    logging.info(typ.upper() + ' with every-layer projection for encoder')
+                        RNNP(idim, elayers, eunits, eprojs, subsample, dropout, typ=typ)
+                    )
+                    logging.info(
+                        typ.upper() + " with every-layer projection for encoder"
+                    )
                 else:
-                    self.enc = chainer.Sequential(RNN(idim, elayers, eunits, eprojs, dropout, typ=typ))
-                    logging.info(typ.upper() + ' without projection for encoder')
+                    self.enc = chainer.Sequential(
+                        RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)
+                    )
+                    logging.info(typ.upper() + " without projection for encoder")
 
     def __call__(self, xs, ilens):
         """Encoder forward.
@@ -283,4 +316,12 @@ def encoder_for(args, idim, subsample):
         chainer.nn.Module: Encoder module.
 
     """
-    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+    return Encoder(
+        args.etype,
+        idim,
+        args.elayers,
+        args.eunits,
+        args.eprojs,
+        subsample,
+        args.dropout_rate,
+    )

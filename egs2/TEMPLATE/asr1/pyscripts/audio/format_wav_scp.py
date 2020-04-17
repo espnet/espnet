@@ -17,7 +17,7 @@ from espnet2.utils.fileio import read_2column_text, SoundScpWriter
 
 
 def humanfriendly_or_none(value: str):
-    if value in ('none', 'None', 'NONE'):
+    if value in ("none", "None", "NONE"):
         return None
     return humanfriendly.parse_size(value)
 
@@ -30,37 +30,44 @@ def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
 
     """
     assert check_argument_types()
-    if integers.strip() in ('none', 'None', 'NONE', 'null', 'Null', 'NULL'):
+    if integers.strip() in ("none", "None", "NONE", "null", "Null", "NULL"):
         return None
-    return tuple(map(int, integers.strip().split(',')))
+    return tuple(map(int, integers.strip().split(",")))
 
 
 def main():
-    logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=logfmt)
     logging.info(get_commandline_args())
 
     parser = argparse.ArgumentParser(
         description='Create waves list from "wav.scp"',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('scp')
-    parser.add_argument('outdir')
-    parser.add_argument('--name', default='wav',
-                        help='Specify the prefix word of output file name '
-                             'such as "wav.scp"')
-    parser.add_argument('--segments', default=None)
-    parser.add_argument('--fs', type=humanfriendly_or_none, default=None,
-                        help='If the sampling rate specified, '
-                             'Change the sampling rate.')
-    parser.add_argument('--audio-format', default='wav')
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("scp")
+    parser.add_argument("outdir")
+    parser.add_argument(
+        "--name",
+        default="wav",
+        help="Specify the prefix word of output file name " 'such as "wav.scp"',
+    )
+    parser.add_argument("--segments", default=None)
+    parser.add_argument(
+        "--fs",
+        type=humanfriendly_or_none,
+        default=None,
+        help="If the sampling rate specified, " "Change the sampling rate.",
+    )
+    parser.add_argument("--audio-format", default="wav")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--ref-channels', default=None, type=str2int_tuple)
-    group.add_argument('--utt2ref-channels', default=None, type=str)
+    group.add_argument("--ref-channels", default=None, type=str2int_tuple)
+    group.add_argument("--utt2ref-channels", default=None, type=str)
     args = parser.parse_args()
 
-    out_num_samples = Path(args.outdir) / f'utt2num_samples'
+    out_num_samples = Path(args.outdir) / f"utt2num_samples"
 
     if args.ref_channels is not None:
+
         def utt2ref_channels(x) -> Tuple[int, ...]:
             return args.ref_channels
 
@@ -77,9 +84,11 @@ def main():
     if args.segments is not None:
         # Note: kaldiio supports only wav-pcm-int16le file.
         loader = kaldiio.load_scp_sequential(args.scp, segments=args.segments)
-        with SoundScpWriter(args.outdir, Path(args.outdir) / f'{args.name}.scp',
-                            format=args.audio_format) as writer, \
-                out_num_samples.open('w') as fnum_samples:
+        with SoundScpWriter(
+            args.outdir,
+            Path(args.outdir) / f"{args.name}.scp",
+            format=args.audio_format,
+        ) as writer, out_num_samples.open("w") as fnum_samples:
             for uttid, (rate, wave) in tqdm(loader):
                 # wave: (Time,) or (Time, Nmic)
                 if wave.ndim == 2 and utt2ref_channels is not None:
@@ -87,25 +96,27 @@ def main():
 
                 if args.fs is not None and args.fs != rate:
                     # FIXME(kamo): To use sox?
-                    wave = resampy.resample(wave.astype(np.float64),
-                                            rate, args.fs, axis=0)
+                    wave = resampy.resample(
+                        wave.astype(np.float64), rate, args.fs, axis=0
+                    )
                     wave = wave.astype(np.int16)
                     rate = args.fs
                 writer[uttid] = rate, wave
-                fnum_samples.write(f'{uttid} {len(wave)}\n')
+                fnum_samples.write(f"{uttid} {len(wave)}\n")
     else:
-        wavdir = Path(args.outdir) / f'data_{args.name}'
+        wavdir = Path(args.outdir) / f"data_{args.name}"
         wavdir.mkdir(parents=True, exist_ok=True)
-        out_wavscp = Path(args.outdir) / f'{args.name}.scp'
+        out_wavscp = Path(args.outdir) / f"{args.name}.scp"
 
-        with Path(args.scp).open('r') as fscp, out_wavscp.open('w') as fout, \
-                out_num_samples.open('w') as fnum_samples:
+        with Path(args.scp).open("r") as fscp, out_wavscp.open(
+            "w"
+        ) as fout, out_num_samples.open("w") as fnum_samples:
             for line in tqdm(fscp):
                 uttid, wavpath = line.strip().split(None, 1)
 
-                if wavpath.endswith('|'):
+                if wavpath.endswith("|"):
                     # Streaming input e.g. cat a.wav |
-                    with kaldiio.open_like_kaldi(wavpath, 'rb') as f:
+                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             wave, rate = soundfile.read(g, dtype=np.int16)
                             if wave.ndim == 2 and utt2ref_channels is not None:
@@ -113,22 +124,24 @@ def main():
 
                         if args.fs is not None and args.fs != rate:
                             # FIXME(kamo): To use sox?
-                            wave = resampy.resample(wave.astype(np.float64),
-                                                    rate, args.fs, axis=0)
+                            wave = resampy.resample(
+                                wave.astype(np.float64), rate, args.fs, axis=0
+                            )
                             wave = wave.astype(np.int16)
                             rate = args.fs
 
-                        owavpath = str(wavdir / f'{uttid}.{args.audio_format}')
+                        owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
                         soundfile.write(owavpath, wave, rate)
-                        fout.write(f'{uttid} {owavpath}\n')
+                        fout.write(f"{uttid} {owavpath}\n")
                 else:
                     wave, rate = soundfile.read(wavpath, dtype=np.int16)
                     if wave.ndim == 2 and utt2ref_channels is not None:
                         wave = wave[:, utt2ref_channels(uttid)]
                         save_asis = False
 
-                    elif Path(wavpath).suffix == '.' + args.audio_format \
-                            and (args.fs is None or args.fs == rate):
+                    elif Path(wavpath).suffix == "." + args.audio_format and (
+                        args.fs is None or args.fs == rate
+                    ):
                         save_asis = True
 
                     else:
@@ -140,20 +153,21 @@ def main():
                         # i.e. not using unix-pipe,
                         # only in this case,
                         # just using the original file as is.
-                        fout.write(f'{uttid} {wavpath}\n')
+                        fout.write(f"{uttid} {wavpath}\n")
                     else:
                         if args.fs is not None and args.fs != rate:
                             # FIXME(kamo): To use sox?
-                            wave = resampy.resample(wave.astype(np.float64),
-                                                    rate, args.fs, axis=0)
+                            wave = resampy.resample(
+                                wave.astype(np.float64), rate, args.fs, axis=0
+                            )
                             wave = wave.astype(np.int16)
                             rate = args.fs
 
-                        owavpath = str(wavdir / f'{uttid}.{args.audio_format}')
+                        owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
                         soundfile.write(owavpath, wave, rate)
-                        fout.write(f'{uttid} {owavpath}\n')
-                fnum_samples.write(f'{uttid} {len(wave)}\n')
+                        fout.write(f"{uttid} {owavpath}\n")
+                fnum_samples.write(f"{uttid} {len(wave)}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

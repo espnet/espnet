@@ -12,9 +12,10 @@ from nnmnkwii.io import hts
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='Prepare segments from HTS-style alignment files',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('wav_scp', type=str, help='wav scp file')
+        description="Prepare segments from HTS-style alignment files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("wav_scp", type=str, help="wav scp file")
     return parser
 
 
@@ -37,4 +38,6 @@ if __name__ == "__main__":
             # utt_id is same as recording_id.
             # https://kaldi-asr.org/doc/data_prep.html
             utt_id = recording_id
-            sys.stdout.write("{} {} {} {}\n".format(utt_id, recording_id, segment_begin, segment_end))
+            sys.stdout.write(
+                "{} {} {} {}\n".format(utt_id, recording_id, segment_begin, segment_end)
+            )
