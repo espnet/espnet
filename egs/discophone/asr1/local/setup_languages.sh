@@ -13,7 +13,7 @@ recog="107 201 307 404"
 FLP=true
 
 # GlobalPhone related options
-gp_path="/export/corpora5/GlobalPhone"
+gp_path="/data/GlobalPhone"
 gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
 gp_recog="Arabic Czech French Korean Mandarin Spanish Thai"
 gp_romanized=false
@@ -85,6 +85,7 @@ if [ "$gp_langs" ] || [ "$gp_recog" ]; then
         --data-dir $data_dir \
         --g2p-models-dir g2ps/models \
         $ipa_transcript_opt
+      utils/fix_data_dir.sh $data_dir
       utils/validate_data_dir.sh --no-feats $data_dir
     done
   done
@@ -132,11 +133,13 @@ if [ "$langs" ] || [ "$recog" ]; then
       cd ${cwd}
 
       for split in train dev eval; do
+	data_dir=data/${l}/data/${split}_${l} 
         python3 local/prepare_lexicons.py \
           --lang $l \
-          --data-dir data/${l}/data/${split}_${l} \
+          --data-dir $data_dir \
           --g2p-models-dir g2ps/models \
           $ipa_transcript_opt
+        utils/fix_data_dir.sh $data_dir
       done
     ) &
   done

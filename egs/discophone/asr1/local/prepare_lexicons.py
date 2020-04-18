@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 from typing import List, Dict
 
 BABELCODE2LANG = {
+    '103': 'Bengali',
     '107': 'Vietnamese',
     '201': 'Haitian',
     '202': 'Swahili',
@@ -26,7 +27,7 @@ BABELCODE2LANG = {
     '401': 'Mongolian',
     '402': 'Javanese',
     '403': 'Dholuo',
-    '404': 'Georgian'
+    '404': 'Georgian',
 }
 
 
@@ -86,8 +87,11 @@ def main():
         with text_bkp.open() as fin, text_ipa.open('w') as fout:
             for line in fin:
                 utt_id, *words = line.strip().split()
-                phonetic = [''.join(p for p in map(str.strip, lexicon[w]) if p) for w in words]
-                print(utt_id, *[w for w in map(str.strip, phonetic) if w], file=fout)
+                phonetic_words = [''.join(p for p in map(str.strip, lexicon.get(w, '')) if p) for w in words]
+                phonetic_words = [w for w in map(str.strip, phonetic_words) if w]
+                if not phonetic_words or not ''.join(phonetic_words).strip():
+                    continue  # skip empty utterances
+                print(utt_id, *phonetic_words, file=fout)
 
         if args.substitute_text:
             shutil.copyfile(text_ipa, text)
