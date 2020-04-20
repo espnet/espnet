@@ -457,6 +457,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ "${token_type}" = bpe ]; then
         log "Stage 5: Generate token_list from ${data_feats}/srctexts using BPE"
+
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
         <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
@@ -599,7 +600,7 @@ if "${use_lm}"; then
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
-          --cmd "${cuda_cmd}" \
+          --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
           --log "${lm_exp}"/train.log \
           --ngpu "${ngpu}" \
           --num_nodes "${num_nodes}" \
@@ -765,7 +766,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${asr_exp}/train.log" \
         --log "${asr_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
@@ -819,7 +820,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         fi
     fi
 
-    for dset in ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${asr_exp}/decode_${dset}_${decode_tag}"
         _logdir="${_dir}/logdir"
@@ -870,7 +871,7 @@ fi
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     log "Stage 12: Scoring"
 
-    for dset in ${eval_sets}; do
+    for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${asr_exp}/decode_${dset}_${decode_tag}"
 

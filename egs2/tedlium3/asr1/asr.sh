@@ -404,6 +404,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -450,6 +451,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ "${token_type}" = bpe ]; then
         log "Stage 5: Generate token_list from ${data_feats}/srctexts using BPE"
+
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
         <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
@@ -590,7 +592,7 @@ if "${use_lm}"; then
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
-          --cmd "${cuda_cmd}" \
+          --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
           --log "${lm_exp}"/train.log \
           --ngpu "${ngpu}" \
           --num_nodes "${num_nodes}" \
@@ -753,12 +755,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
     fi
 
-    # FIXME(kamo): max_length is confusing name. How about fold_length?
-
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd}" \
+        --cmd "${cuda_cmd} --name ${asr_exp}/train.log" \
         --log "${asr_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
