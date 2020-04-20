@@ -27,19 +27,21 @@ echo "=== ASR (backend=pytorch, model=rnnt) ==="
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
 ./run.sh --stage 2 --train-config conf/train_transformer_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
-
+rm -rf exp tensorboard dump data
 cd ${cwd} || exit 1
 
 # test asr_mix recipe
 cd ./egs/mini_an4/asr_mix1 || exit 1
 echo "==== ASR Mix (backend=pytorch) ==="
 ./run.sh
+rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
 
 # test tts recipe
 cd ./egs/mini_an4/tts1 || exit 1
 echo "==== TTS (backend=pytorch) ==="
 ./run.sh
+rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
 
 # [ESPnet2] test asr recipe
@@ -61,6 +63,7 @@ for t in ${feats_types}; do
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
+rm -rf exp dump data
 cd "${cwd}" || exit 1
 
 # [ESPnet2] test tts recipe
@@ -72,6 +75,7 @@ for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
     ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
 done
+rm -rf exp dump data
 cd "${cwd}" || exit 1
 
 
