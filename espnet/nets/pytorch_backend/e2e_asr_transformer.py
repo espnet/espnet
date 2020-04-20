@@ -19,6 +19,7 @@ from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
@@ -312,7 +313,6 @@ class E2E(ASRInterface, torch.nn.Module):
             hyp['ctc_score_prev'] = 0.0
             if ctc_weight != 1.0:
                 # pre-pruning based on attention scores
-                from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
                 ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
             else:
                 ctc_beam = lpz.shape[-1]
