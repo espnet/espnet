@@ -11,10 +11,11 @@ import sys
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='Convet kaldi-style features to numpy arrays',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('scp_file', type=str, help='scp file')
-    parser.add_argument('out_dir', type=str, help='output directory')
+        description="Convet kaldi-style features to numpy arrays",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("scp_file", type=str, help="scp file")
+    parser.add_argument("out_dir", type=str, help="output directory")
     return parser
 
 

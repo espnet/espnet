@@ -13,7 +13,7 @@ from codecs import open
 # The TEDLIUM transcripts are normalized in a way that's not traditional for
 # speech recognition.
 
-prev_line = ''
+prev_line = ""
 for line in sys.stdin:
     if line == prev_line:
         continue
@@ -21,11 +21,11 @@ for line in sys.stdin:
     new_items = []
     i = 0
     while i < len(items):
-        if i < len(items) - 1 and items[i + 1][0] == '\'':
+        if i < len(items) - 1 and items[i + 1][0] == "'":
             new_items.append(items[i] + items[i + 1])
             i = i + 1
         else:
             new_items.append(items[i])
         i = i + 1
-    print(' '.join(new_items))
+    print(" ".join(new_items))
     prev_line = line

@@ -16,6 +16,7 @@ def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
     # dynamically import matplotlib due to not found error
     from matplotlib.ticker import MaxNLocator
     import os
+
     d = os.path.dirname(filename)
     if not os.path.exists(d):
         os.makedirs(d)
@@ -35,11 +36,11 @@ def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
         if xtokens is not None:
             ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, len(xtokens)))
             ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, 1), minor=True)
-            ax.set_xticklabels(xtokens + [''], rotation=40)
+            ax.set_xticklabels(xtokens + [""], rotation=40)
         if ytokens is not None:
             ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, len(ytokens)))
             ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, 1), minor=True)
-            ax.set_yticklabels(ytokens + [''])
+            ax.set_yticklabels(ytokens + [""])
     fig.tight_layout()
     return fig
 
@@ -49,8 +50,17 @@ def savefig(plot, filename):
     plt.clf()
 
 
-def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig,
-                              ikey="input", iaxis=0, okey="output", oaxis=0):
+def plot_multi_head_attention(
+    data,
+    attn_dict,
+    outdir,
+    suffix="png",
+    savefn=savefig,
+    ikey="input",
+    iaxis=0,
+    okey="output",
+    oaxis=0,
+):
     """Plot multi head attentions.
 
     :param dict data: utts info from json file
@@ -64,26 +74,26 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
-            dec_len = int(data[idx][1][okey][oaxis]['shape'][0])
-            enc_len = int(data[idx][1][ikey][iaxis]['shape'][0])
+            dec_len = int(data[idx][1][okey][oaxis]["shape"][0])
+            enc_len = int(data[idx][1][ikey][iaxis]["shape"][0])
             xtokens, ytokens = None, None
             if "encoder" in name:
                 att_w = att_w[:, :enc_len, :enc_len]
                 # for MT
-                if 'token' in data[idx][1][ikey][iaxis].keys():
-                    xtokens = data[idx][1][ikey][iaxis]['token'].split()
+                if "token" in data[idx][1][ikey][iaxis].keys():
+                    xtokens = data[idx][1][ikey][iaxis]["token"].split()
                     ytokens = xtokens[:]
             elif "decoder" in name:
                 if "self" in name:
-                    att_w = att_w[:, :dec_len + 1, :dec_len + 1]  # +1 for <sos>
+                    att_w = att_w[:, : dec_len + 1, : dec_len + 1]  # +1 for <sos>
                 else:
-                    att_w = att_w[:, :dec_len + 1, :enc_len]  # +1 for <sos>
+                    att_w = att_w[:, : dec_len + 1, :enc_len]  # +1 for <sos>
                     # for MT
-                    if 'token' in data[idx][1][ikey][iaxis].keys():
-                        xtokens = data[idx][1][ikey][iaxis]['token'].split()
+                    if "token" in data[idx][1][ikey][iaxis].keys():
+                        xtokens = data[idx][1][ikey][iaxis]["token"].split()
                 # for ASR/ST/MT
-                if 'token' in data[idx][1][okey][oaxis].keys():
-                    ytokens = ['<sos>'] + data[idx][1][okey][oaxis]['token'].split()
+                if "token" in data[idx][1][okey][oaxis].keys():
+                    ytokens = ["<sos>"] + data[idx][1][okey][oaxis]["token"].split()
                     if "self" in name:
                         xtokens = ytokens[:]
             else:
@@ -94,10 +104,10 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def plotfn(self, *args, **kwargs):
-        kwargs['ikey'] = self.ikey
-        kwargs['iaxis'] = self.iaxis
-        kwargs['okey'] = self.okey
-        kwargs['oaxis'] = self.oaxis
+        kwargs["ikey"] = self.ikey
+        kwargs["iaxis"] = self.iaxis
+        kwargs["okey"] = self.okey
+        kwargs["oaxis"] = self.oaxis
         plot_multi_head_attention(*args, **kwargs)
 
     def __call__(self, trainer):
@@ -116,6 +126,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def log_attentions(self, logger, step):
         def log_fig(plot, filename):
             from os.path import basename
+
             logger.add_figure(basename(filename), plot, step)
             plt.clf()
 
