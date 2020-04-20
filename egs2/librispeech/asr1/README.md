@@ -7,18 +7,33 @@
     - chainer version: `chainer 6.0.0`
     - pytorch version: `pytorch 1.0.1.post2`
     - Git hash: `3ab744011393c2a54a1c334f25fd519193df4468`
-- Results
+- Results: Raw feature
 ```
-exp/asr_transformer_config_fbank_pitch_bpe/decode_dev_cleandecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_dev_clean_decode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+|     SPKR       |    # Snt          # Wrd     |    Corr            Sub           Del            Ins           Err          S.Err     |
+|     Sum/Avg    |    2703           54402     |    99.9            0.1           0.0            0.0           0.1            1.3     |
+exp/asr_train_asr_transformer_raw_bpe/decode_dev_other_decode_lm_train_bpe_valid.loss.best_asr_model_valid.loss.ave/score_wer//result.txt
+|     SPKR       |    # Snt          # Wrd     |    Corr            Sub           Del            Ins           Err          S.Err     |
+|     Sum/Avg    |    2864           50948     |    99.6            0.3           0.1            0.1           0.5            3.7     |
+exp/asr_train_asr_transformer_raw_bpe/decode_test_clean_decode_lm_train_bpe_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+|     SPKR       |    # Snt          # Wrd     |     Corr           Sub            Del            Ins           Err          S.Err     |
+|     Sum/Avg    |    2620           52576     |     77.1          19.6            3.3            4.9          27.8           95.9     |
+exp/asr_train_asr_transformer_raw_bpe/decode_test_other_decode_lm_train_bpe_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+|     SPKR       |    # Snt          # Wrd     |     Corr           Sub            Del            Ins           Err          S.Err     |
+|     Sum/Avg    |    2939           52343     |     68.1          26.5            5.4            6.2          38.1           98.1     |
+```
+- Results: Fbank_pitch feature
+```
+exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_dev_cleandecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
 |    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins           Err         S.Err     |
 |    Sum/Avg    |    2703          54402     |    95.3           3.9           0.8           0.6           5.3          49.9     |
-exp/asr_transformer_config_fbank_pitch_bpe/decode_dev_otherdecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_dev_otherdecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
 |    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins           Err         S.Err     |
 |    Sum/Avg    |    2864          50948     |    88.9           9.2           1.9           1.5          12.6          71.4     |
-exp/asr_transformer_config_fbank_pitch_bpe/decode_test_cleandecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_test_cleandecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
 |    SPKR       |    # Snt         # Wrd     |    Corr            Sub           Del           Ins           Err         S.Err     |
 |    Sum/Avg    |    2620          52576     |    95.2            3.9           0.9           0.6           5.4          49.5     |
-exp/asr_transformer_config_fbank_pitch_bpe/decode_test_otherdecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
+exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_test_otherdecode_lm_valid.loss.best_asr_model_valid.loss.ave/score_wer/result.txt
 |    SPKR       |    # Snt         # Wrd     |    Corr            Sub           Del           Ins           Err         S.Err     |
 |    Sum/Avg    |    2939          52343     |    88.7            9.3           2.0           1.5          12.8          72.4     |
 ```

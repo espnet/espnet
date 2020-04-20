@@ -11,7 +11,7 @@ scheduler: noamlr
 scheduler_conf:
     model_size: 512
     warmup_steps: 50000
-e2e_conf:
+model_conf:
     ctc_weight: 0.3
     ignore_id: -1
     lsm_weight: 0.1

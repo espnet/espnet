@@ -5,17 +5,18 @@ set -e
 set -u
 set -o pipefail
 
-config="conf/transformer_config.yaml"
+config="conf/train_asr_transformer.yaml"
 
 ./asr.sh \
+    --stage 0 --stop_stage 13 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --nbpe 500 \
     --train_set train \
     --dev_set dev \
     --eval_sets "test" \
-    --feats_type fbank_pitch \
+    --feats_type raw \
     --lm_train_text "data/local/lm_train/train.txt" \
-    --srctexts dump/fbank_pitch/train_sp/text \
+    --srctexts dump/raw/train_sp/text \
     --nbpe 500 \
     --asr_config ${config} \
     --use_word_lm false \

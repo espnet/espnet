@@ -10,6 +10,7 @@ config="conf/train_asr_transformer.yaml"
 decode_asr_model=valid.loss.ave.pth # valid.acc.best.pth
 
 ./asr.sh \
+    --stage 0 --stop_stage 13 \
     --nbpe 5000 \
     --train_set train_960 \
     --dev_set dev \
@@ -17,7 +18,6 @@ decode_asr_model=valid.loss.ave.pth # valid.acc.best.pth
     --srctexts "dump/raw/train_960/text" \
     --feats_type raw \
     --lm_train_text "data/local/lm_train/train.txt" \
-    --lm_dev_text "data/local/lm_train/dev.txt" \
     --asr_config ${config} \
     --use_word_lm false \
     --decode_asr_model ${decode_asr_model} \
