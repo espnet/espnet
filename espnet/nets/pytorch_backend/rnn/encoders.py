@@ -47,6 +47,7 @@ class RNNP(torch.nn.Module):
         self.subsample = subsample
         self.typ = typ
         self.bidir = bidir
+        self.dropout = dropout
 
     def forward(self, xs_pad, ilens, prev_state=None):
         """RNNP forward
