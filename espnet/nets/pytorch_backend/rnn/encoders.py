@@ -74,9 +74,11 @@ class RNNP(torch.nn.Module):
                 ys_pad = ys_pad[:, ::sub]
                 ilens = [int(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
-            projected = getattr(self, 'bt' + str(layer)
-                                )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
-            xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
+            projection_layer = getattr(self, "bt%d" % layer)
+            projected = projection_layer(ys_pad.contiguous().view(-1, ys_pad.size(2)))
+            xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
+            if layer < self.elayers - 1:
+                xs_pad = torch.tanh(F.dropout(xs_pad, p=self.dropout))
 
         return xs_pad, ilens, elayer_states  # x: utt list of frame x dim
 
