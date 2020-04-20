@@ -11,9 +11,6 @@ log() {
 }
 SECONDS=0
 
-train_set=train_960
-train_dev=dev
-
 stage=1
 stop_stage=100
 
