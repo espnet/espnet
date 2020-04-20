@@ -89,6 +89,7 @@ if [ "$gp_langs" ] || [ "$gp_recog" ]; then
         --data-dir $data_dir \
         --g2p-models-dir g2ps/models \
         $ipa_transcript_opt
+      utils/fix_data_dir.sh $data_dir
       utils/validate_data_dir.sh --no-feats $data_dir
     done
   done
@@ -143,6 +144,7 @@ if [ "$langs" ] || [ "$recog" ]; then
           --data-dir $data_dir \
           --g2p-models-dir g2ps/models \
           $ipa_transcript_opt
+        utils/fix_data_dir.sh $data_dir
       done
     ) &
   done

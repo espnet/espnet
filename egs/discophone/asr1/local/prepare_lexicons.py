@@ -33,7 +33,7 @@ BABELCODE2LANG = {
     '401': 'Mongolian',
     '402': 'Javanese',
     '403': 'Dholuo',
-    '404': 'Georgian'
+    '404': 'Georgian',
 }
 
 
@@ -92,6 +92,8 @@ def main():
             for line in fin:
                 utt_id, *words = line.strip().split()
                 phonetic = [''.join(lexicon.transcribe(w)).strip() for w in words]
+                if not phonetic:
+                    continue  # skip empty utterances
                 print(utt_id, *[w for w in phonetic if w], file=fout)
 
         if args.substitute_text:
