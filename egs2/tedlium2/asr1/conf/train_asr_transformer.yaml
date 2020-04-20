@@ -1,4 +1,3 @@
-print_config: false
 max_epoch: 50
 grad_clip: 5.0
 accum_grad: 2
