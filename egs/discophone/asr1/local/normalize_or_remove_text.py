@@ -39,4 +39,4 @@ backup_path = text_path.with_suffix('.norm.bak')
 move(text_path, backup_path)
 move(norm_text_path, text_path)
 
-print(f"Inputs utts: {idx} -- removed: {remove_counter} -- normalized: {norm_counter}", file=stderr)
+print(f"Inputs utts: {idx + 1} -- removed: {remove_counter} -- normalized: {norm_counter}", file=stderr)

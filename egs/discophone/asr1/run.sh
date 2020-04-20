@@ -37,22 +37,30 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # exp tag
 tag="" # tag for managing experiments.
 
-# BABEL TRAIN:
-# Amharic - 307
-# Bengali - 103
-# Cantonese - 101
-# Javanese - 402
-# Vietnamese - 107
-# Zulu - 206
-# BABEL TEST:
-# Georgian - 404
-# Lao - 203
-babel_langs="307 103 101 402 107 206"
-babel_recog="${babel_langs} 404 203"
-gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
-gp_recog="${gp_langs}"
-gp_romanized=false
-ipa_transcript=false
+# Generate configs with local/prepare_experiment_configs.py
+langs_config=
+
+if [ $langs_config ]; then
+  # shellcheck disable=SC1090
+  source $langs_config
+else
+  # BABEL TRAIN:
+  # Amharic - 307
+  # Bengali - 103
+  # Cantonese - 101
+  # Javanese - 402
+  # Vietnamese - 107
+  # Zulu - 206
+  # BABEL TEST:
+  # Georgian - 404
+  # Lao - 203
+  babel_langs="307 103 101 402 107 206"
+  babel_recog="${babel_langs} 404 203"
+  gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
+  gp_recog="${gp_langs}"
+  gp_romanized=false
+  ipa_transcript=false
+fi
 
 . utils/parse_options.sh || exit 1;
 
