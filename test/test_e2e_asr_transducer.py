@@ -11,16 +11,16 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 def get_default_train_args(**kwargs):
     train_defaults = dict(
-        etype='vggblstmp',
+        etype="vggblstmp",
         elayers=1,
         subsample="1_2_2_1_1",
         eunits=8,
         eprojs=8,
-        dtype='lstm',
+        dtype="lstm",
         dlayers=1,
         dunits=8,
         dec_embed_dim=8,
-        atype='location',
+        atype="location",
         adim=8,
         aheads=2,
         awin=5,
@@ -31,12 +31,12 @@ def get_default_train_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=8,
         mtlalpha=1.0,
-        rnnt_mode='rnnt',
+        rnnt_mode="rnnt",
         use_frontend=False,
-        trans_type='warp-transducer',
-        char_list=['a', 'b', 'c', 'd'],
-        sym_space='<space>',
-        sym_blank='<blank>',
+        trans_type="warp-transducer",
+        char_list=["a", "b", "c", "d"],
+        sym_space="<space>",
+        sym_blank="<blank>",
         report_cer=False,
         report_wer=False,
         score_norm_transducer=True,
@@ -58,7 +58,7 @@ def get_default_recog_args(**kwargs):
         nbest=1,
         verbose=2,
         score_norm_transducer=True,
-        rnnlm=None
+        rnnlm=None,
     )
     recog_defaults.update(kwargs)
 
@@ -81,7 +81,7 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
-    if backend == 'pytorch':
+    if backend == "pytorch":
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
         ilens = torch.from_numpy(ilens).long()
@@ -93,80 +93,121 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
 
         return xs_pad, ilens, ys_pad
     else:
-        raise ValueError('Invalid backend')
+        raise ValueError("Invalid backend")
 
 
-@pytest.mark.parametrize('train_dic, recog_dic', [
-    ({}, {'beam_size': 1}),
-    ({'rnnt_mode': 'rnnt-att'}, {'beam_size': 1}),
-    ({}, {'beam_size': 8}),
-    ({'rnnt_mode': 'rnnt-att'}, {'beam_size': 8}),
-    ({}, {}),
-    ({'rnnt_mode': 'rnnt-att'}, {}),
-    ({'etype': 'gru'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'gru'}, {}),
-    ({'etype': 'blstm'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'blstm'}, {}),
-    ({'etype': 'vgggru'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'vgggru'}, {}),
-    ({'etype': 'vggbru'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'vggbgru'}, {}),
-    ({'etype': 'vgggrup'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'vgggrup'}, {}),
-    ({'etype': 'blstm', 'elayers': 2}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'blstm', 'elayers': 2}, {}),
-    ({'etype': 'blstm', 'eunits': 16}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'blstm', 'eunits': 16}, {}),
-    ({'etype': 'blstm', 'eprojs': 16}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'etype': 'blstm', 'eprojs': 16}, {}),
-    ({'dtype': 'gru'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'gru'}, {}),
-    ({'dtype': 'bgrup'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'bgrup'}, {}),
-    ({'dtype': 'gru', 'dlayers': 2}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'gru', 'dlayers': 2}, {}),
-    ({'dtype': 'lstm', 'dlayers': 3}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'lstm', 'dlayers': 3}, {}),
-    ({'dtype': 'gru', 'dunits': 16}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'gru', 'dunits': 16}, {}),
-    ({'dtype': 'lstm', 'dlayers': 2, 'dunits': 16}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'lstm', 'dlayers': 3, 'dunits': 16}, {}),
-    ({'joint-dim': 16}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'joint-dim': 16}, {}),
-    ({'dtype': 'lstm', 'dlayers': 2, 'dunits': 16, 'joint-dim': 4}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'dtype': 'lstm', 'dlayers': 3, 'dunits': 16, 'joint-dim': 4}, {}),
-    ({'dec-embed-dim': 16}, {}),
-    ({'dec-embed-dim': 16, 'dropout-rate-embed-decoder': 0.1}, {}),
-    ({'dunits': 16}, {'beam_size': 1}),
-    ({'rnnt_mode': 'rnnt-att', 'dunits': 2}, {'beam_size': 1}),
-    ({'dropout-rate-decoder': 0.2}, {}),
-    ({'rnnt-mode': 'rnnt-att', 'dropout-rate-decoder': 0.2}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'noatt'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'dot'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'coverage'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'coverage'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'coverage_location'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'location2d'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'location_recurrent'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'multi_head_dot'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'multi_head_add'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'multi_head_loc'}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'atype': 'multi_head_multi_res_loc'}, {}),
-    ({}, {'score_norm_transducer': False}),
-    ({'rnnt_mode': 'rnnt-att'}, {'score_norm_transducer': False}),
-    ({}, {'nbest': 2}),
-    ({'rnnt_mode': 'rnnt-att'}, {'nbest': 2}),
-    ({'beam_size': 1, 'report_cer': True, 'report_wer': True}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'beam_size': 1, 'report_cer': True, 'report_wer': True}, {}),
-    ({'beam_size': 1, 'report_cer': True, 'report_wer': False}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'beam_size': 1, 'report_cer': True, 'report_wer': False}, {}),
-    ({'beam_size': 1, 'report_cer': False, 'report_wer': True}, {}),
-    ({'rnnt_mode': 'rnnt-att', 'beam_size': 1, 'report_cer': False, 'report_wer': True}, {})])
-def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic, backend='pytorch'):
+@pytest.mark.parametrize(
+    "train_dic, recog_dic",
+    [
+        ({}, {"beam_size": 1}),
+        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 1}),
+        ({}, {"beam_size": 8}),
+        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 8}),
+        ({}, {}),
+        ({"rnnt_mode": "rnnt-att"}, {}),
+        ({"etype": "gru"}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "gru"}, {}),
+        ({"etype": "blstm"}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "blstm"}, {}),
+        ({"etype": "vgggru"}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "vgggru"}, {}),
+        ({"etype": "vggbru"}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "vggbgru"}, {}),
+        ({"etype": "vgggrup"}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "vgggrup"}, {}),
+        ({"etype": "blstm", "elayers": 2}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "blstm", "elayers": 2}, {}),
+        ({"etype": "blstm", "eunits": 16}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "blstm", "eunits": 16}, {}),
+        ({"etype": "blstm", "eprojs": 16}, {}),
+        ({"rnnt_mode": "rnnt-att", "etype": "blstm", "eprojs": 16}, {}),
+        ({"dtype": "gru"}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "gru"}, {}),
+        ({"dtype": "bgrup"}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "bgrup"}, {}),
+        ({"dtype": "gru", "dlayers": 2}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "gru", "dlayers": 2}, {}),
+        ({"dtype": "lstm", "dlayers": 3}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "lstm", "dlayers": 3}, {}),
+        ({"dtype": "gru", "dunits": 16}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "gru", "dunits": 16}, {}),
+        ({"dtype": "lstm", "dlayers": 2, "dunits": 16}, {}),
+        ({"rnnt_mode": "rnnt-att", "dtype": "lstm", "dlayers": 3, "dunits": 16}, {}),
+        ({"joint-dim": 16}, {}),
+        ({"rnnt_mode": "rnnt-att", "joint-dim": 16}, {}),
+        ({"dtype": "lstm", "dlayers": 2, "dunits": 16, "joint-dim": 4}, {}),
+        (
+            {
+                "rnnt_mode": "rnnt-att",
+                "dtype": "lstm",
+                "dlayers": 3,
+                "dunits": 16,
+                "joint-dim": 4,
+            },
+            {},
+        ),
+        ({"dec-embed-dim": 16}, {}),
+        ({"dec-embed-dim": 16, "dropout-rate-embed-decoder": 0.1}, {}),
+        ({"dunits": 16}, {"beam_size": 1}),
+        ({"rnnt_mode": "rnnt-att", "dunits": 2}, {"beam_size": 1}),
+        ({"dropout-rate-decoder": 0.2}, {}),
+        ({"rnnt-mode": "rnnt-att", "dropout-rate-decoder": 0.2}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "noatt"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "dot"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "coverage_location"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "location2d"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "location_recurrent"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_dot"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_add"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_loc"}, {}),
+        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_multi_res_loc"}, {}),
+        ({}, {"score_norm_transducer": False}),
+        ({"rnnt_mode": "rnnt-att"}, {"score_norm_transducer": False}),
+        ({}, {"nbest": 2}),
+        ({"rnnt_mode": "rnnt-att"}, {"nbest": 2}),
+        ({"beam_size": 1, "report_cer": True, "report_wer": True}, {}),
+        (
+            {
+                "rnnt_mode": "rnnt-att",
+                "beam_size": 1,
+                "report_cer": True,
+                "report_wer": True,
+            },
+            {},
+        ),
+        ({"beam_size": 1, "report_cer": True, "report_wer": False}, {}),
+        (
+            {
+                "rnnt_mode": "rnnt-att",
+                "beam_size": 1,
+                "report_cer": True,
+                "report_wer": False,
+            },
+            {},
+        ),
+        ({"beam_size": 1, "report_cer": False, "report_wer": True}, {}),
+        (
+            {
+                "rnnt_mode": "rnnt-att",
+                "beam_size": 1,
+                "report_cer": False,
+                "report_wer": True,
+            },
+            {},
+        ),
+    ],
+)
+def test_pytorch_transducer_trainable_and_decodable(
+    train_dic, recog_dic, backend="pytorch"
+):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(**train_dic)
 
-    module = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transducer'.format(backend))
+    module = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
+    )
     model = module.E2E(idim, odim, train_args)
 
     batch = prepare_inputs(backend, idim, odim, ilens, olens)
@@ -181,12 +222,14 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic, backen
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-@pytest.mark.parametrize('backend', ['pytorch'])
+@pytest.mark.parametrize("backend", ["pytorch"])
 def test_pytorch_transducer_gpu_trainable(backend):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args()
 
-    module = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transducer'.format(backend))
+    module = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
+    )
     model = module.E2E(idim, odim, train_args)
     model.cuda()
 
@@ -197,7 +240,7 @@ def test_pytorch_transducer_gpu_trainable(backend):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-@pytest.mark.parametrize('backend', ['pytorch'])
+@pytest.mark.parametrize("backend", ["pytorch"])
 def test_pytorch_multi_gpu_trainable(backend):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args()
@@ -205,28 +248,44 @@ def test_pytorch_multi_gpu_trainable(backend):
     ngpu = 2
     device_ids = list(range(ngpu))
 
-    module = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transducer'.format(backend))
+    module = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
+    )
     model = module.E2E(idim, odim, train_args)
     model = torch.nn.DataParallel(model, device_ids)
     model.cuda()
 
     batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=True)
 
-    loss = 1. / ngpu * model(*batch)
+    loss = 1.0 / ngpu * model(*batch)
     loss.backward(loss.new_ones(ngpu))
 
 
 @pytest.mark.parametrize(
-    'atype', [
-        'noatt', 'dot', 'location', 'noatt', 'add', 'coverage',
-        'coverage_location', 'location2d', 'location_recurrent',
-        'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-        'multi_head_multi_res_loc'])
-def test_pytorch_calculate_all_attentions(atype, backend='pytorch'):
+    "atype",
+    [
+        "noatt",
+        "dot",
+        "location",
+        "noatt",
+        "add",
+        "coverage",
+        "coverage_location",
+        "location2d",
+        "location_recurrent",
+        "multi_head_dot",
+        "multi_head_add",
+        "multi_head_loc",
+        "multi_head_multi_res_loc",
+    ],
+)
+def test_pytorch_calculate_all_attentions(atype, backend="pytorch"):
     idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args(rnnt_mode='rnnt-att', atype=atype)
+    train_args = get_default_train_args(rnnt_mode="rnnt-att", atype=atype)
 
-    module = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transducer'.format(backend))
+    module = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
+    )
     model = module.E2E(idim, odim, train_args)
 
     batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False)

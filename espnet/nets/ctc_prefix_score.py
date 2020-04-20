@@ -29,7 +29,8 @@ class CTCPrefixScoreTH(object):
         :param float scoring_ratio: ratio of #scored hypos to beam size
         :param int margin: margin parameter for windowing (0 means no windowing)
         """
-        # In the comment lines, we assume T: input_length, B: batch size, W: beam width, O: output dim.
+        # In the comment lines,
+        # we assume T: input_length, B: batch size, W: beam width, O: output dim.
         self.logzero = -10000000000.0
         self.blank = blank
         self.eos = eos
@@ -38,7 +39,11 @@ class CTCPrefixScoreTH(object):
         self.odim = x.size(2)
         self.beam = beam
         self.n_bb = self.batch * beam
-        self.device = torch.device('cuda:%d' % x.get_device()) if x.is_cuda else torch.device('cpu')
+        self.device = (
+            torch.device("cuda:%d" % x.get_device())
+            if x.is_cuda
+            else torch.device("cpu")
+        )
         # Pad the rest of posteriors in the batch
         # TODO(takaaki-hori): need a better way without for-loops
         for i, l in enumerate(xlens):
@@ -51,7 +56,12 @@ class CTCPrefixScoreTH(object):
             self.scoring_num = 0
         # Expand input posteriors for fast computation
         if self.scoring_num == 0:
-            xn = x.transpose(0, 1).unsqueeze(2).repeat(1, 1, beam, 1).view(-1, self.n_bb, self.odim)
+            xn = (
+                x.transpose(0, 1)
+                .unsqueeze(2)
+                .repeat(1, 1, beam, 1)
+                .view(-1, self.n_bb, self.odim)
+            )
         else:
             xn = x.transpose(0, 1)
         xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
@@ -59,13 +69,24 @@ class CTCPrefixScoreTH(object):
         # Setup CTC windowing
         self.margin = margin
         if margin > 0:
-            self.frame_ids = torch.arange(self.input_length, dtype=torch.float32, device=self.device)
+            self.frame_ids = torch.arange(
+                self.input_length, dtype=torch.float32, device=self.device
+            )
         # Precompute end frames (BW,)
-        self.end_frames = (torch.as_tensor(xlens) - 1).view(self.batch, 1).repeat(1, beam).view(-1)
+        self.end_frames = (
+            (torch.as_tensor(xlens) - 1).view(self.batch, 1).repeat(1, beam).view(-1)
+        )
         # Precompute base indices to convert label ids to corresponding element indices
         self.pad_b = (torch.arange(self.batch, device=self.device) * beam).view(-1, 1)
-        self.pad_bo = (torch.arange(self.batch, device=self.device) * (beam * self.odim)).view(-1, 1)
-        self.pad_o = (torch.arange(self.batch, device=self.device) * self.odim).unsqueeze(1).repeat(1, beam).view(-1, 1)
+        self.pad_bo = (
+            torch.arange(self.batch, device=self.device) * (beam * self.odim)
+        ).view(-1, 1)
+        self.pad_o = (
+            (torch.arange(self.batch, device=self.device) * self.odim)
+            .unsqueeze(1)
+            .repeat(1, beam)
+            .view(-1, 1)
+        )
         self.bb_idx = torch.arange(self.n_bb, device=self.device).view(-1, 1)
 
     def __call__(self, y, state, pre_scores=None, att_w=None):
@@ -82,13 +103,21 @@ class CTCPrefixScoreTH(object):
         # prepare state info
         if state is None:
             if self.scoring_num > 0:
-                r_prev = torch.full((self.input_length, 2, self.batch, self.beam),
-                                    self.logzero, dtype=torch.float32, device=self.device)
+                r_prev = torch.full(
+                    (self.input_length, 2, self.batch, self.beam),
+                    self.logzero,
+                    dtype=torch.float32,
+                    device=self.device,
+                )
                 r_prev[:, 1] = torch.cumsum(self.x[0, :, :, self.blank], 0).unsqueeze(2)
                 r_prev = r_prev.view(-1, 2, self.n_bb)
             else:
-                r_prev = torch.full((self.input_length, 2, self.n_bb),
-                                    self.logzero, dtype=torch.float32, device=self.device)
+                r_prev = torch.full(
+                    (self.input_length, 2, self.n_bb),
+                    self.logzero,
+                    dtype=torch.float32,
+                    device=self.device,
+                )
                 r_prev[:, 1] = torch.cumsum(self.x[0, :, :, self.blank], 0)
             s_prev = 0.0
             f_min_prev = 0
@@ -100,12 +129,17 @@ class CTCPrefixScoreTH(object):
         if self.scoring_num > 0 and pre_scores is not None:
             pre_scores[:, self.blank] = self.logzero  # ignore blank from pre-selection
             scoring_ids = torch.topk(pre_scores, self.scoring_num, 1)[1]
-            scoring_idmap = torch.full((self.n_bb, self.odim), -1, dtype=torch.long, device=self.device)
+            scoring_idmap = torch.full(
+                (self.n_bb, self.odim), -1, dtype=torch.long, device=self.device
+            )
             snum = scoring_ids.size(1)
-            scoring_idmap[self.bb_idx, scoring_ids] = torch.arange(snum, device=self.device)
+            scoring_idmap[self.bb_idx, scoring_ids] = torch.arange(
+                snum, device=self.device
+            )
             scoring_idx = (scoring_ids + self.pad_o).view(-1)
-            x_ = torch.index_select(self.x.view(2, -1, self.batch * self.odim),
-                                    2, scoring_idx).view(2, -1, self.n_bb, snum)
+            x_ = torch.index_select(
+                self.x.view(2, -1, self.batch * self.odim), 2, scoring_idx
+            ).view(2, -1, self.n_bb, snum)
         else:
             scoring_ids = None
             scoring_idmap = None
@@ -114,8 +148,12 @@ class CTCPrefixScoreTH(object):
 
         # new CTC forward probs are prepared as a (T x 2 x BW x S) tensor
         # that corresponds to r_t^n(h) and r_t^b(h) in a batch.
-        r = torch.full((self.input_length, 2, self.n_bb, snum),
-                       self.logzero, dtype=torch.float32, device=self.device)
+        r = torch.full(
+            (self.input_length, 2, self.n_bb, snum),
+            self.logzero,
+            dtype=torch.float32,
+            device=self.device,
+        )
         if output_length == 0:
             r[0, 0] = x_[0, 0]
 
@@ -145,18 +183,28 @@ class CTCPrefixScoreTH(object):
         # compute forward probabilities log(r_t^n(h)) and log(r_t^b(h))
         for t in range(start, end):
             rp = r[t - 1]
-            rr = torch.stack([rp[0], log_phi[t - 1], rp[0], rp[1]]).view(2, 2, self.n_bb, snum)
+            rr = torch.stack([rp[0], log_phi[t - 1], rp[0], rp[1]]).view(
+                2, 2, self.n_bb, snum
+            )
             r[t] = torch.logsumexp(rr, 1) + x_[:, t]
 
         # compute log prefix probabilites log(psi)
         log_phi_x = torch.cat((log_phi[0].unsqueeze(0), log_phi[:-1]), dim=0) + x_[0]
         if scoring_ids is not None:
-            log_psi = torch.full((self.n_bb, self.odim), self.logzero, device=self.device)
-            log_psi_ = torch.logsumexp(torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0), dim=0)
+            log_psi = torch.full(
+                (self.n_bb, self.odim), self.logzero, device=self.device
+            )
+            log_psi_ = torch.logsumexp(
+                torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0),
+                dim=0,
+            )
             for si in range(self.n_bb):
                 log_psi[si, scoring_ids[si]] = log_psi_[si]
         else:
-            log_psi = torch.logsumexp(torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0), dim=0)
+            log_psi = torch.logsumexp(
+                torch.cat((log_phi_x[start:end], r[start - 1, 0].unsqueeze(0)), dim=0),
+                dim=0,
+            )
 
         for si in range(self.n_bb):
             log_psi[si, self.eos] = r_sum[self.end_frames[si], si]
@@ -190,7 +238,9 @@ class CTCPrefixScoreTH(object):
         else:
             snum = self.odim
         # select forward probabilities
-        r_new = torch.index_select(r.view(-1, 2, self.n_bb * snum), 2, vidx).view(-1, 2, self.n_bb)
+        r_new = torch.index_select(r.view(-1, 2, self.n_bb * snum), 2, vidx).view(
+            -1, 2, self.n_bb
+        )
         return r_new, s_new, f_min, f_max
 
 
@@ -246,7 +296,9 @@ class CTCPrefixScore(object):
             r[output_length - 1] = self.logzero
 
         # prepare forward probabilities for the last label
-        r_sum = self.xp.logaddexp(r_prev[:, 0], r_prev[:, 1])  # log(r_t^n(g) + r_t^b(g))
+        r_sum = self.xp.logaddexp(
+            r_prev[:, 0], r_prev[:, 1]
+        )  # log(r_t^n(g) + r_t^b(g))
         last = y[-1]
         if output_length > 0 and last in cs:
             log_phi = self.xp.ndarray((self.input_length, len(cs)), dtype=np.float32)
@@ -261,7 +313,9 @@ class CTCPrefixScore(object):
         log_psi = r[start - 1, 0]
         for t in six.moves.range(start, self.input_length):
             r[t, 0] = self.xp.logaddexp(r[t - 1, 0], log_phi[t - 1]) + xs[t]
-            r[t, 1] = self.xp.logaddexp(r[t - 1, 0], r[t - 1, 1]) + self.x[t, self.blank]
+            r[t, 1] = (
+                self.xp.logaddexp(r[t - 1, 0], r[t - 1, 1]) + self.x[t, self.blank]
+            )
             log_psi = self.xp.logaddexp(log_psi, log_phi[t - 1] + xs[t])
 
         # get P(...eos|X) that ends with the prefix itself

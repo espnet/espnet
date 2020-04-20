@@ -13,6 +13,7 @@ import pytest
 # TODO(karita): use much smaller corpus like AN4 and download if it does not exists
 def test_voxforge_feats():
     import kaldiio
+
     pytest.importorskip("kaldi_io")
     import kaldi_io
 

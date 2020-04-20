@@ -28,21 +28,30 @@ class Hypothesis(NamedTuple):
         return self._replace(
             yseq=self.yseq.tolist(),
             score=float(self.score),
-            scores={k: float(v) for k, v in self.scores.items()}
+            scores={k: float(v) for k, v in self.scores.items()},
         )._asdict()
 
 
 class BeamSearch(torch.nn.Module):
     """Beam search implementation."""
 
-    def __init__(self, scorers: Dict[str, ScorerInterface], weights: Dict[str, float],
-                 beam_size: int, vocab_size: int,
-                 sos: int, eos: int, token_list: List[str] = None,
-                 pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None):
+    def __init__(
+        self,
+        scorers: Dict[str, ScorerInterface],
+        weights: Dict[str, float],
+        beam_size: int,
+        vocab_size: int,
+        sos: int,
+        eos: int,
+        token_list: List[str] = None,
+        pre_beam_ratio: float = 1.5,
+        pre_beam_score_key: str = None,
+    ):
         """Initialize beam search.
 
         Args:
-            scorers (dict[str, ScorerInterface]): Dict of decoder modules e.g., Decoder, CTCPrefixScorer, LM
+            scorers (dict[str, ScorerInterface]): Dict of decoder modules
+                e.g., Decoder, CTCPrefixScorer, LM
                 The scorer will be ignored if it is `None`
             weights (dict[str, float]): Dict of weights for each scorers
                 The scorer will be ignored if its weight is 0
@@ -52,7 +61,8 @@ class BeamSearch(torch.nn.Module):
             eos (int): End of sequence id
             token_list (list[str]): List of tokens for debug log
             pre_beam_score_key (str): key of scores to perform pre-beam search
-            pre_beam_ratio (float): beam size in the pre-beam search will be `int(pre_beam_ratio * beam_size)`
+            pre_beam_ratio (float): beam size in the pre-beam search
+                will be `int(pre_beam_ratio * beam_size)`
 
         """
         super().__init__()
@@ -61,13 +71,16 @@ class BeamSearch(torch.nn.Module):
         self.scorers = dict()
         self.full_scorers = dict()
         self.part_scorers = dict()
-        # this module dict is required for recursive cast `self.to(device, dtype)` in `recog.py`
+        # this module dict is required for recursive cast
+        # `self.to(device, dtype)` in `recog.py`
         self.nn_dict = torch.nn.ModuleDict()
         for k, v in scorers.items():
             w = weights.get(k, 0)
             if w == 0 or v is None:
                 continue
-            assert isinstance(v, ScorerInterface), f"{k} ({type(v)}) does not implement ScorerInterface"
+            assert isinstance(
+                v, ScorerInterface
+            ), f"{k} ({type(v)}) does not implement ScorerInterface"
             self.scorers[k] = v
             if isinstance(v, PartialScorerInterface):
                 self.part_scorers[k] = v
@@ -83,11 +96,17 @@ class BeamSearch(torch.nn.Module):
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
         self.n_vocab = vocab_size
-        if pre_beam_score_key is not None and pre_beam_score_key not in self.full_scorers:
+        if (
+            pre_beam_score_key is not None
+            and pre_beam_score_key not in self.full_scorers
+        ):
             raise KeyError(f"{pre_beam_score_key} is not found in {self.full_scorers}")
         self.pre_beam_score_key = pre_beam_score_key
-        self.do_pre_beam = self.pre_beam_score_key is not None and \
-            self.pre_beam_size < self.n_vocab and len(self.part_scorers) > 0
+        self.do_pre_beam = (
+            self.pre_beam_score_key is not None
+            and self.pre_beam_size < self.n_vocab
+            and len(self.part_scorers) > 0
+        )
 
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
@@ -104,9 +123,14 @@ class BeamSearch(torch.nn.Module):
         for k, d in self.scorers.items():
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
-        return [Hypothesis(
-            score=0.0, scores=init_scores, states=init_states,
-            yseq=torch.tensor([self.sos], device=x.device))]
+        return [
+            Hypothesis(
+                score=0.0,
+                scores=init_scores,
+                states=init_states,
+                yseq=torch.tensor([self.sos], device=x.device),
+            )
+        ]
 
     @staticmethod
     def append_token(xs: torch.Tensor, x: int) -> torch.Tensor:
@@ -123,7 +147,9 @@ class BeamSearch(torch.nn.Module):
         x = torch.tensor([x], dtype=xs.dtype, device=xs.device)
         return torch.cat((xs, x))
 
-    def score_full(self, hyp: Hypothesis, x: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+    def score_full(
+        self, hyp: Hypothesis, x: torch.Tensor
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
@@ -134,7 +160,8 @@ class BeamSearch(torch.nn.Module):
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
                 score dict of `hyp` that has string keys of `self.full_scorers`
                 and tensor score values of shape: `(self.n_vocab,)`,
-                and state dict that has string keys and state values of `self.full_scorers`
+                and state dict that has string keys
+                and state values of `self.full_scorers`
 
         """
         scores = dict()
@@ -143,8 +170,9 @@ class BeamSearch(torch.nn.Module):
             scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
         return scores, states
 
-    def score_partial(self, hyp: Hypothesis, ids: torch.Tensor, x: torch.Tensor) \
-            -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+    def score_partial(
+        self, hyp: Hypothesis, ids: torch.Tensor, x: torch.Tensor
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.part_scorers`.
 
         Args:
@@ -156,7 +184,8 @@ class BeamSearch(torch.nn.Module):
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
                 score dict of `hyp` that has string keys of `self.part_scorers`
                 and tensor score values of shape: `(len(ids),)`,
-                and state dict that has string keys and state values of `self.part_scorers`
+                and state dict that has string keys
+                and state values of `self.part_scorers`
 
         """
         scores = dict()
@@ -165,15 +194,19 @@ class BeamSearch(torch.nn.Module):
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
 
-    def beam(self, weighted_scores: torch.Tensor, ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def beam(
+        self, weighted_scores: torch.Tensor, ids: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute topk full token ids and partial token ids.
 
         Args:
-            weighted_scores (torch.Tensor): The weighted sum scores for each tokens. Its shape is `(self.n_vocab,)`.
+            weighted_scores (torch.Tensor): The weighted sum scores for each tokens.
+            Its shape is `(self.n_vocab,)`.
             ids (torch.Tensor): The partial token ids to compute topk
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: The topk full token ids and partial token ids.
+            Tuple[torch.Tensor, torch.Tensor]:
+                The topk full token ids and partial token ids.
                 Their shapes are `(self.beam_size,)`
 
         """
@@ -191,15 +224,22 @@ class BeamSearch(torch.nn.Module):
         return top_ids, local_ids
 
     @staticmethod
-    def merge_scores(prev_scores: Dict[str, float], next_full_scores: Dict[str, torch.Tensor], full_idx: int,
-                     next_part_scores: Dict[str, torch.Tensor], part_idx: int) -> Dict[str, torch.Tensor]:
+    def merge_scores(
+        prev_scores: Dict[str, float],
+        next_full_scores: Dict[str, torch.Tensor],
+        full_idx: int,
+        next_part_scores: Dict[str, torch.Tensor],
+        part_idx: int,
+    ) -> Dict[str, torch.Tensor]:
         """Merge scores for new hypothesis.
 
         Args:
-            prev_scores (Dict[str, float]): The previous hypothesis scores by `self.scorers`
+            prev_scores (Dict[str, float]):
+                The previous hypothesis scores by `self.scorers`
             next_full_scores (Dict[str, torch.Tensor]): scores by `self.full_scorers`
             full_idx (int): The next token id for `next_full_scores`
-            next_part_scores (Dict[str, torch.Tensor]): scores of partial tokens by `self.part_scorers`
+            next_part_scores (Dict[str, torch.Tensor]):
+                scores of partial tokens by `self.part_scorers`
             part_idx (int): The new token id for `next_part_scores`
 
         Returns:
@@ -236,7 +276,9 @@ class BeamSearch(torch.nn.Module):
             new_states[k] = d.select_state(part_states[k], part_idx)
         return new_states
 
-    def search(self, running_hyps: List[Hypothesis], x: torch.Tensor) -> List[Hypothesis]:
+    def search(
+        self, running_hyps: List[Hypothesis], x: torch.Tensor
+    ) -> List[Hypothesis]:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
@@ -253,12 +295,13 @@ class BeamSearch(torch.nn.Module):
             # scoring
             scores, states = self.score_full(hyp, x)
             if self.do_pre_beam:
-                part_ids = torch.topk(scores[self.pre_beam_score_key], self.pre_beam_size)[1]
+                part_ids = torch.topk(
+                    scores[self.pre_beam_score_key], self.pre_beam_size
+                )[1]
             part_scores, part_states = self.score_partial(hyp, part_ids, x)
 
             # weighted sum scores
-            weighted_scores = torch.zeros(
-                self.n_vocab, dtype=x.dtype, device=x.device)
+            weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]
             for k in self.part_scorers:
@@ -268,18 +311,26 @@ class BeamSearch(torch.nn.Module):
             # update hyps
             for j, part_j in zip(*self.beam(weighted_scores, part_ids)):
                 # will be (2 x beam at most)
-                best_hyps.append(Hypothesis(
-                    score=weighted_scores[j],
-                    yseq=self.append_token(hyp.yseq, j),
-                    scores=self.merge_scores(
-                        hyp.scores, scores, j, part_scores, part_j),
-                    states=self.merge_states(states, part_states, part_j)))
+                best_hyps.append(
+                    Hypothesis(
+                        score=weighted_scores[j],
+                        yseq=self.append_token(hyp.yseq, j),
+                        scores=self.merge_scores(
+                            hyp.scores, scores, j, part_scores, part_j
+                        ),
+                        states=self.merge_states(states, part_states, part_j),
+                    )
+                )
 
             # sort and prune 2 x beam -> beam
-            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[:min(len(best_hyps), self.beam_size)]
+            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[
+                : min(len(best_hyps), self.beam_size)
+            ]
         return best_hyps
 
-    def forward(self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0) -> List[Hypothesis]:
+    def forward(
+        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
+    ) -> List[Hypothesis]:
         """Perform beam search.
 
         Args:
@@ -299,41 +350,54 @@ class BeamSearch(torch.nn.Module):
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
         minlen = int(minlenratio * x.size(0))
-        logging.info('max output length: ' + str(maxlen))
-        logging.info('min output length: ' + str(minlen))
+        logging.info("max output length: " + str(maxlen))
+        logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
         running_hyps = self.init_hyp(x)
         ended_hyps = []
         for i in range(maxlen):
-            logging.debug('position ' + str(i))
+            logging.debug("position " + str(i))
             best = self.search(running_hyps, x)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             # end detection
             if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
-                logging.info(f'end detected at {i}')
+                logging.info(f"end detected at {i}")
                 break
             if len(running_hyps) == 0:
-                logging.info('no hypothesis. Finish decoding.')
+                logging.info("no hypothesis. Finish decoding.")
                 break
             else:
-                logging.debug(f'remeined hypothes: {len(running_hyps)}')
+                logging.debug(f"remeined hypothes: {len(running_hyps)}")
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check number of hypotheis
         if len(nbest_hyps) == 0:
-            logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
-            return [] if minlenratio < 0.1 else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
+            logging.warning(
+                "there is no N-best results, perform recognition "
+                "again with smaller minlenratio."
+            )
+            return (
+                []
+                if minlenratio < 0.1
+                else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
+            )
 
         # report the best result
         best = nbest_hyps[0]
-        logging.info(f'total log probability: {best.score}')
-        logging.info(f'normalized log probability: {best.score / len(best.yseq)}')
+        logging.info(f"total log probability: {best.score}")
+        logging.info(f"normalized log probability: {best.score / len(best.yseq)}")
         return nbest_hyps
 
-    def post_process(self, i: int, maxlen: int, maxlenratio: float,
-                     running_hyps: List[Hypothesis], ended_hyps: List[Hypothesis]) -> List[Hypothesis]:
+    def post_process(
+        self,
+        i: int,
+        maxlen: int,
+        maxlenratio: float,
+        running_hyps: List[Hypothesis],
+        ended_hyps: List[Hypothesis],
+    ) -> List[Hypothesis]:
         """Perform post-processing of beam search iterations.
 
         Args:
@@ -347,13 +411,19 @@ class BeamSearch(torch.nn.Module):
             List[Hypothesis]: The new running hypotheses.
 
         """
-        logging.debug(f'the number of running hypothes: {len(running_hyps)}')
+        logging.debug(f"the number of running hypothes: {len(running_hyps)}")
         if self.token_list is not None:
-            logging.debug("best hypo: " + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]]))
+            logging.debug(
+                "best hypo: "
+                + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]])
+            )
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
-            running_hyps = [h._replace(yseq=self.append_token(h.yseq, self.eos)) for h in running_hyps]
+            running_hyps = [
+                h._replace(yseq=self.append_token(h.yseq, self.eos))
+                for h in running_hyps
+            ]
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
         # (this will be a probmlem, number of hyps < beam)
@@ -371,10 +441,20 @@ class BeamSearch(torch.nn.Module):
         return remained_hyps
 
 
-def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size: int,
-                scorers: Dict[str, ScorerInterface], weights: Dict[str, float],
-                token_list: List[str] = None, maxlenratio: float = 0.0, minlenratio: float = 0.0,
-                pre_beam_ratio: float = 1.5, pre_beam_score_key: str = "decoder") -> list:
+def beam_search(
+    x: torch.Tensor,
+    sos: int,
+    eos: int,
+    beam_size: int,
+    vocab_size: int,
+    scorers: Dict[str, ScorerInterface],
+    weights: Dict[str, float],
+    token_list: List[str] = None,
+    maxlenratio: float = 0.0,
+    minlenratio: float = 0.0,
+    pre_beam_ratio: float = 1.5,
+    pre_beam_score_key: str = "decoder",
+) -> list:
     """Perform beam search with scorers.
 
     Args:
@@ -383,7 +463,8 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size:
         eos (int): End of sequence id
         beam_size (int): The number of hypotheses kept during search
         vocab_size (int): The number of vocabulary
-        scorers (dict[str, ScorerInterface]): Dict of decoder modules e.g., Decoder, CTCPrefixScorer, LM
+        scorers (dict[str, ScorerInterface]): Dict of decoder modules
+            e.g., Decoder, CTCPrefixScorer, LM
             The scorer will be ignored if it is `None`
         weights (dict[str, float]): Dict of weights for each scorers
             The scorer will be ignored if its weight is 0
@@ -393,14 +474,16 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size:
             to automatically find maximum hypothesis lengths
         minlenratio (float): Input length ratio to obtain min output length.
         pre_beam_score_key (str): key of scores to perform pre-beam search
-        pre_beam_ratio (float): beam size in the pre-beam search will be `int(pre_beam_ratio * beam_size)`
+        pre_beam_ratio (float): beam size in the pre-beam search
+            will be `int(pre_beam_ratio * beam_size)`
 
     Returns:
         list: N-best decoding results
 
     """
     ret = BeamSearch(
-        scorers, weights,
+        scorers,
+        weights,
         beam_size=beam_size,
         vocab_size=vocab_size,
         pre_beam_ratio=pre_beam_ratio,
@@ -408,8 +491,5 @@ def beam_search(x: torch.Tensor, sos: int, eos: int, beam_size: int, vocab_size:
         sos=sos,
         eos=eos,
         token_list=token_list,
-    ).forward(
-        x=x,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio)
+    ).forward(x=x, maxlenratio=maxlenratio, minlenratio=minlenratio)
     return [h.asdict() for h in ret]

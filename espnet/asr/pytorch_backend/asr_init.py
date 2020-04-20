@@ -39,10 +39,11 @@ def transfer_verification(model_state_dict, partial_state_dict, modules):
         if any(key_m.startswith(m) for m in modules):
             modules_model += [(key_m, value_m.shape)]
 
-    len_match = (len(modules_model) == len(partial_modules))
+    len_match = len(modules_model) == len(partial_modules)
 
-    module_match = (sorted(modules_model, key=lambda x: (x[0], x[1])) ==
-                    sorted(partial_modules, key=lambda x: (x[0], x[1])))
+    module_match = sorted(modules_model, key=lambda x: (x[0], x[1])) == sorted(
+        partial_modules, key=lambda x: (x[0], x[1])
+    )
 
     return len_match and module_match
 
@@ -121,10 +122,13 @@ def filter_modules(model_state_dict, modules):
             incorrect_mods += [mod]
 
     if incorrect_mods:
-        logging.warning("module(s) %s don\'t match or (partially match) "
-                        "available modules in model.", incorrect_mods)
-        logging.warning('for information, the existing modules in model are:')
-        logging.warning('%s', mods_model)
+        logging.warning(
+            "module(s) %s don't match or (partially match) "
+            "available modules in model.",
+            incorrect_mods,
+        )
+        logging.warning("for information, the existing modules in model are:")
+        logging.warning("%s", mods_model)
 
     return new_mods
 
@@ -137,9 +141,10 @@ def load_trained_model(model_path):
 
     """
     idim, odim, train_args = get_model_conf(
-        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
+        model_path, os.path.join(os.path.dirname(model_path), "model.json")
+    )
 
-    logging.warning('reading model parameters from ' + model_path)
+    logging.warning("reading model parameters from " + model_path)
 
     if hasattr(train_args, "model_module"):
         model_module = train_args.model_module
@@ -164,15 +169,15 @@ def get_trained_model_state_dict(model_path):
         (bool): Boolean defining whether the model is an LM
 
     """
-    conf_path = os.path.join(os.path.dirname(model_path), 'model.json')
-    if 'rnnlm' in model_path:
-        logging.warning('reading model parameters from %s', model_path)
+    conf_path = os.path.join(os.path.dirname(model_path), "model.json")
+    if "rnnlm" in model_path:
+        logging.warning("reading model parameters from %s", model_path)
 
         return torch.load(model_path), True
 
     idim, odim, args = get_model_conf(model_path, conf_path)
 
-    logging.warning('reading model parameters from ' + model_path)
+    logging.warning("reading model parameters from " + model_path)
 
     if hasattr(args, "model_module"):
         model_module = args.model_module
@@ -182,9 +187,11 @@ def get_trained_model_state_dict(model_path):
     model_class = dynamic_import(model_module)
     model = model_class(idim, odim, args)
     torch_load(model_path, model)
-    assert isinstance(model, MTInterface) or \
-        isinstance(model, ASRInterface) or \
-        isinstance(model, TTSInterface)
+    assert (
+        isinstance(model, MTInterface)
+        or isinstance(model, ASRInterface)
+        or isinstance(model, TTSInterface)
+    )
 
     return model.state_dict(), False
 
@@ -202,11 +209,12 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
         model (torch.nn.Module): The model with pretrained modules.
 
     """
+
     def print_new_keys(state_dict, modules, model_path):
-        logging.warning('loading %s from model: %s', modules, model_path)
+        logging.warning("loading %s from model: %s", modules, model_path)
 
         for k in state_dict.keys():
-            logging.warning('override %s' % k)
+            logging.warning("override %s" % k)
 
     enc_model_path = args.enc_init
     dec_model_path = args.dec_init
@@ -219,29 +227,39 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
 
     main_state_dict = main_model.state_dict()
 
-    logging.warning('model(s) found for pre-initialization')
-    for model_path, modules in [(enc_model_path, enc_modules),
-                                (dec_model_path, dec_modules)]:
+    logging.warning("model(s) found for pre-initialization")
+    for model_path, modules in [
+        (enc_model_path, enc_modules),
+        (dec_model_path, dec_modules),
+    ]:
         if model_path is not None:
             if os.path.isfile(model_path):
                 model_state_dict, is_lm = get_trained_model_state_dict(model_path)
 
                 modules = filter_modules(model_state_dict, modules)
                 if is_lm:
-                    partial_state_dict, modules = get_partial_lm_state_dict(model_state_dict, modules)
+                    partial_state_dict, modules = get_partial_lm_state_dict(
+                        model_state_dict, modules
+                    )
                     print_new_keys(partial_state_dict, modules, model_path)
                 else:
-                    partial_state_dict = get_partial_state_dict(model_state_dict, modules)
+                    partial_state_dict = get_partial_state_dict(
+                        model_state_dict, modules
+                    )
 
                     if partial_state_dict:
-                        if transfer_verification(main_state_dict, partial_state_dict, modules):
+                        if transfer_verification(
+                            main_state_dict, partial_state_dict, modules
+                        ):
                             print_new_keys(partial_state_dict, modules, model_path)
                             main_state_dict.update(partial_state_dict)
                         else:
-                            logging.warning('modules %s in model %s don\'t match your training config',
-                                            modules, model_path)
+                            logging.warning(
+                                f"modules {modules} in model {model_path} "
+                                f"don't match your training config",
+                            )
             else:
-                logging.warning('model was not found : %s', model_path)
+                logging.warning("model was not found : %s", model_path)
 
     main_model.load_state_dict(main_state_dict)
 
