@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import re
 import shutil
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
@@ -8,6 +9,12 @@ from tempfile import NamedTemporaryFile
 from typing import List, Dict
 
 BABELCODE2LANG = {
+    '101': 'Cantonese',
+    '102': 'Assamese',
+    '103': 'Bengali',
+    '104': 'Pashto',
+    '105': 'Turkish',
+    '106': 'Tagalog',
     '107': 'Vietnamese',
     '201': 'Haitian',
     '202': 'Swahili',
@@ -76,18 +83,16 @@ def main():
             ).stdout
         )
 
-        lexicon = load_lexicon(lexicon_path)
+        lexicon = LanguageNetLexicon.from_path(lexicon_path)
 
         text_bkp = text.with_suffix('.bkp')
         shutil.copyfile(text, text_bkp)
-
         text_ipa = text.with_suffix('.ipa')
-
         with text_bkp.open() as fin, text_ipa.open('w') as fout:
             for line in fin:
                 utt_id, *words = line.strip().split()
-                phonetic = [''.join(p for p in map(str.strip, lexicon[w]) if p) for w in words]
-                print(utt_id, *[w for w in map(str.strip, phonetic) if w], file=fout)
+                phonetic = [''.join(lexicon.transcribe(w)).strip() for w in words]
+                print(utt_id, *[w for w in phonetic if w], file=fout)
 
         if args.substitute_text:
             shutil.copyfile(text_ipa, text)
@@ -106,13 +111,41 @@ class G2PModelProvider:
         return self.lang2fst[lang]
 
 
-def load_lexicon(p: Path) -> Dict[str, List[str]]:
-    lexicon = {}
-    with p.open() as f:
-        for line in f:
-            word, score, *phones = line.strip().split()
-            lexicon[word] = phones
-    return lexicon
+Phone = str
+
+
+class LanguageNetLexicon:
+    WORD_SEPARATOR = '#'
+    SYLLABLE_SEPARATOR = '.'
+    SPECIAL_TOKEN_RE = re.compile(r'<.+>')
+
+    def __init__(self, lexicon: Dict[str, List[str]]):
+        self.lexicon = lexicon
+
+    @staticmethod
+    def from_path(p: Path) -> 'LanguageNetLexicon':
+        lexicon = {}
+        with p.open() as f:
+            for line in f:
+                word, score, *phones = line.strip().split()
+                lexicon[word] = phones
+        return LanguageNetLexicon(lexicon)
+
+    def transcribe(self, word: str, strip_special_markers: bool = True, remove_special_tokens: bool = False) -> List[
+        Phone]:
+        # Treat special words as their own phones or remove
+        if self.SPECIAL_TOKEN_RE.match(word):
+            return [] if remove_special_tokens else [word]
+
+        phonetic = self.lexicon.get(word.strip(), '')
+
+        def is_not_special_marker_or_special_markers_are_ok(p: str) -> bool:
+            if not strip_special_markers:
+                return True
+            return not any(p == sym for sym in [self.SYLLABLE_SEPARATOR, self.WORD_SEPARATOR])
+
+        phonetic = [p for p in phonetic if p and is_not_special_marker_or_special_markers_are_ok(p)]
+        return phonetic
 
 
 if __name__ == '__main__':

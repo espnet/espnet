@@ -36,6 +36,9 @@ echo "Languagues: ${all_gp_langs}"
 
 # DEPENDENCIES
 
+# Required for stripping Unicode punctuation
+pip install --user regex
+
 # We need this to decode GP audio format
 local/install_shorten.sh
 
@@ -73,6 +76,7 @@ if [ "$gp_langs" ] || [ "$gp_recog" ]; then
     for split in train dev eval; do
       data_dir=data/GlobalPhone/gp_${l}_${split}
       echo "(GP) Processing: $data_dir"
+      python3 local/normalize_or_remove_text.py --strip-punctuation --remove-digit-utts $data_dir/text
       utils/fix_data_dir.sh $data_dir
       utils/utt2spk_to_spk2utt.pl $data_dir/utt2spk > $data_dir/spk2utt
       local/get_utt2dur.sh --read-entire-file true $data_dir
@@ -132,9 +136,11 @@ if [ "$langs" ] || [ "$recog" ]; then
       cd ${cwd}
 
       for split in train dev eval; do
+        data_dir=data/${l}/data/${split}_${l}
+        python3 local/normalize_or_remove_text.py --strip-punctuation --remove-digit-utts $data_dir/text
         python3 local/prepare_lexicons.py \
           --lang $l \
-          --data-dir data/${l}/data/${split}_${l} \
+          --data-dir $data_dir \
           --g2p-models-dir g2ps/models \
           $ipa_transcript_opt
       done
