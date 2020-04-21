@@ -21,26 +21,43 @@ class Conv2dSubsampling(chainer.Chain):
 
     """
 
-    def __init__(self, channels, idim, dims, dropout=0.1,
-                 initialW=None, initial_bias=None):
+    def __init__(
+        self, channels, idim, dims, dropout=0.1, initialW=None, initial_bias=None
+    ):
         """Initialize Conv2dSubsampling."""
         super(Conv2dSubsampling, self).__init__()
         self.dropout = dropout
         with self.init_scope():
             # Standard deviation for Conv2D with 1 channel and kernel 3 x 3.
             n = 1 * 3 * 3
-            stvd = 1. / np.sqrt(n)
-            self.conv1 = L.Convolution2D(1, channels, 3, stride=2, pad=1,
-                                         initialW=initialW(scale=stvd),
-                                         initial_bias=initial_bias(scale=stvd))
+            stvd = 1.0 / np.sqrt(n)
+            self.conv1 = L.Convolution2D(
+                1,
+                channels,
+                3,
+                stride=2,
+                pad=1,
+                initialW=initialW(scale=stvd),
+                initial_bias=initial_bias(scale=stvd),
+            )
             n = channels * 3 * 3
-            stvd = 1. / np.sqrt(n)
-            self.conv2 = L.Convolution2D(channels, channels, 3, stride=2, pad=1,
-                                         initialW=initialW(scale=stvd),
-                                         initial_bias=initial_bias(scale=stvd))
-            stvd = 1. / np.sqrt(dims)
-            self.out = L.Linear(idim, dims, initialW=initialW(scale=stvd),
-                                initial_bias=initial_bias(scale=stvd))
+            stvd = 1.0 / np.sqrt(n)
+            self.conv2 = L.Convolution2D(
+                channels,
+                channels,
+                3,
+                stride=2,
+                pad=1,
+                initialW=initialW(scale=stvd),
+                initial_bias=initial_bias(scale=stvd),
+            )
+            stvd = 1.0 / np.sqrt(dims)
+            self.out = L.Linear(
+                idim,
+                dims,
+                initialW=initialW(scale=stvd),
+                initial_bias=initial_bias(scale=stvd),
+            )
             self.pe = PositionalEncoding(dims, dropout)
 
     def forward(self, xs, ilens):
@@ -71,15 +88,18 @@ class LinearSampling(chainer.Chain):
 
     """
 
-    def __init__(self, idim, dims, dropout=0.1,
-                 initialW=None, initial_bias=None):
+    def __init__(self, idim, dims, dropout=0.1, initialW=None, initial_bias=None):
         """Initialize LinearSampling."""
         super(LinearSampling, self).__init__()
-        stvd = 1. / np.sqrt(dims)
+        stvd = 1.0 / np.sqrt(dims)
         self.dropout = dropout
         with self.init_scope():
-            self.linear = L.Linear(idim, dims, initialW=initialW(scale=stvd),
-                                   initial_bias=initial_bias(scale=stvd))
+            self.linear = L.Linear(
+                idim,
+                dims,
+                initialW=initialW(scale=stvd),
+                initial_bias=initial_bias(scale=stvd),
+            )
             self.pe = PositionalEncoding(dims, dropout)
 
     def forward(self, xs, ilens):

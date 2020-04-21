@@ -26,7 +26,8 @@ class VGG2L(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Conv2d(128, 128, 3, stride=1, padding=1),
             torch.nn.ReLU(),
-            torch.nn.MaxPool2d((2, 2)))
+            torch.nn.MaxPool2d((2, 2)),
+        )
 
         self.output = torch.nn.Linear(128 * ((idim // 2) // 2), odim)
 

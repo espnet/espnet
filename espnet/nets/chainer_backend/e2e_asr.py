@@ -64,12 +64,14 @@ class E2E(ChainerASRInterface):
         self.eos = odim - 1
 
         # subsample info
-        self.subsample = get_subsample(args, mode='asr', arch='rnn')
+        self.subsample = get_subsample(args, mode="asr", arch="rnn")
 
         # label smoothing info
         if args.lsm_type:
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
+            labeldist = label_smoothing_dist(
+                odim, args.lsm_type, transcript=args.train_json
+            )
         else:
             labeldist = None
 
@@ -128,14 +130,14 @@ class E2E(ChainerASRInterface):
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
-            reporter.report({'loss_ctc': loss_ctc}, self)
-            reporter.report({'loss_att': loss_att}, self)
-            reporter.report({'acc': acc}, self)
+            reporter.report({"loss_ctc": loss_ctc}, self)
+            reporter.report({"loss_att": loss_att}, self)
+            reporter.report({"acc": acc}, self)
 
-            logging.info('mtl loss:' + str(self.loss.data))
-            reporter.report({'loss': self.loss}, self)
+            logging.info("mtl loss:" + str(self.loss.data))
+            reporter.report({"loss": self.loss}, self)
         else:
-            logging.warning('loss (=%f) is not correct', self.loss.data)
+            logging.warning("loss (=%f) is not correct", self.loss.data)
         if self.flag_return:
             return self.loss, loss_ctc, loss_att, acc
         else:
@@ -155,11 +157,11 @@ class E2E(ChainerASRInterface):
 
         """
         # subsample frame
-        x = x[::self.subsample[0], :]
+        x = x[:: self.subsample[0], :]
         ilen = self.xp.array(x.shape[0], dtype=np.int32)
         h = chainer.Variable(self.xp.array(x, dtype=np.float32))
 
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+        with chainer.no_backprop_mode(), chainer.using_config("train", False):
             # 1. encoder
             # make a utt list (1) to use the same interface for encoder
             h, _ = self.enc([h], [ilen])
@@ -197,18 +199,27 @@ class E2E(ChainerASRInterface):
     def custom_converter(subsampling_factor=0):
         """Get customconverter of the model."""
         from espnet.nets.chainer_backend.rnn.training import CustomConverter
+
         return CustomConverter(subsampling_factor=subsampling_factor)
 
     @staticmethod
     def custom_updater(iters, optimizer, converter, device=-1, accum_grad=1):
         """Get custom_updater of the model."""
         from espnet.nets.chainer_backend.rnn.training import CustomUpdater
+
         return CustomUpdater(
-            iters, optimizer, converter=converter, device=device, accum_grad=accum_grad)
+            iters, optimizer, converter=converter, device=device, accum_grad=accum_grad
+        )
 
     @staticmethod
     def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
         """Get custom_parallel_updater of the model."""
         from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+
         return CustomParallelUpdater(
-            iters, optimizer, converter=converter, devices=devices, accum_grad=accum_grad)
+            iters,
+            optimizer,
+            converter=converter,
+            devices=devices,
+            accum_grad=accum_grad,
+        )

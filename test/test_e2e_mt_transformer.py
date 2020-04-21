@@ -15,12 +15,16 @@ from test.test_e2e_asr_transformer import subsequent_mask
 
 
 logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    level=logging.INFO,
+    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+)
 
 
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_mask(module):
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_mt_transformer'.format(module))
+    T = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_mt_transformer".format(module)
+    )
     m = T.subsequent_mask(3)
     print(m)
     print(subsequent_mask(3))
@@ -44,7 +48,7 @@ def make_arg(**kwargs):
         transformer_length_normalized_loss=True,
         report_bleu=False,
         lsm_weight=0.001,
-        char_list=['<blank>', 'a', 'e', 'i', 'o', 'u'],
+        char_list=["<blank>", "a", "e", "i", "o", "u"],
         tie_src_tgt_embedding=False,
         tie_classifier=False,
         multilingual=False,
@@ -57,12 +61,14 @@ def make_arg(**kwargs):
 def prepare(backend, args):
     idim = 5
     odim = 5
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_mt_transformer'.format(backend))
+    T = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_mt_transformer".format(backend)
+    )
 
     model = T.E2E(idim, odim, args)
     batchsize = 5
     n_token = odim - 1
-    if backend == 'pytorch':
+    if backend == "pytorch":
         y_src = (torch.randn(batchsize, 10) * n_token % n_token).long() + 1
         y_tgt = (torch.randn(batchsize, 11) * n_token % n_token).long() + 1
         # NOTE: + 1 to avoid to assign idx:0
@@ -72,16 +78,18 @@ def prepare(backend, args):
     ilens = [3, 9, 10, 2, 3]
     olens = [4, 10, 11, 3, 4]
     for i in range(batchsize):
-        y_src[i, ilens[i]:] = model.pad
-        y_tgt[i, olens[i]:] = model.ignore_id
+        y_src[i, ilens[i] :] = model.pad
+        y_tgt[i, olens[i] :] = model.ignore_id
 
     data = []
     for i in range(batchsize):
-        data.append(("utt%d" % i, {
-            "input": [{"shape": [ilens[i]]}],
-            "output": [{"shape": [olens[i]]}]
-        }))
-    if backend == 'pytorch':
+        data.append(
+            (
+                "utt%d" % i,
+                {"input": [{"shape": [ilens[i]]}], "output": [{"shape": [olens[i]]}]},
+            )
+        )
+    if backend == "pytorch":
         return model, y_src, torch.tensor(ilens), y_tgt, data
     else:
         return model, y_src, ilens, y_tgt, data
@@ -93,6 +101,7 @@ def test_transformer_mask(module):
     model, y_src, ilens, y_tgt, data = prepare(module, args)
     from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
     from espnet.nets.pytorch_backend.transformer.mask import target_mask
+
     yi, yo = add_sos_eos(y_tgt, model.sos, model.eos, model.ignore_id)
     y_mask = target_mask(yi, model.ignore_id)
     y_tgt = model.decoder.embed(yi)
@@ -103,13 +112,14 @@ def test_transformer_mask(module):
 
 
 @pytest.mark.parametrize(
-    "module, model_dict", [
-        ('pytorch', {}),
-        ('pytorch', {'report_bleu': True}),
-        ('pytorch', {'tie_src_tgt_embedding': True}),
-        ('pytorch', {'tie_classifier': True}),
-        ('pytorch', {'tie_src_tgt_embedding': True, 'tie_classifier': True}),
-    ]
+    "module, model_dict",
+    [
+        ("pytorch", {}),
+        ("pytorch", {"report_bleu": True}),
+        ("pytorch", {"tie_src_tgt_embedding": True}),
+        ("pytorch", {"tie_classifier": True}),
+        ("pytorch", {"tie_src_tgt_embedding": True, "tie_classifier": True}),
+    ],
 )
 def test_transformer_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
@@ -137,11 +147,14 @@ def test_transformer_trainable_and_decodable(module, model_dict):
         # test attention plot
         attn_dict = model.calculate_all_attentions(y_src[0:1], ilens[0:1], y_tgt[0:1])
         from espnet.nets.pytorch_backend.transformer import plot
+
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
         # test decodable
         with torch.no_grad():
-            nbest = model.translate([y_src[0, :ilens[0]].numpy()], trans_args, args.char_list)
+            nbest = model.translate(
+                [y_src[0, : ilens[0]].numpy()], trans_args, args.char_list
+            )
             print(y_tgt[0])
             print(nbest[0]["yseq"][1:-1])
     else:

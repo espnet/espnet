@@ -21,20 +21,39 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
     @staticmethod
     def add_arguments(parser):
         """Add arguments to command line argument parser."""
-        parser.add_argument('--layer', type=int, default=4,
-                            help='Number of hidden layers')
-        parser.add_argument('--unit', type=int, default=1024,
-                            help='Number of hidden units in feedforward layer')
-        parser.add_argument('--att-unit', type=int, default=256,
-                            help='Number of hidden units in attention layer')
-        parser.add_argument('--embed-unit', type=int, default=128,
-                            help='Number of hidden units in embedding layer')
-        parser.add_argument('--head', type=int, default=2,
-                            help='Number of multi head attention')
-        parser.add_argument('--dropout-rate', type=float, default=0.5,
-                            help='dropout probability')
-        parser.add_argument('--pos-enc', default="sinusoidal", choices=["sinusoidal", "none"],
-                            help='positional encoding')
+        parser.add_argument(
+            "--layer", type=int, default=4, help="Number of hidden layers"
+        )
+        parser.add_argument(
+            "--unit",
+            type=int,
+            default=1024,
+            help="Number of hidden units in feedforward layer",
+        )
+        parser.add_argument(
+            "--att-unit",
+            type=int,
+            default=256,
+            help="Number of hidden units in attention layer",
+        )
+        parser.add_argument(
+            "--embed-unit",
+            type=int,
+            default=128,
+            help="Number of hidden units in embedding layer",
+        )
+        parser.add_argument(
+            "--head", type=int, default=2, help="Number of multi head attention"
+        )
+        parser.add_argument(
+            "--dropout-rate", type=float, default=0.5, help="dropout probability"
+        )
+        parser.add_argument(
+            "--pos-enc",
+            default="sinusoidal",
+            choices=["sinusoidal", "none"],
+            help="positional encoding",
+        )
         return parser
 
     def __init__(self, n_vocab, args):
@@ -49,8 +68,10 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         if args.pos_enc == "sinusoidal":
             pos_enc_class = PositionalEncoding
         elif args.pos_enc == "none":
+
             def pos_enc_class(*args, **kwargs):
                 return nn.Sequential()  # indentity
+
         else:
             raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
 
@@ -63,7 +84,8 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             num_blocks=args.layer,
             dropout_rate=args.dropout_rate,
             input_layer="linear",
-            pos_enc_class=pos_enc_class)
+            pos_enc_class=pos_enc_class,
+        )
         self.decoder = nn.Linear(args.att_unit, n_vocab)
 
     def _target_mask(self, ys_in_pad):
@@ -71,7 +93,9 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
         return ys_mask.unsqueeze(-2) & m
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, t: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute LM loss value from buffer sequences.
 
         Args:
@@ -85,10 +109,11 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
                 the number of elements in x (scalar)
 
         Notes:
-            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+            The last two return values are used
+            in perplexity: p(t)^{-n} = exp(-log p(t) / n)
 
         """
-        xm = (x != 0)
+        xm = x != 0
         h, _ = self.encoder(self.embed(x), self._target_mask(x))
         y = self.decoder(h)
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
@@ -98,7 +123,9 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         count = mask.sum()
         return logp / count, logp, count
 
-    def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
+    def score(
+        self, y: torch.Tensor, state: Any, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, Any]:
         """Score new token.
 
         Args:
@@ -113,19 +140,24 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
 
         """
         y = y.unsqueeze(0)
-        h, _, cache = self.encoder.forward_one_step(self.embed(y), self._target_mask(y), cache=state)
+        h, _, cache = self.encoder.forward_one_step(
+            self.embed(y), self._target_mask(y), cache=state
+        )
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
         return logp, cache
 
     # batch beam search API (see BatchScorerInterface)
-    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -140,10 +172,15 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             batch_state = None
         else:
             # transpose state of [batch, layer] into [layer, batch]
-            batch_state = [torch.stack([states[b][l] for b in range(n_batch)]) for l in range(n_layers)]
+            batch_state = [
+                torch.stack([states[b][l] for b in range(n_batch)])
+                for l in range(n_layers)
+            ]
 
         # batch decoding
-        h, _, states = self.encoder.forward_one_step(self.embed(ys), self._target_mask(ys), cache=batch_state)
+        h, _, states = self.encoder.forward_one_step(
+            self.embed(ys), self._target_mask(ys), cache=batch_state
+        )
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1)
 
