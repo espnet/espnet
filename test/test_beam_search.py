@@ -52,7 +52,7 @@ rnn_args = Namespace(
     context_residual=False,
     use_frontend=False,
     replace_sos=False,
-    tgt_lang=False
+    tgt_lang=False,
 )
 
 transformer_args = Namespace(
@@ -189,7 +189,7 @@ ldconv_dconv2d_args = Namespace(
 # from test.test_e2e_asr_transformer import prepare
 def prepare(E2E, args, mtlalpha=0.0):
     args.mtlalpha = mtlalpha
-    args.char_list = ['a', 'e', 'i', 'o', 'u']
+    args.char_list = ["a", "e", "i", "o", "u"]
     idim = 40
     odim = 5
     model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
@@ -201,32 +201,45 @@ def prepare(E2E, args, mtlalpha=0.0):
     y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
     olens = [3, 9, 10, 2, 3]
     for i in range(batchsize):
-        x[i, ilens[i]:] = -1
-        y[i, olens[i]:] = -1
+        x[i, ilens[i] :] = -1
+        y[i, olens[i] :] = -1
 
     data = []
     for i in range(batchsize):
-        data.append(("utt%d" % i, {
-            "input": [{"shape": [ilens[i], idim]}],
-            "output": [{"shape": [olens[i]]}]
-        }))
+        data.append(
+            (
+                "utt%d" % i,
+                {
+                    "input": [{"shape": [ilens[i], idim]}],
+                    "output": [{"shape": [olens[i]]}],
+                },
+            )
+        )
     return model, x, torch.tensor(ilens), y, data, args
 
 
 @pytest.mark.parametrize(
     "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
-    [(nn, args, ctc, lm, bonus, device, dtype)
-     for device in ("cpu", "cuda")
-     for nn, args in (("transformer", transformer_args),
-                      ("transformer", ldconv_lconv_args), ("transformer", ldconv_dconv_args),
-                      ("transformer", ldconv_lconv2d_args), ("transformer", ldconv_dconv2d_args),
-                      ("rnn", rnn_args))
-     for ctc in (0.0, 0.5, 1.0)
-     for lm in (0.0, 0.5)
-     for bonus in (0.0, 0.1)
-     for dtype in ("float16", "float32", "float64")]
+    [
+        (nn, args, ctc, lm, bonus, device, dtype)
+        for device in ("cpu", "cuda")
+        for nn, args in (
+            ("transformer", transformer_args),
+            ("transformer", ldconv_lconv_args),
+            ("transformer", ldconv_dconv_args),
+            ("transformer", ldconv_lconv2d_args),
+            ("transformer", ldconv_dconv2d_args),
+            ("rnn", rnn_args),
+        )
+        for ctc in (0.0, 0.5, 1.0)
+        for lm in (0.0, 0.5)
+        for bonus in (0.0, 0.1)
+        for dtype in ("float16", "float32", "float64")
+    ],
 )
-def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, device, dtype):
+def test_beam_search_equal(
+    model_class, args, ctc_weight, lm_weight, bonus, device, dtype
+):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
@@ -235,10 +248,14 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     # seed setting
     torch.manual_seed(123)
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False  # https://github.com/pytorch/pytorch/issues/6351
+    torch.backends.cudnn.benchmark = (
+        False  # https://github.com/pytorch/pytorch/issues/6351
+    )
 
     dtype = getattr(torch, dtype)
-    model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=ctc_weight)
+    model, x, ilens, y, data, train_args = prepare(
+        model_class, args, mtlalpha=ctc_weight
+    )
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, embed_unit=2, dropout_rate=0.0)
@@ -253,10 +270,10 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
         maxlenratio=0,
         lm_weight=lm_weight,
         minlenratio=0,
-        nbest=5
+        nbest=5,
     )
 
-    feat = x[0, :ilens[0]].numpy()
+    feat = x[0, : ilens[0]].numpy()
     # legacy beam search
     with torch.no_grad():
         nbest = model.recognize(feat, args, char_list, lm.model)
@@ -266,7 +283,12 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
     if lm_weight != 0:
         scorers["lm"] = lm
     scorers["length_bonus"] = LengthBonus(len(char_list))
-    weights = dict(decoder=1.0 - ctc_weight, ctc=ctc_weight, lm=args.lm_weight, length_bonus=args.penalty)
+    weights = dict(
+        decoder=1.0 - ctc_weight,
+        ctc=ctc_weight,
+        lm=args.lm_weight,
+        length_bonus=args.penalty,
+    )
     model.to(device, dtype=dtype)
     model.eval()
     beam = BeamSearch(
@@ -277,13 +299,15 @@ def test_beam_search_equal(model_class, args, ctc_weight, lm_weight, bonus, devi
         token_list=train_args.char_list,
         sos=model.sos,
         eos=model.eos,
-        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder"
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder",
     )
     beam.to(device, dtype=dtype)
     beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        nbest_bs = beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
+        nbest_bs = beam(
+            x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio
+        )
     if dtype == torch.float16:
         # skip because results are different. just checking it is decodable
         return

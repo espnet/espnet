@@ -12,7 +12,8 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 class DynamicConvolution(nn.Module):
     """Dynamic Convolution layer.
 
-    This implementation is based on https://github.com/pytorch/fairseq/tree/master/fairseq
+    This implementation is based on
+    https://github.com/pytorch/fairseq/tree/master/fairseq
 
     Args:
         wshare (int): the number of kernel of convolution
@@ -25,7 +26,16 @@ class DynamicConvolution(nn.Module):
 
     """
 
-    def __init__(self, wshare, n_feat, dropout_rate, kernel_size_str, lnum, use_kernel_mask=False, use_bias=False):
+    def __init__(
+        self,
+        wshare,
+        n_feat,
+        dropout_rate,
+        kernel_size_str,
+        lnum,
+        use_kernel_mask=False,
+        use_bias=False,
+    ):
         """Construct Dynamic Convolution layer."""
         super(DynamicConvolution, self).__init__()
 
@@ -85,13 +95,15 @@ class DynamicConvolution(nn.Module):
         weight = F.dropout(weight, self.dropout_rate, training=self.training)
         weight = weight.view(B, T, H, k).transpose(1, 2).contiguous()  # B x H x T x k
         weight_new = torch.zeros(B * H * T * (T + k - 1), dtype=weight.dtype)
-        weight_new = weight_new.view(B, H, T, T + k - 1).fill_(float('-inf'))
+        weight_new = weight_new.view(B, H, T, T + k - 1).fill_(float("-inf"))
         weight_new = weight_new.to(x.device)  # B x H x T x T+k-1
-        weight_new.as_strided((B, H, T, k), ((T + k - 1) * T * H, (T + k - 1) * T, T + k, 1)).copy_(weight)
+        weight_new.as_strided(
+            (B, H, T, k), ((T + k - 1) * T * H, (T + k - 1) * T, T + k, 1)
+        ).copy_(weight)
         weight_new = weight_new.narrow(-1, int((k - 1) / 2), T)  # B x H x T x T(k)
         if self.use_kernel_mask:
             kernel_mask = torch.tril(torch.ones(T, T, device=x.device)).unsqueeze(0)
-            weight_new = weight_new.masked_fill(kernel_mask == 0.0, float('-inf'))
+            weight_new = weight_new.masked_fill(kernel_mask == 0.0, float("-inf"))
         weight_new = F.softmax(weight_new, dim=-1)
         self.attn = weight_new
         weight_new = weight_new.view(B * H, T, T)

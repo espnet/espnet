@@ -69,9 +69,9 @@ class ErrorCalculator(object):
             # because of that y_hats has not padded outs with -1.
             seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
             seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
-            seq_hat_text = seq_hat_text.replace(self.pad, '')
-            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+            seq_hat_text = seq_hat_text.replace(self.pad, "")
+            seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
         return seqs_hat, seqs_true

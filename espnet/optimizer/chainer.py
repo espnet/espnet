@@ -29,9 +29,7 @@ class AdamFactory(OptimizerFactoryInterface):
 
         """
         opt = chainer.optimizers.Adam(
-            alpha=args.lr,
-            beta1=args.beta1,
-            beta2=args.beta2,
+            alpha=args.lr, beta1=args.beta1, beta2=args.beta2,
         )
         opt.setup(target)
         opt.add_hook(WeightDecay(args.weight_decay))
@@ -56,9 +54,7 @@ class SGDFactory(OptimizerFactoryInterface):
             args (argparse.Namespace): parsed command-line args
 
         """
-        opt = chainer.optimizers.SGD(
-            lr=args.lr,
-        )
+        opt = chainer.optimizers.SGD(lr=args.lr,)
         opt.setup(target)
         opt.add_hook(WeightDecay(args.weight_decay))
         return opt
@@ -82,13 +78,14 @@ class AdadeltaFactory(OptimizerFactoryInterface):
             args (argparse.Namespace): parsed command-line args
 
         """
-        opt = chainer.optimizers.AdaDelta(
-            rho=args.rho,
-            eps=args.eps,
-        )
+        opt = chainer.optimizers.AdaDelta(rho=args.rho, eps=args.eps,)
         opt.setup(target)
         opt.add_hook(WeightDecay(args.weight_decay))
         return opt
 
 
-OPTIMIZER_FACTORY_DICT = {"adam": AdamFactory, "sgd": SGDFactory, "adadelta": AdadeltaFactory}
+OPTIMIZER_FACTORY_DICT = {
+    "adam": AdamFactory,
+    "sgd": SGDFactory,
+    "adadelta": AdadeltaFactory,
+}

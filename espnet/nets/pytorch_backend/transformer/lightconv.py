@@ -12,7 +12,8 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 class LightweightConvolution(nn.Module):
     """Lightweight Convolution layer.
 
-    This implementation is based on https://github.com/pytorch/fairseq/tree/master/fairseq
+    This implementation is based on
+    https://github.com/pytorch/fairseq/tree/master/fairseq
 
     Args:
         wshare (int): the number of kernel of convolution
@@ -25,7 +26,16 @@ class LightweightConvolution(nn.Module):
 
     """
 
-    def __init__(self, wshare, n_feat, dropout_rate, kernel_size_str, lnum, use_kernel_mask=False, use_bias=False):
+    def __init__(
+        self,
+        wshare,
+        n_feat,
+        dropout_rate,
+        kernel_size_str,
+        lnum,
+        use_kernel_mask=False,
+        use_bias=False,
+    ):
         """Construct Lightweight Convolution layer."""
         super(LightweightConvolution, self).__init__()
 
@@ -42,7 +52,9 @@ class LightweightConvolution(nn.Module):
         self.act = nn.GLU()
 
         # lightconv related
-        self.weight = nn.Parameter(torch.Tensor(self.wshare, 1, self.kernel_size).uniform_(0, 1))
+        self.weight = nn.Parameter(
+            torch.Tensor(self.wshare, 1, self.kernel_size).uniform_(0, 1)
+        )
         self.use_bias = use_bias
         if self.use_bias:
             self.bias = nn.Parameter(torch.Tensor(n_feat))
@@ -84,9 +96,11 @@ class LightweightConvolution(nn.Module):
         weight = F.dropout(self.weight, self.dropout_rate, training=self.training)
         if self.use_kernel_mask:
             self.kernel_mask = self.kernel_mask.to(x.device)
-            weight = weight.masked_fill(self.kernel_mask == 0.0, float('-inf'))
+            weight = weight.masked_fill(self.kernel_mask == 0.0, float("-inf"))
         weight = F.softmax(weight, dim=-1)
-        x = F.conv1d(x, weight, padding=self.padding_size, groups=self.wshare).view(B, C, T)
+        x = F.conv1d(x, weight, padding=self.padding_size, groups=self.wshare).view(
+            B, C, T
+        )
         if self.use_bias:
             x = x + self.bias.view(1, -1, 1)
         x = x.transpose(1, 2)  # B x T x C

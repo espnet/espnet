@@ -26,17 +26,29 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
     @staticmethod
     def add_arguments(parser):
         """Add arguments to command line argument parser."""
-        parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
-                            help="Which type of RNN to use")
-        parser.add_argument('--layer', '-l', type=int, default=2,
-                            help='Number of hidden layers')
-        parser.add_argument('--unit', '-u', type=int, default=650,
-                            help='Number of hidden units')
-        parser.add_argument('--embed-unit', default=None,
-                            help='Number of hidden units in embedding layer, \
-                            if it is not specified, it keeps the same number with hidden units.')
-        parser.add_argument('--dropout-rate', type=float, default=0.5,
-                            help='dropout probability')
+        parser.add_argument(
+            "--type",
+            type=str,
+            default="lstm",
+            nargs="?",
+            choices=["lstm", "gru"],
+            help="Which type of RNN to use",
+        )
+        parser.add_argument(
+            "--layer", "-l", type=int, default=2, help="Number of hidden layers"
+        )
+        parser.add_argument(
+            "--unit", "-u", type=int, default=650, help="Number of hidden units"
+        )
+        parser.add_argument(
+            "--embed-unit",
+            default=None,
+            help="Number of hidden units in embedding layer, "
+            "if it is not specified, it keeps the same number with hidden units.",
+        )
+        parser.add_argument(
+            "--dropout-rate", type=float, default=0.5, help="dropout probability"
+        )
         return parser
 
     def __init__(self, n_vocab, args):
@@ -53,7 +65,8 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         # NOTE: for a compatibility with less than 0.6.1 version models
         embed_unit = getattr(args, "embed_unit", None)
         self.model = ClassifierWithState(
-            RNNLM(n_vocab, args.layer, args.unit, embed_unit, args.type, dropout_rate))
+            RNNLM(n_vocab, args.layer, args.unit, embed_unit, args.type, dropout_rate)
+        )
 
     def state_dict(self):
         """Dump state dict."""
@@ -77,7 +90,8 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
                 the number of elements in x (scalar)
 
         Notes:
-            The last two return values are used in perplexity: p(t)^{-n} = exp(-log p(t) / n)
+            The last two return values are used
+            in perplexity: p(t)^{-n} = exp(-log p(t) / n)
 
         """
         loss = 0
@@ -124,13 +138,16 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         return self.model.final(state)
 
     # batch beam search API (see BatchScorerInterface)
-    def batch_score(self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor): The encoder feature that generates ys (n_batch, xlen, n_feat).
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -151,20 +168,30 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         else:
             # transpose state of [batch, key, layer] into [key, layer, batch]
             states = {
-                k: [torch.stack([states[b][k][l] for b in range(n_batch)]) for l in range(n_layers)] for k in keys
+                k: [
+                    torch.stack([states[b][k][l] for b in range(n_batch)])
+                    for l in range(n_layers)
+                ]
+                for k in keys
             }
         states, logp = self.model.predict(states, ys[:, -1])
 
         # transpose state of [key, layer, batch] into [batch, key, layer]
-        return logp, [{k: [states[k][l][b] for l in range(n_layers)] for k in keys} for b in range(n_batch)]
+        return (
+            logp,
+            [
+                {k: [states[k][l][b] for l in range(n_layers)] for k in keys}
+                for b in range(n_batch)
+            ],
+        )
 
 
 class ClassifierWithState(nn.Module):
     """A wrapper for pytorch RNNLM."""
 
-    def __init__(self, predictor,
-                 lossfun=nn.CrossEntropyLoss(reduction="none"),
-                 label_key=-1):
+    def __init__(
+        self, predictor, lossfun=nn.CrossEntropyLoss(reduction="none"), label_key=-1
+    ):
         """Initialize class.
 
         :param torch.nn.Module predictor : The RNNLM
@@ -173,8 +200,7 @@ class ClassifierWithState(nn.Module):
 
         """
         if not (isinstance(label_key, (int, str))):
-            raise TypeError('label_key must be int or str, but is %s' %
-                            type(label_key))
+            raise TypeError("label_key must be int or str, but is %s" % type(label_key))
         super(ClassifierWithState, self).__init__()
         self.lossfun = lossfun
         self.y = None
@@ -204,13 +230,13 @@ class ClassifierWithState(nn.Module):
         """
         if isinstance(self.label_key, int):
             if not (-len(args) <= self.label_key < len(args)):
-                msg = 'Label key %d is out of bounds' % self.label_key
+                msg = "Label key %d is out of bounds" % self.label_key
                 raise ValueError(msg)
             t = args[self.label_key]
             if self.label_key == -1:
                 args = args[:-1]
             else:
-                args = args[:self.label_key] + args[self.label_key + 1:]
+                args = args[: self.label_key] + args[self.label_key + 1 :]
         elif isinstance(self.label_key, str):
             if self.label_key not in kwargs:
                 msg = 'Label key "%s" is not found' % self.label_key
@@ -232,7 +258,7 @@ class ClassifierWithState(nn.Module):
         :return a tuple (new state, log prob vector)
         :rtype (torch.Tensor, torch.Tensor)
         """
-        if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
+        if hasattr(self.predictor, "normalized") and self.predictor.normalized:
             return self.predictor(state, x)
         else:
             state, z = self.predictor(state, x)
@@ -240,7 +266,7 @@ class ClassifierWithState(nn.Module):
 
     def buff_predict(self, state, x, n):
         """Predict new tokens from buffered inputs."""
-        if self.predictor.__class__.__name__ == 'RNNLM':
+        if self.predictor.__class__.__name__ == "RNNLM":
             return self.predict(state, x)
 
         new_state = []
@@ -260,20 +286,22 @@ class ClassifierWithState(nn.Module):
         :return The final log probabilities
         :rtype torch.Tensor
         """
-        if hasattr(self.predictor, 'final'):
+        if hasattr(self.predictor, "final"):
             if index is not None:
                 return self.predictor.final(state[index])
             else:
                 return self.predictor.final(state)
         else:
-            return 0.
+            return 0.0
 
 
 # Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
     """A pytorch RNNLM."""
 
-    def __init__(self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5):
+    def __init__(
+        self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5
+    ):
         """Initialize class.
 
         :param int n_vocab: The size of the vocabulary
@@ -287,13 +315,18 @@ class RNNLM(nn.Module):
         self.embed = nn.Embedding(n_vocab, n_embed)
         if typ == "lstm":
             self.rnn = nn.ModuleList(
-                [nn.LSTMCell(n_embed, n_units)] + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)])
+                [nn.LSTMCell(n_embed, n_units)]
+                + [nn.LSTMCell(n_units, n_units) for _ in range(n_layers - 1)]
+            )
         else:
             self.rnn = nn.ModuleList(
-                [nn.GRUCell(n_embed, n_units)] + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)])
+                [nn.GRUCell(n_embed, n_units)]
+                + [nn.GRUCell(n_units, n_units) for _ in range(n_layers - 1)]
+            )
 
         self.dropout = nn.ModuleList(
-            [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)])
+            [nn.Dropout(dropout_rate) for _ in range(n_layers + 1)]
+        )
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -311,24 +344,34 @@ class RNNLM(nn.Module):
     def forward(self, state, x):
         """Forward neural networks."""
         if state is None:
-            h = [to_device(self, self.zero_state(x.size(0))) for n in range(self.n_layers)]
-            state = {'h': h}
+            h = [
+                to_device(self, self.zero_state(x.size(0)))
+                for n in range(self.n_layers)
+            ]
+            state = {"h": h}
             if self.typ == "lstm":
-                c = [to_device(self, self.zero_state(x.size(0))) for n in range(self.n_layers)]
-                state = {'c': c, 'h': h}
+                c = [
+                    to_device(self, self.zero_state(x.size(0)))
+                    for n in range(self.n_layers)
+                ]
+                state = {"c": c, "h": h}
 
         h = [None] * self.n_layers
         emb = self.embed(x)
         if self.typ == "lstm":
             c = [None] * self.n_layers
-            h[0], c[0] = self.rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
+            h[0], c[0] = self.rnn[0](
+                self.dropout[0](emb), (state["h"][0], state["c"][0])
+            )
             for n in range(1, self.n_layers):
-                h[n], c[n] = self.rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
-            state = {'c': c, 'h': h}
+                h[n], c[n] = self.rnn[n](
+                    self.dropout[n](h[n - 1]), (state["h"][n], state["c"][n])
+                )
+            state = {"c": c, "h": h}
         else:
-            h[0] = self.rnn[0](self.dropout[0](emb), state['h'][0])
+            h[0] = self.rnn[0](self.dropout[0](emb), state["h"][0])
             for n in range(1, self.n_layers):
-                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
-            state = {'h': h}
+                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state["h"][n])
+            state = {"h": h}
         y = self.lo(self.dropout[-1](h[-1]))
         return state, y
