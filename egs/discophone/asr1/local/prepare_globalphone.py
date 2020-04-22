@@ -80,15 +80,15 @@ LANG2ENCODING = {
 
 LANG2SPLIT = {
     'Arabic': {
-        'dev': [5, 36, 107, 164],  # TODO: +6 TBA ?
-        'eval': [27, 39, 108, 137],  # TODO: + 6 TBA ?
+        'dev': [5, 36, 107, 164] + [1, 2, 3, 4, 6, 7],  # TODO: Docs say: +6 TBA; I'm putting extra six speakers here
+        'eval': [27, 39, 108, 137] + [8, 9, 10, 11, 12, 13],  # TODO: + 6 TBA; I'm putting extra six speakers here
     },
-    'Czech': {  # TODO: TBA ? ; (PZ) I put just one speaker to test the recipe
-        'dev': [1],
-        'eval': [2],
+    'Czech': {  # TODO: docs say TBA... I'm putting 9 speakers in each set
+        'dev': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        'eval': [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     },
     'French': {
-        'dev': [1],  # TODO: no dev? I put one spk here
+        'dev': [1, 2, 3, 4, 5, 6, 7, 8],  # TODO: no dev specified in docs; I'm putting eight speakers here
         'eval': list(range(91, 99)),  # 91-98
     },
     'Korean': {
