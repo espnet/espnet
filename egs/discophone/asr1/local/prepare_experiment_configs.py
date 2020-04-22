@@ -2,7 +2,7 @@
 from pathlib import Path
 
 CONF_DIR = Path('conf/experiments')
-BABEL_LANGS_OF_INTEREST = frozenset('101 103 107 203 206 307 404'.split())
+BABEL_LANGS_OF_INTEREST = frozenset('101 103 107 203 206 307 402 404'.split())
 GLOBALPHONE_LANGS_OF_INTEREST = frozenset("Arabic Czech French Korean Mandarin Spanish Thai".split())
 
 CONF_TEMPLATE = """
