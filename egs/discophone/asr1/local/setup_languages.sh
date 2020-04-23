@@ -16,6 +16,8 @@ FLP=true
 gp_path="/export/corpora5/GlobalPhone"
 gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
 gp_recog="Arabic Czech French Korean Mandarin Spanish Thai"
+mboshi_train=false
+mboshi_recog=true
 gp_romanized=false
 ipa_transcript=false
 
@@ -95,6 +97,34 @@ if [ "$gp_langs" ] || [ "$gp_recog" ]; then
   done
 fi
 
+# MBOSHI
+
+if [ $mboshi_train ] || [ $mboshi_recog ]; then
+  if [ ! -d ../mboshi-french-parallel-corpus ]; then
+    git clone https://github.com/besacier/mboshi-french-parallel-corpus ../mboshi-french-parallel-corpus
+  fi
+  python3 local/prepare_mboshi.py \
+    "$(readlink -f ../mboshi-french-parallel-corpus)" \
+    data/Mboshi
+  for split in train dev eval; do
+    data_dir=data/Mboshi/Mboshi_${split}
+    utils/fix_data_dir.sh $data_dir
+    utils/utt2spk_to_spk2utt.pl $data_dir/utt2spk > $data_dir/spk2utt
+    local/get_utt2dur.sh --read-entire-file true $data_dir
+    python3 -c "for line in open('$data_dir/utt2dur'):
+    utt, dur = line.strip().split()
+    print(f'{utt} {utt} 0.00 {float(dur):.2f}')
+" > $data_dir/segments
+    python3 local/prepare_lexicons.py \
+      --lang Mboshi \
+      --data-dir $data_dir \
+      --g2p-models-dir g2ps/models \
+      $ipa_transcript_opt
+    utils/fix_data_dir.sh $data_dir
+    utils/validate_data_dir.sh --no-feats $data_dir
+  done
+fi
+
 # Now onto Babel
 
 all_langs=""
@@ -163,6 +193,13 @@ for l in ${recog}; do
   dev_dirs="data/${l}/data/dev_${l} ${dev_dirs}"
 done
 
+# Now Mboshi
+
+if [ $mboshi_train ]; then
+  train_dirs="data/Mboshi/Mboshi_train ${train_dirs}"
+  dev_dirs="data/Mboshi/Mboshi_dev ${dev_dirs}"
+fi
+
 # Now add GlobalPhone
 for l in ${gp_langs}; do
   train_dirs="data/GlobalPhone/gp_${l}_train ${train_dirs}"
@@ -182,9 +219,17 @@ for l in ${recog}; do
   fi
 done
 
+if [ $mboshi_recog ]; then
+  target_link="data/Mboshi/Mboshi_eval"
+  if [ ! -L $target_link ]; then
+    ln -s ${cwd}/data/Mboshi/Mboshi_eval $target_link
+  fi
+fi
+
 for l in ${gp_recog}; do
   target_link=${cwd}/data/eval_${l}
   if [ ! -L $target_link ]; then
     ln -s ${cwd}/data/GlobalPhone/gp_${l}_eval $target_link
   fi
 done
+

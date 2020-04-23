@@ -58,6 +58,8 @@ else
   babel_recog="${babel_langs} 404 203"
   gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
   gp_recog="${gp_langs}"
+  mboshi_train=false
+  mboshi_recog=true
   gp_romanized=false
   ipa_transcript=false
 fi
@@ -97,6 +99,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     --recog "${babel_recog}" \
     --gp-langs "${gp_langs}" \
     --gp-recog "${gp_recog}" \
+    --mboshi-train "${mboshi_train}" \
+    --mboshi-recog "${mboshi_recog}" \
     --gp-romanized "${gp_romanized}" \
     --ipa-transcript "${ipa_transcript}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
