@@ -14,19 +14,25 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 class DurationPredictor(torch.nn.Module):
     """Duration predictor module.
 
-    This is a module of duration predictor described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
-    The duration predictor predicts a duration of each frame in log domain from the hidden embeddings of encoder.
+    This is a module of duration predictor described
+    in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
+    The duration predictor predicts a duration of each frame in log domain
+    from the hidden embeddings of encoder.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
     Note:
-        The calculation domain of outputs is different between in `forward` and in `inference`. In `forward`,
-        the outputs are calculated in log domain but in `inference`, those are calculated in linear domain.
+        The calculation domain of outputs is different
+        between in `forward` and in `inference`. In `forward`,
+        the outputs are calculated in log domain but in `inference`,
+        those are calculated in linear domain.
 
     """
 
-    def __init__(self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0):
+    def __init__(
+        self, idim, n_layers=2, n_chans=384, kernel_size=3, dropout_rate=0.1, offset=1.0
+    ):
         """Initilize duration predictor module.
 
         Args:
@@ -43,12 +49,20 @@ class DurationPredictor(torch.nn.Module):
         self.conv = torch.nn.ModuleList()
         for idx in range(n_layers):
             in_chans = idim if idx == 0 else n_chans
-            self.conv += [torch.nn.Sequential(
-                torch.nn.Conv1d(in_chans, n_chans, kernel_size, stride=1, padding=(kernel_size - 1) // 2),
-                torch.nn.ReLU(),
-                LayerNorm(n_chans, dim=1),
-                torch.nn.Dropout(dropout_rate)
-            )]
+            self.conv += [
+                torch.nn.Sequential(
+                    torch.nn.Conv1d(
+                        in_chans,
+                        n_chans,
+                        kernel_size,
+                        stride=1,
+                        padding=(kernel_size - 1) // 2,
+                    ),
+                    torch.nn.ReLU(),
+                    LayerNorm(n_chans, dim=1),
+                    torch.nn.Dropout(dropout_rate),
+                )
+            ]
         self.linear = torch.nn.Linear(n_chans, 1)
 
     def _forward(self, xs, x_masks=None, is_inference=False):
@@ -61,7 +75,9 @@ class DurationPredictor(torch.nn.Module):
 
         if is_inference:
             # NOTE: calculate in linear domain
-            xs = torch.clamp(torch.round(xs.exp() - self.offset), min=0).long()  # avoid negative value
+            xs = torch.clamp(
+                torch.round(xs.exp() - self.offset), min=0
+            ).long()  # avoid negative value
 
         if x_masks is not None:
             xs = xs.masked_fill(x_masks, 0.0)
@@ -73,7 +89,8 @@ class DurationPredictor(torch.nn.Module):
 
         Args:
             xs (Tensor): Batch of input sequences (B, Tmax, idim).
-            x_masks (ByteTensor, optional): Batch of masks indicating padded part (B, Tmax).
+            x_masks (ByteTensor, optional):
+                Batch of masks indicating padded part (B, Tmax).
 
         Returns:
             Tensor: Batch of predicted durations in log domain (B, Tmax).
@@ -86,7 +103,8 @@ class DurationPredictor(torch.nn.Module):
 
         Args:
             xs (Tensor): Batch of input sequences (B, Tmax, idim).
-            x_masks (ByteTensor, optional): Batch of masks indicating padded part (B, Tmax).
+            x_masks (ByteTensor, optional):
+                Batch of masks indicating padded part (B, Tmax).
 
         Returns:
             LongTensor: Batch of predicted durations in linear domain (B, Tmax).

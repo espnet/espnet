@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    [ ! -z $LC_ALL ] && export LC_ALL="en_US.UTF-8"
+    export LC_ALL="en_US.UTF-8"
 
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
@@ -100,5 +100,5 @@ teardown() {
     cat $tmpdir/out.json
     jsondiff $tmpdir/out.json $tmpdir/valid
 }
-NG=C.UTF-8
+NG=en_US.UTF-8
 

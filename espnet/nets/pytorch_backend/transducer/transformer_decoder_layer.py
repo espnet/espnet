@@ -19,8 +19,15 @@ class DecoderLayer(nn.Module):
 
     """
 
-    def __init__(self, size, self_attn, feed_forward, dropout_rate,
-                 normalize_before=True, concat_after=False):
+    def __init__(
+        self,
+        size,
+        self_attn,
+        feed_forward,
+        dropout_rate,
+        normalize_before=True,
+        concat_after=False,
+    ):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
         self.self_attn = self_attn
@@ -54,8 +61,11 @@ class DecoderLayer(nn.Module):
         if cache is None:
             tgt_q = tgt
         else:
-            assert cache.shape == (tgt.shape[0], tgt.shape[1] - 1, self.size), \
-                f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
+            assert cache.shape == (
+                tgt.shape[0],
+                tgt.shape[1] - 1,
+                self.size,
+            ), f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
 
             tgt_q = tgt[:, -1, :]
             residual = residual[:, -1, :]
@@ -64,7 +74,9 @@ class DecoderLayer(nn.Module):
                 tgt_mask = tgt_mask[:, -1:, :]
 
         if self.concat_after:
-            tgt_concat = torch.cat((tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_mask)), dim=-1)
+            tgt_concat = torch.cat(
+                (tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_mask)), dim=-1
+            )
             tgt = residual + self.concat(tgt_concat)
         else:
             tgt = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_mask))

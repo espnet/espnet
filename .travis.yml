@@ -1,7 +1,7 @@
 dist: xenial
 language: python
 python:
-  - "3.7"
+  - "3.8"
 
 cache:
   - pip
@@ -20,25 +20,24 @@ addons:
       - bc
 
 env:
-  # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=1.1.0 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.8 TH_VERSION=1.4.0 CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
   # torch nightly
-  - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+  # - USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
 matrix:
   allow_failures:
     # torch nightly
-    - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
+    # - env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7.3 TH_VERSION=nightly CHAINER_VERSION=6.0.0 CC=gcc-7 CXX=g++-7
 
 install:
   - travis_retry ./ci/install.sh
-  - travis_retry ./ci/install_kaldi.sh
+  # - travis_retry ./ci/install_kaldi.sh
 
 script:
-  - ./ci/test_shell.sh
+  # NOTE(kamo): Codecov and build documentation only
+  # - ./ci/test_shell.sh
   - ./ci/test_python.sh
-  - ./ci/test_integration.sh
+  # - ./ci/test_integration.sh
   - ./ci/doc.sh
 
 sudo: false

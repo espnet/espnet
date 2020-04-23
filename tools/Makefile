@@ -42,6 +42,7 @@ extra: nkf.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
+	test -d $(KALDI)
 	ln -s $(abspath $(KALDI)) kaldi
 	touch kaldi.done
 else

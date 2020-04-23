@@ -53,10 +53,10 @@ def make_arg(**kwargs):
         replace_sos=False,
         tgt_lang=False,
         enc_init=None,
-        enc_init_mods='enc.',
+        enc_init_mods="enc.",
         dec_init=None,
-        dec_init_mods='dec.,att.',
-        model_module='espnet.nets.pytorch_backend.e2e_asr:E2E'
+        dec_init_mods="dec.,att.",
+        model_module="espnet.nets.pytorch_backend.e2e_asr:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -91,37 +91,43 @@ def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     return xs_pad, ilens, ys_pad
 
 
-@pytest.mark.parametrize("enc_init, enc_mods, dec_init, dec_mods, mtlalpha", [
-    (None, "enc.", None, "dec., att.", 0.0),
-    (None, "enc.", None, "dec., att.", 0.5),
-    (None, "enc.", None, "dec., att.", 1.0),
-    (True, "enc.", None, "dec., att.", 0.5),
-    (None, "enc.", True, "dec., att.", 0.0),
-    (None, "enc.", True, "dec., att.", 0.5),
-    (None, "enc.", True, "dec., att.", 1.0),
-    (True, "enc.", True, "dec., att.", 0.0),
-    (True, "enc.", True, "dec., att.", 0.5),
-    (True, "enc.", True, "dec., att.", 1.0),
-    (True, "test", None, "dec., att.", 0.0),
-    (True, "test", None, "dec., att.", 0.5),
-    (True, "test", None, "dec., att.", 1.0),
-    (None, "enc.", True, "test", 0.0),
-    (None, "enc.", True, "test", 0.5),
-    (None, "enc.", True, "test", 1.0),
-    (True, "enc.enc.0", None, "dec., att.", 0.0),
-    (True, "enc.enc.0", None, "dec., att.", 0.5),
-    (True, "enc.enc.0", None, "dec., att.", 1.0),
-    (None, "enc.", True, "dec.embed.", 0.0),
-    (None, "enc.", True, "dec.embed.", 0.5),
-    (None, "enc.", True, "dec.embed.", 1.0),
-    (True, "enc.enc.0, enc.enc.1", True, "dec., att.", 0.0),
-    (True, "enc.enc.0", True, "dec.embed.,dec.decoder.1", 0.5),
-    (True, "enc.enc.0, enc.enc.1", True, "dec.embed.,dec.decoder.1", 1.0)])
-def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_init, dec_mods, mtlalpha):
+@pytest.mark.parametrize(
+    "enc_init, enc_mods, dec_init, dec_mods, mtlalpha",
+    [
+        (None, "enc.", None, "dec., att.", 0.0),
+        (None, "enc.", None, "dec., att.", 0.5),
+        (None, "enc.", None, "dec., att.", 1.0),
+        (True, "enc.", None, "dec., att.", 0.5),
+        (None, "enc.", True, "dec., att.", 0.0),
+        (None, "enc.", True, "dec., att.", 0.5),
+        (None, "enc.", True, "dec., att.", 1.0),
+        (True, "enc.", True, "dec., att.", 0.0),
+        (True, "enc.", True, "dec., att.", 0.5),
+        (True, "enc.", True, "dec., att.", 1.0),
+        (True, "test", None, "dec., att.", 0.0),
+        (True, "test", None, "dec., att.", 0.5),
+        (True, "test", None, "dec., att.", 1.0),
+        (None, "enc.", True, "test", 0.0),
+        (None, "enc.", True, "test", 0.5),
+        (None, "enc.", True, "test", 1.0),
+        (True, "enc.enc.0", None, "dec., att.", 0.0),
+        (True, "enc.enc.0", None, "dec., att.", 0.5),
+        (True, "enc.enc.0", None, "dec., att.", 1.0),
+        (None, "enc.", True, "dec.embed.", 0.0),
+        (None, "enc.", True, "dec.embed.", 0.5),
+        (None, "enc.", True, "dec.embed.", 1.0),
+        (True, "enc.enc.0, enc.enc.1", True, "dec., att.", 0.0),
+        (True, "enc.enc.0", True, "dec.embed.,dec.decoder.1", 0.5),
+        (True, "enc.enc.0, enc.enc.1", True, "dec.embed.,dec.decoder.1", 1.0),
+    ],
+)
+def test_pytorch_trainable_transferable_and_decodable(
+    enc_init, enc_mods, dec_init, dec_mods, mtlalpha
+):
     idim, odim, ilens, olens = get_default_scope_inputs()
     args = make_arg()
 
-    module = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
+    module = importlib.import_module("espnet.nets.pytorch_backend.e2e_asr")
     model = module.E2E(idim, odim, args)
 
     batch = pytorch_prepare_inputs(idim, odim, ilens, olens)
@@ -135,7 +141,7 @@ def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_in
 
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    utils = importlib.import_module("espnet.asr.asr_utils")
 
     tmppath = tempfile.mktemp()
     utils.torch_save(tmppath, model)
@@ -147,15 +153,22 @@ def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_in
 
     # create dummy model.json for saved model to go through
     # get_model_conf(...) called in load_trained_modules method.
-    model_conf = os.path.dirname(tmppath) + '/model.json'
-    with open(model_conf, 'wb') as f:
-        f.write(json.dumps((40, 5, vars(args)),
-                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+    model_conf = os.path.dirname(tmppath) + "/model.json"
+    with open(model_conf, "wb") as f:
+        f.write(
+            json.dumps(
+                (40, 5, vars(args)), indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )
 
-    args = make_arg(enc_init=enc_init, enc_init_mods=enc_mods,
-                    dec_init=dec_init, dec_init_mods=dec_mods,
-                    mtlalpha=mtlalpha)
-    transfer = importlib.import_module('espnet.asr.pytorch_backend.asr_init')
+    args = make_arg(
+        enc_init=enc_init,
+        enc_init_mods=enc_mods,
+        dec_init=dec_init,
+        dec_init_mods=dec_mods,
+        mtlalpha=mtlalpha,
+    )
+    transfer = importlib.import_module("espnet.asr.pytorch_backend.asr_init")
     model = transfer.load_trained_modules(40, 5, args)
 
     loss = model(*batch)

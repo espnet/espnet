@@ -1,0 +1,46 @@
+# general
+optim: adadelta
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
+init: chainer
+batch_type: folded
+batch_size: 30
+max_epoch: 20
+patience: 3
+
+# criterion
+val_scheduler_criterion:
+    - valid
+    - loss
+early_stopping_criterion:
+    - valid
+    - loss
+    - min
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+
+# MTL
+model_conf:
+    ctc_weight: 1.0
+
+# network
+encoder: rnn
+encoder_conf:
+    rnn_type: lstm
+    bidirectional: True
+    use_projection: True
+    num_layers: 4
+    hidden_size: 320
+    output_size: 320
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 300
+    sampling_probability: 0.

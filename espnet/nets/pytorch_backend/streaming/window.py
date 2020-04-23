@@ -1,7 +1,8 @@
 import torch
 
 
-# TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation
+# TODO(pzelasko): Currently allows half-streaming only;
+#  needs streaming attention decoder implementation
 class WindowStreamingE2E(object):
     """WindowStreamingE2E constructor.
 
@@ -23,8 +24,9 @@ class WindowStreamingE2E(object):
         self._ctc_posteriors = []
         self._last_recognition = None
 
-        assert self._recog_args.ctc_weight > 0.0, \
-            "WindowStreamingE2E works only with combined CTC and attention decoders."
+        assert (
+            self._recog_args.ctc_weight > 0.0
+        ), "WindowStreamingE2E works only with combined CTC and attention decoders."
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
@@ -33,9 +35,7 @@ class WindowStreamingE2E(object):
 
         # Streaming encoder
         h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
-            h.unsqueeze(0),
-            ilen,
-            self._previous_encoder_recurrent_state
+            h.unsqueeze(0), ilen, self._previous_encoder_recurrent_state
         )
         self._encoder_states.append(h.squeeze(0))
 
@@ -44,7 +44,10 @@ class WindowStreamingE2E(object):
 
     def _input_window_for_decoder(self, use_all=False):
         if use_all:
-            return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
+            return (
+                torch.cat(self._encoder_states, dim=0),
+                torch.cat(self._ctc_posteriors, dim=0),
+            )
 
         def select_unprocessed_windows(window_tensors):
             last_offset = self._offset
@@ -59,16 +62,20 @@ class WindowStreamingE2E(object):
 
         return (
             select_unprocessed_windows(self._encoder_states),
-            select_unprocessed_windows(self._ctc_posteriors)
+            select_unprocessed_windows(self._ctc_posteriors),
         )
 
     def decode_with_attention_offline(self):
         """Run the attention decoder offline.
 
-        Works even if the previous layers (encoder and CTC decoder) were being run in the online mode.
+        Works even if the previous layers (encoder and CTC decoder) were
+        being run in the online mode.
         This method should be run after all the audio has been consumed.
-        This is used mostly to compare the results between offline and online implementation of the previous layers.
+        This is used mostly to compare the results between offline
+        and online implementation of the previous layers.
         """
         h, lpz = self._input_window_for_decoder(use_all=True)
 
-        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+        return self._e2e.dec.recognize_beam(
+            h, lpz, self._recog_args, self._char_list, self._rnnlm
+        )

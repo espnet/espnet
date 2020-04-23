@@ -57,9 +57,11 @@ def test_optimizer_backend_compatible(name):
     ch_opt.update()
     th_opt.step()
     numpy.testing.assert_allclose(
-        ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6)
+        ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6
+    )
     numpy.testing.assert_allclose(
-        ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6)
+        ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6
+    )
 
 
 def test_pytorch_optimizer_factory():

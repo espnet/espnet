@@ -18,13 +18,14 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
-          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-          ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          ESPNET_PYTHON_VERSION: 3.6
+          TH_VERSION: 1.4.0
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
           CXX: g++-7
+          # To avoid UnicodeEncodeError for python<=3.6
+          LC_ALL: en_US.UTF-8
     working_directory: ~/repo
 
     steps:
@@ -34,6 +35,7 @@ jobs:
           command: |
             sudo apt-get update -qq
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
+            sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
           command: |
@@ -66,13 +68,14 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:16.04
         environment:
-          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-          ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          ESPNET_PYTHON_VERSION: 3.6
+          TH_VERSION: 1.4.0
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
           CXX: g++-7
+          # To avoid UnicodeEncodeError for python<=3.6
+          LC_ALL: en_US.UTF-8
     working_directory: ~/repo
 
     steps:
@@ -85,6 +88,7 @@ jobs:
             sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update -qq
             sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
+            sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
           command: |
@@ -117,13 +121,14 @@ jobs:
     docker:
       - image: centos:7
         environment:
-          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-          ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          ESPNET_PYTHON_VERSION: 3.6
+          TH_VERSION: 1.4.0
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
           CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
+          # To avoid UnicodeEncodeError for python<=3.6
+          LC_ALL: en_US.UTF-8
     working_directory: ~/repo
 
     steps:
@@ -133,6 +138,7 @@ jobs:
             yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip bc
             yum-config-manager --enable rhel-server-rhscl-7-rpms
             yum install -y devtoolset-7-gcc-c++
+            localedef -f UTF-8 -i en_US en_US
       - checkout
       - run:
           name: install espnet
@@ -173,13 +179,14 @@ jobs:
     docker:
       - image: debian:9
         environment:
-          # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-          ESPNET_PYTHON_VERSION: 3.7.3
-          TH_VERSION: 1.1.0
-          CHAINER_VERSION: 5.0.0
+          ESPNET_PYTHON_VERSION: 3.6
+          TH_VERSION: 1.4.0
+          CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-6
           CXX: g++-6
+          # To avoid UnicodeEncodeError for python<=3.6
+          LC_ALL: en_US.UTF-8
     working_directory: ~/repo
 
     steps:
@@ -188,7 +195,8 @@ jobs:
           name: install dependencies
           command: |
             apt-get update -qq
-            apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc
+            apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc locales
+            localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
           command: |

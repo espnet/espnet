@@ -1,0 +1,1 @@
+../../vc1_task1/local/pretrained_model_download.sh

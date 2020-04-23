@@ -22,8 +22,15 @@ class SpeedPerturbation(object):
 
     """
 
-    def __init__(self, lower=0.9, upper=1.1, utt2ratio=None,
-                 keep_length=True, res_type='kaiser_best', seed=None):
+    def __init__(
+        self,
+        lower=0.9,
+        upper=1.1,
+        utt2ratio=None,
+        keep_length=True,
+        res_type="kaiser_best",
+        seed=None,
+    ):
         self.res_type = res_type
         self.keep_length = keep_length
         self.state = numpy.random.RandomState(seed)
@@ -36,7 +43,7 @@ class SpeedPerturbation(object):
             self.upper = None
             self.accept_uttid = True
 
-            with open(utt2ratio, 'r') as f:
+            with open(utt2ratio, "r") as f:
                 for line in f:
                     utt, ratio = line.rstrip().split(None, 1)
                     ratio = float(ratio)
@@ -49,14 +56,17 @@ class SpeedPerturbation(object):
 
     def __repr__(self):
         if self.utt2ratio is None:
-            return ('{}(lower={}, upper={}, '
-                    'keep_length={}, res_type={})'.format(
-                        self.__class__.__name__, self.lower, self.upper,
-                        self.keep_length, self.res_type))
+            return "{}(lower={}, upper={}, " "keep_length={}, res_type={})".format(
+                self.__class__.__name__,
+                self.lower,
+                self.upper,
+                self.keep_length,
+                self.res_type,
+            )
         else:
-            return '{}({}, res_type={})'.format(self.__class__.__name__,
-                                                self.utt2ratio_file,
-                                                self.res_type)
+            return "{}({}, res_type={})".format(
+                self.__class__.__name__, self.utt2ratio_file, self.res_type
+            )
 
     def __call__(self, x, uttid=None, train=True):
         if not train:
@@ -76,13 +86,15 @@ class SpeedPerturbation(object):
             diff = abs(len(x) - len(y))
             if len(y) > len(x):
                 # Truncate noise
-                y = y[diff // 2:-((diff + 1) // 2)]
+                y = y[diff // 2 : -((diff + 1) // 2)]
             elif len(y) < len(x):
                 # Assume the time-axis is the first: (Time, Channel)
-                pad_width = [(diff // 2, (diff + 1) // 2)] + \
-                    [(0, 0) for _ in range(y.ndim - 1)]
-                y = numpy.pad(y, pad_width=pad_width, constant_values=0,
-                              mode='constant')
+                pad_width = [(diff // 2, (diff + 1) // 2)] + [
+                    (0, 0) for _ in range(y.ndim - 1)
+                ]
+                y = numpy.pad(
+                    y, pad_width=pad_width, constant_values=0, mode="constant"
+                )
         return y
 
 
@@ -100,8 +112,7 @@ class BandpassPerturbation(object):
 
     """
 
-    def __init__(self, lower=0.0, upper=0.75, seed=None,
-                 axes=(-1,)):
+    def __init__(self, lower=0.0, upper=0.75, seed=None, axes=(-1,)):
         self.lower = lower
         self.upper = upper
         self.state = numpy.random.RandomState(seed)
@@ -109,16 +120,18 @@ class BandpassPerturbation(object):
         self.axes = axes
 
     def __repr__(self):
-        return '{}(lower={}, upper={})'.format(
-            self.__class__.__name__, self.lower, self.upper)
+        return "{}(lower={}, upper={})".format(
+            self.__class__.__name__, self.lower, self.upper
+        )
 
     def __call__(self, x_stft, uttid=None, train=True):
         if not train:
             return x_stft
 
         if x_stft.ndim == 1:
-            raise RuntimeError('Input in time-freq domain: '
-                               '(Time, Channel, Freq) or (Time, Freq)')
+            raise RuntimeError(
+                "Input in time-freq domain: " "(Time, Channel, Freq) or (Time, Freq)"
+            )
 
         ratio = self.state.uniform(self.lower, self.upper)
         axes = [i if i >= 0 else x_stft.ndim - i for i in self.axes]
@@ -130,8 +143,7 @@ class BandpassPerturbation(object):
 
 
 class VolumePerturbation(object):
-    def __init__(self, lower=-1.6, upper=1.6, utt2ratio=None, dbunit=True,
-                 seed=None):
+    def __init__(self, lower=-1.6, upper=1.6, utt2ratio=None, dbunit=True, seed=None):
         self.dbunit = dbunit
         self.utt2ratio_file = utt2ratio
         self.lower = lower
@@ -145,7 +157,7 @@ class VolumePerturbation(object):
             self.upper = None
             self.accept_uttid = True
 
-            with open(utt2ratio, 'r') as f:
+            with open(utt2ratio, "r") as f:
                 for line in f:
                     utt, ratio = line.rstrip().split(None, 1)
                     ratio = float(ratio)
@@ -156,12 +168,13 @@ class VolumePerturbation(object):
 
     def __repr__(self):
         if self.utt2ratio is None:
-            return '{}(lower={}, upper={}, dbunit={})'.format(
-                self.__class__.__name__, self.lower, self.upper, self.dbunit)
+            return "{}(lower={}, upper={}, dbunit={})".format(
+                self.__class__.__name__, self.lower, self.upper, self.dbunit
+            )
         else:
-            return '{}("{}", dbunit={})'.format(self.__class__.__name__,
-                                                self.utt2ratio_file,
-                                                self.dbunit)
+            return '{}("{}", dbunit={})'.format(
+                self.__class__.__name__, self.utt2ratio_file, self.dbunit
+            )
 
     def __call__(self, x, uttid=None, train=True):
         if not train:
@@ -181,8 +194,16 @@ class VolumePerturbation(object):
 class NoiseInjection(object):
     """Add isotropic noise"""
 
-    def __init__(self, utt2noise=None, lower=-20, upper=-5, utt2ratio=None,
-                 filetype='list', dbunit=True, seed=None):
+    def __init__(
+        self,
+        utt2noise=None,
+        lower=-20,
+        upper=-5,
+        utt2ratio=None,
+        filetype="list",
+        dbunit=True,
+        seed=None,
+    ):
         self.utt2noise_file = utt2noise
         self.utt2ratio_file = utt2ratio
         self.filetype = filetype
@@ -194,7 +215,7 @@ class NoiseInjection(object):
         if utt2ratio is not None:
             # Use the scheduled ratio for each utterances
             self.utt2ratio = {}
-            with open(utt2noise, 'r') as f:
+            with open(utt2noise, "r") as f:
                 for line in f:
                     utt, snr = line.rstrip().split(None, 1)
                     snr = float(snr)
@@ -205,16 +226,16 @@ class NoiseInjection(object):
 
         if utt2noise is not None:
             self.utt2noise = {}
-            if filetype == 'list':
-                with open(utt2noise, 'r') as f:
+            if filetype == "list":
+                with open(utt2noise, "r") as f:
                     for line in f:
                         utt, filename = line.rstrip().split(None, 1)
-                        signal, rate = soundfile.read(filename, dtype='int16')
+                        signal, rate = soundfile.read(filename, dtype="int16")
                         # Load all files in memory
                         self.utt2noise[utt] = (signal, rate)
 
-            elif filetype == 'sound.hdf5':
-                self.utt2noise = SoundHDF5File(utt2noise, 'r')
+            elif filetype == "sound.hdf5":
+                self.utt2noise = SoundHDF5File(utt2noise, "r")
             else:
                 raise ValueError(filetype)
         else:
@@ -222,17 +243,19 @@ class NoiseInjection(object):
 
         if utt2noise is not None and utt2ratio is not None:
             if set(self.utt2ratio) != set(self.utt2noise):
-                raise RuntimeError('The uttids mismatch between {} and {}'
-                                   .format(utt2ratio, utt2noise))
+                raise RuntimeError(
+                    "The uttids mismatch between {} and {}".format(utt2ratio, utt2noise)
+                )
 
     def __repr__(self):
         if self.utt2ratio is None:
-            return '{}(lower={}, upper={}, dbunit={})'.format(
-                self.__class__.__name__, self.lower, self.upper, self.dbunit)
+            return "{}(lower={}, upper={}, dbunit={})".format(
+                self.__class__.__name__, self.lower, self.upper, self.dbunit
+            )
         else:
-            return '{}("{}", dbunit={})'.format(self.__class__.__name__,
-                                                self.utt2ratio_file,
-                                                self.dbunit)
+            return '{}("{}", dbunit={})'.format(
+                self.__class__.__name__, self.utt2ratio_file, self.dbunit
+            )
 
     def __call__(self, x, uttid=None, train=True):
         if not train:
@@ -265,10 +288,9 @@ class NoiseInjection(object):
             offset = self.state.randint(0, diff)
             if len(noise) > len(x):
                 # Truncate noise
-                noise = noise[offset:-(diff - offset)]
+                noise = noise[offset : -(diff - offset)]
             else:
-                noise = numpy.pad(noise, pad_width=[offset, diff - offset],
-                                  mode='wrap')
+                noise = numpy.pad(noise, pad_width=[offset, diff - offset], mode="wrap")
 
         else:
             # Generate white noise
@@ -279,26 +301,25 @@ class NoiseInjection(object):
 
 
 class RIRConvolve(object):
-    def __init__(self, utt2rir, filetype='list'):
+    def __init__(self, utt2rir, filetype="list"):
         self.utt2rir_file = utt2rir
         self.filetype = filetype
 
         self.utt2rir = {}
-        if filetype == 'list':
-            with open(utt2rir, 'r') as f:
+        if filetype == "list":
+            with open(utt2rir, "r") as f:
                 for line in f:
                     utt, filename = line.rstrip().split(None, 1)
-                    signal, rate = soundfile.read(filename, dtype='int16')
+                    signal, rate = soundfile.read(filename, dtype="int16")
                     self.utt2rir[utt] = (signal, rate)
 
-        elif filetype == 'sound.hdf5':
-            self.utt2rir = SoundHDF5File(utt2rir, 'r')
+        elif filetype == "sound.hdf5":
+            self.utt2rir = SoundHDF5File(utt2rir, "r")
         else:
             raise NotImplementedError(filetype)
 
     def __repr__(self):
-        return '{}("{}")'.format(self.__class__.__name__,
-                                 self.utt2rir_file)
+        return '{}("{}")'.format(self.__class__.__name__, self.utt2rir_file)
 
     def __call__(self, x, uttid=None, train=True):
         if not train:
@@ -309,14 +330,15 @@ class RIRConvolve(object):
         if x.ndim != 1:
             # Must be single channel
             raise RuntimeError(
-                'Input x must be one dimensional array, but got {}'
-                .format(x.shape))
+                "Input x must be one dimensional array, but got {}".format(x.shape)
+            )
 
         rir, rate = self.utt2rir[uttid]
         if rir.ndim == 2:
             # FIXME(kamo): Use chainer.convolution_1d?
             # return [Time, Channel]
             return numpy.stack(
-                [scipy.convolve(x, r, mode='same') for r in rir], axis=-1)
+                [scipy.convolve(x, r, mode="same") for r in rir], axis=-1
+            )
         else:
-            return scipy.convolve(x, rir, mode='same')
+            return scipy.convolve(x, rir, mode="same")

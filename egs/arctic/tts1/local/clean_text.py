@@ -6,14 +6,14 @@
 import argparse
 import codecs
 
-from text.cleaners import custom_english_cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('text', type=str, help='text to be cleaned')
+    parser.add_argument("text", type=str, help="text to be cleaned")
     args = parser.parse_args()
-    with codecs.open(args.text, 'r', 'utf-8') as fid:
+    with codecs.open(args.text, "r", "utf-8") as fid:
         for line in fid.readlines():
             line = line.split(" ")
             id = line[0]

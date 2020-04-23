@@ -41,6 +41,7 @@ else
 fi
 mkdir -p ${logdir}
 
+nj=$((nj<$(<"${scp}" wc -l)?nj:$(<"${scp}" wc -l)))
 split_scps=""
 for n in $(seq ${nj}); do
     split_scps="${split_scps} ${logdir}/feats.${n}.scp"
