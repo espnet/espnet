@@ -20,7 +20,7 @@ class TransLoss(nn.Module):
         """Construct an TransLoss object."""
         super(TransLoss, self).__init__()
 
-        if trans_type == 'warp-transducer':
+        if trans_type == "warp-transducer":
             self.trans_loss = RNNTLoss(blank=blank_id)
         else:
             raise NotImplementedError
@@ -31,7 +31,8 @@ class TransLoss(nn.Module):
         """Compute path-aware regularization transducer loss.
 
         Args:
-            pred_pad (torch.Tensor): Batch of predicted sequences (batch, maxlen_in, maxlen_out+1, odim)
+            pred_pad (torch.Tensor): Batch of predicted sequences
+                (batch, maxlen_in, maxlen_out+1, odim)
             target (torch.Tensor): Batch of target sequences (batch, maxlen_out)
             pred_len (torch.Tensor): batch of lengths of predicted sequences (batch)
             target_len (torch.tensor): batch of lengths of target sequences (batch)

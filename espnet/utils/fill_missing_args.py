@@ -38,7 +38,9 @@ def fill_missing_args(args, add_arguments):
 
     for key, value in default_args.items():
         if key not in args:
-            logging.info("attribute \"%s\" does not exist. use default %s." % (key, str(value)))
+            logging.info(
+                'attribute "%s" does not exist. use default %s.' % (key, str(value))
+            )
             args[key] = value
 
     return argparse.Namespace(**args)
