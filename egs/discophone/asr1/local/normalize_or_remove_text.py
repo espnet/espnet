@@ -9,12 +9,13 @@ import regex as re
 number = re.compile(r"\d")
 
 # Match every punctuation besides hyphens
-# https://stackoverflow.com/questions/21209024/python-regex-remove-all-punctuation-except-hyphen-for-unicode-string
+# https://stackoverflow.com/questions/21209024/
+# python-regex-remove-all-punctuation-except-hyphen-for-unicode-string
 punctuation = re.compile(r"[^\P{P}-]+")
 
 parser = ArgumentParser(
-    description="Filter a Kaldi text file to remove utterances with numbers. Used to avoid "
-    "inconsistency in training/eval."
+    description="Filter a Kaldi text file to remove utterances with numbers."
+                " Used to avoid inconsistency in training/eval."
 )
 parser.add_argument("text")
 parser.add_argument(
@@ -50,6 +51,7 @@ move(text_path, backup_path)
 move(norm_text_path, text_path)
 
 print(
-    f"Inputs utts: {idx + 1} -- removed: {remove_counter} -- normalized: {norm_counter}",
+    f"Inputs utts: {idx + 1} -- removed: {remove_counter} --"
+    f" normalized: {norm_counter}",
     file=stderr,
 )

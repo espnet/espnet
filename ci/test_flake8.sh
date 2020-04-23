@@ -63,6 +63,11 @@ espnet/utils/training/evaluator.py
 espnet/utils/training/iterators.py
 espnet/utils/training/tensorboard_logger.py
 espnet/utils/training/train_utils.py
+egs/discophone/asr1/local/prepare_mboshi.py
+egs/discophone/asr1/local/prepare_globalphone.py
+egs/discophone/asr1/local/prepare_experiment_configs.py
+egs/discophone/asr1/local/prepare_lexicons.py
+egs/discophone/asr1/local/normalize_or_remove_text.py
 "
 
 n_blacklist=$(wc -l <<< "${flake8_black_list}")

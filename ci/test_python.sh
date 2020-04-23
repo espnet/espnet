@@ -2,7 +2,6 @@
 
 if ${USE_CONDA:-}; then
     . tools/venv/bin/activate
-    pip install black
 fi
 
 set -euo pipefail
