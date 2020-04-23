@@ -14,7 +14,7 @@ punctuation = re.compile(r"[^\P{P}-]+")
 
 parser = ArgumentParser(
     description="Filter a Kaldi text file to remove utterances with numbers. Used to avoid "
-                "inconsistency in training/eval."
+    "inconsistency in training/eval."
 )
 parser.add_argument("text")
 parser.add_argument(

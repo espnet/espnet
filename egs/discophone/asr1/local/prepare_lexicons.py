@@ -151,10 +151,10 @@ class LanguageNetLexicon:
         return LanguageNetLexicon(lexicon)
 
     def transcribe(
-            self,
-            word: str,
-            strip_special_markers: bool = True,
-            remove_special_tokens: bool = False,
+        self,
+        word: str,
+        strip_special_markers: bool = True,
+        remove_special_tokens: bool = False,
     ) -> List[Phone]:
         # Treat special words as their own phones or remove
         if self.SPECIAL_TOKEN_RE.match(word):

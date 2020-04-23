@@ -27,9 +27,9 @@ def main():
         "--gp-path",
         required=True,
         help="Path to GlobalPhone directory with each language"
-             " in a subdirectory with its corresponding codename; "
-             'e.g. on JHU grid, "/export/corpora5/GlobalPhone" has'
-             "subdirectories like S0192 (Arabic) or S0196 (Czech).",
+        " in a subdirectory with its corresponding codename; "
+        'e.g. on JHU grid, "/export/corpora5/GlobalPhone" has'
+        "subdirectories like S0192 (Arabic) or S0196 (Czech).",
     )
     parser.add_argument(
         "--output-dir",
@@ -102,16 +102,16 @@ LANG2ENCODING = {
 LANG2SPLIT = {
     "Arabic": {
         "dev": [5, 36, 107, 164]
-               + [
-                   1,
-                   2,
-                   3,
-                   4,
-                   6,
-                   7,
-               ],  # TODO: Docs say: +6 TBA; I'm putting extra six speakers here
+        + [
+            1,
+            2,
+            3,
+            4,
+            6,
+            7,
+        ],  # TODO: Docs say: +6 TBA; I'm putting extra six speakers here
         "eval": [27, 39, 108, 137]
-                + [8, 9, 10, 11, 12, 13],  # TODO: + 6 TBA; I'm putting extra six speakers here
+        + [8, 9, 10, 11, 12, 13],  # TODO: + 6 TBA; I'm putting extra six speakers here
     },
     "Czech": {  # TODO: docs say TBA... I'm putting 9 speakers in each set
         "dev": [1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -307,11 +307,11 @@ def number_of(utt_id):
 
 
 def run_utterance_diagnostics(
-        lang: str,
-        num_utts: Dict[str, int],
-        text: KaldiTable,
-        utt2spk: KaldiTable,
-        wav_scp: KaldiTable,
+    lang: str,
+    num_utts: Dict[str, int],
+    text: KaldiTable,
+    utt2spk: KaldiTable,
+    wav_scp: KaldiTable,
 ):
     logging.debug(f"There is a total of {sum(num_utts.values())} utterances.")
     no_utt_speakers = [u for u, n in num_utts.items() if n == 0]

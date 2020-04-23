@@ -8,7 +8,7 @@ from typing import List
 def main():
     parser = ArgumentParser(
         description="Prepare the Mboshi data directory from Mboshi-French parallel corpus"
-                    " - https://github.com/besacier/mboshi-french-parallel-corpus"
+        " - https://github.com/besacier/mboshi-french-parallel-corpus"
     )
     parser.add_argument("source", help="Path to the main repo directory.")
     parser.add_argument("dest", help="Path to the output data directory.")
@@ -34,7 +34,7 @@ def create_kaldi_data_dir(wavs: List[Path], dest: Path):
     dest.mkdir(parents=True, exist_ok=True)
     transcripts = [p.with_suffix(".mb.cleaned").read_text().strip() for p in wavs]
     with open(dest / "wav.scp", "w") as wavscp, open(dest / "text", "w") as text, open(
-            dest / "utt2spk", "w"
+        dest / "utt2spk", "w"
     ) as utt2spk:
         for idx, (wav, transcript) in enumerate(zip(wavs, transcripts)):
             utt_id = f"MBOSHI_AUDIO_{idx:04d}"
