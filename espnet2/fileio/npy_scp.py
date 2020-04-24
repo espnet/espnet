@@ -76,7 +76,6 @@ class NpyScpReader(collections.abc.Mapping):
 
     def __init__(self, fname: Union[Path, str, h5py.Group]):
         assert check_argument_types()
-        self.fname = Path(fname)
         if isinstance(fname, h5py.Group):
             self.data = H5FileWrapper(fname)
         else:

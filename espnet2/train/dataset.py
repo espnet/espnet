@@ -13,13 +13,13 @@ from typing import Union
 
 import h5py
 import humanfriendly
-import kaldiio
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.fileio.kaldi_ark_scp import KaldiScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import FloatRandomGenerateDataset
 from espnet2.fileio.rand_gen_dataset import IntRandomGenerateDataset
@@ -109,7 +109,7 @@ def pipe_wav_loader(path, float_dtype):
     # because subprocess takes much times due to fork().
 
     # NOTE(kamo): kaldiio doesn't normalize the signal.
-    loader = kaldiio.load_scp(path)
+    loader = KaldiScpReader(path)
     return _AdapterForSoundScpReader(loader, float_dtype)
 
 
@@ -205,7 +205,7 @@ DATA_TYPES = {
         "   ...",
     ),
     "kaldi_ark": dict(
-        func=kaldiio.load_scp,
+        func=KaldiScpReader,
         kwargs=[],
         help="Kaldi-ark file type."
         "\n\n"
