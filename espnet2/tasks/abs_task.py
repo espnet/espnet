@@ -1059,6 +1059,7 @@ class AbsTask(ABC):
 
         logging.info(pytorch_cudnn_version())
         logging.info(f"Model:\n{model}")
+        logging.info(f"Number of parameters: {model.num_parameters()}")
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
