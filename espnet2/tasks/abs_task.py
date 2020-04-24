@@ -56,6 +56,7 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.model_summary import model_summary
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
@@ -1058,7 +1059,7 @@ class AbsTask(ABC):
             schedulers.append(scheduler)
 
         logging.info(pytorch_cudnn_version())
-        logging.info(f"Model:\n{model}")
+        logging.info(model_summary(model))
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
