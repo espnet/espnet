@@ -104,6 +104,9 @@ You can find useful tutorials and demos in [Interspeech 2019 Tutorial](https://g
 
 ### ASR results
 
+<details><summary>expand</summary><div>
+
+
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
 | Task                   | CER (%) | WER (%) | Pretrained model                                                                                                                                                      |
@@ -131,7 +134,12 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 If you want to check the results of the other recipes, please check `egs/<name_of_recipe>/asr1/RESULTS.md`.
 
+</div></details>
+
+
 ### ASR demo
+
+<details><summary>expand</summary><div>
 
 You can recognize speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
@@ -156,8 +164,11 @@ Available pretrained models in the demo script are listed as below.
 | [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
 | [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
 
+</div></details>
 
 ### ST results
+
+<details><summary>expand</summary><div>
 
 We list 4-gram BLEU of major ST tasks.
 
@@ -182,7 +193,12 @@ We list 4-gram BLEU of major ST tasks.
 
 If you want to check the results of the other recipes, please check `egs/<name_of_recipe>/st1/RESULTS.md`.
 
+</div></details>
+
+
 ### ST demo
+
+<details><summary>expand</summary><div>
 
 (**New!**) We made a new real-time E2E-ST + TTS demonstration in Google Colab.
 Please access the notebook from the following button and enjoy the real-time speech-to-speech translation!
@@ -210,8 +226,12 @@ Available pretrained models in the demo script are listed as below.
 | :------                                                                                          | :------                                                    |
 | [fisher_callhome_spanish.transformer.v1](https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3)            | Transformer-ST trained on Fisher-CallHome Spanish Es->En                  |
 
+</div></details>
+
 
 ### MT results
+
+<details><summary>expand</summary><div>
 
 | Task | BLEU | Pretrained model |
 | ---- | :----: | :----: |
@@ -225,8 +245,11 @@ Available pretrained models in the demo script are listed as below.
 | IWSLT'16 test2014 (En->De)                        | 24.05 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
 | IWSLT'16 test2014 (De->En)                        | 29.13 | [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result) |
 
+</div></details>
 
 ### TTS results
+
+<details><summary>expand</summary><div>
 
 You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
 Here we list some notable ones:
@@ -276,8 +299,11 @@ Here we list all of the pretrained neural vocoders. Please download and enjoy th
 
 If you want to use the above pretrained vocoders, please exactly match the feature setting with them.
 
+</div></details>
 
 ### TTS demo
+
+<details><summary>expand</summary><div>
 
 (**New!**) We made a new real-time E2E-TTS demonstration in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
@@ -360,6 +386,8 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+
+</div></details>
 
 ### VC results
 
