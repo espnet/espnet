@@ -433,24 +433,24 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-_feats_type="$(<${data_feats}/${train_set}/feats_type)"
-if [ "${_feats_type}" = raw ]; then
-    _scp=wav.scp
-    # "sound" supports "wav", "flac", etc.
-    _type=sound
-    _fold_length="$((speech_fold_length * 100))"
-else
-    _scp=feats.scp
-    _type=kaldi_ark
-    _fold_length="${speech_fold_length}"
-    _odim="$(<${_train_dir}/feats_dim)"
-    _opts+="--odim=${_odim} "
-fi
 
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     if "${use_hdf5_corpus}"; then
         log "Stage 6: Dump scp files into a HDF5 file"
+        _train_dir="${data_feats}/${train_set}"
+        _dev_dir="${data_feats}/${dev_set}"
+
+        _feats_type="$(<${_train_dir}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        else
+            _scp=feats.scp
+            _type=kaldi_ark
+        fi
+
         python3 -m espnet2.bin.gen_hdf5_corpus \
             --data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
@@ -482,6 +482,20 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--config ${train_config} "
     fi
 
+    _feats_type="$(<${_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        _fold_length="$((speech_fold_length * 100))"
+    else
+        _scp=feats.scp
+        _type=kaldi_ark
+        _fold_length="${speech_fold_length}"
+        _odim="$(<${_train_dir}/feats_dim)"
+        _opts+="--odim=${_odim} "
+    fi
+    
     # There are two methods to input data for training
     if "${use_hdf5_corpus}"; then
         # 1. A HDF5 file generared from scp files

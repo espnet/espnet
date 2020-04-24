@@ -766,25 +766,22 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 fi
 
 
-_feats_type="$(<${data_feats}/${train_set}/feats_type)"
-if [ "${_feats_type}" = raw ]; then
-    _scp=wav.scp
-    # "sound" supports "wav", "flac", etc.
-    _type=sound
-    _fold_length="$((asr_speech_fold_length * 100))"
-    _opts+="--frontend_conf fs=${fs} "
-else
-    _scp=feats.scp
-    _type=kaldi_ark
-    _fold_length="${asr_speech_fold_length}"
-    _input_size="$(<${_asr_train_dir}/feats_dim)"
-    _opts+="--input_size=${_input_size} "
-fi
-
-
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     if "${use_hdf5_corpus}"; then
         log "Stage 11: Dump ASR scp files into a HDF5 file"
+        _asr_train_dir="${data_feats}/${train_set}"
+        _asr_dev_dir="${data_feats}/${dev_set}"
+
+        _feats_type="$(<${_asr_train_dir}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        else
+            _scp=feats.scp
+            _type=kaldi_ark
+        fi
+
         python3 -m espnet2.bin.gen_hdf5_corpus \
             --data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
@@ -814,6 +811,21 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
         _opts+="--config ${asr_config} "
+    fi
+
+    _feats_type="$(<${_asr_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        _fold_length="$((asr_speech_fold_length * 100))"
+        _opts+="--frontend_conf fs=${fs} "
+    else
+        _scp=feats.scp
+        _type=kaldi_ark
+        _fold_length="${asr_speech_fold_length}"
+        _input_size="$(<${_asr_train_dir}/feats_dim)"
+        _opts+="--input_size=${_input_size} "
     fi
 
     # There are two methods to input data for training
