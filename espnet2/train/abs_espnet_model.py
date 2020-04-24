@@ -40,3 +40,6 @@ class AbsESPnetModel(torch.nn.Module, ABC):
     @abstractmethod
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
+
+    def num_parameters(self):
+        sum(p.numel() for p in self.parameters() if p.requires_grad)
