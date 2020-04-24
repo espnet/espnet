@@ -330,7 +330,8 @@ def train(args):
     # freeze modules, if specified
     if args.freeze_mods:
         for mod, param in model.state_dict().items():
-            if any(key.startswith(mod) for key in args.freeze_mods):
+            if any(mod.startswith(key) for key in args.freeze_mods):
+                logging.info(f"{mod} is frozen not to be updated.")
                 param.requires_grad = False
 
     # Setup an optimizer
