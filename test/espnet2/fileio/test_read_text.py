@@ -5,6 +5,16 @@ import pytest
 
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_first_column
+
+
+def test_read_first_column(tmp_path: Path):
+    p = tmp_path / "dummy.scp"
+    with p.open("w") as f:
+        f.write(f"abc /some/path/a.wav\n")
+        f.write(f"def /some/path/b.wav\n")
+    d = read_first_column(p)
+    assert d == ["abc", "def"]
 
 
 def test_read_2column_text(tmp_path: Path):

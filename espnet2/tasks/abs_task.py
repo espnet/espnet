@@ -16,6 +16,7 @@ from typing import Tuple
 from typing import Union
 
 import configargparse
+import h5py
 import humanfriendly
 import numpy as np
 import torch
@@ -56,6 +57,7 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.hdf5_corpus import is_hdf5_corpus_format
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
@@ -610,19 +612,25 @@ class AbsTask(ABC):
         for key, dic in DATA_TYPES.items():
             _data_path_and_name_and_type_help += f'"{key}":\n{dic["help"]}\n\n'
 
-        group.add_argument(
+        ex_group = group.add_mutually_exclusive_group()
+        ex_group.add_argument(
             "--train_data_path_and_name_and_type",
             type=str2triple_str,
             action="append",
             default=[],
             help=_data_path_and_name_and_type_help,
         )
-        group.add_argument(
+        ex_group.add_argument("--train_hdf5_corpus", type=str, default=None)
+
+        ex_group = group.add_mutually_exclusive_group()
+        ex_group.add_argument(
             "--valid_data_path_and_name_and_type",
             type=str2triple_str,
             action="append",
             default=[],
         )
+        ex_group.add_argument("--valid_hdf5_corpus", type=str, default=None)
+
         group.add_argument(
             "--allow_variable_data_keys",
             type=str2bool,
@@ -950,6 +958,7 @@ class AbsTask(ABC):
         # 2. Build iterator factories
         train_iter_factory, _, _ = cls.build_iter_factory(
             data_path_and_name_and_type=args.train_data_path_and_name_and_type,
+            hdf5_corpus=args.train_hdf5_corpus,
             shape_files=args.train_shape_file,
             batch_size=args.batch_size,
             batch_bins=args.batch_bins,
@@ -974,6 +983,7 @@ class AbsTask(ABC):
             args.valid_max_cache_size = 0.05 * args.max_cache_size
         valid_iter_factory, _, _ = cls.build_iter_factory(
             data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+            hdf5_corpus=args.valid_hdf5_corpus,
             shape_files=args.valid_shape_file,
             batch_size=args.valid_batch_size,
             batch_bins=args.valid_batch_bins,
@@ -990,6 +1000,7 @@ class AbsTask(ABC):
         if args.num_att_plot != 0:
             plot_attention_iter_factory, _, _ = cls.build_iter_factory(
                 data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                hdf5_corpus=args.valid_hdf5_corpus,
                 shape_files=args.valid_shape_file,
                 batch_type="unsorted",
                 batch_size=1,
@@ -1058,7 +1069,6 @@ class AbsTask(ABC):
             schedulers.append(scheduler)
 
         logging.info(pytorch_cudnn_version())
-        logging.info(f"Model:\n{model}")
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
@@ -1184,6 +1194,7 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool,
         ngpu: int,
         data_path_and_name_and_type,
+        hdf5_corpus: Optional[str],
         shape_files: Union[Tuple[str, ...], List[str]],
         batch_type: str,
         train: bool,
@@ -1227,6 +1238,48 @@ class AbsTask(ABC):
 
         """
         assert check_argument_types()
+
+        if hdf5_corpus is not None:
+            """
+            ESPnet2 supports two types of methods for data inputting:
+              1. Separated files like feats.scp, text, etc.
+              2. A HDF5 file created by combining them
+
+            The HDF5 must have the following structure e.g.:
+              speech/type="sound"
+              speech/data
+                  - id1="/some/where/a.wav"
+                  - id2="/some/where/b.wav"
+                  - ...
+              text/type="direct"
+              text/data
+                  - id1="abc def"
+                  - id2="hello world"
+                  - ...
+              shape_files/0
+                  - id1=(10000,)
+                  - id2=(14000,)
+                  - ...
+              shape_files/1
+                  - id1=(2,)
+                  - id2=(2,)
+                  - ...
+            """
+            if not is_hdf5_corpus_format(hdf5_corpus):
+                raise RuntimeError(f"HDF5 corpus format is invalid: {hdf5_corpus}")
+            f = h5py.File(hdf5_corpus)
+            names = [k for k in f if k != "shape_files"]
+
+            # Create a list of Tuple[h5py.Group, str, str]
+            data_path_and_name_and_type = [
+                (f[k]["data"], k, f[k]["type"][()]) for k in names
+            ]
+
+            shape_files = []
+            idx = 0
+            while f"shape_files/{idx}" in f:
+                shape_files.append(f[f"shape_files/{idx}"])
+                idx += 1
 
         kwargs = dict(
             data_path_and_name_and_type=data_path_and_name_and_type,
@@ -1273,7 +1326,9 @@ class AbsTask(ABC):
     def build_sequence_iter_factory(
         cls,
         data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[
+            Tuple[Union[str, h5py.Group], ...], List[Union[str, h5py.Group]]
+        ],
         batch_type: str,
         train: bool,
         preprocess_fn,
@@ -1361,7 +1416,9 @@ class AbsTask(ABC):
     def build_chunk_iter_factory(
         cls,
         data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[
+            Tuple[Union[str, h5py.Group], ...], List[Union[str, h5py.Group]]
+        ],
         train: bool,
         preprocess_fn,
         collate_fn,

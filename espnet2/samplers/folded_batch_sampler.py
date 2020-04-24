@@ -4,9 +4,9 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import h5py
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -14,7 +14,9 @@ class FoldedBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_size: int,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[
+            Tuple[Union[str, h5py.Group], ...], List[Union[str, h5py.Group]]
+        ],
         fold_lengths: Sequence[int],
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
@@ -23,6 +25,12 @@ class FoldedBatchSampler(AbsSampler):
     ):
         assert check_argument_types()
         assert batch_size > 0
+        if len(fold_lengths) != len(shape_files):
+            raise ValueError(
+                f"The number of fold_lengths must be equal to "
+                f"the number of shape_files: "
+                f"{len(fold_lengths)} != {len(shape_files)}"
+            )
         if sort_batch != "ascending" and sort_batch != "descending":
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
@@ -41,22 +49,8 @@ class FoldedBatchSampler(AbsSampler):
         # utt2shape: (Length, ...)
         #    uttA 100,...
         #    uttB 201,...
-        utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
-        ]
-
-        first_utt2shape = utt2shapes[0]
-        for s, d in zip(shape_files, utt2shapes):
-            if set(d) != set(first_utt2shape):
-                raise RuntimeError(
-                    f"keys are mismatched between {s} != {shape_files[0]}"
-                )
-
-        # Sort samples in ascending order
-        # (shape order should be like (Length, Dim))
-        keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
-        if len(keys) == 0:
-            raise RuntimeError(f"0 lines found: {shape_files[0]}")
+        utt2shapes, keys = self._load_shape_files(shape_files, sort=True)
+        num_keys = len(keys)
 
         # Decide batch-sizes
         start = 0
@@ -65,15 +59,15 @@ class FoldedBatchSampler(AbsSampler):
             k = keys[start]
             factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, fold_lengths))
             bs = max(min_batch_size, int(batch_size / (1 + factor)))
-            if self.drop_last and start + bs > len(keys):
+            if self.drop_last and start + bs > num_keys:
                 # This if-block avoids 0-batches
-                if len(self.batch_list) > 0:
+                if len(batch_sizes) > 0:
                     break
 
-            bs = min(len(keys) - start, bs)
+            bs = min(num_keys - start, bs)
             batch_sizes.append(bs)
             start += bs
-            if start >= len(keys):
+            if start >= num_keys:
                 break
 
         if len(batch_sizes) == 0:
@@ -88,11 +82,11 @@ class FoldedBatchSampler(AbsSampler):
 
         if not self.drop_last:
             # Bug check
-            assert sum(batch_sizes) == len(keys), f"{sum(batch_sizes)} != {len(keys)}"
+            assert sum(batch_sizes) == num_keys, f"{sum(batch_sizes)} != {num_keys}"
 
         # Set mini-batch
-        self.batch_list = []
         start = 0
+        self.batch_list = []
         for bs in batch_sizes:
             assert len(keys) >= start + bs, "Bug"
             minibatch_keys = keys[start : start + bs]

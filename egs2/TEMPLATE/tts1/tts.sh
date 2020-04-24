@@ -26,15 +26,16 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1          # Processes starts from the specified stage.
-stop_stage=6     # Processes is stopped at the specified stage.
-ngpu=0           # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1      # The number of nodes
-nj=32            # The number of parallel jobs.
-decode_nj=32     # The number of parallel jobs in decoding.
-gpu_decode=false # Whether to perform gpu decoding.
-dumpdir=dump     # Directory to dump features.
-expdir=exp       # Directory to save experiments.
+stage=1                    # Processes starts from the specified stage.
+stop_stage=8               # Processes is stopped at the specified stage.
+ngpu=0                     # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1                # The number of nodes
+nj=32                      # The number of parallel jobs.
+decode_nj=32               # The number of parallel jobs in decoding.
+gpu_decode=false           # Whether to perform gpu decoding.
+dumpdir=dump               # Directory to dump features.
+expdir=exp                 # Directory to save experiments.
+use_hdf5_corpus=false      # Dump scp files into a HDF5 file
 
 # Data preparation related
 local_data_opts= # Options to be passed to local/data.sh.
@@ -88,15 +89,16 @@ Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets 
 
 Options:
     # General configuration
-    --stage      # Processes starts from the specified stage (default="${stage}").
-    --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
-    --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes  # The number of nodes
-    --nj         # The number of parallel jobs (default="${nj}").
-    --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
-    --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
-    --dumpdir    # Directory to dump features (default="${dumpdir}").
-    --expdir     # Directory to save experiments (default="${expdir}").
+    --stage                  # Processes starts from the specified stage (default="${stage}").
+    --stop_stage             # Processes is stopped at the specified stage (default="${stop_stage}").
+    --ngpu                   # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes              # The number of nodes
+    --nj                     # The number of parallel jobs (default="${nj}").
+    --decode_nj              # The number of parallel jobs in decoding (default="${decode_nj}").
+    --gpu_decode             # Whether to perform gpu decoding (default="${gpu_decode}").
+    --dumpdir                # Directory to dump features (default="${dumpdir}").
+    --expdir                 # Directory to save experiments (default="${expdir}").
+    --use_hdf5_corpus=false  # Dump scp files into a HDF5 file
 
     # Data prep related
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
@@ -431,10 +433,47 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+_feats_type="$(<${data_feats}/${train_set}/feats_type)"
+if [ "${_feats_type}" = raw ]; then
+    _scp=wav.scp
+    # "sound" supports "wav", "flac", etc.
+    _type=sound
+    _fold_length="$((speech_fold_length * 100))"
+else
+    _scp=feats.scp
+    _type=kaldi_ark
+    _fold_length="${speech_fold_length}"
+    _odim="$(<${_train_dir}/feats_dim)"
+    _opts+="--odim=${_odim} "
+fi
+
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if "${use_hdf5_corpus}"; then
+        log "Stage 6: Dump scp files into a HDF5 file"
+        python3 -m espnet2.bin.gen_hdf5_corpus \
+            --data_path_and_name_and_type "${_train_dir}/text,text,text" \
+            --data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
+            --shape_file "${tts_stats_dir}/train/speech_shape" \
+            --shape_file "${tts_stats_dir}/train/text_shape.${trans_type}" \
+            --out "${tts_stats_dir}/train/corpus.h5"
+
+        python3 -m espnet2.bin.gen_hdf5_corpus \
+            --data_path_and_name_and_type "${_dev_dir}/text,text,text" \
+            --data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --shape_file "${tts_stats_dir}/valid/speech_shape" \
+            --shape_file "${tts_stats_dir}/valid/text_shape.${trans_type}" \
+            --out "${tts_stats_dir}/valid/corpus.h5"
+    else
+        log "Stage 6: Skip"
+    fi
+fi
+
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _train_dir="${data_feats}/${train_set}"
     _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 5: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    log "Stage 7: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -443,21 +482,24 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${train_config} "
     fi
 
-    _feats_type="$(<${_train_dir}/feats_type)"
-    if [ "${_feats_type}" = raw ]; then
-        _scp=wav.scp
-        # "sound" supports "wav", "flac", etc.
-        _type=sound
-        _fold_length="$((speech_fold_length * 100))"
+    # There are two methods to input data for training
+    if "${use_hdf5_corpus}"; then
+        # 1. A HDF5 file generared from scp files
+        _opts+="--train_hdf5_corpus ${tts_stats_dir}/train/corpus.h5 "
+        _opts+="--valid_hdf5_corpus ${tts_stats_dir}/valid/corpus.h5 "
     else
-        _scp=feats.scp
-        _type=kaldi_ark
-        _fold_length="${speech_fold_length}"
-        _odim="$(<${_train_dir}/feats_dim)"
-        _opts+="--odim=${_odim} "
+        # 2. Scp files directly
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_dev_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_dev_dir}/${_scp},speech,${_type} "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${trans_type} "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${trans_type} "
     fi
 
-    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -476,14 +518,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize global_mvn \
             --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
-            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${tts_stats_dir}/train/speech_shape" \
-            --train_shape_file "${tts_stats_dir}/train/text_shape.${trans_type}" \
-            --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
-            --valid_shape_file "${tts_stats_dir}/valid/text_shape.${trans_type}" \
             --resume true \
             --fold_length "${text_fold_length}" \
             --fold_length ${_fold_length} \
@@ -493,8 +527,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "Stage 6: Decoding: training_dir=${tts_exp}"
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: Decoding: training_dir=${tts_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -573,8 +607,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 fi
 
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    log "[Option] Stage 7: Pack model: ${tts_exp}/packed.tgz"
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    log "[Option] Stage 9: Pack model: ${tts_exp}/packed.tgz"
 
     python -m espnet2.bin.pack tts \
         --train_config.yaml "${tts_exp}"/config.yaml \

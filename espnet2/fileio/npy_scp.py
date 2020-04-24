@@ -2,10 +2,12 @@ import collections.abc
 from pathlib import Path
 from typing import Union
 
+import h5py
 import numpy as np
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2column_text
+from espnet2.utils.hdf5_corpus import H5FileWrapper
 
 
 class NpyScpWriter:
@@ -72,16 +74,20 @@ class NpyScpReader(collections.abc.Mapping):
 
     """
 
-    def __init__(self, fname: Union[Path, str]):
+    def __init__(self, fname: Union[Path, str, h5py.Group]):
         assert check_argument_types()
         self.fname = Path(fname)
-        self.data = read_2column_text(fname)
+        if isinstance(fname, h5py.Group):
+            self.data = H5FileWrapper(fname)
+        else:
+            self.data = read_2column_text(fname)
 
     def get_path(self, key):
         return self.data[key]
 
     def __getitem__(self, key) -> np.ndarray:
         p = self.data[key]
+        assert isinstance(p, str), type(p)
         return np.load(p)
 
     def __contains__(self, item):

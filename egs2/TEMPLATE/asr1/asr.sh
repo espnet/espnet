@@ -23,16 +23,16 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1          # Processes starts from the specified stage.
-stop_stage=12    # Processes is stopped at the specified stage.
-ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1      # The number of nodes
-nj=32            # The number of parallel jobs.
-decode_nj=32     # The number of parallel jobs in decoding.
-gpu_decode=false # Whether to perform gpu decoding.
-dumpdir=dump     # Directory to dump features.
-expdir=exp       # Directory to save experiments.
-
+stage=1                    # Processes starts from the specified stage.
+stop_stage=14              # Processes is stopped at the specified stage.
+ngpu=1                     # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1                # The number of nodes
+nj=32                      # The number of parallel jobs.
+decode_nj=32               # The number of parallel jobs in decoding.
+gpu_decode=false           # Whether to perform gpu decoding.
+dumpdir=dump               # Directory to dump features.
+expdir=exp                 # Directory to save experiments.
+use_hdf5_corpus=false      # Dump scp files into a HDF5 file
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 
@@ -111,6 +111,7 @@ Options:
     --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
     --dumpdir    # Directory to dump features (default="${dumpdir}").
     --expdir     # Directory to save experiments (default="${expdir}").
+    --use_hdf5_corpus  # Dump scp files into a HDF5 file (default="${use_hdf5_corpus}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -585,7 +586,25 @@ if "${use_lm}"; then
 
 
   if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-      log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+      if "${use_hdf5_corpus}"; then
+          log "Stage 7: Dump LM scp files into a HDF5 file"
+          python3 -m espnet2.bin.gen_hdf5_corpus \
+              --data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
+              --shape_file "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+              --out "${lm_stats_dir}/train/corpus.h5"
+
+          python3 -m espnet2.bin.gen_hdf5_corpus \
+              --data_path_and_name_and_type "${lm_dev_text},text,text" \
+              --shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
+              --out "${lm_stats_dir}/valid/corpus.h5"
+      else
+          log "Stage 7: Skip"
+      fi
+  fi
+
+
+  if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+      log "Stage 8: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
 
       _opts=
       if [ -n "${lm_config}" ]; then
@@ -594,8 +613,20 @@ if "${use_lm}"; then
           _opts+="--config ${lm_config} "
       fi
 
-      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+      # There are two methods to input data for training
+      if "${use_hdf5_corpus}"; then
+          # 1. A HDF5 file generared from scp files
+          _opts+="--train_hdf5_corpus ${lm_stats_dir}/train/corpus.h5 "
+          _opts+="--valid_hdf5_corpus ${lm_stats_dir}/valid/corpus.h5 "
+      else
+          # 2. Scp files directly
+          _opts+="--train_data_path_and_name_and_type ${data_feats}/srctexts,text,text "
+          _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
+          _opts+="--valid_data_path_and_name_and_type ${lm_dev_text},text,text "
+          _opts+="--valid_shape_file ${lm_stats_dir}/valid/text_shape.${lm_token_type} "
+      fi
 
+      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
@@ -612,10 +643,6 @@ if "${use_lm}"; then
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
-              --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
-              --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --train_shape_file "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
-              --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
               --fold_length "${lm_fold_length}" \
               --resume true \
               --output_dir "${lm_exp}" \
@@ -624,8 +651,8 @@ if "${use_lm}"; then
   fi
 
 
-  if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-      log "Stage 8: Calc perplexity: ${lm_test_text}"
+  if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+      log "Stage 9: Calc perplexity: ${lm_test_text}"
       _opts=
       # TODO(kamo): Parallelize?
       log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
@@ -643,14 +670,14 @@ if "${use_lm}"; then
   fi
 
 else
-    log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
+    log "Stage 6-7: Skip lm-related stages: use_lm=${use_lm}"
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 9: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
+    log "Stage 10: ASR collect stats: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
     if [ -n "${asr_config}" ]; then
@@ -739,10 +766,48 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 fi
 
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+_feats_type="$(<${data_feats}/${train_set}/feats_type)"
+if [ "${_feats_type}" = raw ]; then
+    _scp=wav.scp
+    # "sound" supports "wav", "flac", etc.
+    _type=sound
+    _fold_length="$((asr_speech_fold_length * 100))"
+    _opts+="--frontend_conf fs=${fs} "
+else
+    _scp=feats.scp
+    _type=kaldi_ark
+    _fold_length="${asr_speech_fold_length}"
+    _input_size="$(<${_asr_train_dir}/feats_dim)"
+    _opts+="--input_size=${_input_size} "
+fi
+
+
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    if "${use_hdf5_corpus}"; then
+        log "Stage 11: Dump ASR scp files into a HDF5 file"
+        python3 -m espnet2.bin.gen_hdf5_corpus \
+            --data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
+            --data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
+            --shape_file "${asr_stats_dir}/train/speech_shape" \
+            --shape_file "${asr_stats_dir}/train/text_shape.${token_type}" \
+            --out "${asr_stats_dir}/train/corpus.h5"
+
+        python3 -m espnet2.bin.gen_hdf5_corpus \
+            --data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
+            --data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
+            --shape_file "${asr_stats_dir}/valid/speech_shape" \
+            --shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
+            --out "${asr_stats_dir}/valid/corpus.h5"
+    else
+        log "Stage 11: Skip"
+    fi
+fi
+
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 10: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
+    log "Stage 12: ASR Training: train_set=${_asr_train_dir}, dev_set=${_asr_dev_dir}"
 
     _opts=
     if [ -n "${asr_config}" ]; then
@@ -751,21 +816,23 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _opts+="--config ${asr_config} "
     fi
 
-    _feats_type="$(<${_asr_train_dir}/feats_type)"
-    if [ "${_feats_type}" = raw ]; then
-        _scp=wav.scp
-        # "sound" supports "wav", "flac", etc.
-        _type=sound
-        _fold_length="$((asr_speech_fold_length * 100))"
-        _opts+="--frontend_conf fs=${fs} "
+    # There are two methods to input data for training
+    if "${use_hdf5_corpus}"; then
+        # 1. A HDF5 file generared from scp files
+        _opts+="--train_hdf5_corpus ${asr_stats_dir}/train/corpus.h5 "
+        _opts+="--valid_hdf5_corpus ${asr_stats_dir}/valid/corpus.h5 "
     else
-        _scp=feats.scp
-        _type=kaldi_ark
-        _fold_length="${asr_speech_fold_length}"
-        _input_size="$(<${_asr_train_dir}/feats_dim)"
-        _opts+="--input_size=${_input_size} "
-
+        # 2. Scp files directly
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_dev_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_dev_dir}/text,text,text "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+        _opts+="--valid_shape_file ${asr_stats_dir}/valid/speech_shape "
+        _opts+="--valid_shape_file ${asr_stats_dir}/valid/text_shape.${token_type} "
     fi
+
     if [ "${feats_normalize}" = global_mvn ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
@@ -788,14 +855,6 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
-            --valid_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
-            --train_shape_file "${asr_stats_dir}/train/speech_shape" \
-            --train_shape_file "${asr_stats_dir}/train/text_shape.${token_type}" \
-            --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-            --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
             --resume true \
             --fold_length "${_fold_length}" \
             --fold_length "${asr_text_fold_length}" \
@@ -805,8 +864,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    log "Stage 11: Decoding: training_dir=${asr_exp}"
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+    log "Stage 13: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
         _cmd=${cuda_cmd}
@@ -878,8 +937,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    log "Stage 12: Scoring"
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+    log "Stage 14: Scoring"
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
@@ -975,8 +1034,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
 fi
 
 
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-    log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"
+if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
+    log "[Option] Stage 15: Pack model: ${asr_exp}/packed.tgz"
 
     _opts=
     if "${use_lm}"; then

@@ -1,10 +1,11 @@
 import logging
 from typing import Iterator
 from typing import Tuple
+from typing import Union
 
+import h5py
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -21,7 +22,7 @@ class SortedBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_size: int,
-        shape_file: str,
+        shape_file: Union[str, h5py.Group],
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
@@ -37,32 +38,22 @@ class SortedBatchSampler(AbsSampler):
         # utt2shape: (Length, ...)
         #    uttA 100,...
         #    uttB 201,...
-        utt2shape = load_num_sequence_text(shape_file, loader_type="csv_int")
-        if sort_in_batch == "descending":
-            # Sort samples in descending order (required by RNN)
-            keys = sorted(utt2shape, key=lambda k: -utt2shape[k][0])
-        elif sort_in_batch == "ascending":
-            # Sort samples in ascending order
-            keys = sorted(utt2shape, key=lambda k: utt2shape[k][0])
-        else:
-            raise ValueError(
-                f"sort_in_batch must be either one of "
-                f"ascending, descending, or None: {sort_in_batch}"
-            )
-        if len(keys) == 0:
-            raise RuntimeError(f"0 lines found: {shape_file}")
+        _, keys = self._load_shape_files([shape_file], sort=True)
 
         # Apply max(, 1) to avoid 0-batches
         N = max(len(keys) // batch_size, 1)
+        reverse = 1 if sort_in_batch == "ascending" else -1
         if not self.drop_last:
             # Split keys evenly as possible as. Note that If N != 1,
             # the these batches always have size of batch_size at minimum.
             self.batch_list = [
-                keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
+                keys[i * len(keys) // N : (i + 1) * len(keys) // N : reverse]
+                for i in range(N)
             ]
         else:
             self.batch_list = [
-                tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+                tuple(keys[i * batch_size : (i + 1) * batch_size : reverse])
+                for i in range(N)
             ]
 
         if len(self.batch_list) == 0:

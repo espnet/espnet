@@ -1,5 +1,4 @@
 import collections
-import copy
 import functools
 import logging
 import numbers
@@ -27,10 +26,11 @@ from espnet2.fileio.rand_gen_dataset import IntRandomGenerateDataset
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.fileio.read_text import read_2column_text
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.utils.hdf5_corpus import H5FileWrapper
 from espnet2.utils.sized_dict import SizedDict
 
 
-class AdapterForSoundScpReader(collections.abc.Mapping):
+class _AdapterForSoundScpReader(collections.abc.Mapping):
     def __init__(self, loader, dtype=None):
         assert check_argument_types()
         self.loader = loader
@@ -58,7 +58,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         return array
 
 
-class H5FileWrapper:
+class _H5FileWrapper_as_source:
     def __init__(self, path: str):
         self.path = path
         self.h5_file = h5py.File(path, "r")
@@ -97,7 +97,7 @@ def sound_loader(path, float_dtype):
 
     # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
     # but ndarray is desired, so Adapter class is inserted here
-    return AdapterForSoundScpReader(loader, float_dtype)
+    return _AdapterForSoundScpReader(loader, float_dtype)
 
 
 def pipe_wav_loader(path, float_dtype):
@@ -110,7 +110,7 @@ def pipe_wav_loader(path, float_dtype):
 
     # NOTE(kamo): kaldiio doesn't normalize the signal.
     loader = kaldiio.load_scp(path)
-    return AdapterForSoundScpReader(loader, float_dtype)
+    return _AdapterForSoundScpReader(loader, float_dtype)
 
 
 def rand_int_loader(filepath, loader_type):
@@ -176,6 +176,12 @@ def mnist_loader(filepath, loader_type):
             ]
         ),
     )
+
+
+def direct(filepath: h5py.Group):
+    if not isinstance(filepath, h5py.Group):
+        raise RuntimeError("'direct' type is used by 'hdf5_corpus' file")
+    return H5FileWrapper(filepath)
 
 
 DATA_TYPES = {
@@ -267,7 +273,7 @@ DATA_TYPES = {
         "   ...",
     ),
     "hdf5": dict(
-        func=H5FileWrapper,
+        func=_H5FileWrapper_as_source,
         kwargs=[],
         help="A HDF5 file which contains arrays at the first level or the second level."
         "\n\n"
@@ -319,6 +325,12 @@ DATA_TYPES = {
         kwargs=["loader_type"],
         help="e.g. 'mnist_test_32x32'. MNIST test data",
     ),
+    "direct": dict(
+        func=direct,
+        kwargs=[],
+        help="This type is used by 'HDF5 corpus format' to give "
+        "ndarray/str instead of reference to the other file",
+    ),
 }
 
 
@@ -335,7 +347,7 @@ class ESPnetDataset(Dataset):
 
     def __init__(
         self,
-        path_name_type_list: Collection[Tuple[str, str, str]],
+        path_name_type_list: Collection[Tuple[Union[str, h5py.Group], str, str]],
         preprocess: Callable[
             [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
         ] = None,
@@ -349,7 +361,6 @@ class ESPnetDataset(Dataset):
                 '1 or more elements are required for "path_name_type_list"'
             )
 
-        path_name_type_list = copy.deepcopy(path_name_type_list)
         self.preprocess = preprocess
 
         self.float_dtype = float_dtype
@@ -357,11 +368,14 @@ class ESPnetDataset(Dataset):
 
         self.loader_dict = {}
         self.debug_info = {}
+
         for path, name, _type in path_name_type_list:
             if name in self.loader_dict:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')
 
-            loader = self._build_loader(path, _type)
+            loader = self.build_loader(
+                path, _type, float_dtype=self.float_dtype, int_dtype=self.int_dtype,
+            )
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
@@ -377,8 +391,9 @@ class ESPnetDataset(Dataset):
         else:
             self.cache = None
 
-    def _build_loader(
-        self, path: str, loader_type: str
+    @staticmethod
+    def build_loader(
+        path: str, loader_type: str, float_dtype=np.float32, int_dtype=np.int64,
     ) -> Mapping[
         str,
         Union[
@@ -406,9 +421,9 @@ class ESPnetDataset(Dataset):
                     if key2 == "loader_type":
                         kwargs["loader_type"] = loader_type
                     elif key2 == "float_dtype":
-                        kwargs["float_dtype"] = self.float_dtype
+                        kwargs["float_dtype"] = float_dtype
                     elif key2 == "int_dtype":
-                        kwargs["int_dtype"] = self.int_dtype
+                        kwargs["int_dtype"] = int_dtype
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
@@ -459,30 +474,6 @@ class ESPnetDataset(Dataset):
         for name, loader in self.loader_dict.items():
             try:
                 value = loader[uid]
-                if isinstance(value, dict):
-                    for v in value.values():
-                        if not isinstance(
-                            v, (np.ndarray, torch.Tensor, str, numbers.Number)
-                        ):
-                            raise TypeError(
-                                f"Must be ndarray, torch.Tensor, str or Number: "
-                                f"{type(v)}"
-                            )
-                elif isinstance(value, (tuple, list)):
-                    for v in value:
-                        if not isinstance(
-                            v, (np.ndarray, torch.Tensor, str, numbers.Number)
-                        ):
-                            raise TypeError(
-                                f"Must be ndarray, torch.Tensor, str or Number: "
-                                f"{type(v)}"
-                            )
-                elif not isinstance(
-                    value, (np.ndarray, torch.Tensor, str, numbers.Number)
-                ):
-                    raise TypeError(
-                        f"Must be ndarray, torch.Tensor, str or Number: {type(value)}"
-                    )
             except Exception:
                 path, _type = self.debug_info[name]
                 logging.error(
@@ -490,28 +481,14 @@ class ESPnetDataset(Dataset):
                 )
                 raise
 
-            if isinstance(value, (np.ndarray, torch.Tensor, str, numbers.Number)):
-                # torch.Tensor is converted to ndarray
-                if isinstance(value, torch.Tensor):
-                    value = value.numpy()
-                elif isinstance(value, numbers.Number):
-                    value = np.array([value])
-                data[name] = value
-
-            # The return value of ESPnet dataset must be a dict of ndarrays,
-            # so we need to parse a container of ndarrays
             # if dict:
             #   e.g. "name": {"foo": array, "bar": arrray}
             #   => "name_foo", "name_bar"
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 for k, v in value.items():
                     new_key = f"{name}_{k}"
                     if new_key in self.loader_dict:
                         raise RuntimeError(f"Use another name: {new_key}")
-                    if isinstance(v, torch.Tensor):
-                        v = v.numpy()
-                    elif isinstance(v, numbers.Number):
-                        v = np.array([v])
                     data[new_key] = v
 
             # if tuple or list:
@@ -522,11 +499,20 @@ class ESPnetDataset(Dataset):
                     new_key = f"{name}_{i}"
                     if new_key in self.loader_dict:
                         raise RuntimeError(f"Use another name: {new_key}")
-                    if isinstance(v, torch.Tensor):
-                        v = v.numpy()
-                    elif isinstance(v, numbers.Number):
-                        v = np.array([v])
                     data[new_key] = v
+
+            else:
+                data[name] = value
+
+        # Converted to numpy ndarray
+        for k, v in data.items():
+            if isinstance(v, torch.Tensor):
+                v = v.numpy()
+            elif isinstance(v, numbers.Number):
+                v = np.array([v])
+            if not isinstance(v, (np.ndarray, str)):
+                raise RuntimeError(f"Must be np.ndarray or str, but got {type(v)}")
+            data[k] = v
 
         # 2. [Option] Apply preprocessing
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor

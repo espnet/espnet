@@ -3,9 +3,9 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+import h5py
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -13,7 +13,9 @@ class LengthBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_bins: int,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[
+            Tuple[Union[str, h5py.Group], ...], List[Union[str, h5py.Group]]
+        ],
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
@@ -40,22 +42,7 @@ class LengthBatchSampler(AbsSampler):
         # utt2shape: (Length, ...)
         #    uttA 100,...
         #    uttB 201,...
-        utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
-        ]
-
-        first_utt2shape = utt2shapes[0]
-        for s, d in zip(shape_files, utt2shapes):
-            if set(d) != set(first_utt2shape):
-                raise RuntimeError(
-                    f"keys are mismatched between {s} != {shape_files[0]}"
-                )
-
-        # Sort samples in ascending order
-        # (shape order should be like (Length, Dim))
-        keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
-        if len(keys) == 0:
-            raise RuntimeError(f"0 lines found: {shape_files[0]}")
+        utt2shapes, keys = self._load_shape_files(shape_files, sort=True)
 
         # Decide batch-sizes
         start = 0

@@ -61,9 +61,12 @@ for t in ${token_types}; do
 done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
-        echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
+        for use_hdf5_corpus in true false; do
+            echo "==== feats_type=${t}, token_types=${t2}, use_hdf5_corpus=${use_hdf5_corpus} ==="
+            rm -rf exp
+            ./run.sh --ngpu 0 --stage 6 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
+                --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --use_hdf5_corpus "${use_hdf5_corpus}"
+        done
     done
 done
 # Remove generated files in order to reduce the disk usage
@@ -76,8 +79,11 @@ echo "==== [ESPnet2] TTS ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
-    echo "==== feats_type=${t} ==="
-    ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
+    for use_hdf5_corpus in true false; do
+        echo "==== feats_type=${t}, use_hdf5_corpus=${use_hdf5_corpus} ==="
+        rm -rf exp
+        ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1" --use_hdf5_corpus "${use_hdf5_corpus}"
+    done
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data

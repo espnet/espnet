@@ -2,11 +2,13 @@ import collections.abc
 from pathlib import Path
 from typing import Union
 
+import h5py
 import numpy as np
 import soundfile
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2column_text
+from espnet2.utils.hdf5_corpus import H5FileWrapper
 
 
 class SoundScpReader(collections.abc.Mapping):
@@ -25,17 +27,25 @@ class SoundScpReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self, fname, dtype=np.int16, always_2d: bool = False, normalize: bool = False,
+        self,
+        fname: Union[Path, str, h5py.Group],
+        dtype=np.int16,
+        always_2d: bool = False,
+        normalize: bool = False,
     ):
         assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d
         self.normalize = normalize
-        self.data = read_2column_text(fname)
+        if isinstance(fname, h5py.Group):
+            self.data = H5FileWrapper(fname)
+        else:
+            self.data = read_2column_text(fname)
 
     def __getitem__(self, key):
         wav = self.data[key]
+        assert isinstance(wav, str), type(wav)
         if self.normalize:
             # soundfile.read normalizes data to [-1,1] if dtype is not given
             array, rate = soundfile.read(wav, always_2d=self.always_2d)

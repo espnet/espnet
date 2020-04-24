@@ -1,10 +1,12 @@
 import logging
 from typing import Iterator
 from typing import Tuple
+from typing import Union
 
+import h5py
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_first_column
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -21,7 +23,9 @@ class UnsortedBatchSampler(AbsSampler):
         key_file:
     """
 
-    def __init__(self, batch_size: int, key_file: str, drop_last: bool = False):
+    def __init__(
+        self, batch_size: int, key_file: Union[str, h5py.Group], drop_last: bool = False
+    ):
         assert check_argument_types()
         assert batch_size > 0
         self.batch_size = batch_size
@@ -31,13 +35,12 @@ class UnsortedBatchSampler(AbsSampler):
         # utt2shape:
         #    uttA <anything is o.k>
         #    uttB <anything is o.k>
-        utt2any = read_2column_text(key_file)
-        if len(utt2any) == 0:
-            logging.warning(f"{key_file} is empty")
-        # In this case the, the first column in only used
-        keys = list(utt2any)
+        if isinstance(key_file, h5py.Group):
+            keys = list(key_file)
+        else:
+            keys = read_first_column(key_file)
         if len(keys) == 0:
-            raise RuntimeError(f"0 lines found: {key_file}")
+            logging.warning(f"{key_file} is empty")
 
         # Apply max(, 1) to avoid 0-batches
         N = max(len(keys) // batch_size, 1)

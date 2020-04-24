@@ -3,6 +3,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import h5py
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
@@ -12,7 +13,6 @@ from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
-
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in paticular feature and "
@@ -78,7 +78,9 @@ def build_batch_sampler(
     type: str,
     batch_size: int,
     batch_bins: int,
-    shape_files: Union[Tuple[str, ...], List[str]],
+    shape_files: Union[
+        Tuple[Union[str, h5py.Group], ...], List[Union[str, h5py.Group]]
+    ],
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
     drop_last: bool = False,
@@ -103,6 +105,8 @@ def build_batch_sampler(
             used for "numel" mode
     """
     assert check_argument_types()
+    if len(shape_files) == 0:
+        raise RuntimeError("Give one or more shape_files")
 
     if type == "unsorted":
         retval = UnsortedBatchSampler(
@@ -119,12 +123,6 @@ def build_batch_sampler(
         )
 
     elif type == "folded":
-        if len(fold_lengths) != len(shape_files):
-            raise ValueError(
-                f"The number of fold_lengths must be equal to "
-                f"the number of shape_files: "
-                f"{len(fold_lengths)} != {len(shape_files)}"
-            )
         retval = FoldedBatchSampler(
             batch_size=batch_size,
             shape_files=shape_files,
