@@ -831,10 +831,15 @@ def recog(args):
     assert isinstance(model, ASRInterface)
     model.recog_args = args
 
+<<<<<<< HEAD
     logging.info(
         " Total parameter of the model = "
         + str(sum(p.numel() for p in model.parameters()))
     )
+=======
+    if args.streaming_mode and "transformer" in train_args.model_module:
+        raise NotImplementedError("streaming mode for transformer is not implemented")
+>>>>>>> a6cadb1a6... Add error handling
 
     # read rnnlm
     if args.rnnlm:
