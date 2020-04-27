@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-if ${USE_CONDA:-}; then
-    . tools/venv/bin/activate
-fi
+. tools/venv/bin/activate
 
 set -euo pipefail
 
@@ -10,7 +8,7 @@ modules="espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/asr1/py
 
 # black
 if ! black --check ${modules}; then
-    echo "Please apply:\n    % black ${modules}"
+    printf 'Please apply:\n    $ black %s\n' "${modules}"
     exit 1
 fi
 

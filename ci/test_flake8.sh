@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-if ${USE_CONDA:-}; then
-    . tools/venv/bin/activate
-fi
+. tools/venv/bin/activate
 
 set -euo pipefail
 
