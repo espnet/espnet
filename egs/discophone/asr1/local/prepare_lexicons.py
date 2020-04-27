@@ -34,6 +34,7 @@ BABELCODE2LANG = {
     "402": "Javanese",
     "403": "Dholuo",
     "404": "Georgian",
+    "505": "Dutch",
 }
 
 

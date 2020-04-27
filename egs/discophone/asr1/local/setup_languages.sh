@@ -8,9 +8,14 @@
 . ./cmd.sh
 . ./conf/lang.conf
 
-langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403 505"
 recog="107 201 307 404"
 FLP=true
+
+# CGN related setups
+cgn=/home/jerome/Documents/20151207_CGN_2_0_3/CGN_2.0.3/		# point this to CGN
+lang="nl" # pointed to folder for Dutch spoken in Netherlands #
+comp="o" # pointed to 64hrs read speech #
 
 # GlobalPhone related options
 gp_path="/export/corpora5/GlobalPhone"
@@ -125,7 +130,7 @@ if [ $mboshi_train ] || [ $mboshi_recog ]; then
   done
 fi
 
-# Now onto Babel
+# Now onto Babel (and CGN)
 
 all_langs=""
 for l in $(cat <(echo ${langs}) <(echo ${recog}) | tr " " "\n" | sort -u); do
@@ -152,20 +157,20 @@ if [ "$langs" ] || [ "$recog" ]; then
       ln -sf $link .
     done
 
-    cp ${cwd}/cmd.sh .
-    cp ${cwd}/path.sh .
-    sed -i 's/\.\.\/\.\.\/\.\./\.\.\/\.\.\/\.\.\/\.\.\/\.\./g' path.sh
+  cp ${cwd}/cmd.sh .
+  cp ${cwd}/path.sh .
+  sed -i 's/\.\.\/\.\.\/\.\./\.\.\/\.\.\/\.\.\/\.\.\/\.\./g' path.sh
 
-    cd ${cwd}
-  done
+  cd ${cwd}
+done
 
-  # Prepare language specific data
-  for l in ${all_langs}; do
+# Prepare language specific data
+for l in ${all_langs}; do
+  if [ ${l} -ne 505 ];then
     (
       cd data/${l}
       ./local/prepare_data.sh --FLP ${FLP} ${l}
       cd ${cwd}
-
       for split in train dev eval; do
         data_dir=data/${l}/data/${split}_${l}
         python3 local/normalize_or_remove_text.py --strip-punctuation --remove-digit-utts $data_dir/text
@@ -177,6 +182,23 @@ if [ "$langs" ] || [ "$recog" ]; then
         utils/fix_data_dir.sh $data_dir
       done
     ) &
+  else
+    (
+      cd data/${l}
+      ./local/cgn_data_prep.sh $cgn $lang $comp || exit 1;
+      cd ${cwd}
+      for split in train dev eval; do
+        data_dir=data/${l}/data/${split}_${l}
+        python3 local/normalize_or_remove_text.py --strip-punctuation --remove-digit-utts $data_dir/text
+        python3 local/prepare_lexicons.py \
+          --lang $l \
+          --data-dir $data_dir \
+          --g2p-models-dir g2ps/models \
+          $ipa_transcript_opt
+        utils/fix_data_dir.sh $data_dir
+      done
+    )&
+  fi
   done
   wait
 fi
@@ -232,4 +254,3 @@ for l in ${gp_recog}; do
     ln -s ${cwd}/data/GlobalPhone/gp_${l}_eval $target_link
   fi
 done
-
