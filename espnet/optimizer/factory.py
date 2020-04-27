@@ -55,9 +55,11 @@ def dynamic_import_optimizer(name: str, backend: str) -> OptimizerFactoryInterfa
     """
     if backend == "pytorch":
         from espnet.optimizer.pytorch import OPTIMIZER_FACTORY_DICT
+
         return OPTIMIZER_FACTORY_DICT[name]
     elif backend == "chainer":
         from espnet.optimizer.chainer import OPTIMIZER_FACTORY_DICT
+
         return OPTIMIZER_FACTORY_DICT[name]
     else:
         raise NotImplementedError(f"unsupported backend: {backend}")

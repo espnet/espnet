@@ -9,7 +9,11 @@ from distutils.version import LooseVersion
 
 import torch
 
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion('1.2.0')
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
+# LooseVersion('1.2.0') == LooseVersion(torch.__version__) can't include e.g. 1.2.0+aaa
+is_torch_1_2 = (
+    LooseVersion("1.3") > LooseVersion(torch.__version__) >= LooseVersion("1.2")
+)
 datatype = torch.bool if is_torch_1_2_plus else torch.uint8
 
 
@@ -25,8 +29,13 @@ def subsequent_mask(size, device="cpu", dtype=datatype):
      [1, 1, 0],
      [1, 1, 1]]
     """
-    ret = torch.ones(size, size, device=device, dtype=dtype)
-    return torch.tril(ret, out=ret)
+    if is_torch_1_2 and dtype == torch.bool:
+        # torch=1.2 doesn't support tril for bool tensor
+        ret = torch.ones(size, size, device=device, dtype=torch.uint8)
+        return torch.tril(ret, out=ret).type(dtype)
+    else:
+        ret = torch.ones(size, size, device=device, dtype=dtype)
+        return torch.tril(ret, out=ret)
 
 
 def target_mask(ys_in_pad, ignore_id):

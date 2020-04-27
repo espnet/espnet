@@ -1,35 +1,28 @@
 """Transducer speech recognition model (pytorch)."""
 
 from distutils.util import strtobool
-
 import logging
 import math
 
 import chainer
+from chainer import reporter
 import torch
 
-from chainer import reporter
-
 from espnet.nets.asr_interface import ASRInterface
-
-
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
-
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
-
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_decoders import decoder_for
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import Decoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 
 class Reporter(chainer.Chain):
@@ -37,10 +30,11 @@ class Reporter(chainer.Chain):
 
     def report(self, loss, cer, wer):
         """Instantiate reporter attributes."""
-        reporter.report({'cer': cer}, self)
-        reporter.report({'wer': wer}, self)
-        logging.info('loss:' + str(loss))
-        reporter.report({'loss': loss}, self)
+        reporter.report({"cer": cer}, self)
+        reporter.report({"wer": wer}, self)
+        reporter.report({"loss": loss}, self)
+
+        logging.info("loss:" + str(loss))
 
 
 class E2E(ASRInterface, torch.nn.Module):
@@ -64,92 +58,226 @@ class E2E(ASRInterface, torch.nn.Module):
         group = parser.add_argument_group("transformer model setting")
 
         # Encoder - general
-        group.add_argument('--etype', default='blstmp', type=str,
-                           choices=['transformer', 'lstm', 'blstm', 'lstmp', 'blstmp',
-                                    'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
-                                    'gru', 'bgru', 'grup', 'bgrup',
-                                    'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
-                           help='Type of encoder network architecture')
-        group.add_argument('--elayers', default=4, type=int,
-                           help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
-        group.add_argument('--eunits', '-u', default=300, type=int,
-                           help='Number of encoder hidden units')
-        group.add_argument('--dropout-rate', default=0.0, type=float,
-                           help='Dropout rate for the encoder')
+        group.add_argument(
+            "--etype",
+            default="blstmp",
+            type=str,
+            choices=[
+                "transformer",
+                "lstm",
+                "blstm",
+                "lstmp",
+                "blstmp",
+                "vgglstmp",
+                "vggblstmp",
+                "vgglstm",
+                "vggblstm",
+                "gru",
+                "bgru",
+                "grup",
+                "bgrup",
+                "vgggrup",
+                "vggbgrup",
+                "vgggru",
+                "vggbgru",
+            ],
+            help="Type of encoder network architecture",
+        )
+        group.add_argument(
+            "--elayers",
+            default=4,
+            type=int,
+            help="Number of encoder layers (for shared recognition part "
+            "in multi-speaker asr mode)",
+        )
+        group.add_argument(
+            "--eunits",
+            "-u",
+            default=300,
+            type=int,
+            help="Number of encoder hidden units",
+        )
+        group.add_argument(
+            "--dropout-rate",
+            default=0.0,
+            type=float,
+            help="Dropout rate for the encoder",
+        )
         # Encoder - RNN
-        group.add_argument('--eprojs', default=320, type=int,
-                           help='Number of encoder projection units')
-        group.add_argument('--subsample', default="1", type=str,
-                           help='Subsample input frames x_y_z means subsample every x frame \
-                           at 1st layer, every y frame at 2nd layer etc.')
+        group.add_argument(
+            "--eprojs", default=320, type=int, help="Number of encoder projection units"
+        )
+        group.add_argument(
+            "--subsample",
+            default="1",
+            type=str,
+            help="Subsample input frames x_y_z means subsample every x frame "
+            "at 1st layer, every y frame at 2nd layer etc.",
+        )
         # Attention - general
-        group.add_argument('--adim', default=320, type=int,
-                           help='Number of attention transformation dimensions')
-        group.add_argument('--aheads', default=4, type=int,
-                           help='Number of heads for multi head attention')
-        group.add_argument('--transformer-attn-dropout-rate', default=0.0, type=float,
-                           help='dropout in transformer attention.')
-        group.add_argument('--transformer-attn-dropout-rate-encoder', default=0.0, type=float,
-                           help='dropout in transformer decoder attention.')
-        group.add_argument('--transformer-attn-dropout-rate-decoder', default=0.0, type=float,
-                           help='dropout in transformer decoder attention.')
+        group.add_argument(
+            "--adim",
+            default=320,
+            type=int,
+            help="Number of attention transformation dimensions",
+        )
+        group.add_argument(
+            "--aheads",
+            default=4,
+            type=int,
+            help="Number of heads for multi head attention",
+        )
+        group.add_argument(
+            "--transformer-attn-dropout-rate-encoder",
+            default=0.0,
+            type=float,
+            help="dropout in transformer decoder attention.",
+        )
+        group.add_argument(
+            "--transformer-attn-dropout-rate-decoder",
+            default=0.0,
+            type=float,
+            help="dropout in transformer decoder attention.",
+        )
         # Attention - RNN
-        group.add_argument('--atype', default='dot', type=str,
-                           choices=['noatt', 'dot', 'add', 'location', 'coverage',
-                                    'coverage_location', 'location2d', 'location_recurrent',
-                                    'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                    'multi_head_multi_res_loc'],
-                           help='Type of attention architecture')
-        group.add_argument('--awin', default=5, type=int,
-                           help='Window size for location2d attention')
-        group.add_argument('--aconv-chans', default=-1, type=int,
-                           help='Number of attention convolution channels \
-                           (negative value indicates no location-aware attention)')
-        group.add_argument('--aconv-filts', default=100, type=int,
-                           help='Number of attention convolution filters \
-                           (negative value indicates no location-aware attention)')
+        group.add_argument(
+            "--atype",
+            default="location",
+            type=str,
+            choices=[
+                "noatt",
+                "dot",
+                "add",
+                "location",
+                "coverage",
+                "coverage_location",
+                "location2d",
+                "location_recurrent",
+                "multi_head_dot",
+                "multi_head_add",
+                "multi_head_loc",
+                "multi_head_multi_res_loc",
+            ],
+            help="Type of attention architecture",
+        )
+        group.add_argument(
+            "--awin", default=5, type=int, help="Window size for location2d attention"
+        )
+        group.add_argument(
+            "--aconv-chans",
+            default=10,
+            type=int,
+            help="Number of attention convolution channels "
+            "(negative value indicates no location-aware attention)",
+        )
+        group.add_argument(
+            "--aconv-filts",
+            default=100,
+            type=int,
+            help="Number of attention convolution filters "
+            "(negative value indicates no location-aware attention)",
+        )
         # Decoder - general
-        group.add_argument('--dtype', default='lstm', type=str,
-                           choices=['lstm', 'gru', 'transformer'],
-                           help='Type of decoder to use.')
-        group.add_argument('--dlayers', default=1, type=int,
-                           help='Number of decoder layers')
-        group.add_argument('--dunits', default=320, type=int,
-                           help='Number of decoder hidden units')
-        group.add_argument('--dropout-rate-decoder', default=0.0, type=float,
-                           help='Dropout rate for the decoder')
+        group.add_argument(
+            "--dtype",
+            default="lstm",
+            type=str,
+            choices=["lstm", "gru", "transformer"],
+            help="Type of decoder to use.",
+        )
+        group.add_argument(
+            "--dlayers", default=1, type=int, help="Number of decoder layers"
+        )
+        group.add_argument(
+            "--dunits", default=320, type=int, help="Number of decoder hidden units"
+        )
+        group.add_argument(
+            "--dropout-rate-decoder",
+            default=0.0,
+            type=float,
+            help="Dropout rate for the decoder",
+        )
         # Decoder - RNN
-        group.add_argument('--dec-embed-dim', default=320, type=int,
-                           help='Number of decoder embeddings dimensions')
-        group.add_argument('--dropout-rate-embed-decoder', default=0.0, type=float,
-                           help='Dropout rate for the decoder embeddings')
+        group.add_argument(
+            "--dec-embed-dim",
+            default=320,
+            type=int,
+            help="Number of decoder embeddings dimensions",
+        )
+        group.add_argument(
+            "--dropout-rate-embed-decoder",
+            default=0.0,
+            type=float,
+            help="Dropout rate for the decoder embeddings",
+        )
         # Transformer
-        group.add_argument("--transformer-init", type=str, default="pytorch",
-                           choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                    "kaiming_uniform", "kaiming_normal"],
-                           help='how to initialize transformer parameters')
-        group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                           choices=["conv2d", "vgg2l", "linear", "embed"],
-                           help='transformer encoder input layer type')
-        group.add_argument("--transformer-dec-input-layer", type=str, default="embed",
-                           choices=["linear", "embed"],
-                           help='transformer decoder input layer type')
-        group.add_argument('--transformer-lr', default=10.0, type=float,
-                           help='Initial value of learning rate')
-        group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                           help='optimizer warmup steps')
+        group.add_argument(
+            "--transformer-warmup-steps",
+            default=25000,
+            type=int,
+            help="optimizer warmup steps",
+        )
+        group.add_argument(
+            "--transformer-init",
+            type=str,
+            default="pytorch",
+            choices=[
+                "pytorch",
+                "xavier_uniform",
+                "xavier_normal",
+                "kaiming_uniform",
+                "kaiming_normal",
+            ],
+            help="how to initialize transformer parameters",
+        )
+        group.add_argument(
+            "--transformer-input-layer",
+            type=str,
+            default="conv2d",
+            choices=["conv2d", "vgg2l", "linear", "embed"],
+            help="transformer encoder input layer type",
+        )
+        group.add_argument(
+            "--transformer-dec-input-layer",
+            type=str,
+            default="embed",
+            choices=["linear", "embed"],
+            help="transformer decoder input layer type",
+        )
+        group.add_argument(
+            "--transformer-lr",
+            default=10.0,
+            type=float,
+            help="Initial value of learning rate",
+        )
         # Transducer
-        group.add_argument('--trans-type', default='warp-transducer', type=str,
-                           choices=['warp-transducer'],
-                           help='Type of transducer implementation to calculate loss.')
-        group.add_argument('--rnnt-mode', default='rnnt', type=str,
-                           choices=['rnnt', 'rnnt-att'],
-                           help='Transducer mode for RNN decoder.')
-        group.add_argument('--joint-dim', default=320, type=int,
-                           help='Number of dimensions in joint space')
-        group.add_argument('--score-norm-transducer', type=strtobool,
-                           nargs='?', default=True,
-                           help='Normalize transducer scores by length')
+        group.add_argument(
+            "--trans-type",
+            default="warp-transducer",
+            type=str,
+            choices=["warp-transducer"],
+            help="Type of transducer implementation to calculate loss.",
+        )
+        group.add_argument(
+            "--rnnt-mode",
+            default="rnnt",
+            type=str,
+            choices=["rnnt", "rnnt-att"],
+            help="Transducer mode for RNN decoder.",
+        )
+        group.add_argument(
+            "--joint-dim",
+            default=320,
+            type=int,
+            help="Number of dimensions in joint space",
+        )
+        group.add_argument(
+            "--score-norm-transducer",
+            type=strtobool,
+            nargs="?",
+            default=True,
+            help="Normalize transducer scores by length",
+        )
 
         return parser
 
@@ -164,7 +292,9 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         torch.nn.Module.__init__(self)
 
-        if args.etype == 'transformer':
+        if args.etype == "transformer":
+            self.subsample = get_subsample(args, mode="asr", arch="transformer")
+
             self.encoder = Encoder(
                 idim=idim,
                 attention_dim=args.adim,
@@ -174,15 +304,14 @@ class E2E(ASRInterface, torch.nn.Module):
                 input_layer=args.transformer_input_layer,
                 dropout_rate=args.dropout_rate,
                 positional_dropout_rate=args.dropout_rate,
-                attention_dropout_rate=args.transformer_attn_dropout_rate_encoder)
-
-            self.subsample = [1]
+                attention_dropout_rate=args.transformer_attn_dropout_rate_encoder,
+            )
         else:
-            self.subsample = get_subsample(args, mode='asr', arch='rnn-t')
+            self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
-            self.encoder = encoder_for(args, idim, self.subsample)
+            self.enc = encoder_for(args, idim, self.subsample)
 
-        if args.dtype == 'transformer':
+        if args.dtype == "transformer":
             self.decoder = Decoder(
                 odim=odim,
                 jdim=args.joint_dim,
@@ -193,16 +322,17 @@ class E2E(ASRInterface, torch.nn.Module):
                 input_layer=args.transformer_dec_input_layer,
                 dropout_rate=args.dropout_rate_decoder,
                 positional_dropout_rate=args.dropout_rate_decoder,
-                attention_dropout_rate=args.transformer_attn_dropout_rate_decoder)
+                attention_dropout_rate=args.transformer_attn_dropout_rate_decoder,
+            )
         else:
-            if args.etype == 'transformer':
+            if args.etype == "transformer":
                 args.eprojs = args.adim
 
-            if args.rnnt_mode == 'rnnt-att':
+            if args.rnnt_mode == "rnnt-att":
                 self.att = att_for(args)
-                self.decoder = decoder_for(args, odim, self.att)
+                self.dec = decoder_for(args, odim, self.att)
             else:
-                self.decoder = decoder_for(args, odim)
+                self.dec = decoder_for(args, odim)
 
         self.etype = args.etype
         self.dtype = args.dtype
@@ -228,7 +358,10 @@ class E2E(ASRInterface, torch.nn.Module):
         if args.report_cer or args.report_wer:
             from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
 
-            self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
+            if self.dtype == "transformer":
+                self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
+            else:
+                self.error_calculator = ErrorCalculatorTrans(self.dec, args)
         else:
             self.error_calculator = None
 
@@ -253,29 +386,27 @@ class E2E(ASRInterface, torch.nn.Module):
 
         """
         # 1. encoder
-        if self.etype == 'transformer':
-            xs_pad = xs_pad[:, :max(ilens)]
-            src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
+        if self.etype == "transformer":
+            xs_pad = xs_pad[:, : max(ilens)]
+            src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
 
             hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         else:
-            hs_pad, hlens = xs_pad, ilens
-            hs_pad, hlens, _ = self.encoder(hs_pad, hlens)
-            hs_mask = hlens
+            hs_pad, hs_mask, _ = self.enc(xs_pad, ilens)
         self.hs_pad = hs_pad
 
         # 1.5. transducer preparation related
         ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
 
         # 2. decoder
-        if self.dtype == 'transformer':
+        if self.dtype == "transformer":
             ys_mask = target_mask(ys_in_pad, self.blank_id)
             pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad)
         else:
-            if self.rnnt_mode == 'rnnt':
-                pred_pad = self.decoder(hs_pad, ys_in_pad)
+            if self.rnnt_mode == "rnnt":
+                pred_pad = self.dec(hs_pad, ys_in_pad)
             else:
-                pred_pad = self.decoder(hs_pad, ys_in_pad, pred_len)
+                pred_pad = self.dec(hs_pad, ys_in_pad, pred_len)
         self.pred_pad = pred_pad
 
         # 3. loss computation
@@ -293,7 +424,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if not math.isnan(loss_data):
             self.reporter.report(loss_data, cer, wer)
         else:
-            logging.warning('loss (=%f) is not correct', loss_data)
+            logging.warning("loss (=%f) is not correct", loss_data)
 
         return self.loss
 
@@ -305,6 +436,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
             x (torch.Tensor): encoded features (T, attention_dim)
+
         """
         self.eval()
 
@@ -327,11 +459,11 @@ class E2E(ASRInterface, torch.nn.Module):
 
         ilens = [x.shape[0]]
 
-        x = x[::self.subsample[0], :]
+        x = x[:: self.subsample[0], :]
         h = to_device(self, to_torch_tensor(x).float())
         hs = h.contiguous().unsqueeze(0)
 
-        h, _, _ = self.encoder(hs, ilens)
+        h, _, _ = self.enc(hs, ilens)
 
         return h[0]
 
@@ -348,17 +480,23 @@ class E2E(ASRInterface, torch.nn.Module):
             y (list): n-best decoding results
 
         """
-        if self.etype == 'transformer':
+        if self.etype == "transformer":
             h = self.encode_transformer(x)
         else:
             h = self.encode_rnn(x)
         params = [h, recog_args]
 
         if recog_args.beam_size == 1:
-            nbest_hyps = self.decoder.recognize(*params)
+            if self.dtype == "transformer":
+                nbest_hyps = self.decoder.recognize(*params)
+            else:
+                nbest_hyps = self.dec.recognize(*params)
         else:
             params.append(rnnlm)
-            nbest_hyps = self.decoder.recognize_beam(*params)
+            if self.dtype == "transformer":
+                nbest_hyps = self.decoder.recognize_beam(*params)
+            else:
+                nbest_hyps = self.dec.recognize_beam(*params)
 
         return nbest_hyps
 
@@ -368,7 +506,8 @@ class E2E(ASRInterface, torch.nn.Module):
         Args:
             xs_pad (torch.Tensor): batch of padded input sequences (B, Tmax, idim)
             ilens (torch.Tensor): batch of lengths of input sequences (B)
-            ys_pad (torch.Tensor): batch of padded character id sequence tensor (B, Lmax)
+            ys_pad (torch.Tensor):
+                batch of padded character id sequence tensor (B, Lmax)
 
         Returns:
             ret (ndarray): attention weights with the following shape,
@@ -376,19 +515,23 @@ class E2E(ASRInterface, torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
 
         """
-        if self.etype == 'transformer' and self.dtype != 'transformer' and \
-           self.rnnt_mode == 'rnnt-att':
-            raise NotImplementedError("Transformer encoder with rnn attention decoder"
-                                      "is not supported yet.")
-        elif self.etype != 'transformer' and self.dtype != 'transformer':
-            if self.rnnt_mode == 'rnnt':
+        if (
+            self.etype == "transformer"
+            and self.dtype != "transformer"
+            and self.rnnt_mode == "rnnt-att"
+        ):
+            raise NotImplementedError(
+                "Transformer encoder with rnn attention decoder" "is not supported yet."
+            )
+        elif self.etype != "transformer" and self.dtype != "transformer":
+            if self.rnnt_mode == "rnnt":
                 return []
             else:
                 with torch.no_grad():
                     hs_pad, hlens = xs_pad, ilens
-                    hpad, hlens, _ = self.encoder(hs_pad, hlens)
+                    hpad, hlens, _ = self.enc(hs_pad, hlens)
 
-                    ret = self.decoder.calculate_all_attentions(hpad, hlens, ys_pad)
+                    ret = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
         else:
             with torch.no_grad():
                 self.forward(xs_pad, ilens, ys_pad)

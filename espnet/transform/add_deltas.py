@@ -26,10 +26,9 @@ class AddDeltas(object):
         self.order = order
 
     def __repr__(self):
-        return ('{name}(window={window}, order={order}'
-                .format(name=self.__class__.__name__,
-                        window=self.window,
-                        order=self.order))
+        return "{name}(window={window}, order={order}".format(
+            name=self.__class__.__name__, window=self.window, order=self.order
+        )
 
     def __call__(self, x):
         return add_deltas(x, window=self.window, order=self.order)

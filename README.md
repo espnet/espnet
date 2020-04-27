@@ -2,18 +2,30 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)
-[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
-[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
-[![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
-[![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|
+| :---: | :---: | :---: | :---: | :---: | :---: |
+|ubuntu18/python3.8/pip|||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|ubuntu16/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|debian9/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|centos7/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|[docs/coverage] python3.8|||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
 
+[![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
+[![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
 | [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
+
+[**Master**](https://github.com/espnet/espnet/tree/master)
+| [**Develop**](https://github.com/espnet/espnet/tree/develop)
+| [**Release**](https://github.com/espnet/espnet/releases)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -27,6 +39,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
 - Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
 - Support speech separation and recognition recipe (WSJ-2mix)
+- Support voice conversion recipe (VCC2020 baseline) (new!)
 
 
 ### ASR: Automatic Speech Recognition
@@ -40,8 +53,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM/TransformerLM trained only with text data
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
-  - Available: RNN-Transducer, Transformer-Transducer, Transformer/RNN-Transducer
-  - Support attention extension and VGG-Transformer (encoder)
+  - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
+  - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
 
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
@@ -52,6 +65,10 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
 - Transformer based end-to-end MT (new!)
+
+### VC: Voice conversion
+- End-to-end VC based on cascaded ASR+TTS (new!)
+- Baseline system for Voice Conversion Challenge 2020!
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
@@ -68,9 +85,18 @@ See https://espnet.github.io/espnet/tutorial.html
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
+## About ESPnet2
+See https://espnet.github.io/espnet/espnet2_tutorial.html
+
 ## Contribution
-Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
-If you are the first commiter, please follow the [contribution guide](CONTRIBUTING.md).
+Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
+If it's the first contribution to ESPnet for you,  please follow the [contribution guide](CONTRIBUTING.md).
+
+### Branching strategy
+
+- [master](https://github.com/espnet/espnet/tree/master): Hot fix, adding new recipes, fix typo, update README.md
+- [develop](https://github.com/espnet/espnet/tree/develop): Adding new feature, refactoring, adding test codes
+- [release](https://github.com/espnet/espnet/releases): The specific commit by tag
 
 ## Results and demo
 
@@ -110,8 +136,10 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 You can recognize speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
-cd egs/tedlium2/asr1
-../../../utils/recog_wav.sh --models tedlium2.transformer.v1 example.wav
+# go to recipe directory and source path of espnet tools
+cd egs/tedlium2/asr1 && . ./path.sh
+# let's recognize speech!
+recog_wav.sh --models tedlium2.transformer.v1 example.wav
 ```
 where `example.wav` is a WAV file to be recognized.
 The sampling rate must be consistent with that of data used in training.
@@ -166,8 +194,12 @@ Please access the notebook from the following button and enjoy the real-time spe
 You can translate speech in a WAV file using pretrained models.
 Go to a recipe directory and run `utils/translate_wav.sh` as follows:
 ```sh
-cd egs/fisher_callhome_spanish/st1/
-wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf - ../../../utils/translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
+# go to recipe directory and source path of espnet tools
+cd egs/fisher_callhome_spanish/st1 && . ./path.sh
+# download example wav file
+wget -O - https://github.com/espnet/espnet/files/4100928/test.wav.tar.gz | tar zxvf -
+# let's translate speech!
+translate_wav.sh --models fisher_callhome_spanish.transformer.v1.es-en test.wav
 ```
 where `test.wav` is a WAV file to be translated.
 The sampling rate must be consistent with that of data used in training.
@@ -235,6 +267,7 @@ Here we list all of the pretrained neural vocoders. Please download and enjoy th
 | [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1es2HuKUeKVtEdq6YDtAsLNpqCy4fhIXr)           | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB)      | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 | [ljspeech.melgan.v1 (EXPERIMENTAL)](https://drive.google.com/open?id=1ipPWYl8FBNRlBFaKj1-i23eQpW_W_YcR) | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
+| [ljspeech.melgan.v3 (EXPERIMENTAL)](https://drive.google.com/open?id=1_a8faVA5OGCzIcJNw4blQYjfG4oA9VEt) | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
 | [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)           | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)               | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)          | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
@@ -257,25 +290,43 @@ You can synthesize speech in a TXT file using pretrained models.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
 ```sh
-cd egs/ljspeech/tts1
+# go to recipe directory and source path of espnet tools
+cd egs/ljspeech/tts1 && . ./path.sh
+# we use upper-case char sequence for the default model.
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example.txt
-../../../utils/synth_wav.sh example.txt
+# let's synthesize speech!
+synth_wav.sh example.txt
+
+# also you can use multiple sentences
+echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example_multi.txt
+echo "TEXT TO SPEECH IS A TECHQNIQUE TO CONVERT TEXT INTO SPEECH." >> example_multi.txt
+synth_wav.sh example_multi.txt
 ```
 
 You can change the pretrained model as follows:
 
 ```sh
-../../../utils/synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
+synth_wav.sh --models ljspeech.fastspeech.v1 example.txt
 ```
 
 Waveform synthesis is performed with Griffin-Lim algorithm and neural vocoders (WaveNet and ParallelWaveGAN).
 You can change the pretrained vocoder model as follows:
 
-```
-../../../utils/synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
+```sh
+synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 ```
 
-Note that WaveNet vocoder provides very high quality speech but it takes time to generate.
+WaveNet vocoder provides very high quality speech but it takes time to generate.
+
+> **Important Note**:
+>
+> This code does not include text frontend part.
+> Please clean the input text manually.
+> Also, you need to modify feature configuration according to the model.
+> Default setting is for ljspeech models, so if you want to use other pretrained models, please modify the parameters by yourself.
+> For our provided models, you can find them in the below table.
+>
+> If you are beginner, instead of this script, I strongly recommend trying the [colab notebook](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb) at first, which includes all of the procedure from text frontend, feature generation, and waveform generation.
 
 Available pretrained models in the demo script are listed as follows:
 
@@ -310,6 +361,10 @@ Available pretrained vocoder models in the demo script are listed as follows:
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
+### VC results
+
+The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.  
+You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
 ## References
 

@@ -24,7 +24,7 @@ do_delta=false
 
 train_config=conf/train_li10.yaml
 lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+decode_config=conf/decode_li10.yaml
 
 # rnnlm related
 use_lm=false
@@ -37,22 +37,33 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # exp tag
 tag="" # tag for managing experiments.
 
-# BABEL TRAIN:
-# Amharic - 307
-# Bengali - 103
-# Cantonese - 101
-# Javanese - 402
-# Vietnamese - 107
-# Zulu - 206
-# Dutch (CGN) Fake Babel Code - 505
-# BABEL TEST:
-# Georgian - 404
-# Lao - 203
-babel_langs="307 103 101 402 107 206 505"
-babel_recog="${babel_langs} 404 203"
-gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
-gp_recog="${gp_langs}"
-gp_romanized=false
+# Generate configs with local/prepare_experiment_configs.py
+langs_config=
+
+if [ $langs_config ]; then
+  # shellcheck disable=SC1090
+  source $langs_config
+else
+  # BABEL TRAIN:
+  # Amharic - 307
+  # Bengali - 103
+  # Cantonese - 101
+  # Javanese - 402
+  # Vietnamese - 107
+  # Zulu - 206
+  # Dutch (CGN) Fake Babel Code - 505
+  # BABEL TEST:
+  # Georgian - 404
+  # Lao - 203
+  babel_langs="307 103 101 402 107 206 505"
+  babel_recog="${babel_langs} 404 203"
+  gp_langs="Arabic Czech French Korean Mandarin Spanish Thai"
+  gp_recog="${gp_langs}"
+  mboshi_train=false
+  mboshi_recog=true
+  gp_romanized=false
+  ipa_transcript=false
+fi
 
 . utils/parse_options.sh || exit 1;
 
@@ -89,7 +100,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     --recog "${babel_recog}" \
     --gp-langs "${gp_langs}" \
     --gp-recog "${gp_recog}" \
-    --gp-romanized "${gp_romanized}"
+    --mboshi-train "${mboshi_train}" \
+    --mboshi-recog "${mboshi_recog}" \
+    --gp-romanized "${gp_romanized}" \
+    --ipa-transcript "${ipa_transcript}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
 	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
@@ -150,7 +164,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    # The grep trick prevents grep from returning non-zero value when no special symbol is found,
+    # which would have prematurely ended the script.
+    cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | { grep "<" || true; } > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
@@ -263,7 +279,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-	    --batchsize 0 \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
