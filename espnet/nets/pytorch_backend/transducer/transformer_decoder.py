@@ -79,7 +79,7 @@ class Decoder(torch.nn.Module):
 
         self.decoders = repeat(
             num_blocks,
-            lambda: DecoderLayer(
+            lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
                     attention_heads, attention_dim, attention_dropout_rate
