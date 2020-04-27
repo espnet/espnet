@@ -14,11 +14,11 @@ from torch.nn.parallel import data_parallel
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str

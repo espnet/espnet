@@ -5,9 +5,9 @@ from PIL import Image
 import pytest
 import soundfile
 
+from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.fileio import NpyScpWriter
-from espnet2.utils.fileio import SoundScpWriter
 
 
 def preprocess(id: str, data):
