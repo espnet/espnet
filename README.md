@@ -422,4 +422,10 @@ You can download converted samples [here](https://drive.google.com/drive/folders
     archivePrefix={arXiv},
     primaryClass={cs.CL}
 }
+@article{inaguma2020espnet,
+  title={ESPnet-ST: All-in-One Speech Translation Toolkit},
+  author={Inaguma, Hirofumi and Kiyono, Shun and Duh, Kevin and Karita, Shigeki and Soplin, Nelson Enrique Yalta and Hayashi, Tomoki and Watanabe, Shinji},
+  journal={arXiv preprint arXiv:2004.10234},
+  year={2020}
+}
 ```
