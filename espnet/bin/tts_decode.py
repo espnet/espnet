@@ -96,7 +96,7 @@ def get_parser():
     parser.add_argument(
         "--fastspeech-alpha",
         type=float,
-        default=None,
+        default=1.0,
         help="Alpha to change the speed for FastSpeech",
     )
     # save related
