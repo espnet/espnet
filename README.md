@@ -158,8 +158,8 @@ Available pretrained models in the demo script are listed as below.
 | :------                                                                                          | :------                                                    |
 | [tedlium2.rnn.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe)            | Streaming decoding based on CTC-based VAD                  |
 | [tedlium2.rnn.v2](https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf)            | Streaming decoding based on CTC-based VAD (batch decoding) |
-| [tedlium2.transformer.v1](https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U)    | Joint-CTC attention Transformer trained on Tedlium 2       |
-| [tedlium3.transformer.v1](https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO)    | Joint-CTC attention Transformer trained on Tedlium 3       |
+| [tedlium2.transformer.v1](https://drive.google.com/open?id=1heuP2G5YX5u4hERs370eF-1MG2DT50zR)    | Joint-CTC attention Transformer trained on Tedlium 2       |
+| [tedlium3.transformer.v1](https://drive.google.com/open?id=1ESVWQp0ZMhenF_Dt1n47suMK8NJ8hm0A)    | Joint-CTC attention Transformer trained on Tedlium 3       |
 | [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech     |
 | [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
 | [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
