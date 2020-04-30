@@ -602,7 +602,7 @@ def test_duration_calculator():
 
 
 @pytest.mark.parametrize(
-    "alpha", [(None), (0.5), (2.0)],
+    "alpha", [(1.0), (0.5), (2.0)],
 )
 def test_fastspeech_inference(alpha):
     # make args
