@@ -93,6 +93,12 @@ def get_parser():
         default=3,
         help="Forward window size in the attention constraint",
     )
+    parser.add_argument(
+        "--fastspeech-alpha",
+        type=float,
+        default=1.0,
+        help="Alpha to change the speed for FastSpeech",
+    )
     # save related
     parser.add_argument(
         "--save-durations",
