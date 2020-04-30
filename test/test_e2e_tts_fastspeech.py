@@ -599,3 +599,38 @@ def test_duration_calculator():
     np.testing.assert_array_equal(
         ds.sum(dim=-1).cpu().numpy(), batch["olens"].cpu().numpy()
     )
+
+
+@pytest.mark.parametrize(
+    "alpha", [
+        (None),
+        (0.5),
+        (2.0),
+    ],
+)
+def test_fastspeech_inference(alpha):
+    # make args
+    idim, odim = 10, 25
+    model_args = make_feedforward_transformer_args()
+
+    # setup batch
+    ilens = [10, 5]
+    olens = [20, 15]
+    batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"])
+
+    # define model
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+
+    # test inference
+    inference_args = Namespace(**{"fastspeech_alpha": alpha})
+    model.eval()
+    with torch.no_grad():
+        if model_args["spk_embed_dim"] is None:
+            spemb = None
+        else:
+            spemb = batch["spembs"][0]
+        model.inference(
+            batch["xs"][0][: batch["ilens"][0]],
+            inference_args,
+            spemb=spemb,
+        )
