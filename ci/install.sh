@@ -24,15 +24,11 @@ fi
 . tools/venv/bin/activate
 python --version
 
-<<<<<<< HEAD
-pip install -U pip wheel
-=======
 pip install -U wheel
 # Fix pip version to avoid this error https://github.com/ethereum/eth-abi/issues/131#issuecomment-620981271
 pip install pip==20.0.2
 pip install chainer=="${CHAINER_VERSION}"
 
->>>>>>> 22a92d197... fixed pip version
 # install espnet
 pip install -e ".[test]"
 pip install -e ".[doc]"
