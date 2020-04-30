@@ -602,11 +602,7 @@ def test_duration_calculator():
 
 
 @pytest.mark.parametrize(
-    "alpha", [
-        (None),
-        (0.5),
-        (2.0),
-    ],
+    "alpha", [(None), (0.5), (2.0)],
 )
 def test_fastspeech_inference(alpha):
     # make args
@@ -630,7 +626,5 @@ def test_fastspeech_inference(alpha):
         else:
             spemb = batch["spembs"][0]
         model.inference(
-            batch["xs"][0][: batch["ilens"][0]],
-            inference_args,
-            spemb=spemb,
+            batch["xs"][0][: batch["ilens"][0]], inference_args, spemb=spemb,
         )
