@@ -577,7 +577,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         spembs=None,
         ds=None,
         is_inference=False,
-        alpha=None,
+        alpha=1.0,
     ):
         # forward encoder
         x_masks = self._source_mask(ilens)
@@ -591,9 +591,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         d_masks = make_pad_mask(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            if alpha is not None:
-                d_outs = torch.round(d_outs.float() * alpha).long()
-            hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
         else:
             if ds is None:
                 with torch.no_grad():
@@ -767,7 +765,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             spembs = None
 
         # get option
-        alpha = getattr(inference_args, "fastspeech_alpha", None)
+        alpha = getattr(inference_args, "fastspeech_alpha", 1.0)
 
         # inference
         _, outs, _ = self._forward(
