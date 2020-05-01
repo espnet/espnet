@@ -238,7 +238,21 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 
     This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
+### How to use finetuning
 
+ESPnet currently supports two finetuning operations: transfer learning (1.x) and freezing (2.).
+
+1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each one taking a snapshot or model path.
+
+1.2. Additionally, a list of modules (separated by a comma) can be specified to control the modules to transfer using `--enc-init-mods` and `--dec-init-mods` options.
+It should be noted the user doesn't need to specify each module individually, only a partial matching (beginning of the string) is needed.
+
+Example 1: `--enc-init-mods='enc.'` means all encoder modules should be transfered.
+Example 2: `--enc-init-mods='enc.embed.,encoder.0.'` means embedding layer and first layer should be transfered.
+
+2. Freezing option can be used through `--freeze-mods`. Similarly to `--(enc|dec)-init-mods`, the option take a list of modules (separated by a comma). The behaviour being the same (partial matching).
+
+Example: `--freeze-mods='enc.embed'` means all encoder modules should be frozen.
 
 ### Known issues
 
