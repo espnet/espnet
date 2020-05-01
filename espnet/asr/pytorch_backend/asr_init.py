@@ -25,7 +25,7 @@ def freeze_modules(model, modules):
 
     Return:
         model (torch.nn.Module): updated model
-        (filter): filtered model parameters
+        model_params (filter): filtered model parameters
 
     """
     for mod, param in model.named_parameters():
