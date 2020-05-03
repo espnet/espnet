@@ -12,6 +12,9 @@
 |centos7/python3.6/conda||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |[docs/coverage] python3.8||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
 
+[![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
+[![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
+[![Downloads](https://pepy.tech/badge/espnet)](https://pepy.tech/project/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
@@ -76,17 +79,24 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Tensorboard based monitoring
 
 ## Installation
-See https://espnet.github.io/espnet/installation.html
+- If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
+- If you just need the Python module only: 
+    ```bash
+    pip install torch  # Install some dependencies manually
+    pip install espnet
+    # To install latest
+    # pip install git+https://github.com/espnet/espnet
+    ```
 
 ## Usage
-See https://espnet.github.io/espnet/tutorial.html
+See [Usage](https://espnet.github.io/espnet/tutorial.html).
 
 ## Docker Container
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
 ## About ESPnet2
-See https://espnet.github.io/espnet/espnet2_tutorial.html
+See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 ## Contribution
 Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
