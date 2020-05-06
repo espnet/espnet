@@ -107,10 +107,10 @@ class CMVN(object):
                 x = np.multiply(x, self.scale[spk])
 
         else:
-            if self.norm_means:
-                x = np.subtract(x, self.bias[spk])
             if self.norm_vars:
                 x = np.divide(x, self.scale[spk])
+            if self.norm_means:
+                x = np.subtract(x, self.bias[spk])
 
         return x
 
