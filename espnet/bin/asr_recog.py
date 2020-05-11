@@ -109,7 +109,7 @@ def get_parser():
     parser.add_argument('--lm-weight', type=float, default=0.1,
                         help='RNNLM weight')
     # ngram related
-    parser.add_argument('--ngram', type=str, default=None,
+    parser.add_argument('--ngram-model', type=str, default=None,
                         help='ngram model file to read')
     parser.add_argument('--ngram-weight', type=float, default=0.1,
                         help='ngram weight')
