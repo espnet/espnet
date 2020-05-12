@@ -55,12 +55,12 @@ for lex in fin_lex:
             actual_word = word[:-2]
             actual_lexicon = lexicon[:-2]
             acronym_lexicon = ""
-            for l in actual_word:
-                acronym_lexicon = acronym_lexicon + dict_letter[l.upper()] + " "
+            for w in actual_word:
+                acronym_lexicon = acronym_lexicon + dict_letter[w.upper()] + " "
             if acronym_lexicon.strip() == actual_lexicon:
                 acronym_mapped = ""
-                for l in actual_word[:-1]:
-                    acronym_mapped = acronym_mapped + l.lower() + "._"
+                for w in actual_word[:-1]:
+                    acronym_mapped = acronym_mapped + w.lower() + "._"
                 acronym_mapped = acronym_mapped + actual_word[-1].lower() + ".'s"
                 fout_map.write(word + "\t" + acronym_mapped + "\n")
                 fout_lex.write(acronym_mapped + " " + lexicon + "\n")
@@ -73,12 +73,12 @@ for lex in fin_lex:
             actual_word = word[:-1]
             actual_lexicon = lexicon[:-2]
             acronym_lexicon = ""
-            for l in actual_word:
-                acronym_lexicon = acronym_lexicon + dict_letter[l.upper()] + " "
+            for w in actual_word:
+                acronym_lexicon = acronym_lexicon + dict_letter[w.upper()] + " "
             if acronym_lexicon.strip() == actual_lexicon:
                 acronym_mapped = ""
-                for l in actual_word[:-1]:
-                    acronym_mapped = acronym_mapped + l.lower() + "._"
+                for w in actual_word[:-1]:
+                    acronym_mapped = acronym_mapped + w.lower() + "._"
                 acronym_mapped = acronym_mapped + actual_word[-1].lower() + ".s"
                 fout_map.write(word + "\t" + acronym_mapped + "\n")
                 fout_lex.write(acronym_mapped + " " + lexicon + "\n")
@@ -89,12 +89,12 @@ for lex in fin_lex:
         # find if words in the form of xxx (not ended with 's or s) is acronym
         elif word.find("'") == -1 and word[-1] != "s":
             acronym_lexicon = ""
-            for l in word:
-                acronym_lexicon = acronym_lexicon + dict_letter[l.upper()] + " "
+            for w in word:
+                acronym_lexicon = acronym_lexicon + dict_letter[w.upper()] + " "
             if acronym_lexicon.strip() == lexicon:
                 acronym_mapped = ""
-                for l in word[:-1]:
-                    acronym_mapped = acronym_mapped + l.lower() + "._"
+                for w in word[:-1]:
+                    acronym_mapped = acronym_mapped + w.lower() + "._"
                 acronym_mapped = acronym_mapped + word[-1].lower() + "."
                 fout_map.write(word + "\t" + acronym_mapped + "\n")
                 fout_lex.write(acronym_mapped + " " + lexicon + "\n")

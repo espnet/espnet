@@ -23,8 +23,8 @@ if __name__ == "__main__":
     args = get_parser().parse_args(sys.argv[1:])
 
     with open(args.wav_scp) as f:
-        for l in f:
-            recording_id, path = l.split()
+        for line in f:
+            recording_id, path = line.split()
             lab_path = path.replace("wav/", "lab/").replace(".wav", ".lab")
             assert os.path.exists(lab_path)
 
