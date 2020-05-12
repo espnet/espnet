@@ -1,9 +1,6 @@
 #!/usr/bin/env python33
 # encoding: utf-8
 
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import codecs
 from io import open
