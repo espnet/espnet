@@ -82,7 +82,7 @@ class NumElementsBatchSampler(AbsSampler):
                     max(d[keys[i]][0] for i in range(start, start + bs))
                     for d in utt2shapes
                 ]
-                bins = sum(bs * l * d for l, d in zip(max_lengths, feat_dims))
+                bins = sum(bs * lg * d for lg, d in zip(max_lengths, feat_dims))
             else:
                 bins = sum(
                     np.prod(d[keys[i]])

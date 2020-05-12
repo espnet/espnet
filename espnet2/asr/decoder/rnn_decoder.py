@@ -146,15 +146,15 @@ class RNNDecoder(AbsDecoder):
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
-            for l in range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]),
+            for i in range(1, self.dlayers):
+                z_list[i], c_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), (z_prev[i], c_prev[i]),
                 )
         else:
             z_list[0] = self.decoder[0](ey, z_prev[0])
-            for l in range(1, self.dlayers):
-                z_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l]
+            for i in range(1, self.dlayers):
+                z_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), z_prev[i]
                 )
         return z_list, c_list
 
