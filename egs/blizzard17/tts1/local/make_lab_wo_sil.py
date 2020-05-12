@@ -3,10 +3,11 @@
 # Copyright 2018 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import sys
-import numpy as np
-import librosa
 import csv
+import sys
+
+import librosa
+import numpy as np
 
 
 def get_vp(in_lab_file):

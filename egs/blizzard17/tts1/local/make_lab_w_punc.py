@@ -36,7 +36,7 @@ def main():
 
         if rfile != flist[n][0]:
             if rfile != "":
-                write_lab(out_dir, rfile, data)
+                write_lab(out_dir, rfile, data)  # noqa: F821
 
             rfile = flist[n][0]
             delimiter = "\t"
