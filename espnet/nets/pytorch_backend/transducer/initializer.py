@@ -28,8 +28,8 @@ def initializer(model, args):
 
         model.dec.embed.weight.data.normal_(0, 1)
 
-        for l in six.moves.range(len(model.dec.decoder)):
-            set_forget_bias_to_one(model.dec.decoder[l].bias_ih)
+        for i in six.moves.range(len(model.dec.decoder)):
+            set_forget_bias_to_one(model.dec.decoder[i].bias_ih)
     else:
         if args.etype == "transformer":
             initialize(model, args.transformer_init)

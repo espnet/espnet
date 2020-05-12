@@ -78,7 +78,7 @@ def get_parser():
     parser.add_argument(
         "--init_file_prefix",
         type=str,
-        default=f".dist_init_",
+        default=".dist_init_",
         help="The file name prefix for init_file, which is used for "
         "'Shared-file system initialization'. "
         "This option is used when --port is not specified",
@@ -131,7 +131,7 @@ def main(cmd=None):
     for i in range(args.max_num_log_files - 1, -1, -1):
         if i == 0:
             p = Path(args.log)
-            pn = p.parent / (p.stem + f".1" + p.suffix)
+            pn = p.parent / (p.stem + ".1" + p.suffix)
         else:
             _p = Path(args.log)
             p = _p.parent / (_p.stem + f".{i}" + _p.suffix)
