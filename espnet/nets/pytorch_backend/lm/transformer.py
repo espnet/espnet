@@ -173,8 +173,8 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         else:
             # transpose state of [batch, layer] into [layer, batch]
             batch_state = [
-                torch.stack([states[b][l] for b in range(n_batch)])
-                for l in range(n_layers)
+                torch.stack([states[b][i] for b in range(n_batch)])
+                for i in range(n_layers)
             ]
 
         # batch decoding
@@ -185,5 +185,5 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         logp = h.log_softmax(dim=-1)
 
         # transpose state of [layer, batch] into [batch, layer]
-        state_list = [[states[l][b] for l in range(n_layers)] for b in range(n_batch)]
+        state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
         return logp, state_list

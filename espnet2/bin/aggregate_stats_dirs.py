@@ -23,9 +23,9 @@ def aggregate_stats_dirs(
 
     for mode in ["train", "valid"]:
         with (input_dirs[0] / mode / "batch_keys").open("r", encoding="utf-8") as f:
-            batch_keys = [l.strip() for l in f if l.strip() != ""]
+            batch_keys = [line.strip() for line in f if line.strip() != ""]
         with (input_dirs[0] / mode / "stats_keys").open("r", encoding="utf-8") as f:
-            stats_keys = [l.strip() for l in f if l.strip() != ""]
+            stats_keys = [line.strip() for line in f if line.strip() != ""]
         (output_dir / mode).mkdir(parents=True, exist_ok=True)
 
         for key in batch_keys:
