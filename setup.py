@@ -27,7 +27,8 @@ requirements = {
         "resampy",
         "pysptk>=0.1.17",
         # Natural language processing related
-        "sentencepiece>=0.1.82",
+        # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
+        "sentencepiece<0.1.90,>=0.1.82",
         "nltk>=3.4.5",
         # File IO related
         "PyYAML>=5.1.2",
