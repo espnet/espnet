@@ -190,8 +190,8 @@ class CBHG(torch.nn.Module):
         convs = self.projections(convs).transpose(1, 2)  # (B, Tmax, idim)
         xs = xs.transpose(1, 2) + convs
         # + 1 for dimension adjustment layer
-        for l in range(self.highway_layers + 1):
-            xs = self.highways[l](xs)
+        for i in range(self.highway_layers + 1):
+            xs = self.highways[i](xs)
 
         # sort by length
         xs, ilens, sort_idx = self._sort_by_length(xs, ilens)

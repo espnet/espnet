@@ -6,8 +6,8 @@
 import csv
 import os
 import random
-import sys
 import subprocess
+import sys
 
 
 def get_uttid(wav):
