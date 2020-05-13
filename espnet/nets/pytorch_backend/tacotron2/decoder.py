@@ -142,8 +142,8 @@ class Prenet(torch.nn.Module):
             Tensor: Batch of output tensors (B, ..., odim).
 
         """
-        for l in six.moves.range(len(self.prenet)):
-            x = F.dropout(self.prenet[l](x), self.dropout_rate)
+        for i in six.moves.range(len(self.prenet)):
+            x = F.dropout(self.prenet[i](x), self.dropout_rate)
         return x
 
 
@@ -261,8 +261,8 @@ class Postnet(torch.nn.Module):
             Tensor: Batch of padded output tensor. (B, odim, Tmax).
 
         """
-        for l in six.moves.range(len(self.postnet)):
-            xs = self.postnet[l](xs)
+        for i in six.moves.range(len(self.postnet)):
+            xs = self.postnet[i](xs)
         return xs
 
 
@@ -437,9 +437,9 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, len(self.lstm)):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l])
+            for i in six.moves.range(1, len(self.lstm)):
+                z_list[i], c_list[i] = self.lstm[i](
+                    z_list[i - 1], (z_list[i], c_list[i])
                 )
             zcs = (
                 torch.cat([z_list[-1], att_c], dim=1)
@@ -575,9 +575,9 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, len(self.lstm)):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l])
+            for i in six.moves.range(1, len(self.lstm)):
+                z_list[i], c_list[i] = self.lstm[i](
+                    z_list[i - 1], (z_list[i], c_list[i])
                 )
             zcs = (
                 torch.cat([z_list[-1], att_c], dim=1)
@@ -661,9 +661,9 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, len(self.lstm)):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l])
+            for i in six.moves.range(1, len(self.lstm)):
+                z_list[i], c_list[i] = self.lstm[i](
+                    z_list[i - 1], (z_list[i], c_list[i])
                 )
             prev_out = y  # teacher forcing
             if self.cumulate_att_w and prev_att_w is not None:

@@ -88,7 +88,7 @@ class MaskAlongAxis(torch.nn.Module):
             elif dim == "freq":
                 dim = 2
             else:
-                raise ValueError(f"dim must be int, 'time' or 'freq'")
+                raise ValueError("dim must be int, 'time' or 'freq'")
         if dim == 1:
             self.mask_axis = "time"
         elif dim == 2:
