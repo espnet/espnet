@@ -5,10 +5,11 @@ convert given text data to json format required by ESPNet
 """
 import argparse
 import json
-import os
-from typing import Dict, List
-
 from logging import getLogger
+import os
+from typing import Dict
+from typing import List
+
 
 logger = getLogger(__name__)
 
@@ -96,10 +97,12 @@ def main(args):
     trg_vocab: Dict = load_vocab_file(args.trg_vocab)
 
     source_dicts: List = [
-        convert_line_to_dict(l, vocab=src_vocab, name="target2") for l in open(args.src)
+        convert_line_to_dict(line, vocab=src_vocab, name="target2")
+        for line in open(args.src)
     ]
     target_dicts: List = [
-        convert_line_to_dict(l, vocab=trg_vocab, name="target1") for l in open(args.trg)
+        convert_line_to_dict(line, vocab=trg_vocab, name="target1")
+        for line in open(args.trg)
     ]
 
     utt_list: List = merge_src_and_trg_to_utts(source_dicts, target_dicts, name="iwslt")

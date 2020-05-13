@@ -19,8 +19,8 @@ def test_NpyScpReader(tmp_path: Path):
 
     p = tmp_path / "dummy.scp"
     with p.open("w") as f:
-        f.write(f"abc {npy_path1}\n")
-        f.write(f"def {npy_path2}\n")
+        f.write("abc {npy_path1}\n")
+        f.write("def {npy_path2}\n")
 
     desired = {"abc": array1, "def": array2}
     target = NpyScpReader(p)

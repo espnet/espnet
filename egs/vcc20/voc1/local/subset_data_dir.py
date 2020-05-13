@@ -6,7 +6,6 @@
 
 import argparse
 from io import open
-import logging
 import sys
 
 

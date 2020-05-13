@@ -69,7 +69,7 @@ class LengthBatchSampler(AbsSampler):
                     for d in utt2shapes
                 ]
                 # bins = bs x max_length
-                bins = sum(bs * l for l in max_lengths)
+                bins = sum(bs * lg for lg in max_lengths)
             else:
                 # bins = sum of lengths
                 bins = sum(

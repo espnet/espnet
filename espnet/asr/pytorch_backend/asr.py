@@ -1099,7 +1099,7 @@ def enhance(args):
         else args.preprocess_conf
     )
     if preprocess_conf is not None:
-        logging.info("Use preprocessing".format(preprocess_conf))
+        logging.info(f"Use preprocessing: {preprocess_conf}")
         transform = Transformation(preprocess_conf)
     else:
         transform = None
