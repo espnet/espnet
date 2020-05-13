@@ -4,16 +4,13 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
+import codecs
 from io import open
 import json
 import logging
 import re
 import sys
-import codecs
 
 PY2 = sys.version_info[0] == 2
 sys.stdin = codecs.getreader("utf-8")(sys.stdin if PY2 else sys.stdin.buffer)

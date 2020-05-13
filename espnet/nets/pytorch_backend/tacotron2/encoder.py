@@ -133,11 +133,11 @@ class Encoder(torch.nn.Module):
         """
         xs = self.embed(xs).transpose(1, 2)
         if self.convs is not None:
-            for l in six.moves.range(len(self.convs)):
+            for i in six.moves.range(len(self.convs)):
                 if self.use_residual:
-                    xs += self.convs[l](xs)
+                    xs += self.convs[i](xs)
                 else:
-                    xs = self.convs[l](xs)
+                    xs = self.convs[i](xs)
         if self.blstm is None:
             return xs.transpose(1, 2)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)

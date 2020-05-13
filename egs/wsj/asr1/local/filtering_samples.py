@@ -4,10 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import json
-import sys
 from functools import reduce
+import json
 from operator import mul
+import sys
 
 from espnet.bin.asr_train import get_parser
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
