@@ -17,8 +17,8 @@ def test_SoundScpReader(tmp_path: Path):
 
     p = tmp_path / "dummy.scp"
     with p.open("w") as f:
-        f.write("abc {audio_path1}\n")
-        f.write("def {audio_path2}\n")
+        f.write(f"abc {audio_path1}\n")
+        f.write(f"def {audio_path2}\n")
 
     desired = {"abc": (16, audio1), "def": (16, audio2)}
     target = SoundScpReader(p, normalize=False, dtype=np.int16)
