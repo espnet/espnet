@@ -114,16 +114,16 @@ class DecoderRNNT(torch.nn.Module):
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
 
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l])
+            for i in six.moves.range(1, self.dlayers):
+                z_list[i], c_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), (z_prev[i], c_prev[i])
                 )
         else:
             z_list[0] = self.decoder[0](ey, z_prev[0])
 
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l]
+            for i in six.moves.range(1, self.dlayers):
+                z_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), z_prev[i]
                 )
         y = self.dropout_dec[-1](z_list[-1])
 
@@ -419,16 +419,16 @@ class DecoderRNNTAtt(torch.nn.Module):
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
 
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l])
+            for i in six.moves.range(1, self.dlayers):
+                z_list[i], c_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), (z_prev[i], c_prev[i])
                 )
         else:
             z_list[0] = self.decoder[0](ey, z_prev[0])
 
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l] = self.decoder[l](
-                    self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l]
+            for i in six.moves.range(1, self.dlayers):
+                z_list[i] = self.decoder[i](
+                    self.dropout_dec[i - 1](z_list[i - 1]), z_prev[i]
                 )
         y = self.dropout_dec[-1](z_list[-1])
 

@@ -59,44 +59,35 @@ if __name__ == "__main__":
 
         in_dic = {}
         # if unicode('idim', 'utf-8') in dic:
-        if unicode("idim", "utf-8") in dic:
-            in_dic[unicode("shape", "utf-8")] = (
-                int(dic[unicode("ilen", "utf-8")]),
-                int(dic[unicode("idim", "utf-8")]),
+        if "idim" in dic:
+            in_dic["shape"] = (
+                int(dic["ilen"]),
+                int(dic["idim"]),
             )
-        in_dic[unicode("name", "utf-8")] = unicode("input1", "utf-8")
-        in_dic[unicode("feat", "utf-8")] = dic[unicode("feat", "utf-8")]
+        in_dic["name"] = "input1"
+        in_dic["feat"] = dic["feat"]
 
         out_list = []
         out_idx = 1
-        while unicode("text_spk%d" % out_idx, "utf-8") in dic:
+        while "text_spk%d" % out_idx in dic:
             out_dic = {}
-            out_dic[unicode("name", "utf-8")] = unicode("target%d" % out_idx, "utf-8")
-            out_dic[unicode("shape", "utf-8")] = (
-                int(dic[unicode("olen_spk%d" % out_idx, "utf-8")]),
-                int(dic[unicode("odim", "utf-8")]),
-            )
-            out_dic[unicode("text", "utf-8")] = dic[
-                unicode("text_spk%d" % out_idx, "utf-8")
-            ]
-            out_dic[unicode("token", "utf-8")] = dic[
-                unicode("token_spk%d" % out_idx, "utf-8")
-            ]
-            out_dic[unicode("tokenid", "utf-8")] = dic[
-                unicode("tokenid_spk%d" % out_idx, "utf-8")
-            ]
+            out_dic["name"] = "target%d" % out_idx
+            out_dic["shape"] = int(dic["olen_spk%d" % out_idx]), int(dic["odim"])
+            out_dic["text"] = dic["text_spk%d" % out_idx]
+            out_dic["token"] = dic["token_spk%d" % out_idx]
+            out_dic["tokenid"] = dic["tokenid_spk%d" % out_idx]
             out_list.append(out_dic)
             out_idx += 1
 
         new_dic[id] = {
-            unicode("input", "utf-8"): [in_dic],
-            unicode("output", "utf-8"): out_list,
-            unicode("utt2spk", "utf-8"): dic[unicode("utt2spk", "utf-8")],
+            "input": [in_dic],
+            "output": out_list,
+            "utt2spk": dic["utt2spk"],
         }
 
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:
-        with codecs.open(args.output_json, "w", encoding="utf-8") as json_file:
+        with open(args.output_json, "w", encoding="utf-8") as json_file:
             json.dumps(
                 {"utts": new_dic},
                 json_file,

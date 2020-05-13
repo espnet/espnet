@@ -169,8 +169,8 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
             # transpose state of [batch, key, layer] into [key, layer, batch]
             states = {
                 k: [
-                    torch.stack([states[b][k][l] for b in range(n_batch)])
-                    for l in range(n_layers)
+                    torch.stack([states[b][k][i] for b in range(n_batch)])
+                    for i in range(n_layers)
                 ]
                 for k in keys
             }
@@ -180,7 +180,7 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         return (
             logp,
             [
-                {k: [states[k][l][b] for l in range(n_layers)] for k in keys}
+                {k: [states[k][i][b] for i in range(n_layers)] for k in keys}
                 for b in range(n_batch)
             ],
         )
