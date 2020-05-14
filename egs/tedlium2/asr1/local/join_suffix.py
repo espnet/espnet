@@ -5,9 +5,7 @@
 # Apache 2.0
 
 
-from __future__ import print_function
 import sys
-from codecs import open
 
 # This script joins together pairs of split-up words like "you 're" -> "you're".
 # The TEDLIUM transcripts are normalized in a way that's not traditional for
