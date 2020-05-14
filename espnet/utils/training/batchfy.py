@@ -206,8 +206,8 @@ def batchfy_by_frame(
     """
     if max_frames_in <= 0 and max_frames_out <= 0 and max_frames_inout <= 0:
         raise ValueError(
-            f"At least, one of `--batch-frames-in`, `--batch-frames-out` or "
-            f"`--batch-frames-inout` should be > 0"
+            "At least, one of `--batch-frames-in`, `--batch-frames-out` or "
+            "`--batch-frames-inout` should be > 0"
         )
     length = len(sorted_data)
     minibatches = []
@@ -433,7 +433,7 @@ def make_batchset(
         logging.info(f"count is auto detected as {count}")
 
     if count != "seq" and batch_sort_key == "shuffle":
-        raise ValueError(f"batch_sort_key=shuffle is only available if batch_count=seq")
+        raise ValueError("batch_sort_key=shuffle is only available if batch_count=seq")
 
     category2data = {}  # Dict[str, dict]
     for k, v in data.items():

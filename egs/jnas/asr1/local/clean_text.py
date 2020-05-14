@@ -6,8 +6,8 @@
 import argparse
 import codecs
 
-import pyopenjtalk
 import jaconv
+import pyopenjtalk
 
 
 def g2p(text, trans_type="char"):

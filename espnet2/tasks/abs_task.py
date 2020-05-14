@@ -652,26 +652,26 @@ class AbsTask(ABC):
                 type=lambda x: x.lower(),
                 default="adadelta",
                 choices=list(optim_classes),
-                help=f"The optimizer type",
+                help="The optimizer type",
             )
             group.add_argument(
                 f"--optim{suf}_conf",
                 action=NestedDictAction,
                 default=dict(),
-                help=f"The keyword arguments for optimizer",
+                help="The keyword arguments for optimizer",
             )
             group.add_argument(
                 f"--scheduler{suf}",
                 type=lambda x: str_or_none(x.lower()),
                 default=None,
                 choices=list(scheduler_classes) + [None],
-                help=f"The lr scheduler type",
+                help="The lr scheduler type",
             )
             group.add_argument(
                 f"--scheduler{suf}_conf",
                 action=NestedDictAction,
                 default=dict(),
-                help=f"The keyword arguments for lr scheduler",
+                help="The keyword arguments for lr scheduler",
             )
 
         cls.trainer.add_arguments(parser)
@@ -1031,8 +1031,8 @@ class AbsTask(ABC):
                 from apex import amp
             except ImportError:
                 logging.error(
-                    f"You need to install apex. "
-                    f"See https://github.com/NVIDIA/apex#linux"
+                    "You need to install apex. "
+                    "See https://github.com/NVIDIA/apex#linux"
                 )
                 raise
             model, optimizers = amp.initialize(
@@ -1110,8 +1110,8 @@ class AbsTask(ABC):
                     from apex import amp
                 except ImportError:
                     logging.error(
-                        f"You need to install apex. "
-                        f"See https://github.com/NVIDIA/apex#linux"
+                        "You need to install apex. "
+                        "See https://github.com/NVIDIA/apex#linux"
                     )
                 amp.load_state_dict(states["amp"])
 

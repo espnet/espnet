@@ -7,13 +7,11 @@ import argparse
 import errno
 import os
 import soundfile as sf
-import time
 
+from nara_wpe.utils import istft
+from nara_wpe.utils import stft
 from nara_wpe.wpe import wpe
-from nara_wpe.utils import stft, istft
-from nara_wpe import project_root
 import numpy as np
-from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--files", "-f", nargs="+")

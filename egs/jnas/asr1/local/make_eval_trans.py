@@ -28,8 +28,8 @@ if len(sys.argv) < 3:
 id_prefix = sys.argv[2:]
 utt2trans = dict()
 
-for l in open(sys.argv[1], "r", encoding="utf-8"):
-    u, trans = l.split(None, 1)
+for line in open(sys.argv[1], "r", encoding="utf-8"):
+    u, trans = line.split(None, 1)
     utt2trans[u] = trans.strip("\n")
 
 for uid in id_prefix:
