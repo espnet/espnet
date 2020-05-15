@@ -26,15 +26,16 @@ jobs:
             pytorch-version: 1.3.1
     steps:
       - uses: actions/checkout@master
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}
       - uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
       - name: install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update -qq
           sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
       - name: install espnet
