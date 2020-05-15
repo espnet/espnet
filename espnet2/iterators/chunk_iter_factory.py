@@ -51,7 +51,7 @@ class ChunkIterFactory(AbsIterFactory):
         pin_memory: bool = False,
     ):
         assert check_argument_types()
-        assert all(len(x) == 1 for x in batches), f"batch-size must be 1"
+        assert all(len(x) == 1 for x in batches), "batch-size must be 1"
 
         self.per_sample_iter_factory = SequenceIterFactory(
             dataset=dataset,
@@ -67,7 +67,7 @@ class ChunkIterFactory(AbsIterFactory):
         self.num_cache_chunks = max(num_cache_chunks, batch_size)
         if isinstance(chunk_length, str):
             if len(chunk_length) == 0:
-                raise ValueError(f"e.g. 5,8 or 3-5: but got empty string")
+                raise ValueError("e.g. 5,8 or 3-5: but got empty string")
 
             self.chunk_lengths = []
             for x in chunk_length.split(","):
@@ -128,7 +128,7 @@ class ChunkIterFactory(AbsIterFactory):
 
             L = len(batch[sequence_keys[0]])
             # Select chunk length
-            chunk_lengths = [l for l in self.chunk_lengths if l < L]
+            chunk_lengths = [lg for lg in self.chunk_lengths if lg < L]
             if len(chunk_lengths) == 0:
                 logging.warning(
                     f"The length of '{id_}' is {L}, but it is shorter than "

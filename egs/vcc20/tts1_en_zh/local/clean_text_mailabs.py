@@ -9,8 +9,8 @@ import codecs
 import json
 import os
 
-from tacotron_cleaner.cleaners import custom_english_cleaners
 import nltk
+from tacotron_cleaner.cleaners import custom_english_cleaners
 
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.

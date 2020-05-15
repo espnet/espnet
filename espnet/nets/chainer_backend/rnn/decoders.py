@@ -63,10 +63,10 @@ class Decoder(chainer.Chain):
                 if dtype == "lstm"
                 else L.StatelessGRU(dunits + eprojs, dunits)
             )
-            for l in six.moves.range(1, dlayers):
+            for i in six.moves.range(1, dlayers):
                 setattr(
                     self,
-                    "rnn%d" % l,
+                    "rnn%d" % i,
                     L.StatelessLSTM(dunits, dunits)
                     if dtype == "lstm"
                     else L.StatelessGRU(dunits, dunits),
@@ -90,9 +90,9 @@ class Decoder(chainer.Chain):
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
             c_list[0], z_list[0] = self.rnn0(c_prev[0], z_prev[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self["rnn%d" % l](
-                    c_prev[l], z_prev[l], z_list[l - 1]
+            for i in six.moves.range(1, self.dlayers):
+                c_list[i], z_list[i] = self["rnn%d" % i](
+                    c_prev[i], z_prev[i], z_list[i - 1]
                 )
         else:
             if z_prev[0] is None:
@@ -102,17 +102,17 @@ class Decoder(chainer.Chain):
                         xp.zeros((ey.shape[0], self.dunits), dtype=ey.dtype)
                     )
             z_list[0] = self.rnn0(z_prev[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                if z_prev[l] is None:
+            for i in six.moves.range(1, self.dlayers):
+                if z_prev[i] is None:
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
-                        z_prev[l] = chainer.Variable(
+                        z_prev[i] = chainer.Variable(
                             xp.zeros(
-                                (z_list[l - 1].shape[0], self.dunits),
-                                dtype=z_list[l - 1].dtype,
+                                (z_list[i - 1].shape[0], self.dunits),
+                                dtype=z_list[i - 1].dtype,
                             )
                         )
-                z_list[l] = self["rnn%d" % l](z_prev[l], z_list[l - 1])
+                z_list[i] = self["rnn%d" % i](z_prev[i], z_list[i - 1])
         return z_list, c_list
 
     def __call__(self, hs, ys):

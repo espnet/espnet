@@ -7,12 +7,13 @@ import argparse
 import codecs
 import nltk
 
-from tacotron_cleaner.cleaners import custom_english_cleaners
-from pypinyin import pinyin, Style
-from pypinyin.style._utils import get_initials, get_finals
 from pypinyin.contrib.neutral_tone import NeutralToneWith5Mixin
 from pypinyin.converter import DefaultConverter
 from pypinyin.core import Pinyin
+from pypinyin import Style
+from pypinyin.style._utils import get_finals
+from pypinyin.style._utils import get_initials
+from tacotron_cleaner.cleaners import custom_english_cleaners
 
 
 class MyConverter(NeutralToneWith5Mixin, DefaultConverter):
