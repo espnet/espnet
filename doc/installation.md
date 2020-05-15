@@ -179,6 +179,15 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
 ```
 
+#### Using the system Python directly instead of `tools/venv` in the experiment
+We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/activate`:
+
+```sh
+$ cd <espnet-root>/tools
+$ rm -rf venv; mkdir venv; touch venv/activate  # Create an empty file
+$ make
+```
+
 ### Step 3-B) installation for CPU-only
 
 To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
