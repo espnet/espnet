@@ -161,13 +161,13 @@ $ git clone https://github.com/espnet/espnet
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd <espnet-root>/tools
-$ make KALDI=/path/to/kaldi
+$ make KALDI=<kaldi-root>
 ```
 
 You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
 ```sh
 $ cd <espnet-root>/tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+$ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 
 #### using existing python
@@ -176,7 +176,7 @@ If you do not want to use miniconda, you need to specify your python interpreter
 
 ```sh
 $ cd <espnet-root>/tools
-$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python3.6
+$ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
 ```
 
 ### Step 3-B) installation for CPU-only
@@ -185,7 +185,7 @@ To install in a terminal that does not have a GPU installed, just clear the vers
 
 ```sh
 $ cd <espnet-root>/tools
-$ make KALDI=/path/to/kaldi CUPY_VERSION='' -j 10
+$ make KALDI=<kaldi-root> CUPY_VERSION='' -j 10
 ```
 
 This option is enabled for any of the install configuration.
