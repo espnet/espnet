@@ -8,6 +8,7 @@ docker_user=true
 docker_env=
 docker_cmd=
 docker_os=u18
+docker_local=false
 
 while test $# -gt 0
 do
@@ -66,10 +67,19 @@ if [ ! -z "${docker_os}" ]; then
     from_tag="${from_tag}-${docker_os}"
 fi
 
+if [ ${docker_local} = true ]; then
+    from_tag="${from_tag}-local"
+fi
+
 # Check if image exists in the system and download if required
 docker_image=$( docker images -q espnet/espnet:${from_tag} )
 if ! [[ -n ${docker_image}  ]]; then
-    docker pull espnet/espnet:${from_tag}
+    if [ ${docker_local} = true ]; then
+        "Warning: You need to build first the container using ./build.sh local <cuda_ver>."
+        exit 1
+    else
+        docker pull espnet/espnet:${from_tag}
+    fi
 fi
 
 if [ ${UID} -eq 0 ] && [ ${docker_user} = true ]; then
@@ -105,7 +115,7 @@ else
     # --rm erase the container when the training is finished.
     if [ -z "$( which nvidia-docker )" ]; then
         # we assume that you already installed nvidia-docker 2
-        cmd0="docker run --gpus 'device=${docker_gpu}'"
+        cmd0="docker run --gpus '\"device=${docker_gpu}\"'"
     else
         cmd0="NV_GPU='${docker_gpu}' nvidia-docker run "
     fi
