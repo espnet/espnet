@@ -7,7 +7,7 @@
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install cmake
-    # Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
+    # e.g. Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
     $ conda install cmake
     ```
 
@@ -22,16 +22,23 @@ We often use audio converter tools in several recipes:
     # e.g Using anaconda
     $ conda install -c conda-forge sox
     ```
-- ffmpeg
+- sndfile
+    ```bash
+    # e.g. Ubuntu
+    $ sudo apt-get install libsndfile1-dev
+    # e.g. CentOS
+    $ sudo yum install libsndfile
+    ```
+- ffmpeg (This is not required when insllataion, but used in some recipes)
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install ffmpeg
     # e.g CentOS
     $ sudo yum install ffmpeg
-    # Using anaconda
+    # e.g. Using anaconda
     $ conda install -c conda-forge ffmpeg
     ```
-- flac support
+- flac (This is not required when insllataion, but used in some recipes)
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install flac
@@ -101,13 +108,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Git clone kaldi
 
     ```bash
+    $ cd <any-place>
     $ git clone https://github.com/kaldi-asr/kaldi
-    $ cd kaldi
     ```
 1. Install tools
 
     ```bash
-    $ cd tools
+    $ cd <kaldi-root>/tools
     $ make -j <NUM-CPU>
     ```
     1. Select BLAS library from ATLAS, OpenBLAS, or MKL
@@ -115,11 +122,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     - OpenBLAS
 
     ```bash
+    $ cd <kaldi-root>/tools
     $ ./extras/install_openblas.sh
     ```
     - MKL (You need sudo privilege)
 
     ```bash
+    $ cd <kaldi-root>/tools
     $ sudo ./extras/install_mkl.sh
     ```
     - ATLAS (You need sudo privilege)
@@ -132,7 +141,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Compile Kaldi & install
 
     ```bash
-    $ cd src
+    $ cd <kaldi-root>/src
     # [e.g. With OpenBLAS] ESPnet uses only feature extractor, so you can disable CUDA
     $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
@@ -143,21 +152,21 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 ### Step 3-A) installation of espnet
 
 ```bash
+$ cd <any-place>
 $ git clone https://github.com/espnet/espnet
-$ cd espnet
 ```
 
 #### using miniconda (default)
 
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make KALDI=/path/to/kaldi
 ```
 
 You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 
@@ -166,7 +175,7 @@ $ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
 
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python3.6
 ```
 
@@ -175,7 +184,7 @@ $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python3.6
 To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
 
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make KALDI=/path/to/kaldi CUPY_VERSION='' -j 10
 ```
 
@@ -185,7 +194,7 @@ This option is enabled for any of the install configuration.
 
 You can check whether the install is succeeded via the following commands
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make check_install
 ```
 or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
@@ -193,7 +202,7 @@ If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
 ```sh
-$ cd tools
+$ cd <espnet-root>/tools
 $ make clean_python
 $ make python
 ```
