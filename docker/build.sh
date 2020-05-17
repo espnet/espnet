@@ -133,7 +133,7 @@ testing(){
     if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
         run_stage=3
     fi
-    for cuda_ver in cpu ${cuda_vers};do    
+    for cuda_ver in cpu ${cuda_vers};do
         for backend in pytorch chainer;do
             if [ "${cuda_ver}" != "cpu" ];then
                 docker_cuda="--docker_cuda ${cuda_ver}"
@@ -144,11 +144,49 @@ testing(){
                 gpu=-1
                 ngpu=0
             fi
-            ( ./run.sh --docker_egs an4/asr1 ${docker_cuda} --docker_cmd run.sh --docker_gpu ${gpu} \
-                        --verbose 1 --backend ${backend} --ngpu ${ngpu} \
-                        --stage ${run_stage} --tag train_nodev_${backend}_cuda${cuda_ver}) || exit 1
-            run_stage=3
+            ( ./run.sh ${docker_cuda} \
+                        --docker_egs an4/asr1 \
+                        --docker_cmd run.sh \
+                        --docker_gpu ${gpu} \
+                        --verbose 1 \
+                        --backend ${backend} \
+                        --ngpu ${ngpu} \
+                        --stage ${run_stage} \
+                        --tag train_nodev_${backend}_cuda${cuda_ver} ) || exit 1
         done
+    done
+
+    echo "ESPnet egs Done. Press <enter> to continue with ESPnet2 egs"
+    read enter
+    # Test for espnet2
+    run_stage=-1
+    nj=1
+    decode_nj=$(cat /proc/cpuinfo | grep processor | wc -l)
+    if [ -f ../egs2/an4/asr1/dump/raw/train_nodev/text ]; then 
+        run_stage=9
+    fi
+    for cuda_ver in cpu ${cuda_vers};do
+        if [ "${cuda_ver}" != "cpu" ];then
+            docker_cuda="--docker_cuda ${cuda_ver}"
+            gpu=0
+            ngpu=1
+        else
+            docker_cuda=""
+            gpu=-1
+            ngpu=0
+        fi
+        ( ./run.sh ${docker_cuda} \
+                    --docker_egs an4/asr1  \
+                    --docker_cmd run.sh \
+                    --docker_gpu ${gpu} \
+                    --docker_egs2 true \
+                    --ngpu ${ngpu} \
+                    --stage ${run_stage} \
+                    --nj ${nj} \
+                    --decode_nj ${decode_nj} \
+                    --asr_tag train_nodev_cuda${cuda_ver} \
+                    --lm_tag train_nodev_cuda${cuda_ver}) || exit 1
+        run_stage=3
     done
 }
 
