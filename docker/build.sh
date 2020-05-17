@@ -162,8 +162,6 @@ testing(){
     read enter
     # Test for espnet2
     run_stage=-1
-    nj=1
-    decode_nj=$(cat /proc/cpuinfo | grep processor | wc -l)
     if [ -f ../egs2/an4/asr1/dump/raw/train_nodev/text ]; then 
         run_stage=9
     fi
@@ -184,8 +182,6 @@ testing(){
                     --is-egs2 \
                     --ngpu ${ngpu} \
                     --stage ${run_stage} \
-                    --nj ${nj} \
-                    --decode_nj ${decode_nj} \
                     --asr_tag train_nodev_cuda${cuda_ver} \
                     --lm_tag train_nodev_cuda${cuda_ver}) || exit 1
         run_stage=3
