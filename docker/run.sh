@@ -96,7 +96,7 @@ fi
 docker_image=$( docker images -q espnet/espnet:${from_tag} )
 if ! [[ -n ${docker_image}  ]]; then
     if [ ${is_local} = true ]; then
-        "Warning: You need to build first the container using ./build.sh local <cuda_ver>."
+        echo "!!! Warning: You need first to build the container using ./build.sh local <cuda_ver>."
         exit 1
     else
         docker pull espnet/espnet:${from_tag}

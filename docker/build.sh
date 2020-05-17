@@ -111,12 +111,14 @@ build_local(){
         if [ "${build_base_image}" = true ] ; then
             docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
         else
-            docker pull espnet/espnet:cuda${ver}-cudnn7
+            if ! [[ -n $( docker images -q espnet/espnet:cuda${ver}-cudnn7)  ]]; then
+                docker pull espnet/espnet:cuda${ver}-cudnn7
+            fi
         fi
         build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
         build_args="${build_args} --build-arg CUDA_VER=${ver}"
         build_args="${build_args} --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE}"
-        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-local . || exit 1
+        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18-local . || exit 1
     else
         echo "Parameter invalid: " ${ver}
     fi
@@ -136,7 +138,7 @@ testing(){
     for cuda_ver in cpu ${cuda_vers};do
         for backend in pytorch chainer;do
             if [ "${cuda_ver}" != "cpu" ];then
-                docker_cuda="--docker_cuda ${cuda_ver}"
+                docker_cuda="--docker-cuda ${cuda_ver}"
                 gpu=0
                 ngpu=1
             else
@@ -145,9 +147,9 @@ testing(){
                 ngpu=0
             fi
             ( ./run.sh ${docker_cuda} \
-                        --docker_egs an4/asr1 \
-                        --docker_cmd run.sh \
-                        --docker_gpu ${gpu} \
+                        --docker-egs an4/asr1 \
+                        --docker-cmd run.sh \
+                        --docker-gpu ${gpu} \
                         --verbose 1 \
                         --backend ${backend} \
                         --ngpu ${ngpu} \
@@ -167,7 +169,7 @@ testing(){
     fi
     for cuda_ver in cpu ${cuda_vers};do
         if [ "${cuda_ver}" != "cpu" ];then
-            docker_cuda="--docker_cuda ${cuda_ver}"
+            docker_cuda="--docker-cuda ${cuda_ver}"
             gpu=0
             ngpu=1
         else
@@ -176,10 +178,10 @@ testing(){
             ngpu=0
         fi
         ( ./run.sh ${docker_cuda} \
-                    --docker_egs an4/asr1  \
-                    --docker_cmd run.sh \
-                    --docker_gpu ${gpu} \
-                    --docker_egs2 true \
+                    --docker-egs an4/asr1  \
+                    --docker-cmd run.sh \
+                    --docker-gpu ${gpu} \
+                    --is-egs2 \
                     --ngpu ${ngpu} \
                     --stage ${run_stage} \
                     --nj ${nj} \
