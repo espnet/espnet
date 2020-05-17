@@ -153,7 +153,8 @@ vols="-v ${PWD}/egs:/espnet/egs
 in_egs=egs
 if [ ${is_egs2} = true ]; then
     vols="${vols}   -v ${PWD}/egs2:/espnet/egs2
-                    -v ${PWD}/espnet2:/espnet/espnet2"
+                    -v ${PWD}/espnet2:/espnet/espnet2
+                    -v /dev/shm:/dev/shm"
     in_egs=egs2
 fi
 
