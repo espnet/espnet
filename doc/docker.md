@@ -68,11 +68,15 @@ Also, docker images can also be built based on the Ubuntu version specified in `
 ./build.sh fully_local cpu
 ```
 
-Local container builds then are started by specifying `--docker_os local` when using `run.sh`, e.g., for the Cuda 10.0 image:
+Local container builds then are started by specifying `--docker_local true` when using `run.sh`, e.g., for the Cuda 10.0 image:
 ```
-$ ./run.sh --docker_os local --docker_cuda 10.0 --docker_gpu 0 ...
+$ ./run.sh --docker_local true --docker_cuda 10.0 --docker_gpu 0 ...
 ```
 
+
+### ESPnet 2
+
+To execute recipes of ESPnet2 set the flag `--docker_egs2 true`
 
 ### Deprecated
 

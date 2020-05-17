@@ -10,7 +10,7 @@ ARG ESPNET_LOCATION=https://github.com/espnet/espnet
 # Download ESPnet
 RUN git clone ${ESPNET_LOCATION} && \
     cd espnet && \
-    rm -rf docker egs test utils
+    rm -rf docker egs egs2 espnet2 test utils
 
 # Install espnet
 WORKDIR /espnet/tools

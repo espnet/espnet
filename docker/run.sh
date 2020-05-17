@@ -3,12 +3,15 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
-docker_cuda=10.0
-docker_user=true
+docker_cuda=10.1
+
 docker_env=
 docker_cmd=
 docker_os=u18
-docker_local=false
+
+is_root=true
+is_local=false
+is_egs2=false
 
 while test $# -gt 0
 do
@@ -18,6 +21,7 @@ do
         --help) echo "Usage: `basename $0` [-h] ] docker_gpu docker_egs docker_folders options"
               exit 0;;
         --docker*) ext=${1#--}
+              ext=${ext//-/_}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
                 for var in `eval echo "\\${!${i}@}"`; do
@@ -33,12 +37,19 @@ do
                 exit 1
               fi
               ;;
+        --is*) ext=${1#--}
+              ${ext}=true
+              ;;
         --*) break
               ;;
     esac
     shift
     shift
 done
+
+set -o posix; set; set +o posix
+
+exit0
 
 if [ -z "${docker_egs}" ]; then
     echo "Select an example to work with from the egs folder."
@@ -124,12 +135,17 @@ fi
 
 cd ..
 
-vols="-v ${PWD}/egs:/espnet/egs 
-      -v ${PWD}/egs2:/espnet/egs2 
-      -v ${PWD}/espnet:/espnet/espnet 
-      -v ${PWD}/espnet2:/espnet/espnet2
+vols="-v ${PWD}/egs:/espnet/egs
+      -v ${PWD}/espnet:/espnet/espnet
       -v ${PWD}/test:/espnet/test 
       -v ${PWD}/utils:/espnet/utils"
+
+in_egs=egs
+if [ ${docker_egs2} = true ]; then
+    vols="${vols}   -v ${PWD}/egs2:/espnet/egs2
+                    -v ${PWD}/espnet2:/espnet/espnet2"
+    in_egs=egs2
+fi
 
 if [ ! -z "${docker_folders}" ]; then
     docker_folders=$(echo ${docker_folders} | tr "," "\n")
@@ -139,7 +155,7 @@ if [ ! -z "${docker_folders}" ]; then
     done
 fi
 
-cmd1="cd /espnet/egs/${docker_egs}"
+cmd1="cd /espnet/${in_egs}/${docker_egs}"
 if [ ! -z "${docker_cmd}" ]; then
     cmd2="./${docker_cmd} $@"
 else
@@ -148,7 +164,7 @@ fi
 
 if [ ${docker_user} = false ]; then
     # Required to access to the folder once the training if finished in root access
-    cmd2="${cmd2}; chmod -R 777 /espnet/egs/${docker_egs}"
+    cmd2="${cmd2}; chmod -R 777 /espnet/${in_egs}/${docker_egs}"
 fi
 
 cmd="${cmd1}; ${cmd2}"
