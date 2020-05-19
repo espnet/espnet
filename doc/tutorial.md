@@ -242,17 +242,24 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 
 ESPnet currently supports two finetuning operations: transfer learning (1.x) and freezing (2.).
 
-1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each one taking a snapshot or model path.
+1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each option takes a snapshot path (e.g.: `exp/[model]/results/snapshot.ep.1`) or model path (e.g.: `exp/[model]/results/model.loss.best`) as argument.
 
 1.2. Additionally, a list of modules (separated by a comma) can be specified to control the modules to transfer using `--enc-init-mods` and `--dec-init-mods` options.
 It should be noted the user doesn't need to specify each module individually, only a partial matching (beginning of the string) is needed.
 
 Example 1: `--enc-init-mods='enc.'` means all encoder modules should be transfered.
-Example 2: `--enc-init-mods='enc.embed.,encoder.0.'` means embedding layer and first layer should be transfered.
+
+Example 2: `--enc-init-mods='enc.embed.,enc.0.'` means encoder embedding layer and first layer should be transfered.
 
 2. Freezing option can be used through `--freeze-mods`. Similarly to `--(enc|dec)-init-mods`, the option take a list of modules (separated by a comma). The behaviour being the same (partial matching).
 
-Example: `--freeze-mods='enc.embed'` means all encoder modules should be frozen.
+Example 1: `--freeze-mods='enc.embed.'` means encoder embedding layer should be frozen.
+
+Example 2: `--freeze-mods='dec.embed,dec.0.'` means decoder embedding layer and first layer should be frozen.
+
+3. RNN-based and Transformer-based models have different key names for encoder and decoder parts:
+ - RNN model has `enc` for encoder and `dec` for decoder.
+ - Transformer has `encoder` for encoder and `decoder` for decoder.
 
 ### Known issues
 
