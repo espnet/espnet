@@ -145,6 +145,13 @@ def get_parser():
     )
     # transducer related
     parser.add_argument(
+        "--search-type",
+        type=str,
+        default="default",
+        choices=["default", "osc", "nsc", "breadth-first"],
+        help="Type of beam search implementation to use during inference.",
+    )
+    parser.add_argument(
         "--score-norm-transducer",
         type=strtobool,
         nargs="?",

@@ -271,6 +271,7 @@ class E2E(ASRInterface, torch.nn.Module):
             type=int,
             help="Number of dimensions in joint space",
         )
+
         group.add_argument(
             "--score-norm-transducer",
             type=strtobool,
@@ -496,7 +497,16 @@ class E2E(ASRInterface, torch.nn.Module):
             if self.dtype == "transformer":
                 nbest_hyps = self.decoder.recognize_beam(*params)
             else:
-                nbest_hyps = self.dec.recognize_beam(*params)
+                if recog_args.search_type == "default":
+                    nbest_hyps = self.dec.recognize_beam(*params)
+                elif recog_args.search_type == "osc":
+                    nbest_hyps = self.dec.recognize_beam_osc(*params)
+                elif recog_args.search_type == "nsc":
+                    nbest_hyps = self.dec.recognize_beam_nsc(*params)
+                elif recog_args.search_type == "breadth-first":
+                    nbest_hyps = self.dec.recognize_beam_breadth_first(*params)
+                else:
+                    raise NotImplementedError
 
         return nbest_hyps
 

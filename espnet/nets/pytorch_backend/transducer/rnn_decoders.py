@@ -1,5 +1,6 @@
 """Transducer and transducer with attention implementation for training and decoding."""
 
+import copy
 import six
 
 import torch
@@ -212,7 +213,7 @@ class DecoderRNNT(torch.nn.Module):
         return [hyp]
 
     def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search implementation.
+        """Default beam search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
@@ -233,20 +234,15 @@ class DecoderRNNT(torch.nn.Module):
 
         _, (z_list, c_list) = self.rnn_forward(eys, None)
 
-        if rnnlm:
-            kept_hyps = [
-                {
-                    "score": 0.0,
-                    "yseq": [self.blank],
-                    "z_prev": z_list,
-                    "c_prev": c_list,
-                    "lm_state": None,
-                }
-            ]
-        else:
-            kept_hyps = [
-                {"score": 0.0, "yseq": [self.blank], "z_prev": z_list, "c_prev": c_list}
-            ]
+        kept_hyps = [
+            {
+                "score": 0.0,
+                "yseq": [self.blank],
+                "z_prev": z_list,
+                "c_prev": c_list,
+                "lm_state": None,
+            }
+        ]
 
         for i, hi in enumerate(h):
             hyps = kept_hyps
@@ -279,6 +275,7 @@ class DecoderRNNT(torch.nn.Module):
                         "z_prev": new_hyp["z_prev"],
                         "c_prev": new_hyp["c_prev"],
                     }
+
                     if rnnlm:
                         beam_hyp["lm_state"] = new_hyp["lm_state"]
 
@@ -305,12 +302,403 @@ class DecoderRNNT(torch.nn.Module):
                 kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
             )[:nbest]
         else:
-            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True)[
-                :nbest
-            ]
+            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True
+            )[:nbest]
 
         return nbest_hyps
 
+    def recognize_beam_osc(self, h, recog_args, rnnlm=None):
+        """One-step constrained beam search implementation.
+
+        Based on https://arxiv.org/pdf/2002.03577.pdf
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        def substract(x, subset):
+            final = []
+
+            for x_ in x:
+                if any(x_['yseq'] == sub['yseq'] \
+                       for sub in subset):
+                    continue
+                final.append(x_)
+
+            return final
+
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+        k_dim = self.odim - 1
+
+        nbest = recog_args.nbest
+        normscore = recog_args.score_norm_transducer
+
+        zlist, clist = self.zero_state(h.unsqueeze(0))
+        w_zlist, w_clist = self.zero_state(torch.zeros((w_range, self.dunits)))
+
+        w_tokens = [self.blank for _ in range(w_range)]
+        w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+        w_ey = self.dropout_embed(self.embed(w_tokens))
+
+        w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+        kept_hyps = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "zlist": zlist[:],
+                "clist": clist[:],
+                "y": w_y[0],
+                "lm_state": None,
+            } for _ in range(w_range)
+        ]
+
+        for w in six.moves.range(w_range):
+            for l in six.moves.range(self.dlayers):
+                kept_hyps[w]["zlist"][l] = w_zlist[l][w]
+                kept_hyps[w]["clist"][l] = w_clist[l][w]
+                
+        for hi in h:
+            hyps = kept_hyps
+            kept_hyps = []
+
+            S = []
+            V = []
+
+            h_enc = hi.unsqueeze(0).expand(w_range, -1)
+
+            for i, hyp in enumerate(hyps):
+                w_y[i] = hyp["y"]
+
+            w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1)
+            w_logprobs = torch.flatten(w_logprobs)
+
+            for i, hyp in enumerate(hyps):
+                pos_k = (i * self.odim)
+                k_i = w_logprobs.narrow(0, pos_k, self.odim)
+
+                for k in range(self.odim):
+                    curr_score = float(k_i[k])
+
+                    w_hyp = {
+                        "yseq": hyp["yseq"][:],
+                        "score": hyp["score"] + curr_score,
+                        "zlist": hyp["zlist"],
+                        "clist": hyp["clist"],
+                        "y": hyp["y"]
+                    }
+
+                    if k == self.blank:
+                        S.append(w_hyp)
+                    else:
+                        w_hyp["yseq"].append(int(k))
+
+                        V.append(w_hyp)
+
+            V = sorted(V, key=lambda x: x["score"], reverse=True)[:w_range]
+
+            V_ = substract(V, hyps)
+
+            w_tokens = [v_["yseq"][-1] for v_ in V_]
+            w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+            for w in six.moves.range(w_range):
+                for l in six.moves.range(self.dlayers):
+                    w_zlist[l][w] = V_[w]["zlist"][l]
+                    w_clist[l][w] = V_[w]["clist"][l]
+
+            w_ey = self.dropout_embed(self.embed(w_tokens))
+
+            w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+            w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1)
+            w_logprobs = torch.flatten(w_logprobs)
+
+            blank_score = w_logprobs[0::self.odim]
+
+            for i, v_ in enumerate(V_):
+                for l in six.moves.range(self.dlayers):
+                    v_["zlist"][l] = w_zlist[l][i]
+                    v_["clist"][l] = w_clist[l][i]
+
+                v_["y"] = w_y[i]
+                v_["score"] += float(blank_score[i])
+
+            kept_hyps = sorted(
+                (S + V_), key=lambda x: x["score"], reverse=True
+            )[:w_range]
+
+        if normscore:
+            nbest_hyps = sorted(
+                kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
+            )[:nbest]
+        else:
+            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True
+            )[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_nsc(self, h, recog_args, rnnlm=None):
+        """N-step constrained beam search implementation.
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        def substract(x, subset):
+            final = []
+
+            for x_ in x:
+                if any(x_['yseq'] == sub['yseq'] \
+                       for sub in subset):
+                    continue
+                final.append(x_)
+
+            return final
+
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+
+        extra_step = 1
+
+        nbest = recog_args.nbest
+        normscore = recog_args.score_norm_transducer
+
+        zlist, clist = self.zero_state(h.unsqueeze(0))
+        w_zlist, w_clist = self.zero_state(torch.zeros((w_range, self.dunits)))
+
+        w_tokens = [self.blank for _ in range(w_range)]
+        w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+        w_ey = self.dropout_embed(self.embed(w_tokens))
+
+        w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+        kept_hyps = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "zlist": zlist,
+                "clist": clist,
+                "y": w_y[0],
+                "lm_state": None
+            } for _ in range(w_range)
+        ]
+
+        for w in six.moves.range(w_range):
+            for l in six.moves.range(self.dlayers):
+                kept_hyps[w]["zlist"][l] = w_zlist[l][w]
+                kept_hyps[w]["clist"][l] = w_clist[l][w]
+                
+        for hi in h:
+            hyps = kept_hyps
+            kept_hyps = []
+
+            S = []
+            V = []
+            for n in range(extra_step):
+                h_enc = hi.unsqueeze(0).expand(w_range, -1)
+
+                for i, hyp in enumerate(hyps):
+                    w_y[i] = hyp["y"]
+
+                w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1)
+                w_logprobs = torch.flatten(w_logprobs)
+
+                for i, hyp in enumerate(hyps):
+                    pos_k = (i * self.odim)
+                    k_i = w_logprobs.narrow(0, pos_k, self.odim)
+
+                    for k in range(self.odim):
+                        curr_score = float(k_i[k])
+
+                        w_hyp = {
+                            "yseq": hyp["yseq"],
+                            "score": hyp["score"] + curr_score,
+                            "zlist": hyp["zlist"],
+                            "clist": hyp["clist"],
+                            "y": hyp["y"]
+                        }
+
+                        if k == self.blank:
+                            S.append(w_hyp)
+                        else:
+                            w_hyp["yseq"].append(int(k))
+
+                            V.append(w_hyp)
+
+                V = sorted(V, key=lambda x: x["score"], reverse=True)[:w_range]
+                V_ = substract(V, hyps)
+                
+                if n < extra_step:
+                    w_tokens = [v["yseq"][-1] for v in V_]
+                    w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+                    for w in six.moves.range(w_range):
+                        for l in six.moves.range(self.dlayers):
+                            w_zlist[l][w] = V_[w]["zlist"][l]
+                            w_clist[l][w] = V_[w]["clist"][l]
+
+                    w_ey = self.dropout_embed(self.embed(w_tokens))
+
+                    w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+                    for i, v in enumerate(V_):
+                        for l in six.moves.range(self.dlayers):
+                            v["zlist"][l] = w_zlist[l][i]
+                            v["clist"][l] = w_clist[l][i]
+
+                        v["y"] = w_y[i]
+
+                    hyps = V_
+                    
+            w_tokens = [v_["yseq"][-1] for v_ in V_]
+            w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+            for w in six.moves.range(w_range):
+                for l in six.moves.range(self.dlayers):
+                    w_zlist[l][w] = V_[w]["zlist"][l]
+                    w_clist[l][w] = V_[w]["clist"][l]
+
+            w_ey = self.dropout_embed(self.embed(w_tokens))
+
+            w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+            w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1)
+            w_logprobs = torch.flatten(w_logprobs)
+
+            blank_score = w_logprobs[0::self.odim]
+
+            for i, v_ in enumerate(V_):
+                for l in six.moves.range(self.dlayers):
+                    v_["zlist"][l] = w_zlist[l][i]
+                    v_["clist"][l] = w_clist[l][i]
+
+                    v_["y"] = w_y[i]
+                    v_["score"] += float(blank_score[i])
+
+            kept_hyps = sorted(
+                (S + V_), key=lambda x: x["score"], reverse=True
+            )[:w_range]
+
+        if normscore:
+            nbest_hyps = sorted(
+                kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
+            )[:nbest]
+        else:
+            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True
+            )[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_breadth_first(self, h, recog_args, rnnlm=None):
+        """Breadth-first beam search implementation.
+
+        Based on https://ieeexplore.ieee.org/document/9003822
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+        max_exp = 2
+
+        nbest = recog_args.nbest
+        normscore = recog_args.score_norm_transducer
+
+        zlist, clist = self.zero_state(h.unsqueeze(0))
+        w_zlist, w_clist = self.zero_state(torch.zeros((w_range, self.dunits)))
+        
+        kept_hyps = [
+            {
+                "score": 0.0,
+                "yseq": [self.blank],
+                "zlist": zlist[:],
+                "clist": clist[:],
+                "lm_state": None
+            } for _ in range(w_range)
+        ]
+
+        for hi in h:
+            hyps = kept_hyps
+            expansions = 0
+            kept_hyps = []
+
+            while expansions < max_exp and hyps:
+                w_tokens = [hyp["yseq"][-1] for hyp in hyps]
+                w_tokens = torch.LongTensor(w_tokens).view(w_range)
+
+                for w in six.moves.range(w_range):
+                    for l in six.moves.range(self.dlayers):
+                        w_zlist[l][w] = hyps[w]["zlist"][l]
+                        w_clist[l][w] = hyps[w]["clist"][l]
+
+                w_ey = self.dropout_embed(self.embed(w_tokens))
+
+                w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
+
+                w_logprobs = F.log_softmax(self.joint(hi, w_y), dim=0)
+                w_logprobs = torch.flatten(w_logprobs)
+                
+                expansions += len(kept_hyps)
+                hyps_new = hyps
+                hyps = []
+
+                for i, hyp in enumerate(hyps_new):
+                    pos_k = (i * self.odim)
+                    k_i = w_logprobs.narrow(0, pos_k, self.odim)
+
+                    for k in six.moves.range(self.odim):
+                        curr_score = float(k_i[i])
+
+                        beam_hyp = {
+                            "score": hyp["score"] + curr_score,
+                            "yseq": hyp["yseq"][:],
+                            "zlist": hyp["zlist"],
+                            "clist": hyp["clist"],
+                        }
+
+                        if k == self.blank:
+                            kept_hyps.append(beam_hyp)
+                        else:
+                            beam_hyp["yseq"].append(int(k))
+
+                            for l in six.moves.range(self.dlayers):
+                                beam_hyp["zlist"][l] = w_zlist[l][i]
+                                beam_hyp["clist"][l] = w_clist[l][i]
+
+                            hyps.append(beam_hyp)
+
+                hyps = sorted(
+                    hyps, key=lambda x: x["score"], reverse=True
+                )[:w_range]
+
+            kept_hyps = sorted(
+                kept_hyps, key=lambda x: x["score"], reverse=True
+            )[:w_range]
+
+        nbest_hyps = sorted(
+            kept_hyps, key=lambda x: x["score"], reverse=True
+        )[:nbest]
+        
+        return nbest_hyps
 
 class DecoderRNNTAtt(torch.nn.Module):
     """RNNT-Att Decoder module.

@@ -2,3 +2,4 @@
 batch: 0
 beam-size: 20
 score-norm-transducer: True
+search-type: default
