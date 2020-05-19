@@ -8,7 +8,7 @@ Firstly, you definitely missed some installation processes. Please read [Install
 1. `path.sh` setups the python interpreter at `tools/venv`
 1. `tools/venv` is installed by `tools/Makefile`
 
-Note that **we normally doesn't use the system Python, but uses `tools/venv` installed by Makefile**.
+Note that **we normally don't use the system Python, but uses `tools/venv` installed by Makefile**.
 See [Step 3-A) installation of espnet](installation.md#step-3-a-installation-of-espnet). We intend to prepare a Python interpreter independently and we'd also like to avoid contaminating the other Python. We believe this is a good strategy for a researcher, but sometimes it causes an installation problem. 
 
 Please also note that, if you just intend to use Python scripts directly without a shell script, e.g. `asr_recog.py`, you always need to activate the Python interpreter before using it.
