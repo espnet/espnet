@@ -353,7 +353,6 @@ class BabelKaldiPreparer:
   
     # XXX
     for x in ['train']: #['train', 'dev', 'test']:
-      # TODO Handle unsegmented utterances
       if self.is_segment:
         with open(os.path.join('data', x+'_nonsil', 'text'), 'w') as text_f, \
              open(os.path.join('data', x+'_nonsil', 'wav.scp'), 'w') as wav_scp_f, \
