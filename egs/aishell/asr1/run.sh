@@ -235,13 +235,13 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Decoding"
     nj=16
-    #if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-    #    recog_model=model.last${n_average}.avg.best
-    #    average_checkpoints.py --backend ${backend} \
-    #    		       --snapshots ${expdir}/results/snapshot.ep.* \
-    #    		       --out ${expdir}/results/${recog_model} \
-    #    		       --num ${n_average}
-    #fi
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+        		       --snapshots ${expdir}/results/snapshot.ep.* \
+        		       --out ${expdir}/results/${recog_model} \
+        		       --num ${n_average}
+    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
