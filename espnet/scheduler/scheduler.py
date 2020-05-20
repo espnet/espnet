@@ -27,7 +27,7 @@ class SchedulerInterface:
         prefix = key + "_" + self.alias + "_"
         for k, v in vars(args).items():
             if k.startswith(prefix):
-                setattr(self, k[len(prefix):], v)
+                setattr(self, k[len(prefix) :], v)
 
     def get_arg(self, name):
         """Get argument without prefix."""
@@ -55,6 +55,7 @@ class SchedulerInterface:
             LMinterface: A new instance of LMInterface.
 
         """
+
         def add(parser):
             return cls.add_arguments(key, parser)
 
@@ -96,7 +97,9 @@ def dynamic_import_scheduler(module):
 
     """
     model_class = dynamic_import(module, SCHEDULER_DICT)
-    assert issubclass(model_class, SchedulerInterface), f"{module} does not implement SchedulerInterface"
+    assert issubclass(
+        model_class, SchedulerInterface
+    ), f"{module} does not implement SchedulerInterface"
     return model_class
 
 
@@ -125,8 +128,9 @@ class NoamScheduler(SchedulerInterface):
     @staticmethod
     def _add_arguments(parser: _PrefixParser):
         """Add scheduler args."""
-        parser.add_argument("--warmup", type=int, default=1000,
-                            help="Number of warmup iterations.")
+        parser.add_argument(
+            "--warmup", type=int, default=1000, help="Number of warmup iterations."
+        )
 
     def __init__(self, key, args):
         """Initialize class."""
@@ -159,12 +163,18 @@ class CyclicCosineScheduler(SchedulerInterface):
     @staticmethod
     def _add_arguments(parser: _PrefixParser):
         """Add scheduler args."""
-        parser.add_argument("--warmup", type=int, default=1000,
-                            help="Number of warmup iterations.")
-        parser.add_argument("--total", type=int, default=100000,
-                            help="Number of total annealing iterations.")
+        parser.add_argument(
+            "--warmup", type=int, default=1000, help="Number of warmup iterations."
+        )
+        parser.add_argument(
+            "--total",
+            type=int,
+            default=100000,
+            help="Number of total annealing iterations.",
+        )
 
     def scale(self, n_iter):
         """Scale of lr."""
         import math
+
         return 0.5 * (math.cos(math.pi * (n_iter - self.warmup) / self.total) + 1)

@@ -98,7 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --first data/deveval 100 data/${train_dev}
     utils/subset_data_dir.sh --last data/deveval 100 data/${eval_set}
     n=$(( $(wc -l < data/train/wav.scp) - 200 ))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark

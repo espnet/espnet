@@ -21,10 +21,10 @@ class PositionalEncoding(chainer.Chain):
         # Implementation described in the paper
         super(PositionalEncoding, self).__init__()
         self.dropout = dropout
-        posi_block = np.arange(
-            0, length, dtype=np.float32)[:, None]
+        posi_block = np.arange(0, length, dtype=np.float32)[:, None]
         unit_block = np.exp(
-            np.arange(0, n_units, 2, dtype=np.float32) * -(np.log(10000.) / n_units))
+            np.arange(0, n_units, 2, dtype=np.float32) * -(np.log(10000.0) / n_units)
+        )
         self.pe = np.zeros((length, n_units), dtype=np.float32)
         self.pe[:, ::2] = np.sin(posi_block * unit_block)
         self.pe[:, 1::2] = np.cos(posi_block * unit_block)

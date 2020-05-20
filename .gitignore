@@ -15,7 +15,8 @@ tmp*
 .pytest_cache/
 __pycache__/
 check_autopep8
-.coverage*
+.coverage
+htmlcov
 coverage.xml*
 bats-core/
 shellcheck*
@@ -23,19 +24,21 @@ check_shellcheck*
 test_spm.vocab
 test_spm.model
 .vscode*
+*.vim
+*.swp
 
 # recipe related
-egs/*/*/data*
-egs/*/*/db
-egs/*/*/downloads
-egs/*/*/dump
-egs/*/*/enhan
-egs/*/*/exp
-egs/*/*/fbank
-egs/*/*/mfcc
-egs/*/*/stft
-egs/*/*/tensorboard
-egs/*/*/wav*
+egs*/*/*/data*
+egs*/*/*/db
+egs*/*/*/downloads
+egs*/*/*/dump
+egs*/*/*/enhan
+egs*/*/*/exp
+egs*/*/*/fbank
+egs*/*/*/mfcc
+egs*/*/*/stft
+egs*/*/*/tensorboard
+egs*/*/*/wav*
 
 # tools related
 tools/bin

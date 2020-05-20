@@ -61,5 +61,7 @@ def dynamic_import_st(module, backend):
 
     """
     model_class = dynamic_import(module, predefined_st.get(backend, dict()))
-    assert issubclass(model_class, STInterface), f"{module} does not implement STInterface"
+    assert issubclass(
+        model_class, STInterface
+    ), f"{module} does not implement STInterface"
     return model_class

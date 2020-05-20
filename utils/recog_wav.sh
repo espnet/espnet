@@ -58,7 +58,7 @@ Example:
     # Decode using model name
     $0 --models tedlium2.transformer.v1 example.wav
 
-    # Decode with streaming mode (only API v1 is supported)
+    # Decode with streaming mode (only RNN with API v1 is supported)
     $0 --models tedlium2.rnn.v2 --api v1 example.wav
 
     # Decode using model file

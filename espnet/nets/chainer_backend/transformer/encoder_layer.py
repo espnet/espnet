@@ -7,7 +7,9 @@ import chainer.functions as F
 
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
+from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,  # noqa: H301
+)
 
 
 class EncoderLayer(chainer.Chain):
@@ -21,18 +23,26 @@ class EncoderLayer(chainer.Chain):
 
     """
 
-    def __init__(self, n_units, d_units=0, h=8, dropout=0.1,
-                 initialW=None, initial_bias=None):
+    def __init__(
+        self, n_units, d_units=0, h=8, dropout=0.1, initialW=None, initial_bias=None
+    ):
         """Initialize EncoderLayer."""
         super(EncoderLayer, self).__init__()
         with self.init_scope():
-            self.self_attn = MultiHeadAttention(n_units, h, dropout=dropout,
-                                                initialW=initialW,
-                                                initial_bias=initial_bias)
-            self.feed_forward = PositionwiseFeedForward(n_units, d_units=d_units,
-                                                        dropout=dropout,
-                                                        initialW=initialW,
-                                                        initial_bias=initial_bias)
+            self.self_attn = MultiHeadAttention(
+                n_units,
+                h,
+                dropout=dropout,
+                initialW=initialW,
+                initial_bias=initial_bias,
+            )
+            self.feed_forward = PositionwiseFeedForward(
+                n_units,
+                d_units=d_units,
+                dropout=dropout,
+                initialW=initialW,
+                initial_bias=initial_bias,
+            )
             self.norm1 = LayerNorm(n_units)
             self.norm2 = LayerNorm(n_units)
         self.dropout = dropout

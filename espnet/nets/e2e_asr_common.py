@@ -31,14 +31,16 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     if len(ended_hyps) == 0:
         return False
     count = 0
-    best_hyp = sorted(ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+    best_hyp = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[0]
     for m in six.moves.range(M):
         # get ended_hyps with their length is i - m
         hyp_length = i - m
-        hyps_same_length = [x for x in ended_hyps if len(x['yseq']) == hyp_length]
+        hyps_same_length = [x for x in ended_hyps if len(x["yseq"]) == hyp_length]
         if len(hyps_same_length) > 0:
-            best_hyp_same_length = sorted(hyps_same_length, key=lambda x: x['score'], reverse=True)[0]
-            if best_hyp_same_length['score'] - best_hyp['score'] < D_end:
+            best_hyp_same_length = sorted(
+                hyps_same_length, key=lambda x: x["score"], reverse=True
+            )[0]
+            if best_hyp_same_length["score"] - best_hyp["score"] < D_end:
                 count += 1
 
     if count == M:
@@ -58,14 +60,16 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
     :return:
     """
     if transcript is not None:
-        with open(transcript, 'rb') as f:
-            trans_json = json.load(f)['utts']
+        with open(transcript, "rb") as f:
+            trans_json = json.load(f)["utts"]
 
-    if lsm_type == 'unigram':
-        assert transcript is not None, 'transcript is required for %s label smoothing' % lsm_type
+    if lsm_type == "unigram":
+        assert transcript is not None, (
+            "transcript is required for %s label smoothing" % lsm_type
+        )
         labelcount = np.zeros(odim)
         for k, v in trans_json.items():
-            ids = np.array([int(n) for n in v['output'][0]['tokenid'].split()])
+            ids = np.array([int(n) for n in v["output"][0]["tokenid"].split()])
             # to avoid an error when there is no text in an uttrance
             if len(ids) > 0:
                 labelcount[ids] += 1
@@ -74,8 +78,7 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
         labelcount[blank] = 0  # remove counts for blank
         labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
     else:
-        logging.error(
-            "Error: unexpected label smoothing type: %s" % lsm_type)
+        logging.error("Error: unexpected label smoothing type: %s" % lsm_type)
         sys.exit()
 
     return labeldist
@@ -106,7 +109,9 @@ class ErrorCalculator(object):
     :return:
     """
 
-    def __init__(self, char_list, sym_space, sym_blank, report_cer=False, report_wer=False):
+    def __init__(
+        self, char_list, sym_space, sym_blank, report_cer=False, report_wer=False
+    ):
         """Construct an ErrorCalculator object."""
         super(ErrorCalculator, self).__init__()
 
@@ -194,14 +199,14 @@ class ErrorCalculator(object):
             y_true = ys_pad[i]
             eos_true = np.where(y_true == -1)[0]
             eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-            # To avoid wrong higger WER than the one obtained from the decoding
+            # To avoid wrong higher WER than the one obtained from the decoding
             # eos from y_true is used to mark the eos in y_hat
             # because of that y_hats has not padded outs with -1.
             seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
             seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
-            seq_hat_text = seq_hat_text.replace(self.blank, '')
-            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+            seq_hat_text = seq_hat_text.replace(self.blank, "")
+            seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
         return seqs_hat, seqs_true
@@ -217,8 +222,8 @@ class ErrorCalculator(object):
         char_eds, char_ref_lens = [], []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
-            hyp_chars = seq_hat_text.replace(' ', '')
-            ref_chars = seq_true_text.replace(' ', '')
+            hyp_chars = seq_hat_text.replace(" ", "")
+            ref_chars = seq_true_text.replace(" ", "")
             char_eds.append(editdistance.eval(hyp_chars, ref_chars))
             char_ref_lens.append(len(ref_chars))
         return float(sum(char_eds)) / sum(char_ref_lens)
@@ -258,10 +263,12 @@ class ErrorCalculatorTrans(object):
 
         self.dec = decoder
 
-        recog_args = {'beam_size': args.beam_size,
-                      'nbest': args.nbest,
-                      'space': args.sym_space,
-                      'score_norm_transducer': args.score_norm_transducer}
+        recog_args = {
+            "beam_size": args.beam_size,
+            "nbest": args.nbest,
+            "space": args.sym_space,
+            "score_norm_transducer": args.score_norm_transducer,
+        }
 
         self.recog_args = argparse.Namespace(**recog_args)
 
@@ -299,7 +306,7 @@ class ErrorCalculatorTrans(object):
                 nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
             batch_nbest.append(nbest_hyps)
 
-        ys_hat = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in batch_nbest]
+        ys_hat = [nbest_hyp[0]["yseq"][1:] for nbest_hyp in batch_nbest]
 
         seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad.cpu())
 
@@ -334,9 +341,9 @@ class ErrorCalculatorTrans(object):
             seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
             seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
 
-            seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
-            seq_hat_text = seq_hat_text.replace(self.blank, '')
-            seq_true_text = "".join(seq_true).replace(self.space, ' ')
+            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+            seq_hat_text = seq_hat_text.replace(self.blank, "")
+            seq_true_text = "".join(seq_true).replace(self.space, " ")
 
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
@@ -358,8 +365,8 @@ class ErrorCalculatorTrans(object):
 
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
-            hyp_chars = seq_hat_text.replace(' ', '')
-            ref_chars = seq_true_text.replace(' ', '')
+            hyp_chars = seq_hat_text.replace(" ", "")
+            ref_chars = seq_true_text.replace(" ", "")
 
             char_eds.append(editdistance.eval(hyp_chars, ref_chars))
             char_ref_lens.append(len(ref_chars))

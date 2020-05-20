@@ -30,7 +30,7 @@ class ShufflingEnabler(Extension):
 
 
 class ToggleableShufflingSerialIterator(SerialIterator):
-    """A SerialIterator that can have its shuffling property activated during training"""
+    """A SerialIterator having its shuffling property activated during training"""
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True):
         """Init the Iterator
@@ -40,7 +40,9 @@ class ToggleableShufflingSerialIterator(SerialIterator):
         :param bool repeat: Whether to repeat data (allow multiple epochs)
         :param bool shuffle: Whether to shuffle the batches
         """
-        super(ToggleableShufflingSerialIterator, self).__init__(dataset, batch_size, repeat, shuffle)
+        super(ToggleableShufflingSerialIterator, self).__init__(
+            dataset, batch_size, repeat, shuffle
+        )
 
     def start_shuffle(self):
         """Starts shuffling (or reshuffles) the batches"""
@@ -53,10 +55,19 @@ class ToggleableShufflingSerialIterator(SerialIterator):
 
 
 class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
-    """A MultiprocessIterator that can have its shuffling property activated during training"""
+    """A MultiprocessIterator having its shuffling property activated during training"""
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True, n_processes=None, n_prefetch=1, shared_mem=None,
-                 maxtasksperchild=20):
+    def __init__(
+        self,
+        dataset,
+        batch_size,
+        repeat=True,
+        shuffle=True,
+        n_processes=None,
+        n_prefetch=1,
+        shared_mem=None,
+        maxtasksperchild=20,
+    ):
         """Init the iterator
 
         :param torch.nn.Tensor dataset: The dataset to take batches from
@@ -68,11 +79,16 @@ class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
         :param int shared_mem: How many memory to share between processes
         :param int maxtasksperchild: Maximum number of tasks per child
         """
-        super(ToggleableShufflingMultiprocessIterator, self).__init__(dataset=dataset, batch_size=batch_size,
-                                                                      repeat=repeat, shuffle=shuffle,
-                                                                      n_processes=n_processes,
-                                                                      n_prefetch=n_prefetch, shared_mem=shared_mem,
-                                                                      maxtasksperchild=maxtasksperchild)
+        super(ToggleableShufflingMultiprocessIterator, self).__init__(
+            dataset=dataset,
+            batch_size=batch_size,
+            repeat=repeat,
+            shuffle=shuffle,
+            n_processes=n_processes,
+            n_prefetch=n_prefetch,
+            shared_mem=shared_mem,
+            maxtasksperchild=maxtasksperchild,
+        )
 
     def start_shuffle(self):
         """Starts shuffling (or reshuffles) the batches"""

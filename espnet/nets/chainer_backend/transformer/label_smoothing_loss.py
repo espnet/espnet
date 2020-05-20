@@ -25,7 +25,7 @@ class LabelSmoothingLoss(chainer.Chain):
         if smoothing > 0.0:
             logging.info("Use label smoothing")
             self.smoothing = smoothing
-            self.confidence = 1. - smoothing
+            self.confidence = 1.0 - smoothing
             self.use_label_smoothing = True
             self.n_target_vocab = n_target_vocab
         self.normalize_length = normalize_length
@@ -49,7 +49,7 @@ class LabelSmoothingLoss(chainer.Chain):
 
         # Target reshape
         concat_t_block = ys_pad.reshape((batch * length))
-        ignore_mask = (concat_t_block >= 0)
+        ignore_mask = concat_t_block >= 0
         n_token = ignore_mask.sum()
         normalizer = n_token if self.normalize_length else batch
 
@@ -59,13 +59,13 @@ class LabelSmoothingLoss(chainer.Chain):
         else:
             log_prob = F.log_softmax(concat_logit_block)
             broad_ignore_mask = self.xp.broadcast_to(
-                ignore_mask[:, None],
-                concat_logit_block.shape)
-            pre_loss = ignore_mask * \
-                log_prob[self.xp.arange(batch * length), concat_t_block]
-            loss = - F.sum(pre_loss) / normalizer
-            label_smoothing = broad_ignore_mask * \
-                - 1. / self.n_target_vocab * log_prob
+                ignore_mask[:, None], concat_logit_block.shape
+            )
+            pre_loss = (
+                ignore_mask * log_prob[self.xp.arange(batch * length), concat_t_block]
+            )
+            loss = -F.sum(pre_loss) / normalizer
+            label_smoothing = broad_ignore_mask * -1.0 / self.n_target_vocab * log_prob
             label_smoothing = F.sum(label_smoothing) / normalizer
             loss = self.confidence * loss + self.smoothing * label_smoothing
         return loss

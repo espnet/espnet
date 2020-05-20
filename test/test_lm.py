@@ -43,13 +43,19 @@ def test_lm():
     n_units = 2
     batchsize = 5
     for typ in ["lstm"]:  # TODO(anyone) gru
-        rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ=typ))
-        rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ=typ))
+        rnnlm_ch = lm_chainer.ClassifierWithState(
+            lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ=typ)
+        )
+        rnnlm_th = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ=typ)
+        )
         transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
 
         # test prediction equality
         x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
-        with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config('train', False):
+        with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config(
+            "train", False
+        ):
             rnnlm_th.predictor.eval()
             state_th, y_th = rnnlm_th.predictor(None, x.long())
             state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
@@ -58,24 +64,44 @@ def test_lm():
                     print(k, n)
                     print(state_th[k][n].data.numpy())
                     print(state_ch[k][n].data)
-                    numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
+                    numpy.testing.assert_allclose(
+                        state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5
+                    )
             numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
 
 
 @pytest.mark.parametrize(
-    "lm_name, lm_args, device, dtype", [
+    "lm_name, lm_args, device, dtype",
+    [
         (nn, args, device, dtype)
         for nn, args in (
             ("default", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("default", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
-            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, embed_unit=3)),
-            ("transformer", dict(layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, pos_enc="none", embed_unit=3))
+            (
+                "transformer",
+                dict(
+                    layer=2, unit=2, att_unit=2, head=2, dropout_rate=0.5, embed_unit=3
+                ),
+            ),
+            (
+                "transformer",
+                dict(
+                    layer=2,
+                    unit=2,
+                    att_unit=2,
+                    head=2,
+                    dropout_rate=0.5,
+                    pos_enc="none",
+                    embed_unit=3,
+                ),
+            ),
         )
         for device in ("cpu", "cuda")
         for dtype in ("float16", "float32", "float64")
-    ])
+    ],
+)
 def test_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
@@ -106,7 +132,7 @@ def test_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(decoder=1.0, lm=1.0, length_bonus=1.0)
     with torch.no_grad():
-        feat = x[0, :ilens[0]].to(device=device, dtype=dtype)
+        feat = x[0, : ilens[0]].to(device=device, dtype=dtype)
         enc = model.encode(feat)
         beam_size = 3
         result = beam_search(
@@ -117,6 +143,6 @@ def test_lm_trainable_and_decodable(lm_name, lm_args, device, dtype):
             vocab_size=len(train_args.char_list),
             weights=weights,
             scorers=scorers,
-            token_list=train_args.char_list
+            token_list=train_args.char_list,
         )
     assert len(result) >= beam_size

@@ -14,9 +14,13 @@ import torch.nn.functional as F
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
-from espnet.nets.pytorch_backend.fastspeech.duration_calculator import DurationCalculator
+from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (
+    DurationCalculator,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictorLoss
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictorLoss,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -38,8 +42,10 @@ class FeedForwardTransformerLoss(torch.nn.Module):
         """Initialize feed-forward Transformer loss module.
 
         Args:
-            use_masking (bool): Whether to apply masking for padded part in loss calculation.
-            use_weighted_masking (bool): Whether to weighted masking in loss calculation.
+            use_masking (bool):
+                Whether to apply masking for padded part in loss calculation.
+            use_weighted_masking (bool):
+                Whether to weighted masking in loss calculation.
 
         """
         super(FeedForwardTransformerLoss, self).__init__()
@@ -76,7 +82,9 @@ class FeedForwardTransformerLoss(torch.nn.Module):
             ds = ds.masked_select(duration_masks)
             out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
             before_outs = before_outs.masked_select(out_masks)
-            after_outs = after_outs.masked_select(out_masks) if after_outs is not None else None
+            after_outs = (
+                after_outs.masked_select(out_masks) if after_outs is not None else None
+            )
             ys = ys.masked_select(out_masks)
 
         # calculate loss
@@ -91,12 +99,16 @@ class FeedForwardTransformerLoss(torch.nn.Module):
             out_weights = out_masks.float() / out_masks.sum(dim=1, keepdim=True).float()
             out_weights /= ys.size(0) * ys.size(2)
             duration_masks = make_non_pad_mask(ilens).to(ys.device)
-            duration_weights = duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
+            duration_weights = (
+                duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
+            )
             duration_weights /= ds.size(0)
 
             # apply weight
             l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
-            duration_loss = duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
+            duration_loss = (
+                duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
+            )
 
         return l1_loss, duration_loss
 
@@ -104,9 +116,12 @@ class FeedForwardTransformerLoss(torch.nn.Module):
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     """Feed Forward Transformer for TTS a.k.a. FastSpeech.
 
-    This is a module of FastSpeech, feed-forward Transformer with duration predictor described in
-    `FastSpeech: Fast, Robust and Controllable Text to Speech`_, which does not require any auto-regressive
-    processing during inference, resulting in fast decoding compared with auto-regressive Transformer.
+    This is a module of FastSpeech,
+    feed-forward Transformer with duration predictor described in
+    `FastSpeech: Fast, Robust and Controllable Text to Speech`_,
+    which does not require any auto-regressive
+    processing during inference,
+    resulting in fast decoding compared with auto-regressive Transformer.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
@@ -118,97 +133,249 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         """Add model-specific arguments to the parser."""
         group = parser.add_argument_group("feed-forward transformer model setting")
         # network structure related
-        group.add_argument("--adim", default=384, type=int,
-                           help="Number of attention transformation dimensions")
-        group.add_argument("--aheads", default=4, type=int,
-                           help="Number of heads for multi head attention")
-        group.add_argument("--elayers", default=6, type=int,
-                           help="Number of encoder layers")
-        group.add_argument("--eunits", default=1536, type=int,
-                           help="Number of encoder hidden units")
-        group.add_argument("--dlayers", default=6, type=int,
-                           help="Number of decoder layers")
-        group.add_argument("--dunits", default=1536, type=int,
-                           help="Number of decoder hidden units")
-        group.add_argument("--positionwise-layer-type", default="linear", type=str,
-                           choices=["linear", "conv1d", "conv1d-linear"],
-                           help="Positionwise layer type.")
-        group.add_argument("--positionwise-conv-kernel-size", default=3, type=int,
-                           help="Kernel size of positionwise conv1d layer")
-        group.add_argument("--postnet-layers", default=0, type=int,
-                           help="Number of postnet layers")
-        group.add_argument("--postnet-chans", default=256, type=int,
-                           help="Number of postnet channels")
-        group.add_argument("--postnet-filts", default=5, type=int,
-                           help="Filter size of postnet")
-        group.add_argument("--use-batch-norm", default=True, type=strtobool,
-                           help="Whether to use batch normalization")
-        group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
-                           help="Use trainable scaled positional encoding instead of the fixed scale one")
-        group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
-                           help="Whether to apply layer norm before encoder block")
-        group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
-                           help="Whether to apply layer norm before decoder block")
-        group.add_argument("--encoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer's input and output in encoder")
-        group.add_argument("--decoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer's input and output in decoder")
-        group.add_argument("--duration-predictor-layers", default=2, type=int,
-                           help="Number of layers in duration predictor")
-        group.add_argument("--duration-predictor-chans", default=384, type=int,
-                           help="Number of channels in duration predictor")
-        group.add_argument("--duration-predictor-kernel-size", default=3, type=int,
-                           help="Kernel size in duration predictor")
-        group.add_argument("--teacher-model", default=None, type=str, nargs="?",
-                           help="Teacher model file path")
-        group.add_argument("--reduction-factor", default=1, type=int,
-                           help="Reduction factor")
-        group.add_argument("--spk-embed-dim", default=None, type=int,
-                           help="Number of speaker embedding dimensions")
-        group.add_argument("--spk-embed-integration-type", type=str, default="add",
-                           choices=["add", "concat"],
-                           help="How to integrate speaker embedding")
+        group.add_argument(
+            "--adim",
+            default=384,
+            type=int,
+            help="Number of attention transformation dimensions",
+        )
+        group.add_argument(
+            "--aheads",
+            default=4,
+            type=int,
+            help="Number of heads for multi head attention",
+        )
+        group.add_argument(
+            "--elayers", default=6, type=int, help="Number of encoder layers"
+        )
+        group.add_argument(
+            "--eunits", default=1536, type=int, help="Number of encoder hidden units"
+        )
+        group.add_argument(
+            "--dlayers", default=6, type=int, help="Number of decoder layers"
+        )
+        group.add_argument(
+            "--dunits", default=1536, type=int, help="Number of decoder hidden units"
+        )
+        group.add_argument(
+            "--positionwise-layer-type",
+            default="linear",
+            type=str,
+            choices=["linear", "conv1d", "conv1d-linear"],
+            help="Positionwise layer type.",
+        )
+        group.add_argument(
+            "--positionwise-conv-kernel-size",
+            default=3,
+            type=int,
+            help="Kernel size of positionwise conv1d layer",
+        )
+        group.add_argument(
+            "--postnet-layers", default=0, type=int, help="Number of postnet layers"
+        )
+        group.add_argument(
+            "--postnet-chans", default=256, type=int, help="Number of postnet channels"
+        )
+        group.add_argument(
+            "--postnet-filts", default=5, type=int, help="Filter size of postnet"
+        )
+        group.add_argument(
+            "--use-batch-norm",
+            default=True,
+            type=strtobool,
+            help="Whether to use batch normalization",
+        )
+        group.add_argument(
+            "--use-scaled-pos-enc",
+            default=True,
+            type=strtobool,
+            help="Use trainable scaled positional encoding "
+            "instead of the fixed scale one",
+        )
+        group.add_argument(
+            "--encoder-normalize-before",
+            default=False,
+            type=strtobool,
+            help="Whether to apply layer norm before encoder block",
+        )
+        group.add_argument(
+            "--decoder-normalize-before",
+            default=False,
+            type=strtobool,
+            help="Whether to apply layer norm before decoder block",
+        )
+        group.add_argument(
+            "--encoder-concat-after",
+            default=False,
+            type=strtobool,
+            help="Whether to concatenate attention layer's input and output in encoder",
+        )
+        group.add_argument(
+            "--decoder-concat-after",
+            default=False,
+            type=strtobool,
+            help="Whether to concatenate attention layer's input and output in decoder",
+        )
+        group.add_argument(
+            "--duration-predictor-layers",
+            default=2,
+            type=int,
+            help="Number of layers in duration predictor",
+        )
+        group.add_argument(
+            "--duration-predictor-chans",
+            default=384,
+            type=int,
+            help="Number of channels in duration predictor",
+        )
+        group.add_argument(
+            "--duration-predictor-kernel-size",
+            default=3,
+            type=int,
+            help="Kernel size in duration predictor",
+        )
+        group.add_argument(
+            "--teacher-model",
+            default=None,
+            type=str,
+            nargs="?",
+            help="Teacher model file path",
+        )
+        group.add_argument(
+            "--reduction-factor", default=1, type=int, help="Reduction factor"
+        )
+        group.add_argument(
+            "--spk-embed-dim",
+            default=None,
+            type=int,
+            help="Number of speaker embedding dimensions",
+        )
+        group.add_argument(
+            "--spk-embed-integration-type",
+            type=str,
+            default="add",
+            choices=["add", "concat"],
+            help="How to integrate speaker embedding",
+        )
         # training related
-        group.add_argument("--transformer-init", type=str, default="pytorch",
-                           choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                    "kaiming_uniform", "kaiming_normal"],
-                           help="How to initialize transformer parameters")
-        group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help="Initial alpha value in encoder's ScaledPositionalEncoding")
-        group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help="Initial alpha value in decoder's ScaledPositionalEncoding")
-        group.add_argument("--transformer-lr", default=1.0, type=float,
-                           help="Initial value of learning rate")
-        group.add_argument("--transformer-warmup-steps", default=4000, type=int,
-                           help="Optimizer warmup steps")
-        group.add_argument("--transformer-enc-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer encoder except for attention")
-        group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer encoder positional encoding")
-        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer encoder self-attention")
-        group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer decoder except for attention and pos encoding")
-        group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer decoder positional encoding")
-        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer decoder self-attention")
-        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for transformer encoder-decoder attention")
-        group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
-                           help="Dropout rate for duration predictor")
-        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
-                           help="Dropout rate in postnet")
-        group.add_argument("--transfer-encoder-from-teacher", default=True, type=strtobool,
-                           help="Whether to transfer teacher's parameters")
-        group.add_argument("--transferred-encoder-module", default="all", type=str,
-                           choices=["all", "embed"],
-                           help="Encoder modeules to be trasferred from teacher")
+        group.add_argument(
+            "--transformer-init",
+            type=str,
+            default="pytorch",
+            choices=[
+                "pytorch",
+                "xavier_uniform",
+                "xavier_normal",
+                "kaiming_uniform",
+                "kaiming_normal",
+            ],
+            help="How to initialize transformer parameters",
+        )
+        group.add_argument(
+            "--initial-encoder-alpha",
+            type=float,
+            default=1.0,
+            help="Initial alpha value in encoder's ScaledPositionalEncoding",
+        )
+        group.add_argument(
+            "--initial-decoder-alpha",
+            type=float,
+            default=1.0,
+            help="Initial alpha value in decoder's ScaledPositionalEncoding",
+        )
+        group.add_argument(
+            "--transformer-lr",
+            default=1.0,
+            type=float,
+            help="Initial value of learning rate",
+        )
+        group.add_argument(
+            "--transformer-warmup-steps",
+            default=4000,
+            type=int,
+            help="Optimizer warmup steps",
+        )
+        group.add_argument(
+            "--transformer-enc-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer encoder except for attention",
+        )
+        group.add_argument(
+            "--transformer-enc-positional-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer encoder positional encoding",
+        )
+        group.add_argument(
+            "--transformer-enc-attn-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer encoder self-attention",
+        )
+        group.add_argument(
+            "--transformer-dec-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer decoder except "
+            "for attention and pos encoding",
+        )
+        group.add_argument(
+            "--transformer-dec-positional-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer decoder positional encoding",
+        )
+        group.add_argument(
+            "--transformer-dec-attn-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer decoder self-attention",
+        )
+        group.add_argument(
+            "--transformer-enc-dec-attn-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for transformer encoder-decoder attention",
+        )
+        group.add_argument(
+            "--duration-predictor-dropout-rate",
+            default=0.1,
+            type=float,
+            help="Dropout rate for duration predictor",
+        )
+        group.add_argument(
+            "--postnet-dropout-rate",
+            default=0.5,
+            type=float,
+            help="Dropout rate in postnet",
+        )
+        group.add_argument(
+            "--transfer-encoder-from-teacher",
+            default=True,
+            type=strtobool,
+            help="Whether to transfer teacher's parameters",
+        )
+        group.add_argument(
+            "--transferred-encoder-module",
+            default="all",
+            type=str,
+            choices=["all", "embed"],
+            help="Encoder modeules to be trasferred from teacher",
+        )
         # loss related
-        group.add_argument("--use-masking", default=True, type=strtobool,
-                           help="Whether to use masking in calculation of loss")
-        group.add_argument("--use-weighted-masking", default=False, type=strtobool,
-                           help="Whether to use weighted masking in calculation of loss")
+        group.add_argument(
+            "--use-masking",
+            default=True,
+            type=strtobool,
+            help="Whether to use masking in calculation of loss",
+        )
+        group.add_argument(
+            "--use-weighted-masking",
+            default=False,
+            type=strtobool,
+            help="Whether to use weighted masking in calculation of loss",
+        )
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -224,32 +391,49 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 - aheads (int): Number of heads for multi head attention.
                 - dlayers (int): Number of decoder layers.
                 - dunits (int): Number of decoder hidden units.
-                - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
-                - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
-                - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
-                - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
-                - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+                - use_scaled_pos_enc (bool):
+                    Whether to use trainable scaled positional encoding.
+                - encoder_normalize_before (bool):
+                    Whether to perform layer normalization before encoder block.
+                - decoder_normalize_before (bool):
+                    Whether to perform layer normalization before decoder block.
+                - encoder_concat_after (bool): Whether to concatenate attention
+                    layer's input and output in encoder.
+                - decoder_concat_after (bool): Whether to concatenate attention
+                    layer's input and output in decoder.
                 - duration_predictor_layers (int): Number of duration predictor layers.
                 - duration_predictor_chans (int): Number of duration predictor channels.
-                - duration_predictor_kernel_size (int): Kernel size of duration predictor.
-                - spk_embed_dim (int): Number of speaker embedding dimenstions.
+                - duration_predictor_kernel_size (int):
+                    Kernel size of duration predictor.
+                - spk_embed_dim (int): Number of speaker embedding dimensions.
                 - spk_embed_integration_type: How to integrate speaker embedding.
                 - teacher_model (str): Teacher auto-regressive transformer model path.
                 - reduction_factor (int): Reduction factor.
                 - transformer_init (float): How to initialize transformer parameters.
                 - transformer_lr (float): Initial value of learning rate.
                 - transformer_warmup_steps (int): Optimizer warmup steps.
-                - transformer_enc_dropout_rate (float): Dropout rate in encoder except attention & positional encoding.
-                - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
-                - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
-                - transformer_dec_dropout_rate (float): Dropout rate in decoder except attention & positional encoding.
-                - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
-                - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
-                - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
-                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
-                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
-                - transfer_encoder_from_teacher: Whether to transfer encoder using teacher encoder parameters.
-                - transferred_encoder_module: Encoder module to be initialized using teacher parameters.
+                - transformer_enc_dropout_rate (float):
+                    Dropout rate in encoder except attention & positional encoding.
+                - transformer_enc_positional_dropout_rate (float):
+                    Dropout rate after encoder positional encoding.
+                - transformer_enc_attn_dropout_rate (float):
+                    Dropout rate in encoder self-attention module.
+                - transformer_dec_dropout_rate (float):
+                    Dropout rate in decoder except attention & positional encoding.
+                - transformer_dec_positional_dropout_rate (float):
+                    Dropout rate after decoder positional encoding.
+                - transformer_dec_attn_dropout_rate (float):
+                    Dropout rate in deocoder self-attention module.
+                - transformer_enc_dec_attn_dropout_rate (float):
+                    Dropout rate in encoder-deocoder attention module.
+                - use_masking (bool):
+                    Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool):
+                    Whether to apply weighted masking in loss calculation.
+                - transfer_encoder_from_teacher:
+                    Whether to transfer encoder using teacher encoder parameters.
+                - transferred_encoder_module:
+                    Encoder module to be initialized using teacher parameters.
 
         """
         # initialize base classes
@@ -272,13 +456,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         padding_idx = 0
 
         # get positional encoding class
-        pos_enc_class = ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
+        pos_enc_class = (
+            ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
+        )
 
         # define encoder
         encoder_input_layer = torch.nn.Embedding(
-            num_embeddings=idim,
-            embedding_dim=args.adim,
-            padding_idx=padding_idx
+            num_embeddings=idim, embedding_dim=args.adim, padding_idx=padding_idx
         )
         self.encoder = Encoder(
             idim=idim,
@@ -294,7 +478,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             normalize_before=args.encoder_normalize_before,
             concat_after=args.encoder_concat_after,
             positionwise_layer_type=args.positionwise_layer_type,
-            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define additional projection for speaker embedding
@@ -302,7 +486,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             if self.spk_embed_integration_type == "add":
                 self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
             else:
-                self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
+                self.projection = torch.nn.Linear(
+                    args.adim + self.spk_embed_dim, args.adim
+                )
 
         # define duration predictor
         self.duration_predictor = DurationPredictor(
@@ -317,7 +503,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.length_regulator = LengthRegulator()
 
         # define decoder
-        # NOTE: we use encoder as decoder because fastspeech's decoder is the same as encoder
+        # NOTE: we use encoder as decoder
+        # because fastspeech's decoder is the same as encoder
         self.decoder = Encoder(
             idim=0,
             attention_dim=args.adim,
@@ -332,27 +519,33 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             normalize_before=args.decoder_normalize_before,
             concat_after=args.decoder_concat_after,
             positionwise_layer_type=args.positionwise_layer_type,
-            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size,
         )
 
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
         # define postnet
-        self.postnet = None if args.postnet_layers == 0 else Postnet(
-            idim=idim,
-            odim=odim,
-            n_layers=args.postnet_layers,
-            n_chans=args.postnet_chans,
-            n_filts=args.postnet_filts,
-            use_batch_norm=args.use_batch_norm,
-            dropout_rate=args.postnet_dropout_rate
+        self.postnet = (
+            None
+            if args.postnet_layers == 0
+            else Postnet(
+                idim=idim,
+                odim=odim,
+                n_layers=args.postnet_layers,
+                n_chans=args.postnet_chans,
+                n_filts=args.postnet_filts,
+                use_batch_norm=args.use_batch_norm,
+                dropout_rate=args.postnet_dropout_rate,
+            )
         )
 
         # initialize parameters
-        self._reset_parameters(init_type=args.transformer_init,
-                               init_enc_alpha=args.initial_encoder_alpha,
-                               init_dec_alpha=args.initial_decoder_alpha)
+        self._reset_parameters(
+            init_type=args.transformer_init,
+            init_enc_alpha=args.initial_encoder_alpha,
+            init_dec_alpha=args.initial_decoder_alpha,
+        )
 
         # define teacher model
         if args.teacher_model is not None:
@@ -372,11 +565,20 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # define criterions
         self.criterion = FeedForwardTransformerLoss(
-            use_masking=args.use_masking,
-            use_weighted_masking=args.use_weighted_masking
+            use_masking=args.use_masking, use_weighted_masking=args.use_weighted_masking
         )
 
-    def _forward(self, xs, ilens, ys=None, olens=None, spembs=None, ds=None, is_inference=False):
+    def _forward(
+        self,
+        xs,
+        ilens,
+        ys=None,
+        olens=None,
+        spembs=None,
+        ds=None,
+        is_inference=False,
+        alpha=1.0,
+    ):
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
@@ -389,11 +591,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         d_masks = make_pad_mask(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, d_outs, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
         else:
             if ds is None:
                 with torch.no_grad():
-                    ds = self.duration_calculator(xs, ilens, ys, olens, spembs)  # (B, Tmax)
+                    ds = self.duration_calculator(
+                        xs, ilens, ys, olens, spembs
+                    )  # (B, Tmax)
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
             hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
@@ -407,13 +611,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
-        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+        before_outs = self.feat_out(zs).view(
+            zs.size(0), -1, self.odim
+        )  # (B, Lmax, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
         else:
-            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+            after_outs = before_outs + self.postnet(
+                before_outs.transpose(1, 2)
+            ).transpose(1, 2)
 
         if is_inference:
             return before_outs, after_outs, d_outs
@@ -428,7 +636,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs (Tensor, optional):
+                Batch of speaker embedding vectors (B, spk_embed_dim).
             extras (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
@@ -436,14 +645,15 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         """
         # remove unnecessary padded part (for multi-gpus)
-        xs = xs[:, :max(ilens)]
-        ys = ys[:, :max(olens)]
+        xs = xs[:, : max(ilens)]
+        ys = ys[:, : max(olens)]
         if extras is not None:
-            extras = extras[:, :max(ilens)].squeeze(-1)
+            extras = extras[:, : max(ilens)].squeeze(-1)
 
         # forward propagation
         before_outs, after_outs, ds, d_outs = self._forward(
-            xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False)
+            xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False
+        )
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
@@ -453,9 +663,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # calculate loss
         if self.postnet is None:
-            l1_loss, duration_loss = self.criterion(None, before_outs, d_outs, ys, ds, ilens, olens)
+            l1_loss, duration_loss = self.criterion(
+                None, before_outs, d_outs, ys, ds, ilens, olens
+            )
         else:
-            l1_loss, duration_loss = self.criterion(after_outs, before_outs, d_outs, ys, ds, ilens, olens)
+            l1_loss, duration_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            )
         loss = l1_loss + duration_loss
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -473,7 +687,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, spembs=None, extras=None, *args, **kwargs):
+    def calculate_all_attentions(
+        self, xs, ilens, ys, olens, spembs=None, extras=None, *args, **kwargs
+    ):
         """Calculate all of the attention weights.
 
         Args:
@@ -481,7 +697,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs (Tensor, optional):
+                Batch of speaker embedding vectors (B, spk_embed_dim).
             extras (Tensor, optional): Batch of precalculated durations (B, Tmax, 1).
 
         Returns:
@@ -490,13 +707,15 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         """
         with torch.no_grad():
             # remove unnecessary padded part (for multi-gpus)
-            xs = xs[:, :max(ilens)]
-            ys = ys[:, :max(olens)]
+            xs = xs[:, : max(ilens)]
+            ys = ys[:, : max(olens)]
             if extras is not None:
-                extras = extras[:, :max(ilens)].squeeze(-1)
+                extras = extras[:, : max(ilens)].squeeze(-1)
 
             # forward propagation
-            outs = self._forward(xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False)[1]
+            outs = self._forward(
+                xs, ilens, ys, olens, spembs=spembs, ds=extras, is_inference=False
+            )[1]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
@@ -506,7 +725,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                     attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
                 elif "decoder" in name:
                     if "src" in name:
-                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens.tolist())]
+                        attn = [
+                            a[:, :ol, :il]
+                            for a, il, ol in zip(attn, ilens.tolist(), olens.tolist())
+                        ]
                     elif "self" in name:
                         attn = [a[:, :l, :l] for a, l in zip(attn, olens.tolist())]
                     else:
@@ -514,7 +736,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 else:
                     logging.warning("unknown attention module: " + name)
                 att_ws_dict[name] = attn
-        att_ws_dict["predicted_fbank"] = [m[:l].T for m, l in zip(outs.cpu().numpy(), olens.tolist())]
+        att_ws_dict["predicted_fbank"] = [
+            m[:l].T for m, l in zip(outs.cpu().numpy(), olens.tolist())
+        ]
 
         return att_ws_dict
 
@@ -540,8 +764,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             spembs = None
 
+        # get option
+        alpha = getattr(inference_args, "fastspeech_alpha", 1.0)
+
         # inference
-        _, outs, _ = self._forward(xs, ilens, spembs=spembs, is_inference=True)  # (1, L, odim)
+        _, outs, _ = self._forward(
+            xs, ilens, spembs=spembs, is_inference=True, alpha=alpha,
+        )  # (1, L, odim)
 
         return outs[0], None, None
 
@@ -601,6 +830,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # load teacher model
         from espnet.utils.dynamic_import import dynamic_import
+
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)
         torch_load(model_path, model)
@@ -622,17 +852,21 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
     def _transfer_from_teacher(self, transferred_encoder_module):
         if transferred_encoder_module == "all":
-            for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(),
-                                          self.teacher.encoder.named_parameters()):
+            for (n1, p1), (n2, p2) in zip(
+                self.encoder.named_parameters(), self.teacher.encoder.named_parameters()
+            ):
                 assert n1 == n2, "It seems that encoder structure is different."
                 assert p1.shape == p2.shape, "It seems that encoder size is different."
                 p1.data.copy_(p2.data)
         elif transferred_encoder_module == "embed":
             student_shape = self.encoder.embed[0].weight.data.shape
             teacher_shape = self.teacher.encoder.embed[0].weight.data.shape
-            assert student_shape == teacher_shape, "It seems that embed dimension is different."
+            assert (
+                student_shape == teacher_shape
+            ), "It seems that embed dimension is different."
             self.encoder.embed[0].weight.data.copy_(
-                self.teacher.encoder.embed[0].weight.data)
+                self.teacher.encoder.embed[0].weight.data
+            )
         else:
             raise NotImplementedError("Support only all or embed.")
 
@@ -643,10 +877,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
     @property
     def base_plot_keys(self):
-        """Return base key names to plot during training. keys should match what `chainer.reporter` reports.
+        """Return base key names to plot during training.
 
-        If you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
-        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+        keys should match what `chainer.reporter` reports.
+        If you add the key `loss`,
+        the reporter will report `main/loss` and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss`
+        and `validation/main/loss` values.
 
         Returns:
             list: List of strings which are base keys to plot during training.

@@ -1,25 +1,18 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """Class Declaration of Transformer's Training Subprocess."""
-from __future__ import division
-
 import collections
 import logging
 import math
 import six
 
-# chainer related
 from chainer import cuda
-from chainer import training
-
 from chainer import functions as F
-
+from chainer import training
+from chainer.training import extension
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
-
-from chainer.training import extension
-
 import numpy as np
 
 
@@ -64,25 +57,27 @@ class CustomUpdater(training.StandardUpdater):
             case of cpu or single gpu, `device=-1 or 0`, respectively.
             In the case of multi-gpu, `device={"main":0, "sub_1": 1, ...}`.
         accum_grad (int):The number of gradient accumulation. if set to 2, the network
-            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
+            parameters will be updated once in twice,
+            i.e. actual batchsize will be doubled.
 
     """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
         """Initialize Custom Updater."""
         super(CustomUpdater, self).__init__(
-            train_iter, optimizer, converter=converter, device=device)
+            train_iter, optimizer, converter=converter, device=device
+        )
         self.accum_grad = accum_grad
         self.forward_count = 0
         self.start = True
         self.device = device
-        logging.debug('using custom converter for transformer')
+        logging.debug("using custom converter for transformer")
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         """Process main update routine for Custom Updater."""
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
+        train_iter = self.get_iterator("main")
+        optimizer = self.get_optimizer("main")
 
         # Get batch and convert into variables
         batch = train_iter.next()
@@ -100,11 +95,12 @@ class CustomUpdater(training.StandardUpdater):
             return
         self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(sum_sqnorm(
-            [p.grad for p in optimizer.target.params(False)]))
-        logging.info('grad norm={}'.format(grad_norm))
+        grad_norm = np.sqrt(
+            sum_sqnorm([p.grad for p in optimizer.target.params(False)])
+        )
+        logging.info("grad norm={}".format(grad_norm))
         if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
+            logging.warning("grad norm is nan. Do not update model.")
         else:
             optimizer.update()
         optimizer.target.cleargrads()  # Clear the parameter gradients
@@ -137,30 +133,33 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
         device (torch.device): Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
         accum_grad (int):The number of gradient accumulation. if set to 2, the network
-            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
+            parameters will be updated once in twice,
+            i.e. actual batchsize will be doubled.
 
     """
 
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         """Initialize custom parallel updater."""
         from cupy.cuda import nccl
+
         super(CustomParallelUpdater, self).__init__(
-            train_iters, optimizer, converter=converter, devices=devices)
+            train_iters, optimizer, converter=converter, devices=devices
+        )
         self.accum_grad = accum_grad
         self.forward_count = 0
         self.nccl = nccl
-        logging.debug('using custom parallel updater for transformer')
+        logging.debug("using custom parallel updater for transformer")
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         """Process main update routine for Custom Parallel Updater."""
         self.setup_workers()
 
-        self._send_message(('update', None))
+        self._send_message(("update", None))
         with cuda.Device(self._devices[0]):
             # For reducing memory
-            optimizer = self.get_optimizer('main')
-            batch = self.get_iterator('main').next()
+            optimizer = self.get_optimizer("main")
+            batch = self.get_iterator("main").next()
             x = self.converter(batch, self._devices[0])
 
             loss = self._master(*x) / self.accum_grad
@@ -170,10 +169,15 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             null_stream = cuda.Stream.null
             if self.comm is not None:
                 gg = gather_grads(self._master)
-                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 self.nccl.NCCL_FLOAT,
-                                 self.nccl.NCCL_SUM,
-                                 0, null_stream.ptr)
+                self.comm.reduce(
+                    gg.data.ptr,
+                    gg.data.ptr,
+                    gg.size,
+                    self.nccl.NCCL_FLOAT,
+                    self.nccl.NCCL_SUM,
+                    0,
+                    null_stream.ptr,
+                )
                 scatter_grads(self._master, gg)
                 del gg
 
@@ -183,21 +187,23 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                 return
             self.forward_count = 0
             # check gradient value
-            grad_norm = np.sqrt(sum_sqnorm(
-                [p.grad for p in optimizer.target.params(False)]))
-            logging.info('grad norm={}'.format(grad_norm))
+            grad_norm = np.sqrt(
+                sum_sqnorm([p.grad for p in optimizer.target.params(False)])
+            )
+            logging.info("grad norm={}".format(grad_norm))
 
             # update
             if math.isnan(grad_norm):
-                logging.warning('grad norm is nan. Do not update model.')
+                logging.warning("grad norm is nan. Do not update model.")
             else:
                 optimizer.update()
             self._master.cleargrads()
 
             if self.comm is not None:
                 gp = gather_params(self._master)
-                self.comm.bcast(gp.data.ptr, gp.size, self.nccl.NCCL_FLOAT,
-                                0, null_stream.ptr)
+                self.comm.bcast(
+                    gp.data.ptr, gp.size, self.nccl.NCCL_FLOAT, 0, null_stream.ptr
+                )
 
     def update(self):
         """Update step for Custom Parallel Updater."""
@@ -224,9 +230,16 @@ class VaswaniRule(extension.Extension):
 
     """
 
-    def __init__(self, attr, d, warmup_steps=4000,
-                 init=None, target=None, optimizer=None,
-                 scale=1.):
+    def __init__(
+        self,
+        attr,
+        d,
+        warmup_steps=4000,
+        init=None,
+        target=None,
+        optimizer=None,
+        scale=1.0,
+    ):
         """Initialize Vaswani rule extension."""
         self._attr = attr
         self._d_inv05 = d ** (-0.5) * scale
@@ -242,7 +255,7 @@ class VaswaniRule(extension.Extension):
         optimizer = self._get_optimizer(trainer)
         # ensure that _init is set
         if self._init is None:
-            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
+            self._init = self._d_inv05 * (1.0 * self._warmup_steps_inv15)
         if self._last_value is not None:  # resuming from a snapshot
             self._update_value(optimizer, self._last_value)
         else:
@@ -252,18 +265,19 @@ class VaswaniRule(extension.Extension):
         """Forward extension."""
         self._t += 1
         optimizer = self._get_optimizer(trainer)
-        value = self._d_inv05 * \
-            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
+        value = self._d_inv05 * min(
+            self._t ** (-0.5), self._t * self._warmup_steps_inv15
+        )
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):
         """Serialize extension."""
-        self._t = serializer('_t', self._t)
-        self._last_value = serializer('_last_value', self._last_value)
+        self._t = serializer("_t", self._t)
+        self._last_value = serializer("_last_value", self._last_value)
 
     def _get_optimizer(self, trainer):
         """Obtain optimizer from trainer."""
-        return self._optimizer or trainer.updater.get_optimizer('main')
+        return self._optimizer or trainer.updater.get_optimizer("main")
 
     def _update_value(self, optimizer, value):
         """Update requested variable values."""
