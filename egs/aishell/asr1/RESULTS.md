@@ -37,6 +37,7 @@ exp/train_sp_pytorch_no_patience/decode_test_beam20_emodel.acc.best_p0.0_len0.0-
 |    Sum/Avg    |     7176         104765     |     92.2           7.6            0.2           0.2            8.0          50.2     |
 ```
 
+# Ngram related 
    - there is no RNN not ngram 
 ```
 exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_dev_decode_pytorch_transformer_4gram_3.0/result.txt
