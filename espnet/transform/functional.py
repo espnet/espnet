@@ -26,6 +26,7 @@ class FuncTrans(TransformInterface):
     ...     _func = foo_bar
     ...     __doc__ = foo_bar.__doc__
     """
+
     _func = None
 
     def __init__(self, **kwargs):
@@ -55,8 +56,9 @@ class FuncTrans(TransformInterface):
             d = dict(inspect.signature(cls._func).parameters)
         except ValueError:
             d = dict()
-        return {k: v.default for k, v in d.items()
-                if v.default != inspect.Parameter.empty}
+        return {
+            k: v.default for k, v in d.items() if v.default != inspect.Parameter.empty
+        }
 
     def __repr__(self):
         params = self.default_params()

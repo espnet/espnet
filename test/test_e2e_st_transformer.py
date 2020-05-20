@@ -15,12 +15,16 @@ from test.test_e2e_asr_transformer import subsequent_mask
 
 
 logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    level=logging.INFO,
+    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+)
 
 
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_mask(module):
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_st_transformer'.format(module))
+    T = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_st_transformer".format(module)
+    )
     m = T.subsequent_mask(3)
     print(m)
     print(subsequent_mask(3))
@@ -47,7 +51,7 @@ def make_arg(**kwargs):
         report_wer=False,
         mtlalpha=0.0,  # for CTC-ASR
         lsm_weight=0.001,
-        char_list=['<blank>', 'a', 'e', 'i', 'o', 'u'],
+        char_list=["<blank>", "a", "e", "i", "o", "u"],
         ctc_type="warpctc",
         asr_weight=0.0,
         mt_weight=0.0,
@@ -59,35 +63,46 @@ def make_arg(**kwargs):
 def prepare(backend, args):
     idim = 40
     odim = 5
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_st_transformer'.format(backend))
+    T = importlib.import_module(
+        "espnet.nets.{}_backend.e2e_st_transformer".format(backend)
+    )
 
     model = T.E2E(idim, odim, args)
     batchsize = 5
-    if backend == 'pytorch':
+    if backend == "pytorch":
         x = torch.randn(batchsize, 40, idim)
     else:
         x = numpy.random.randn(batchsize, 40, idim).astype(numpy.float32)
     ilens = [40, 30, 20, 15, 10]
     n_token = odim - 1
-    if backend == 'pytorch':
+    if backend == "pytorch":
         y_src = (torch.rand(batchsize, 10) * n_token % n_token).long()
         y_tgt = (torch.rand(batchsize, 11) * n_token % n_token).long()
     else:
-        y_src = (numpy.random.rand(batchsize, 10) * n_token % n_token).astype(numpy.int32)
-        y_tgt = (numpy.random.rand(batchsize, 11) * n_token % n_token).astype(numpy.int32)
+        y_src = (numpy.random.rand(batchsize, 10) * n_token % n_token).astype(
+            numpy.int32
+        )
+        y_tgt = (numpy.random.rand(batchsize, 11) * n_token % n_token).astype(
+            numpy.int32
+        )
     olens = [3, 9, 10, 2, 3]
     for i in range(batchsize):
-        x[i, ilens[i]:] = -1
-        y_tgt[i, olens[i]:] = model.ignore_id
-        y_src[i, olens[i]:] = model.ignore_id
+        x[i, ilens[i] :] = -1
+        y_tgt[i, olens[i] :] = model.ignore_id
+        y_src[i, olens[i] :] = model.ignore_id
 
     data = []
     for i in range(batchsize):
-        data.append(("utt%d" % i, {
-            "input": [{"shape": [ilens[i], idim]}],
-            "output": [{"shape": [olens[i]]}]
-        }))
-    if backend == 'pytorch':
+        data.append(
+            (
+                "utt%d" % i,
+                {
+                    "input": [{"shape": [ilens[i], idim]}],
+                    "output": [{"shape": [olens[i]]}],
+                },
+            )
+        )
+    if backend == "pytorch":
         return model, x, torch.tensor(ilens), y_tgt, y_src, data
     else:
         return model, x, ilens, y_tgt, y_src, data
@@ -99,6 +114,7 @@ def test_transformer_mask(module):
     model, x, ilens, y_tgt, y_src, data = prepare(module, args)
     from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
     from espnet.nets.pytorch_backend.transformer.mask import target_mask
+
     yi, yo = add_sos_eos(y_tgt, model.sos, model.eos, model.ignore_id)
     y_mask = target_mask(yi, model.ignore_id)
     y_tgt = model.decoder.embed(yi)
@@ -109,19 +125,46 @@ def test_transformer_mask(module):
 
 
 @pytest.mark.parametrize(
-    "module, model_dict", [
-        ('pytorch', {'asr_weight': 0.0, 'mt_weight': 0.0}),  # pure E2E-ST
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0, 'mt_weight': 0.0}),  # MTL w/ attention ASR
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.0, 'mt_weight': 0.1}),  # MTL w/ attention ASR + MT
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'mt_weight': 0.0}),  # MTL w/ CTC ASR
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'ctc_type': "builtin"}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_cer': True}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_wer': True}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'report_cer': True, 'report_wer': True}),
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 1.0, 'mt_weight': 0.1}),  # MTL w/ CTC ASR + MT
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.5, 'mt_weight': 0.0}),  # MTL w/ attention ASR + CTC ASR
-        ('pytorch', {'asr_weight': 0.1, 'mtlalpha': 0.5, 'mt_weight': 0.1}),  # MTL w/ attention ASR + CTC ASR + MT
-    ]
+    "module, model_dict",
+    [
+        ("pytorch", {"asr_weight": 0.0, "mt_weight": 0.0}),  # pure E2E-ST
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 0.0, "mt_weight": 0.0},
+        ),  # MTL w/ attention ASR
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 0.0, "mt_weight": 0.1},
+        ),  # MTL w/ attention ASR + MT
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 1.0, "mt_weight": 0.0},
+        ),  # MTL w/ CTC ASR
+        ("pytorch", {"asr_weight": 0.1, "mtlalpha": 1.0, "ctc_type": "builtin"}),
+        ("pytorch", {"asr_weight": 0.1, "mtlalpha": 1.0, "report_cer": True}),
+        ("pytorch", {"asr_weight": 0.1, "mtlalpha": 1.0, "report_wer": True}),
+        (
+            "pytorch",
+            {
+                "asr_weight": 0.1,
+                "mtlalpha": 1.0,
+                "report_cer": True,
+                "report_wer": True,
+            },
+        ),
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 1.0, "mt_weight": 0.1},
+        ),  # MTL w/ CTC ASR + MT
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 0.5, "mt_weight": 0.0},
+        ),  # MTL w/ attention ASR + CTC ASR
+        (
+            "pytorch",
+            {"asr_weight": 0.1, "mtlalpha": 0.5, "mt_weight": 0.1},
+        ),  # MTL w/ attention ASR + CTC ASR + MT
+    ],
 )
 def test_transformer_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
@@ -147,13 +190,18 @@ def test_transformer_trainable_and_decodable(module, model_dict):
         optim.step()
 
         # test attention plot
-        attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y_tgt[0:1], y_src[0:1])
+        attn_dict = model.calculate_all_attentions(
+            x[0:1], ilens[0:1], y_tgt[0:1], y_src[0:1]
+        )
         from espnet.nets.pytorch_backend.transformer import plot
+
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
         # test decodable
         with torch.no_grad():
-            nbest = model.translate(x[0, :ilens[0]].numpy(), trans_args, args.char_list)
+            nbest = model.translate(
+                x[0, : ilens[0]].numpy(), trans_args, args.char_list
+            )
             print(y_tgt[0])
             print(nbest[0]["yseq"][1:-1])
     else:

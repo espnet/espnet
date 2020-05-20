@@ -16,29 +16,33 @@ is_python2 = sys.version_info[0] == 2
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='convert scp to json',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--key', '-k', type=str,
-                        help='key')
+        description="convert scp to json",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--key", "-k", type=str, help="key")
     return parser
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
     new_line = {}
     sys.stdin = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
-    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    sys.stdout = codecs.getwriter("utf-8")(
+        sys.stdout if is_python2 else sys.stdout.buffer
+    )
     line = sys.stdin.readline()
     while line:
         x = line.rstrip().split()
-        v = {args.key: ' '.join(x[1:])}
+        v = {args.key: " ".join(x[1:])}
         new_line[x[0]] = v
         line = sys.stdin.readline()
 
-    all_l = {'utts': new_line}
+    all_l = {"utts": new_line}
 
     # ensure "ensure_ascii=False", which is a bug
-    jsonstring = json.dumps(all_l, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': '))
+    jsonstring = json.dumps(
+        all_l, indent=4, ensure_ascii=False, sort_keys=True, separators=(",", ": ")
+    )
     print(jsonstring)

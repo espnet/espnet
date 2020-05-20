@@ -3,6 +3,8 @@
 """Network related utility tools."""
 
 import logging
+from typing import Dict
+
 import numpy as np
 import torch
 
@@ -48,7 +50,7 @@ def pad_list(xs, pad_value):
     pad = xs[0].new(n_batch, max_len, *xs[0].size()[1:]).fill_(pad_value)
 
     for i in range(n_batch):
-        pad[i, :xs[i].size(0)] = xs[i]
+        pad[i, : xs[i].size(0)] = xs[i]
 
     return pad
 
@@ -58,8 +60,10 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
 
     Args:
         lengths (LongTensor or List): Batch of lengths (B,).
-        xs (Tensor, optional): The reference tensor. If set, masks will be the same shape as this tensor.
-        length_dim (int, optional): Dimension indicator of the above tensor. See the example.
+        xs (Tensor, optional): The reference tensor.
+            If set, masks will be the same shape as this tensor.
+        length_dim (int, optional): Dimension indicator of the above tensor.
+            See the example.
 
     Returns:
         Tensor: Mask tensor containing indices of padded part.
@@ -138,7 +142,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
 
     """
     if length_dim == 0:
-        raise ValueError('length_dim cannot be 0: {}'.format(length_dim))
+        raise ValueError("length_dim cannot be 0: {}".format(length_dim))
 
     if not isinstance(lengths, list):
         lengths = lengths.tolist()
@@ -159,8 +163,9 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
         if length_dim < 0:
             length_dim = xs.dim() + length_dim
         # ind = (:, None, ..., None, :, , None, ..., None)
-        ind = tuple(slice(None) if i in (0, length_dim) else None
-                    for i in range(xs.dim()))
+        ind = tuple(
+            slice(None) if i in (0, length_dim) else None for i in range(xs.dim())
+        )
         mask = mask[ind].expand_as(xs).to(xs.device)
     return mask
 
@@ -170,8 +175,10 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
 
     Args:
         lengths (LongTensor or List): Batch of lengths (B,).
-        xs (Tensor, optional): The reference tensor. If set, masks will be the same shape as this tensor.
-        length_dim (int, optional): Dimension indicator of the above tensor. See the example.
+        xs (Tensor, optional): The reference tensor.
+            If set, masks will be the same shape as this tensor.
+        length_dim (int, optional): Dimension indicator of the above tensor.
+            See the example.
 
     Returns:
         ByteTensor: mask tensor containing indices of padded part.
@@ -296,11 +303,12 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
 
     """
     pad_pred = pad_outputs.view(
-        pad_targets.size(0),
-        pad_targets.size(1),
-        pad_outputs.size(1)).argmax(2)
+        pad_targets.size(0), pad_targets.size(1), pad_outputs.size(1)
+    ).argmax(2)
     mask = pad_targets != ignore_label
-    numerator = torch.sum(pad_pred.masked_select(mask) == pad_targets.masked_select(mask))
+    numerator = torch.sum(
+        pad_pred.masked_select(mask) == pad_targets.masked_select(mask)
+    )
     denominator = torch.sum(mask)
     return float(numerator) / float(denominator)
 
@@ -332,9 +340,10 @@ def to_torch_tensor(x):
     """
     # If numpy, change to torch tensor
     if isinstance(x, np.ndarray):
-        if x.dtype.kind == 'c':
+        if x.dtype.kind == "c":
             # Dynamically importing because torch_complex requires python3
             from torch_complex.tensor import ComplexTensor
+
             return ComplexTensor(x)
         else:
             return torch.from_numpy(x)
@@ -344,19 +353,21 @@ def to_torch_tensor(x):
         # Dynamically importing because torch_complex requires python3
         from torch_complex.tensor import ComplexTensor
 
-        if 'real' not in x or 'imag' not in x:
+        if "real" not in x or "imag" not in x:
             raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
         # Relative importing because of using python3 syntax
-        return ComplexTensor(x['real'], x['imag'])
+        return ComplexTensor(x["real"], x["imag"])
 
     # If torch.Tensor, as it is
     elif isinstance(x, torch.Tensor):
         return x
 
     else:
-        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
-                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
-                 "but got {}".format(type(x)))
+        error = (
+            "x must be numpy.ndarray, torch.Tensor or a dict like "
+            "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
+            "but got {}".format(type(x))
+        )
         try:
             from torch_complex.tensor import ComplexTensor
         except Exception:
@@ -371,7 +382,7 @@ def to_torch_tensor(x):
 
 
 def get_subsample(train_args, mode, arch):
-    """Parse the subsampling factors from the training args for the specified `mode` and `arch`.
+    """Parse the subsampling factors from the args for the specified `mode` and `arch`.
 
     Args:
         train_args: argument Namespace containing options.
@@ -381,19 +392,21 @@ def get_subsample(train_args, mode, arch):
     Returns:
         np.ndarray / List[np.ndarray]: subsampling factors.
     """
-    if arch == 'transformer':
+    if arch == "transformer":
         return np.array([1])
 
-    elif mode == 'mt' and arch == 'rnn':
+    elif mode == "mt" and arch == "rnn":
         # +1 means input (+1) and layers outputs (train_args.elayer)
         subsample = np.ones(train_args.elayers + 1, dtype=np.int)
-        logging.warning('Subsampling is not performed for machine translation.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+        logging.warning("Subsampling is not performed for machine translation.")
+        logging.info("subsample: " + " ".join([str(x) for x in subsample]))
         return subsample
 
-    elif (mode == 'asr' and arch in ('rnn', 'rnn-t')) or \
-         (mode == 'mt' and arch == 'rnn') or \
-         (mode == 'st' and arch == 'rnn'):
+    elif (
+        (mode == "asr" and arch in ("rnn", "rnn-t"))
+        or (mode == "mt" and arch == "rnn")
+        or (mode == "st" and arch == "rnn")
+    ):
         subsample = np.ones(train_args.elayers + 1, dtype=np.int)
         if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
             ss = train_args.subsample.split("_")
@@ -401,37 +414,63 @@ def get_subsample(train_args, mode, arch):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(
-                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+                "Subsampling is not performed for vgg*. "
+                "It is performed in max pooling layers at CNN."
+            )
+        logging.info("subsample: " + " ".join([str(x) for x in subsample]))
         return subsample
 
-    elif mode == 'asr' and arch == 'rnn_mix':
-        subsample = np.ones(train_args.elayers_sd + train_args.elayers + 1, dtype=np.int)
+    elif mode == "asr" and arch == "rnn_mix":
+        subsample = np.ones(
+            train_args.elayers_sd + train_args.elayers + 1, dtype=np.int
+        )
         if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
             ss = train_args.subsample.split("_")
-            for j in range(min(train_args.elayers_sd + train_args.elayers + 1, len(ss))):
+            for j in range(
+                min(train_args.elayers_sd + train_args.elayers + 1, len(ss))
+            ):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(
-                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
-        logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+                "Subsampling is not performed for vgg*. "
+                "It is performed in max pooling layers at CNN."
+            )
+        logging.info("subsample: " + " ".join([str(x) for x in subsample]))
         return subsample
 
-    elif mode == 'asr' and arch == 'rnn_mulenc':
+    elif mode == "asr" and arch == "rnn_mulenc":
         subsample_list = []
         for idx in range(train_args.num_encs):
             subsample = np.ones(train_args.elayers[idx] + 1, dtype=np.int)
-            if train_args.etype[idx].endswith("p") and not train_args.etype[idx].startswith("vgg"):
+            if train_args.etype[idx].endswith("p") and not train_args.etype[
+                idx
+            ].startswith("vgg"):
                 ss = train_args.subsample[idx].split("_")
                 for j in range(min(train_args.elayers[idx] + 1, len(ss))):
                     subsample[j] = int(ss[j])
             else:
                 logging.warning(
-                    'Encoder %d: Subsampling is not performed for vgg*. '
-                    'It is performed in max pooling layers at CNN.', idx + 1)
-            logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
+                    "Encoder %d: Subsampling is not performed for vgg*. "
+                    "It is performed in max pooling layers at CNN.",
+                    idx + 1,
+                )
+            logging.info("subsample: " + " ".join([str(x) for x in subsample]))
             subsample_list.append(subsample)
         return subsample_list
 
     else:
-        raise ValueError('Invalid options: mode={}, arch={}'.format(mode, arch))
+        raise ValueError("Invalid options: mode={}, arch={}".format(mode, arch))
+
+
+def rename_state_dict(
+    old_prefix: str, new_prefix: str, state_dict: Dict[str, torch.Tensor]
+):
+    """Replace keys of old prefix with new prefix in state dict."""
+    # need this list not to break the dict iterator
+    old_keys = [k for k in state_dict if k.startswith(old_prefix)]
+    if len(old_keys) > 0:
+        logging.warning(f"Rename: {old_prefix} -> {new_prefix}")
+    for k in old_keys:
+        v = state_dict.pop(k)
+        new_k = k.replace(old_prefix, new_prefix)
+        state_dict[new_k] = v

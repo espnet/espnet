@@ -12,8 +12,10 @@ import torch
 class MultiLayeredConv1d(torch.nn.Module):
     """Multi-layered conv1d for Transformer block.
 
-    This is a module of multi-leyered conv1d designed to replace positionwise feed-forward network
-    in Transforner block, which is introduced in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
+    This is a module of multi-leyered conv1d designed
+    to replace positionwise feed-forward network
+    in Transforner block, which is introduced in
+    `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
@@ -31,10 +33,20 @@ class MultiLayeredConv1d(torch.nn.Module):
 
         """
         super(MultiLayeredConv1d, self).__init__()
-        self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
-                                   stride=1, padding=(kernel_size - 1) // 2)
-        self.w_2 = torch.nn.Conv1d(hidden_chans, in_chans, kernel_size,
-                                   stride=1, padding=(kernel_size - 1) // 2)
+        self.w_1 = torch.nn.Conv1d(
+            in_chans,
+            hidden_chans,
+            kernel_size,
+            stride=1,
+            padding=(kernel_size - 1) // 2,
+        )
+        self.w_2 = torch.nn.Conv1d(
+            hidden_chans,
+            in_chans,
+            kernel_size,
+            stride=1,
+            padding=(kernel_size - 1) // 2,
+        )
         self.dropout = torch.nn.Dropout(dropout_rate)
 
     def forward(self, x):
@@ -69,8 +81,13 @@ class Conv1dLinear(torch.nn.Module):
 
         """
         super(Conv1dLinear, self).__init__()
-        self.w_1 = torch.nn.Conv1d(in_chans, hidden_chans, kernel_size,
-                                   stride=1, padding=(kernel_size - 1) // 2)
+        self.w_1 = torch.nn.Conv1d(
+            in_chans,
+            hidden_chans,
+            kernel_size,
+            stride=1,
+            padding=(kernel_size - 1) // 2,
+        )
         self.w_2 = torch.nn.Linear(hidden_chans, in_chans)
         self.dropout = torch.nn.Dropout(dropout_rate)
 

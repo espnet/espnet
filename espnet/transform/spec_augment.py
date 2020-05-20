@@ -16,7 +16,8 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
     :param numpy.ndarray x: spectrogram (time, freq)
     :param int max_time_warp: maximum time frames to warp
     :param bool inplace: overwrite x with the result
-    :param str mode: "PIL" (default, fast, not differentiable) or "sparse_image_warp" (slow, differentiable)
+    :param str mode: "PIL" (default, fast, not differentiable) or "sparse_image_warp"
+        (slow, differentiable)
     :returns numpy.ndarray: time warped spectrogram (time, freq)
     """
     window = max_time_warp
@@ -43,7 +44,11 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
         # TODO(karita): make this differentiable again
         return spec_augment.time_warp(torch.from_numpy(x), window).numpy()
     else:
-        raise NotImplementedError("unknown resize mode: " + mode + ", choose one from (PIL, sparse_image_warp).")
+        raise NotImplementedError(
+            "unknown resize mode: "
+            + mode
+            + ", choose one from (PIL, sparse_image_warp)."
+        )
 
 
 class TimeWarp(FuncTrans):
@@ -139,16 +144,26 @@ class TimeMask(FuncTrans):
         return super().__call__(x)
 
 
-def spec_augment(x, resize_mode="PIL", max_time_warp=80,
-                 max_freq_width=27, n_freq_mask=2,
-                 max_time_width=100, n_time_mask=2, inplace=True, replace_with_zero=True):
+def spec_augment(
+    x,
+    resize_mode="PIL",
+    max_time_warp=80,
+    max_freq_width=27,
+    n_freq_mask=2,
+    max_time_width=100,
+    n_time_mask=2,
+    inplace=True,
+    replace_with_zero=True,
+):
     """spec agument
 
     apply random time warping and time/freq masking
-    default setting is based on LD (Librispeech double) in Table 2 https://arxiv.org/pdf/1904.08779.pdf
+    default setting is based on LD (Librispeech double) in Table 2
+        https://arxiv.org/pdf/1904.08779.pdf
 
     :param numpy.ndarray x: (time, freq)
-    :param str resize_mode: "PIL" (fast, nondifferentiable) or "sparse_image_warp" (slow, differentiable)
+    :param str resize_mode: "PIL" (fast, nondifferentiable) or "sparse_image_warp"
+        (slow, differentiable)
     :param int max_time_warp: maximum frames to warp the center frame in spectrogram (W)
     :param int freq_mask_width: maximum width of the random freq mask (F)
     :param int n_freq_mask: the number of the random freq mask (m_F)
@@ -160,8 +175,20 @@ def spec_augment(x, resize_mode="PIL", max_time_warp=80,
     assert isinstance(x, numpy.ndarray)
     assert x.ndim == 2
     x = time_warp(x, max_time_warp, inplace=inplace, mode=resize_mode)
-    x = freq_mask(x, max_freq_width, n_freq_mask, inplace=inplace, replace_with_zero=replace_with_zero)
-    x = time_mask(x, max_time_width, n_time_mask, inplace=inplace, replace_with_zero=replace_with_zero)
+    x = freq_mask(
+        x,
+        max_freq_width,
+        n_freq_mask,
+        inplace=inplace,
+        replace_with_zero=replace_with_zero,
+    )
+    x = time_mask(
+        x,
+        max_time_width,
+        n_time_mask,
+        inplace=inplace,
+        replace_with_zero=replace_with_zero,
+    )
     return x
 
 

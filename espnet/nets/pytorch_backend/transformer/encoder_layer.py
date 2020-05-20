@@ -17,19 +17,29 @@ class EncoderLayer(nn.Module):
     """Encoder layer module.
 
     :param int size: input dim
-    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention self_attn: self attention module
-    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward feed_forward:
+    :param espnet.nets.pytorch_backend.transformer.attention.
+        MultiHeadedAttention self_attn: self attention module
+    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.
+        PositionwiseFeedForward feed_forward:
         feed forward module
     :param float dropout_rate: dropout rate
     :param bool normalize_before: whether to use layer_norm before the first block
     :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if True, additional linear will be applied.
+        i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
 
     """
 
-    def __init__(self, size, self_attn, feed_forward, dropout_rate,
-                 normalize_before=True, concat_after=False):
+    def __init__(
+        self,
+        size,
+        self_attn,
+        feed_forward,
+        dropout_rate,
+        normalize_before=True,
+        concat_after=False,
+    ):
         """Construct an EncoderLayer object."""
         super(EncoderLayer, self).__init__()
         self.self_attn = self_attn

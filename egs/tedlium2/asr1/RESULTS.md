@@ -1,7 +1,7 @@
 # Transformer (large model + specaug + large LM)
 
   - Model files (archived to large.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U
+    - model link: https://drive.google.com/open?id=1heuP2G5YX5u4hERs370eF-1MG2DT50zR
     - training config file: `./conf/tuning/train_pytorch_transformer.v2_epochs100.yaml`
     - decoding config file: `./conf/decode_lm-weight0.5_beam-size40.yaml`
     - cmvn file: `./data/train_trim_sp/cmvn.ark`

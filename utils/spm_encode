@@ -47,8 +47,8 @@ def main():
     if args.min_len is not None or args.max_len is not None:
         def valid(line):
             return (
-                (args.min_len is None or len(line) >= args.min_len)
-                and (args.max_len is None or len(line) <= args.max_len)
+                (args.min_len is None or len(line) >= args.min_len) and
+                (args.max_len is None or len(line) <= args.max_len)
             )
     else:
         def valid(lines):

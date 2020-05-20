@@ -1,0 +1,1 @@
+../../mini_an4/asr1/db.sh
