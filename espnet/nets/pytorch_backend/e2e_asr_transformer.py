@@ -23,6 +23,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
@@ -136,6 +137,15 @@ class E2E(ASRInterface, torch.nn.Module):
         group.add_argument(
             "--dunits", default=320, type=int, help="Number of decoder hidden units"
         )
+        # Non-autoregressive training
+        group.add_argument(
+            "--dmode",
+            default="AR",
+            type=str,
+            choices=["AR", "NAR"],
+            help="AR: standard autoregressive training, "
+            "NAR: non-autoregressive training based on mask-predict",
+        )
         return parser
 
     @property
@@ -175,8 +185,14 @@ class E2E(ASRInterface, torch.nn.Module):
             self_attention_dropout_rate=args.transformer_attn_dropout_rate,
             src_attention_dropout_rate=args.transformer_attn_dropout_rate,
         )
-        self.sos = odim - 1
-        self.eos = odim - 1
+        self.dmode = args.dmode
+        if self.dmode == "NAR":
+            self.mask = odim - 1
+            self.sos = odim - 2
+            self.eos = odim - 2
+        else:
+            self.sos = odim - 1
+            self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
         self.subsample = get_subsample(args, mode="asr", arch="transformer")
@@ -237,9 +253,14 @@ class E2E(ASRInterface, torch.nn.Module):
         self.hs_pad = hs_pad
 
         # 2. forward decoder
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-        ys_mask = target_mask(ys_in_pad, self.ignore_id)
-        pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+        if self.dmode == "NAR":
+            ys_in_pad, ys_out_pad = mask_uniform(ys_pad, self.mask, self.eos, self.ignore_id)
+            ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
+            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+        else:
+            ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+            ys_mask = target_mask(ys_in_pad, self.ignore_id)
+            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
         # 3. compute attention loss
@@ -268,7 +289,7 @@ class E2E(ASRInterface, torch.nn.Module):
             ys_hat = pred_pad.argmax(dim=-1)
             cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        # copyied from e2e_asr
+        # copied from e2e_asr
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -319,6 +340,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: list
         """
         enc_output = self.encode(x).unsqueeze(0)
+        if self.dmode == "NAR":
+            return recognize_mask_ctc(enc_output, recog_args, char_list)
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
