@@ -10,14 +10,14 @@ from abc import ABC
 class Ngrambase(ABC):
     def __init__(self, ngram_model, token_list, space=" "):
         self.space = space
-        self.chardict = token_list
+        self.chardict = [x if x!= "<eos>" else "</s>" for x in token_list]
         self.charlen = len(self.chardict)
         self.lm = kenlm.LanguageModel(ngram_model)
-        #self.lm = extendkenlm(ngram_model)
         self.tmpkenlmstate = kenlm.State()
 
     def init_state(self, x):
         state = kenlm.State()
+        # since there is no <s> only </s> 
         self.lm.NullContextWrite(state)
         return [0.0, state]
     
