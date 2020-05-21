@@ -17,8 +17,6 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
-import kenlm
-from espnet.nets.pytorch_backend.lm.ngram import NgramFullScorer
 
 def recog_v2(args):
     """Decode with custom models that implements ScorerInterface.
@@ -67,6 +65,7 @@ def recog_v2(args):
         lm = None
 
     if args.ngram_model:
+        from espnet.nets.pytorch_backend.lm.ngram import NgramFullScorer
         ngram = NgramFullScorer(args.ngram_model, train_args.char_list)
     else:
         ngram = None
