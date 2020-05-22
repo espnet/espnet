@@ -191,7 +191,9 @@ def train(args):
 
         optimizer = get_std_opt(
             model.parameters(),
-            args.adim, args.transformer_warmup_steps, args.transformer_lr
+            args.adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
