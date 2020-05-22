@@ -25,9 +25,9 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv warp-ctc.done warp-transducer.done chainer_ctc.done kenlm.done
+python: venv warp-ctc.done warp-transducer.done chainer_ctc.done
 
-extra: nkf.done moses.done mwerSegmenter.done pesq
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
