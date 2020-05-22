@@ -185,7 +185,7 @@ fi
 ngramexpname=train_ngram
 ngramexpdir=exp/${ngramexpname}
 if [ -z ${ngramtag} ]; then
-    ngramtag=${ngram}
+    ngramtag=${n_gram}
 fi
 [ ! -d ${ngramexpdir} ] && mkdir -p ${ngramexpdir}
 
