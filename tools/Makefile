@@ -81,7 +81,7 @@ chainer_ctc.done: espnet.done
 kenlm.done: espnet.done
 	rm -rf kenlm
 	git clone https://github.com/kpu/kenlm.git
-	mkdir -p kenlm/build && cd kenlm/build && cmake .. && make -j4;
+	mkdir -p kenlm/build && cd kenlm/build && cmake .. && $(MAKE);
 	. venv/bin/activate; cd kenlm && python setup.py install
 	touch kenlm.done
 
