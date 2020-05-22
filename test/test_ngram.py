@@ -1,6 +1,6 @@
 import pytest
-import os
-kenlm = pytest.importorskip("kenlm")
+import kenlm
+#kenlm = pytest.importorskip("kenlm")
 from math import isclose
 
 from espnet.nets.pytorch_backend.lm.ngram import NgramFullScorer
