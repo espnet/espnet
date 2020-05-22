@@ -81,6 +81,7 @@ def inference(
     asr_model, asr_train_args = ASRTask.build_model_from_file(
         asr_train_config, asr_model_file, device
     )
+    asr_model.eval()
 
     decoder = asr_model.decoder
     ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
