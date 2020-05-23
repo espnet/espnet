@@ -10,6 +10,7 @@ from abc import ABC
 class Ngrambase(ABC):
     """Ngram base implemented throught ScorerInterface
     """
+
     def __init__(self, ngram_model, token_list):
         """
         Args:
@@ -57,6 +58,7 @@ class NgramFullScorer(Ngrambase, ScorerInterface):
     Args:
         Fullscorer for ngram
     """
+
     def score(self, y, state, x):
         return self.score_partial_(y, torch.tensor(range(len(self.chardict))), state, x)
 
@@ -66,5 +68,6 @@ class NgramPartScorer(Ngrambase, PartialScorerInterface):
     Args:
         Partialscorer for ngram
     """
+
     def score_partial(self, y, next_token, state, x):
         return self.score_partial_(y, next_token, state, x)
