@@ -49,7 +49,7 @@ class Ngrambase(ABC):
                 and next state list for ys.
  
         """
-        
+
         out_state = kenlm.State()
         state[0] += self.lm.BaseScore(state[1], self.chardict[y[-1]], out_state)
         scores = torch.full(next_token.size(), state[0])
