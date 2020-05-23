@@ -3,9 +3,6 @@ import pytest
 kenlm = pytest.importorskip("kenlm")
 from math import isclose
 
-from espnet.nets.pytorch_backend.lm.ngram import NgramFullScorer
-from espnet.nets.pytorch_backend.lm.ngram import NgramPartScorer
-
 test_sens = ["I like apple", "you love coffee"]
 
 
