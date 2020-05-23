@@ -56,8 +56,7 @@ set -o pipefail
 
 train_set=train_li42
 train_dev=dev_li42
-recog_set="" # Leave it empty to use recog_set_regex for regular expression
-recog_set_regex="\(dt\|et\)_.\+_\(babel\|commonvoice\|chime4\|aurora4\|fisher_swbd\|fisher_callhome_spanish\|wsj\|voxforge\|csj\|aishell\|hkust\)" # use all {dt, et} data under data/.
+recog_set="dt_*_commonvoice dt_*_babel dt_*_wsj dt_*_aurora4 dt_*_csj dt_*_fisher_swbd dt_*_hkust dt_*_aishell dt_*_fisher_callhome_spanish dt_*_chime4 dt_*_voxforge et_*_commonvoice et_*_babel et_*_wsj et_*_csj et_*_fisher_swbd et_*_hkust et_*_aishell et_*_fisher_callhome_spanish et_*_chime4 et_*_voxforge" # can either use patterns or full names here.
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     lang_code=zh
@@ -203,8 +202,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     fi
 fi
 
-# Set recog_set with reguar expression
-[ -z ${recog_set} ] && recog_set=`ls data/ | grep "^${recog_set_regex}$"`
+# Set real recog_set
+recog_set_new=""
+for rtask_pattern in ${recog_set}; do
+    rtasks=`find data/ -name "${rtask_pattern}" | sed 's!^.*/!!'`
+    recog_set_new="${recog_set_new} ${rtasks}"
+done
+recog_set=${recog_set_new}
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
