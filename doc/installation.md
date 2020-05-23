@@ -179,12 +179,12 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
 ```
 
-#### using the system Python directly without creating python environment
+#### using the system Python without creating new python environment
 We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/bin/activate`:
 
 ```sh
 $ cd <espnet-root>/tools
-$ rm -rf venv; mkdir venv; touch venv/bin/activate  # Create an empty file
+$ rm -rf venv; mkdir -p venv/bin; touch venv/bin/activate  # Create an empty file
 $ make
 ```
 
