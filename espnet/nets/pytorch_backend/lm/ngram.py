@@ -11,11 +11,12 @@ class Ngrambase(ABC):
     """Ngram base implemented throught ScorerInterface."""
 
     def __init__(self, ngram_model, token_list):
-        """
+        """Initialize Ngrambase
+
         Args:
             ngram_model: ngram model path
             token_list: token list from dict or model.json
-        
+ 
         """
         self.chardict = [x if x != "<eos>" else "</s>" for x in token_list]
         self.charlen = len(self.chardict)
@@ -48,6 +49,7 @@ class Ngrambase(ABC):
                 and next state list for ys.
  
         """
+        
         out_state = kenlm.State()
         state[0] += self.lm.BaseScore(state[1], self.chardict[y[-1]], out_state)
         scores = torch.full(next_token.size(), state[0])
