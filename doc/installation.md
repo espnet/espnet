@@ -156,7 +156,7 @@ $ cd <any-place>
 $ git clone https://github.com/espnet/espnet
 ```
 
-#### using miniconda (default)
+#### create miniconda environment (default)
 
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
@@ -170,7 +170,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 
-#### using existing python
+#### create virtualenv from an existing python
 
 If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
 
@@ -179,12 +179,12 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
 ```
 
-#### Using the system Python directly instead of `tools/venv` in the experiment
-We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/activate`:
+#### using the system Python directly without creating python environment
+We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/bin/activate`:
 
 ```sh
 $ cd <espnet-root>/tools
-$ rm -rf venv; mkdir venv; touch venv/activate  # Create an empty file
+$ rm -rf venv; mkdir venv; touch venv/bin/activate  # Create an empty file
 $ make
 ```
 
