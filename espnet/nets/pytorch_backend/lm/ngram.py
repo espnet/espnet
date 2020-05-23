@@ -78,7 +78,6 @@ class NgramFullScorer(Ngrambase, ScorerInterface):
                 and next state list for ys.
 
         """
-
         return self.score_partial_(y, torch.tensor(range(len(self.chardict))), state, x)
 
 
@@ -100,5 +99,4 @@ class NgramPartScorer(Ngrambase, PartialScorerInterface):
                 and next state list for ys.
 
         """
-
         return self.score_partial_(y, next_token, state, x)
