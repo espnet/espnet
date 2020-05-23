@@ -11,7 +11,7 @@ class Ngrambase(ABC):
     """Ngram base implemented throught ScorerInterface."""
 
     def __init__(self, ngram_model, token_list):
-        """Initialize Ngrambase
+        """Initialize Ngrambase.
 
         Args:
             ngram_model: ngram model path
@@ -35,14 +35,14 @@ class Ngrambase(ABC):
         return state
 
     def score_partial_(self, y, next_token, state, x):
-        """Score interface for both full and partial scorer
-        
+        """Score interface for both full and partial scorer.
+
         Args:
             y: previous char
             next_token: next token need to be score
             state: previous state
             x: encoded feature
-        
+
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
                 batchfied scores for next token with shape of `(n_batch, n_vocab)`
