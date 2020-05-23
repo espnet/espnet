@@ -78,13 +78,6 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate && ./install_chainer_ctc.sh
 	touch chainer_ctc.done
 
-kenlm.done: espnet.done
-	rm -rf kenlm
-	git clone https://github.com/kpu/kenlm.git
-	mkdir -p kenlm/build && cd kenlm/build && cmake .. && $(MAKE);
-	. venv/bin/activate; cd kenlm && python setup.py install
-	touch kenlm.done
-
 nkf.done:
 	./install_nkf.sh
 	touch nkf.done
