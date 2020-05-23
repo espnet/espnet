@@ -1,8 +1,10 @@
+"""Ngram lm implement."""
+
 import kenlm
 import torch
 
-from espnet.nets.scorer_interface import ScorerInterface
 from espnet.nets.scorer_interface import PartialScorerInterface
+from espnet.nets.scorer_interface import ScorerInterface
 
 from abc import ABC
 
@@ -16,7 +18,7 @@ class Ngrambase(ABC):
         Args:
             ngram_model: ngram model path
             token_list: token list from dict or model.json
- 
+
         """
         self.chardict = [x if x != "<eos>" else "</s>" for x in token_list]
         self.charlen = len(self.chardict)
@@ -47,9 +49,8 @@ class Ngrambase(ABC):
             tuple[torch.Tensor, List[Any]]: Tuple of
                 batchfied scores for next token with shape of `(n_batch, n_vocab)`
                 and next state list for ys.
- 
-        """
 
+        """
         out_state = kenlm.State()
         state[0] += self.lm.BaseScore(state[1], self.chardict[y[-1]], out_state)
         scores = torch.full(next_token.size(), state[0])
@@ -64,6 +65,20 @@ class NgramFullScorer(Ngrambase, ScorerInterface):
     """Fullscorer for ngram."""
 
     def score(self, y, state, x):
+        """Score interface for both full and partial scorer.
+
+        Args:
+            y: previous char
+            state: previous state
+            x: encoded feature
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+
         return self.score_partial_(y, torch.tensor(range(len(self.chardict))), state, x)
 
 
@@ -71,4 +86,19 @@ class NgramPartScorer(Ngrambase, PartialScorerInterface):
     """Partialscorer for ngram."""
 
     def score_partial(self, y, next_token, state, x):
+        """Score interface for both full and partial scorer.
+
+        Args:
+            y: previous char
+            next_token: next token need to be score
+            state: previous state
+            x: encoded feature
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+
         return self.score_partial_(y, next_token, state, x)
