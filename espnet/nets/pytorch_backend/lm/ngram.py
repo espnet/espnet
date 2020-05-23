@@ -8,8 +8,7 @@ from abc import ABC
 
 
 class Ngrambase(ABC):
-    """Ngram base implemented throught ScorerInterface
-    """
+    """Ngram base implemented throught ScorerInterface."""
 
     def __init__(self, ngram_model, token_list):
         """
@@ -23,25 +22,30 @@ class Ngrambase(ABC):
         self.tmpkenlmstate = kenlm.State()
 
     def init_state(self, x):
-        """
-        """
+        """initial tmp state."""
         state = kenlm.State()
         # since there is no <s> only </s>
         self.lm.NullContextWrite(state)
         return [0.0, state]
 
     def select_state(self, state, i):
-        """
-        """
+        """empty select state for scorer interface."""
         return state
 
     def score_partial_(self, y, next_token, state, x):
-        """
+        """score interface for both full and partial scorer
+        
         Args:
             y: previous char
             next_token: next token need to be score
             state: previous state
             x: encoded feature
+        
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+        
         """
         out_state = kenlm.State()
         state[0] += self.lm.BaseScore(state[1], self.chardict[y[-1]], out_state)
@@ -54,20 +58,14 @@ class Ngrambase(ABC):
 
 
 class NgramFullScorer(Ngrambase, ScorerInterface):
-    """
-    Args:
-        Fullscorer for ngram
-    """
+    """Fullscorer for ngram."""
 
     def score(self, y, state, x):
         return self.score_partial_(y, torch.tensor(range(len(self.chardict))), state, x)
 
 
 class NgramPartScorer(Ngrambase, PartialScorerInterface):
-    """
-    Args:
-        Partialscorer for ngram
-    """
+    """Partialscorer for ngram."""
 
     def score_partial(self, y, next_token, state, x):
         return self.score_partial_(y, next_token, state, x)
