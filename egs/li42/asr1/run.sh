@@ -205,7 +205,7 @@ fi
 # Set real recog_set
 recog_set_new=""
 for rtask_pattern in ${recog_set}; do
-    rtasks=`find data/ -name "${rtask_pattern}" | sed 's!^.*/!!'`
+    rtasks=$(find data/ -name "${rtask_pattern}" | sed 's!^.*/!!')
     recog_set_new="${recog_set_new} ${rtasks}"
 done
 recog_set=${recog_set_new}
