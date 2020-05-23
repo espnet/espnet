@@ -1,6 +1,7 @@
 import pytest
 
 from math import isclose
+
 kenlm = pytest.importorskip("kenlm")
 
 test_sens = ["I like apple", "you love coffee"]
