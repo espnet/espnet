@@ -43,6 +43,15 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
 def load_num_sequence_text(
     path: Union[Path, str], loader_type: str = "csv_int"
 ) -> Dict[str, np.ndarray]:
+    """Read a text file indicating sequences of number
+
+    Examples:
+        key1 1 2 3
+        key2 34 5 6
+
+        >>> d = load_num_sequence_text('text')
+        >>> np.testing.assert_array_equal(d["key1"], np.array([1, 2, 3]))
+    """
     assert check_argument_types()
     if loader_type == "text_int":
         delimiter = " "
@@ -74,9 +83,7 @@ def load_num_sequence_text(
                 StringIO(v), ndmin=1, dtype=dtype, delimiter=delimiter
             )
         except ValueError:
-            logging.error(
-                f'Error happened with path="{path}", ' f'id="{k}", value="{v}"'
-            )
+            logging.error(f'Error happened with path="{path}", id="{k}", value="{v}"')
             raise
     assert check_return_type(retval)
     return retval

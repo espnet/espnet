@@ -62,7 +62,7 @@ def calc_perplexity(
     logging.info(f"Model:\n{model}")
 
     # 3. Build data-iterator
-    loader, _, _ = LMTask.build_non_sorted_iterator(
+    loader = LMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
@@ -71,6 +71,7 @@ def calc_perplexity(
         preprocess_fn=LMTask.build_preprocess_fn(train_args, False),
         collate_fn=LMTask.build_collate_fn(train_args),
         allow_variable_data_keys=allow_variable_data_keys,
+        inference=True,
     )
 
     # 4. Start for-loop

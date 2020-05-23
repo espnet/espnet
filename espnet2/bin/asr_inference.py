@@ -118,7 +118,7 @@ def inference(
     logging.info(f"Decoding device={device}, dtype={dtype}")
 
     # 5. Build data-iterator
-    loader, _, _ = ASRTask.build_non_sorted_iterator(
+    loader = ASRTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
@@ -127,6 +127,7 @@ def inference(
         preprocess_fn=ASRTask.build_preprocess_fn(asr_train_args, False),
         collate_fn=ASRTask.build_collate_fn(asr_train_args),
         allow_variable_data_keys=allow_variable_data_keys,
+        inference=True,
     )
 
     # 6. [Optional] Build Text converter: e.g. bpe-sym -> Text
