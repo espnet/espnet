@@ -15,6 +15,7 @@ class Ngrambase(ABC):
         Args:
             ngram_model: ngram model path
             token_list: token list from dict or model.json
+        
         """
         self.chardict = [x if x != "<eos>" else "</s>" for x in token_list]
         self.charlen = len(self.chardict)
@@ -22,18 +23,18 @@ class Ngrambase(ABC):
         self.tmpkenlmstate = kenlm.State()
 
     def init_state(self, x):
-        """initial tmp state."""
+        """Initialize tmp state."""
         state = kenlm.State()
         # since there is no <s> only </s>
         self.lm.NullContextWrite(state)
         return [0.0, state]
 
     def select_state(self, state, i):
-        """empty select state for scorer interface."""
+        """Empty select state for scorer interface."""
         return state
 
     def score_partial_(self, y, next_token, state, x):
-        """score interface for both full and partial scorer
+        """Score interface for both full and partial scorer
         
         Args:
             y: previous char
@@ -45,7 +46,7 @@ class Ngrambase(ABC):
             tuple[torch.Tensor, List[Any]]: Tuple of
                 batchfied scores for next token with shape of `(n_batch, n_vocab)`
                 and next state list for ys.
-        
+ 
         """
         out_state = kenlm.State()
         state[0] += self.lm.BaseScore(state[1], self.chardict[y[-1]], out_state)
