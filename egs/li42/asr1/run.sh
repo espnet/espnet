@@ -56,103 +56,8 @@ set -o pipefail
 
 train_set=train_li42
 train_dev=dev_li42
-# Full reognition set
-recog_set="
-	dt_amharic_babel et_amharic_babel 
-
-	dt_assamese_babel et_assamese_babel \
-
-	dt_bengali_babel et_bengali_babel \
-
-	dt_ca_commonvoice et_ca_commonvoice \
-
-	dt_cantonese_babel et_cantonese_babel \
-
-	dt_cebuano_babel et_cebuano_babel \
-
-	dt_cy_commonvoice et_cy_commonvoice \
-
-	dt_de_voxforge et_de_voxforge \
-	dt_de_commonvoice et_de_commonvoice \
-
-	dt_dholuo_babel et_dholuo_babel \
-
-	dt_en_aurora4 
-	dt_en_chime4  et_en_simu_chime4 et_en_real_chime4 \
-	dt_en_fisher_swbd et_en_fisher_swbd \
-	dt_en_wsj et_en_wsj \
-	dt_en_commonvoice et_en_commonvoice \
-
-
-	dt_es_fisher_callhome_spanish et_es_1_fisher_callhome_spanish et_es_2_fisher_callhome_spanish et_es_3_fisher_callhome_spanish \
-	dt_es_voxforge et_es_voxforge \
-	dt_es_commonvoice et_es_commonvoice \
-
-	dt_eu_commonvoice et_eu_commonvoice \
-
-	dt_fa_commonvoice et_fa_commonvoice \
-
-	dt_fr_voxforge et_fr_voxforge \
-	dt_fr_commonvoice et_fr_commonvoice \
-
-	dt_georgian_babel et_georgian_babel \
-
-	dt_guarani_babel et_guarani_babel \
-
-	dt_haitian_babel et_haitian_babel \
-
-	dt_igbo_babel et_igbo_babel \
-
-	dt_it_voxforge et_it_voxforge \
-	dt_it_commonvoice et_it_commonvoice \
-
-	dt_ja_csj et_ja_1_csj et_ja_2_csj et_ja_3_csj \
-
-	dt_javanese_babel et_javanese_babel \
-
-	dt_kab_commonvoice et_kab_commonvoice \
-
-	dt_kazakh_babel et_kazakh_babel \
-
-	dt_kurmanji_babel et_kurmanji_babel \
-
-	dt_lao_babel et_lao_babel \
-
-	dt_lithuanian_babel et_lithuanian_babel \
-
-	dt_mongolian_babel et_mongolian_babel \
-
-	dt_nl_voxforge et_nl_voxforge \
-
-	dt_pashto_babel et_pashto_babel \
-
-	dt_pt_voxforge et_pt_voxforge \
-
-	dt_ru_voxforge et_ru_voxforge \
-	dt_ru_commonvoice et_ru_commonvoice \
-
-	dt_swahili_babel et_swahili_babel \
-
-	dt_tagalog_babel et_tagalog_babel \
-
-	dt_tamil_babel et_tamil_babel \
-
-	dt_telugu_babel et_telugu_babel \
-
-	dt_tokpisin_babel et_tokpisin_babel \
-
-	dt_tt_commonvoice et_tt_commonvoice \
-
-	dt_turkish_babel et_turkish_babel \
-
-	dt_vietnamese_babel et_vietnamese_babel \
-
-	dt_zh_aishell et_zh_aishell \
-	dt_zh_hkust et_zh_hkust \
-	dt_zh_TW_commonvoice et_zh_TW_commonvoice \
-
-	dt_zulu_babel et_zulu_babel \
-    "
+recog_set="" # Leave it empty to use recog_set_regex for regular expression
+recog_set_regex="\(dt\|et\)_.\+_\(babel\|commonvoice\|chime4\|aurora4\|fisher_swbd\|fisher_callhome_spanish\|wsj\|voxforge\|csj\|aishell\|hkust\)" # use all {dt, et} data under data/.
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     lang_code=zh
@@ -297,6 +202,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1;
     fi
 fi
+
+# Set recog_set with reguar expression
+[ -z ${recog_set} ] && recog_set=`ls data/ | grep "^${recog_set_regex}$"`
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
