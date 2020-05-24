@@ -17,9 +17,9 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install sox
-    # e.g CentOS
+    # e.g. CentOS
     $ sudo yum install sox
-    # e.g Using anaconda
+    # e.g. Using anaconda
     $ conda install -c conda-forge sox
     ```
 - sndfile
@@ -33,7 +33,7 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install ffmpeg
-    # e.g CentOS
+    # e.g. CentOS
     $ sudo yum install ffmpeg
     # e.g. Using anaconda
     $ conda install -c conda-forge ffmpeg
@@ -42,7 +42,7 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install flac
-    # e.g CentOS
+    # e.g. CentOS
     $ sudo yum install flac
     ```
 
@@ -146,10 +146,12 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd <kaldi-root>/src
-    # [e.g. With OpenBLAS] ESPnet uses only feature extractor, so you can disable CUDA
-    $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
+    # [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA
+    $ ./configure --use-cuda=no
+    # e.g. With OpenBLAS]
+    # $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
-    # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0
+    # ./configure --cudatk-dir=/usr/local/cuda-10.0
     $ make -j clean depend; make -j <NUM-CPU>
     ```
 
@@ -189,7 +191,7 @@ We prepare a new Python interpreter independently in the Makefile, but if you'd 
 ```sh
 $ cd <espnet-root>/tools
 $ rm -rf venv; mkdir -p venv/bin; touch venv/bin/activate  # Create an empty file
-$ make
+$ make KALDI=<kaldi-root> PYTHON=dummy
 ```
 
 ### Step 3-B) installation for CPU-only
