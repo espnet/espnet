@@ -42,6 +42,8 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install flac
+    # e.g CentOS
+    $ sudo yum install flac
     ```
 
 Optionally, GPU environment requires the following libraries:
@@ -71,6 +73,7 @@ CUDAROOT=/path/to/cuda
 export PATH=$CUDAROOT/bin:$PATH
 export LD_LIBRARY_PATH=$CUDAROOT/lib64:$LD_LIBRARY_PATH
 export CFLAGS="-I$CUDAROOT/include $CFLAGS"
+export CPATH=$CUDAROOT/include:$CPATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
@@ -85,6 +88,7 @@ export CPATH=$NCCL_ROOT/include:$CPATH
 export LD_LIBRARY_PATH=$NCCL_ROOT/lib/:$CUDAROOT/lib64:$LD_LIBRARY_PATH
 export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 export CFLAGS="-I$CUDAROOT/include $CFLAGS"
+export CPATH=$CUDAROOT/include:$CPATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
