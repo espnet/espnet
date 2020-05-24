@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Download zipfile from google drive
+# Download zip, tar, or tar.gz file from google drive
 
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -59,4 +59,4 @@ decompress () {
 
 # remove tmpfiles
 rm "${tmp}"
-echo "Sucessfully downloaded zip file from ${share_url}"
+echo "Sucessfully downloaded ${file_ext} file from ${share_url}"
