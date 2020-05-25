@@ -2,7 +2,7 @@
 
 . tools/venv/bin/activate
 
-set -euo pipefail
+set -xeuo pipefail
 
 modules="espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/asr1/pyscripts"
 
