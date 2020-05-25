@@ -957,6 +957,10 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
+                elif model.dmode == 'NAR':
+                    nbest_hyps = model.recognize_mask_ctc(
+                        feat, args, train_args.char_list
+                    )
                 else:
                     nbest_hyps = model.recognize(
                         feat, args, train_args.char_list, rnnlm

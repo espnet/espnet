@@ -193,13 +193,13 @@ def get_parser():
     )
     # non-autoregressive related
     parser.add_argument(
-        "--nar-mode",
-        type=str,
-        default="mask_ctc",
-        choices=["mask_ctc"],
+        "--p-thres",
+        type=float,
+        default=0.999,
+        help="Threshold probability for CTC output"
     )
     parser.add_argument(
-        "--nar-K",
+        "--K",
         type=int,
         default=1,
         help="Number of decoding iterations. Set to 999 to predict 1 mask/iter."

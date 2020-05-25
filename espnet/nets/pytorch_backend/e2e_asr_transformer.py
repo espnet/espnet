@@ -5,6 +5,7 @@
 
 from argparse import Namespace
 from distutils.util import strtobool
+from itertools import groupby
 import logging
 import math
 
@@ -340,8 +341,6 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: list
         """
         enc_output = self.encode(x).unsqueeze(0)
-        if self.dmode == "NAR":
-            return recognize_mask_ctc(enc_output, recog_args, char_list)
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
@@ -536,6 +535,66 @@ class E2E(ASRInterface, torch.nn.Module):
             + str(nbest_hyps[0]["score"] / len(nbest_hyps[0]["yseq"]))
         )
         return nbest_hyps
+
+    def recognize_mask_ctc(self, x, recog_args, char_list=None):
+        """Non-autoregressive decoding using Mask CTC
+
+        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
+        :param Namespace recog_args: argment Namespace contraining options
+        :param list char_list: list of characters
+        :return: decoding result
+        :rtype: list
+        """
+        h = self.encode(x).unsqueeze(0)
+
+        ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(h)).max(dim=-1)
+        y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
+        y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
+
+        probs_hat = []
+        cnt = 0
+        for i, y in enumerate(y_hat.tolist()):
+            probs_hat.append(-1)
+            while cnt < ctc_ids.shape[1] and y == ctc_ids[0][cnt]:
+                if probs_hat[i] < ctc_probs[0][cnt]:
+                    probs_hat[i] = ctc_probs[0][cnt].item()
+                cnt += 1
+        probs_hat = torch.from_numpy(numpy.array(probs_hat))
+
+        char_mask = '_'
+        mask_idx = torch.nonzero(probs_hat[y_idx] < recog_args.p_thres).squeeze(-1)
+        confident_idx = torch.nonzero(probs_hat[y_idx] >= recog_args.p_thres).squeeze(-1)
+        mask_num = len(mask_idx)
+
+        y_in = torch.zeros(1, len(y_idx) + 1, dtype=torch.long) + self.mask
+        y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
+        y_in[0][-1] = self.eos
+        
+        logging.info('ctc:{}'.format(
+            ''.join([char_list[y] if y != self.mask else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
+
+        if not mask_num == 0:
+            num_iter = recog_args.K if mask_num >= recog_args.K else mask_num
+
+            for t in range(1, num_iter):
+                pred, _ = self.decoder(y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None)
+                pred_sc, pred_id = pred[0][mask_idx].max(dim=-1)
+                cand = torch.topk(pred_sc, mask_num // num_iter, -1)[1]
+                y_in[0][mask_idx[cand]] = pred_id[cand]
+                mask_idx = torch.nonzero(y_in[0] == self.mask).squeeze(-1)
+
+                logging.info('msk:{}'.format(
+                    ''.join([char_list[y] if y != self.mask else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
+                
+            pred, pred_mask = self.decoder(y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None)
+            y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
+            logging.info('msk:{}'.format(
+                ''.join([char_list[y] if y != self.mask else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
+
+        ret = y_in.tolist()[0][:-1]
+        hyp = {'score': 0.0, 'yseq': [self.sos] + ret + [self.eos]}
+
+        return [hyp]
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
