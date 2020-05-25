@@ -94,6 +94,10 @@ mwerSegmenter.done:
 	./install_mwerSegmenter.sh
 	touch mwerSegmenter.done
 
+kenlm.done:
+	. venv/bin/activate && ./install_kenlm.sh
+	touch kenlm.done
+
 pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
 PESQ/P862_annex_A_2005_CD/source/PESQ:
 	./install_pesq.sh
