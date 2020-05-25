@@ -159,6 +159,13 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
+ngramexpname=train_ngram
+ngramexpdir=exp/${ngramexpname}
+if [ -z ${ngramtag} ]; then
+    ngramtag=${n_gram}
+fi
+mkdir -p ${ngramexpdir}
+
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
@@ -180,16 +187,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
         --dict ${dict}
-fi
-
-ngramexpname=train_ngram
-ngramexpdir=exp/${ngramexpname}
-if [ -z ${ngramtag} ]; then
-    ngramtag=${n_gram}
-fi
-[ ! -d ${ngramexpdir} ] && mkdir -p ${ngramexpdir}
-
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    
     echo "stage 4: Ngram Preparation"
     lmdatadir=data/local/lm_train
     [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
@@ -202,6 +200,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     build_binary -s ${ngramexpdir}/${n_gram}gram.arpa ${ngramexpdir}/${n_gram}gram.bin
 fi
 
+
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
@@ -213,8 +212,8 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Network Training"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
@@ -232,9 +231,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         --valid-json ${feat_dt_dir}/data.json
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Decoding"
-    nj=16
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding"
+    nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
