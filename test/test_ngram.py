@@ -1,5 +1,5 @@
-import pytest
 import os
+import pytest
 
 from math import isclose
 
