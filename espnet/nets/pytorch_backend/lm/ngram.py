@@ -51,7 +51,7 @@ class Ngrambase(ABC):
 
         """
         out_state = kenlm.State()
-        ys = self.chardict[y[-1]] if y.shape[0] > 1 else "<s>" 
+        ys = self.chardict[y[-1]] if y.shape[0] > 1 else "<s>"
         state[0] += self.lm.BaseScore(state[1], ys, out_state)
         scores = torch.full(next_token.size(), state[0])
         for i, j in enumerate(next_token):
