@@ -1,12 +1,12 @@
 """Ngram lm implement."""
 
+from abc import ABC
+
 import kenlm
 import torch
 
 from espnet.nets.scorer_interface import PartialScorerInterface
 from espnet.nets.scorer_interface import ScorerInterface
-
-from abc import ABC
 
 
 class Ngrambase(ABC):
