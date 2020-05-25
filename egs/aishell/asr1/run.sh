@@ -157,7 +157,7 @@ if [ -z ${lmtag} ]; then
 fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
-# [ ! -d ${lmexpdir} ] && mkdir -p ${lmexpdir}
+mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
