@@ -19,7 +19,7 @@ export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 export OMP_NUM_THREADS=1
 
 # check extra kenlm module installation
-if ! which $MAIN_ROOT/tools/kenlm/build/bin > /dev/null; then
+if [ ! -d $MAIN_ROOT/tools/kenlm/build/bin ] > /dev/null; then
     echo "Error: it seems that kenlm is not installed." >&2
     echo "Error: please install kenlm as follows." >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make kenlm.done" >&2

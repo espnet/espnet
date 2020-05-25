@@ -19,6 +19,6 @@ git clone https://github.com/kpu/kenlm.git
     )
     (
         set -euo pipefail
-        cd kenlm && python setup.py install
+        python setup.py install
     )
 )
