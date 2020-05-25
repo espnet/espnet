@@ -66,7 +66,7 @@ def recog_v2(args):
         lm = None
 
     if args.ngram_model:
-        from espnet.nets.pytorch_backend.lm.ngram import NgramFullScorer
+        from espnet.nets.pytorch_backend.scorers.ngram import NgramFullScorer
 
         ngram = NgramFullScorer(args.ngram_model, train_args.char_list)
     else:
