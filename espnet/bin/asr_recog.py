@@ -174,6 +174,13 @@ def get_parser():
         "--ngram-model", type=str, default=None, help="ngram model file to read"
     )
     parser.add_argument("--ngram-weight", type=float, default=0.1, help="ngram weight")
+    parser.add_argument(
+        "--ngram-scorer",
+        type=str,
+        default="full",
+        choices=("full", "part"),
+        help="ngram scorer choices",
+    )
     # streaming related
     parser.add_argument(
         "--streaming-mode",
