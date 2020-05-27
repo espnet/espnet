@@ -27,7 +27,7 @@ set -euo pipefail
 find ./utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
 
 # generate package doc
-./doc/module2rst.py espnet ./doc --exclude espnet.bin
+./doc/module2rst.py --root espnet espnet2 --dst ./doc --exclude espnet.bin
 
 # build html
 travis-sphinx build --source=doc --nowarn
