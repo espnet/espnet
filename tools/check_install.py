@@ -49,8 +49,7 @@ def main(args):
 
     logging.info("python version = " + sys.version)
 
-    library_list = []
-    library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
+    library_list = MANUALLY_INSTALLED_LIBRARIES.copy()
 
     # check library availableness
     logging.info("library availableness check start.")
@@ -61,6 +60,16 @@ def main(args):
             importlib.import_module(name)
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
+
+            if name=="torch":
+                if LooseVersion(importlib.import_module(name).__version__) > LooseVersion('1.2.0'):
+                    try:
+                        library_list.remove(('warpctc_pytorch', ("0.1.1", "0.1.3")))
+                        MANUALLY_INSTALLED_LIBRARIES.remove(('warpctc_pytorch', ("0.1.1", "0.1.3")))
+                        logging.info("Ignoring redundant check for warpctc_pytorch")
+                    except ValueError:
+                        pass
+
         except ImportError:
             logging.warning("--> %s is not installed." % name)
             is_correct_installed_list.append(False)
