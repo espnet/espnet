@@ -330,10 +330,12 @@ def train(args):
     # freeze modules, if specified
     if args.freeze_mods:
         if hasattr(model, "module"):
-            prefixed_freeze_mods = ["module." + x for x in args.freeze_mods]
+            freeze_mods = ["module." + x for x in args.freeze_mods]
+        else:
+            freeze_mods = args.freeze_mods
 
         for mod, param in model.named_parameters():
-            if any(mod.startswith(key) for key in prefixed_freeze_mods):
+            if any(mod.startswith(key) for key in freeze_mods):
                 logging.info(f"{mod} is frozen not to be updated.")
                 param.requires_grad = False
 
