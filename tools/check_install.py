@@ -61,7 +61,7 @@ def main(args):
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
 
-            if name=="torch":
+            if name == "torch":
                 if LooseVersion(importlib.import_module(name).__version__) > LooseVersion('1.2.0'):
                     try:
                         library_list.remove(('warpctc_pytorch', ("0.1.1", "0.1.3")))
