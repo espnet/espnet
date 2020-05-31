@@ -112,7 +112,7 @@ def main(args):
     )
 
     if len(library_list) != sum(is_correct_installed_list):
-        logging.warining("please try to setup again and then re-run this script.")
+        logging.warning("please try to setup again and then re-run this script.")
         sys.exit(1)
 
     # check library version
