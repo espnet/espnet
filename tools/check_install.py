@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Check the installation."""
+"""Script to check whether the installation is done correctly."""
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -38,7 +38,7 @@ COMPATIBLE_TORCH_VERSIONS = (
 
 
 def main(args):
-    """Check installation."""
+    """Check the installation."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--no-cupy", action="store_true", default=False, help="Disable CUPY tests"
@@ -135,7 +135,7 @@ def main(args):
             if vers is not None:
                 is_correct = vers in version
                 if is_correct:
-                    logging.info("--> %s version is matched." % name)
+                    logging.info("--> %s version is matched (%s)." % (name, vers))
                     is_correct_version_list.append(True)
                 else:
                     logging.warning(
