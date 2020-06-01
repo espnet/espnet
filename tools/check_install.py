@@ -6,10 +6,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from distutils.version import LooseVersion
 import importlib
 import logging
 import sys
+
+from distutils.version import LooseVersion
 
 
 # NOTE: add the libraries which are not included in setup.py
@@ -41,7 +42,10 @@ def main(args):
     """Check the installation."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--no-cupy", action="store_true", default=False, help="Disable CUPY tests"
+        "--no-cuda",
+        action="store_true",
+        default=False,
+        help="Disable cuda-related tests",
     )
     args = parser.parse_args(args)
 
@@ -50,7 +54,7 @@ def main(args):
 
     library_list = []
 
-    if not args.no_cupy:
+    if not args.no_cuda:
         library_list.append(("cupy", ("6.0.0")))
 
     # check torch installation at first
@@ -138,48 +142,55 @@ def main(args):
         sys.exit(1)
 
     # check cuda availableness
-    logging.info("cuda availableness check start.")
-    import chainer
-    import torch
+    if args.no_cuda:
+        logging.info("cuda availableness check skipped.")
+    else:
+        logging.info("cuda availableness check start.")
+        import chainer
+        import torch
 
-    try:
-        assert torch.cuda.is_available()
-        logging.info("--> cuda is available in torch.")
-    except AssertionError:
-        logging.warning("--> it seems that cuda is not available in torch.")
-    try:
-        assert torch.backends.cudnn.is_available()
-        logging.info("--> cudnn is available in torch.")
-    except AssertionError:
-        logging.warning("--> it seems that cudnn is not available in torch.")
-    try:
-        assert chainer.backends.cuda.available
-        logging.info("--> cuda is available in chainer.")
-    except AssertionError:
-        logging.warning("--> it seems that cuda is not available in chainer.")
-    try:
-        assert chainer.backends.cuda.cudnn_enabled
-        logging.info("--> cudnn is available in chainer.")
-    except AssertionError:
-        logging.warning("--> it seems that cudnn is not available in chainer.")
-    try:
-        from cupy.cuda import nccl  # NOQA
+        try:
+            assert torch.cuda.is_available()
+            logging.info("--> cuda is available in torch.")
+        except AssertionError:
+            logging.warning("--> it seems that cuda is not available in torch.")
+        try:
+            assert torch.backends.cudnn.is_available()
+            logging.info("--> cudnn is available in torch.")
+        except AssertionError:
+            logging.warning("--> it seems that cudnn is not available in torch.")
+        try:
+            assert chainer.backends.cuda.available
+            logging.info("--> cuda is available in chainer.")
+        except AssertionError:
+            logging.warning("--> it seems that cuda is not available in chainer.")
+        try:
+            assert chainer.backends.cuda.cudnn_enabled
+            logging.info("--> cudnn is available in chainer.")
+        except AssertionError:
+            logging.warning("--> it seems that cudnn is not available in chainer.")
+        try:
+            from cupy.cuda import nccl  # NOQA
 
-        logging.info("--> nccl is installed.")
-    except ImportError:
-        logging.warning(
-            "--> it seems that nccl is not installed. " "multi-gpu is not enabled."
-        )
-        logging.warning(
-            "--> if you want to use multi-gpu, " "please install it and then re-setup."
-        )
-    try:
-        assert torch.cuda.device_count() > 1
-        logging.info(f"--> multi-gpu is available (#gpus={torch.cuda.device_count()}).")
-    except AssertionError:
-        logging.warning("--> it seems that only single gpu is available.")
-        logging.warning("--> maybe your machine has only one gpu.")
-    logging.info("cuda availableness check done.")
+            logging.info("--> nccl is installed.")
+        except ImportError:
+            logging.warning(
+                "--> it seems that nccl is not installed. multi-gpu is not enabled."
+            )
+            logging.warning(
+                "--> if you want to use multi-gpu, please install it and then re-setup."
+            )
+        try:
+            assert torch.cuda.device_count() > 1
+            logging.info(
+                f"--> multi-gpu is available (#gpus={torch.cuda.device_count()})."
+            )
+        except AssertionError:
+            logging.warning("--> it seems that only single gpu is available.")
+            logging.warning("--> maybe your machine has only one gpu.")
+        logging.info("cuda availableness check done.")
+
+    logging.info("installation check is done.")
 
 
 if __name__ == "__main__":
