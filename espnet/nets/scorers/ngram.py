@@ -29,7 +29,7 @@ class Ngrambase(ABC):
         """Initialize tmp state."""
         state = kenlm.State()
         self.lm.NullContextWrite(state)
-        return [0.0, state]
+        return state
 
     def select_state(self, state, i):
         """Empty select state for scorer interface."""
@@ -52,13 +52,13 @@ class Ngrambase(ABC):
         """
         out_state = kenlm.State()
         ys = self.chardict[y[-1]] if y.shape[0] > 1 else "<s>"
-        state[0] += self.lm.BaseScore(state[1], ys, out_state)
+        self.lm.BaseScore(state, ys, out_state)
         scores = torch.full(next_token.size(), 0.0)
         for i, j in enumerate(next_token):
             scores[i] = self.lm.BaseScore(
                 out_state, self.chardict[j], self.tmpkenlmstate
             )
-        return scores, [state[0], out_state]
+        return scores, out_state
 
 
 class NgramFullScorer(Ngrambase, ScorerInterface):
