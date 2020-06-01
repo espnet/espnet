@@ -179,7 +179,10 @@ def get_parser():
         type=str,
         default="full",
         choices=("full", "part"),
-        help="ngram scorer choices",
+        help="""if the ngram is set as a part scorer, similar with CTC scorer,
+                ngram scorer only scores topK hypethesis.
+                if the ngram is set as full scorer, ngram scorer scores all hypthesis
+                the decoding speed of part scorer is musch faster than full one""",
     )
     # streaming related
     parser.add_argument(
