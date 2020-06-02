@@ -49,32 +49,10 @@ def main(args):
     )
     args = parser.parse_args(args)
 
-<<<<<<< HEAD
-    # you should add the libraries which are not included in setup.py
-    MANUALLY_INSTALLED_LIBRARIES = [
-        ('espnet', None),
-        ('kaldiio', None),
-        ('matplotlib', None),
-        ('torch', ("0.4.1",
-                   "1.0.0", 
-                   "1.0.1", 
-                   "1.0.1.post2", 
-                   "1.1.0", 
-                   "1.2.0", 
-                   "1.3.0", 
-                   "1.3.1",
-                   "1.4.0",
-                   "1.5.0")),
-        ('chainer', ("6.0.0")),
-        ('chainer_ctc', None),
-        ('warprnnt_pytorch', ("0.1"))
-    ]
-=======
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.info(f"python version = {sys.version}")
 
     library_list = []
->>>>>>> 0f26dff8f... updated check_install
 
     if not args.no_cuda:
         library_list.append(("cupy", ("6.0.0")))
