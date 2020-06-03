@@ -177,7 +177,7 @@ def get_parser():
     parser.add_argument(
         "--ngram-scorer",
         type=str,
-        default="full",
+        default="part",
         choices=("full", "part"),
         help="""if the ngram is set as a part scorer, similar with CTC scorer,
                 ngram scorer only scores topK hypethesis.

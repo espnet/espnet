@@ -38,7 +38,7 @@ exp/train_sp_pytorch_no_patience/decode_test_beam20_emodel.acc.best_p0.0_len0.0-
 ```
 
 # Ngram related 
-   - there is no RNN not ngram 
+   - decoding with ngram and RNNLM 
 ```
 exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_dev_decode_pytorch_transformer_lm0.7_4gramfull0.3/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
