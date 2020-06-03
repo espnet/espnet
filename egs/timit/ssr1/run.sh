@@ -66,11 +66,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    wget https://storage.googleapis.com/szxs/dct_features.tar.gz
-    tar xzvf dct_features.tar.gz ;rm dct_features.tar.gz
-    mkdir -p data/${train_set}
-    mkdir -p data/${train_dev}
-    python3 featprepare.py
+
+    if [ ! -s data/Bruce_list_train.ark ] && [ ! -s data/Bruce_list_test.ark ];then
+        wget https://storage.googleapis.com/szxs/dct_features.tar.gz
+        tar xzvf dct_features.tar.gz;rm dct_features.tar.gz
+  
+    fi
+    
+    featprepare.py
+
     for x in train test; do
         sed 's%xxxPWDxxx%'$PWD'%g' data/${x}.scp > data/${x}/feats.scp
         utils/fix_data_dir.sh data/${x}
