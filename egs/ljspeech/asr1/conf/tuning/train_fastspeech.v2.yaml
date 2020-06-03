@@ -1,0 +1,64 @@
+# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
+# To use this configuration, you need the model trained with `conf/tuning/train_transformer.v1`.
+# First, you should train the above model or download from google drive and put it in exp dirctory.
+# Make sure the `teacher-model` path is valid and the encoder structure is the same as teacher
+# when `init-encoder-from-teacher = True`.
+# This configuration uses Conv1d in Transformer blocks and aheads = 2 compared to v1.
+# It takes 3~4 days, and it can generate speech from around 170 epochs (around 30k iters).
+
+# network architecture related
+model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
+adim: 384
+aheads: 2
+elayers: 6
+eunits: 1536
+dlayers: 6
+dunits: 1536
+duration-predictor-layers: 2
+duration-predictor-chans: 384
+duration-predictor-kernel-size: 3
+positionwise-layer-type: conv1d
+positionwise-conv-kernel-size: 3
+use-scaled-pos-enc: True
+encoder-normalize-before: False
+decoder-normalize-before: False
+encoder-concat-after: False
+decoder-concat-after: False
+reduction-factor: 1
+
+# minibatch related
+batch-sort-key: input # shuffle or input or output
+batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
+                      # batch-size * (max_out * dim_out + max_in * dim_in)
+                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
+
+# training related
+transformer-init: pytorch
+transformer-warmup-steps: 4000
+transformer-lr: 1.0
+initial-encoder-alpha: 1.0
+initial-decoder-alpha: 1.0
+transformer-enc-dropout-rate: 0.1
+transformer-enc-positional-dropout-rate: 0.1
+transformer-enc-attn-dropout-rate: 0.1
+transformer-dec-dropout-rate: 0.1
+transformer-dec-positional-dropout-rate: 0.1
+transformer-dec-attn-dropout-rate: 0.1
+transformer-enc-dec-attn-dropout-rate: 0.1
+duration-predictor-dropout-rate: 0.1
+transfer-encoder-from-teacher: True
+transferred-encoder-module: embed
+
+# optimization related
+opt: noam
+accum-grad: 2
+grad-clip: 1.0
+weight-decay: 0.0
+patience: 0
+epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
+teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.last1.avg.best
+               # you can download pretrained teacher model from google drive
+               # https://drive.google.com/open?id=1arZAxZOLep-1W5ByQMD1lCX2tEASnw7p
+
+# other
+save-interval-epoch: 10
