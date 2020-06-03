@@ -105,9 +105,9 @@ PESQ/P862_annex_A_2005_CD/source/PESQ:
 
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate; python check_install.py --torch-version $(TH_VERSION)
+	. venv/bin/activate; python check_install.py
 else
-	. venv/bin/activate; python check_install.py --no-cupy --torch-version $(TH_VERSION)
+	. venv/bin/activate; python check_install.py --no-cuda
 endif
 
 
