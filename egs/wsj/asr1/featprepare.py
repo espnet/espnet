@@ -22,3 +22,4 @@ for dataset in['data/train','data/test']:
         c.writelines(utt2spk)
     with open(dataset+'/wav.scp','w') as d:
         d.writelines(wav)
+        # wav.scp is not actually used. It is generated just for fixing data directory. (BTW fixing is also unnecessary)
