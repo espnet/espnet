@@ -9,4 +9,3 @@ Instructions:
 
 Here's my decode results with `batch size` 12 and `transformer-lr` 20. https://storage.googleapis.com/szxs/batch12lr20.zip
 
-I'll try SpecAug further.
