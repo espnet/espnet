@@ -72,7 +72,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   
     fi
     
-    featprepare.py
+    local/featprepare.py
 
     for x in train test; do
         sed 's%xxxPWDxxx%'$PWD'%g' data/${x}.scp > data/${x}/feats.scp
