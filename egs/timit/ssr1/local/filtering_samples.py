@@ -44,7 +44,9 @@ if __name__ == "__main__":
         default="vggblstm",
         type=str,
         help="Encoder type"
-        # I don't know why there is no such option in WSJ recipe, but it doesn't work without this argument."
+        # I don't know why there is no such option in WSJ recipe
+        # But it doesn't work without this argument
+        
     )
     args, _ = parser.parse_known_args(cmd_args)
 
