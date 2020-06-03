@@ -1,1 +1,1 @@
-../../../voxforge/asr1/conf/tuning/train_pytorch_transformer.yaml
+./tuning/train_pytorch_transformer.yaml
