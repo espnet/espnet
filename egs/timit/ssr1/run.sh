@@ -73,7 +73,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     mkdir -p data/train
     mkdir -p data/test
-    
+
     chmod 755 local/featprepare.py
     local/featprepare.py
 
@@ -138,7 +138,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --arch-subsample "rnn" \
         ${min_io_delta:+--min-io-delta $min_io_delta} \
         --output-json-path ${feat_tr_dir}/data.json
-        --etype "vgglstm"
 fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
