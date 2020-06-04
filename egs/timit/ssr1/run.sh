@@ -25,7 +25,7 @@ do_delta=false
 min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
 
 # config files
-preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
+preprocess_config=conf/specaug.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -65,13 +65,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-
+    mkdir -p data/train
+    mkdir -p data/test
     if [ ! -s data/Bruce_list_train.ark ] && [ ! -s data/Bruce_list_test.ark ];then
         wget https://storage.googleapis.com/szxs/dct_features.tar.gz
         tar xzvf dct_features.tar.gz;rm dct_features.tar.gz
   
     fi
-    
+    chmod 755 local/featprepare.py
     local/featprepare.py
 
     for x in train test; do
