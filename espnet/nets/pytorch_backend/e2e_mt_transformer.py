@@ -14,6 +14,7 @@ import math
 import numpy as np
 import torch
 
+from espnet.nets.e2e_mt_common import ErrorCalculator
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_mt import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
@@ -197,8 +198,6 @@ class E2E(MTInterface, torch.nn.Module):
         self.reset_parameters(args)
         self.adim = args.adim
         if args.report_bleu:
-            from espnet.nets.e2e_mt_common import ErrorCalculator
-
             self.error_calculator = ErrorCalculator(
                 args.char_list, args.sym_space, args.report_bleu
             )
@@ -256,12 +255,12 @@ class E2E(MTInterface, torch.nn.Module):
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
 
-        # 5. compute bleu
+        # 5. compute corpus-level bleu in a mini-batch
         if self.training or self.error_calculator is None:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             ys_hat = pred_pad.argmax(dim=-1)
-            bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # copyied from e2e_mt
         self.loss = loss
@@ -270,12 +269,13 @@ class E2E(MTInterface, torch.nn.Module):
         if self.normalize_length:
             self.ppl = np.exp(loss_data)
         else:
+            batch_size = ys_out_pad.size(0)
             ys_out_pad = ys_out_pad.view(-1)
-            ignore = ys_out_pad == self.ignore_id  # (B,)
-            total = len(ys_out_pad) - ignore.sum().item()
-            self.ppl = np.exp(loss_data * ys_out_pad.size(0) / total)
+            ignore = (ys_out_pad == self.ignore_id)  # (B*T,)
+            total_n_tokens = len(ys_out_pad) - ignore.sum().item()
+            self.ppl = np.exp(loss_data * batch_size / total_n_tokens)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, self.acc, self.ppl, bleu)
+            self.reporter.report(loss_data, self.acc, self.ppl, self.bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
