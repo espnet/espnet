@@ -166,7 +166,7 @@ class E2E(MTInterface, torch.nn.Module):
             self_attention_dropout_rate=args.transformer_attn_dropout_rate,
             src_attention_dropout_rate=args.transformer_attn_dropout_rate,
         )
-        self.pad = 0
+        self.pad = 0  # use <blank> for padding
         self.sos = odim - 1
         self.eos = odim - 1
         self.odim = odim
@@ -186,7 +186,6 @@ class E2E(MTInterface, torch.nn.Module):
         if args.tie_classifier:
             self.decoder.output_layer.weight = self.decoder.embed[0].weight
 
-        # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(
             self.odim,
             self.ignore_id,
@@ -194,18 +193,14 @@ class E2E(MTInterface, torch.nn.Module):
             args.transformer_length_normalized_loss,
         )
         self.normalize_length = args.transformer_length_normalized_loss  # for PPL
-        # self.verbose = args.verbose
         self.reset_parameters(args)
         self.adim = args.adim
-        if args.report_bleu:
-            self.error_calculator = ErrorCalculator(
-                args.char_list, args.sym_space, args.report_bleu
-            )
-        else:
-            self.error_calculator = None
+        self.error_calculator = ErrorCalculator(
+            args.char_list, args.sym_space, args.sym_blank, args.report_bleu
+        )
         self.rnnlm = None
 
-        # multilingual NMT related
+        # multilingual MT related
         self.multilingual = args.multilingual
 
     def reset_parameters(self, args):
@@ -238,47 +233,36 @@ class E2E(MTInterface, torch.nn.Module):
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
         xs_pad, ys_pad = self.target_forcing(xs_pad, ys_pad)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
-        self.hs_pad = hs_pad
 
         # 2. forward decoder
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_mask = target_mask(ys_in_pad, self.ignore_id)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-        self.pred_pad = pred_pad
 
         # 3. compute attention loss
         loss = self.criterion(pred_pad, ys_out_pad)
-        self.acc = th_accuracy(
+        acc = th_accuracy(
             pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
         )
 
-        # TODO(karita) show predicted text
-        # TODO(karita) calculate these stats
+        # 4. compute corpus-level bleu in a mini-batch
+        ys_hat = pred_pad.argmax(dim=-1)
+        bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        # 5. compute corpus-level bleu in a mini-batch
-        if self.training or self.error_calculator is None:
-            self.bleu = 0.0
-        else:
-            ys_hat = pred_pad.argmax(dim=-1)
-            self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
-
-        # copyied from e2e_mt
-        self.loss = loss
-
-        loss_data = float(self.loss)
+        loss_data = float(loss)
         if self.normalize_length:
-            self.ppl = np.exp(loss_data)
+            ppl = np.exp(loss_data)
         else:
             batch_size = ys_out_pad.size(0)
             ys_out_pad = ys_out_pad.view(-1)
             ignore = (ys_out_pad == self.ignore_id)  # (B*T,)
             total_n_tokens = len(ys_out_pad) - ignore.sum().item()
-            self.ppl = np.exp(loss_data * batch_size / total_n_tokens)
+            ppl = np.exp(loss_data * batch_size / total_n_tokens)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, self.acc, self.ppl, self.bleu)
+            self.reporter.report(loss_data, acc, ppl, bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
-        return self.loss
+        return loss
 
     def scorers(self):
         """Scorers."""
@@ -292,7 +276,7 @@ class E2E(MTInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def target_forcing(self, xs_pad, ys_pad=None, tgt_lang=None):
-        """Prepend target language IDs to source sentences for multilingual NMT.
+        """Prepend target language IDs to source sentences for multilingual MT.
 
         These tags are prepended in source/target sentences as pre-processing.
 
@@ -483,7 +467,7 @@ class E2E(MTInterface, torch.nn.Module):
             logging.debug("number of ended hypothes: " + str(len(ended_hyps)))
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[
-            : min(len(ended_hyps), trans_args.nbest)
+            :min(len(ended_hyps), trans_args.nbest)
         ]
 
         # check number of hypotheis
