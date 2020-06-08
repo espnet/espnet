@@ -6,8 +6,6 @@
 
 """RNN sequence-to-sequence speech translation model (pytorch)."""
 
-from __future__ import division
-
 import argparse
 import copy
 import logging
@@ -121,11 +119,7 @@ class E2E(STInterface, torch.nn.Module):
             help="Type of encoder network architecture",
         )
         group.add_argument(
-            "--elayers",
-            default=4,
-            type=int,
-            help="Number of encoder layers (for shared recognition part "
-            "in multi-speaker asr mode)",
+            "--elayers", default=4, type=int, help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -280,7 +274,7 @@ class E2E(STInterface, torch.nn.Module):
         self.eos = odim - 1
         self.pad = 0
         # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
-        # in ASR. However, blank labels are not used in NMT.
+        # in ASR. However, blank labels are not used in MT.
         # To keep the vocabulary size,
         # we use index:0 for padding instead of adding one more class.
 
@@ -296,9 +290,8 @@ class E2E(STInterface, torch.nn.Module):
         else:
             labeldist = None
 
-        # multilingual E2E-ST related
+        # multilingual related
         self.multilingual = getattr(args, "multilingual", False)
-        self.joint_asr = getattr(args, "joint_asr", False)
         self.replace_sos = getattr(args, "replace_sos", False)
 
         # encoder
@@ -412,8 +405,7 @@ class E2E(STInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -428,8 +420,9 @@ class E2E(STInterface, torch.nn.Module):
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. ST attention loss
-        self.loss_st, acc, _ = self.dec(hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids)
-        self.acc = acc
+        self.loss_st, self.acc, _ = self.dec(
+            hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids
+        )
 
         # 2. ASR CTC loss
         if self.asr_weight == 0 or self.mtlalpha == 0:
@@ -601,7 +594,7 @@ class E2E(STInterface, torch.nn.Module):
                 loss_st_data,
                 acc_asr,
                 acc_mt,
-                acc,
+                self.acc,
                 cer_ctc,
                 cer,
                 wer,
@@ -648,11 +641,10 @@ class E2E(STInterface, torch.nn.Module):
         :rtype: list
         """
         hs = self.encode(x).unsqueeze(0)
-        lpz = None
 
         # 2. Decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(hs[0], lpz, trans_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], None, trans_args, char_list, rnnlm)
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
@@ -676,12 +668,11 @@ class E2E(STInterface, torch.nn.Module):
 
         # 1. Encoder
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
-        lpz = None
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(
-            hs_pad, hlens, lpz, trans_args, char_list, rnnlm
+            hs_pad, hlens, None, trans_args, char_list, rnnlm
         )
 
         if prev:
@@ -693,8 +684,7 @@ class E2E(STInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
