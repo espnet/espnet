@@ -496,7 +496,6 @@ class E2E(STInterface, torch.nn.Module):
             or not (self.report_cer or self.report_wer)
         ):
             cer, wer = 0.0, 0.0
-            # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             if (
                 self.asr_weight > 0 and self.mtlalpha > 0
@@ -579,8 +578,8 @@ class E2E(STInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                hyps += [seq_hat_text.split(' ')]
-                list_of_refs += [[seq_true_text.split(' ')]]
+                hyps += [seq_hat_text.split(" ")]
+                list_of_refs += [[seq_true_text.split(" ")]]
 
             self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 

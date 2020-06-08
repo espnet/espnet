@@ -379,8 +379,8 @@ class E2E(MTInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                hyps += [seq_hat_text.split(' ')]
-                list_of_refs += [[seq_true_text.split(' ')]]
+                hyps += [seq_hat_text.split(" ")]
+                list_of_refs += [[seq_true_text.split(" ")]]
 
             self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
