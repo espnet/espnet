@@ -619,7 +619,7 @@ def trans(args):
                 logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm,)
+                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(
                     js[name], nbest_hyps, train_args.char_list
                 )
