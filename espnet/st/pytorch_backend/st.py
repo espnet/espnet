@@ -65,14 +65,16 @@ class CustomConverter(ASRCustomConverter):
     Args:
         subsampling_factor (int): The subsampling factor.
         dtype (torch.dtype): Data type to convert.
-        asr_task (bool): multi-task with ASR task.
+        use_source_text (bool): use source transcription.
 
     """
 
-    def __init__(self, subsampling_factor=1, dtype=torch.float32, asr_task=False):
+    def __init__(
+        self, subsampling_factor=1, dtype=torch.float32, use_source_text=False
+    ):
         """Construct a CustomConverter object."""
         super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
-        self.asr_task = asr_task
+        self.use_source_text = use_source_text
 
     def __call__(self, batch, device=torch.device("cpu")):
         """Transform a batch and send it to a device.
@@ -88,7 +90,7 @@ class CustomConverter(ASRCustomConverter):
         _, ys = batch[0]
         ys_asr = copy.deepcopy(ys)
         xs_pad, ilens, ys_pad = super().__call__(batch, device)
-        if self.asr_task:
+        if self.use_source_text:
             ys_pad_asr = pad_list(
                 [torch.from_numpy(np.array(y[1])).long() for y in ys_asr],
                 self.ignore_id,
@@ -226,7 +228,10 @@ def train(args):
 
     # Setup a converter
     converter = CustomConverter(
-        subsampling_factor=subsampling_factor, dtype=dtype, asr_task=args.asr_weight > 0
+        subsampling_factor=subsampling_factor,
+        dtype=dtype,
+        use_source_text=args.asr_weight > 0
+        or args.mt_weight > 0,
     )
 
     # read json data
@@ -367,6 +372,8 @@ def train(args):
                 "validation/main/loss",
                 "main/loss_asr",
                 "validation/main/loss_asr",
+                "main/loss_mt",
+                "validation/main/loss_mt",
                 "main/loss_st",
                 "validation/main/loss_st",
             ],
@@ -381,6 +388,8 @@ def train(args):
                 "validation/main/acc",
                 "main/acc_asr",
                 "validation/main/acc_asr",
+                "main/acc_mt",
+                "validation/main/acc_mt",
             ],
             "epoch",
             file_name="acc.png",
@@ -535,6 +544,7 @@ def train(args):
             if args.report_wer:
                 report_keys.append("validation/main/wer")
     if args.report_bleu:
+        report_keys.append("main/bleu")
         report_keys.append("validation/main/bleu")
     trainer.extend(
         extensions.PrintReport(report_keys),
@@ -613,7 +623,12 @@ def trans(args):
                 logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.translate(
+                    feat,
+                    args,
+                    train_args.char_list,
+                    rnnlm,
+                )
                 new_js[name] = add_results_to_json(
                     js[name], nbest_hyps, train_args.char_list
                 )
