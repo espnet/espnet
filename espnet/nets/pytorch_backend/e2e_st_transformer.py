@@ -1,17 +1,20 @@
-# Copyright 2019 Hirofumi Inaguma
+#!/usr/bin/env python3
+# encoding: utf-8
+
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Transformer speech recognition model (pytorch)."""
 
 from argparse import Namespace
 from distutils.util import strtobool
-
 import logging
 import math
 
 import torch
 
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
+from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
@@ -101,11 +104,7 @@ class E2E(STInterface, torch.nn.Module):
         )
         # Encoder
         group.add_argument(
-            "--elayers",
-            default=4,
-            type=int,
-            help="Number of encoder layers (for shared recognition "
-            "part in multi-speaker asr mode)",
+            "--elayers", default=4, type=int, help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -295,13 +294,13 @@ class E2E(STInterface, torch.nn.Module):
         acc_asr, acc_mt = 0.0, 0.0
         loss_att = self.criterion(pred_pad, ys_out_pad)
 
-        acc = th_accuracy(
+        self.acc = th_accuracy(
             pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
         )
 
         # 4. compute corpus-level bleu in a mini-batch
         ys_hat = pred_pad.argmax(dim=-1)
-        bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+        self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # 5. compute auxiliary ASR loss
         cer, wer = None, None
@@ -377,11 +376,11 @@ class E2E(STInterface, torch.nn.Module):
                 loss_st_data,
                 acc_asr,
                 acc_mt,
-                acc,
+                self.acc,
                 cer_ctc,
                 cer,
                 wer,
-                bleu,
+                self.bleu,
                 loss_data,
             )
         else:
@@ -537,8 +536,6 @@ class E2E(STInterface, torch.nn.Module):
                     remained_hyps.append(hyp)
 
             # end detection
-            from espnet.nets.e2e_asr_common import end_detect
-
             if end_detect(ended_hyps, i) and trans_args.maxlenratio == 0.0:
                 logging.info("end detected at %d", i)
                 break
@@ -565,7 +562,7 @@ class E2E(STInterface, torch.nn.Module):
         # check number of hypotheis
         if len(nbest_hyps) == 0:
             logging.warning(
-                "there is no N-best results, perform recognition "
+                "there is no N-best results, perform translation "
                 "again with smaller minlenratio."
             )
             # should copy becasuse Namespace will be overwritten globally
@@ -586,8 +583,7 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :param torch.Tensor ys_pad_src:
-            batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
