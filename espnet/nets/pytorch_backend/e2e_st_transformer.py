@@ -404,7 +404,9 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
-    def translate(self, x, trans_args, char_list=None, rnnlm=None, use_jit=False):
+    def translate(
+        self, x, trans_args, char_list=None, rnnlm=None, use_jit=False,
+    ):
         """Translate input speech.
 
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
@@ -557,7 +559,7 @@ class E2E(STInterface, torch.nn.Module):
             logging.debug("number of ended hypothes: " + str(len(ended_hyps)))
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[
-            :min(len(ended_hyps), trans_args.nbest)
+            : min(len(ended_hyps), trans_args.nbest)
         ]
 
         # check number of hypotheis
