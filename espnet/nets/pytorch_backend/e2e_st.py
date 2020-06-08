@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
@@ -440,15 +440,15 @@ class E2E(STInterface, torch.nn.Module):
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
             self.loss_asr = 0.0
-            self.acc_asr = 0.0
+            acc_asr = 0.0
         else:
             self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
-            self.acc_asr = acc_asr
+            acc_asr = acc_asr
 
         # 3. MT attention loss
         if self.mt_weight == 0:
             self.loss_mt = 0.0
-            self.acc_mt = 0.0
+            acc_mt = 0.0
         else:
             # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
             ilens_mt = torch.sum(ys_pad_src != -1, dim=1).cpu().numpy()
@@ -459,7 +459,7 @@ class E2E(STInterface, torch.nn.Module):
                 self.dropout_mt(self.embed_mt(ys_zero_pad_src)), ilens_mt
             )
             self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
-            self.acc_mt = acc_mt
+            acc_mt = acc_mt
 
         # 4. compute cer without beam search
         if (self.asr_weight == 0 or self.mtlalpha == 0) or self.char_list is None:
@@ -549,11 +549,10 @@ class E2E(STInterface, torch.nn.Module):
 
         # 6. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
-            bleus = []
             nbest_hyps = self.dec.recognize_beam_batch(
                 hs_pad,
                 torch.tensor(hlens),
@@ -566,6 +565,8 @@ class E2E(STInterface, torch.nn.Module):
                 else None,
             )
             # remove <sos> and <eos>
+            list_of_refs = []
+            hyps = []
             y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
@@ -578,12 +579,10 @@ class E2E(STInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                bleu = (
-                    nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
-                )
-                bleus.append(bleu)
+                hyps += [seq_hat_text.split(' ')]
+                list_of_refs += [[seq_true_text.split(' ')]]
 
-            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         alpha = self.mtlalpha
         self.loss = (
@@ -601,13 +600,13 @@ class E2E(STInterface, torch.nn.Module):
                 loss_asr_data,
                 loss_mt_data,
                 loss_st_data,
-                self.acc_asr,
-                self.acc_mt,
+                acc_asr,
+                acc_mt,
                 acc,
                 cer_ctc,
                 cer,
                 wer,
-                bleu,
+                self.bleu,
                 loss_data,
             )
         else:
