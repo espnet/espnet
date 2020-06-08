@@ -64,7 +64,8 @@ class ErrorCalculator(object):
             y_true = ys_pad[i]
             eos_true = np.where(y_true == -1)[0]
             ymax = eos_true[0] if len(eos_true) > 0 else len(y_true)
-            # NOTE: padding index (-1) in y_true is used to pad y_hat because y_hats is not padded with -1
+            # NOTE: padding index (-1) in y_true is used to pad y_hat
+            # because y_hats is not padded with -1
             seq_hat = [self.char_list[int(idx)] for idx in y_hat[:ymax]]
             seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
             seq_hat_text = "".join(seq_hat).replace(self.space, " ")
