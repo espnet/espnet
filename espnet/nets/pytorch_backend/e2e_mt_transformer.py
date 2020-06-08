@@ -255,7 +255,7 @@ class E2E(MTInterface, torch.nn.Module):
         else:
             batch_size = ys_out_pad.size(0)
             ys_out_pad = ys_out_pad.view(-1)
-            ignore = (ys_out_pad == self.ignore_id)  # (B*T,)
+            ignore = ys_out_pad == self.ignore_id  # (B*T,)
             total_n_tokens = len(ys_out_pad) - ignore.sum().item()
             ppl = np.exp(loss_data * batch_size / total_n_tokens)
         if not math.isnan(loss_data):
@@ -467,7 +467,7 @@ class E2E(MTInterface, torch.nn.Module):
             logging.debug("number of ended hypothes: " + str(len(ended_hyps)))
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[
-            :min(len(ended_hyps), trans_args.nbest)
+            : min(len(ended_hyps), trans_args.nbest)
         ]
 
         # check number of hypotheis
