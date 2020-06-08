@@ -280,7 +280,7 @@ class E2E(STInterface, torch.nn.Module):
         self.eos = odim - 1
         self.pad = 0
         # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
-        # in ASR. However, blank labels are not used in MT.
+        # in ASR. However, blank labels are not used in NMT.
         # To keep the vocabulary size,
         # we use index:0 for padding instead of adding one more class.
 
@@ -298,6 +298,7 @@ class E2E(STInterface, torch.nn.Module):
 
         # multilingual E2E-ST related
         self.multilingual = getattr(args, "multilingual", False)
+        self.joint_asr = getattr(args, "joint_asr", False)
         self.replace_sos = getattr(args, "replace_sos", False)
 
         # encoder
@@ -385,6 +386,8 @@ class E2E(STInterface, torch.nn.Module):
         self.rnnlm = None
 
         self.logzero = -10000000000.0
+        self.loss = None
+        self.acc = None
 
     def init_like_chainer(self):
         """Initialize weight like chainer.
@@ -425,24 +428,26 @@ class E2E(STInterface, torch.nn.Module):
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. ST attention loss
-        loss_st, acc, _ = self.dec(hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids)
+        self.loss_st, acc, _ = self.dec(hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids)
+        self.acc = acc
 
         # 2. ASR CTC loss
         if self.asr_weight == 0 or self.mtlalpha == 0:
-            loss_ctc = 0.0
+            self.loss_ctc = 0.0
         else:
-            loss_ctc = self.ctc(hs_pad, hlens, ys_pad_src)
+            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_src)
 
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
-            loss_asr = 0.0
+            self.loss_asr = 0.0
             acc_asr = 0.0
         else:
-            loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
+            self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
+            acc_asr = acc_asr
 
         # 3. MT attention loss
         if self.mt_weight == 0:
-            loss_mt = 0.0
+            self.loss_mt = 0.0
             acc_mt = 0.0
         else:
             # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
@@ -453,7 +458,8 @@ class E2E(STInterface, torch.nn.Module):
             hs_pad_mt, hlens_mt, _ = self.enc_mt(
                 self.dropout_mt(self.embed_mt(ys_zero_pad_src)), ilens_mt
             )
-            loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
+            self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
+            acc_mt = acc_mt
 
         # 4. compute cer without beam search
         if (self.asr_weight == 0 or self.mtlalpha == 0) or self.char_list is None:
@@ -542,7 +548,7 @@ class E2E(STInterface, torch.nn.Module):
 
         # 6. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
@@ -575,19 +581,19 @@ class E2E(STInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         alpha = self.mtlalpha
-        loss = (
-            (1 - self.asr_weight - self.mt_weight) * loss_st
-            + self.asr_weight * (alpha * loss_ctc + (1 - alpha) * loss_asr)
-            + self.mt_weight * loss_mt
+        self.loss = (
+            (1 - self.asr_weight - self.mt_weight) * self.loss_st
+            + self.asr_weight * (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+            + self.mt_weight * self.loss_mt
         )
-        loss_st_data = float(loss_st)
-        loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
-        loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
+        loss_st_data = float(self.loss_st)
+        loss_asr_data = float(alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+        loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
 
-        loss_data = float(loss)
+        loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(
                 loss_asr_data,
@@ -599,12 +605,12 @@ class E2E(STInterface, torch.nn.Module):
                 cer_ctc,
                 cer,
                 wer,
-                bleu,
+                self.bleu,
                 loss_data,
             )
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
-        return loss
+        return self.loss
 
     def scorers(self):
         """Scorers."""
