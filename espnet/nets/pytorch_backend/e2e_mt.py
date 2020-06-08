@@ -445,7 +445,8 @@ class E2E(MTInterface, torch.nn.Module):
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
         """E2E beam search.
 
-        :param list xs: list of input source text feature arrays [(T_1, D), (T_2, D), ...]
+        :param list xs:
+            list of input source text feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace trans_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module

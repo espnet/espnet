@@ -15,6 +15,7 @@ import numpy as np
 import torch
 
 from espnet.nets.e2e_mt_common import ErrorCalculator
+from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_mt import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
@@ -240,29 +241,29 @@ class E2E(MTInterface, torch.nn.Module):
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
 
         # 3. compute attention loss
-        loss = self.criterion(pred_pad, ys_out_pad)
-        acc = th_accuracy(
+        self.loss = self.criterion(pred_pad, ys_out_pad)
+        self.acc = th_accuracy(
             pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
         )
 
         # 4. compute corpus-level bleu in a mini-batch
         ys_hat = pred_pad.argmax(dim=-1)
-        bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+        self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        loss_data = float(loss)
+        loss_data = float(self.loss)
         if self.normalize_length:
-            ppl = np.exp(loss_data)
+            self.ppl = np.exp(loss_data)
         else:
             batch_size = ys_out_pad.size(0)
             ys_out_pad = ys_out_pad.view(-1)
             ignore = ys_out_pad == self.ignore_id  # (B*T,)
             total_n_tokens = len(ys_out_pad) - ignore.sum().item()
-            ppl = np.exp(loss_data * batch_size / total_n_tokens)
+            self.ppl = np.exp(loss_data * batch_size / total_n_tokens)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, acc, ppl, bleu)
+            self.reporter.report(loss_data, self.acc, self.ppl, self.bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
-        return loss
+        return self.loss
 
     def scorers(self):
         """Scorers."""
@@ -445,8 +446,6 @@ class E2E(MTInterface, torch.nn.Module):
                     remained_hyps.append(hyp)
 
             # end detection
-            from espnet.nets.e2e_asr_common import end_detect
-
             if end_detect(ended_hyps, i) and trans_args.maxlenratio == 0.0:
                 logging.info("end detected at %d", i)
                 break
@@ -473,8 +472,8 @@ class E2E(MTInterface, torch.nn.Module):
         # check number of hypotheis
         if len(nbest_hyps) == 0:
             logging.warning(
-                "there is no N-best results, "
-                "perform recognition again with smaller minlenratio."
+                "there is no N-best results, perform translation "
+                "again with smaller minlenratio."
             )
             # should copy becasuse Namespace will be overwritten globally
             trans_args = Namespace(**vars(trans_args))
@@ -493,8 +492,7 @@ class E2E(MTInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-        batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
@@ -504,6 +502,6 @@ class E2E(MTInterface, torch.nn.Module):
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention):
+            if isinstance(m, MultiHeadedAttention) and m.attn is not None:
                 ret[name] = m.attn.cpu().numpy()
         return ret
