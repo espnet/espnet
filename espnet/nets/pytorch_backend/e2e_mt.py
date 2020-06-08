@@ -352,11 +352,10 @@ class E2E(MTInterface, torch.nn.Module):
 
         # 5. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
-            bleus = []
             nbest_hyps = self.dec.recognize_beam_batch(
                 hs_pad,
                 torch.tensor(hlens),
@@ -366,6 +365,8 @@ class E2E(MTInterface, torch.nn.Module):
                 self.rnnlm,
             )
             # remove <sos> and <eos>
+            list_of_refs = []
+            hyps = []
             y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
@@ -378,18 +379,16 @@ class E2E(MTInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                bleu = (
-                    nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
-                )
-                bleus.append(bleu)
+                hyps += [seq_hat_text.split(' ')]
+                list_of_refs += [[seq_true_text.split(' ')]]
 
-            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         self.loss = loss
 
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, acc, ppl, bleu)
+            self.reporter.report(loss_data, acc, ppl, self.bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
