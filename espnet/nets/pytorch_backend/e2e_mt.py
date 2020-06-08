@@ -315,6 +315,8 @@ class E2E(MTInterface, torch.nn.Module):
         self.rnnlm = None
 
         self.logzero = -10000000000.0
+        self.loss = None
+        self.acc = None
 
     def init_like_fairseq(self):
         """Initialize weight like fairseq.
@@ -345,10 +347,12 @@ class E2E(MTInterface, torch.nn.Module):
 
         # 3. attention loss
         loss, acc, ppl = self.dec(hs_pad, hlens, ys_pad)
+        self.acc = acc
+        self.ppl = ppl
 
         # 5. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
@@ -378,14 +382,16 @@ class E2E(MTInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
-        loss_data = float(loss)
+        self.loss = loss
+
+        loss_data = float(self.loss)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, acc, ppl, bleu)
+            self.reporter.report(loss_data, acc, ppl, self.bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
-        return loss
+        return self.loss
 
     def target_language_biasing(self, xs_pad, ilens, ys_pad):
         """Prepend target language IDs to source sentences for multilingual NMT.
