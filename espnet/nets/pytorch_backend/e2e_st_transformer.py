@@ -11,6 +11,8 @@ import math
 
 import torch
 
+from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
+from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
@@ -171,7 +173,7 @@ class E2E(STInterface, torch.nn.Module):
             self_attention_dropout_rate=args.transformer_attn_dropout_rate,
             src_attention_dropout_rate=args.transformer_attn_dropout_rate,
         )
-        self.pad = 0
+        self.pad = 0  # use <blank> for padding
         self.sos = odim - 1
         self.eos = odim - 1
         self.odim = odim
@@ -179,14 +181,12 @@ class E2E(STInterface, torch.nn.Module):
         self.subsample = get_subsample(args, mode="st", arch="transformer")
         self.reporter = Reporter()
 
-        # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(
             self.odim,
             self.ignore_id,
             args.lsm_weight,
             args.transformer_length_normalized_loss,
         )
-        # self.verbose = args.verbose
         self.adim = args.adim
         # submodule for ASR task
         self.mtlalpha = args.mtlalpha
@@ -226,25 +226,25 @@ class E2E(STInterface, torch.nn.Module):
         else:
             self.ctc = None
 
-        if self.asr_weight > 0 and (args.report_cer or args.report_wer):
-            from espnet.nets.e2e_asr_common import ErrorCalculator
+        # translation error calculator
+        self.error_calculator = MTErrorCalculator(
+            args.char_list, args.sym_space, args.sym_blank, args.report_bleu
+        )
 
-            self.error_calculator = ErrorCalculator(
-                args.char_list,
-                args.sym_space,
-                args.sym_blank,
-                args.report_cer,
-                args.report_wer,
-            )
-        else:
-            self.error_calculator = None
+        # recognition error calculator
+        self.error_calculator_asr = None
+        self.error_calculator_asr = ASRErrorCalculator(
+            args.char_list,
+            args.sym_space,
+            args.sym_blank,
+            args.report_cer,
+            args.report_wer,
+        )
         self.rnnlm = None
 
         # multilingual E2E-ST related
         self.multilingual = getattr(args, "multilingual", False)
         self.replace_sos = getattr(args, "replace_sos", False)
-        if self.multilingual:
-            assert self.replace_sos
 
     def reset_parameters(self, args):
         """Initialize parameters."""
@@ -271,7 +271,6 @@ class E2E(STInterface, torch.nn.Module):
         :rtype: float
         """
         # 0. Extract target language ID
-        # src_lang_ids = None
         tgt_lang_ids = None
         if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
@@ -290,27 +289,57 @@ class E2E(STInterface, torch.nn.Module):
             ys_in_pad = torch.cat([tgt_lang_ids, ys_in_pad[:, 1:]], dim=1)
         ys_mask = target_mask(ys_in_pad, self.ignore_id)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-        self.pred_pad = pred_pad
-        pred_pad_asr, pred_pad_mt = None, None
 
-        # 3. compute attention loss
-        loss_asr, loss_mt = 0.0, 0.0
+        # 3. compute ST loss
+        loss_asr_att, loss_asr_ctc, loss_mt = 0.0, 0.0, 0.0
+        acc_asr, acc_mt = 0.0, 0.0
         loss_att = self.criterion(pred_pad, ys_out_pad)
-        # Multi-task w/ ASR
-        if self.asr_weight > 0 and self.mtlalpha < 1.0:
-            # forward ASR decoder
-            ys_in_pad_asr, ys_out_pad_asr = add_sos_eos(
-                ys_pad_src, self.sos, self.eos, self.ignore_id
-            )
-            ys_mask_asr = target_mask(ys_in_pad_asr, self.ignore_id)
-            pred_pad_asr, _ = self.decoder_asr(
-                ys_in_pad_asr, ys_mask_asr, hs_pad, hs_mask
-            )
-            # compute loss
-            loss_asr = self.criterion(pred_pad_asr, ys_out_pad_asr)
-        # Multi-task w/ MT
+
+        acc = th_accuracy(
+            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
+        )
+
+        # 4. compute corpus-level bleu in a mini-batch
+        ys_hat = pred_pad.argmax(dim=-1)
+        bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+
+        # 5. compute auxiliary ASR loss
+        cer, wer = None, None
+        cer_ctc = None
+        if self.asr_weight > 0:
+            # attention
+            if self.mtlalpha < 1:
+                ys_in_pad_asr, ys_out_pad_asr = add_sos_eos(
+                    ys_pad_src, self.sos, self.eos, self.ignore_id
+                )
+                ys_mask_asr = target_mask(ys_in_pad_asr, self.ignore_id)
+                pred_pad_asr, _ = self.decoder_asr(
+                    ys_in_pad_asr, ys_mask_asr, hs_pad, hs_mask
+                )
+                loss_asr_att = self.criterion(pred_pad_asr, ys_out_pad_asr)
+
+                acc_asr = th_accuracy(
+                    pred_pad_asr.view(-1, self.odim),
+                    ys_out_pad_asr,
+                    ignore_label=self.ignore_id,
+                )
+                ys_hat_asr = pred_pad_asr.argmax(dim=-1)
+                cer, wer = self.error_calculator_asr(ys_hat_asr.cpu(), ys_pad_src.cpu())
+
+            # CTC
+            if self.mtlalpha > 0:
+                batch_size = xs_pad.size(0)
+                hs_len = hs_mask.view(batch_size, -1).sum(1)
+                loss_asr_ctc = self.ctc(
+                    hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad_src
+                )
+                ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+                cer_ctc = self.error_calculator_asr(
+                    ys_hat.cpu(), ys_pad_src.cpu(), is_ctc=True
+                )
+
+        # 6. compute auxiliary ASR loss
         if self.mt_weight > 0:
-            # forward MT encoder
             ilens_mt = torch.sum(ys_pad_src != self.ignore_id, dim=1).cpu().numpy()
             # NOTE: ys_pad_src is padded with -1
             ys_src = [y[y != self.ignore_id] for y in ys_pad_src]  # parse padded ys_src
@@ -321,68 +350,22 @@ class E2E(STInterface, torch.nn.Module):
                 .to(ys_zero_pad_src.device)
                 .unsqueeze(-2)
             )
-            # ys_zero_pad_src, ys_pad = self.target_forcing(ys_zero_pad_src, ys_pad)
             hs_pad_mt, hs_mask_mt = self.encoder_mt(ys_zero_pad_src, src_mask_mt)
-            # forward MT decoder
             pred_pad_mt, _ = self.decoder(ys_in_pad, ys_mask, hs_pad_mt, hs_mask_mt)
-            # compute loss
             loss_mt = self.criterion(pred_pad_mt, ys_out_pad)
 
-        self.acc = th_accuracy(
-            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
-        )
-        if pred_pad_asr is not None:
-            self.acc_asr = th_accuracy(
-                pred_pad_asr.view(-1, self.odim),
-                ys_out_pad_asr,
-                ignore_label=self.ignore_id,
-            )
-        else:
-            self.acc_asr = 0.0
-        if pred_pad_mt is not None:
-            self.acc_mt = th_accuracy(
+            acc_mt = th_accuracy(
                 pred_pad_mt.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
             )
-        else:
-            self.acc_mt = 0.0
-
-        # TODO(karita) show predicted text
-        # TODO(karita) calculate these stats
-        cer_ctc = None
-        if self.mtlalpha == 0.0 or self.asr_weight == 0:
-            loss_ctc = 0.0
-        else:
-            batch_size = xs_pad.size(0)
-            hs_len = hs_mask.view(batch_size, -1).sum(1)
-            loss_ctc = self.ctc(
-                hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad_src
-            )
-            if self.error_calculator is not None:
-                ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
-                cer_ctc = self.error_calculator(
-                    ys_hat.cpu(), ys_pad_src.cpu(), is_ctc=True
-                )
-
-        # 5. compute cer/wer
-        cer, wer = None, None  # TODO(hirofumi0810): fix later
-        # if self.training or (
-        #       self.asr_weight == 0 or self.mtlalpha == 1 or not (
-        #           self.report_cer or self.report_wer
-        #        )
-        # ):
-        #     cer, wer = None, None
-        # else:
-        #     ys_hat = pred_pad.argmax(dim=-1)
-        #     cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
         self.loss = (
             (1 - self.asr_weight - self.mt_weight) * loss_att
-            + self.asr_weight * (alpha * loss_ctc + (1 - alpha) * loss_asr)
+            + self.asr_weight * (alpha * loss_asr_ctc + (1 - alpha) * loss_asr_att)
             + self.mt_weight * loss_mt
         )
-        loss_asr_data = float(alpha * loss_ctc + (1 - alpha) * loss_asr)
+        loss_asr_data = float(alpha * loss_asr_ctc + (1 - alpha) * loss_asr_att)
         loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
         loss_st_data = float(loss_att)
 
@@ -392,13 +375,13 @@ class E2E(STInterface, torch.nn.Module):
                 loss_asr_data,
                 loss_mt_data,
                 loss_st_data,
-                self.acc_asr,
-                self.acc_mt,
-                self.acc,
+                acc_asr,
+                acc_mt,
+                acc,
                 cer_ctc,
                 cer,
                 wer,
-                0.0,  # TODO(hirofumi0810): bleu
+                bleu,
                 loss_data,
             )
         else:
@@ -574,7 +557,7 @@ class E2E(STInterface, torch.nn.Module):
             logging.debug("number of ended hypothes: " + str(len(ended_hyps)))
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x["score"], reverse=True)[
-            : min(len(ended_hyps), trans_args.nbest)
+            :min(len(ended_hyps), trans_args.nbest)
         ]
 
         # check number of hypotheis
