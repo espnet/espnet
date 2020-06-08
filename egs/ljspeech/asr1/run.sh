@@ -16,18 +16,8 @@ nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 debugmode=1
-
-# feature extraction related
-fs=22050      # sampling frequency
-fmax=7600     # maximum frequency
-fmin=80       # minimum frequency
-n_mels=80     # number of mel basis
-n_fft=1024    # number of fft points
-n_shift=256   # number of shift points
-win_length="" # window length
 
 # char or phn
 # In the case of phn, input transcription is convered to phoneem using https://github.com/Kyubyong/g2p.
@@ -93,18 +83,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        data/${trans_type}_train \
-        exp/${trans_type}_make_fbank/train \
-        ${fbankdir}
-
+    for x in ${trans_type}_eval ${trans_type}_train; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
+    done
+    ###
     # make a dev set
     utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
     utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}
@@ -122,6 +106,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_eval ${feat_ev_dir}
+    ###
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 8 --do_delta ${do_delta} \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+            ${feat_recog_dir}
+    done
 fi
 
 dict=data/lang_1${trans_type}/${train_set}_units.txt
