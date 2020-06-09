@@ -91,14 +91,14 @@ class E2E(STInterface, torch.nn.Module):
         )
         group.add_argument(
             "--transformer-length-normalized-loss",
-            default=True,
+            default=False,
             type=strtobool,
             help="normalize loss by length",
         )
 
         group.add_argument(
             "--dropout-rate",
-            default=0.0,
+            default=0.1,
             type=float,
             help="Dropout rate for the encoder",
         )
@@ -109,14 +109,14 @@ class E2E(STInterface, torch.nn.Module):
         group.add_argument(
             "--eunits",
             "-u",
-            default=300,
+            default=2048,
             type=int,
             help="Number of encoder hidden units",
         )
         # Attention
         group.add_argument(
             "--adim",
-            default=320,
+            default=256,
             type=int,
             help="Number of attention transformation dimensions",
         )
@@ -128,10 +128,10 @@ class E2E(STInterface, torch.nn.Module):
         )
         # Decoder
         group.add_argument(
-            "--dlayers", default=1, type=int, help="Number of decoder layers"
+            "--dlayers", default=6, type=int, help="Number of decoder layers"
         )
         group.add_argument(
-            "--dunits", default=320, type=int, help="Number of decoder hidden units"
+            "--dunits", default=2048, type=int, help="Number of decoder hidden units"
         )
         return parser
 
@@ -279,7 +279,6 @@ class E2E(STInterface, torch.nn.Module):
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
-        self.hs_pad = hs_pad
 
         # 2. forward decoder
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
@@ -583,8 +582,8 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :param torch.Tensor
-            ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src:
+            batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
