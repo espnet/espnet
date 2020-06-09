@@ -45,19 +45,16 @@ class ErrorCalculator(object):
         if not self.report_bleu:
             return bleu
 
-        seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad)
-        bleu = self.calculate_corpus_bleu(seqs_hat, seqs_true)
+        bleu = self.calculate_corpus_bleu(ys_hat, ys_pad)
         return bleu
 
-    def convert_to_char(self, ys_hat, ys_pad):
-        """Convert index to character.
+    def calculate_corpus_bleu(self, ys_hat, ys_pad):
+        """Calculate corpus-level BLEU score in a mini-batch.
 
         :param torch.Tensor seqs_hat: prediction (batch, seqlen)
         :param torch.Tensor seqs_true: reference (batch, seqlen)
-        :return: token list of prediction
-        :rtype list
-        :return: token list of reference
-        :rtype list
+        :return: corpus-level BLEU score
+        :rtype float
         """
         seqs_hat, seqs_true = [], []
         for i, y_hat in enumerate(ys_hat):
@@ -73,15 +70,5 @@ class ErrorCalculator(object):
             seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
-        return seqs_hat, seqs_true
-
-    def calculate_corpus_bleu(self, seqs_hat, seqs_true):
-        """Calculate corpus-level BLEU score in a mini-batch.
-
-        :param list seqs_hat: prediction
-        :param list seqs_true: reference
-        :return: corpus-level BLEU score
-        :rtype float
-        """
         bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
         return bleu * 100
