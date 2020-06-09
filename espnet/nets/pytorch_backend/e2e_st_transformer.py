@@ -331,12 +331,12 @@ class E2E(STInterface, torch.nn.Module):
                 loss_asr_ctc = self.ctc(
                     hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad_src
                 )
-                ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+                ys_hat_ctc = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
                 cer_ctc = self.error_calculator_asr(
-                    ys_hat.cpu(), ys_pad_src.cpu(), is_ctc=True
+                    ys_hat_ctc.cpu(), ys_pad_src.cpu(), is_ctc=True
                 )
 
-        # 6. compute auxiliary ASR loss
+        # 6. compute auxiliary MT loss
         if self.mt_weight > 0:
             ilens_mt = torch.sum(ys_pad_src != self.ignore_id, dim=1).cpu().numpy()
             # NOTE: ys_pad_src is padded with -1
@@ -356,7 +356,6 @@ class E2E(STInterface, torch.nn.Module):
                 pred_pad_mt.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
             )
 
-        # copyied from e2e_asr
         alpha = self.mtlalpha
         self.loss = (
             (1 - self.asr_weight - self.mt_weight) * loss_att
