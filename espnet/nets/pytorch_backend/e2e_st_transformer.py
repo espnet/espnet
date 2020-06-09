@@ -331,7 +331,9 @@ class E2E(STInterface, torch.nn.Module):
                 loss_asr_ctc = self.ctc(
                     hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad_src
                 )
-                ys_hat_ctc = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+                ys_hat_ctc = self.ctc.argmax(
+                    hs_pad.view(batch_size, -1, self.adim)
+                ).data
                 cer_ctc = self.error_calculator_asr(
                     ys_hat_ctc.cpu(), ys_pad_src.cpu(), is_ctc=True
                 )
