@@ -218,7 +218,7 @@ class E2E(STInterface, torch.nn.Module):
                 padding_idx=0,
             )
         self.reset_parameters(args)  # place after the submodule initialization
-        if args.mtlalpha > 0.0:
+        if self.asr_weight > 0 and args.mtlalpha > 0.0:
             self.ctc = CTC(
                 odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True
             )
@@ -231,7 +231,6 @@ class E2E(STInterface, torch.nn.Module):
         )
 
         # recognition error calculator
-        self.error_calculator_asr = None
         self.error_calculator_asr = ASRErrorCalculator(
             args.char_list,
             args.sym_space,
