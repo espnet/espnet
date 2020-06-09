@@ -495,6 +495,7 @@ def train(args):
         )
         report_keys.append("lr")
     if args.report_bleu:
+        report_keys.append("main/bleu")
         report_keys.append("validation/main/bleu")
     trainer.extend(
         extensions.PrintReport(report_keys),
