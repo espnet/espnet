@@ -297,8 +297,11 @@ class E2E(STInterface, torch.nn.Module):
         )
 
         # 4. compute corpus-level bleu in a mini-batch
-        ys_hat = pred_pad.argmax(dim=-1)
-        self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+        if self.training:
+            self.bleu = None
+        else:
+            ys_hat = pred_pad.argmax(dim=-1)
+            self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # 5. compute auxiliary ASR loss
         cer, wer = None, None
@@ -320,8 +323,11 @@ class E2E(STInterface, torch.nn.Module):
                     ys_out_pad_asr,
                     ignore_label=self.ignore_id,
                 )
-                ys_hat_asr = pred_pad_asr.argmax(dim=-1)
-                cer, wer = self.error_calculator_asr(ys_hat_asr.cpu(), ys_pad_src.cpu())
+                if not self.training:
+                    ys_hat_asr = pred_pad_asr.argmax(dim=-1)
+                    cer, wer = self.error_calculator_asr(
+                        ys_hat_asr.cpu(), ys_pad_src.cpu()
+                    )
 
             # CTC
             if self.mtlalpha > 0:
@@ -333,9 +339,10 @@ class E2E(STInterface, torch.nn.Module):
                 ys_hat_ctc = self.ctc.argmax(
                     hs_pad.view(batch_size, -1, self.adim)
                 ).data
-                cer_ctc = self.error_calculator_asr(
-                    ys_hat_ctc.cpu(), ys_pad_src.cpu(), is_ctc=True
-                )
+                if not self.training:
+                    cer_ctc = self.error_calculator_asr(
+                        ys_hat_ctc.cpu(), ys_pad_src.cpu(), is_ctc=True
+                    )
 
         # 6. compute auxiliary MT loss
         if self.mt_weight > 0:
