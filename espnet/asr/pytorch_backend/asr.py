@@ -644,7 +644,7 @@ def train(args):
         )
 
     # Save attention weight each epoch
-    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+    if args.num_save_attention > 0:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
