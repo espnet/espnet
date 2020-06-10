@@ -159,17 +159,15 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
-
+    ### Removed wsj texts. By default we use the 65000 words pretrained wsj LM.
+    ### You can still add your corpus to train the LM.
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
         cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
@@ -177,14 +175,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
-            | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
                 | cut -f 2- -d" " > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
     fi
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
