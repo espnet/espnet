@@ -28,6 +28,7 @@ min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io
 preprocess_config=conf/specaug.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
+lm_resume=
 decode_config=conf/decode.yaml
 
 # rnnlm related
@@ -69,15 +70,17 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         wget https://storage.googleapis.com/szxs/dct_features.tar.gz
         tar xzvf dct_features.tar.gz;rm dct_features.tar.gz
     fi
-    mkdir -p data/train
-    mkdir -p data/test
-    chmod 755 local/featprepare.py
+    
+
 fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
+    mkdir -p data/train
+    mkdir -p data/test
+    chmod 755 local/featprepare.py
     local/featprepare.py
     for x in train test; do
         sed 's%xxxPWDxxx%'$PWD'%g' data/${x}.scp > data/${x}/feats.scp
@@ -154,17 +157,51 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-lmname=train_rnnlm_pytorch_lm_word65000
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
 
-    if [ ! -s exp/${lmname}/rnnlm.model.best ];then
-        wget https://storage.googleapis.com/szxs/${lmname}.tar.gz
-        tar xzvf ${lmname}.tar.gz -C exp/;rm ${lmname}.tar.gz
-        
-    fi  
+    if [ ${use_wordlm} = true ]; then
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+        mkdir -p ${lmdatadir}
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
+        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
+                | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
+        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
+        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+        lmdatadir=data/local/lm_train
+        lmdict=${dict}
+        mkdir -p ${lmdatadir}
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
+            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
+            | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
+        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
+    fi
 
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+        lm_train.py \
+        --config ${lm_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --test-label ${lmdatadir}/test.txt \
+        --resume ${lm_resume} \
+        --dict ${lmdict}
 fi
+
 
 
 if [ -z ${tag} ]; then
