@@ -177,8 +177,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
-                | cut -f 2- -d" " > ${lmdatadir}/test.txt
     fi
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
