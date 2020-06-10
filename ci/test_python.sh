@@ -10,7 +10,7 @@ modules="espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/asr1/py
 
 # black
 if ! black --check ${modules}; then
-    echo "Please apply:\n    % black ${modules}"
+    echo "Please apply:    % black ${modules}"
     exit 1
 fi
 
