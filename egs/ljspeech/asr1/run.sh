@@ -88,7 +88,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
-    ###
     # make a dev set
     utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
     utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}
