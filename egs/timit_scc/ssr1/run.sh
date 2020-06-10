@@ -167,7 +167,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         mkdir -p ${lmdatadir}
         cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
-        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
