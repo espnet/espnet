@@ -10,8 +10,7 @@
   - Commit date: `Wed May 13 12:19:55 2020 +0000`
   
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if y
-ou want a web storage to put your files)
+    - model link: https://drive.google.com/file/d/1uYj3aY33ssOF_aFnAJ5RXh1_1B6tpAg9/view?usp=sharing
     - training config file: `conf/tuning/train_pytorch_transformer.yaml`
     - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
     - cmvn file: `data/train/cmvn.ark`
