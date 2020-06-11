@@ -74,7 +74,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     for x in train test; do
-        sed 's%xxxPWDxxx%'$PWD'%g' data/${x}.scp > data/${x}/feats.scp
         utils/fix_data_dir.sh data/${x}
     done
 
@@ -151,13 +150,16 @@ mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     ### Removed wsj texts. By default we use the 65000 words pretrained wsj LM.
-    ### You can still add your corpus to train the LM.
+    ### This is because the SSC training set transcripts are from TIMIT while
+    ### test transcripts are from WSJ0.
+    ### You can still add your corpus to train the LM. 
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
         cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cat ${lmdatadir}/valid.txt > test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
@@ -167,6 +169,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        cat ${lmdatadir}/valid.txt > test.txt
     fi
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
