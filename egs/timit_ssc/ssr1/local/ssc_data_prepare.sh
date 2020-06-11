@@ -16,7 +16,8 @@ wget https://ftp.espci.fr/pub/sigma/WSJ05K_Test/WSJ0_5K_Transcripts.txt ${timit_
 sed "s/^[0-9]*[.].//g" ${timit_dir}/TIMIT_Transcripts.txt  | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > ${timit_dir}/train.txt
 sed "s/^[0-9]*[.].//g" ${timit_dir}/WSJ0_5K_Transcripts.txt | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > ${timit_dir}/test.txt
 for x in train test;do
-    cat ${timit_dir}/${x}-feats.scp | sed "s%/home/jiyan/kaldi-update/egs/jiyan/dct30-wsj/voxforge/mfcc/%"${PWD}"/data/timit_data/%g" > ${timit_dir}/feats.scp
+    cat ${timit_dir}/${x}-feats.scp \
+    | sed "s%/home/jiyan/kaldi-update/egs/jiyan/dct30-wsj/voxforge/mfcc/%"${PWD}"/data/timit_data/%g" > ${timit_dir}/feats.scp
 done
 
 mkdir -p data/train
