@@ -178,6 +178,7 @@ class E2E(ASRInterface, torch.nn.Module):
             )
         else:
             self.decoder = None
+        self.blank = 0
         self.sos = odim - 1
         self.eos = odim - 1
         self.odim = odim
@@ -241,7 +242,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 2. forward decoder
         if self.decoder is not None:
-            ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+            ys_in_pad, ys_out_pad = add_sos_eos(
+                ys_pad, self.sos, self.eos, self.ignore_id
+            )
             ys_mask = target_mask(ys_in_pad, self.ignore_id)
             pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
             self.pred_pad = pred_pad
@@ -326,7 +329,21 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: list
         """
         enc_output = self.encode(x).unsqueeze(0)
-        if recog_args.ctc_weight > 0.0:
+        if self.mtlalpha == 1.0:
+            recog_args.ctc_weight = 1.0
+            logging.info("Set to pure CTC decoding mode.")
+
+        if recog_args.ctc_weight == 1.0:
+            from itertools import groupby
+
+            lpz = self.ctc.argmax(enc_output)
+            collapsed_indices = [x[0] for x in groupby(lpz[0])]
+            hyp = [x for x in filter(lambda x: x != self.blank, collapsed_indices)]
+            nbest_hyps = [{"score": 0.0, "yseq": hyp}]
+            # NOTE: Curently, greedy decoding is supported only.
+            # TODO: Implement beam search
+            return nbest_hyps
+        elif recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
         else:
