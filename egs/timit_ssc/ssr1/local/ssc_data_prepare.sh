@@ -17,7 +17,7 @@ sed "s/^[0-9]*[.].//g" ${timit_dir}/TIMIT_Transcripts.txt  | sed "s/([^)]*)//g" 
 sed "s/^[0-9]*[.].//g" ${timit_dir}/WSJ0_5K_Transcripts.txt | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > ${timit_dir}/test.txt
 for x in train test;do
     cat ${timit_dir}/${x}-feats.scp \
-    | sed "s%/home/jiyan/kaldi-update/egs/jiyan/dct30-wsj/voxforge/mfcc/%"${PWD}"/data/timit_data/%g" > ${timit_dir}/feats.scp
+    | sed "s%/home/jiyan/kaldi-update/egs/jiyan/dct30-wsj/voxforge/mfcc/%"${PWD}"/data/timit_data/%g" > data/${x}/feats.scp
 done
 
 mkdir -p data/train
