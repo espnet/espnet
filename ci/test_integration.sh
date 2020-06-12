@@ -28,7 +28,7 @@ echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
 ./run.sh --stage 2 --train-config conf/train_no_ctc.yaml \
         --decode-config conf/decode_no_ctc.yaml
 
-test transformer recipe
+# test transformer recipe
 echo "=== ASR (backend=pytorch, model=transformer) ==="
 ./run.sh --stage 2 --train-config conf/train_transformer.yaml \
          --decode-config conf/decode.yaml
