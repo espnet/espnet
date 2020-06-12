@@ -649,7 +649,7 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode") == "rnnt"
+        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
     ):
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
