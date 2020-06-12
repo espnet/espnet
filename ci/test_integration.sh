@@ -24,9 +24,15 @@ echo "==== ASR (backend=pytorch num-encs 2) ==="
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
 ./run.sh --stage 2 --train-config conf/train_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
+./run.sh --stage 2 --train-config conf/train_transducer_attention.yaml \
+         --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
 ./run.sh --stage 2 --train-config conf/train_transformer_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
+./run.sh --stage 2 --train-config conf/train_transformer_transducer_attention.yaml \
+        --decode-config conf/decode_transducer.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd ${cwd} || exit 1
