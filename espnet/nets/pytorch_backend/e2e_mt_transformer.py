@@ -243,8 +243,11 @@ class E2E(MTInterface, torch.nn.Module):
         )
 
         # 4. compute corpus-level bleu in a mini-batch
-        ys_hat = pred_pad.argmax(dim=-1)
-        self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+        if self.training:
+            self.bleu = None
+        else:
+            ys_hat = pred_pad.argmax(dim=-1)
+            self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         loss_data = float(self.loss)
         if self.normalize_length:
