@@ -22,6 +22,5 @@ done
 
 mkdir -p data/train
 mkdir -p data/test
-chmod 755 local/featprepare.py
 local/featprepare.py
 
