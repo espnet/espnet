@@ -341,7 +341,7 @@ class E2E(ASRInterface, torch.nn.Module):
             hyp = [x for x in filter(lambda x: x != self.blank, collapsed_indices)]
             nbest_hyps = [{"score": 0.0, "yseq": hyp}]
             # NOTE: Curently, greedy decoding is supported only.
-            # TODO: Implement beam search
+            # TODO(hirofumi0810): Implement beam search
             return nbest_hyps
         elif recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
