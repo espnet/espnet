@@ -30,27 +30,27 @@ echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
 
 # test transformer recipe
 echo "=== ASR (backend=pytorch, model=transformer) ==="
-./run.sh --stage 2 --train-config conf/train_transformer.yaml \
+./run.sh --stage 3 --train-config conf/train_transformer.yaml \
          --decode-config conf/decode.yaml
 echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
-./run.sh --stage 2 --train-config conf/train_transformer_pure_ctc.yaml \
+./run.sh --stage 3 --train-config conf/train_transformer_pure_ctc.yaml \
        --decode-config conf/decode_pure_ctc.yaml
 echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
-./run.sh --stage 2 --train-config conf/train_transformer_no_ctc.yaml \
+./run.sh --stage 3 --train-config conf/train_transformer_no_ctc.yaml \
         --decode-config conf/decode_no_ctc.yaml
 
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
-./run.sh --stage 2 --train-config conf/train_transducer.yaml \
+./run.sh --stage 3 --train-config conf/train_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
-./run.sh --stage 2 --train-config conf/train_transducer_attention.yaml \
+./run.sh --stage 3 --train-config conf/train_transducer_attention.yaml \
          --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
-./run.sh --stage 2 --train-config conf/train_transformer_transducer.yaml \
+./run.sh --stage 3 --train-config conf/train_transformer_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
-./run.sh --stage 2 --train-config conf/train_transformer_transducer_attention.yaml \
+./run.sh --stage 3 --train-config conf/train_transformer_transducer_attention.yaml \
         --decode-config conf/decode_transducer.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
