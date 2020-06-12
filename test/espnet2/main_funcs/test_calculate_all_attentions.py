@@ -19,7 +19,7 @@ class Dummy(AbsESPnetModel):
         self.desired = defaultdict(list)
 
     def forward(self, x, x_lengths, y, y_lengths):
-        a1 = self.att1(y, x, x, None)
+        self.att1(y, x, x, None)
         _, a2 = self.att2(x, x_lengths, y, None)
         self.desired["att1"].append(self.att1.attn.squeeze(0))
         self.desired["att2"].append(a2)
