@@ -340,7 +340,8 @@ class E2E(ASRInterface, torch.nn.Module):
             collapsed_indices = [x[0] for x in groupby(lpz[0])]
             hyp = [x for x in filter(lambda x: x != self.blank, collapsed_indices)]
             nbest_hyps = [{"score": 0.0, "yseq": hyp}]
-            # NOTE: Curently, greedy decoding is supported only.
+            if recog_args.beam_size > 1:
+                raise NotImplementedError("Pure CTC beam search is not implemented.")
             # TODO(hirofumi0810): Implement beam search
             return nbest_hyps
         elif self.mtlalpha > 0 and recog_args.ctc_weight > 0.0:
