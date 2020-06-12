@@ -333,7 +333,7 @@ class E2E(ASRInterface, torch.nn.Module):
             recog_args.ctc_weight = 1.0
             logging.info("Set to pure CTC decoding mode.")
 
-        if recog_args.ctc_weight == 1.0:
+        if self.mtlalpha > 0 and recog_args.ctc_weight == 1.0:
             from itertools import groupby
 
             lpz = self.ctc.argmax(enc_output)
@@ -343,7 +343,7 @@ class E2E(ASRInterface, torch.nn.Module):
             # NOTE: Curently, greedy decoding is supported only.
             # TODO(hirofumi0810): Implement beam search
             return nbest_hyps
-        elif recog_args.ctc_weight > 0.0:
+        elif self.mtlalpha > 0 and recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
         else:
