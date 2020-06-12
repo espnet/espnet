@@ -20,6 +20,25 @@ echo "==== ASR (backend=chainer) ==="
 echo "==== ASR (backend=pytorch num-encs 2) ==="
 ./run.sh --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
 
+# test rnn recipe
+echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
+./run.sh --stage 2 --train-config conf/train_pure_ctc.yaml \
+       --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
+./run.sh --stage 2 --train-config conf/train_no_ctc.yaml \
+        --decode-config conf/decode_no_ctc.yaml
+
+test transformer recipe
+echo "=== ASR (backend=pytorch, model=transformer) ==="
+./run.sh --stage 2 --train-config conf/train_transformer.yaml \
+         --decode-config conf/decode.yaml
+echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
+./run.sh --stage 2 --train-config conf/train_transformer_pure_ctc.yaml \
+       --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
+./run.sh --stage 2 --train-config conf/train_transformer_no_ctc.yaml \
+        --decode-config conf/decode_no_ctc.yaml
+
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
 ./run.sh --stage 2 --train-config conf/train_transducer.yaml \
