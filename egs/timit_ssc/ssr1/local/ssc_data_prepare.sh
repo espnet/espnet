@@ -9,7 +9,7 @@
 
 timit_dir=data/timit_data/
 mkdir -p ${timit_dir} ${timit_data}
-wget https://ftp.espci.fr/pub/sigma/Features/DCT_Features/features/30-dct/* ${timit_dir}
+wget -c -N ftp://ftp.espci.fr/pub/sigma/Features/DCT_Features/features/30-dct/* ${timit_dir}
 wget https://ftp.espci.fr/pub/sigma/TIMIT_training/TIMIT_Transcripts.txt ${timit_dir}
 wget https://ftp.espci.fr/pub/sigma/WSJ05K_Test/WSJ0_5K_Transcripts.txt ${timit_dir}
 
