@@ -145,15 +145,13 @@ def test_beam_search_equal(
     lm.eval()
 
     if mtlalpha == 0.0 and ctc_weight > 0.0:
-        # no CTC + CTC decoding
-        return
+        pytest.skip("no CTC + CTC decoding.")
     if mtlalpha == 1.0 and ctc_weight < 1.0:
-        # pure CTC + attention decoding
-        return
+        pytest.skip("pure CTC + attention decoding")
 
-    # TODO(hirofumi0810): Pure CTC beam search is not implemented
+    # TODO(hirofumi0810): pure CTC beam search is not implemented
     if ctc_weight == 1.0:
-        return
+        pytest.skip("pure CTC beam search is not implemented")
 
     # test previous beam search
     args = Namespace(
