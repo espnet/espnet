@@ -111,11 +111,11 @@ def prepare(E2E, args, mtlalpha=0.0):
 @pytest.mark.parametrize(
     "model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype",
     [
-        (nn, args, ctc_train, ctc_decode, lm, bonus, device, dtype)
+        (nn, args, ctc_train, ctc_recog, lm, bonus, device, dtype)
         for device in ("cpu", "cuda")
         for nn, args in (("transformer", transformer_args), ("rnn", rnn_args))
         for ctc_train in (0.0, 0.5, 1.0)
-        for ctc_decode in (0.0, 0.5, 1.0)
+        for ctc_recog in (0.0, 0.5, 1.0)
         for lm in (0.0, 0.5)
         for bonus in (0.0, 0.1)
         for dtype in ("float16", "float32", "float64")
@@ -153,7 +153,7 @@ def test_beam_search_equal(
 
     # TODO(hirofumi0810): Pure CTC beam search is not implemented
     if ctc_weight == 1.0:
-        return 0
+        return
 
     # test previous beam search
     args = Namespace(
