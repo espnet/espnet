@@ -9,9 +9,9 @@
 
 timit_dir=data/timit_data/
 mkdir -p ${timit_dir} ${timit_data}
-wget -c -N ftp://ftp.espci.fr/pub/sigma/Features/DCT_Features/features/30-dct/* ${timit_dir}
-wget https://ftp.espci.fr/pub/sigma/TIMIT_training/TIMIT_Transcripts.txt ${timit_dir}
-wget https://ftp.espci.fr/pub/sigma/WSJ05K_Test/WSJ0_5K_Transcripts.txt ${timit_dir}
+wget -c -N ftp://ftp.espci.fr/pub/sigma/Features/DCT_Features/features/30-dct/* -P ${timit_dir}
+wget https://ftp.espci.fr/pub/sigma/TIMIT_training/TIMIT_Transcripts.txt -P ${timit_dir}
+wget https://ftp.espci.fr/pub/sigma/WSJ05K_Test/WSJ0_5K_Transcripts.txt -P ${timit_dir}
 
 sed "s/^[0-9]*[.].//g" ${timit_dir}/TIMIT_Transcripts.txt  | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > ${timit_dir}/train.txt
 sed "s/^[0-9]*[.].//g" ${timit_dir}/WSJ0_5K_Transcripts.txt | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > ${timit_dir}/test.txt
