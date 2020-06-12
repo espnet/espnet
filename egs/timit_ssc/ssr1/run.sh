@@ -21,8 +21,6 @@ seed=1
 # feature configuration
 do_delta=false
 
-# sample filtering
-min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
 
 # config files
 preprocess_config=conf/specaug.yaml  # use conf/specaug.yaml for data augmentation
