@@ -206,7 +206,7 @@ class E2E(STInterface, torch.nn.Module):
     @staticmethod
     def decoder_add_arguments(parser):
         """Add arguments for the decoder."""
-        group = parser.add_argument_group("E2E encoder setting")
+        group = parser.add_argument_group("E2E decoder setting")
         group.add_argument(
             "--dtype",
             default="lstm",
