@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 timit_dir = "data/timit_data/"
 for dataset in ["train", "test"]:
-    with open('data/' + dataset + ".scp", "r") as s:
+    with open('data/' + dataset + "/feats.scp", "r") as s:
         utts = s.readlines()
         n_utts = len(utts)
         for i in range(n_utts):
