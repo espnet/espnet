@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-import argparse
-import os
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dir', type=str)
-    args = parser.parse_args()
-
-    feat_dir = args.dir
     for dataset in ["data/train/", "data/test/"]:
         with open(dataset + "text", "r") as t:
             txts = t.readlines()
