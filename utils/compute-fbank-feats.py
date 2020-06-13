@@ -9,6 +9,7 @@ import logging
 
 import kaldiio
 import numpy
+import resampy
 
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.cli_utils import get_commandline_args
@@ -21,7 +22,7 @@ def get_parser():
         description="compute FBANK feature from WAV",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--fs", type=int, help="Sampling frequency")
+    parser.add_argument("--fs", type=int_or_none, help="Sampling frequency")
     parser.add_argument(
         "--fmax", type=int_or_none, default=None, nargs="?", help="Maximum frequency"
     )
@@ -109,8 +110,9 @@ def main():
         compression_method=args.compression_method,
     ) as writer:
         for utt_id, (rate, array) in reader:
-            assert rate == args.fs
             array = array.astype(numpy.float32)
+            if args.fs is not None and rate != args.fs:
+                array = resampy.resample(array, rate, args.fs, axis=0)
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
 
