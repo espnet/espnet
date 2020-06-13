@@ -77,7 +77,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
