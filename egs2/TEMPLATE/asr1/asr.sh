@@ -865,10 +865,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     log "Stage 11: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
-        _cmd=${cuda_cmd}
+        _cmd="${cuda_cmd}"
         _ngpu=1
     else
-        _cmd=${decode_cmd}
+        _cmd="${decode_cmd}"
         _ngpu=0
     fi
 

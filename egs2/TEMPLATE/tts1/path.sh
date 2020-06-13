@@ -19,6 +19,7 @@ fi
 
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 export PATH=${KALDI_ROOT}/tools/sph2pipe_v2.5:$PATH
+export LD_LIBRARY_PATH=$MAIN_ROOT/tools/lib:$MAIN_ROOT/tools/lib64:$LD_LIBRARY_PATH
 
 export OMP_NUM_THREADS=1
 
