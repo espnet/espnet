@@ -26,7 +26,7 @@ sed "s/^[0-9]*[.].//g" ${feat_local_dir}/TIMIT_Transcripts.txt  | sed "s/([^)]*)
 sed "s/^[0-9]*[.].//g" ${feat_local_dir}/WSJ0_5K_Transcripts.txt | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > data/test/text
 for x in train test;do
     sed "s% .*mfcc/% "${PWD}"/"${feat_local_dir}"/%g" ${feat_local_dir}/${x}*.scp \
-    | sed "s/t\([0-9]\)_/t0\1_/g" | sort > data/${x}/feats.scp
+    | sed "s/t\([0-9]\)_/t0\1_/g" | sort -o data/${x}/feats.scp
 done
 
 mkdir -p data/train
