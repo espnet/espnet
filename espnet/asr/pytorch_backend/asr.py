@@ -412,6 +412,10 @@ def train(args):
     logging.info("#output dims: " + str(odim))
 
     # specify attention, CTC, hybrid mode
+    if "transducer" in args.model_module:
+        assert args.mtlalpha == 1.0
+        mtl_mode = "transducer"
+        logging.info("Pure transducer mode")
     if args.mtlalpha == 1.0:
         mtl_mode = "ctc"
         logging.info("Pure CTC mode")
@@ -644,7 +648,9 @@ def train(args):
         )
 
     # Save attention weight each epoch
-    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+    if args.num_save_attention > 0 and (
+        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
+    ):
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
@@ -710,7 +716,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode != "ctc":
+    if mtl_mode not in ["ctc", "transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
