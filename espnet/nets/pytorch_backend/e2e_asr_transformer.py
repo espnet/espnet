@@ -164,17 +164,21 @@ class E2E(ASRInterface, torch.nn.Module):
             positional_dropout_rate=args.dropout_rate,
             attention_dropout_rate=args.transformer_attn_dropout_rate,
         )
-        self.decoder = Decoder(
-            odim=odim,
-            attention_dim=args.adim,
-            attention_heads=args.aheads,
-            linear_units=args.dunits,
-            num_blocks=args.dlayers,
-            dropout_rate=args.dropout_rate,
-            positional_dropout_rate=args.dropout_rate,
-            self_attention_dropout_rate=args.transformer_attn_dropout_rate,
-            src_attention_dropout_rate=args.transformer_attn_dropout_rate,
-        )
+        if args.mtlalpha < 1:
+            self.decoder = Decoder(
+                odim=odim,
+                attention_dim=args.adim,
+                attention_heads=args.aheads,
+                linear_units=args.dunits,
+                num_blocks=args.dlayers,
+                dropout_rate=args.dropout_rate,
+                positional_dropout_rate=args.dropout_rate,
+                self_attention_dropout_rate=args.transformer_attn_dropout_rate,
+                src_attention_dropout_rate=args.transformer_attn_dropout_rate,
+            )
+        else:
+            self.decoder = None
+        self.blank = 0
         self.sos = odim - 1
         self.eos = odim - 1
         self.odim = odim
@@ -237,16 +241,22 @@ class E2E(ASRInterface, torch.nn.Module):
         self.hs_pad = hs_pad
 
         # 2. forward decoder
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-        ys_mask = target_mask(ys_in_pad, self.ignore_id)
-        pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-        self.pred_pad = pred_pad
+        if self.decoder is not None:
+            ys_in_pad, ys_out_pad = add_sos_eos(
+                ys_pad, self.sos, self.eos, self.ignore_id
+            )
+            ys_mask = target_mask(ys_in_pad, self.ignore_id)
+            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+            self.pred_pad = pred_pad
 
-        # 3. compute attention loss
-        loss_att = self.criterion(pred_pad, ys_out_pad)
-        self.acc = th_accuracy(
-            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
-        )
+            # 3. compute attention loss
+            loss_att = self.criterion(pred_pad, ys_out_pad)
+            self.acc = th_accuracy(
+                pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
+            )
+        else:
+            loss_att = None
+            self.acc = None
 
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
@@ -319,7 +329,22 @@ class E2E(ASRInterface, torch.nn.Module):
         :rtype: list
         """
         enc_output = self.encode(x).unsqueeze(0)
-        if recog_args.ctc_weight > 0.0:
+        if self.mtlalpha == 1.0:
+            recog_args.ctc_weight = 1.0
+            logging.info("Set to pure CTC decoding mode.")
+
+        if self.mtlalpha > 0 and recog_args.ctc_weight == 1.0:
+            from itertools import groupby
+
+            lpz = self.ctc.argmax(enc_output)
+            collapsed_indices = [x[0] for x in groupby(lpz[0])]
+            hyp = [x for x in filter(lambda x: x != self.blank, collapsed_indices)]
+            nbest_hyps = [{"score": 0.0, "yseq": hyp}]
+            if recog_args.beam_size > 1:
+                raise NotImplementedError("Pure CTC beam search is not implemented.")
+            # TODO(hirofumi0810): Implement beam search
+            return nbest_hyps
+        elif self.mtlalpha > 0 and recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
         else:
@@ -472,7 +497,6 @@ class E2E(ASRInterface, torch.nn.Module):
                     remained_hyps.append(hyp)
 
             # end detection
-
             if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info("end detected at %d", i)
                 break
