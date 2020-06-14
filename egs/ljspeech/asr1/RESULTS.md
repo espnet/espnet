@@ -9,6 +9,19 @@
 - Git hash: `b33e451591f9fb10e52fcb9b8c087b9304a4cfa9`
   - Commit date: `Tue Jun 9 10:00:57 2020 +0900`
 
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1_uv4RfuX9xQ2l7DmDQ2mrCqM689A2fd5
+    - training config file: `./conf/train_mtlalpha1.0.yaml`
+    - decoding config file: `./conf/decode_ctcweight1.0.yaml`
+    - cmvn file: `./data/char_train_no_dev/cmvn.ark`
+    - e2e file: `./ljspeech.mtlalpha1.0/exp/char_train_no_dev_pytorch_train_mtlalpha1.0/results/model.loss.best`
+    - e2e JSON file: `./ljspeech.mtlalpha1.0/exp/char_train_no_dev_pytorch_train_mtlalpha1.0/results/model.json`
+    - lm file: `./exp/train_rnnlm_pytorch_lm_word100/rnnlm.model.17`
+    - lm JSON file: `./exp/train_rnnlm_pytorch_lm_word100/model.json`
+    - dict file: `./data/lang_1char/char_train_no_dev_units.txt`
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+
 ## char_train_no_dev_pytorch_train_mtlalpha0.5
 ### CER
 
