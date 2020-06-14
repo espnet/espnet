@@ -22,13 +22,14 @@ wget -c -N ftp://ftp.espci.fr/pub/sigma/Features/${feat_dir}/* -P ${feat_local_d
 wget -c -N https://ftp.espci.fr/pub/sigma/TIMIT_training/TIMIT_Transcripts.txt -P ${feat_local_dir}
 wget -c -N https://ftp.espci.fr/pub/sigma/WSJ05K_Test/WSJ0_5K_Transcripts.txt -P ${feat_local_dir}
 
+mkdir -p data/train
+mkdir -p data/test
+
 sed "s/^[0-9]*[.].//g" ${feat_local_dir}/TIMIT_Transcripts.txt  | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > data/train/text
 sed "s/^[0-9]*[.].//g" ${feat_local_dir}/WSJ0_5K_Transcripts.txt | sed "s/([^)]*)//g" | tr [:lower:] [:upper:] > data/test/text
-for x in train test;do
+for x in train test; do
     sed "s% .*mfcc/% "${PWD}"/"${feat_local_dir}"/%g" ${feat_local_dir}/${x}*.scp \
     | sed "s/t\([0-9]\)_/t0\1_/g" | sort -o data/${x}/feats.scp
 done
 
-mkdir -p data/train
-mkdir -p data/test
 local/featprepare.py
