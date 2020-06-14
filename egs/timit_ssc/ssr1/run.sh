@@ -56,6 +56,11 @@ set -o pipefail
 train_set=train
 train_dev=test
 recog_set="test"
+# Available directories:
+# DCT_Features/features/{5,10,20,30}-dct
+# Auto_Features/features/{5,10,20,30}d
+# Please refer ftp://ftp.espci.fr/pub/sigma/Features/ for details.
+training_features=DCT_Features/features/30-dct
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -63,7 +68,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Download pre-encoded features from SSC dataset; by default using dct-30 features.
     ### You can choose to use auto encoders features and other dct features of different dimentions.
     echo "stage 0: Dataset Download"
-    local/ssc_data_prepare.sh
+    local/ssc_data_prepare.sh ${training_features}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

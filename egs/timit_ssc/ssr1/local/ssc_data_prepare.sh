@@ -14,7 +14,7 @@
 
 . ./path.sh
 
-feat_dir=DCT_Features/features/30-dct
+feat_dir=$1
 
 feat_local_dir=data/${feat_dir}
 mkdir -p ${feat_local_dir}
