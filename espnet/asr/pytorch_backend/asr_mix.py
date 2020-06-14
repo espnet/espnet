@@ -212,11 +212,6 @@ def train(args):
         dtype = torch.float32
     model = model.to(device=device, dtype=dtype)
 
-    if args.freeze_mods:
-        model, model_params = freeze_modules(model, args.freeze_mods)
-    else:
-        model_params = model.parameters()
-
     # Setup an optimizer
     if args.opt == "adadelta":
         optimizer = torch.optim.Adadelta(
@@ -228,7 +223,10 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model.parameters(),
+            args.adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
