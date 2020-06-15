@@ -160,7 +160,6 @@ Options:
     --train_set     # Name of training set (required).
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
-    --srctexts      # Used for the training of BPE and LM and the creation of a vocabulary list (required).
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
@@ -186,7 +185,6 @@ fi
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
 [ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
-[ -z "${srctexts}" ] &&  { log "${help_message}"; log "Error: --srctexts is required" ; exit 2; };
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then

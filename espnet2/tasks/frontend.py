@@ -21,7 +21,6 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.enh_frontend import EnhFrontend
 from espnet2.asr.frontend.espnet_model import ESPnetFrontendModel
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
@@ -43,37 +42,42 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend),
+    classes=dict(enh=EnhFrontend),
     type_check=AbsFrontend,
-    default="default",
+    default="enh",
 )
 
-normalize_choices = ClassChoices(
-    "normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
-    type_check=AbsNormalize,
-    default="utterance_mvn",
-    optional=True,
-)
-encoder_choices = ClassChoices(
-    "encoder",
-    classes=dict(
-        transformer=TransformerEncoder, vgg_rnn=VGGRNNEncoder, rnn=RNNEncoder,
-    ),
-    type_check=AbsEncoder,
-    default="rnn",
-)
-decoder_choices = ClassChoices(
-    "decoder",
-    classes=dict(transformer=TransformerDecoder, rnn=RNNDecoder),
-    type_check=AbsDecoder,
-    default="rnn",
-)
+# normalize_choices = ClassChoices(
+#     "normalize",
+#     classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN, ),
+#     type_check=AbsNormalize,
+#     default="utterance_mvn",
+#     optional=True,
+# )
+# encoder_choices = ClassChoices(
+#     "encoder",
+#     classes=dict(
+#         transformer=TransformerEncoder, vgg_rnn=VGGRNNEncoder, rnn=RNNEncoder,
+#     ),
+#     type_check=AbsEncoder,
+#     default="rnn",
+# )
+# decoder_choices = ClassChoices(
+#     "decoder",
+#     classes=dict(transformer=TransformerDecoder, rnn=RNNDecoder),
+#     type_check=AbsDecoder,
+#     default="rnn",
+# )
 
 
 class FrontendTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
+
+    class_choices_list = [
+        # --frontend and --frontend_conf
+        frontend_choices,
+    ]
 
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -85,7 +89,7 @@ class FrontendTask(AbsTask):
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
+        # required = parser.get_default("required")
 
         group.add_argument(
             "--init",
@@ -102,7 +106,6 @@ class FrontendTask(AbsTask):
             ],
         )
 
-
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -117,13 +120,6 @@ class FrontendTask(AbsTask):
             default=False,
             help="Apply preprocessing to data or not",
         )
-        group.add_argument(
-            "--token_type",
-            type=str,
-            default="bpe",
-            choices=["bpe", "char", "word"],
-            help="The text will be tokenized " "in the specified level token",
-        )
 
 
         for class_choices in cls.class_choices_list:
@@ -133,7 +129,7 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def build_collate_fn(
-        cls, args: argparse.Namespace
+            cls, args: argparse.Namespace
     ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -144,7 +140,7 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def build_preprocess_fn(
-        cls, args: argparse.Namespace, train: bool
+            cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         retval = None
@@ -154,6 +150,8 @@ class FrontendTask(AbsTask):
     @classmethod
     def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
+
+            # TODO:
             retval = ("speech_mix", "speech_ref1", "speech_ref2")
         else:
             # Recognition mode
@@ -170,7 +168,7 @@ class FrontendTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetFrontendModel:
         assert check_argument_types()
 
-        frontend = EnhFrontend()
+        frontend = frontend_choices.get_class(args.frontend)(** args.frontend_conf)
 
         # 1. Build model
         model = ESPnetFrontendModel(

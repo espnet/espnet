@@ -6,6 +6,7 @@ from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
+import torchaudio
 
 
 class Stft(torch.nn.Module, InversibleInterface):
@@ -117,5 +118,24 @@ class Stft(torch.nn.Module, InversibleInterface):
     def inverse(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        # TODO(kamo): torch audio?
-        raise NotImplementedError
+        """
+
+        :param input: (batch, T, F, 2)
+        :param ilens:
+        :return:
+        """
+
+        assert input.shape[-1] == 2
+        input = input.transpose(1, 2)
+
+        wavs = torchaudio.functional.istft(input,
+                                    n_fft=self.n_fft,
+                                    hop_length=self.hop_length,
+                                    win_length=self.win_length,
+                                    center = self.center,
+                                    pad_mode=self.pad_mode,
+                                    normalized=self.normalized,
+                                    onesided=self.onesided,
+                                    length=ilens.max())
+
+        return wavs, ilens
