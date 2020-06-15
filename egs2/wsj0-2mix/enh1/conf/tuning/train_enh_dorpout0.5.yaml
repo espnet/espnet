@@ -14,7 +14,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - acc
+    - si_snr
     - max
 keep_nbest_models: 1
 scheduler: reducelronplateau
@@ -32,8 +32,9 @@ frontend_conf:
         rnn_type: blstm
         layer: 3
         unit: 768
-        dropout: 0.2
+        dropout: 0.5
         num_spk: 2
+        utt_mvn: True
     
 
       

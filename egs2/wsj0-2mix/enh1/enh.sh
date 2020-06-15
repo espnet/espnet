@@ -27,9 +27,8 @@ stage=1          # Processes starts from the specified stage.
 stop_stage=12    # Processes is stopped at the specified stage.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1      # The number of nodes
+mem=10G          # Memory per CPU
 nj=32            # The number of parallel jobs.
-decode_nj=32     # The number of parallel jobs in decoding.
-gpu_decode=false # Whether to perform gpu decoding.
 dumpdir=dump     # Directory to dump features.
 expdir=exp       # Directory to save experiments.
 
@@ -44,26 +43,6 @@ feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16k            # Sampling rate.
 
-# Tokenization related
-token_type=bpe      # Tokenization type (char or bpe).
-nbpe=30             # The number of BPE vocabulary.
-bpemode=unigram     # Mode of BPE (unigram or bpe).
-oov="<unk>"         # Out of vocabulary symbol.
-blank="<blank>"     # CTC blank symbol
-sos_eos="<sos/eos>" # sos and eos symbole
-bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
-bpe_char_cover=1.0  # character coverage when modeling BPE
-
-# Language model related
-use_lm=true       # Use language model for ASR decoding.
-lm_tag=           # Suffix to the result dir for language model training.
-lm_config=        # Config for language model training.
-lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
-                  # Note that it will overwrite args in lm config.
-use_word_lm=false # Whether to use word language model.
-# shellcheck disable=SC2034
-word_vocab_size=10000 # Size of word vocabulary.
 
 
 # ASR model related
@@ -74,28 +53,14 @@ enh_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
 feats_normalize=global_mvn  # Normalizaton layer type
 
 # Decoding related
-decode_tag=    # Suffix to the result dir for decoding.
-decode_config= # Config for decoding.
-decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
-               # Note that it will overwrite args in decode config.
-decode_lm=valid.loss.best.pth       # Language modle path for decoding.
-decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
-                                    # e.g.
-                                    # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch.pth
-                                    # decode_asr_model=valid.acc.best.pth
-                                    # decode_asr_model=valid.loss.ave.pth
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
 srctexts=      # Used for the training of BPE and LM and the creation of a vocabulary list.
-lm_dev_text=   # Text file path of language model development set.
-lm_test_text=  # Text file path of language model evaluation set.
 nlsyms_txt=none # Non-linguistic symbol list if existing.
 enh_speech_fold_length=800 # fold_length for speech data during ASR training
-lm_fold_length=150         # fold_length for LM training
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts >
@@ -107,8 +72,6 @@ Options:
     --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes  # The number of nodes
     --nj         # The number of parallel jobs (default="${nj}").
-    --decode_nj  # The number of parallel jobs in decoding (default="${decode_nj}").
-    --gpu_decode # Whether to perform gpu decoding (default="${gpu_decode}").
     --dumpdir    # Directory to dump features (default="${dumpdir}").
     --expdir     # Directory to save experiments (default="${expdir}").
 
@@ -123,48 +86,21 @@ Options:
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
 
-    # Tokenization related
-    --token_type              # Tokenization type (char or bpe, default="${token_type}").
-    --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
-    --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
-    --oov                     # Out of vocabulary symbol (default="${oov}").
-    --blank                   # CTC blank symbol (default="${blank}").
-    --sos_eos=                # sos and eos symbole (default="${sos_eos}").
-    --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
-    --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
-    # Language model related
-    --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
-    --lm_config       # Config for language model training (default="${lm_config}").
-    --lm_args         # Arguments for language model training, e.g., "--max_epoch 10" (default="${lm_args}").
-                      # Note that it will overwrite args in lm config.
-    --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
-    --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
 
-    # ASR model related
+    # Enhancemnt model related
     --enh_tag    # Suffix to the result dir for asr model training (default="${enh_tag}").
     --enh_config # Config for asr model training (default="${enh_config}").
     --enh_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${enh_args}").
                  # Note that it will overwrite args in asr config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
 
-    # Decoding related
-    --decode_tag       # Suffix to the result dir for decoding (default="${decode_tag}").
-    --decode_config    # Config for decoding (default="${decode_config}").
-    --decode_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${decode_args}").
-                       # Note that it will overwrite args in decode config.
-    --decode_lm        # Language modle path for decoding (default="${decode_lm}").
-    --decode_asr_model # ASR model path for decoding (default="${decode_asr_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
-    --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
-    --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --enh_speech_fold_length # fold_length for speech data during ASR training  (default="${enh_speech_fold_length}").
-    --lm_fold_length         # fold_length for LM training  (default="${lm_fold_length}").
 EOF
 )
 
@@ -201,86 +137,27 @@ else
     exit 2
 fi
 
-# Use the same text as ASR for lm training if not specified.
-[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${dev_set}/text"
-# Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${eval_sets%% *}/text"
 
-# Check tokenization type
-token_listdir=data/token_list
-bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-bpeprefix="${bpedir}"/model
-bpemodel="${bpeprefix}".model
-bpetoken_list="${bpedir}"/tokens.txt
-chartoken_list="${token_listdir}"/char/tokens.txt
-# NOTE: keep for future development.
-# shellcheck disable=SC2034
-wordtoken_list="${token_listdir}"/word/tokens.txt
 
-if [ "${token_type}" = bpe ]; then
-    token_list="${bpetoken_list}"
-elif [ "${token_type}" = char ]; then
-    token_list="${chartoken_list}"
-    bpemodel=none
-else
-    log "Error: not supported --token_type '${token_type}'"
-    exit 2
-fi
-if ${use_word_lm}; then
-    log "Error: Word LM is not supported yet"
-    exit 2
-
-    lm_token_list="${wordtoken_list}"
-    lm_token_type=word
-else
-    lm_token_list="${token_list}"
-    lm_token_type="${token_type}"
-fi
 
 
 # Set tag for naming of model directory
 if [ -z "${enh_tag}" ]; then
     if [ -n "${enh_config}" ]; then
-        enh_tag="$(basename "${enh_config}" .yaml)_${feats_type}_${token_type}"
+        enh_tag="$(basename "${enh_config}" .yaml)_${feats_type}"
     else
-        enh_tag="train_${feats_type}_${token_type}"
+        enh_tag="train_${feats_type}"
     fi
     # Add overwritten arg's info
     if [ -n "${enh_args}" ]; then
         enh_tag+="$(echo "${enh_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${lm_tag}" ]; then
-    if [ -n "${lm_config}" ]; then
-        lm_tag="$(basename "${lm_config}" .yaml)_${lm_token_type}"
-    else
-        lm_tag="train_${lm_token_type}"
-    fi
-    # Add overwritten arg's info
-    if [ -n "${lm_args}" ]; then
-        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
-fi
-if [ -z "${decode_tag}" ]; then
-    if [ -n "${decode_config}" ]; then
-        decode_tag="$(basename "${decode_config}" .yaml)"
-    else
-        decode_tag=decode
-    fi
-    # Add overwritten arg's info
-    if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
-    if "${use_lm}"; then
-        decode_tag+="_lm_${lm_tag}_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-    fi
-    decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-fi
+
 
 # The directory used for collect-stats mode
 asr_stats_dir="${expdir}/asr_stats"
 enh_stats_dir="${expdir}/enh_stats"
-lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
 asr_exp="${expdir}/asr_${enh_tag}"
 enh_exp="${expdir}/enh_${enh_tag}"
@@ -578,12 +455,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "enh training started... log: '${enh_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd} --name ${enh_exp}/train.log" \
+        --cmd "${cuda_cmd} --name ${enh_exp}/train.log --mem ${mem}" \
         --log "${enh_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
         --init_file_prefix "${enh_exp}"/.dist_init_ \
-        --multiprocessing_distributed false -- \
+        --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.enh_train \
             --train_data_path_and_name_and_type "${_enh_train_dir}/wav.scp,speech_mix,sound" \
             --train_data_path_and_name_and_type "${_enh_train_dir}/spk1.scp,speech_ref1,sound" \
@@ -624,15 +501,6 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     _opts=
     if [ -n "${decode_config}" ]; then
         _opts+="--config ${decode_config} "
-    fi
-    if "${use_lm}"; then
-        if "${use_word_lm}"; then
-            _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--word_lm_file ${lm_exp}/${decode_lm} "
-        else
-            _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${decode_lm} "
-        fi
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
@@ -784,10 +652,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"
 
     _opts=
-    if "${use_lm}"; then
-        _opts+="--lm_train_config.yaml ${lm_exp}/config.yaml "
-        _opts+="--lm_file.pth ${lm_exp}/${decode_lm} "
-    fi
     if [ "${feats_normalize}" = global_mvn ]; then
         _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
     fi

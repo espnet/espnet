@@ -3,6 +3,7 @@ from typing import Tuple
 import torch
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.layers.stft import Stft
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from torch_complex.tensor import ComplexTensor
 import torchaudio
 
@@ -21,7 +22,9 @@ class TFMaskingNet(torch.nn.Module):
             layer: int = 3,
             unit: int = 512,
             dropout: float = 0.0,
-            num_spk: int = 2, ):
+            num_spk: int = 2,
+            utt_mvn: bool = False,
+    ):
         super(TFMaskingNet, self).__init__()
 
         self.num_spk = num_spk
@@ -32,6 +35,12 @@ class TFMaskingNet(torch.nn.Module):
             win_length=win_length,
             hop_length=hop_length,
         )
+
+        if utt_mvn:
+            self.utt_mvn = UtteranceMVN(norm_means=True, norm_vars=True)
+
+        else:
+            self.utt_mvn = None
 
         self.rnn = RNN(
             idim=self.num_bin,
@@ -64,7 +73,12 @@ class TFMaskingNet(torch.nn.Module):
         input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         input_magnitude = abs(input_spectrum)
 
-        x, flens, _ = self.rnn(input_magnitude, flens)
+        if self.utt_mvn:
+            input_magnitude_mvn = self.utt_mvn(input_magnitude, flens)
+        else:
+            input_magnitude_mvn = input_magnitude
+
+        x, flens, _ = self.rnn(input_magnitude_mvn, flens)
 
         masks = []
         for linear in self.linear:
@@ -97,8 +111,6 @@ class TFMaskingNet(torch.nn.Module):
         input_phase = input_spectrum / (input_magnitude + 10e-12)
 
         x, flens, _ = self.rnn(input_magnitude, flens)
-
-
 
         masks = []
         for linear in self.linear:

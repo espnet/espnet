@@ -13,9 +13,8 @@ eval_sets="tt "
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_sets}" \
-    --ngpu 2 \
-    --enh_tag gpu2_debug \
-    --enh_config ./conf/train.conf \
+    --ngpu 1 \
+    --enh_config ./conf/tuning/train_enh_dorpout0.5.yaml \
     "$@"
 
 
