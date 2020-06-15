@@ -30,6 +30,7 @@ class EnhFrontend(AbsFrontend):
             self,
             enh_type: str = 'tf_maksing',
             fs: Union[int, str] = 16000,
+            tf_factor: float = 0.5,
             enh_conf: Dict = None,
     ):
         assert check_argument_types()
@@ -37,9 +38,14 @@ class EnhFrontend(AbsFrontend):
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
 
+        assert (tf_factor <= 1.0) and (tf_factor >= 0), "tf_factor must in 0~1"
+        self.tf_factor = tf_factor
+
         self.enh_type = enh_type
 
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
+
+        self.stft = self.enh_model.stft
 
     def output_size(self) -> int:
         return self.bins

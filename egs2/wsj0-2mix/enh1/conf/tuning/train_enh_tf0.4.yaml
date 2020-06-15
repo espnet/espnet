@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 25
+max_epoch: 100
 batch_type: folded
 batch_size: 120
 num_workers: 4
@@ -16,6 +16,9 @@ best_model_criterion:
 -   - valid
     - si_snr
     - max
+-   - valid
+    - loss
+    - min
 keep_nbest_models: 1
 scheduler: reducelronplateau
 scheduler_conf:
@@ -26,6 +29,7 @@ frontend: enh
 frontend_conf:
     enh_type: tf_masking
     fs: 16000
+    tf_factor: 0.4
     enh_conf:
         n_fft: 512
         hop_length: 128
@@ -35,7 +39,4 @@ frontend_conf:
         dropout: 0.5
         num_spk: 2
         utt_mvn: True
-    
-
-      
     

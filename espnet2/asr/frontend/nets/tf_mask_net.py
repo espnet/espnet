@@ -46,13 +46,13 @@ class TFMaskingNet(torch.nn.Module):
             idim=self.num_bin,
             elayers=layer,
             cdim=unit,
-            hdim=self.num_bin,
+            hdim=unit,
             dropout=dropout,
             typ=rnn_type)
 
         self.linear = torch.nn.ModuleList(
             [
-                torch.nn.Linear(self.num_bin, self.num_bin)
+                torch.nn.Linear(unit, self.num_bin)
                 for _ in range(self.num_spk)
             ]
         )
@@ -69,23 +69,27 @@ class TFMaskingNet(torch.nn.Module):
             predcited magnitude masks [Batch, num_speaker, T, F]
             output lengths
         """
+
+        # wave -> stft -> magnitude specturm
         input_spectrum, flens = self.stft(input, ilens)
         input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         input_magnitude = abs(input_spectrum)
 
+        # apply utt mvn
         if self.utt_mvn:
-            input_magnitude_mvn = self.utt_mvn(input_magnitude, flens)
+            input_magnitude_mvn, fle = self.utt_mvn(input_magnitude, flens)
         else:
             input_magnitude_mvn = input_magnitude
 
+        # predict masks for each speaker
         x, flens, _ = self.rnn(input_magnitude_mvn, flens)
-
         masks = []
         for linear in self.linear:
             y = linear(x)
             y = self.none_linear(y)
             masks.append(y)
-        masks = torch.stack(masks, dim=1)
+
+        # apply mask
         predict_magnitude = [m * input_magnitude for m in masks]
 
         predict_magnitude = torch.stack(predict_magnitude, dim=1)
@@ -105,22 +109,19 @@ class TFMaskingNet(torch.nn.Module):
             predcited speech [Batch, num_speaker, sample]
             output lengths
         """
+
+        # compute phase spectrum from mixed speech
         input_spectrum, flens = self.stft(input, ilens)
         input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         input_magnitude = abs(input_spectrum)
         input_phase = input_spectrum / (input_magnitude + 10e-12)
 
-        x, flens, _ = self.rnn(input_magnitude, flens)
+        # predict magnitude spectrum for each speaker
+        predcited_magnitudes, flens = self.forward(input, ilens)
+        predcited_magnitudes = torch.unbind(predcited_magnitudes, dim=1)
 
-        masks = []
-        for linear in self.linear:
-            y = linear(x)
-            y = self.none_linear(y)
-            masks.append(y)
-
-        predcited_magnitudes = [mask * input_magnitude for mask in masks]
+        # magnitude spectrum -> complex spectrum -> raw wave
         predicted_spectrums = [pm * input_phase for pm in predcited_magnitudes]
-        # convert ComplexTensor to Tensor
         predicted_spectrums = [torch.stack([ps.real, ps.imag], dim=-1) for ps in predicted_spectrums]
 
         predicted_wavs = torch.stack([self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums], dim=1)

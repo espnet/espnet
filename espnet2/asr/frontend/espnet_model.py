@@ -8,18 +8,7 @@ from itertools import permutations
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from torch_complex.tensor import ComplexTensor
@@ -37,6 +26,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         super().__init__()
 
         self.frontend = frontend
+        self.tf_factor = frontend.tf_factor
 
     def forward(
             self,
@@ -68,13 +58,30 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_ref = speech_ref[:, :, : speech_lengths.max()]
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
-        speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
+        # prepare reference speech and reference magnitude
+        speech_ref = torch.unbind(speech_ref, dim=1)
+        magnitude_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
+        magnitude_ref = [abs(ComplexTensor(mr[..., 0], mr[..., 1])) for mr in magnitude_ref]
 
-        si_snr_loss = self._permutation_loss(torch.unbind(speech_ref, dim=1),
-                                             torch.unbind(speech_pre, dim=1), self.si_snr_loss)
-        si_snr = - si_snr_loss.detach()
+        # predict separated speech and separated magnitude
+        speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
+        magnitude_pre, tf_length = self.frontend(speech_mix, speech_lengths)
+        magnitude_pre = torch.unbind(magnitude_pre, dim=1)
+        speech_pre = torch.unbind(speech_pre, dim=1)
+
+        # compute TF masking loss
+        tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
+
+        # compute si-snr loss
+        si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
+
+        si_snr = - si_snr_loss
+        loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+
         stats = dict(
-            si_snr=si_snr,
+            si_snr=si_snr.detach(),
+            tf_loss=tf_loss.detach(),
+            loss=loss.detach()
         )
 
         loss = si_snr_loss
@@ -82,6 +89,17 @@ class ESPnetFrontendModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    @staticmethod
+    def tf_l1_loss(ref, inf):
+        """
+        :param ref: (Batch, T, F)
+        :param inf: (Batch, T, F)
+        :return: (Batch)
+        """
+        l1loss = abs(ref - inf).mean(dim=[1, 2])
+
+        return l1loss
 
     @staticmethod
     def si_snr_loss(ref, inf):
@@ -100,12 +118,13 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return -si_snr
 
     @staticmethod
-    def _permutation_loss(ref, inf, criterion):
+    def _permutation_loss(ref, inf, criterion, perm=None):
         """
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...]
             inf (List[torch.Tensor]): [(batch, ...), ...]
             criterion (function): Loss function
+            perm: (batch)
         Returns:
             torch.Tensor: (batch)
         """
@@ -116,11 +135,15 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 [criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
             ) / len(permutation)
 
-        losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
+        if perm == None:
+            losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
+            loss, perm = torch.min(losses, dim=1)
+        else:
+            losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
+            loss = losses[torch.arange(losses.shape[0]), perm]
+            pass
 
-        loss, perm = torch.min(losses, dim=1)
-
-        return loss.mean()
+        return loss.mean(), perm
 
     def collect_feats(
             self,
