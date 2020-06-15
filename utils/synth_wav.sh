@@ -148,7 +148,7 @@ function download_models () {
     dir=${download_dir}/${models}
     mkdir -p "${dir}"
     if [ ! -e "${dir}/.complete" ]; then
-        download_from_google_drive.sh "${share_url}" "${dir}" ".tar.gz"
+        download_from_google_drive.sh "${share_url}" "${dir}" "tar.gz"
 	touch "${dir}/.complete"
     fi
 }
