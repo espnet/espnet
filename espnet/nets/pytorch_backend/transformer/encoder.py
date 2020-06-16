@@ -6,14 +6,19 @@
 
 """Encoder definition."""
 
+import logging
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -64,8 +69,12 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
+        selfattention_layer_type="selfattn",
         attention_dim=256,
         attention_heads=4,
+        conv_wshare=4,
+        conv_kernel_length=11,
+        conv_usebias=False,
         linear_units=2048,
         num_blocks=6,
         dropout_rate=0.1,
@@ -132,19 +141,106 @@ class Encoder(torch.nn.Module):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
-        self.encoders = repeat(
-            num_blocks,
-            lambda: EncoderLayer(
-                attention_dim,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
+        if selfattention_layer_type == "selfattn":
+            logging.info("encoder self-attention layer type = self-attention")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, attention_dropout_rate
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
                 ),
-                positionwise_layer(*positionwise_layer_args),
-                dropout_rate,
-                normalize_before,
-                concat_after,
-            ),
-        )
+            )
+        elif selfattention_layer_type == "lightconv":
+            logging.info("encoder self-attention layer type = lightweight convolution")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    LightweightConvolution(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "lightconv2d":
+            logging.info(
+                "encoder self-attention layer "
+                "type = lightweight convolution 2-dimentional"
+            )
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    LightweightConvolution2D(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "dynamicconv":
+            logging.info("encoder self-attention layer type = dynamic convolution")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    DynamicConvolution(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "dynamicconv2d":
+            logging.info(
+                "encoder self-attention layer type = dynamic convolution 2-dimentional"
+            )
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    DynamicConvolution2D(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
 
