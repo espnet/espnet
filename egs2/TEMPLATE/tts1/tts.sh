@@ -60,6 +60,7 @@ train_config= # Config for training.
 train_args=   # Arguments for training, e.g., "--max_epoch 1".
               # Note that it will overwrite args in train config.
 tag=""        # Suffix for training directory.
+num_splits=1  # Number of splitting for tts corpus
 
 # Decoding related
 decode_config= # Config for decoding.
@@ -120,6 +121,7 @@ Options:
     --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
                    # Note that it will overwrite args in train config.
     --tag          # Suffix for training directory (default="${tag}").
+    --num_splits   # Number of splitting for tts corpus (default="${num_splits}").
 
     # Decoding related
     --decode_config     # Config for decoding (default="${decode_config}").
@@ -410,8 +412,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${train_args} \
-            --batch_type unsorted
+            ${_opts} ${train_args}
 
     # 3. Aggregate shape files
     _opts=
@@ -457,7 +458,41 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--odim=${_odim} "
     fi
 
-    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+    if [ "${num_splits}" -gt 1 ]; then
+        # If you met a memory error when parsing text files, this option may help you.
+        # The corpus is split into subsets and each subset is used for training one by one in order,
+        # so the memory footprint can be limited to the memory required for each dataset.
+
+        _split_dir="${tts_stats_dir}/splits${num_splits}"
+        if [ ! -f "${_split_dir}/.done" ]; then
+            rm -f "${_split_dir}/.done"
+            python3 -m espnet2.bin.split_scps \
+              --scps \
+                  "${_train_dir}/text" \
+                  "${_train_dir}/${_scp}" \
+                  "${tts_stats_dir}/train/speech_shape" \
+                  "${tts_stats_dir}/train/text_shape.${trans_type}" \
+              --num_splits "${num_splits}" \
+              --output_dir "${_split_dir}"
+            touch "${_split_dir}/.done"
+        else
+            log "${_split_dir}/.done exists. Spliting is skipped"
+        fi
+
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+        _opts+="--train_shape_file ${_split_dir}/speech_shape "
+        _opts+="--train_shape_file ${_split_dir}/text_shape.${trans_type} "
+        _opts+="--multiple_iterator true "
+
+    else
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${trans_type} "
+    fi
+
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
     log "TTS training started... log: '${tts_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -476,12 +511,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --non_linguistic_symbols "${nlsyms_txt}" \
             --normalize global_mvn \
             --normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz \
-            --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-            --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
-            --train_shape_file "${tts_stats_dir}/train/speech_shape" \
-            --train_shape_file "${tts_stats_dir}/train/text_shape.${trans_type}" \
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape.${trans_type}" \
             --resume true \

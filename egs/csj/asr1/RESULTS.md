@@ -1,3 +1,10 @@
+# Lightweight/Dynamic convolution results
+|                                                                            |   | # Snt | # Wrd |Corr|Sub|Del|Ins|Err|S.Err  |
+| ------- | --- | --     | --     | -  | - | - | - | - | - |
+|./exp/train_nodup_sp_pytorch_train_pytorch_SA-DC/decode_eval1_decode_lm/result.txt:|Sum/Avg|1272|43897|95.4|2.9|1.7|0.8|5.3|52.4|
+|./exp/train_nodup_sp_pytorch_train_pytorch_SA-DC2D/decode_eval2_decode_lm/result.txt:|Sum/Avg|1292|43623|96.7|2.2|1.1|0.5|3.8|49.4|
+|./exp/train_nodup_sp_pytorch_train_pytorch_SA-DC/decode_eval3_decode_lm/result.txt:|Sum/Avg|1385|28225|96.7|2.3|1.1|0.7|4.1|34.9|
+
 # Transformer results
 ## Pytorch backend Transformer without any hyperparameter tuning
   - Model files (archived to transformer.v1.tar.gz by `$ pack_model.sh`)

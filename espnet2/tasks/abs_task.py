@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 import argparse
 from distutils.version import LooseVersion
+import functools
 import logging
 import os
 from pathlib import Path
@@ -30,6 +31,7 @@ import yaml
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
+from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
@@ -37,6 +39,7 @@ from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
@@ -52,10 +55,12 @@ from espnet2.train.distributed_utils import get_master_port
 from espnet2.train.distributed_utils import get_node_rank
 from espnet2.train.distributed_utils import get_num_nodes
 from espnet2.train.distributed_utils import resolve_distributed_mode
+from espnet2.train.iterable_dataset import IterableESPnetDataset
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.model_summary import model_summary
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
@@ -568,6 +573,12 @@ class AbsTask(ABC):
             choices=["descending", "ascending"],
             help="Sort mini-batches by the sample lengths",
         )
+        group.add_argument(
+            "--multiple_iterator",
+            type=str2bool,
+            default=False,
+            help="Use multiple iterator mode",
+        )
 
         group = parser.add_argument_group("Chunk iterator related")
         group.add_argument(
@@ -782,7 +793,7 @@ class AbsTask(ABC):
     @classmethod
     def check_task_requirements(
         cls,
-        dataset: ESPnetDataset,
+        dataset: Union[ESPnetDataset, IterableESPnetDataset],
         allow_variable_data_keys: bool,
         inference: bool = False,
     ) -> None:
@@ -811,6 +822,39 @@ class AbsTask(ABC):
                         f"The data-name must be one of {task_keys} "
                         f'for {cls.__name__}: "{k}" is not allowed.\n{mes}'
                     )
+
+    @staticmethod
+    def resume(
+        checkpoint: Union[str, Path],
+        model: torch.nn.Module,
+        reporter: Reporter,
+        optimizers: Sequence[torch.optim.Optimizer],
+        schedulers: Sequence[Optional[AbsScheduler]],
+        ngpu: int = 0,
+        use_apex: bool = False,
+    ):
+        states = torch.load(
+            checkpoint,
+            map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
+        )
+        model.load_state_dict(states["model"])
+        reporter.load_state_dict(states["reporter"])
+        for optimizer, state in zip(optimizers, states["optimizers"]):
+            optimizer.load_state_dict(state)
+        for scheduler, state in zip(schedulers, states["schedulers"]):
+            if scheduler is not None:
+                scheduler.load_state_dict(state)
+        if use_apex and states["amp"] is not None:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    "You need to install apex. "
+                    "See https://github.com/NVIDIA/apex#linux"
+                )
+            amp.load_state_dict(states["amp"])
+
+        logging.info(f"The training was resumed using {checkpoint}")
 
     @classmethod
     def print_config(cls, file=sys.stdout) -> None:
@@ -932,84 +976,7 @@ class AbsTask(ABC):
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
 
-        common_iter_kwargs = dict(
-            iterator_type=args.iterator_type,
-            train_dtype=args.train_dtype,
-            num_workers=args.num_workers,
-            seed=args.seed,
-            allow_variable_data_keys=args.allow_variable_data_keys,
-            ngpu=args.ngpu,
-            fold_length=args.fold_length,
-            sort_in_batch=args.sort_in_batch,
-            sort_batch=args.sort_batch,
-            chunk_length=args.chunk_length,
-            chunk_shift_ratio=args.chunk_shift_ratio,
-            num_cache_chunks=args.num_cache_chunks,
-        )
-
-        # 2. Build iterator factories
-        train_iter_factory, _, _ = cls.build_iter_factory(
-            data_path_and_name_and_type=args.train_data_path_and_name_and_type,
-            shape_files=args.train_shape_file,
-            batch_size=args.batch_size,
-            batch_bins=args.batch_bins,
-            batch_type=args.batch_type,
-            train=not args.collect_stats,
-            preprocess_fn=cls.build_preprocess_fn(args, train=True),
-            collate_fn=cls.build_collate_fn(args),
-            num_iters_per_epoch=args.num_iters_per_epoch,
-            max_cache_size=args.max_cache_size,
-            distributed=distributed_option.distributed,
-            name="train",
-            **common_iter_kwargs,
-        )
-        if args.valid_batch_type is None:
-            args.valid_batch_type = args.batch_type
-        if args.valid_batch_size is None:
-            args.valid_batch_size = args.batch_size
-        if args.valid_batch_bins is None:
-            args.valid_batch_bins = args.batch_bins
-        if args.valid_max_cache_size is None:
-            # Cache 5% of maximum size for validation loader
-            args.valid_max_cache_size = 0.05 * args.max_cache_size
-        valid_iter_factory, _, _ = cls.build_iter_factory(
-            data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-            shape_files=args.valid_shape_file,
-            batch_size=args.valid_batch_size,
-            batch_bins=args.valid_batch_bins,
-            batch_type=args.batch_type,
-            train=False,
-            preprocess_fn=cls.build_preprocess_fn(args, train=False),
-            collate_fn=cls.build_collate_fn(args),
-            num_iters_per_epoch=None,
-            max_cache_size=args.valid_max_cache_size,
-            distributed=distributed_option.distributed,
-            name="valid",
-            **common_iter_kwargs,
-        )
-        if args.num_att_plot != 0:
-            plot_attention_iter_factory, _, _ = cls.build_iter_factory(
-                data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-                shape_files=args.valid_shape_file,
-                batch_type="unsorted",
-                batch_size=1,
-                batch_bins=0,
-                train=False,
-                preprocess_fn=cls.build_preprocess_fn(args, train=False),
-                collate_fn=cls.build_collate_fn(args),
-                num_batches=args.num_att_plot,
-                num_iters_per_epoch=None,
-                # num_att_plot should be a few sample ~ 3, so cache all data.
-                max_cache_size=np.inf if args.max_cache_size != 0.0 else 0.0,
-                # always False because plot_attention performs on RANK0
-                distributed=False,
-                name="plot_att",
-                **common_iter_kwargs,
-            )
-        else:
-            plot_attention_iter_factory = None
-
-        # 3. Build model
+        # 2. Build model
         model = cls.build_model(args=args)
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
@@ -1021,7 +988,7 @@ class AbsTask(ABC):
             dtype = torch.float32
         model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
 
-        # 4. Build optimizer
+        # 3. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
 
         # For apex support
@@ -1039,7 +1006,7 @@ class AbsTask(ABC):
                 model, optimizers, opt_level=args.train_dtype
             )
 
-        # 5. Build schedulers
+        # 4. Build schedulers
         schedulers = []
         for i, optim in enumerate(optimizers, 1):
             suf = "" if i == 1 else str(i)
@@ -1058,13 +1025,13 @@ class AbsTask(ABC):
             schedulers.append(scheduler)
 
         logging.info(pytorch_cudnn_version())
-        logging.info(f"Model:\n{model}")
+        logging.info(model_summary(model))
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
             suf = "" if i == 1 else str(i)
             logging.info(f"Optimizer{suf}:\n{o}")
             logging.info(f"Scheduler{suf}: {s}")
 
-        # 6. Dump "args" to config.yaml
+        # 5. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
@@ -1073,7 +1040,7 @@ class AbsTask(ABC):
             logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
             yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 7. Loads pre-trained model
+        # 6. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
             load_pretrained_model(
                 model=model,
@@ -1089,58 +1056,155 @@ class AbsTask(ABC):
                 else "cpu",
             )
 
-        # 8. Resume the training state from the previous epoch
+        # 7. Resume the training state from the previous epoch
         reporter = Reporter()
         if args.resume and (output_dir / "checkpoint.pth").exists():
-            states = torch.load(
-                output_dir / "checkpoint.pth",
-                map_location=f"cuda:{torch.cuda.current_device()}"
-                if args.ngpu > 0
-                else "cpu",
-            )
-            model.load_state_dict(states["model"])
-            reporter.load_state_dict(states["reporter"])
-            for optimizer, state in zip(optimizers, states["optimizers"]):
-                optimizer.load_state_dict(state)
-            for scheduler, state in zip(schedulers, states["schedulers"]):
-                if scheduler is not None:
-                    scheduler.load_state_dict(state)
-            if use_apex and states["amp"] is not None:
-                try:
-                    from apex import amp
-                except ImportError:
-                    logging.error(
-                        "You need to install apex. "
-                        "See https://github.com/NVIDIA/apex#linux"
-                    )
-                amp.load_state_dict(states["amp"])
-
-            logging.info(
-                f"The training was resumed using {output_dir / 'checkpoint.pth'}"
+            cls.resume(
+                checkpoint=output_dir / "checkpoint.pth",
+                model=model,
+                optimizers=optimizers,
+                schedulers=schedulers,
+                reporter=reporter,
+                ngpu=args.ngpu,
+                use_apex=use_apex,
             )
 
-        # 9. Run
         if args.dry_run:
             pass
         elif args.collect_stats:
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
+
+            if args.valid_batch_size is None:
+                args.valid_batch_size = args.batch_size
+
+            if len(args.train_shape_file) != 0:
+                train_key_file = args.train_shape_file[0]
+            else:
+                train_key_file = None
+            if len(args.valid_shape_file) != 0:
+                valid_key_file = args.valid_shape_file[0]
+            else:
+                valid_key_file = None
+
             collect_stats(
                 model=model,
-                train_iter=train_iter_factory.build_iter(1),
-                valid_iter=valid_iter_factory.build_iter(1),
+                train_iter=cls.build_streaming_iterator(
+                    data_path_and_name_and_type=args.train_data_path_and_name_and_type,
+                    key_file=train_key_file,
+                    batch_size=args.batch_size,
+                    dtype=args.train_dtype,
+                    num_workers=args.num_workers,
+                    allow_variable_data_keys=args.allow_variable_data_keys,
+                    ngpu=args.ngpu,
+                    preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                    collate_fn=cls.build_collate_fn(args),
+                ),
+                valid_iter=cls.build_streaming_iterator(
+                    data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                    key_file=valid_key_file,
+                    batch_size=args.valid_batch_size,
+                    dtype=args.train_dtype,
+                    num_workers=args.num_workers,
+                    allow_variable_data_keys=args.allow_variable_data_keys,
+                    ngpu=args.ngpu,
+                    preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                    collate_fn=cls.build_collate_fn(args),
+                ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
                 write_collected_feats=args.write_collected_feats,
             )
         else:
-            # Don't give args to run() directly!!!
+
+            # 8. Build iterator factories
+            common_iter_kwargs = dict(
+                iterator_type=args.iterator_type,
+                train_dtype=args.train_dtype,
+                num_workers=args.num_workers,
+                seed=args.seed,
+                allow_variable_data_keys=args.allow_variable_data_keys,
+                ngpu=args.ngpu,
+                fold_length=args.fold_length,
+                sort_in_batch=args.sort_in_batch,
+                sort_batch=args.sort_batch,
+                chunk_length=args.chunk_length,
+                chunk_shift_ratio=args.chunk_shift_ratio,
+                num_cache_chunks=args.num_cache_chunks,
+            )
+
+            train_iter_factory = cls.build_iter_factory(
+                data_path_and_name_and_type=args.train_data_path_and_name_and_type,
+                shape_files=args.train_shape_file,
+                batch_size=args.batch_size,
+                batch_bins=args.batch_bins,
+                batch_type=args.batch_type,
+                train=not args.collect_stats,
+                multiple_iterator=args.multiple_iterator,
+                preprocess_fn=cls.build_preprocess_fn(args, train=True),
+                collate_fn=cls.build_collate_fn(args),
+                num_iters_per_epoch=args.num_iters_per_epoch,
+                max_cache_size=args.max_cache_size,
+                distributed=distributed_option.distributed,
+                name="train",
+                **common_iter_kwargs,
+            )
+            if args.valid_batch_type is None:
+                args.valid_batch_type = args.batch_type
+            if args.valid_batch_size is None:
+                args.valid_batch_size = args.batch_size
+            if args.valid_batch_bins is None:
+                args.valid_batch_bins = args.batch_bins
+            if args.valid_max_cache_size is None:
+                # Cache 5% of maximum size for validation loader
+                args.valid_max_cache_size = 0.05 * args.max_cache_size
+            valid_iter_factory = cls.build_iter_factory(
+                data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                shape_files=args.valid_shape_file,
+                batch_size=args.valid_batch_size,
+                batch_bins=args.valid_batch_bins,
+                batch_type=args.batch_type,
+                train=False,
+                multiple_iterator=False,
+                preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                collate_fn=cls.build_collate_fn(args),
+                num_iters_per_epoch=None,
+                max_cache_size=args.valid_max_cache_size,
+                distributed=distributed_option.distributed,
+                name="valid",
+                **common_iter_kwargs,
+            )
+            if args.num_att_plot != 0:
+                plot_attention_iter_factory = cls.build_iter_factory(
+                    data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
+                    shape_files=args.valid_shape_file,
+                    batch_type="unsorted",
+                    batch_size=1,
+                    batch_bins=0,
+                    train=False,
+                    multiple_iterator=False,
+                    preprocess_fn=cls.build_preprocess_fn(args, train=False),
+                    collate_fn=cls.build_collate_fn(args),
+                    num_batches=args.num_att_plot,
+                    num_iters_per_epoch=None,
+                    # num_att_plot should be a few sample ~ 3, so cache all data.
+                    max_cache_size=np.inf if args.max_cache_size != 0.0 else 0.0,
+                    # always False because plot_attention performs on RANK0
+                    distributed=False,
+                    name="plot_att",
+                    **common_iter_kwargs,
+                )
+            else:
+                plot_attention_iter_factory = None
+
+            # 9. Start training
+
+            # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
             trainer_options = cls.trainer.build_options(args)
 
-            # Start training
             cls.trainer.run(
                 model=model,
                 optimizers=optimizers,
@@ -1197,17 +1261,15 @@ class AbsTask(ABC):
         chunk_length: Union[int, str],
         chunk_shift_ratio: float,
         num_cache_chunks: int,
+        multiple_iterator: bool,
         num_batches: int = None,
-    ) -> Union[
-        Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]],
-        Tuple[None, None, None],
-    ]:
+    ) -> AbsIterFactory:
         """Build a factory object of mini-batch iterator.
 
         This object is invoked at every epochs to build the iterator for each epoch
         as following:
 
-        >>> iter_factory, _, _ = cls.build_iter_factory(...)
+        >>> iter_factory = cls.build_iter_factory(...)
         >>> for epoch in range(1, max_epoch):
         ...     for keys, batch in iter_fatory.build_iter(epoch):
         ...         model(**batch)
@@ -1247,7 +1309,21 @@ class AbsTask(ABC):
             ngpu=ngpu,
         )
 
-        if iterator_type == "sequence":
+        if multiple_iterator:
+            return cls.build_multiple_iter_factroy(
+                **kwargs,
+                multiple_iterator=False,
+                iterator_type=iterator_type,
+                batch_type=batch_type,
+                batch_bins=batch_bins,
+                fold_length=fold_length,
+                sort_in_batch=sort_in_batch,
+                sort_batch=sort_batch,
+                chunk_length=chunk_length,
+                chunk_shift_ratio=chunk_shift_ratio,
+                num_cache_chunks=num_cache_chunks,
+            )
+        elif iterator_type == "sequence":
             return cls.build_sequence_iter_factory(
                 **kwargs,
                 batch_type=batch_type,
@@ -1263,9 +1339,6 @@ class AbsTask(ABC):
                 chunk_shift_ratio=chunk_shift_ratio,
                 num_cache_chunks=num_cache_chunks,
             )
-        elif iterator_type == "none":
-            # This branch is used for --dry_run mode
-            return None, None, None
         else:
             raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
 
@@ -1293,7 +1366,7 @@ class AbsTask(ABC):
         max_cache_size: float,
         distributed: bool,
         name: str,
-    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+    ) -> AbsIterFactory:
         assert check_argument_types()
         if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
             train_dtype = "float32"
@@ -1342,19 +1415,15 @@ class AbsTask(ABC):
                     )
             batches = [batch[rank::world_size] for batch in batches]
 
-        return (
-            SequenceIterFactory(
-                dataset=dataset,
-                batches=batches,
-                seed=seed,
-                num_iters_per_epoch=num_iters_per_epoch,
-                shuffle=train,
-                num_workers=num_workers,
-                collate_fn=collate_fn,
-                pin_memory=ngpu > 0,
-            ),
-            dataset,
-            batches,
+        return SequenceIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=seed,
+            num_iters_per_epoch=num_iters_per_epoch,
+            shuffle=train,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=ngpu > 0,
         )
 
     @classmethod
@@ -1379,7 +1448,7 @@ class AbsTask(ABC):
         max_cache_size: float,
         distributed: bool,
         name: str,
-    ) -> Tuple[AbsIterFactory, ESPnetDataset, List[Tuple[str, ...]]]:
+    ) -> AbsIterFactory:
         assert check_argument_types()
         if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
             train_dtype = "float32"
@@ -1423,26 +1492,159 @@ class AbsTask(ABC):
             #   i.e. the samples over the counts are discarded.
             batches = batches[rank::world_size]
 
-        return (
-            ChunkIterFactory(
-                dataset=dataset,
-                batches=batches,
+        return ChunkIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=seed,
+            # For chunk iterator,
+            # --num_iters_per_epoch doesn't indicate the number of iterations,
+            # but indicates the number of samples.
+            num_samples_per_epoch=num_iters_per_epoch,
+            shuffle=train,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=ngpu > 0,
+            batch_size=batch_size,
+            chunk_length=chunk_length,
+            chunk_shift_ratio=chunk_shift_ratio,
+            num_cache_chunks=num_cache_chunks,
+        )
+
+    @classmethod
+    def build_multiple_iter_factroy(
+        cls,
+        data_path_and_name_and_type,
+        shape_files: Union[Tuple[str, ...], List[str]],
+        train: bool,
+        num_iters_per_epoch: Optional[int],
+        max_cache_size: float,
+        seed: int,
+        **kwargs,
+    ):
+        assert check_argument_types()
+        assert len(data_path_and_name_and_type) > 0, len(data_path_and_name_and_type)
+
+        # 1. Sanity check
+        num_splits = None
+        for path in [path for path, _, _ in data_path_and_name_and_type] + list(
+            shape_files
+        ):
+            if not Path(path).is_dir():
+                raise RuntimeError(f"{path} is not a directory")
+            p = Path(path) / "num_splits"
+            if not p.exists():
+                raise FileNotFoundError(f"{p} is not found")
+            with p.open() as f:
+                _num_splits = int(f.read())
+                if num_splits is not None and num_splits != _num_splits:
+                    raise RuntimeError(
+                        f"Number of splits are mismathed: "
+                        f"{data_path_and_name_and_type[0][0]} and {path}"
+                    )
+                num_splits = _num_splits
+
+            for i in range(num_splits):
+                p = Path(path) / f"split.{i}"
+                if not p.exists():
+                    raise FileNotFoundError(f"{p} is not found")
+
+        # 2. Create functions to build an iter factory for each splits
+        data_path_and_name_and_type_list = [
+            [
+                (str(Path(p) / f"split.{i}"), n, t)
+                for p, n, t in data_path_and_name_and_type
+            ]
+            for i in range(num_splits)
+        ]
+        shape_files_list = [
+            [str(Path(s) / f"split.{i}") for s in shape_files]
+            for i in range(num_splits)
+        ]
+        num_iters_per_epoch_list = [
+            (num_iters_per_epoch + i) // num_splits
+            if num_iters_per_epoch is not None
+            else None
+            for i in range(num_splits)
+        ]
+        max_cache_size = max_cache_size / num_splits
+
+        # Note that iter-factories are built for each epoch at runtime lazily.
+        build_funcs = [
+            functools.partial(
+                cls.build_iter_factory,
+                data_path_and_name_and_type=_data_path_and_name_and_type,
+                shape_files=_shape_files,
+                num_iters_per_epoch=_num_iters_per_epoch,
+                max_cache_size=max_cache_size,
                 seed=seed,
-                # For chunk iterator,
-                # --num_iters_per_epoch doesn't indicate the number of iterations,
-                # but indicates the number of samples.
-                num_samples_per_epoch=num_iters_per_epoch,
-                shuffle=train,
-                num_workers=num_workers,
-                collate_fn=collate_fn,
-                pin_memory=ngpu > 0,
-                batch_size=batch_size,
-                chunk_length=chunk_length,
-                chunk_shift_ratio=chunk_shift_ratio,
-                num_cache_chunks=num_cache_chunks,
-            ),
-            dataset,
-            batches,
+                train=train,
+                **kwargs,
+            )
+            for (
+                _data_path_and_name_and_type,
+                _shape_files,
+                _num_iters_per_epoch,
+            ) in zip(
+                data_path_and_name_and_type_list,
+                shape_files_list,
+                num_iters_per_epoch_list,
+            )
+        ]
+
+        # 3. Build MultipleIterFactory
+        return MultipleIterFactory(build_funcs=build_funcs, shuffle=train, seed=seed,)
+
+    @classmethod
+    def build_streaming_iterator(
+        cls,
+        data_path_and_name_and_type,
+        preprocess_fn,
+        collate_fn,
+        key_file: str = None,
+        batch_size: int = 1,
+        dtype: str = np.float32,
+        num_workers: int = 1,
+        allow_variable_data_keys: bool = False,
+        ngpu: int = 0,
+        inference: bool = False,
+    ) -> DataLoader:
+        """Build DataLoader using iterable dataset"""
+        assert check_argument_types()
+        if dtype in ("float32", "O0", "O1", "O2", "O3"):
+            dtype = "float32"
+
+        # For backward compatibility for pytorch DataLoader
+        if collate_fn is not None:
+            kwargs = dict(collate_fn=collate_fn)
+        else:
+            kwargs = {}
+
+        # IterableDataset is supported from pytorch=1.2
+        if LooseVersion(torch.__version__) >= LooseVersion("1.2"):
+            dataset = IterableESPnetDataset(
+                data_path_and_name_and_type,
+                float_dtype=dtype,
+                preprocess=preprocess_fn,
+                key_file=key_file,
+            )
+            kwargs.update(batch_size=batch_size)
+        else:
+            dataset = ESPnetDataset(
+                data_path_and_name_and_type,
+                float_dtype=dtype,
+                preprocess=preprocess_fn,
+            )
+            if key_file is None:
+                key_file = data_path_and_name_and_type[0][0]
+            batch_sampler = UnsortedBatchSampler(
+                batch_size=batch_size, key_file=key_file, drop_last=False,
+            )
+            kwargs.update(batch_sampler=batch_sampler)
+
+        cls.check_task_requirements(dataset, allow_variable_data_keys, inference)
+
+        return DataLoader(
+            dataset=dataset, pin_memory=ngpu > 0, num_workers=num_workers, **kwargs,
         )
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
@@ -1481,57 +1683,3 @@ class AbsTask(ABC):
             model.load_state_dict(torch.load(model_file, map_location=device))
 
         return model, args
-
-    @classmethod
-    def build_non_sorted_iterator(
-        cls,
-        data_path_and_name_and_type,
-        batch_size: int = 1,
-        dtype: str = "float32",
-        key_file: str = None,
-        num_workers: int = 1,
-        pin_memory: bool = False,
-        preprocess_fn=None,
-        collate_fn=None,
-        inference: bool = True,
-        allow_variable_data_keys: bool = False,
-    ) -> Tuple[DataLoader, ESPnetDataset, UnsortedBatchSampler]:
-        """Create mini-batch iterator w/o shuffling and sorting by sequence lengths.
-
-        Note that unlike the iterator for training, the shape files are not required
-        for this iterator because any sorting is not done here.
-
-        """
-        assert check_argument_types()
-        if dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
-
-        dataset = ESPnetDataset(
-            data_path_and_name_and_type, float_dtype=dtype, preprocess=preprocess_fn,
-        )
-        cls.check_task_requirements(dataset, allow_variable_data_keys, inference)
-
-        if key_file is None:
-            key_file, _, _ = data_path_and_name_and_type[0]
-        batch_sampler = UnsortedBatchSampler(batch_size=batch_size, key_file=key_file)
-
-        logging.info(f"dataset:\n{dataset}")
-        logging.info(f"Batch sampler: {batch_sampler}")
-
-        # For backward compatibility for pytorch DataLoader
-        if collate_fn is not None:
-            kwargs = dict(collate_fn=collate_fn)
-        else:
-            kwargs = {}
-
-        return (
-            DataLoader(
-                dataset=dataset,
-                batch_sampler=batch_sampler,
-                num_workers=num_workers,
-                pin_memory=pin_memory,
-                **kwargs,
-            ),
-            dataset,
-            batch_sampler,
-        )

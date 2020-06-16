@@ -14,11 +14,11 @@ from torch.nn.parallel import data_parallel
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -62,7 +62,7 @@ def calc_perplexity(
     logging.info(f"Model:\n{model}")
 
     # 3. Build data-iterator
-    loader, _, _ = LMTask.build_non_sorted_iterator(
+    loader = LMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
@@ -71,6 +71,7 @@ def calc_perplexity(
         preprocess_fn=LMTask.build_preprocess_fn(train_args, False),
         collate_fn=LMTask.build_collate_fn(train_args),
         allow_variable_data_keys=allow_variable_data_keys,
+        inference=True,
     )
 
     # 4. Start for-loop
