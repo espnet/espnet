@@ -65,16 +65,28 @@ def recog_v2(args):
     else:
         lm = None
 
+    if args.ngram_model:
+        from espnet.nets.scorers.ngram import NgramFullScorer
+        from espnet.nets.scorers.ngram import NgramPartScorer
+
+        if args.ngram_scorer == "full":
+            ngram = NgramFullScorer(args.ngram_model, train_args.char_list)
+        else:
+            ngram = NgramPartScorer(args.ngram_model, train_args.char_list)
+    else:
+        ngram = None
+
     scorers = model.scorers()
     scorers["lm"] = lm
+    scorers["ngram"] = ngram
     scorers["length_bonus"] = LengthBonus(len(train_args.char_list))
     weights = dict(
         decoder=1.0 - args.ctc_weight,
         ctc=args.ctc_weight,
         lm=args.lm_weight,
+        ngram=args.ngram_weight,
         length_bonus=args.penalty,
     )
-
     beam_search = BeamSearch(
         beam_size=args.beam_size,
         vocab_size=len(train_args.char_list),

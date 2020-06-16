@@ -119,7 +119,7 @@ class TransformerEncoder(AbsEncoder):
             raise NotImplementedError("Support only linear or conv1d.")
         self.encoders = repeat(
             num_blocks,
-            lambda: EncoderLayer(
+            lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
                     attention_heads, output_size, attention_dropout_rate
