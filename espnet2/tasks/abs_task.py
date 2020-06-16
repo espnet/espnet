@@ -39,6 +39,7 @@ from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
@@ -822,6 +823,39 @@ class AbsTask(ABC):
                         f'for {cls.__name__}: "{k}" is not allowed.\n{mes}'
                     )
 
+    @staticmethod
+    def resume(
+        checkpoint: Union[str, Path],
+        model: torch.nn.Module,
+        reporter: Reporter,
+        optimizers: Sequence[torch.optim.Optimizer],
+        schedulers: Sequence[Optional[AbsScheduler]],
+        ngpu: int = 0,
+        use_apex: bool = False,
+    ):
+        states = torch.load(
+            checkpoint,
+            map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
+        )
+        model.load_state_dict(states["model"])
+        reporter.load_state_dict(states["reporter"])
+        for optimizer, state in zip(optimizers, states["optimizers"]):
+            optimizer.load_state_dict(state)
+        for scheduler, state in zip(schedulers, states["schedulers"]):
+            if scheduler is not None:
+                scheduler.load_state_dict(state)
+        if use_apex and states["amp"] is not None:
+            try:
+                from apex import amp
+            except ImportError:
+                logging.error(
+                    "You need to install apex. "
+                    "See https://github.com/NVIDIA/apex#linux"
+                )
+            amp.load_state_dict(states["amp"])
+
+        logging.info(f"The training was resumed using {checkpoint}")
+
     @classmethod
     def print_config(cls, file=sys.stdout) -> None:
         assert check_argument_types()
@@ -1025,31 +1059,14 @@ class AbsTask(ABC):
         # 7. Resume the training state from the previous epoch
         reporter = Reporter()
         if args.resume and (output_dir / "checkpoint.pth").exists():
-            states = torch.load(
-                output_dir / "checkpoint.pth",
-                map_location=f"cuda:{torch.cuda.current_device()}"
-                if args.ngpu > 0
-                else "cpu",
-            )
-            model.load_state_dict(states["model"])
-            reporter.load_state_dict(states["reporter"])
-            for optimizer, state in zip(optimizers, states["optimizers"]):
-                optimizer.load_state_dict(state)
-            for scheduler, state in zip(schedulers, states["schedulers"]):
-                if scheduler is not None:
-                    scheduler.load_state_dict(state)
-            if use_apex and states["amp"] is not None:
-                try:
-                    from apex import amp
-                except ImportError:
-                    logging.error(
-                        "You need to install apex. "
-                        "See https://github.com/NVIDIA/apex#linux"
-                    )
-                amp.load_state_dict(states["amp"])
-
-            logging.info(
-                f"The training was resumed using {output_dir / 'checkpoint.pth'}"
+            cls.resume(
+                checkpoint=output_dir / "checkpoint.pth",
+                model=model,
+                optimizers=optimizers,
+                schedulers=schedulers,
+                reporter=reporter,
+                ngpu=args.ngpu,
+                use_apex=use_apex,
             )
 
         if args.dry_run:

@@ -219,9 +219,9 @@ def prepare(E2E, args, mtlalpha=0.0):
 
 
 @pytest.mark.parametrize(
-    "model_class, args, ctc_weight, lm_weight, bonus, device, dtype",
+    "model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype",
     [
-        (nn, args, ctc, lm, bonus, device, dtype)
+        (nn, args, ctc_train, ctc_recog, lm, bonus, device, dtype)
         for device in ("cpu", "cuda")
         for nn, args in (
             ("transformer", transformer_args),
@@ -231,14 +231,15 @@ def prepare(E2E, args, mtlalpha=0.0):
             ("transformer", ldconv_dconv2d_args),
             ("rnn", rnn_args),
         )
-        for ctc in (0.0, 0.5, 1.0)
+        for ctc_train in (0.0, 0.5, 1.0)
+        for ctc_recog in (0.0, 0.5, 1.0)
         for lm in (0.0, 0.5)
         for bonus in (0.0, 0.1)
         for dtype in ("float16", "float32", "float64")
     ],
 )
 def test_beam_search_equal(
-    model_class, args, ctc_weight, lm_weight, bonus, device, dtype
+    model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype
 ):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
@@ -253,14 +254,21 @@ def test_beam_search_equal(
     )
 
     dtype = getattr(torch, dtype)
-    model, x, ilens, y, data, train_args = prepare(
-        model_class, args, mtlalpha=ctc_weight
-    )
+    model, x, ilens, y, data, train_args = prepare(model_class, args, mtlalpha=mtlalpha)
     model.eval()
     char_list = train_args.char_list
     lm_args = Namespace(type="lstm", layer=1, unit=2, embed_unit=2, dropout_rate=0.0)
     lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
+
+    if mtlalpha == 0.0 and ctc_weight > 0.0:
+        pytest.skip("no CTC + CTC decoding.")
+    if mtlalpha == 1.0 and ctc_weight < 1.0:
+        pytest.skip("pure CTC + attention decoding")
+
+    # TODO(hirofumi0810): pure CTC beam search is not implemented
+    if ctc_weight == 1.0:
+        pytest.skip("pure CTC beam search is not implemented")
 
     # test previous beam search
     args = Namespace(

@@ -56,7 +56,7 @@ set -o pipefail
 
 train_set=train_li42
 train_dev=dev_li42
-recog_set="dt_de_voxforge dt_en_wsj dt_es_voxforge dt_fr_voxforge dt_it_voxforge dt_ja_csj dt_nl_voxforge dt_pt_voxforge dt_ru_voxforge dt_zh_hkust et_de_voxforge et_en_wsj et_es_voxforge et_fr_voxforge et_it_voxforge et_ja_1_csj et_ja_2_csj et_ja_3_csj et_nl_voxforge et_pt_voxforge et_ru_voxforge et_zh_hkust dt_ca_commonvoice dt_fa_commonvoice dt_zh_TW_commonvoice et_eu_commonvoice et_tt_commonvoice dt_cy_commonvoice dt_fr_commonvoice et_ca_commonvoice et_fa_commonvoice et_zh_TW_commonvoice dt_de_commonvoice dt_it_commonvoice et_cy_commonvoice et_fr_commonvoice dt_en_commonvoice dt_kab_commonvoice et_de_commonvoice et_it_commonvoice dt_es_commonvoice dt_ru_commonvoice et_en_commonvoice et_kab_commonvoice dt_eu_commonvoice dt_tt_commonvoice et_es_commonvoice et_ru_commonvoice"
+recog_set="dt_*_commonvoice dt_*_babel dt_*_wsj dt_*_aurora4 dt_*_csj dt_*_fisher_swbd dt_*_hkust dt_*_aishell dt_*_fisher_callhome_spanish dt_*_chime4 dt_*_voxforge et_*_commonvoice et_*_babel et_*_wsj et_*_csj et_*_fisher_swbd et_*_hkust et_*_aishell et_*_fisher_callhome_spanish et_*_chime4 et_*_voxforge" # can either use patterns or full names here.
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     lang_code=zh
@@ -202,6 +202,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     fi
 fi
 
+# Set real recog_set
+recog_set_new=""
+for rtask_pattern in ${recog_set}; do
+    rtasks=$(find data/ -name "${rtask_pattern}" | sed 's!^.*/!!')
+    recog_set_new="${recog_set_new} ${rtasks}"
+done
+recog_set=${recog_set_new}
+
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -273,15 +281,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "$lid" != "" ]
     then
         paste -d " " \
-	      <(cut -f 1 -d" " data/${train_set_org}/text) \
-	      <(cut -f 1 -d" " data/${train_set_org}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | cut -f 1 -d"_" | sed -e "s/^/\[/" -e "s/$/\]/") \
-	      <(cut -f 2- -d" " data/${train_set_org}/text) \
-	      > data/${train_set}/text
+	  <(cut -f 1 -d" " data/${train_set_org}/text) \
+	  <(cut -f 1 -d" " data/${train_set_org}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+	  <(cut -f 2- -d" " data/${train_set_org}/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+	  > data/${train_set}/text
         paste -d " " \
-	      <(cut -f 1 -d" " data/${train_dev_org}/text) \
-	      <(cut -f 1 -d" " data/${train_dev_org}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | cut -f 1 -d"_" | sed -e "s/^/\[/" -e "s/$/\]/") \
-	      <(cut -f 2- -d" " data/${train_dev_org}/text) \
-	      > data/${train_dev}/text
+	  <(cut -f 1 -d" " data/${train_dev_org}/text) \
+	  <(cut -f 1 -d" " data/${train_dev_org}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+	  <(cut -f 2- -d" " data/${train_dev_org}/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+	  > data/${train_dev}/text
     fi
     
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -341,7 +349,7 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    nj=32
+    nj=28
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
 	recog_model=model.last${n_average}.avg.best
 	average_checkpoints.py --backend ${backend} \
@@ -358,11 +366,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
-        #### use CPU for decoding
-        ngpu=0
+        #### use GPU for decoding
+        ngpu=1
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --api v2 \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
