@@ -20,6 +20,8 @@ eval_set=eval1
 
 tts_config=conf/train_tacotron2.v3.yaml
 decode_config=conf/decode.yaml
+# pyopenjtalk case: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
+# pyopenjtalk_kana case: ミズヲマレーシアカラカワナクテワナラナイノデス。
 g2p=pyopenjtalk
 # g2p=pyopenjtalk_kana
 
