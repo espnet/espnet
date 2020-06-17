@@ -48,3 +48,45 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     target_len = target_len.to(device)
 
     return ys_in_pad, target, pred_len, target_len
+
+
+def is_prefix(x, pref):
+    """Check prefix.
+
+    Args:
+        x (list): list of predicted id
+        pref (list): list of predict id
+
+    Returns:
+       (boolean): whether pref is a prefix of x.
+
+    """
+    if len(pref) >= len(x):
+        return False
+
+    for i in range(len(pref)):
+        if pref[i] != x[i]:
+            return False
+
+    return True
+
+
+def substract(x, subset):
+    """Remove elements of subset if predicted sequences exist in x.
+
+    Args:
+        x (list): beam search predicted sequences
+        subset (list): beam search predicted sequences
+
+    Returns:
+       final (list of dict): new set
+
+    """
+    final = []
+
+    for x_ in x:
+        if any(x_["yseq"] == sub["yseq"] for sub in subset):
+            continue
+        final.append(x_)
+
+    return final

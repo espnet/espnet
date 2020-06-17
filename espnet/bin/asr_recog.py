@@ -148,8 +148,20 @@ def get_parser():
         "--search-type",
         type=str,
         default="default",
-        choices=["default", "osc", "nsc", "breadth-first"],
+        choices=["default", "nsc"],
         help="Type of beam search implementation to use during inference.",
+    )
+    parser.add_argument(
+        "--nstep",
+        type=int,
+        default=1,
+        help="Number of expansions allowed in NSC beam search.",
+    )
+    parser.add_argument(
+        "--prefix-alpha",
+        type=int,
+        default=2,
+        help="Length prefix difference allowed in NSC beam search.",
     )
     parser.add_argument(
         "--score-norm-transducer",

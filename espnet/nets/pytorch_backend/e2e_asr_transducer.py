@@ -271,7 +271,6 @@ class E2E(ASRInterface, torch.nn.Module):
             type=int,
             help="Number of dimensions in joint space",
         )
-
         group.add_argument(
             "--score-norm-transducer",
             type=strtobool,
@@ -487,26 +486,22 @@ class E2E(ASRInterface, torch.nn.Module):
             h = self.encode_rnn(x)
         params = [h, recog_args]
 
+        if self.dtype == "transformer":
+            decoder = self.decoder
+        else:
+            decoder = self.dec
+
         if recog_args.beam_size == 1:
-            if self.dtype == "transformer":
-                nbest_hyps = self.decoder.recognize(*params)
-            else:
-                nbest_hyps = self.dec.recognize(*params)
+            nbest_hyps = decoder.recognize(*params)
         else:
             params.append(rnnlm)
-            if self.dtype == "transformer":
-                nbest_hyps = self.decoder.recognize_beam(*params)
+
+            if recog_args.search_type == "default":
+                nbest_hyps = decoder.recognize_beam_default(*params)
+            elif recog_args.search_type == "nsc":
+                nbest_hyps = decoder.recognize_beam_nsc(*params)
             else:
-                if recog_args.search_type == "default":
-                    nbest_hyps = self.dec.recognize_beam(*params)
-                elif recog_args.search_type == "osc":
-                    nbest_hyps = self.dec.recognize_beam_osc(*params)
-                elif recog_args.search_type == "nsc":
-                    nbest_hyps = self.dec.recognize_beam_nsc(*params)
-                elif recog_args.search_type == "breadth-first":
-                    nbest_hyps = self.dec.recognize_beam_breadth_first(*params)
-                else:
-                    raise NotImplementedError
+                raise NotImplementedError
 
         return nbest_hyps
 
