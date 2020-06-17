@@ -39,7 +39,7 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: local/data_prep.sh"
     # Initial normalization of the data
-    # Donesn't change sampling frequency and it'sdone after stages
+    # Doesn't change sampling frequency and it's done after stages
     local/data_prep.sh "${db_root}"/jsut_ver1.1 data/train 48000
 
 fi
