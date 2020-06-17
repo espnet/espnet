@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
+# encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Common functions for MT."""
+"""Common functions for ST and MT."""
 
 import nltk
 import numpy as np
 
 
 class ErrorCalculator(object):
-    """Calculate BLEU for E2E_ST and NMT models during training.
+    """Calculate BLEU for ST and MT models during training.
 
     :param y_hats: numpy array with predicted text
     :param y_pads: numpy array with true (target) text
@@ -33,60 +34,41 @@ class ErrorCalculator(object):
             self.idx_space = None
 
     def __call__(self, ys_hat, ys_pad):
-        """Calculate sentence-level BLEU score.
+        """Calculate corpus-level BLEU score.
 
         :param torch.Tensor ys_hat: prediction (batch, seqlen)
         :param torch.Tensor ys_pad: reference (batch, seqlen)
-        :return: sentence-level BLEU score
+        :return: corpus-level BLEU score in a mini-batch
         :rtype float
         """
         bleu = None
         if not self.report_bleu:
             return bleu
 
-        seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad)
-        if self.report_bleu:
-            bleu = self.calculate_bleu(seqs_hat, seqs_true)
+        bleu = self.calculate_corpus_bleu(ys_hat, ys_pad)
         return bleu
 
-    def convert_to_char(self, ys_hat, ys_pad):
-        """Convert index to character.
+    def calculate_corpus_bleu(self, ys_hat, ys_pad):
+        """Calculate corpus-level BLEU score in a mini-batch.
 
         :param torch.Tensor seqs_hat: prediction (batch, seqlen)
         :param torch.Tensor seqs_true: reference (batch, seqlen)
-        :return: token list of prediction
-        :rtype list
-        :return: token list of reference
-        :rtype list
+        :return: corpus-level BLEU score
+        :rtype float
         """
         seqs_hat, seqs_true = [], []
         for i, y_hat in enumerate(ys_hat):
             y_true = ys_pad[i]
             eos_true = np.where(y_true == -1)[0]
-            eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-            # To avoid wrong lower BLEU than the one obtained from the decoding
-            # eos from y_true is used to mark the eos in y_hat
-            # because of that y_hats has not padded outs with -1.
-            seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
+            ymax = eos_true[0] if len(eos_true) > 0 else len(y_true)
+            # NOTE: padding index (-1) in y_true is used to pad y_hat
+            # because y_hats is not padded with -1
+            seq_hat = [self.char_list[int(idx)] for idx in y_hat[:ymax]]
             seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
             seq_hat_text = "".join(seq_hat).replace(self.space, " ")
             seq_hat_text = seq_hat_text.replace(self.pad, "")
             seq_true_text = "".join(seq_true).replace(self.space, " ")
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
-        return seqs_hat, seqs_true
-
-    def calculate_bleu(self, seqs_hat, seqs_true):
-        """Calculate average sentence-level BLEU score.
-
-        :param list seqs_hat: prediction
-        :param list seqs_true: reference
-        :return: average sentence-level BLEU score
-        :rtype float
-        """
-        bleus = []
-        for i, seq_hat_text in enumerate(seqs_hat):
-            seq_true_text = seqs_true[i]
-            bleu = nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
-            bleus.append(bleu)
-        return sum(bleus) / len(bleus)
+        bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
+        return bleu * 100

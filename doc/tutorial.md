@@ -133,7 +133,8 @@ echo 2
 
 ### Multiple GPU TIPs
 - Note that if you want to use multiple GPUs, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
-- Currently, we only support multiple GPU training within a single node. We don't support the distributed setup across multiple nodes. We also don't support GPU decoding.
+- Currently, espnet1 only supports multiple GPU training within a single node. The distributed setup across multiple nodes is only supported in [espnet2](https://espnet.github.io/espnet/espnet2_distributed.html). 
+- We don't support multiple GPU inference. Instead, please split the recognition task for multiple jobs and distribute these split jobs to multiple GPUs.
 - If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by `--n-iter-processes 2` in your `run.sh` to mitigate the problem. Note that this data prefetching consumes a lot of CPU memory, so please be careful when you increase the number of processes.
 
 ### Start from the middle stage or stop at specified stage
@@ -238,7 +239,28 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 
     This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
+### How to use finetuning
 
+ESPnet currently supports two finetuning operations: transfer learning (1.x) and freezing (2.).
+
+1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each option takes a snapshot path (e.g.: `exp/[model]/results/snapshot.ep.1`) or model path (e.g.: `exp/[model]/results/model.loss.best`) as argument.
+
+1.2. Additionally, a list of modules (separated by a comma) can be specified to control the modules to transfer using `--enc-init-mods` and `--dec-init-mods` options.
+It should be noted the user doesn't need to specify each module individually, only a partial matching (beginning of the string) is needed.
+
+Example 1: `--enc-init-mods='enc.'` means all encoder modules should be transfered.
+
+Example 2: `--enc-init-mods='enc.embed.,enc.0.'` means encoder embedding layer and first layer should be transfered.
+
+2. Freezing option can be used through `--freeze-mods`. Similarly to `--(enc|dec)-init-mods`, the option take a list of modules (separated by a comma). The behaviour being the same (partial matching).
+
+Example 1: `--freeze-mods='enc.embed.'` means encoder embedding layer should be frozen.
+
+Example 2: `--freeze-mods='dec.embed,dec.0.'` means decoder embedding layer and first layer should be frozen.
+
+3. RNN-based and Transformer-based models have different key names for encoder and decoder parts:
+ - RNN model has `enc` for encoder and `dec` for decoder.
+ - Transformer has `encoder` for encoder and `decoder` for decoder.
 
 ### Known issues
 

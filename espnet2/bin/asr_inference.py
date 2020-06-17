@@ -15,13 +15,13 @@ from espnet.nets.beam_search import Hypothesis
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils.fileio import DatadirWriter
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -118,7 +118,7 @@ def inference(
     logging.info(f"Decoding device={device}, dtype={dtype}")
 
     # 5. Build data-iterator
-    loader, _, _ = ASRTask.build_non_sorted_iterator(
+    loader = ASRTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
@@ -127,6 +127,7 @@ def inference(
         preprocess_fn=ASRTask.build_preprocess_fn(asr_train_args, False),
         collate_fn=ASRTask.build_collate_fn(asr_train_args),
         allow_variable_data_keys=allow_variable_data_keys,
+        inference=True,
     )
 
     # 6. [Optional] Build Text converter: e.g. bpe-sym -> Text

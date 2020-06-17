@@ -11,9 +11,11 @@ import numpy as np
 import resampy
 import soundfile
 from tqdm import tqdm
+from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.utils.fileio import read_2column_text, SoundScpWriter
+from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.sound_scp import SoundScpWriter
 
 
 def humanfriendly_or_none(value: str):

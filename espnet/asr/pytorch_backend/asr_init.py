@@ -16,6 +16,28 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 
+def freeze_modules(model, modules):
+    """Freeze model parameters according to modules list.
+
+    Args:
+        model (torch.nn.Module): main model to update
+        modules (list): specified module list for freezing
+
+    Return:
+        model (torch.nn.Module): updated model
+        model_params (filter): filtered model parameters
+
+    """
+    for mod, param in model.named_parameters():
+        if any(mod.startswith(m) for m in modules):
+            logging.info(f"freezing {mod}, it will not be updated.")
+            param.requires_grad = False
+
+    model_params = filter(lambda x: x.requires_grad, model.parameters())
+
+    return model, model_params
+
+
 def transfer_verification(model_state_dict, partial_state_dict, modules):
     """Verify tuples (key, shape) for input model modules match specified modules.
 

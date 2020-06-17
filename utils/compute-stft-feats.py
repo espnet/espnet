@@ -9,6 +9,7 @@ import logging
 
 import kaldiio
 import numpy
+import resampy
 
 from espnet.transform.spectrogram import spectrogram
 from espnet.utils.cli_utils import get_commandline_args
@@ -21,6 +22,7 @@ def get_parser():
         description="compute STFT feature from WAV",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("--fs", type=int_or_none, help="Sampling frequency")
     parser.add_argument("--n_fft", type=int, default=1024, help="FFT length in point")
     parser.add_argument(
         "--n_shift", type=int, default=512, help="Shift length in point"
@@ -99,8 +101,10 @@ def main():
         compress=args.compress,
         compression_method=args.compression_method,
     ) as writer:
-        for utt_id, (_, array) in reader:
+        for utt_id, (rate, array) in reader:
             array = array.astype(numpy.float32)
+            if args.fs is not None and rate != args.fs:
+                array = resampy.resample(array, rate, args.fs, axis=0)
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
             spc = spectrogram(
