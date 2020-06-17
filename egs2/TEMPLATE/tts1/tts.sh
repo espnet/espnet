@@ -81,8 +81,8 @@ eval_sets=       # Names of evaluation sets. Multiple items can be specified.
 srctexts=        # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
-cleaner=tacotron # Text cleaner
-g2p=g2p_en       # g2p method
+cleaner=tacotron # Text cleaner.
+g2p=g2p_en       # g2p method (needed if token_type=phn).
 text_fold_length=150   # fold_length for text data
 speech_fold_length=800 # fold_length for speech data
 
