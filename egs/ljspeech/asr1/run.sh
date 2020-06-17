@@ -163,7 +163,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train.txt
-        text2token.py -s 1 -n 1 data/${train_dev}/text \
+        text2token.py -s 1 -n 1 data/${dev_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         text2token.py -s 1 -n 1 data/${lm_test}/text \
                 | cut -f 2- -d" " > ${lmdatadir}/test.txt
