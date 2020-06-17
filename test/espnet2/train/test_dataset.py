@@ -1,13 +1,12 @@
 import h5py
 import kaldiio
 import numpy as np
-from PIL import Image
 import pytest
 import soundfile
 
+from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.train.dataset import ESPnetDataset
-from espnet2.utils.fileio import NpyScpWriter
-from espnet2.utils.fileio import SoundScpWriter
 
 
 def preprocess(id: str, data):
@@ -133,17 +132,6 @@ def h5file_1(tmp_path):
     return str(p)
 
 
-@pytest.fixture
-def h5file_2(tmp_path):
-    p = tmp_path / "file.h5"
-    with h5py.File(p, "w") as w:
-        w["a/input"] = np.random.randn(100, 80)
-        w["a/target"] = np.random.randint(0, 10, (10,))
-        w["b/input"] = np.random.randn(150, 80)
-        w["b/target"] = np.random.randint(0, 10, (13,))
-    return str(p)
-
-
 def test_ESPnetDataset_h5file_1(h5file_1):
     dataset = ESPnetDataset(
         path_name_type_list=[(h5file_1, "data4", "hdf5")], preprocess=preprocess,
@@ -154,20 +142,6 @@ def test_ESPnetDataset_h5file_1(h5file_1):
 
     _, data = dataset["b"]
     assert data["data4"].shape == (150, 80,)
-
-
-def test_ESPnetDataset_h5file_2(h5file_2):
-    dataset = ESPnetDataset(
-        path_name_type_list=[(h5file_2, "data1", "hdf5")], preprocess=preprocess,
-    )
-
-    _, data = dataset["a"]
-    assert data["data1_input"].shape == (100, 80)
-    assert data["data1_target"].shape == (10,)
-
-    _, data = dataset["b"]
-    assert data["data1_input"].shape == (150, 80)
-    assert data["data1_target"].shape == (13,)
 
 
 @pytest.fixture
@@ -309,33 +283,3 @@ def test_ESPnetDataset_csv_int(csv_int):
 
     _, data = dataset["b"]
     assert tuple(data["data8"]) == (2, 3, 4)
-
-
-@pytest.fixture
-def imagefolder(tmp_path):
-    p = tmp_path / "img"
-    (p / "a").mkdir(parents=True)
-    (p / "b").mkdir(parents=True)
-    a = np.random.rand(30, 30, 3) * 255
-    im_out = Image.fromarray(a.astype("uint8")).convert("RGBA")
-    im_out.save(p / "a" / "foo.png")
-    a = np.random.rand(30, 30, 3) * 255
-    im_out = Image.fromarray(a.astype("uint8")).convert("RGBA")
-    im_out.save(p / "b" / "foo.png")
-    return str(p)
-
-
-def test_ESPnetDataset_imagefolder(imagefolder):
-    pytest.importorskip("torchvision")
-
-    dataset = ESPnetDataset(
-        path_name_type_list=[(imagefolder, "data1", "imagefolder_32x32")],
-        preprocess=preprocess,
-    )
-
-    _, data = dataset[0]
-    assert data["data1_0"].shape == (3, 32, 32)
-    assert data["data1_1"] == (0,)
-    _, data = dataset[1]
-    assert data["data1_0"].shape == (3, 32, 32)
-    assert data["data1_1"] == (1,)

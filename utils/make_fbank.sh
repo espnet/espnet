@@ -5,7 +5,7 @@
 
 # Begin configuration section.
 nj=4
-fs=22050
+fs=none
 fmax=
 fmin=
 n_mels=80
