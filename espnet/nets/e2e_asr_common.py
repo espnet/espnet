@@ -303,7 +303,7 @@ class ErrorCalculatorTrans(object):
             if self.recog_args.beam_size == 1:
                 nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
             else:
-                nbest_hyps = self.dec.recognize_beam(hs_pad[b], self.recog_args)
+                nbest_hyps = self.dec.recognize_beam_default(hs_pad[b], self.recog_args)
             batch_nbest.append(nbest_hyps)
 
         ys_hat = [nbest_hyp[0]["yseq"][1:] for nbest_hyp in batch_nbest]
