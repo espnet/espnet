@@ -151,6 +151,7 @@ class LMTask(AbsTask):
                 bpemodel=args.bpemodel,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
+                non_linguistic_symbols=args.non_linguistic_symbols,
             )
         else:
             retval = None
