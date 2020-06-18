@@ -13,7 +13,7 @@ window=hann
 write_utt2num_frames=true
 cmd=run.pl
 compress=true
-normalize=16  # The bit-depth of the input wav files
+normalize=1  # The bit-depth of the input wav files
 filetype=mat # mat or hdf5
 # End configuration section.
 

@@ -8,7 +8,7 @@ win_length=1024
 shift_length=256
 threshold=60
 min_silence=0.01
-normalize=16
+normalize=1
 cmd=run.pl
 nj=32
 
