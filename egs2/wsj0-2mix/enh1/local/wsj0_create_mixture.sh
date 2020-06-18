@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Copyright  2018  Johns Hopkins University (Author: Xuankai Chang)
+#            2020  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
+# Apache 2.0
+
+min_or_max=min
 
 . utils/parse_options.sh
 
@@ -45,7 +49,7 @@ unzip ${wdir}/create-speaker-mixtures.zip -d ${dir}
 
 sed -i -e "s=/db/processed/public/WSJ0WAV_full=${wsj_full_wav}=" \
        -e "s=/mm1/leroux/wsj0-mix/2speakers=${wsj_2mix_wav}=" \
-       -e "s='min','max'='max'=" \
+       -e "s='min','max'='${min_or_max}'=" \
        ${dir}/create_wav_2speakers.m
 
 echo "WSJ0 wav file."
