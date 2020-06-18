@@ -86,4 +86,5 @@ class PhonemeTokenizer(AbsTokenizer):
         return tokens
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
-        raise NotImplementedError("phoneme type is not invertible")
+        # phoneme type is not invertible
+        return "".join(tokens)
