@@ -7,6 +7,7 @@ try:
     import pyopenjtalk
 
     params.extend(["pyopenjtalk", "pyopenjtalk_kana"])
+    del pyopenjtalk
 except ImportError:
     pass
 

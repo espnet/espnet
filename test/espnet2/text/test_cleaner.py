@@ -1,10 +1,6 @@
-from pathlib import Path
-
-import numpy as np
 import pytest
 
 from espnet2.text.cleaner import TextCleaner
-from espnet2.text.token_id_converter import TokenIDConverter
 
 
 @pytest.fixture(params=["tacotron", "jaconv"])
