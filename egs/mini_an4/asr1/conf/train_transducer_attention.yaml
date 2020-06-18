@@ -1,0 +1,37 @@
+# minibatch related
+batch-size: 2
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+criterion: loss
+early-stop-criterion: "validation/main/loss"
+sortagrad: 0
+opt: adadelta
+epochs: 3
+patience: 2
+
+# network architecture
+## encoder related
+etype: blstmp
+elayers: 2
+eunits: 32
+eprojs: 32
+subsample: "1_2_2_1_1"
+## decoder related
+dtype: lstm
+dlayers: 1
+dec-embed-dim: 30
+dunits: 30
+## attention related
+atype: location
+adim: 32
+aconv-chans: 4
+aconv-filts: 3
+## joint network related
+joint-dim: 30
+
+# transducer related
+mtlalpha: 1.0
+rnnt-mode: 'rnnt-att'
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

@@ -3,11 +3,15 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
-docker_cuda=10.0
-docker_user=true
+docker_cuda=10.1
+
 docker_env=
 docker_cmd=
 docker_os=u18
+
+is_root=false
+is_local=false
+is_egs2=false
 
 while test $# -gt 0
 do
@@ -15,32 +19,50 @@ do
         -h) echo "Usage: `basename $0` [-h] docker_gpu docker_egs docker_folders options"
             exit 0;;
         --help) echo "Usage: `basename $0` [-h] ] docker_gpu docker_egs docker_folders options"
-              exit 0;;
+            exit 0;;
         --docker*) ext=${1#--}
-              frombreak=true
-              for i in _ {a..z} {A..Z}; do
+            ext=${ext//-/_}
+            frombreak=true
+            for i in _ {a..z} {A..Z}; do
                 for var in `eval echo "\\${!${i}@}"`; do
-                  if [ "$var" == "$ext" ]; then
-                    eval ${ext}=$2
-                    frombreak=false
-                    break 2
-                  fi 
+                    if [ "$var" == "$ext" ]; then
+                        eval ${ext}=$2
+                        frombreak=false
+                        shift
+                        break 2
+                    fi 
                 done 
-              done
-              if ${frombreak} ; then
+            done
+            if ${frombreak} ; then
                 echo "bad option $1" 
                 exit 1
-              fi
-              ;;
+            fi
+            ;;
+        --is*) ext=${1#--}
+            ext=${ext//-/_}
+            frombreak=true
+            for i in _ {a..z} {A..Z}; do
+                for var in `eval echo "\\${!${i}@}"`; do
+                    if [ "$var" == "$ext" ]; then
+                        eval ${ext}=true
+                        frombreak=false
+                        break 2
+                    fi 
+                done 
+            done
+            if ${frombreak} ; then
+                echo "bad option $1" 
+                exit 1
+            fi
+            ;;
         --*) break
-              ;;
+            ;;
     esac
-    shift
     shift
 done
 
 if [ -z "${docker_egs}" ]; then
-    echo "Select an example to work with from the egs folder."
+    echo "Select an example to work with from the egs folder by setting --docker-egs."
     exit 1
 fi
 
@@ -66,19 +88,28 @@ if [ ! -z "${docker_os}" ]; then
     from_tag="${from_tag}-${docker_os}"
 fi
 
+if [ ${is_local} = true ]; then
+    from_tag="${from_tag}-local"
+fi
+
 # Check if image exists in the system and download if required
 docker_image=$( docker images -q espnet/espnet:${from_tag} )
 if ! [[ -n ${docker_image}  ]]; then
-    docker pull espnet/espnet:${from_tag}
+    if [ ${is_local} = true ]; then
+        echo "!!! Warning: You need first to build the container using ./build.sh local <cuda_ver>."
+        exit 1
+    else
+        docker pull espnet/espnet:${from_tag}
+    fi
 fi
 
-if [ ${UID} -eq 0 ] && [ ${docker_user} = true ]; then
+if [ ${UID} -eq 0 ] && [ ${is_root} = false ]; then
     echo "Warning: Your user ID belongs to root users.
         Using Docker container with root instead of User-built container."
-        docker_user=false
+        is_root=true
 fi
 
-if [ ${docker_user} = true ]; then
+if [ ${is_root} = false ]; then
     # Build a container with the user account
     container_tag="${from_tag}-user-${HOME##*/}"
     docker_image=$( docker images -q espnet/espnet:${container_tag} ) 
@@ -105,7 +136,7 @@ else
     # --rm erase the container when the training is finished.
     if [ -z "$( which nvidia-docker )" ]; then
         # we assume that you already installed nvidia-docker 2
-        cmd0="docker run --gpus 'device=${docker_gpu}'"
+        cmd0="docker run --gpus '\"device=${docker_gpu}\"'"
     else
         cmd0="NV_GPU='${docker_gpu}' nvidia-docker run "
     fi
@@ -114,7 +145,19 @@ fi
 
 cd ..
 
-vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/espnet:/espnet/espnet -v ${PWD}/test:/espnet/test -v ${PWD}/utils:/espnet/utils"
+vols="-v ${PWD}/egs:/espnet/egs
+      -v ${PWD}/espnet:/espnet/espnet
+      -v ${PWD}/test:/espnet/test 
+      -v ${PWD}/utils:/espnet/utils"
+
+in_egs=egs
+if [ ${is_egs2} = true ]; then
+    vols="${vols}   -v ${PWD}/egs2:/espnet/egs2
+                    -v ${PWD}/espnet2:/espnet/espnet2
+                    -v /dev/shm:/dev/shm"
+    in_egs=egs2
+fi
+
 if [ ! -z "${docker_folders}" ]; then
     docker_folders=$(echo ${docker_folders} | tr "," "\n")
     for i in ${docker_folders[@]}
@@ -123,16 +166,16 @@ if [ ! -z "${docker_folders}" ]; then
     done
 fi
 
-cmd1="cd /espnet/egs/${docker_egs}"
+cmd1="cd /espnet/${in_egs}/${docker_egs}"
 if [ ! -z "${docker_cmd}" ]; then
     cmd2="./${docker_cmd} $@"
 else
     cmd2="./run.sh $@"
 fi
 
-if [ ${docker_user} = false ]; then
+if [ ${is_root} = true ]; then
     # Required to access to the folder once the training if finished in root access
-    cmd2="${cmd2}; chmod -R 777 /espnet/egs/${docker_egs}"
+    cmd2="${cmd2}; chmod -R 777 /espnet/${in_egs}/${docker_egs}"
 fi
 
 cmd="${cmd1}; ${cmd2}"

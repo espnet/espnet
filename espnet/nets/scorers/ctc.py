@@ -14,7 +14,8 @@ class CTCPrefixScorer(PartialScorerInterface):
         """Initialize class.
 
         Args:
-            ctc (torch.nn.Module): The CTC implementaiton. For example, :class:`espnet.nets.pytorch_backend.ctc.CTC`
+            ctc (torch.nn.Module): The CTC implementaiton.
+                For example, :class:`espnet.nets.pytorch_backend.ctc.CTC`
             eos (int): The end-of-sequence id.
 
         """
@@ -60,11 +61,14 @@ class CTCPrefixScorer(PartialScorerInterface):
             x (torch.Tensor): 2D encoder feature that generates ys
 
         Returns:
-            tuple[torch.Tensor, Any]: Tuple of a score tensor for y that has a shape `(len(next_tokens),)`
+            tuple[torch.Tensor, Any]:
+                Tuple of a score tensor for y that has a shape `(len(next_tokens),)`
                 and next state for ys
 
         """
         prev_score, state = state
         presub_score, new_st = self.impl(y.cpu(), ids.cpu(), state)
-        tscore = torch.as_tensor(presub_score - prev_score, device=x.device, dtype=x.dtype)
+        tscore = torch.as_tensor(
+            presub_score - prev_score, device=x.device, dtype=x.dtype
+        )
         return tscore, (presub_score, new_st)

@@ -17,18 +17,19 @@ class MaskEstimator(torch.nn.Module):
 
         typ = type.lstrip("vgg").rstrip("p")
         if type[-1] == "p":
-            self.brnn = RNNP(idim, layers, units, projs, subsample, dropout,
-                             typ=typ)
+            self.brnn = RNNP(idim, layers, units, projs, subsample, dropout, typ=typ)
         else:
             self.brnn = RNN(idim, layers, units, projs, dropout, typ=typ)
 
         self.type = type
         self.nmask = nmask
         self.linears = torch.nn.ModuleList(
-            [torch.nn.Linear(projs, idim) for _ in range(nmask)])
+            [torch.nn.Linear(projs, idim) for _ in range(nmask)]
+        )
 
-    def forward(self, xs: ComplexTensor, ilens: torch.LongTensor) \
-            -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
+    def forward(
+        self, xs: ComplexTensor, ilens: torch.LongTensor
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
         """The forward function
 
         Args:
@@ -47,7 +48,7 @@ class MaskEstimator(torch.nn.Module):
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
         xs = (xs.real ** 2 + xs.imag ** 2) ** 0.5
         # xs: (B, C, T, F) -> xs: (B * C, T, F)
-        xs = xs.view(-1, xs.size(-2), xs.size(-1))
+        xs = xs.contiguous().view(-1, xs.size(-2), xs.size(-1))
         # ilens: (B,) -> ilens_: (B * C)
         ilens_ = ilens[:, None].expand(-1, C).contiguous().view(-1)
 

@@ -77,7 +77,7 @@ class Conv2dSubsamplingCustomPosEnc(torch.nn.Module):
             torch.nn.Conv2d(1, odim, 3, 2),
             torch.nn.ReLU(),
             torch.nn.Conv2d(odim, odim, 3, 2),
-            torch.nn.ReLU()
+            torch.nn.ReLU(),
         )
         self.out = torch.nn.Sequential(
             torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),

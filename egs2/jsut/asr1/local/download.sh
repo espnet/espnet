@@ -1,0 +1,1 @@
+../../../../egs/jsut/asr1/local/download.sh
