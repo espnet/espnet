@@ -1,4 +1,3 @@
-import functools
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -40,8 +39,6 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
-            import pyopenjtalk
-
             self.g2p = pyopenjtalk_g2p_kana
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
