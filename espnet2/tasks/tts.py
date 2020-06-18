@@ -106,9 +106,9 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--token_type",
             type=str,
-            default="bpe",
-            choices=["bpe", "char", "word"],
-            help="The text will be tokenized " "in the specified level token",
+            default="phn",
+            choices=["bpe", "char", "word", "phn"],
+            help="The text will be tokenized in the specified level token",
         )
         group.add_argument(
             "--bpemodel",
@@ -121,6 +121,21 @@ class TTSTask(AbsTask):
             type=str_or_none,
             help="non_linguistic_symbols file path",
         )
+        parser.add_argument(
+            "--cleaner",
+            type=str_or_none,
+            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            default=None,
+            help="Apply text cleaning",
+        )
+        parser.add_argument(
+            "--g2p",
+            type=str_or_none,
+            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -150,6 +165,8 @@ class TTSTask(AbsTask):
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
+                text_cleaner=args.cleaner,
+                g2p_type=args.g2p,
             )
         else:
             retval = None
