@@ -134,6 +134,7 @@ class LMTask(AbsTask):
                 token_type=args.token_type,
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
+                non_linguistic_symbols=args.non_linguistic_symbols,
             )
         else:
             retval = None
