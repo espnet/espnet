@@ -1,3 +1,11 @@
+# Lightweight/Dynamic convolution results
+| |         | # Snt | # Wrd |Corr|Sub|Del|Ins|Err|S.Err |
+| ------- | ---   | --    | -- | -  | - | - | - | - | - |
+|exp/train_960_pytorch_train_pytorch_LC_specaug/decode_dev_clean_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2703|54402|96.9|2.8|0.3|0.3|3.4|39.0|
+|exp/train_960_pytorch_train_pytorch_SA-DC_specaug/decode_dev_other_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2864|50948|92.7|6.5|0.8|0.9|8.2|55.9|
+|exp/train_960_pytorch_train_pytorch_DC_specaug/decode_test_clean_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2620|52576|96.9|2.9|0.3|0.4|3.5|37.9|
+|exp/train_960_pytorch_train_pytorch_SA-DC2D_specaug/decode_test_other_model.val5.avg.best_decode_lm/result.wrd.txt:|Sum/Avg|2939|52343|92.5|6.7|0.8|1.0|8.5|60.2|
+
 # pytorch large Transformer with specaug (4 GPUs) + Transformer LM (4 GPUs)
 
 We used the same ASR model in the previous report.

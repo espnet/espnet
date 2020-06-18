@@ -1,0 +1,205 @@
+import copy
+from distutils.version import LooseVersion
+from io import StringIO
+from typing import Callable
+from typing import Collection
+from typing import Dict
+from typing import Iterable
+from typing import Tuple
+from typing import Union
+
+import kaldiio
+import numpy as np
+import soundfile
+import torch
+from typeguard import check_argument_types
+
+from espnet2.train.dataset import ESPnetDataset
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.2"):
+    from torch.utils.data.dataset import IterableDataset
+else:
+    from torch.utils.data.dataset import Dataset as IterableDataset
+
+DATA_TYPES = {
+    "sound": lambda x: soundfile.read(x)[0],
+    # NOTE(kamo): load_ark can load wav file.
+    "pipe_wav": lambda x: kaldiio.load_mat(x)[1].astype(np.float32),
+    "kaldi_ark": lambda x: kaldiio.load_mat(x),
+    "npy": np.load,
+    "text_int": lambda x: np.loadtxt(
+        StringIO(x), ndmin=1, dtype=np.long, delimiter=" "
+    ),
+    "csv_int": lambda x: np.loadtxt(StringIO(x), ndmin=1, dtype=np.long, delimiter=","),
+    "text_float": lambda x: np.loadtxt(
+        StringIO(x), ndmin=1, dtype=np.float32, delimiter=" "
+    ),
+    "csv_float": lambda x: np.loadtxt(
+        StringIO(x), ndmin=1, dtype=np.float32, delimiter=","
+    ),
+    "text": lambda x: x,
+}
+
+
+class IterableESPnetDataset(IterableDataset):
+    """Pytorch Dataset class for ESPNet.
+
+    Examples:
+        >>> dataset = IterableESPnetDataset([('wav.scp', 'input', 'sound'),
+        ...                                  ('token_int', 'output', 'text_int')],
+        ...                                )
+        >>> for uid, data in dataset:
+        ...     data
+        {'input': per_utt_array, 'output': per_utt_array}
+    """
+
+    def __init__(
+        self,
+        path_name_type_list: Collection[Tuple[str, str, str]],
+        preprocess: Callable[
+            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        ] = None,
+        float_dtype: str = "float32",
+        int_dtype: str = "long",
+        key_file: str = None,
+    ):
+        assert check_argument_types()
+        if len(path_name_type_list) == 0:
+            raise ValueError(
+                '1 or more elements are required for "path_name_type_list"'
+            )
+
+        path_name_type_list = copy.deepcopy(path_name_type_list)
+        self.preprocess = preprocess
+
+        self.float_dtype = float_dtype
+        self.int_dtype = int_dtype
+        self.key_file = key_file
+
+        self.debug_info = {}
+        non_iterable_list = []
+        self.path_name_type_list = []
+        for path, name, _type in path_name_type_list:
+            if name in self.debug_info:
+                raise RuntimeError(f'"{name}" is duplicated for data-key')
+            self.debug_info[name] = path, _type
+            if _type not in DATA_TYPES:
+                non_iterable_list.append((path, name, _type))
+            else:
+                self.path_name_type_list.append((path, name, _type))
+
+        if len(non_iterable_list) != 0:
+            # Some types doesn't support iterable mode
+            self.non_iterable_dataset = ESPnetDataset(
+                path_name_type_list=non_iterable_list,
+                preprocess=preprocess,
+                float_dtype=float_dtype,
+                int_dtype=int_dtype,
+            )
+        else:
+            self.non_iterable_dataset = None
+
+    def has_name(self, name) -> bool:
+        return name in self.debug_info
+
+    def names(self) -> Tuple[str, ...]:
+        return tuple(self.debug_info)
+
+    def __repr__(self):
+        _mes = self.__class__.__name__
+        _mes += "("
+        for name, (path, _type) in self.debug_info.items():
+            _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
+        _mes += f"\n  preprocess: {self.preprocess})"
+        return _mes
+
+    def __iter__(self) -> Iterable[Tuple[Union[str, int], Dict[str, np.ndarray]]]:
+        if self.key_file is not None:
+            uid_iter = (
+                line.rstrip().split(maxsplit=1)[0]
+                for line in open(self.key_file, encoding="utf-8")
+            )
+        elif len(self.path_name_type_list) != 0:
+            uid_iter = (
+                line.rstrip().split(maxsplit=1)[0]
+                for line in open(self.path_name_type_list[0][0], encoding="utf-8")
+            )
+        else:
+            uid_iter = iter(self.non_iterable_dataset)
+
+        files = [open(lis[0], encoding="utf-8") for lis in self.path_name_type_list]
+
+        linenum = 0
+        count = 0
+        for count, uid in enumerate(uid_iter, 1):
+            # 1. Read a line from each file
+            while True:
+                keys = []
+                values = []
+                for f in files:
+                    linenum += 1
+                    try:
+                        line = next(f)
+                    except StopIteration:
+                        raise RuntimeError(f"{uid} is not found in the files")
+                    sps = line.rstrip().split(maxsplit=1)
+                    if len(sps) != 2:
+                        raise RuntimeError(
+                            f"This line doesn't include a space:"
+                            f" {f}:L{linenum}: {line})"
+                        )
+                    key, value = sps
+                    keys.append(key)
+                    values.append(value)
+
+                for k in keys:
+                    if k != keys[0]:
+                        raise RuntimeError(
+                            f"Keys are mismatched. Text files is not sorted or "
+                            f"not having same keys at L{linenum}"
+                        )
+
+                # If the key is matched, break the loop
+                if len(keys) == 0 or keys[0] == uid:
+                    break
+
+            # 2. Load the entry from each line and create a dict
+            data = {}
+            # 2.a. Load data streamingly
+            for value, (path, name, _type) in zip(values, self.path_name_type_list):
+                func = DATA_TYPES[_type]
+                # Load entry
+                array = func(value)
+                data[name] = array
+            if self.non_iterable_dataset is not None:
+                # 2.b. Load data from non-iterable dataset
+                _, from_non_iterable = self.non_iterable_dataset[uid]
+                data.update(from_non_iterable)
+
+            # 3. [Option] Apply preprocessing
+            #   e.g. espnet2.train.preprocessor:CommonPreprocessor
+            if self.preprocess is not None:
+                data = self.preprocess(uid, data)
+
+            # 4. Force data-precision
+            for name in data:
+                value = data[name]
+                if not isinstance(value, np.ndarray):
+                    raise RuntimeError(
+                        f"All values must be converted to np.ndarray object "
+                        f'by preprocessing, but "{name}" is still {type(value)}.'
+                    )
+
+                # Cast to desired type
+                if value.dtype.kind == "f":
+                    value = value.astype(self.float_dtype)
+                elif value.dtype.kind == "i":
+                    value = value.astype(self.int_dtype)
+                else:
+                    raise NotImplementedError(f"Not supported dtype: {value.dtype}")
+                data[name] = value
+
+            yield uid, data
+
+        if count == 0:
+            raise RuntimeError("No iteration")

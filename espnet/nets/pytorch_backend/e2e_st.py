@@ -1,12 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """RNN sequence-to-sequence speech translation model (pytorch)."""
-
-from __future__ import division
 
 import argparse
 import copy
@@ -121,11 +119,7 @@ class E2E(STInterface, torch.nn.Module):
             help="Type of encoder network architecture",
         )
         group.add_argument(
-            "--elayers",
-            default=4,
-            type=int,
-            help="Number of encoder layers (for shared recognition part "
-            "in multi-speaker asr mode)",
+            "--elayers", default=4, type=int, help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -212,7 +206,7 @@ class E2E(STInterface, torch.nn.Module):
     @staticmethod
     def decoder_add_arguments(parser):
         """Add arguments for the decoder."""
-        group = parser.add_argument_group("E2E encoder setting")
+        group = parser.add_argument_group("E2E decoder setting")
         group.add_argument(
             "--dtype",
             default="lstm",
@@ -280,7 +274,7 @@ class E2E(STInterface, torch.nn.Module):
         self.eos = odim - 1
         self.pad = 0
         # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
-        # in ASR. However, blank labels are not used in NMT.
+        # in ASR. However, blank labels are not used in MT.
         # To keep the vocabulary size,
         # we use index:0 for padding instead of adding one more class.
 
@@ -296,9 +290,8 @@ class E2E(STInterface, torch.nn.Module):
         else:
             labeldist = None
 
-        # multilingual E2E-ST related
+        # multilingual related
         self.multilingual = getattr(args, "multilingual", False)
-        self.joint_asr = getattr(args, "joint_asr", False)
         self.replace_sos = getattr(args, "replace_sos", False)
 
         # encoder
@@ -412,8 +405,7 @@ class E2E(STInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -428,8 +420,9 @@ class E2E(STInterface, torch.nn.Module):
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. ST attention loss
-        self.loss_st, acc, _ = self.dec(hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids)
-        self.acc = acc
+        self.loss_st, self.acc, _ = self.dec(
+            hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids
+        )
 
         # 2. ASR CTC loss
         if self.asr_weight == 0 or self.mtlalpha == 0:
@@ -440,15 +433,15 @@ class E2E(STInterface, torch.nn.Module):
         # 3. ASR attention loss
         if self.asr_weight == 0 or self.mtlalpha == 1:
             self.loss_asr = 0.0
-            self.acc_asr = 0.0
+            acc_asr = 0.0
         else:
             self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
-            self.acc_asr = acc_asr
+            acc_asr = acc_asr
 
         # 3. MT attention loss
         if self.mt_weight == 0:
             self.loss_mt = 0.0
-            self.acc_mt = 0.0
+            acc_mt = 0.0
         else:
             # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
             ilens_mt = torch.sum(ys_pad_src != -1, dim=1).cpu().numpy()
@@ -459,7 +452,7 @@ class E2E(STInterface, torch.nn.Module):
                 self.dropout_mt(self.embed_mt(ys_zero_pad_src)), ilens_mt
             )
             self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
-            self.acc_mt = acc_mt
+            acc_mt = acc_mt
 
         # 4. compute cer without beam search
         if (self.asr_weight == 0 or self.mtlalpha == 0) or self.char_list is None:
@@ -496,7 +489,6 @@ class E2E(STInterface, torch.nn.Module):
             or not (self.report_cer or self.report_wer)
         ):
             cer, wer = 0.0, 0.0
-            # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             if (
                 self.asr_weight > 0 and self.mtlalpha > 0
@@ -549,11 +541,10 @@ class E2E(STInterface, torch.nn.Module):
 
         # 6. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
-            bleus = []
             nbest_hyps = self.dec.recognize_beam_batch(
                 hs_pad,
                 torch.tensor(hlens),
@@ -566,6 +557,8 @@ class E2E(STInterface, torch.nn.Module):
                 else None,
             )
             # remove <sos> and <eos>
+            list_of_refs = []
+            hyps = []
             y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
@@ -578,12 +571,10 @@ class E2E(STInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                bleu = (
-                    nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
-                )
-                bleus.append(bleu)
+                hyps += [seq_hat_text.split(" ")]
+                list_of_refs += [[seq_true_text.split(" ")]]
 
-            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         alpha = self.mtlalpha
         self.loss = (
@@ -601,13 +592,13 @@ class E2E(STInterface, torch.nn.Module):
                 loss_asr_data,
                 loss_mt_data,
                 loss_st_data,
-                self.acc_asr,
-                self.acc_mt,
-                acc,
+                acc_asr,
+                acc_mt,
+                self.acc,
                 cer_ctc,
                 cer,
                 wer,
-                bleu,
+                self.bleu,
                 loss_data,
             )
         else:
@@ -650,11 +641,10 @@ class E2E(STInterface, torch.nn.Module):
         :rtype: list
         """
         hs = self.encode(x).unsqueeze(0)
-        lpz = None
 
         # 2. Decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(hs[0], lpz, trans_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], None, trans_args, char_list, rnnlm)
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
@@ -678,12 +668,11 @@ class E2E(STInterface, torch.nn.Module):
 
         # 1. Encoder
         hs_pad, hlens, _ = self.enc(xs_pad, ilens)
-        lpz = None
 
         # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(
-            hs_pad, hlens, lpz, trans_args, char_list, rnnlm
+            hs_pad, hlens, None, trans_args, char_list, rnnlm
         )
 
         if prev:
@@ -695,8 +684,7 @@ class E2E(STInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).

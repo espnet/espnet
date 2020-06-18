@@ -6,8 +6,8 @@ from typing import Union
 import numpy as np
 from typeguard import check_argument_types
 
+from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.utils.fileio import load_num_sequence_text
 
 
 class NumElementsBatchSampler(AbsSampler):
