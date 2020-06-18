@@ -8,6 +8,8 @@
 
 . ./path.sh
 
+conda deactivate 
+
 set -e -o pipefail
 set -o nounset                              # Treat unset variables as an error
 

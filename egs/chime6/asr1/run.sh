@@ -33,7 +33,7 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=10
 
 # data
-chime5_corpus=/export/corpora4/CHiME5
+chime5_corpus=/media/hardDisk-2Tb/PROJECTS/chime6/CHiME5
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -48,13 +48,13 @@ set -o pipefail
 
 # use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
 #eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
-recog_set="dev_worn dev_${enhancement}_ref"
+recog_set=""
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/prepare_baseline_chime6_data.sh ${chime5_corpus}
+    local/prepare_baseline_chime6_data.sh --chime5_corpus ${chime5_corpus}
 fi
 
 train_set=train_worn_simu375k_gss12v0_gss24v0_cleaned_sp

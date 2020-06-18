@@ -7,9 +7,9 @@
 #
 
 # Begin configuration section.
-nj=96
-decode_nj=20
-stage=16
+nj=10
+decode_nj=10
+stage=0
 nnet_stage=-10
 decode_stage=3
 decode_only=false
@@ -18,6 +18,10 @@ foreground_snrs="20:10:15:5:0"
 background_snrs="20:10:15:5:0"
 #enhancement=beamformit # gss or beamformit
 enhancement=gss # gss or beamformit
+
+# chime5 main directory path
+# please change the path accordingly
+chime5_corpus=
 
 # End configuration section
 . ./utils/parse_options.sh
@@ -33,9 +37,6 @@ fi
 
 set -e # exit on error
 
-# chime5 main directory path
-# please change the path accordingly
-chime5_corpus=${PWD}/CHIME5
 # chime6 data directories, which are generated from ${chime5_corpus},
 # to synchronize audio files across arrays and modify the annotation (JSON) file accordingly
 chime6_corpus=${PWD}/CHiME6
@@ -56,7 +57,7 @@ test_sets="dev_${enhancement} eval_${enhancement}"
 train_set=train_worn_simu_u400k
 
 # This script also needs the phonetisaurus g2p, srilm, beamformit
-./local/check_tools.sh || exit 1
+#./local/check_tools.sh || exit 1
 
 ###########################################################################
 # We first generate the synchronized audio files across arrays and
@@ -134,6 +135,7 @@ fi
 
 
 if [ $stage -le 5 ]; then
+  echo "[INFO]: Stage 5..."
   local/extract_noises.py $chime6_corpus/audio/train $chime6_corpus/transcriptions/train \
     local/distant_audio_list distant_noises
   local/make_noise_list.py distant_noises > distant_noise_list
@@ -142,7 +144,7 @@ if [ $stage -le 5 ]; then
   
   if [ ! -d RIRS_NOISES/ ]; then
     # Download the package that includes the real RIRs, simulated RIRs, isotropic noises and point-source noises
-    # wget --no-check-certificate http://www.openslr.org/resources/28/rirs_noises.zip
+    wget --no-check-certificate http://www.openslr.org/resources/28/rirs_noises.zip
     unzip rirs_noises.zip
   fi
 
@@ -205,7 +207,7 @@ if [ $stage -le 8 ]; then
   echo "$0:  make features..."
   mfccdir=mfcc
   for x in ${train_set}; do
-    steps/make_mfcc.sh --nj 20 --cmd "$train_cmd" \
+    steps/make_mfcc.sh --nj $nj --cmd "$train_cmd" \
 		       data/$x exp/make_mfcc/$x $mfccdir
     steps/compute_cmvn_stats.sh data/$x exp/make_mfcc/$x $mfccdir
     utils/fix_data_dir.sh data/$x
