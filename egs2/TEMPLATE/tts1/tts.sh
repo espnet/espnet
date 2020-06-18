@@ -566,6 +566,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     fi
 
     _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+
+    # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
     if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
         _opts+="--vocoder_conf n_fft=${n_fft} "
         _opts+="--vocoder_conf n_shift=${n_shift} "
