@@ -290,14 +290,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Number of spectrogram dimensions")
         group.add_argument("--pretrained-model", default=None, type=str,
                            help="Pretrained model path")
-        group.add_argument("--pretrained-model2", default=None, type=str,
-                           help="Pretrained model path (second, if needed)")
-        group.add_argument("--load-partial-pretrained-model", default=None, type=str,
-                           help="Which part of the pretrained model to load")
-        group.add_argument("--load-partial-pretrained-model2", default=None, type=str,
-                           help="Which part of the pretrained model to load (for the second pretrained model)")
-        group.add_argument("--params-to-train", default=None, type=str,
-                           help="Which part of the model to train")
         # loss related
         group.add_argument('--use-masking', default=False, type=strtobool,
                            help='Whether to use masking in calculation of loss')
@@ -313,6 +305,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Lambda in source reconstruction loss")
         group.add_argument("--trg-reconstruction-loss-lambda", default=1.0, type=float,
                            help="Lambda in target reconstruction loss")
+        group.add_argument("--use-speaker-adv-loss", default=False, type=strtobool,
+                           help="Whether to use adversarial speaker classifier loss.")
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -505,66 +499,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                                                 odim * args.reduction_factor
                                             )
             self.trg_reconstruction_loss = CBHGLoss(use_masking=args.use_masking)
-
+        
         # load pretrained model
         if args.pretrained_model is not None:
-            if args.load_partial_pretrained_model:
-                # exclude=True -> parameters NOT containing the partial_description are restored
-                self.load_partial_pretrained_model(args.pretrained_model, args.load_partial_pretrained_model)
-            else:
-                self.load_pretrained_model(args.pretrained_model)
-
-        # load pretrained model 2
-        if args.pretrained_model2 is not None:
-            # for pretrained model 2, must only be partial model
-            # exclude=True -> parameters containing the partial_description are restored
-            self.load_partial_pretrained_model(args.pretrained_model2, args.load_partial_pretrained_model2, exclude=True)
-
-        # freeze partial model params
-        if args.params_to_train is not None:
-            print(args.params_to_train)
-            for name, param in self.named_parameters():
-                if args.params_to_train not in name:
-                    param.requires_grad = False
-    
-    def load_partial_pretrained_model(self, model_path, partial_description, exclude=False):
-        """Load pretrained model parameters according to partial description."""
-
-        if 'snapshot' in model_path:
-            model_state_dict = torch.load(model_path, map_location=lambda storage, loc: storage)['model']
-        else:
-            model_state_dict = torch.load(model_path, map_location=lambda storage, loc: storage)
-
-        print("Start printing pretrained model params")
-        for k, v in model_state_dict.items():
-            print("\t", k, v.shape)
-        print("Start printing original VC model params")
-        for name, param in self.named_parameters():
-            print("\t", name, param.shape)
-        print("Start printing newly defined model params")
-        for name, param in self.named_parameters():
-            if name not in model_state_dict or param.shape != model_state_dict[name].shape:
-                print("\t", name, param.shape)
-
-        #exit()
-
-        if exclude:
-            filtered_model_state_dict = {k: v for k, v in model_state_dict.items() if partial_description in k}
-        else:
-            filtered_model_state_dict = {k: v for k, v in model_state_dict.items() if not partial_description in k}
-        
-        print("Start printing model params to store")
-        for name, param in filtered_model_state_dict.items():
-            print("\t", name, param.shape)
-
-        if hasattr(self, 'module'):
-            self.module.load_state_dict(filtered_model_state_dict, strict = False)
-        else:
-            self.load_state_dict(filtered_model_state_dict, strict = False)
-
-        del model_state_dict
-        
-        print("===============================================")
+            self.load_pretrained_model(args.pretrained_model)
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
         """Calculate forward propagation.
@@ -802,6 +740,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             plot_keys += ['attn_loss']
         if self.use_cbhg:
             plot_keys += ['cbhg_l1_loss', 'cbhg_mse_loss']
+        if self.src_reconstruction_loss_lambda > 0:
+            plot_keys += ['src_recon_l1_loss', 'src_recon_mse_loss']
+        if self.trg_reconstruction_loss_lambda > 0:
+            plot_keys += ['trg_recon_l1_loss', 'trg_recon_mse_loss']
         return plot_keys
     
     def _sort_by_length(self, xs, ilens):

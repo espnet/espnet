@@ -223,7 +223,7 @@ class CustomConverter(object):
         """
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys, spembs, extras = batch[0]
+        xs, ys, spembs, extras, spk_labels = batch[0]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -237,7 +237,7 @@ class CustomConverter(object):
         labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1.0
-
+        
         # prepare dict
         new_batch = {
             "xs": xs,
@@ -251,6 +251,11 @@ class CustomConverter(object):
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float()
             new_batch["spembs"] = spembs.to(device)
+        
+        # load speaker label for adversarial loss
+        if spk_labels is not None:
+            spk_labels = torch.from_numpy(np.array(spk_labels)).long().to(device)
+            new_batch["spk_labels"] = spk_labels
 
         # load second target
         if extras is not None:
@@ -388,6 +393,7 @@ def train(args):
         mode='vc',
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
+        use_speaker_adv_loss=args.use_speaker_adv_loss,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True},  # Switch the mode of preprocessing
         keep_all_data_on_mem=args.keep_all_data_on_mem,
@@ -397,6 +403,7 @@ def train(args):
         mode='vc',
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
+        use_speaker_adv_loss=False,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False},  # Switch the mode of preprocessing
         keep_all_data_on_mem=args.keep_all_data_on_mem,
@@ -654,3 +661,68 @@ def decode(args):
         dur_writer.close()
     if args.save_focus_rates:
         fr_writer.close()
+
+@torch.no_grad()
+def extract_latent(args):
+    """Extract latent code of E2E VC model."""
+    set_deterministic_pytorch(args)
+    # read training config
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+
+    # show arguments
+    for key in sorted(vars(args).keys()):
+        logging.info('args: ' + key + ': ' + str(vars(args)[key]))
+
+    # define model
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, TTSInterface)
+    logging.info(model)
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    torch_load(args.model, model)
+    model.eval()
+
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    model = model.to(device)
+
+    # read json data
+    with open(args.json, 'rb') as f:
+        js = json.load(f)['utts']
+
+    # check directory
+    outdir = os.path.dirname(args.out)
+    if len(outdir) != 0 and not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='vc', load_output=False, sort_in_input_length=False,
+        use_speaker_embedding=train_args.use_speaker_embedding,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
+
+
+    # define writer instances
+    feat_writer = kaldiio.WriteHelper(
+        'ark,scp:{o}.ark,{o}.scp'.format(o=args.out))
+
+    # start extraction
+    for idx, utt_id in enumerate(js.keys()):
+        # setup inputs
+        batch = [(utt_id, js[utt_id])]
+        data = load_inputs_and_targets(batch)
+        x = torch.FloatTensor(data[0][0]).to(device)
+
+        # decode and write
+        start_time = time.time()
+        latents = model.encode(x)
+        print(latents.cpu().numpy())
+        print(latents.cpu().numpy().shape)
+        feat_writer[utt_id] = latents.cpu().numpy()
+
+    # close file object
+    feat_writer.close()

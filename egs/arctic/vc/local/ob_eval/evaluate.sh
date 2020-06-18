@@ -24,7 +24,7 @@ help_message="Usage: $0 <outdir> <subset> <srcspk> <trgspk>"
 . utils/parse_options.sh
 
 outdir=$1
-name=$2  # `dev` or `eval`
+set_name=$2  # `dev` or `eval`
 srcspk=$3
 trgspk=$4
 
@@ -39,7 +39,7 @@ set -euo pipefail
 if ${eval_model}; then
     echo "Evaluate: converted speech"
 
-    set_name=${srcspk}_${trgspk}_${name}
+    #set_name=${srcspk}_${trgspk}_${name}
     
     # Decide wavdir depending on vocoder
     if [ ! -z ${vocoder} ]; then
@@ -59,7 +59,7 @@ if ${eval_model}; then
 else
     echo "Evaluate: ground truth"
     
-    set_name=${trgspk}_${name}
+    #set_name=${trgspk}_${name}
     
     expdir=exp/ground_truth
     wavdir=${expdir}/sym_link_denorm/${set_name}/wav
@@ -121,6 +121,8 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
+# (Dirty): get "dev" or "eval"
+name=$(echo ${set_name} | awk -F"_" '{print $NF}')
 local/ob_eval/data_prep_for_asr.sh ${wavdir} ${asr_data_dir}/${set_name} ${trgspk}
 cp data/${trgspk}_${name}/text ${asr_data_dir}/${set_name}/text
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${set_name}

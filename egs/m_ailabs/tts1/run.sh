@@ -47,10 +47,11 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # pretrained model related
 pretrained_decoder_path=
-pretrained_encoder_path="librispeech.transformer_large"
+pretrained_encoder_path=
 ept_train_config="conf/ept.v1.yaml"
 dpt_train_config="conf/dpt.v1.single.yaml"
 ept_decode_config="conf/ae_decode.yaml"
+dpt_decode_config="conf/ae_decode.yaml"
 ept_eval=false
 
 # Decoder pretraining (w/ ASR encoder) related
@@ -553,15 +554,15 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         echo "Please specify --dpt_tag"
         exit 1
     fi
-    expdir=exp/${train_set}_${backend}_${ept_tag}
-    outdir=${expdir}/ept_outputs_${model}
+    expdir=exp/${train_set}_${backend}_${dpt_tag}
+    outdir=${expdir}/dpt_outputs_${model}
 
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}/ae_data.json ${outdir}/${name}
-        splitjson.py --parts ${nj} ${outdir}/${name}/ae_data.json
+        cp ${dumpdir}/${name}/pitch_ae_data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/pitch_ae_data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             vc_decode.py \
@@ -569,9 +570,9 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${name}/feats.JOB \
-                --json ${outdir}/${name}/split${nj}utt/ae_data.JOB.json \
-                --model ${expdir}/ept_results/${model} \
-                --config ${ept_decode_config}
+                --json ${outdir}/${name}/split${nj}utt/pitch_ae_data.JOB.json \
+                --model ${expdir}/dpt_results/${model} \
+                --config ${dpt_decode_config}
         # concatenate scp files
         for n in $(seq ${nj}); do
             cat "${outdir}/${name}/feats.$n.scp" || exit 1;

@@ -350,6 +350,14 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            help="Sigma in guided attention loss")
         group.add_argument("--guided-attn-loss-lambda", default=1.0, type=float,
                            help="Lambda in guided attention loss")
+        group.add_argument("--use-speaker-adv-loss", default=False, type=strtobool,
+                           help="Whether to use adversarial speaker classifier loss.")
+        group.add_argument("--num-speakers", type=int,
+                           help="Number of speakers in the training set.")
+        group.add_argument("--speaker-classifier-dim", default=256, type=int,
+                           help="Dimension of hidden layer of speaker classifier.")
+        group.add_argument("--speaker-adv-loss-lambda", default=1.0, type=float,
+                           help="Lambda in adversarial speaker classifier loss.")
         return parser
 
     def __init__(self, idim, odim, args=None):
