@@ -6,8 +6,11 @@ import sys
 from typing import List
 from typing import Optional
 
+from typeguard import check_argument_types
+
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.cleaner import TextCleaner
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -71,7 +74,11 @@ def tokenize(
     remove_non_linguistic_symbols: bool,
     cutoff: int,
     add_symbol: List[str],
+    cleaner: Optional[str],
+    g2p: Optional[str],
 ):
+    assert check_argument_types()
+
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
@@ -87,6 +94,7 @@ def tokenize(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
+    cleaner = TextCleaner(cleaner)
     tokenizer = build_tokenizer(
         token_type=token_type,
         bpemodel=bpemodel,
@@ -94,6 +102,7 @@ def tokenize(
         space_symbol=space_symbol,
         non_linguistic_symbols=non_linguistic_symbols,
         remove_non_linguistic_symbols=remove_non_linguistic_symbols,
+        g2p_type=g2p,
     )
 
     counter = Counter()
@@ -112,6 +121,7 @@ def tokenize(
             else:
                 line = delimiter.join(tokens)
 
+        line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
         if not write_vocabulary:
             fout.write(" ".join(tokens) + "\n")
@@ -185,7 +195,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--token_type",
         "-t",
         default="char",
-        choices=["char", "bpe", "word"],
+        choices=["char", "bpe", "word", "phn"],
         help="Token type",
     )
     parser.add_argument("--delimiter", "-d", default=None, help="The delimiter")
@@ -201,6 +211,20 @@ def get_parser() -> argparse.ArgumentParser:
         type=str2bool,
         default=False,
         help="Remove non-language-symbols from tokens",
+    )
+    parser.add_argument(
+        "--cleaner",
+        type=str_or_none,
+        choices=[None, "tacotron", "jaconv", "vietnamese"],
+        default=None,
+        help="Apply text cleaning",
+    )
+    parser.add_argument(
+        "--g2p",
+        type=str_or_none,
+        choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+        default=None,
+        help="Specify g2p method if --token_type=phn",
     )
 
     group = parser.add_argument_group("write_vocabulary mode related")
