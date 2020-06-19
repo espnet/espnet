@@ -48,6 +48,8 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+        "pypesq>=1.2.4",
+        "mir-eval>=0.6",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

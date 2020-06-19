@@ -26,6 +26,8 @@ class ESPnetFrontendModel(AbsESPnetModel):
         super().__init__()
 
         self.frontend = frontend
+        self.num_spk = frontend.num_spk
+        self.fs = frontend.fs
         self.tf_factor = frontend.tf_factor
 
     def forward(

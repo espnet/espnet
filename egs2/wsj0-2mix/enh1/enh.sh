@@ -30,6 +30,8 @@ num_nodes=1      # The number of nodes
 mem=10G          # Memory per CPU
 nj=32            # The number of parallel jobs.
 dumpdir=dump     # Directory to dump features.
+infernece_nj=32     # The number of parallel jobs in decoding.
+gpu_inference=false # Whether to perform gpu decoding.
 expdir=exp       # Directory to save experiments.
 
 # Data preparation related
@@ -45,14 +47,20 @@ fs=16k            # Sampling rate.
 
 
 
-# ASR model related
+# Enhancement model related
 enh_tag=    # Suffix to the result dir for asr model training.
 enh_config= # Config for asr model training.
 enh_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in asr config.
+spk_num=2
 feats_normalize=global_mvn  # Normalizaton layer type
 
-# Decoding related
+# Enhancement related
+inference_args=
+inference_enh_model=valid.si_snr.best.pth
+
+# Evaluation related
+scoring_protocol="PESQ STOI SDR SAR SIR"
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
@@ -377,22 +385,28 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"
+    log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"        
+
+    # prepare train and valid data parameters
+    _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
+    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/wav.scp,speech_mix,sound "
+    for spk in $(seq "${spk_num}"); do
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
+    done
+
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
+
 
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         python3 -m espnet2.bin.enh_train \
             --collect_stats true \
             --use_preprocessor true \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/wav.scp,speech_mix,sound" \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/spk1.scp,speech_ref1,sound" \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/spk2.scp,speech_ref2,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/wav.scp,speech_mix,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/spk1.scp,speech_ref1,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/spk2.scp,speech_ref2,sound" \
+            ${_train_data_param} \
+            ${_valid_data_param} \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
@@ -445,12 +459,22 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _opts+="--input_size=${_input_size} "
 
     fi
-    # if [ "${feats_normalize}" = global_mvn ]; then
-    #     # Default normalization is utterance_mvn and changes to global_mvn
-    #     _opts+="--normalize=global_mvn --normalize_conf stats_file=${enh_stats_dir}/train/feats_stats.npz"
-    # fi
 
-    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+    # prepare train and valid data parameters
+    _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
+    _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape " 
+    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/wav.scp,speech_mix,sound "
+    _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+    _fold_length_param="--fold_length ${_fold_length} "
+    for spk in $(seq "${spk_num}"); do
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape " 
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
+        _fold_length_param+="--fold_length ${_fold_length} "
+    done
+
+
 
     log "enh training started... log: '${enh_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -462,21 +486,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         --init_file_prefix "${enh_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.enh_train \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/wav.scp,speech_mix,sound" \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/spk1.scp,speech_ref1,sound" \
-            --train_data_path_and_name_and_type "${_enh_train_dir}/spk2.scp,speech_ref2,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/wav.scp,speech_mix,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/spk1.scp,speech_ref1,sound" \
-            --valid_data_path_and_name_and_type "${_enh_dev_dir}/spk2.scp,speech_ref2,sound" \
-            --train_shape_file "${enh_stats_dir}/train/speech_mix_shape" \
-            --train_shape_file "${enh_stats_dir}/train/speech_ref1_shape" \
-            --train_shape_file "${enh_stats_dir}/train/speech_ref2_shape" \
-            --valid_shape_file "${enh_stats_dir}/valid/speech_mix_shape" \
-            --valid_shape_file "${enh_stats_dir}/valid/speech_ref1_shape" \
-            --valid_shape_file "${enh_stats_dir}/valid/speech_ref2_shape" \
-            --fold_length "${_fold_length}" \
-            --fold_length "${_fold_length}" \
-            --fold_length "${_fold_length}" \
+            ${_train_data_param} \
+            ${_valid_data_param} \
+            ${_train_shape_param} \
+            ${_valid_shape_param} \
+            ${_fold_length_param} \
             --resume true \
             --output_dir "${enh_exp}" \
             ${_opts} ${enh_args}
@@ -484,13 +498,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 fi
 
 
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    log "Stage 7: Enhance Speech: training_dir=${enh_exp}"
 
-exit
-
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    log "Stage 11: Decoding: training_dir=${asr_exp}"
-
-    if ${gpu_decode}; then
+    if ${gpu_inference}; then
         _cmd=${cuda_cmd}
         _ngpu=1
     else
@@ -499,29 +510,20 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     fi
 
     _opts=
-    if [ -n "${decode_config}" ]; then
-        _opts+="--config ${decode_config} "
-    fi
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
+        _dir="${enh_exp}/separate_${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
-        _feats_type="$(<${_data}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            _type=sound
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-        fi
+        _scp=wav.scp
+        _type=sound
 
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
-        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+        _nj=$(min "${infernece_nj}" "$(<${key_file} wc -l)")
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
@@ -529,124 +531,94 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+        log "Separation started... log: '${_logdir}/enh_inference.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-            python3 -m espnet2.bin.asr_inference \
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
+            python3 -m espnet2.bin.enh_inference \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
-                --asr_train_config "${asr_exp}"/config.yaml \
-                --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
+                --enh_train_config "${enh_exp}"/config.yaml \
+                --enh_model_file "${enh_exp}"/"${inference_enh_model}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${decode_args}
+                ${_opts} ${inference_args}
 
         # 3. Concatenates the output files from each jobs
-        for f in token token_int score text; do
+        for spk in spk1.scp spk2.scp;
+        do
             for i in $(seq "${_nj}"); do
-                cat "${_logdir}/output.${i}/1best_recog/${f}"
-            done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                cat "${_logdir}/output.${i}/${spk}"
+            done | LC_ALL=C sort -k1 > "${_dir}/${spk}"
         done
+
     done
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    log "Stage 12: Scoring"
-
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: Scoring"
+    _cmd=${decode_cmd}
+    
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
+        _inf_dir="${enh_exp}/separate_${dset}" 
+        _dir="${enh_exp}/separate_${dset}/scoring" 
+        _logdir="${_dir}/logdir"
+        mkdir -p "${_logdir}"
 
-        for _type in cer wer ter; do
-            [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
-
-            _scoredir="${_dir}/score_${_type}"
-            mkdir -p "${_scoredir}"
-
-            if [ "${_type}" = wer ]; then
-                # Tokenize text to word level
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type word \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                paste \
-                    <(<"${_dir}/text"  \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type word \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
-
-
-            elif [ "${_type}" = cer ]; then
-                # Tokenize text to char level
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type char \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                paste \
-                    <(<"${_dir}/text"  \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type char \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
-
-            elif [ "${_type}" = ter ]; then
-                # Tokenize text using BPE
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type bpe \
-                              --bpemodel "${bpemodel}") \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                paste \
-                    <(<"${_dir}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type bpe \
-                              --bpemodel "${bpemodel}") \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
-            fi
-
-            sclite \
-                -r "${_scoredir}/ref.trn" trn \
-                -h "${_scoredir}/hyp.trn" trn \
-                -i rm -o all stdout > "${_scoredir}/result.txt"
-
-            log "Write ${_type} result in ${_scoredir}/result.txt"
-            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+        # 1. Split the key file
+        key_file=${_data}/wav.scp
+        split_scps=""
+        _nj=$(min "${infernece_nj}" "$(<${key_file} wc -l)")
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/keys.${n}.scp"
         done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+
+        _ref_scp=
+        for spk in $(seq "${spk_num}"); do
+            _ref_scp+="--ref_scp ${_data}/spk${spk}.scp "
+        done
+        _inf_scp=
+        for spk in $(seq "${spk_num}"); do
+            _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
+        done
+
+        # 2. Submit decoding jobs
+        log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
+        # shellcheck disable=SC2086
+        ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+            python3 -m espnet2.bin.enh_scoring \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}"/output.JOB \
+                ${_ref_scp}\
+                ${_inf_scp}
+
+        for spk in $(seq "${spk_num}"); do
+            for protocol in ${scoring_protocol}; do
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
+                done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
+            done
+        done
+
+        for protocol in ${scoring_protocol}; do
+            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}/${protocol}_spk${spk_num} "; done)  | 
+            awk 'BEIGN{sum=0}
+                {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
+                END{print sum/NR}') 
+        done > ${_dir}/result.txt
+
+        cat ${_dir}/result.txt
+
 
     done
 
-    # Show results in Markdown syntax
-    scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
-    cat "${asr_exp}"/RESULTS.md
-
 fi
 
+exit
 
 if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"

@@ -44,7 +44,7 @@ class EnhFrontend(AbsFrontend):
         self.enh_type = enh_type
 
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
-
+        self.num_spk = self.enh_model.num_spk
         self.stft = self.enh_model.stft
 
     def output_size(self) -> int:
