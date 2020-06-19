@@ -36,6 +36,7 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class E2E(ASRInterface, torch.nn.Module):
@@ -213,6 +214,10 @@ class E2E(ASRInterface, torch.nn.Module):
         :param Namespace args: argument Namespace containing options
         """
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(
