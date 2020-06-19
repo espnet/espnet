@@ -17,16 +17,46 @@ echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
 echo "==== ASR (backend=chainer) ==="
 ./run.sh --stage 3 --backend chainer
-echo "==== ASR (backend=pytorch num-encs 2) ==="
-./run.sh --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
+
+# skip duplicated ASR training stage 2,3
+# test rnn recipe
+echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_pure_ctc.yaml \
+       --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_no_ctc.yaml \
+        --decode-config conf/decode_no_ctc.yaml
+
+# test transformer recipe
+echo "=== ASR (backend=pytorch, model=transformer) ==="
+./run.sh --stage 4 --train-config conf/train_transformer.yaml \
+         --decode-config conf/decode.yaml
+echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_transformer_pure_ctc.yaml \
+       --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_transformer_no_ctc.yaml \
+        --decode-config conf/decode_no_ctc.yaml
+echo "=== ASR (backend=pytorch num-encs 2, model=transformer) ==="
+./run.sh --stage 4 --train-config conf/train_transformer.yaml \
+         --decode-config conf/decode.yaml
 
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
-./run.sh --stage 2 --train-config conf/train_transducer.yaml \
+./run.sh --stage 4 --train-config conf/train_transducer.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
+./run.sh --stage 4 --train-config conf/train_transducer_attention.yaml \
          --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
-./run.sh --stage 2 --train-config conf/train_transformer_transducer.yaml \
+./run.sh --stage 4 --train-config conf/train_transformer_transducer.yaml \
          --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
+./run.sh --stage 4 --train-config conf/train_transformer_transducer_attention.yaml \
+        --decode-config conf/decode_transducer.yaml
+
+echo "==== ASR (backend=pytorch num-encs 2) ==="
+./run.sh --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd ${cwd} || exit 1
@@ -77,7 +107,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data

@@ -62,6 +62,7 @@ lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
 use_word_lm=false # Whether to use word language model.
+num_splits_lm=1   # Number of splitting for lm corpus
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
@@ -71,6 +72,7 @@ asr_config= # Config for asr model training.
 asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in asr config.
 feats_normalize=global_mvn  # Normalizaton layer type
+num_splits_asr=1   # Number of splitting for lm corpus
 
 # Decoding related
 decode_tag=    # Suffix to the result dir for decoding.
@@ -86,13 +88,15 @@ decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # decode_asr_model=valid.loss.ave.pth
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=     # Name of training set.
-dev_set=       # Name of development set.
-eval_sets=     # Names of evaluation sets. Multiple items can be specified.
-srctexts=      # Used for the training of BPE and LM and the creation of a vocabulary list.
-lm_dev_text=   # Text file path of language model development set.
-lm_test_text=  # Text file path of language model evaluation set.
-nlsyms_txt=none # Non-linguistic symbol list if existing.
+train_set=       # Name of training set.
+dev_set=         # Name of development set.
+eval_sets=       # Names of evaluation sets. Multiple items can be specified.
+srctexts=        # Used for the training of BPE and LM and the creation of a vocabulary list.
+lm_dev_text=     # Text file path of language model development set.
+lm_test_text=    # Text file path of language model evaluation set.
+nlsyms_txt=none  # Non-linguistic symbol list if existing.
+cleaner=none     # Text cleaner.
+g2p=none         # g2p method (needed if token_type=phn).
 asr_speech_fold_length=800 # fold_length for speech data during ASR training
 asr_text_fold_length=150   # fold_length for text data during ASR training
 lm_fold_length=150         # fold_length for LM training
@@ -140,6 +144,7 @@ Options:
                       # Note that it will overwrite args in lm config.
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
+    --num_splits_lm=1   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ASR model related
     --asr_tag    # Suffix to the result dir for asr model training (default="${asr_tag}").
@@ -147,6 +152,7 @@ Options:
     --asr_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${asr_args}").
                  # Note that it will overwrite args in asr config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --num_splits_asr=1   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
     # Decoding related
     --decode_tag       # Suffix to the result dir for decoding (default="${decode_tag}").
@@ -164,6 +170,8 @@ Options:
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
+    --cleaner       # Text cleaner (default="${cleaner}").
+    --g2p           # g2p method (default="${g2p}").
     --asr_speech_fold_length # fold_length for speech data during ASR training  (default="${asr_speech_fold_length}").
     --asr_text_fold_length   # fold_length for text data during ASR training  (default="${asr_text_fold_length}").
     --lm_fold_length         # fold_length for LM training  (default="${lm_fold_length}").
@@ -485,6 +493,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         --token_type "${token_type}" \
         --input "${data_feats}/srctexts" --output "${token_list}" ${_opts} \
         --field 2- \
+        --cleaner "${cleaner}" \
+        --g2p "${g2p}" \
         --write_vocabulary true \
         --add_symbol "${blank}:0" \
         --add_symbol "${oov}:1" \
@@ -497,6 +507,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --token_type word \
             --input "${data_feats}/srctexts" --output "${lm_token_list}" \
             --field 2- \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
             --write_vocabulary true \
             --vocabulary_size "${word_vocab_size}" \
             --add_symbol "${blank}:0" \
@@ -557,13 +569,14 @@ if "${use_lm}"; then
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
+              --cleaner "${cleaner}" \
+              --g2p "${g2p}" \
               --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
               --train_shape_file "${_logdir}/train.JOB.scp" \
               --valid_shape_file "${_logdir}/dev.JOB.scp" \
               --output_dir "${_logdir}/stats.JOB" \
-              ${_opts} ${lm_args} \
-              --batch_type unsorted
+              ${_opts} ${lm_args}
 
       # 3. Aggregate shape files
       _opts=
@@ -594,7 +607,33 @@ if "${use_lm}"; then
           _opts+="--config ${lm_config} "
       fi
 
-      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+      if [ "${num_splits_lm}" -gt 1 ]; then
+          # If you met a memory error when parsing text files, this option may help you.
+          # The corpus is split into subsets and each subset is used for training one by one in order,
+          # so the memory footprint can be limited to the memory required for each dataset.
+
+          _split_dir="${lm_stats_dir}/splits${num_splits_lm}"
+          if [ ! -f "${_split_dir}/.done" ]; then
+              rm -f "${_split_dir}/.done"
+              python3 -m espnet2.bin.split_scps \
+                --scps "${data_feats}/srctexts" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+                --num_splits "${num_splits_lm}" \
+                --output_dir "${_split_dir}"
+              touch "${_split_dir}/.done"
+          else
+              log "${_split_dir}/.done exists. Spliting is skipped"
+          fi
+
+          _opts+="--train_data_path_and_name_and_type ${_split_dir}/srctexts,text,text "
+          _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
+          _opts+="--multiple_iterator true "
+
+      else
+          _opts+="--train_data_path_and_name_and_type ${data_feats}/srctexts,text,text "
+          _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
+      fi
+
+      # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
@@ -612,9 +651,9 @@ if "${use_lm}"; then
               --token_type "${lm_token_type}"\
               --token_list "${lm_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
-              --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
+              --cleaner "${cleaner}" \
+              --g2p "${g2p}" \
               --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-              --train_shape_file "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
               --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
               --fold_length "${lm_fold_length}" \
               --resume true \
@@ -710,6 +749,8 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
@@ -717,8 +758,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${asr_args} \
-            --batch_type unsorted
+            ${_opts} ${asr_args}
 
     # 3. Aggregate shape files
     _opts=
@@ -768,10 +808,44 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
-        _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz"
+        _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz "
     fi
 
-    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case 
+    if [ "${num_splits_asr}" -gt 1 ]; then
+        # If you met a memory error when parsing text files, this option may help you.
+        # The corpus is split into subsets and each subset is used for training one by one in order,
+        # so the memory footprint can be limited to the memory required for each dataset.
+
+        _split_dir="${asr_stats_dir}/splits${num_splits_asr}"
+        if [ ! -f "${_split_dir}/.done" ]; then
+            rm -f "${_split_dir}/.done"
+            python3 -m espnet2.bin.split_scps \
+              --scps \
+                  "${_asr_train_dir}/${_scp}" \
+                  "${_asr_train_dir}/text" \
+                  "${asr_stats_dir}/train/speech_shape" \
+                  "${asr_stats_dir}/train/text_shape.${token_type}" \
+              --num_splits "${num_splits_asr}" \
+              --output_dir "${_split_dir}"
+            touch "${_split_dir}/.done"
+        else
+            log "${_split_dir}/.done exists. Spliting is skipped"
+        fi
+
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+        _opts+="--train_shape_file ${_split_dir}/speech_shape "
+        _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+        _opts+="--multiple_iterator true "
+
+    else
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+    fi
+
+    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
@@ -788,12 +862,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             --token_type "${token_type}" \
             --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/${_scp},speech,${_type}" \
             --valid_data_path_and_name_and_type "${_asr_dev_dir}/text,text,text" \
-            --train_shape_file "${asr_stats_dir}/train/speech_shape" \
-            --train_shape_file "${asr_stats_dir}/train/text_shape.${token_type}" \
             --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
             --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
             --resume true \
@@ -809,10 +881,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     log "Stage 11: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_decode}; then
-        _cmd=${cuda_cmd}
+        _cmd="${cuda_cmd}"
         _ngpu=1
     else
-        _cmd=${decode_cmd}
+        _cmd="${decode_cmd}"
         _ngpu=0
     fi
 
@@ -880,6 +952,10 @@ fi
 
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     log "Stage 12: Scoring"
+    if [ "${token_type}" = pnh ]; then
+        log "Error: Not implemented for token_type=phn"
+        exit 1
+    fi
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
@@ -899,17 +975,21 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
                               -f 2- --input - --output - \
                               --token_type word \
                               --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
+                              --remove_non_linguistic_symbols true \
+                              --cleaner "${cleaner}" \
+                              ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
+                # NOTE(kamo): Don't use cleaner for hyp
                 paste \
                     <(<"${_dir}/text"  \
                           python3 -m espnet2.bin.tokenize_text  \
                               -f 2- --input - --output - \
                               --token_type word \
                               --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
+                              --remove_non_linguistic_symbols true \
+                              ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
 
@@ -922,17 +1002,21 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
                               -f 2- --input - --output - \
                               --token_type char \
                               --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
+                              --remove_non_linguistic_symbols true \
+                              --cleaner "${cleaner}" \
+                              ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
+                # NOTE(kamo): Don't use cleaner for hyp
                 paste \
                     <(<"${_dir}/text"  \
                           python3 -m espnet2.bin.tokenize_text  \
                               -f 2- --input - --output - \
                               --token_type char \
                               --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true) \
+                              --remove_non_linguistic_symbols true \
+                              ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
 
@@ -943,16 +1027,21 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
                           python3 -m espnet2.bin.tokenize_text  \
                               -f 2- --input - --output - \
                               --token_type bpe \
-                              --bpemodel "${bpemodel}") \
+                              --bpemodel "${bpemodel}" \
+                              --cleaner "${cleaner}" \
+                            ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
+                # NOTE(kamo): Don't use cleaner for hyp
                 paste \
                     <(<"${_dir}/text" \
                           python3 -m espnet2.bin.tokenize_text  \
                               -f 2- --input - --output - \
                               --token_type bpe \
-                              --bpemodel "${bpemodel}") \
+                              --bpemodel "${bpemodel}" \
+                              --cleaner "${cleaner}" \
+                              ) \
                     <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
             fi

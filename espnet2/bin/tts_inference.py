@@ -79,7 +79,7 @@ def inference(
     logging.info(f"TTS:\n{tts}")
 
     # 3. Build data-iterator
-    loader, _, batch_sampler = TTSTask.build_non_sorted_iterator(
+    loader = TTSTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
@@ -88,6 +88,7 @@ def inference(
         preprocess_fn=TTSTask.build_preprocess_fn(train_args, False),
         collate_fn=TTSTask.build_collate_fn(train_args),
         allow_variable_data_keys=allow_variable_data_keys,
+        inference=True,
     )
 
     # 4. Build converter from spectrogram to waveform
@@ -141,12 +142,9 @@ def inference(
                     (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
                 )
             )
+            logging.info(f"{key} (size:{insize}->{outs.size(0)})")
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(f"output length reaches maximum length ({key}).")
-            logging.info(
-                f"({idx}/{len(batch_sampler)}) {key} "
-                f"(size:{insize}->{outs.size(0)})"
-            )
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 

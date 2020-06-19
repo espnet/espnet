@@ -36,7 +36,7 @@ kaldi.done:
 	touch kaldi.done
 else
 kaldi.done:
-	test -d kaldi || git --depth 1 clone https://github.com/kaldi-asr/kaldi.git
+	test -d kaldi || git clone --depth 1 https://github.com/kaldi-asr/kaldi.git
 	cd kaldi/tools; $(MAKE) all
 	cd kaldi/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
 	touch kaldi.done
@@ -105,9 +105,9 @@ PESQ/P862_annex_A_2005_CD/source/PESQ:
 
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
-	. venv/bin/activate; python check_install.py --torch-version $(TH_VERSION)
+	. venv/bin/activate; python check_install.py
 else
-	. venv/bin/activate; python check_install.py --no-cupy --torch-version $(TH_VERSION)
+	. venv/bin/activate; python check_install.py --no-cuda
 endif
 
 

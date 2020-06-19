@@ -17,9 +17,9 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install sox
-    # e.g CentOS
+    # e.g. CentOS
     $ sudo yum install sox
-    # e.g Using anaconda
+    # e.g. Using anaconda
     $ conda install -c conda-forge sox
     ```
 - sndfile
@@ -33,7 +33,7 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install ffmpeg
-    # e.g CentOS
+    # e.g. CentOS
     $ sudo yum install ffmpeg
     # e.g. Using anaconda
     $ conda install -c conda-forge ffmpeg
@@ -42,6 +42,8 @@ We often use audio converter tools in several recipes:
     ```bash
     # e.g. Ubuntu
     $ sudo apt-get install flac
+    # e.g. CentOS
+    $ sudo yum install flac
     ```
 
 Optionally, GPU environment requires the following libraries:
@@ -71,6 +73,7 @@ CUDAROOT=/path/to/cuda
 export PATH=$CUDAROOT/bin:$PATH
 export LD_LIBRARY_PATH=$CUDAROOT/lib64:$LD_LIBRARY_PATH
 export CFLAGS="-I$CUDAROOT/include $CFLAGS"
+export CPATH=$CUDAROOT/include:$CPATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
@@ -85,6 +88,7 @@ export CPATH=$NCCL_ROOT/include:$CPATH
 export LD_LIBRARY_PATH=$NCCL_ROOT/lib/:$CUDAROOT/lib64:$LD_LIBRARY_PATH
 export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 export CFLAGS="-I$CUDAROOT/include $CFLAGS"
+export CPATH=$CUDAROOT/include:$CPATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
@@ -142,10 +146,12 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```bash
     $ cd <kaldi-root>/src
-    # [e.g. With OpenBLAS] ESPnet uses only feature extractor, so you can disable CUDA
-    $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
+    # [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA
+    $ ./configure --use-cuda=no
+    # e.g. With OpenBLAS]
+    # $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
-    # ./configure --openblas-root=../tools/OpenBLAS/install --cudatk-dir=/usr/local/cuda-10.0
+    # ./configure --cudatk-dir=/usr/local/cuda-10.0
     $ make -j clean depend; make -j <NUM-CPU>
     ```
 
@@ -156,7 +162,7 @@ $ cd <any-place>
 $ git clone https://github.com/espnet/espnet
 ```
 
-#### using miniconda (default)
+#### create miniconda environment (default)
 
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
@@ -170,7 +176,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 
-#### using existing python
+#### create virtualenv from an existing python
 
 If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
 
@@ -179,13 +185,13 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
 ```
 
-#### Using the system Python directly instead of `tools/venv` in the experiment
-We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/activate`:
+#### using the system Python without creating new python environment
+We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/bin/activate`:
 
 ```sh
 $ cd <espnet-root>/tools
-$ rm -rf venv; mkdir venv; touch venv/activate  # Create an empty file
-$ make
+$ rm -rf venv; mkdir -p venv/bin; touch venv/bin/activate  # Create an empty file
+$ make KALDI=<kaldi-root> PYTHON=dummy
 ```
 
 ### Step 3-B) installation for CPU-only
