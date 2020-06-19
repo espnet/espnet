@@ -66,6 +66,10 @@ mcd=true                                       # true: evaluate MCD
 mcep_dim=24
 shift_ms=5
 
+# latent analysis related
+n_clusters=50
+tsne=false
+
 # dataset configuration
 db_root=downloads
 srcspk=clb  # see local/data_prep.sh to check available speakers
@@ -484,4 +488,83 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             ${trgspk}_${set_type} \
             ${trgspk}
     done
+fi
+
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    echo "stage 11: latent extraction"
+
+    # Usage:
+    # 1. Always specify --tag and --model.
+    
+    if [[ -z ${tag} ]]; then
+        echo "Please specify `tag` ."
+        exit 1
+    fi
+    expname=${srcspk}_${trgspk}_${backend}_${tag}
+    expdir=exp/${expname}
+    outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+
+    echo "Extracting..."
+    pids=() # initialize pids
+    for name in ${pair_train_set} ${pair_dev_set} ${pair_eval_set}; do
+    (
+        [ ! -e ${outdir}/${name}/latent ] && mkdir -p ${outdir}/${name}/latent
+        cp ${dumpdir}/${name}_${norm_name}/data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
+        # decode in parallel
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/extract_latent.JOB.log \
+            local/latent-analysis/extract_latent.py \
+                --backend ${backend} \
+                --ngpu 0 \
+                --verbose ${verbose} \
+                --out ${outdir}/${name}/latent/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
+                --model ${expdir}/results/${model} \
+                --config ${decode_config}
+        # concatenate scp files
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/latent/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/latent/feats.scp
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
+    echo "Running t-SNE..."
+    pids=() # initialize pids
+    for name in ${pair_dev_set} ${pair_eval_set}; do
+    (
+        ${train_cmd} ${outdir}/${name}/log/tsne.log \
+            local/latent-analysis/tsne.py \
+                --n_classes ${n_clusters} \
+                --tsne ${tsne} \
+                --train_latents ${outdir}/${pair_train_set}/latent/feats.scp \
+                ${outdir}/${name}/latent/feats.scp \
+                ${outdir}/${name}/latent \
+                data/${src_org_set}/frame2lab
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
+        
+fi
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    echo "stage 12: Process phoneme label data"
+
+    # make dir for processed label
+    frame2lab_dir=data/${src_org_set}/frame2lab
+    [ ! -e ${frame2lab_dir} ] && mkdir -p ${frame2lab_dir}
+    
+    local/latent-analysis/preprocess_phoneme.py \
+        --fs ${fs} \
+        --n_shift ${n_shift} \
+        ${db_root}/cmu_us_${srcspk}_arctic/lab \
+        data/${src_org_set}/segments \
+        data/${src_org_set}/utt2num_frames \
+        ${frame2lab_dir}
+
 fi

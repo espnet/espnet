@@ -1,4 +1,4 @@
-# This is config of encoder pretraining.
+# This is config of encoder pretraining of VTN.
 # Note that the following arguments are deleted in `run.sh` so must be specified in this config.
 # model-module, batch-bins, accum-grad, epochs
 

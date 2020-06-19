@@ -65,16 +65,103 @@ set -o pipefail
 train_set=train_clean_460
 dev_set=dev_clean
 eval_set=test_clean
+dev_small_set=dev_small
+eval_small_set=test_small
 
 feat_tr_dir=${dumpdir}/${train_set}
 feat_dt_dir=${dumpdir}/${dev_set}
 feat_ev_dir=${dumpdir}/${eval_set}
+feat_dtsm_dir=${dumpdir}/${dev_small_set}
+feat_evsm_dir=${dumpdir}/${eval_small_set}
+
+dict=data/lang_1char/${train_set}_units.txt
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Small sets preparation"
+
+    utils/copy_data_dir.sh data/${dev_set} data/${dev_small_set}_org
+    utils/copy_data_dir.sh data/${eval_set} data/${eval_small_set}_org
+
+    utils/subset_data_dir.sh --first data/${dev_small_set}_org 250 data/${dev_small_set}
+    utils/subset_data_dir.sh --first data/${eval_small_set}_org 250 data/${eval_small_set}
+
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${dev_small_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev_small ${feat_dtsm_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${eval_small_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval_small ${feat_evsm_dir}
+
+    echo "Make data json"
+    data2json.sh --feat ${feat_dtsm_dir}/feats.scp \
+         data/${dev_small_set} ${dict} > ${feat_dtsm_dir}/data.json
+    data2json.sh --feat ${feat_evsm_dir}/feats.scp \
+         data/${eval_small_set} ${dict} > ${feat_evsm_dir}/data.json
+    
+    echo "x-vector extraction"
+    # Make MFCCs and compute the energy-based VAD for each dataset
+    mfccdir=mfcc
+    vaddir=mfcc
+    for name in ${dev_small_set} ${eval_small_set}; do
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
+        steps/make_mfcc.sh \
+            --write-utt2num-frames true \
+            --mfcc-config conf/mfcc.conf \
+            --nj 5 --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+        sid/compute_vad_decision.sh --nj 4 --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+    done
+
+    # Check pretrained model existence
+    nnet_dir=exp/xvector_nnet_1a
+    if [ ! -e ${nnet_dir} ]; then
+        echo "X-vector model does not exist. Download pre-trained model."
+        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+        tar xvf 0008_sitw_v2_1a.tar.gz
+        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
+        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+    fi
+    # Extract x-vector
+    for name in ${dev_small_set} ${eval_small_set}; do
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 4 \
+            ${nnet_dir} data/${name}_mfcc_16k \
+            ${nnet_dir}/xvectors_${name}
+    done
+    # Update json
+    for name in ${dev_small_set} ${eval_small_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
+
+    echo "Make data json for encoder training"
+    local/make_ae_json.py --input-json ${feat_dtsm_dir}/data.json \
+        --output-json ${feat_dtsm_dir}/data.json -O ${feat_dtsm_dir}/ae_data.json
+    local/make_ae_json.py --input-json ${feat_evsm_dir}/data.json \
+        --output-json ${feat_evsm_dir}/data.json -O ${feat_evsm_dir}/ae_data.json
+    
+fi
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
+    # add speaker label
+    local/make_spk_label.py \
+        --utt2spk data/${train_set}/utt2spk \
+        --spk2utt data/${train_set}/spk2utt \
+        data/${train_set}/spk_label
+    cat data/${train_set}/spk_label | scp2json.py --key spk_label > data/${train_set}/spk_label.json
+        
+    ### LEGACY
+    # addjson.py --verbose ${verbose} \
+    #     ${feat_tr_dir}/data.json data/${train_set}/spk_label.json > ${feat_tr_dir}/data.json
+    # mkdir -p ${feat_tr_dir}/.backup
+    # echo "json updated. original json is kept in ${feat_tr_dir}/.backup."
+    # cp ${feat_tr_dir}/data.json ${feat_tr_dir}/.backup/$(basename ${feat_tr_dir}/data.json)
+    # mv ${feat_tr_dir}/data.json.tmp ${feat_tr_dir}/data.json
+
     # make json for encoder pretraining, using 80-d input and 80-d output
     local/make_ae_json.py --input-json ${feat_tr_dir}/data.json \
-        --output-json ${feat_tr_dir}/data.json -O ${feat_tr_dir}/ae_data.json
+        --output-json ${feat_tr_dir}/data.json --spk-label data/${train_set}/spk_label.json -O ${feat_tr_dir}/ae_data.json
     local/make_ae_json.py --input-json ${feat_dt_dir}/data.json \
         --output-json ${feat_dt_dir}/data.json -O ${feat_dt_dir}/ae_data.json
     local/make_ae_json.py --input-json ${feat_ev_dir}/data.json \
@@ -145,7 +232,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     outdir=${expdir}/ept_outputs_${model}
 
     pids=() # initialize pids
-    for name in ${dev_set} ${eval_set}; do
+    for name in ${dev_small_set} ${eval_small_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/ae_data.json ${outdir}/${name}
@@ -171,7 +258,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     pids=() # initialize pids
-    for name in ${dev_set} ${eval_set}; do
+    for name in ${dev_small_set} ${eval_small_set}; do
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
@@ -201,7 +288,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     
     echo "stage 3: Objective Evaluation"
-    for name in ${eval_set} ${dev_set}; do
+    for name in ${eval_small_set} ${dev_small_set}; do
         local/ob_eval/evaluate.sh --nj ${nj} \
             --do_delta false \
             --db_root ${db_root} \
