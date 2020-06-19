@@ -5,6 +5,7 @@ from abc import ABC
 import kenlm
 import torch
 
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorer_interface import PartialScorerInterface
 from espnet.nets.scorer_interface import ScorerInterface
 
@@ -100,3 +101,24 @@ class NgramPartScorer(Ngrambase, PartialScorerInterface):
 
         """
         return self.score_partial_(y, next_token, state, x)
+
+
+class BatchNgramFullscorer(NgramFullScorer, BatchScorerInterface):
+    """Batch scorer interface."""
+
+    def batch_score(self, ys, states, xs):
+        """Score new token batch (required).
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+        """
+        scores = torch.zeros(ys.shape[0], self.charlen)
+        for i, (y, state, x) in zip(scores, ys, states, xs):
+            scores[i, :] = self.score(y, state, x)
+            return scores
