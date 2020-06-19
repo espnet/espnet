@@ -31,10 +31,6 @@ class Ngrambase(ABC):
         self.lm.NullContextWrite(state)
         return state
 
-    def select_state(self, state, i):
-        """Empty select state for scorer interface."""
-        return state
-
     def score_partial_(self, y, next_token, state, x):
         """Score interface for both full and partial scorer.
 
@@ -53,7 +49,7 @@ class Ngrambase(ABC):
         out_state = kenlm.State()
         ys = self.chardict[y[-1]] if y.shape[0] > 1 else "<s>"
         self.lm.BaseScore(state, ys, out_state)
-        scores = torch.full(next_token.size(), 0.0)
+        scores = torch.empty_like(next_token, dtype=x.dtype, device=y.device)
         for i, j in enumerate(next_token):
             scores[i] = self.lm.BaseScore(
                 out_state, self.chardict[j], self.tmpkenlmstate
@@ -78,10 +74,11 @@ class NgramFullScorer(Ngrambase, BatchScorerInterface):
                 and next state list for ys.
 
         """
-        return self.score_partial_(y, torch.tensor(range(len(self.chardict))), state, x)
+        return self.score_partial_(y, torch.tensor(range(self.charlen)), state, x)
 
     def batch_score(self, ys, states, xs):
-        """Score new token batch (required).
+        """Score new token batch.
+
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
@@ -91,11 +88,17 @@ class NgramFullScorer(Ngrambase, BatchScorerInterface):
             tuple[torch.Tensor, List[Any]]: Tuple of
                 batchfied scores for next token with shape of `(n_batch, n_vocab)`
                 and next state list for ys.
+
         """
-        scores = torch.zeros(ys.shape[0], self.charlen)
-        for i, (y, state, x) in zip(scores, ys, states, xs):
-            scores[i, :] = self.score(y, state, x)
-            return scores
+        scores = torch.empty(
+            ys.shape[0], self.charlen, dtype=xs.dtype, device=ys.device
+        )
+        outstates = list()
+        print(f"Debug: states: {states[0]}")
+        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
+            score, outstate = self.score(y, state, x)
+            outstates.append(outstate)
+        return scores, outstates
 
 
 class NgramPartScorer(Ngrambase, PartialScorerInterface):

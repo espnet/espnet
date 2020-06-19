@@ -21,6 +21,7 @@ if [ ! -e "$(pwd)/${output_dir}" ]; then
     bash miniconda.sh -b -p "$(pwd)/${output_dir}"
 fi
 
+# shellcheck source=venv \
 source "${output_dir}/etc/profile.d/conda.sh"
 conda deactivate
 conda activate

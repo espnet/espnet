@@ -118,7 +118,7 @@ def test_batch_beam_search_equal(
     lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
     lm.eval()
     root = os.path.dirname(os.path.abspath(__file__))
-    ngram = NgramFullScorer(os.path.join(root, "test.arpa"), args.char_list)
+    ngram = NgramFullScorer(os.path.join(root, "beam_search_test.arpa"), args.char_list)
 
     # test previous beam search
     args = Namespace(
