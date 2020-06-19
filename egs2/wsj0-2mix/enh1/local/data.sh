@@ -6,22 +6,34 @@ set -e
 set -u
 set -o pipefail
 
-min_or_max=min
-
-. utils/parse_options.sh
-
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
 help_message=$(cat << EOF
-Usage: $0
-(No options)
+Usage: $0 [min_or_max]
+  optional argument:
+    [min_or_max]: min (Default), max
 EOF
 )
 
-if [ $# -ne 0 ]; then
+if [ $# -eq 0 ]; then
+    min_or_max=min
+elif [ $# -eq 1 ]; then
+    case $1 in
+     min)
+       min_or_max=min
+       ;;
+     max)
+       min_or_max=max
+       ;;
+     *)
+       log "Error: invalid command line arguments"
+       log "${help_message}"
+       exit 1;
+    esac
+else
     log "Error: invalid command line arguments"
     log "${help_message}"
     exit 1
@@ -52,8 +64,8 @@ fi
 
 ### This part is for WSJ0 mix
 ### Download mixture scripts and create mixtures for 2 speakers
-local/wsj0_create_mixture.sh --min-or-max ${min_or_max} \
-    ${wsj_2mix_scripts} ${WSJ0} ${wsj_full_wav} ${wsj_2mix_wav} || exit 1;
+local/wsj0_create_mixture.sh ${wsj_2mix_scripts} ${WSJ0} ${wsj_full_wav} \
+    ${wsj_2mix_wav} || exit 1;
 local/wsj0_2mix_data_prep.sh --min-or-max ${min_or_max} \
     ${wsj_2mix_wav}/wav16k/${min_or_max} ${wsj_2mix_scripts} ${wsj_full_wav} || exit 1;
 

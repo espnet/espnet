@@ -52,7 +52,11 @@ for x in tr cv tt; do
   utt2spk_to_spk2utt.pl ${data}/$x/utt2spk > ${data}/$x/spk2utt
 done
 
-# transcriptions
+# transcriptions (only for 'max' version)
+if [[ "$min_or_max" = "min" ]]; then
+  exit 0
+fi
+
 rm -r tmp/ 2>/dev/null
 mkdir -p tmp
 cd tmp

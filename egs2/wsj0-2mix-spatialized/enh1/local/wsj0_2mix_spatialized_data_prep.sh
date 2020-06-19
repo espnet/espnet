@@ -57,11 +57,13 @@ for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spat
   awk '{split($1, lst, "_"); spk=lst[1]"_"lst[2]; print($1, spk)}' ${data}/$x/wav.scp | sort > ${data}/$x/utt2spk
   utt2spk_to_spk2utt.pl ${data}/$x/utt2spk > ${data}/$x/spk2utt
 
-  # transcriptions
-  paste -d " " \
-    <(awk -v suffix="$suffix" '{print($1 "_" suffix)}' ${wsj0_2mix_datadir}/${x_ori}/text_spk1) \
-    <(cut -f 2- -d" " ${wsj0_2mix_datadir}/${x_ori}/text_spk1) | sort > ${data}/${x}/text_spk1
-  paste -d " " \
-    <(awk -v suffix="$suffix" '{print($1 "_" suffix)}' ${wsj0_2mix_datadir}/${x_ori}/text_spk2) \
-    <(cut -f 2- -d" " ${wsj0_2mix_datadir}/${x_ori}/text_spk2) | sort > ${data}/${x}/text_spk2
+  # transcriptions (only for 'max' version)
+  if [[ "$min_or_max" = "max" ]]; then
+    paste -d " " \
+      <(awk -v suffix="$suffix" '{print($1 "_" suffix)}' ${wsj0_2mix_datadir}/${x_ori}/text_spk1) \
+      <(cut -f 2- -d" " ${wsj0_2mix_datadir}/${x_ori}/text_spk1) | sort > ${data}/${x}/text_spk1
+    paste -d " " \
+      <(awk -v suffix="$suffix" '{print($1 "_" suffix)}' ${wsj0_2mix_datadir}/${x_ori}/text_spk2) \
+      <(cut -f 2- -d" " ${wsj0_2mix_datadir}/${x_ori}/text_spk2) | sort > ${data}/${x}/text_spk2
+  done
 done
