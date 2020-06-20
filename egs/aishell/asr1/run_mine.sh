@@ -53,7 +53,7 @@ set -o pipefail
 
 train_set=train_sp
 train_dev=dev
-recog_set="dev test"
+recog_set="test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -188,6 +188,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --resume ${lm_resume} \
         --dict ${dict}
     
+    echo "stage 3: Ngram Preparation"
+    
     lmplz --discount_fallback -o ${n_gram} <${lmdatadir}/train.txt > ${ngramexpdir}/${n_gram}gram.arpa
     build_binary -s ${ngramexpdir}/${n_gram}gram.arpa ${ngramexpdir}/${n_gram}gram.bin
 fi
@@ -225,14 +227,14 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        recog_model=model.last${n_average}.avg.best
-        average_checkpoints.py --backend ${backend} \
-        		       --snapshots ${expdir}/results/snapshot.ep.* \
-        		       --out ${expdir}/results/${recog_model} \
-        		       --num ${n_average}
-    fi
+    nj=64
+    #if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    #    recog_model=model.last${n_average}.avg.best
+    #    average_checkpoints.py --backend ${backend} \
+    #    		       --snapshots ${expdir}/results/snapshot.ep.* \
+    #    		       --out ${expdir}/results/${recog_model} \
+    #    		       --num ${n_average}
+    #fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
@@ -259,11 +261,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --api v2
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
-
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    ) done
+    #) &
+    #pids+=($!) # store background pids
+    #done
+    #i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    #[ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
