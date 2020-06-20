@@ -31,6 +31,9 @@ class Ngrambase(ABC):
         self.lm.NullContextWrite(state)
         return state
 
+    def select_state(self, state, i):
+        """Empty select state for scorer interface."""
+        return state
 
     def score_partial_(self, y, next_token, state, x):
         """Score interface for both full and partial scorer.
