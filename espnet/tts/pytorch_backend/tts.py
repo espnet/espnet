@@ -223,7 +223,7 @@ class CustomConverter(object):
         """
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys, spembs, extras, spk_labels = batch[0]
+        xs, ys, spembs, extras = batch[0]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -251,11 +251,6 @@ class CustomConverter(object):
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float()
             new_batch["spembs"] = spembs.to(device)
-
-        # load speaker label for adversarial loss
-        if spk_labels is not None:
-            spk_labels = torch.from_numpy(np.array(spk_labels)).long().to(device)
-            new_batch["spk_labels"] = spk_labels
 
         # load second target
         if extras is not None:
@@ -355,10 +350,10 @@ def train(args):
         )
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
-        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
-    elif args.opt == 'lamb':
-        from pytorch_lamb import Lamb, log_lamb_rs
-        optimizer = Lamb(model.parameters(), lr=args.lr, weight_decay=.01, betas=(.9, .999))
+
+        optimizer = get_std_opt(
+            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+        )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
@@ -416,7 +411,6 @@ def train(args):
         mode="tts",
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
-        use_speaker_adv_loss=args.use_speaker_adv_loss,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={"train": True},  # Switch the mode of preprocessing
         keep_all_data_on_mem=args.keep_all_data_on_mem,
@@ -426,7 +420,6 @@ def train(args):
         mode="tts",
         use_speaker_embedding=args.use_speaker_embedding,
         use_second_target=args.use_second_target,
-        use_speaker_adv_loss=False,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={"train": False},  # Switch the mode of preprocessing
         keep_all_data_on_mem=args.keep_all_data_on_mem,

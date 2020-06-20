@@ -1,1 +1,0 @@
-../../vc1_task2/local/clean_text_german.py

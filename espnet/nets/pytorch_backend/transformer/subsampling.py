@@ -53,7 +53,7 @@ class Conv2dSubsampling(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2] 
+        return x, x_mask[:, :, :-2:2][:, :, :-2:2]
 
 class Conv2dSubsamplingCustomPosEnc(torch.nn.Module):
     """Convolutional 2D subsampling (to 1/4 length) w/ custom positional encoding.
@@ -98,7 +98,7 @@ class Conv2dSubsamplingCustomPosEnc(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2] 
+        return x, x_mask[:, :, :-2:2][:, :, :-2:2]
 
     def __getitem__(self, key):
         if key != -1:

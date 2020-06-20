@@ -207,7 +207,7 @@ def get_parser():
     )
     # optimization related
     parser.add_argument(
-        "--opt", default="adam", type=str, choices=["adam", "noam", "lamb"], help="Optimizer"
+        "--opt", default="adam", type=str, choices=["adam", "noam"], help="Optimizer"
     )
     parser.add_argument(
         "--accum-grad", default=1, type=int, help="Number of gradient accumuration"

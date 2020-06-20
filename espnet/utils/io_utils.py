@@ -46,7 +46,6 @@ class LoadInputsAndTargets(object):
         sort_in_input_length=True,
         use_speaker_embedding=False,
         use_second_target=False,
-        use_speaker_adv_loss=False,
         preprocess_args=None,
         keep_all_data_on_mem=False,
     ):
@@ -79,7 +78,6 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
-        self.use_speaker_adv_loss = use_speaker_adv_loss
         if preprocess_args is None:
             self.preprocess_args = {}
         else:
@@ -104,12 +102,9 @@ class LoadInputsAndTargets(object):
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         uttid_list = []  # List[str]
-        spk_label_list = []  # List[int]
 
         for uttid, info in batch:
             uttid_list.append(uttid)
-            if self.use_speaker_adv_loss:
-                spk_label_list.append(info["spk_label"])
 
             if self.load_input:
                 # Note(kamo): This for-loop is for multiple inputs
@@ -167,17 +162,18 @@ class LoadInputsAndTargets(object):
             _, info = batch[0]
             eos = int(info["output"][0]["shape"][1]) - 1
             return_batch, uttid_list = self._create_batch_tts(
-                x_feats_dict, y_feats_dict, uttid_list, eos, spk_label_list)
+                x_feats_dict, y_feats_dict, uttid_list, eos
+            )
         elif self.mode == "mt":
             return_batch, uttid_list = self._create_batch_mt(
                 x_feats_dict, y_feats_dict, uttid_list
             )
         elif self.mode == 'vc':
             return_batch, uttid_list = self._create_batch_vc(
-                x_feats_dict, y_feats_dict, uttid_list, spk_label_list)
+                x_feats_dict, y_feats_dict, uttid_list)
         else:
             raise NotImplementedError
-        
+
         if self.preprocessing is not None:
             # Apply pre-processing all input features
             for x_name in return_batch.keys():
@@ -308,7 +304,7 @@ class LoadInputsAndTargets(object):
             return_batch = OrderedDict([(x_name, xs)])
         return return_batch, uttid_list
 
-    def _create_batch_tts(self, x_feats_dict, y_feats_dict, uttid_list, eos, spk_label_list):
+    def _create_batch_tts(self, x_feats_dict, y_feats_dict, uttid_list, eos):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
@@ -335,9 +331,6 @@ class LoadInputsAndTargets(object):
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
         uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
-        if self.use_speaker_adv_loss:
-            spk_label_list = [spk_label_list[i] for i in nonzero_sorted_idx]
-        
         # Added eos into input sequence
         xs = [np.append(x, eos) for x in xs]
 
@@ -348,10 +341,8 @@ class LoadInputsAndTargets(object):
 
             spembs = None
             spcs = None
-            spk_labels = None
-            spembs_name = 'spembs_none'
-            spcs_name = 'spcs_none'
-            spk_label_name = 'spk_label' # the name is not used anyway ...?
+            spembs_name = "spembs_none"
+            spcs_name = "spcs_none"
 
             if self.use_second_target:
                 spcs = list(x_feats_dict.values())[1]
@@ -362,18 +353,13 @@ class LoadInputsAndTargets(object):
                 spembs = list(x_feats_dict.values())[1]
                 spembs = [spembs[i] for i in nonzero_sorted_idx]
                 spembs_name = list(x_feats_dict.keys())[1]
-            
-            if self.use_speaker_adv_loss:
-                spk_labels = spk_label_list
 
             x_name = list(y_feats_dict.keys())[0]
             y_name = list(x_feats_dict.keys())[0]
 
-            return_batch = OrderedDict([(x_name, xs),
-                                        (y_name, ys),
-                                        (spembs_name, spembs),
-                                        (spcs_name, spcs),
-                                        (spk_label_name, spk_labels)])
+            return_batch = OrderedDict(
+                [(x_name, xs), (y_name, ys), (spembs_name, spembs), (spcs_name, spcs)]
+            )
         elif self.use_speaker_embedding:
             if len(x_feats_dict) == 0:
                 raise IndexError("No speaker embedding is provided")
@@ -394,8 +380,8 @@ class LoadInputsAndTargets(object):
 
             return_batch = OrderedDict([(x_name, xs)])
         return return_batch, uttid_list
-    
-    def _create_batch_vc(self, x_feats_dict, y_feats_dict, uttid_list, spk_label_list):
+
+    def _create_batch_vc(self, x_feats_dict, y_feats_dict, uttid_list):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
@@ -424,8 +410,6 @@ class LoadInputsAndTargets(object):
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
         uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
-        if self.use_speaker_adv_loss:
-            spk_label_list = [spk_label_list[i] for i in nonzero_sorted_idx]
 
         if self.load_output:
             ys = list(y_feats_dict.values())[0]
@@ -434,10 +418,8 @@ class LoadInputsAndTargets(object):
 
             spembs = None
             spcs = None
-            spk_labels = None
             spembs_name = 'spembs_none'
             spcs_name = 'spcs_none'
-            spk_label_name = 'spk_label' # the name is not used anyway ...?
 
             if self.use_second_target:
                 raise ValueError('Currently second target not supported.')
@@ -450,17 +432,13 @@ class LoadInputsAndTargets(object):
                 spembs = [spembs[i] for i in nonzero_sorted_idx]
                 spembs_name = list(x_feats_dict.keys())[1]
 
-            if self.use_speaker_adv_loss:
-                spk_labels = spk_label_list
-
             x_name = list(x_feats_dict.keys())[0]
             y_name = list(y_feats_dict.keys())[0]
 
             return_batch = OrderedDict([(x_name, xs),
                                         (y_name, ys),
                                         (spembs_name, spembs),
-                                        (spcs_name, spcs),
-                                        (spk_label_name, spk_labels)])
+                                        (spcs_name, spcs)])
         elif self.use_speaker_embedding:
             if len(x_feats_dict) == 0:
                 raise IndexError('No speaker embedding is provided')

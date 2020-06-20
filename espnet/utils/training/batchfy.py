@@ -503,4 +503,3 @@ def make_batchset(
 
     # batch: List[List[Tuple[str, dict]]]
     return batches
-

@@ -32,7 +32,6 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 
-from espnet.nets.pytorch_backend.adv.adversarial import AdversarialClassifier
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
     """Guided attention loss function module for multi head attention.
@@ -426,15 +425,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             default=["encoder-decoder"],
             help="Module name list to be applied guided attention loss",
         )
-
-        group.add_argument("--use-speaker-adv-loss", default=False, type=strtobool,
-                           help="Whether to use adversarial speaker classifier loss.")
-        group.add_argument("--num-speakers", type=int,
-                           help="Number of speakers in the training set.")
-        group.add_argument("--speaker-classifier-dim", default=256, type=int,
-                           help="Dimension of hidden layer of speaker classifier.")
-        group.add_argument("--speaker-adv-loss-lambda", default=1.0, type=float,
-                           help="Lambda in adversarial speaker classifier loss.")
         return parser
 
     @property
@@ -548,7 +538,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             else:
                 self.num_heads_applied_guided_attn = args.num_heads_applied_guided_attn
             self.modules_applied_guided_attn = args.modules_applied_guided_attn
-        self.use_speaker_adv_loss = args.use_speaker_adv_loss
 
         # use idx 0 as padding idx
         padding_idx = 0
@@ -665,15 +654,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.attn_criterion = GuidedMultiHeadAttentionLoss(
                 sigma=args.guided_attn_loss_sigma, alpha=args.guided_attn_loss_lambda,
             )
-        
-        if self.use_speaker_adv_loss:
-            self.speaker_adv_classifier = AdversarialClassifier(
-                args.adim,
-                args.num_speakers,
-                args.speaker_adv_loss_lambda,
-                args.speaker_classifier_dim,
-            )
-            self.speaker_adv_criterion = torch.nn.CrossEntropyLoss()
 
         # initialize parameters
         self._reset_parameters(
@@ -701,7 +681,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
         return ys_in
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spk_labels=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -731,9 +711,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            hs_int = self._integrate_with_spk_embed(hs, spembs)
-        else:
-            hs_int = hs
+            hs = self._integrate_with_spk_embed(hs, spembs)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -747,7 +725,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         y_masks = self._target_mask(olens_in)
-        zs, _ = self.decoder(ys_in, y_masks, hs_int, h_masks)
+        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
         # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, Lmax//r, r) -> (B, Lmax//r * r)
@@ -841,17 +819,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                 enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_in)
                 loss = loss + enc_dec_attn_loss
                 report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
-        
-        # calculate speaker adversarial loss. The latter condition is to ensure this is not evaluated in validation
-        if self.use_speaker_adv_loss and (spk_labels is not None):
-            posterior = self.speaker_adv_classifier(hs)
-            _, T, posterior_dim = posterior.shape
-            spk_labels_repeat = spk_labels.view(-1, 1).repeat(1, T) # repeat spk_label to match posterior time length
-            posterior_flat = posterior.view(-1, posterior_dim) # flat to [N x T, num_spks]
-            spk_labels_flat = spk_labels_repeat.view(-1) # flat to [N x T, ]
-            speaker_adv_loss = self.speaker_adv_criterion(posterior_flat, spk_labels_flat)
-            loss = loss + speaker_adv_loss
-            report_keys += [{"speaker_adv_loss": speaker_adv_loss.item()}]
 
         # report extra information
         if self.use_scaled_pos_enc:
@@ -1173,7 +1140,5 @@ class Transformer(TTSInterface, torch.nn.Module):
                 plot_keys += ["dec_attn_loss"]
             if "encoder-decoder" in self.modules_applied_guided_attn:
                 plot_keys += ["enc_dec_attn_loss"]
-        if self.use_speaker_adv_loss:
-            plot_keys += ["speaker_adv_loss"]
 
         return plot_keys
