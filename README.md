@@ -15,6 +15,7 @@
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
 [![Downloads](https://pepy.tech/badge/espnet)](https://pepy.tech/project/espnet)
+[![GitHub license](https://img.shields.io/github/license/espnet/espnet.svg)](https://github.com/espnet/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
@@ -22,6 +23,7 @@
 
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
+| [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
 | [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
@@ -74,6 +76,15 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
 
+### ESPnet2
+See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
+
+- Indepedent from Kaldi/Chainer
+- On the fly feature extraction and text processing when training
+- Multi GPUs training on single/multi nodes (Distributed training)
+- A template recipe which can be applied for all corpora
+- Possible to train any size of corpus without cpu memory error
+
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
 - If you just need the Python module only: 
@@ -90,9 +101,6 @@ See [Usage](https://espnet.github.io/espnet/tutorial.html).
 ## Docker Container
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
-
-## About ESPnet2
-See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 ## Contribution
 Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
