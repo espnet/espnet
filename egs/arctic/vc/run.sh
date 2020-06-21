@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=16        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
+verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
@@ -26,19 +26,18 @@ n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
-use_pitch=false # use pitch or not
 
 # config files
 train_config=
 decode_config=conf/decode.yaml
 
 # decoding related
-model=model.loss.best
-voc=PWG                         # GL or PWG
-voc_expdir=                     # If use provided pretrained models, set to desired dir, ex. `downloads/<...>`
-                                # If use manually trained models, set to `../voc1/exp/<expdir>`
-voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint 
-griffin_lim_iters=64  # the number of iterations of Griffin-Lim
+outdir=                 # In case not evaluation not executed together with decoding & synthesis stage
+model=                  # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint 
+voc=PWG                 # vocoder used (GL or PWG)
+voc_expdir=             # Note that this has to be set according to `trgspk`
+voc_checkpoint=         # If not specified, automatically set to the latest checkpoint 
+griffin_lim_iters=64    # The number of iterations of Griffin-Lim
 
 # normalization related
 src_cmvn=
@@ -47,36 +46,17 @@ norm_name=
 
 # pretrained model related
 pretrained_model=           # requires full path
-
-pretrained_asr_model=librispeech.transformer_large
-pretrained_dec_model=
 enc_init_mods="encoder"
 dec_init_mods="decoder,postnet,feat_out,prob_out"
 
-# non parallel training related
-encoder_model_path=
-decoder_model_path=
-decoder_model_json=
-np_outdir=
-
 # objective evaluation related
-outdir=                                        # in case not executed together with decoding & synthesis stage
 eval_model=true                                # true: evaluate trained model, false: evaluate ground truth
-mcd=true                                       # true: evaluate MCD
-mcep_dim=24
-shift_ms=5
-
-# latent analysis related
-n_clusters=50
-tsne=false
 
 # dataset configuration
 db_root=downloads
-srcspk=clb  # see local/data_prep.sh to check available speakers
+srcspk=clb  # available speakers: "slt" "clb" "bdl" "rms"
 trgspk=slt
-specified_train_json=
 num_train_utts=-1
-aespk=
 
 # exp tag
 tag=""  # tag for managing experiments.
@@ -101,9 +81,6 @@ trg_eval_set=${trgspk}_eval
 pair_train_set=${pair}_train
 pair_dev_set=${pair}_dev
 pair_eval_set=${pair}_eval
-ae_train_set=${aespk}_train
-ae_dev_set=${aespk}_dev
-ae_eval_set=${aespk}_eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Pretrained Model Download"
@@ -114,37 +91,15 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-   
     for spk_org_set in ${src_org_set} ${trg_org_set}; do
-        local/data_prep.sh ${db_root} ${spk_org_set} data/${spk_org_set}
+        local/data_prep.sh ${db_root}/cmu_us_${spk_org_set}_arctic ${spk_org_set} data/${spk_org_set}
         utils/fix_data_dir.sh data/${spk_org_set}
         utils/validate_data_dir.sh --no-feats data/${spk_org_set}
-        # copy for fbank+pitch feature
-        if ${use_pitch}; then
-            utils/copy_data_dir.sh data/${spk_org_set} data/${spk_org_set}_pitch 
-        fi
     done
 fi
 
 # Usage:
 # --norm_name is always needed. It is used to specify features.
-
-# Add "pitch" postfix if `use_pitch`
-if ${use_pitch}; then
-    src_org_set=${srcspk}_pitch
-    src_train_set=${srcspk}_pitch_train
-    src_dev_set=${srcspk}_pitch_dev
-    src_eval_set=${srcspk}_pitch_eval
-    trg_org_set=${trgspk}_pitch
-    trg_train_set=${trgspk}_pitch_train
-    trg_dev_set=${trgspk}_pitch_dev
-    trg_eval_set=${trgspk}_pitch_eval
-    pair_train_set=${pair}_pitch_train
-    pair_dev_set=${pair}_pitch_dev
-    pair_eval_set=${pair}_pitch_eval
-fi
-
-# check `norm_name`
 if [ -z ${norm_name} ]; then
     echo "Please specify --norm_name ."
     exit 1
@@ -174,27 +129,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         spk_feat_dt_dir=${dumpdir}/${spk_dev_set}_${norm_name}
         spk_feat_ev_dir=${dumpdir}/${spk_eval_set}_${norm_name}
        
-        if ${use_pitch}; then
-            # Generate the fbank+pitch features; by default 80-dimensional fbanks on each frame
-            steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj ${nj} \
-                --write_utt2num_frames true \
-                data/${spk_org_set} \
-                exp/make_fbank/${spk_org_set}_${norm_name} \
-                ${fbankdir}
-            utils/fix_data_dir.sh data/${spk_org_set}
-        else
-            make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-                --fs ${fs} \
-                --fmax "${fmax}" \
-                --fmin "${fmin}" \
-                --n_fft ${n_fft} \
-                --n_shift ${n_shift} \
-                --win_length "${win_length}" \
-                --n_mels ${n_mels} \
-                data/${spk_org_set} \
-                exp/make_fbank/${spk_org_set}_${norm_name} \
-                ${fbankdir}
-        fi
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${spk_org_set} \
+            exp/make_fbank/${spk_org_set}_${norm_name} \
+            ${fbankdir}
 
         # make train/dev/eval set
         utils/subset_data_dir.sh --last data/${spk_org_set} 200 data/${spk_org_set}_tmp
@@ -254,12 +199,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
          data/${trg_dev_set} ${dict} > ${trg_feat_dt_dir}/data.json
     data2json.sh --feat ${trg_feat_ev_dir}/feats.scp \
          data/${trg_eval_set} ${dict} > ${trg_feat_ev_dir}/data.json
+fi
 
-    # always use fbank features as target, so rename to fbank dirname
-    # if use_pitch=false, this should not cause a change
-    trg_feat_tr_dir=${dumpdir}/${trgspk}_train_${norm_name}
-    trg_feat_dt_dir=${dumpdir}/${trgspk}_dev_${norm_name}
-    trg_feat_ev_dir=${dumpdir}/${trgspk}_eval_${norm_name}
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: Pair Json Data Preparation"
 
     # make pair json
     if [ ${num_train_utts} -ge 0 ]; then
@@ -284,41 +227,34 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         -O ${pair_ev_dir}/data.json
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: VC model training"
+if [[ -z {train_config} ]]; then
+    echo "Please specify `train_config`."
+    exit 1
+fi
 
-    # Usage:
-    # 1. Always specify --tag and --train_config
-    # 2. Specify COMPLETE PATH for --pretrained_model (<...>/<...>/snapshot.ep.xxx) if needed.
-    #    If not, train from scratch.
-    # 3. --specified_train_json if needed.
-    #    If not, not specifiying --num_train_utts will result in using full set.
-
-    # add pretrained model info in config
-    if [ ! -z ${pretrained_model} ]; then
-        train_config="$(change_yaml.py \
-            -a enc-init="${pretrained_model}" \
-            -a enc-init-mods="${enc_init_mods}" \
-            -a dec-init="${pretrained_model}" \
-            -a dec-init-mods="${dec_init_mods}" \
-            -o "conf/$(basename "${train_config}" .yaml).${tag}.yaml" "${train_config}")"
-    fi
-
-    if [[ -z ${tag} || -z {train_config} ]]; then
-        echo "Please specify both `tag` and `train_config` tag."
-        exit 1
-    fi
+# If pretrained model specified, add pretrained model info in config
+if [ ! -z ${pretrained_model} ]; then
+    train_config="$(change_yaml.py \
+        -a enc-init="${pretrained_model}" \
+        -a enc-init-mods="${enc_init_mods}" \
+        -a dec-init="${pretrained_model}" \
+        -a dec-init-mods="${dec_init_mods}" \
+        -o "conf/$(basename "${train_config}" .yaml).${tag}.yaml" "${train_config}")"
+fi
+if [ -z ${tag} ]; then
+    expname=${srcspk}_${trgspk}_${backend}_$(basename ${train_config%.*})
+else
     expname=${srcspk}_${trgspk}_${backend}_${tag}
-    expdir=exp/${expname}
+fi
+expdir=exp/${expname}
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: VC model training"
 
-    if [ -z ${specified_train_json} ]; then
-        if [ ${num_train_utts} -ge 0 ]; then
-            tr_json=${pair_tr_dir}/data_n${num_train_utts}.json
-        else
-            tr_json=${pair_tr_dir}/data.json
-        fi
+    mkdir -p ${expdir}
+    if [ ${num_train_utts} -ge 0 ]; then
+        tr_json=${pair_tr_dir}/data_n${num_train_utts}.json
     else
-        tr_json=${specified_train_json}
+        tr_json=${pair_tr_dir}/data.json
     fi
     dt_json=${pair_dt_dir}/data.json
 
@@ -337,20 +273,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            --config ${train_config}
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Decoding and synthesis"
-
-    # Usage:
-    # 1. Always specify --tag and --model.
-    # 2. Specify --voc. If use `PWG`, also specify --voc_expdir and CUDA_VISIBLE_DEVICES=
-    
-    if [[ -z ${tag} ]]; then
-        echo "Please specify `tag` ."
-        exit 1
-    fi
-    expname=${srcspk}_${trgspk}_${backend}_${tag}
-    expdir=exp/${expname}
-    outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+[ -z "${model}" ] && model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding and synthesis"
 
     echo "Decoding..."
     pids=() # initialize pids
@@ -389,7 +315,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # If cmvn not specified, calculate using training features.
         # else, use specified cmvn.
         if [ -z ${trg_cmvn} ]; then
-            trg_cmvn=data/${trgspk}_train/cmvn.ark # NOTE: not `trg_train_set` to avoid use_pitch?
+            trg_cmvn=data/${trgspk}_train/cmvn.ark
         fi
         apply-cmvn --norm-vars=true --reverse=true ${trg_cmvn} \
             scp:${outdir}/${name}/feats.scp \
@@ -459,112 +385,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Objective Evaluation"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Objective Evaluation"
 
     for name in ${pair_dev_set} ${pair_eval_set}; do
         local/ob_eval/evaluate.sh --nj ${nj} \
-            --eval_model ${eval_model} \
             --db_root ${db_root} \
             --vocoder ${voc} \
-            --mcep_dim ${mcep_dim} \
-            --shift_ms ${shift_ms} \
             ${outdir} ${name} ${srcspk} ${trgspk}
     done
-fi
-
-# TODO: write this part (stil not written in 20200410)
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Objective Evaluation for GT"
-
-    for set_type in "dev" "eval"; do
-        local/ob_eval/evaluate.sh --nj ${nj} \
-            --eval_model false \
-            --db_root ${db_root} \
-            --mcd ${mcd} \
-            --vocoder ${voc} \
-            ${outdir} \
-            ${srcspk}_${trgspk}_${set_type} \
-            ${trgspk}_${set_type} \
-            ${trgspk}
-    done
-fi
-
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    echo "stage 11: latent extraction"
-
-    # Usage:
-    # 1. Always specify --tag and --model.
-    
-    if [[ -z ${tag} ]]; then
-        echo "Please specify `tag` ."
-        exit 1
-    fi
-    expname=${srcspk}_${trgspk}_${backend}_${tag}
-    expdir=exp/${expname}
-    outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-
-    echo "Extracting..."
-    pids=() # initialize pids
-    for name in ${pair_train_set} ${pair_dev_set} ${pair_eval_set}; do
-    (
-        [ ! -e ${outdir}/${name}/latent ] && mkdir -p ${outdir}/${name}/latent
-        cp ${dumpdir}/${name}_${norm_name}/data.json ${outdir}/${name}
-        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
-        # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/extract_latent.JOB.log \
-            local/latent-analysis/extract_latent.py \
-                --backend ${backend} \
-                --ngpu 0 \
-                --verbose ${verbose} \
-                --out ${outdir}/${name}/latent/feats.JOB \
-                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
-                --model ${expdir}/results/${model} \
-                --config ${decode_config}
-        # concatenate scp files
-        for n in $(seq ${nj}); do
-            cat "${outdir}/${name}/latent/feats.$n.scp" || exit 1;
-        done > ${outdir}/${name}/latent/feats.scp
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-
-    echo "Running t-SNE..."
-    pids=() # initialize pids
-    for name in ${pair_dev_set} ${pair_eval_set}; do
-    (
-        ${train_cmd} ${outdir}/${name}/log/tsne.log \
-            local/latent-analysis/tsne.py \
-                --n_classes ${n_clusters} \
-                --tsne ${tsne} \
-                --train_latents ${outdir}/${pair_train_set}/latent/feats.scp \
-                ${outdir}/${name}/latent/feats.scp \
-                ${outdir}/${name}/latent \
-                data/${src_org_set}/frame2lab
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-
-        
-fi
-
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    echo "stage 12: Process phoneme label data"
-
-    # make dir for processed label
-    frame2lab_dir=data/${src_org_set}/frame2lab
-    [ ! -e ${frame2lab_dir} ] && mkdir -p ${frame2lab_dir}
-    
-    local/latent-analysis/preprocess_phoneme.py \
-        --fs ${fs} \
-        --n_shift ${n_shift} \
-        ${db_root}/cmu_us_${srcspk}_arctic/lab \
-        data/${src_org_set}/segments \
-        data/${src_org_set}/utt2num_frames \
-        ${frame2lab_dir}
-
 fi

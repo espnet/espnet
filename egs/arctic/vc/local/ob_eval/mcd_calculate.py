@@ -1,28 +1,24 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# encoding: utf-8
 
-# Calculate MCD using converted ```waveform```.
-# By Wen-Chin Huang 2019.11
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import json
+# Calculate MCD using converted waveform.
+
 import os
-
-import numpy as np
-
-import pysptk
-import pyworld as pw
-from scipy.io import wavfile
-import scipy
-from fastdtw import fastdtw
-
+import sys
 import fnmatch
-from scipy.signal import firwin, lfilter
-
 import argparse
-import logging
 import multiprocessing as mp
 
-import sys
+import numpy as np
+import scipy
+from scipy.io import wavfile
+from scipy.signal import firwin, lfilter
+import pysptk
+import pyworld as pw
+from fastdtw import fastdtw
 
 def find_files(root_dir, query="*.wav", include_root_dir=True):
     """Find files recursively.

@@ -3,7 +3,7 @@
 # Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Evaluation script for VC or ground truth
+# Evaluation script for VC
 
 
 echo "$0 $*"  # Print the command line for logging
@@ -11,7 +11,6 @@ echo "$0 $*"  # Print the command line for logging
 
 nj=1
 do_delta=false
-eval_model=true
 db_root=""
 backend=pytorch
 api=v2
@@ -24,57 +23,34 @@ help_message="Usage: $0 <outdir> <subset> <srcspk> <trgspk>"
 . utils/parse_options.sh
 
 outdir=$1
-set_name=$2  # `dev` or `eval`
-srcspk=$3
-trgspk=$4
+set_name=$2  # <srcspk>_<trgspk>_<name> 
 
-if [ $# != 4 ]; then
+if [ $# != 2 ]; then
     echo "${help_message}"
     exit 1;
 fi
 
 set -euo pipefail
 
-# 
-if ${eval_model}; then
-    echo "Evaluate: converted speech"
-
-    #set_name=${srcspk}_${trgspk}_${name}
+# parse srcspk, trgspk and name
+srcspk=$(echo ${set_name} | awk -F"_" '{print $N1}')
+trgspk=$(echo ${set_name} | awk -F"_" '{print $N2}')
+name=$(echo ${set_name} | awk -F"_" '{print $N3}')
     
-    # Decide wavdir depending on vocoder
-    if [ ! -z ${vocoder} ]; then
-        # select vocoder type (GL, PWG)
-        if [ ${vocoder} == "PWG" ]; then
-            wavdir=${outdir}_denorm/${set_name}/pwg_wav
-        elif [ ${vocoder} == "GL" ]; then
-            wavdir=${outdir}_denorm/${set_name}/wav
-        else
-            echo "Vocoder type other than GL, PWG is not supported!"
-            exit 1
-        fi
+# Decide wavdir depending on vocoder
+if [ ! -z ${vocoder} ]; then
+    # select vocoder type (GL, PWG)
+    if [ ${vocoder} == "PWG" ]; then
+        wavdir=${outdir}_denorm/${set_name}/pwg_wav
+    elif [ ${vocoder} == "GL" ]; then
+        wavdir=${outdir}_denorm/${set_name}/wav
     else
-        echo "Please specify vocoder."
+        echo "Vocoder type other than GL, PWG is not supported!"
         exit 1
     fi
 else
-    echo "Evaluate: ground truth"
-    
-    #set_name=${trgspk}_${name}
-    
-    expdir=exp/ground_truth
-    wavdir=${expdir}/sym_link_denorm/${set_name}/wav
-    
-    if [ ${db_root} == "" ]; then
-        echo "Please set --db_root"; exit 1
-    fi
-    mkdir -p ${wavdir}
-    cat < data/${set_name}/wav.scp | awk '{print $1}' | while read -r f; do
-        filename=$(echo "$f" | sed 's/${trgspk}_//g')
-        if [ -L ${wavdir}/${filename}.wav ]; then
-            unlink ${wavdir}/${filename}.wav
-        fi
-        ln -s ${db_root}/cmu_us_${trgspk}_arctic/wav/${filename}.wav ${wavdir}/${filename}.wav
-    done
+    echo "Please specify vocoder."
+    exit 1
 fi
 
 echo "MCD calculation"
@@ -89,7 +65,6 @@ ${decode_cmd} ${mcd_file} \
         --shiftms ${shift_ms} \
         --f0min ${minf0} \
         --f0max ${maxf0}
-grep 'Mean' ${mcd_file}
 
 echo "step 0: Model preparation"
 # ASR model selection for CER/WER objective evaluation 
@@ -121,8 +96,6 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-# (Dirty): get "dev" or "eval"
-name=$(echo ${set_name} | awk -F"_" '{print $NF}')
 local/ob_eval/data_prep_for_asr.sh ${wavdir} ${asr_data_dir}/${set_name} ${trgspk}
 cp data/${trgspk}_${name}/text ${asr_data_dir}/${set_name}/text
 utils/validate_data_dir.sh --no-feats ${asr_data_dir}/${set_name}
@@ -174,6 +147,6 @@ ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${set_name}/log/decode.JOB.lo
       --api ${api} \
       --rnnlm ${lang_model}
 
-# calculate CER
+# calculate CER/WER, and display MCD, CER and WER
 score_sclite_wo_dict.sh --wer true ${asr_result_dir}.${api}/${set_name}
 grep 'Mean' ${mcd_file}
