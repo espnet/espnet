@@ -20,25 +20,25 @@ This code can be used for running experiments in [End-To-End Multi-Speaker Speec
  - Results
     - WSJ\_2mix (model link: https://drive.google.com/open?id=10DH\_HhgFyzamq3QXqayxHJZMtxEf2oyR)
 
- ```
- exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_cv_decode_lm_word65000_model.last10.avg.best/min_perm_result.json
- |  # Snt |   Corr     Sub     Del   Ins    Err   |
- |  503   |   13996    1989    441   317    16.72 |
- exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_tt_decode_lm_word65000_model.last10.avg.best/min_perm_result.wrd.json
- |  # Snt |   Corr     Sub     Del   Ins    Err   |
- |  333   |   10094    1055    169   200    12.58 |
- ```
+   ```
+   exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_cv_decode_lm_word65000_model.last10.avg.best/min_perm_result.json
+   |  # Snt |   Corr     Sub     Del   Ins    Err   |
+   |  503   |   13996    1989    441   317    16.72 |
+   exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_tt_decode_lm_word65000_model.last10.avg.best/min_perm_result.wrd.json
+   |  # Snt |   Corr     Sub     Del   Ins    Err   |
+   |  333   |   10094    1055    169   200    12.58 |
+   ```
 
     - WSJ0\_2mix (model link: https://drive.google.com/open?id=1xm2W1AXBgnccq-AFkp5-sDe2R0X8CMNx)
 
- ```
- exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_cv_decode_lm_word65000_model.last10.avg.best/min_perm_result.json
- |  # Snt |   Corr     Sub     Del   Ins   Err |
- |  503   |   89863    3417    3568  1704  8.97 |
- exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_tt_decode_lm_word65000_model.last10.avg.best/min_perm_result.wrd.json
- |  # Snt |   Corr     Sub     Del   Ins    Err   |
- |  3000  |   83533    12552   2528  2394   17.72 |
- ```
+   ```
+   exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_cv_decode_lm_word65000_model.last10.avg.best/min_perm_result.json
+   |  # Snt |   Corr     Sub     Del   Ins   Err |
+   |  503   |   89863    3417    3568  1704  8.97 |
+   exp/tr_pytorch_train_multispkr_transformer_no_preprocess_delta/decode_tt_decode_lm_word65000_model.last10.avg.best/min_perm_result.wrd.json
+   |  # Snt |   Corr     Sub     Del   Ins    Err   |
+   |  3000  |   83533    12552   2528  2394   17.72 |
+   ```
 
 
 # RNN Result
