@@ -63,8 +63,10 @@ cd ${cwd} || exit 1
 
 # test asr_mix recipe
 cd ./egs/mini_an4/asr_mix1 || exit 1
-echo "==== ASR Mix (backend=pytorch) ==="
-./run.sh
+echo "==== ASR Mix (backend=pytorch, model=rnn) ==="
+./run.sh --train-config conf/train_multispkr.yaml
+echo "==== ASR Mix (backend=pytorch, model=transformer) ==="
+./run.sh --stage 4 --train-config conf/train_multispkr_transformer.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1

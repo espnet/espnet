@@ -8,13 +8,12 @@ Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 """
 
 import argparse
+from itertools import groupby
 import logging
 import math
 import os
 import sys
 
-import chainer
-from chainer import reporter
 import editdistance
 import numpy as np
 import six
@@ -24,12 +23,14 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_ASR
+from espnet.nets.pytorch_backend.e2e_asr import E2E as E2EASR
+from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.frontends.feature_transform import (
     feature_transform_for,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.frontends.frontend import frontend_for
-
+from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
+from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -44,20 +45,6 @@ from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 CTC_LOSS_THRESHOLD = 10000
 
 
-class Reporter(chainer.Chain):
-    """A chainer reporter wrapper."""
-
-    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
-        """Define reporter."""
-        reporter.report({"loss_ctc": loss_ctc}, self)
-        reporter.report({"loss_att": loss_att}, self)
-        reporter.report({"acc": acc}, self)
-        reporter.report({"cer": cer}, self)
-        reporter.report({"wer": wer}, self)
-        logging.info("mtl loss:" + str(mtl_loss))
-        reporter.report({"loss": mtl_loss}, self)
-
-
 class PIT(object):
     """Permutation Invariant Training (PIT) module.
 
@@ -67,19 +54,19 @@ class PIT(object):
     def __init__(self, num_spkrs):
         """Initialize PIT module."""
         self.num_spkrs = num_spkrs
-        if self.num_spkrs == 2:
-            self.perm_choices = [[0, 1], [1, 0]]
-        elif self.num_spkrs == 3:
-            self.perm_choices = [
-                [0, 1, 2],
-                [0, 2, 1],
-                [1, 2, 0],
-                [1, 0, 2],
-                [2, 0, 1],
-                [2, 1, 0],
-            ]
-        else:
-            raise ValueError
+
+        # [[0, 1], [1, 0]] or
+        # [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 1, 0], [2, 0, 1]]
+        self.perm_choices = []
+        initial_seq = np.linspace(0, num_spkrs - 1, num_spkrs, dtype=np.int64)
+        self.permutationDFS(initial_seq, 0)
+
+        # [[0, 3], [1, 2]] or
+        # [[0, 4, 8], [0, 5, 7], [1, 3, 8], [1, 5, 6], [2, 4, 6], [2, 3, 7]]
+        self.loss_perm_idx = np.linspace(
+            0, num_spkrs * (num_spkrs - 1), num_spkrs, dtype=np.int64
+        ).reshape(1, num_spkrs)
+        self.loss_perm_idx = (self.loss_perm_idx + np.array(self.perm_choices)).tolist()
 
     def min_pit_sample(self, loss):
         """Compute the PIT loss for each sample.
@@ -93,28 +80,14 @@ class PIT(object):
         :rtype List: len=2
 
         """
-        if self.num_spkrs == 2:
-            score_perms = (
-                torch.stack([loss[0] + loss[3], loss[1] + loss[2]]) / self.num_spkrs
+        score_perms = (
+            torch.stack(
+                [torch.sum(loss[loss_perm_idx]) for loss_perm_idx in self.loss_perm_idx]
             )
-        elif self.num_spkrs == 3:
-            score_perms = (
-                torch.stack(
-                    [
-                        loss[0] + loss[4] + loss[8],
-                        loss[0] + loss[5] + loss[7],
-                        loss[1] + loss[5] + loss[6],
-                        loss[1] + loss[3] + loss[8],
-                        loss[2] + loss[3] + loss[7],
-                        loss[2] + loss[4] + loss[6],
-                    ]
-                )
-                / self.num_spkrs
-            )
-
+            / self.num_spkrs
+        )
         perm_loss, min_idx = torch.min(score_perms, 0)
         permutation = self.perm_choices[min_idx]
-
         return perm_loss, permutation
 
     def pit_process(self, losses):
@@ -132,11 +105,30 @@ class PIT(object):
 
         loss_perm = torch.stack([r[0] for r in ret], dim=0).to(losses.device)  # (B)
         permutation = torch.tensor([r[1] for r in ret]).long().to(losses.device)
-
         return torch.mean(loss_perm), permutation
 
+    def permutationDFS(self, source, start):
+        """Get permutations with DFS.
 
-class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
+           The final result is all permutations of the 'source' sequence.
+           e.g. [[1, 2], [2, 1]] or
+                [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 2, 1], [3, 1, 2]]
+
+        :param np.ndarray source: (num_spkrs, 1), e.g. [1, 2, ..., N]
+        :param int start: the start point to permute
+
+        """
+        if start == len(source) - 1:  # reach final state
+            self.perm_choices.append(source.tolist())
+        for i in range(start, len(source)):
+            # swap values at position start and i
+            source[start], source[i] = source[i], source[start]
+            self.permutationDFS(source, start + 1)
+            # reverse the swap
+            source[start], source[i] = source[i], source[start]
+
+
+class E2E(ASRInterface, torch.nn.Module):
     """E2E module.
 
     :param int idim: dimension of inputs
@@ -147,10 +139,10 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         """Add arguments."""
-        E2E.encoder_add_arguments(parser)
+        E2EASR.encoder_add_arguments(parser)
         E2E.encoder_mix_add_arguments(parser)
-        E2E.attention_add_arguments(parser)
-        E2E.decoder_add_arguments(parser)
+        E2EASR.attention_add_arguments(parser)
+        E2EASR.decoder_add_arguments(parser)
         return parser
 
     @staticmethod
@@ -175,13 +167,18 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
 
     def __init__(self, idim, odim, args):
         """Initialize multi-speaker E2E module."""
+        super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
         self.verbose = args.verbose
+        # NOTE: for self.build method
+        args.char_list = getattr(args, "char_list", None)
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         self.reporter = Reporter()
         self.num_spkrs = args.num_spkrs
         self.spa = args.spa
@@ -261,33 +258,6 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
-
-        def lecun_normal_init_parameters(module):
-            for p in module.parameters():
-                data = p.data
-                if data.dim() == 1:
-                    # bias
-                    data.zero_()
-                elif data.dim() == 2:
-                    # linear weight
-                    n = data.size(1)
-                    stdv = 1.0 / math.sqrt(n)
-                    data.normal_(0, stdv)
-                elif data.dim() == 4:
-                    # conv weight
-                    n = data.size(1)
-                    for k in data.size()[2:]:
-                        n *= k
-                    stdv = 1.0 / math.sqrt(n)
-                    data.normal_(0, stdv)
-                else:
-                    raise NotImplementedError
-
-        def set_forget_bias_to_one(bias):
-            n = bias.size(0)
-            start, end = n // 4, n // 2
-            bias.data[start:end].fill_(1.0)
-
         lecun_normal_init_parameters(self)
         # exceptions
         # embed weight ~ Normal(0, 1)
@@ -373,6 +343,36 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
                 acc = sum([r[1] for r in rslt]) / float(len(rslt))
         self.acc = acc
 
+        # 4. compute cer without beam search
+        if self.mtlalpha == 0 or self.char_list is None:
+            cer_ctc = None
+        else:
+            cers = []
+            for ns in range(self.num_spkrs):
+                y_hats = self.ctc.argmax(hs_pad[ns]).data
+                for i, y in enumerate(y_hats):
+                    y_hat = [x[0] for x in groupby(y)]
+                    y_true = ys_pad[ns][i]
+
+                    seq_hat = [
+                        self.char_list[int(idx)] for idx in y_hat if int(idx) != -1
+                    ]
+                    seq_true = [
+                        self.char_list[int(idx)] for idx in y_true if int(idx) != -1
+                    ]
+                    seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+                    seq_hat_text = seq_hat_text.replace(self.blank, "")
+                    seq_true_text = "".join(seq_true).replace(self.space, " ")
+
+                    hyp_chars = seq_hat_text.replace(" ", "")
+                    ref_chars = seq_true_text.replace(" ", "")
+                    if len(ref_chars) > 0:
+                        cers.append(
+                            editdistance.eval(hyp_chars, ref_chars) / len(ref_chars)
+                        )
+
+            cer_ctc = sum(cers) / len(cers) if cers else None
+
         # 5. compute cer/wer
         if (
             self.training
@@ -380,7 +380,6 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
             or not isinstance(hs_pad, list)
         ):
             cer, wer = 0.0, 0.0
-            # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             if self.recog_args.ctc_weight > 0.0:
                 lpz = [
@@ -478,7 +477,9 @@ class E2E(E2E_ASR, ASRInterface, torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
+            self.reporter.report(
+                loss_ctc_data, loss_att_data, self.acc, cer_ctc, cer, wer, loss_data
+            )
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
