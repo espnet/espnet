@@ -535,7 +535,7 @@ class E2E(ASRInterface, torch.nn.Module):
             + str(nbest_hyps[0]["score"] / len(nbest_hyps[0]["yseq"]))
         )
         return nbest_hyps
-
+    
     def recognize_mask_ctc(self, x, recog_args, char_list=None):
         """Non-autoregressive decoding using Mask CTC
 
@@ -545,6 +545,7 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: decoding result
         :rtype: list
         """
+        self.eval()
         h = self.encode(x).unsqueeze(0)
 
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(h)).max(dim=-1)
