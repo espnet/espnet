@@ -333,29 +333,19 @@ class E2E(ASRInterface, torch.nn.Module):
         self.hs_pad = hs_pad
 
         # 2. forward decoder
-<<<<<<< HEAD
-        if self.dmode == "NAR":
-            ys_in_pad, ys_out_pad = mask_uniform(ys_pad, self.mask, self.eos, self.ignore_id)
-            ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
-            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-        else:
-            ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-            ys_mask = target_mask(ys_in_pad, self.ignore_id)
-            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-        self.pred_pad = pred_pad
-
-        # 3. compute attention loss
-        loss_att = self.criterion(pred_pad, ys_out_pad)
-        self.acc = th_accuracy(
-            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
-        )
-=======
         if self.decoder is not None:
-            ys_in_pad, ys_out_pad = add_sos_eos(
-                ys_pad, self.sos, self.eos, self.ignore_id
-            )
-            ys_mask = target_mask(ys_in_pad, self.ignore_id)
-            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+            if self.dmode == "NAR":
+                ys_in_pad, ys_out_pad = mask_uniform(
+                    ys_pad, self.mask, self.eos, self.ignore_id
+                )
+                ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
+                pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+            else:
+                ys_in_pad, ys_out_pad = add_sos_eos(
+                    ys_pad, self.sos, self.eos, self.ignore_id
+                )
+                ys_mask = target_mask(ys_in_pad, self.ignore_id)
+                pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
             self.pred_pad = pred_pad
 
             # 3. compute attention loss
@@ -366,7 +356,6 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             loss_att = None
             self.acc = None
->>>>>>> upstream/master
 
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
@@ -647,7 +636,7 @@ class E2E(ASRInterface, torch.nn.Module):
             + str(nbest_hyps[0]["score"] / len(nbest_hyps[0]["yseq"]))
         )
         return nbest_hyps
-    
+
     def recognize_mask_ctc(self, x, recog_args, char_list=None):
         """Non-autoregressive decoding using Mask CTC
 
