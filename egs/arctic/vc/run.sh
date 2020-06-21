@@ -206,22 +206,22 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     # make pair json
     if [ ${num_train_utts} -ge 0 ]; then
-        local/make_pair_json.py \
+        make_pair_json.py \
             --src-json ${src_feat_tr_dir}/data.json \
             --trg-json ${trg_feat_tr_dir}/data.json \
             -O ${pair_tr_dir}/data_n${num_train_utts}.json \
             --num_utts ${num_train_utts}
     else
-        local/make_pair_json.py \
+        make_pair_json.py \
             --src-json ${src_feat_tr_dir}/data.json \
             --trg-json ${trg_feat_tr_dir}/data.json \
             -O ${pair_tr_dir}/data.json
     fi
-    local/make_pair_json.py \
+    make_pair_json.py \
         --src-json ${src_feat_dt_dir}/data.json \
         --trg-json ${trg_feat_dt_dir}/data.json \
         -O ${pair_dt_dir}/data.json
-    local/make_pair_json.py \
+    make_pair_json.py \
         --src-json ${src_feat_ev_dir}/data.json \
         --trg-json ${trg_feat_ev_dir}/data.json \
         -O ${pair_ev_dir}/data.json
