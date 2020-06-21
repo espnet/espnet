@@ -428,8 +428,11 @@ class Trainer:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), grad_clip
                 )
+                # PyTorch<=1.4, clip_grad_norm_ returns float value
+                if not isinstance(grad_norm, torch.Tensor):
+                    grad_norm = torch.tensor(grad_norm)
 
-                if not np.isfinite(grad_norm):
+                if not torch.isfinite(grad_norm):
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
                     )

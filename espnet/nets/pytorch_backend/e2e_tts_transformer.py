@@ -11,7 +11,6 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     Tacotron2Loss as TransformerLoss,  # noqa: H301
@@ -26,6 +25,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attention
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface

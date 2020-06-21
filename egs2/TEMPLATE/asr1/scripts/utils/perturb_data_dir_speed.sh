@@ -81,7 +81,7 @@ if [[ -f ${srcdir}/segments ]]; then
       awk -v factor="${factor}" \
           '{wid=$1; $1=""; if ($NF=="|") {print wid $_ " sox -t wav - -t wav - speed " factor " |"}
             else if (match($0, /:[0-9]+$/)) {print wid " wav-copy" $_ " - | sox -t wav - -t wav - speed " factor " |" }
-            else  {print wid " sox -t wav" $_ " -t wav - speed " factor " |"}}'\
+            else  {print wid " sox -t wav" $_ " -t wav - speed " factor " |"}}' \
              > "${destdir}"/wav.scp
   if [[ -f ${srcdir}/reco2file_and_channel ]]; then
       utils/apply_map.pl -f 1 "${destdir}"/reco_map \

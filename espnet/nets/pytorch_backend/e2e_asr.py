@@ -36,6 +36,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.utils.fill_missing_args import fill_missing_args
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -193,7 +194,7 @@ class E2E(ASRInterface, torch.nn.Module):
     @staticmethod
     def decoder_add_arguments(parser):
         """Add arguments for the decoder."""
-        group = parser.add_argument_group("E2E encoder setting")
+        group = parser.add_argument_group("E2E decoder setting")
         group.add_argument(
             "--dtype",
             default="lstm",
@@ -239,6 +240,10 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype

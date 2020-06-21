@@ -19,7 +19,7 @@ jobs:
       - image: circleci/buildpack-deps:18.04
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.4.0
+          TH_VERSION: 1.5.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
@@ -69,7 +69,7 @@ jobs:
       - image: circleci/buildpack-deps:16.04
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.4.0
+          TH_VERSION: 1.5.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-7
@@ -122,7 +122,7 @@ jobs:
       - image: centos:7
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.4.0
+          TH_VERSION: 1.5.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
@@ -180,7 +180,7 @@ jobs:
       - image: debian:9
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.4.0
+          TH_VERSION: 1.5.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-6

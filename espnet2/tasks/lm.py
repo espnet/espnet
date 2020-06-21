@@ -105,6 +105,21 @@ class LMTask(AbsTask):
             type=str_or_none,
             help="non_linguistic_symbols file path",
         )
+        parser.add_argument(
+            "--cleaner",
+            type=str_or_none,
+            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            default=None,
+            help="Apply text cleaning",
+        )
+        parser.add_argument(
+            "--g2p",
+            type=str_or_none,
+            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -134,6 +149,9 @@ class LMTask(AbsTask):
                 token_type=args.token_type,
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
+                text_cleaner=args.cleaner,
+                g2p_type=args.g2p,
+                non_linguistic_symbols=args.non_linguistic_symbols,
             )
         else:
             retval = None

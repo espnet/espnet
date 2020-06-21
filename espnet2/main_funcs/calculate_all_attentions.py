@@ -50,9 +50,9 @@ def calculate_all_attentions(
 
         def hook(module, input, output, name=name):
             if isinstance(module, MultiHeadedAttention):
-                # att_w: (B, Tout, Tin)
-                att_w = output
-                outputs[name] = att_w.detach().cpu()
+                # NOTE(kamo): MultiHeadedAttention doesn't return attention weight
+                # attn: (B, Head, Tout, Tin)
+                outputs[name] = module.attn.detach().cpu()
             elif isinstance(module, AttLoc2D):
                 c, w = output
                 # w: previous concate attentions
@@ -138,6 +138,10 @@ def calculate_all_attentions(
                 else:
                     # Tout x (1, Tin) -> (Tout, Tin)
                     output = torch.cat(output, dim=0)
+            else:
+                # output: (1, NHead, Tout, Tin) -> (NHead, Tout, Tin)
+                output = output.squeeze(0)
+            # output: (Tout, Tin) or (NHead, Tout, Tin)
             return_dict[name].append(output)
         outputs.clear()
 

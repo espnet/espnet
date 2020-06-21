@@ -329,8 +329,13 @@ def train(args):
 
     # freeze modules, if specified
     if args.freeze_mods:
+        if hasattr(model, "module"):
+            freeze_mods = ["module." + x for x in args.freeze_mods]
+        else:
+            freeze_mods = args.freeze_mods
+
         for mod, param in model.named_parameters():
-            if any(mod.startswith(key) for key in args.freeze_mods):
+            if any(mod.startswith(key) for key in freeze_mods):
                 logging.info(f"{mod} is frozen not to be updated.")
                 param.requires_grad = False
 
@@ -347,7 +352,7 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
