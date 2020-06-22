@@ -1,6 +1,7 @@
 """Decoder definition for transformer-transducer models."""
 
 import six
+import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -8,6 +9,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -213,8 +215,8 @@ class Decoder(torch.nn.Module):
 
         return [hyp]
 
-    def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search implementation for transformer-transducer.
+    def recognize_beam_default(self, h, recog_args, rnnlm=None):
+        """Beam search implementation.
 
         Args:
             h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
@@ -227,19 +229,53 @@ class Decoder(torch.nn.Module):
         """
         beam = recog_args.beam_size
         k_range = min(beam, self.odim)
+
         nbest = recog_args.nbest
         normscore = recog_args.score_norm_transducer
 
-        if rnnlm:
-            kept_hyps = [
-                {"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}
-            ]
-        else:
-            kept_hyps = [{"score": 0.0, "yseq": [self.blank], "cache": None}]
+        kept_hyps = [
+            {
+                "score": 0.0,
+                "yseq": [self.blank],
+                "cache": None,
+                "y": [],
+                "lm_state": None,
+            }
+        ]
 
-        for i, hi in enumerate(h):
-            hyps = kept_hyps
+        for hi in h:
+            hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
             kept_hyps = []
+
+            for j in range(len(hyps) - 1):
+                for i in range((j + 1), len(hyps)):
+                    if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
+                        next_id = len(hyps[i]["yseq"])
+
+                        ys = to_device(self, torch.tensor(hyps[i]["yseq"]).unsqueeze(0))
+
+                        ys_mask = to_device(
+                            self, subsequent_mask(len(hyps[i]["yseq"])).unsqueeze(0)
+                        )
+
+                        y, _ = self.forward_one_step(ys, ys_mask, hyps[i]["cache"])
+
+                        ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
+
+                        curr_score = float(hyps[i]["score"]) + float(
+                            ytu[hyps[j]["yseq"][next_id]]
+                        )
+
+                        for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
+                            ytu = torch.log_softmax(
+                                self.joint(hi, hyps[j]["y"][k]), dim=0
+                            )
+
+                            curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
+
+                        hyps[j]["score"] = np.logaddexp(
+                            float(hyps[j]["score"]), curr_score
+                        )
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -249,6 +285,7 @@ class Decoder(torch.nn.Module):
                 ys_mask = to_device(
                     self, subsequent_mask(len(new_hyp["yseq"])).unsqueeze(0)
                 )
+
                 y, c = self.forward_one_step(ys, ys_mask, new_hyp["cache"])
 
                 ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
@@ -263,6 +300,7 @@ class Decoder(torch.nn.Module):
                         "score": new_hyp["score"] + float(ytu[k]),
                         "yseq": new_hyp["yseq"][:],
                         "cache": new_hyp["cache"],
+                        "y": new_hyp["y"],
                     }
 
                     if rnnlm:
@@ -273,6 +311,8 @@ class Decoder(torch.nn.Module):
                     else:
                         beam_hyp["yseq"].append(int(k))
                         beam_hyp["cache"] = c
+
+                        beam_hyp["y"].append(y[0])
 
                         if rnnlm:
                             beam_hyp["lm_state"] = rnnlm_state

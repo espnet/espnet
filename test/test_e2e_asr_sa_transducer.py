@@ -57,6 +57,7 @@ def make_recog_args(**kwargs):
         beam_size=1,
         nbest=1,
         verbose=2,
+        search_type="default",
         score_norm_transducer=True,
         rnnlm=None,
     )
