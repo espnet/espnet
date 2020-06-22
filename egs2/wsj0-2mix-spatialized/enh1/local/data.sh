@@ -77,12 +77,16 @@ local/wsj0_2mix_data_prep.sh --min-or-max ${min_or_max} \
 local/spatialize_wsj0_mix.sh --min-or-max ${min_or_max} \
     ${wsj_2mix_spatialized_scripts} ${wsj_2mix_wav} ${wsj_2mix_spatialized_wav} || exit 1;
 local/wsj0_2mix_spatialized_data_prep.sh --min-or-max ${min_or_max} \
-    ./data ${wsj_2mix_spatialized_wav} || exit 1;
+    data ${wsj_2mix_spatialized_wav} || exit 1;
 
 ### create .scp file for reference audio
+for x in tr cv tt; do
+    sed -e 's/\/mix\//\/s1\//g' ./data/$x/wav.scp > ./data/$x/spk1.scp
+    sed -e 's/\/mix\//\/s2\//g' ./data/$x/wav.scp > ./data/$x/spk2.scp
+done
+
 for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spatialized_anechoic_multich \
          tr_spatialized_reverb_multich cv_spatialized_reverb_multich tt_spatialized_reverb_multich; do
-do
     sed -e 's/\/mix\//\/s1\//g' ./data/$x/wav.scp > ./data/$x/spk1.scp
     sed -e 's/\/mix\//\/s2\//g' ./data/$x/wav.scp > ./data/$x/spk2.scp
 done
