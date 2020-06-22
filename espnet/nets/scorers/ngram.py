@@ -76,28 +76,6 @@ class NgramFullScorer(Ngrambase, BatchScorerInterface):
         """
         return self.score_partial_(y, torch.tensor(range(self.charlen)), state, x)
 
-    def batch_score(self, ys, states, xs):
-        """Score new token batch.
-
-        Args:
-            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor):
-                The encoder feature that generates ys (n_batch, xlen, n_feat).
-        Returns:
-            tuple[torch.Tensor, List[Any]]: Tuple of
-                batchfied scores for next token with shape of `(n_batch, n_vocab)`
-                and next state list for ys.
-        """
-        scores = torch.empty(
-            ys.shape[0], self.charlen, dtype=xs.dtype, device=ys.device
-        )
-        outstates = list()
-        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
-            scores[i, :], outstate = self.score(y, state, x)
-            outstates.append(outstate)
-        return scores, outstates
-
 
 class NgramPartScorer(Ngrambase, PartialScorerInterface):
     """Partialscorer for ngram."""

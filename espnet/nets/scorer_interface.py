@@ -100,7 +100,14 @@ class BatchScorerInterface(ScorerInterface):
                 and next state list for ys.
 
         """
-        raise NotImplementedError
+        scores = list()
+        outstates = list()
+        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
+            score, outstate = self.score(y, state, x)
+            outstates.append(outstate)
+            scores.append(score)
+        scores = torch.cat(scores, 0).view(ys.shape[0], -1)
+        return scores, outstates
 
 
 class PartialScorerInterface(ScorerInterface):
