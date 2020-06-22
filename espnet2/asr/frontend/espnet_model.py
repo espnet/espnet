@@ -62,31 +62,44 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_ref = speech_ref[:, :, : speech_lengths.max()]
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
-        # prepare reference speech and reference magnitude
-        speech_ref = torch.unbind(speech_ref, dim=1)
-        magnitude_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
-        magnitude_ref = [abs(ComplexTensor(mr[..., 0], mr[..., 1])) for mr in magnitude_ref]
+        if self.tf_factor:
+            # prepare reference speech and reference magnitude
+            speech_ref = torch.unbind(speech_ref, dim=1)
+            magnitude_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
+            magnitude_ref = [abs(ComplexTensor(mr[..., 0], mr[..., 1])) for mr in magnitude_ref]
 
-        # predict separated speech and separated magnitude
-        speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
-        magnitude_pre, tf_length = self.frontend(speech_mix, speech_lengths)
-        magnitude_pre = torch.unbind(magnitude_pre, dim=1)
-        speech_pre = torch.unbind(speech_pre, dim=1)
+            # predict separated speech and separated magnitude
+            speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
+            magnitude_pre, tf_length = self.frontend(speech_mix, speech_lengths)
+            magnitude_pre = torch.unbind(magnitude_pre, dim=1)
+            speech_pre = torch.unbind(speech_pre, dim=1)
 
-        # compute TF masking loss
-        tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
+            # compute TF masking loss
+            tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
 
-        # compute si-snr loss
-        si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
+            # compute si-snr loss
+            si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
 
-        si_snr = - si_snr_loss
-        loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+            si_snr = - si_snr_loss
+            loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+            stats = dict(
+                si_snr=si_snr.detach(),
+                tf_loss=tf_loss.detach(),
+                loss=loss.detach()
+            )
+        else:
+            # TODO:Jing, should find better way to configure for the choice of tf loss and time-only loss.
+            speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
+            speech_pre = torch.unbind(speech_pre, dim=1)
 
-        stats = dict(
-            si_snr=si_snr.detach(),
-            tf_loss=tf_loss.detach(),
-            loss=loss.detach()
-        )
+            # compute si-snr loss
+            si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss)
+            si_snr = - si_snr_loss
+            loss = si_snr_loss
+            stats = dict(
+                si_snr=si_snr.detach(),
+                loss=loss.detach()
+            )
 
         loss = si_snr_loss
 
