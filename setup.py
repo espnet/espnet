@@ -16,6 +16,7 @@ requirements = {
         "matplotlib>=3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
+        "numba==0.49",
         # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         "chainer==6.0.0",
@@ -27,7 +28,8 @@ requirements = {
         "resampy",
         "pysptk>=0.1.17",
         # Natural language processing related
-        "sentencepiece>=0.1.82",
+        # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
+        "sentencepiece<0.1.90,>=0.1.82",
         "nltk>=3.4.5",
         # File IO related
         "PyYAML>=5.1.2",
@@ -91,7 +93,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.7.0",
+    version="0.8.0",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

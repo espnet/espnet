@@ -1,7 +1,7 @@
 # Transformer (elayers=12, dlayers=6, units=2048, 8 GPUs, specaug) + large LM
 
   - Model files (archived to tedlium3_largelm.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1ESVWQp0ZMhenF_Dt1n47suMK8NJ8hm0A
+    - model link: https://drive.google.com/open?id=1zcPglHAKILwVgfACoMWWERiyIquzSYuU
     - training config file: `./conf/train_pytorch_transformer.v2.yaml`
     - decoding config file: `./conf/decode_pytorch_transformer_beam-size40.yaml`
     - cmvn file: `./data/train_trim_sp/cmvn.ark`

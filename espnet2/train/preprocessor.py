@@ -9,7 +9,10 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import Iterable
 
+from typing import Collection
+
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 
 
@@ -31,6 +34,8 @@ class CommonPreprocessor(AbsPreprocessor):
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
         unk_symbol: str = "<unk>",
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
@@ -46,6 +51,7 @@ class CommonPreprocessor(AbsPreprocessor):
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
+            self.text_cleaner = TextCleaner(text_cleaner)
 
             self.tokenizer = build_tokenizer(
                 token_type=token_type,
@@ -53,11 +59,13 @@ class CommonPreprocessor(AbsPreprocessor):
                 delimiter=delimiter,
                 space_symbol=space_symbol,
                 non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
             )
             self.token_id_converter = TokenIDConverter(
                 token_list=token_list, unk_symbol=unk_symbol,
             )
         else:
+            self.text_cleaner = None
             self.tokenizer = None
             self.token_id_converter = None
 
@@ -76,6 +84,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if self.text_name in data and self.tokenizer is not None:
             text = data[self.text_name]
+            text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)

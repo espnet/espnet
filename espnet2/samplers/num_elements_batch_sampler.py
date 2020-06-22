@@ -6,8 +6,8 @@ from typing import Union
 import numpy as np
 from typeguard import check_argument_types
 
+from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.utils.fileio import load_num_sequence_text
 
 
 class NumElementsBatchSampler(AbsSampler):
@@ -82,7 +82,7 @@ class NumElementsBatchSampler(AbsSampler):
                     max(d[keys[i]][0] for i in range(start, start + bs))
                     for d in utt2shapes
                 ]
-                bins = sum(bs * l * d for l, d in zip(max_lengths, feat_dims))
+                bins = sum(bs * lg * d for lg, d in zip(max_lengths, feat_dims))
             else:
                 bins = sum(
                     np.prod(d[keys[i]])

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-if ${USE_CONDA:-}; then
-    . tools/venv/bin/activate
-fi
+. tools/venv/bin/activate
 
 set -euo pipefail
 
@@ -72,7 +70,7 @@ cov=$(echo "scale = 4; 100 * ${n_ok} / ${n_all}" | bc)
 echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 
 # --extend-ignore for wip files for flake8-docstrings
-flake8 --show-source --extend-ignore=D test utils doc ${flake8_black_list} espnet2 test/espnet2
+flake8 --show-source --extend-ignore=D test utils doc ${flake8_black_list} espnet2 test/espnet2 egs/*/*/local/*.py
 
 # white list of files that should support flake8-docstrings
 flake8 --show-source espnet --exclude=${flake8_black_list//$'\n'/,}

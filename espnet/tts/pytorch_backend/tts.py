@@ -329,21 +329,30 @@ def train(args):
 
     # freeze modules, if specified
     if args.freeze_mods:
-        for mod, param in model.state_dict().items():
-            if any(mod.startswith(key) for key in args.freeze_mods):
+        if hasattr(model, "module"):
+            freeze_mods = ["module." + x for x in args.freeze_mods]
+        else:
+            freeze_mods = args.freeze_mods
+
+        for mod, param in model.named_parameters():
+            if any(mod.startswith(key) for key in freeze_mods):
                 logging.info(f"{mod} is frozen not to be updated.")
                 param.requires_grad = False
+
+        model_params = filter(lambda x: x.requires_grad, model.parameters())
+    else:
+        model_params = model.parameters()
 
     # Setup an optimizer
     if args.opt == "adam":
         optimizer = torch.optim.Adam(
-            model.parameters(), args.lr, eps=args.eps, weight_decay=args.weight_decay
+            model_params, args.lr, eps=args.eps, weight_decay=args.weight_decay
         )
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)

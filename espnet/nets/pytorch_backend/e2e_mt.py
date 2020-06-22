@@ -86,11 +86,7 @@ class E2E(MTInterface, torch.nn.Module):
             help="Type of encoder network architecture",
         )
         group.add_argument(
-            "--elayers",
-            default=4,
-            type=int,
-            help="Number of encoder layers "
-            "(for shared recognition part in multi-speaker asr mode)",
+            "--elayers", default=4, type=int, help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -106,8 +102,8 @@ class E2E(MTInterface, torch.nn.Module):
             "--subsample",
             default="1",
             type=str,
-            help="Subsample input frames x_y_z "
-            "means subsample every x frame at 1st layer, "
+            help="Subsample input frames x_y_z means "
+            "subsample every x frame at 1st layer, "
             "every y frame at 2nd layer etc.",
         )
         return parser
@@ -177,7 +173,7 @@ class E2E(MTInterface, torch.nn.Module):
     @staticmethod
     def decoder_add_arguments(parser):
         """Add arguments for the decoder."""
-        group = parser.add_argument_group("E2E encoder setting")
+        group = parser.add_argument_group("E2E decoder setting")
         group.add_argument(
             "--dtype",
             default="lstm",
@@ -220,7 +216,6 @@ class E2E(MTInterface, torch.nn.Module):
         :param int idim: dimension of inputs
         :param int odim: dimension of outputs
         :param Namespace args: argument Namespace containing options
-
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
@@ -240,8 +235,8 @@ class E2E(MTInterface, torch.nn.Module):
         self.eos = odim - 1
         self.pad = 0
         # NOTE: we reserve index:0 for <pad> although this is reserved for a blank class
-        # in ASR. However,
-        # blank labels are not used in NMT. To keep the vocabulary size,
+        # in ASR. However, blank labels are not used in MT.
+        # To keep the vocabulary size,
         # we use index:0 for padding instead of adding one more class.
 
         # subsample info
@@ -319,9 +314,9 @@ class E2E(MTInterface, torch.nn.Module):
         self.acc = None
 
     def init_like_fairseq(self):
-        """Initialize weight like fairseq.
+        """Initialize weight like Fairseq.
 
-        fairseq basically uses W, b, EmbedID.W ~ Uniform(-0.1, 0.1),
+        Fairseq basically uses W, b, EmbedID.W ~ Uniform(-0.1, 0.1),
         """
         uniform_init_parameters(self)
         # exceptions
@@ -336,8 +331,7 @@ class E2E(MTInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -346,17 +340,14 @@ class E2E(MTInterface, torch.nn.Module):
         hs_pad, hlens, _ = self.enc(self.dropout(self.embed(xs_pad)), ilens)
 
         # 3. attention loss
-        loss, acc, ppl = self.dec(hs_pad, hlens, ys_pad)
-        self.acc = acc
-        self.ppl = ppl
+        self.loss, self.acc, self.ppl = self.dec(hs_pad, hlens, ys_pad)
 
-        # 5. compute bleu
+        # 4. compute bleu
         if self.training or not self.report_bleu:
-            bleu = 0.0
+            self.bleu = 0.0
         else:
             lpz = None
 
-            bleus = []
             nbest_hyps = self.dec.recognize_beam_batch(
                 hs_pad,
                 torch.tensor(hlens),
@@ -366,6 +357,8 @@ class E2E(MTInterface, torch.nn.Module):
                 self.rnnlm,
             )
             # remove <sos> and <eos>
+            list_of_refs = []
+            hyps = []
             y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
@@ -378,24 +371,20 @@ class E2E(MTInterface, torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace(self.trans_args.blank, "")
                 seq_true_text = "".join(seq_true).replace(self.trans_args.space, " ")
 
-                bleu = (
-                    nltk.bleu_score.sentence_bleu([seq_true_text], seq_hat_text) * 100
-                )
-                bleus.append(bleu)
+                hyps += [seq_hat_text.split(" ")]
+                list_of_refs += [[seq_true_text.split(" ")]]
 
-            bleu = 0.0 if not self.report_bleu else sum(bleus) / len(bleus)
-
-        self.loss = loss
+            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, acc, ppl, bleu)
+            self.reporter.report(loss_data, self.acc, self.ppl, self.bleu)
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
 
     def target_language_biasing(self, xs_pad, ilens, ys_pad):
-        """Prepend target language IDs to source sentences for multilingual NMT.
+        """Prepend target language IDs to source sentences for multilingual MT.
 
         These tags are prepended in source/target sentences as pre-processing.
 
@@ -492,8 +481,7 @@ class E2E(MTInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad:
-            batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).

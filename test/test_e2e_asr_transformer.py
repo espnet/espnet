@@ -66,6 +66,8 @@ def make_arg(**kwargs):
         dunits=16,
         sym_space="<space>",
         sym_blank="<blank>",
+        transformer_decoder_selfattn_layer_type="selfattn",
+        transformer_encoder_selfattn_layer_type="selfattn",
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
@@ -73,6 +75,10 @@ def make_arg(**kwargs):
         report_wer=False,
         mtlalpha=0.0,
         lsm_weight=0.001,
+        wshare=4,
+        ldconv_encoder_kernel_length="21_23_25_27_29_31_33_35_37_39_41_43",
+        ldconv_decoder_kernel_length="11_13_15_17_19_21",
+        ldconv_usebias=False,
         char_list=["<blank>", "a", "e", "i", "o", "u"],
         ctc_type="warpctc",
     )
@@ -137,10 +143,51 @@ def test_transformer_mask(module):
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
+ldconv_lconv_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv",
+    transformer_encoder_selfattn_layer_type="lightconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv",
+    transformer_encoder_selfattn_layer_type="dynamicconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_lconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv2d",
+    transformer_encoder_selfattn_layer_type="lightconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv2d",
+    transformer_encoder_selfattn_layer_type="dynamicconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+
 @pytest.mark.parametrize(
     "module, model_dict",
     [
         ("pytorch", {}),
+        ("pytorch", ldconv_lconv_args),
+        ("pytorch", ldconv_dconv_args),
+        ("pytorch", ldconv_lconv2d_args),
+        ("pytorch", ldconv_dconv2d_args),
         ("pytorch", {"report_cer": True}),
         ("pytorch", {"report_wer": True}),
         ("pytorch", {"report_cer": True, "report_wer": True}),
@@ -152,6 +199,12 @@ def test_transformer_mask(module):
 def test_transformer_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
     model, x, ilens, y, data = prepare(module, args)
+
+    # check for pure CTC and pure Attention
+    if args.mtlalpha == 1:
+        assert model.decoder is None
+    elif args.mtlalpha == 0:
+        assert model.ctc is None
 
     # test beam search
     recog_args = argparse.Namespace(

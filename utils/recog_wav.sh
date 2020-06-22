@@ -126,11 +126,13 @@ function download_models () {
     if [ -z $models ]; then
         return
     fi
+
+    file_ext="tar.gz"
     case "${models}" in
-        "tedlium2.rnn.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
-        "tedlium2.rnn.v2") share_url="https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf" ;;
-        "tedlium2.transformer.v1") share_url="https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U" ;;
-        "tedlium3.transformer.v1") share_url="https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO" ;;
+        "tedlium2.rnn.v1") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe"; api=v1 ;;
+        "tedlium2.rnn.v2") share_url="https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf"; api=v1 ;;
+        "tedlium2.transformer.v1") share_url="https://drive.google.com/open?id=1cVeSOYY1twOfL9Gns7Z3ZDnkrJqNwPow" ;;
+        "tedlium3.transformer.v1") share_url="https://drive.google.com/open?id=1zcPglHAKILwVgfACoMWWERiyIquzSYuU" ;;
         "librispeech.transformer.v1") share_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" ;;
         "librispeech.transformer.v1.transformerlm.v1") share_url="https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p" ;;
         "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
@@ -139,7 +141,7 @@ function download_models () {
     esac
 
     if [ ! -e ${dir}/.complete ]; then
-        download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
+        download_from_google_drive.sh ${share_url} ${dir} ${file_ext}
         touch ${dir}/.complete
     fi
 }

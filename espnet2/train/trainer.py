@@ -139,8 +139,8 @@ class Trainer:
                 from apex import amp
             except ImportError:
                 logging.error(
-                    f"You need to install apex. "
-                    f"See https://github.com/NVIDIA/apex#linux"
+                    "You need to install apex. "
+                    "See https://github.com/NVIDIA/apex#linux"
                 )
 
         start_epoch = reporter.get_epoch() + 1
@@ -265,7 +265,7 @@ class Trainer:
                 torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
-                p = output_dir / f"latest.pth"
+                p = output_dir / "latest.pth"
                 if p.is_symlink() or p.exists():
                     p.unlink()
                 p.symlink_to(f"{iepoch}epoch.pth")
@@ -283,10 +283,10 @@ class Trainer:
                             p.symlink_to(f"{iepoch}epoch.pth")
                             _improved.append(f"{_phase}.{k}")
                 if len(_improved) == 0:
-                    logging.info(f"There are no improvements in this epoch")
+                    logging.info("There are no improvements in this epoch")
                 else:
                     logging.info(
-                        f"The best model has been updated: " + ", ".join(_improved)
+                        "The best model has been updated: " + ", ".join(_improved)
                     )
 
                 # 6. Remove the model files excluding n-best epoch and latest epoch
@@ -305,9 +305,7 @@ class Trainer:
                         p.unlink()
                         _removed.append(str(p))
                 if len(_removed) != 0:
-                    logging.info(
-                        f"The model files were removed: " + ", ".join(_removed)
-                    )
+                    logging.info("The model files were removed: " + ", ".join(_removed))
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
@@ -406,8 +404,8 @@ class Trainer:
                         from apex import amp
                     except ImportError:
                         logging.error(
-                            f"You need to install apex. "
-                            f"See https://github.com/NVIDIA/apex#linux"
+                            "You need to install apex. "
+                            "See https://github.com/NVIDIA/apex#linux"
                         )
 
                     with amp.scale_loss(loss, optimizers) as scaled_loss:
@@ -430,8 +428,11 @@ class Trainer:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), grad_clip
                 )
+                # PyTorch<=1.4, clip_grad_norm_ returns float value
+                if not isinstance(grad_norm, torch.Tensor):
+                    grad_norm = torch.tensor(grad_norm)
 
-                if not np.isfinite(grad_norm):
+                if not torch.isfinite(grad_norm):
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
                     )
