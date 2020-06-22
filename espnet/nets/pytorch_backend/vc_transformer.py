@@ -787,7 +787,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             hs = self.codebook(hs)
             hs = self.codebook.embedding(hs)
 
-
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             spembs = spemb.unsqueeze(0)

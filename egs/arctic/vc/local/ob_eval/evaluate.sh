@@ -33,9 +33,9 @@ fi
 set -euo pipefail
 
 # parse srcspk, trgspk and name
-srcspk=$(echo ${set_name} | awk -F"_" '{print $N1}')
-trgspk=$(echo ${set_name} | awk -F"_" '{print $N2}')
-name=$(echo ${set_name} | awk -F"_" '{print $N3}')
+srcspk=$(echo ${set_name} | awk -F"_" '{print $1}')
+trgspk=$(echo ${set_name} | awk -F"_" '{print $2}')
+name=$(echo ${set_name} | awk -F"_" '{print $3}')
     
 # Decide wavdir depending on vocoder
 if [ ! -z ${vocoder} ]; then
@@ -82,7 +82,7 @@ esac
 # ASR model download (librispeech)
 if [ ! -e ${asr_model_dir}/.complete ]; then
     mkdir -p ${asr_model_dir}
-    download_from_google_drive.sh ${asr_url} ${asr_model_dir} ".tar.gz"
+    download_from_google_drive_2.sh ${asr_url} ${asr_model_dir} ".tar.gz"
     touch ${asr_model_dir}/.complete
 fi
 echo "ASR model: ${asr_model_dir} exits."

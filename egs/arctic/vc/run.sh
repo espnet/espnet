@@ -32,31 +32,21 @@ train_config=
 decode_config=conf/decode.yaml
 
 # decoding related
-outdir=                 # In case not evaluation not executed together with decoding & synthesis stage
-model=                  # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint 
-voc=PWG                 # vocoder used (GL or PWG)
-voc_expdir=             # Note that this has to be set according to `trgspk`
-voc_checkpoint=         # If not specified, automatically set to the latest checkpoint 
-griffin_lim_iters=64    # The number of iterations of Griffin-Lim
-
-# normalization related
-src_cmvn=
-trg_cmvn=
-norm_name=
+outdir=                     # In case not evaluation not executed together with decoding & synthesis stage
+model=                      # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint 
+voc=PWG                     # vocoder used (GL or PWG)
+griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 
 # pretrained model related
-pretrained_model=           # requires full path
-enc_init_mods="encoder"
-dec_init_mods="decoder,postnet,feat_out,prob_out"
-
-# objective evaluation related
-eval_model=true                                # true: evaluate trained model, false: evaluate ground truth
+pretrained_model=           # available pretrained models: m_ailabs.judy.vtn_tts_pt
 
 # dataset configuration
 db_root=downloads
-srcspk=clb  # available speakers: "slt" "clb" "bdl" "rms"
+srcspk=clb                  # available speakers: "slt" "clb" "bdl" "rms"
 trgspk=slt
-num_train_utts=-1
+num_train_utts=-1           # -1: use all 932 utts
+norm_name=                  # used to specify normalized data.
+                            # Ex: `judy` for normalization with pretrained model, `self` for self-normalization
 
 # exp tag
 tag=""  # tag for managing experiments.
@@ -86,7 +76,16 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Pretrained Model Download"
     local/data_download.sh ${db_root} ${srcspk}
     local/data_download.sh ${db_root} ${trgspk}
-    # local/pretrained_model_download.sh ${db_root} ${pretrained_model}
+
+    # download pretrained model for training
+    if [ ! -z ${pretrained_model} ]; then
+        local/pretrained_model_download.sh ${db_root} ${pretrained_model}
+    fi
+    
+    # download pretrained PWG
+    if [ ${voc} == "PWG" ]; then
+        local/pretrained_model_download.sh ${db_root} pwg_${trgspk}
+    fi
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -98,13 +97,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     done
 fi
 
-# Usage:
-# --norm_name is always needed. It is used to specify features.
 if [ -z ${norm_name} ]; then
     echo "Please specify --norm_name ."
     exit 1
 fi
-
 src_feat_tr_dir=${dumpdir}/${src_train_set}_${norm_name}; mkdir -p ${src_feat_tr_dir}
 src_feat_dt_dir=${dumpdir}/${src_dev_set}_${norm_name}; mkdir -p ${src_feat_dt_dir}
 src_feat_ev_dir=${dumpdir}/${src_eval_set}_${norm_name}; mkdir -p ${src_feat_ev_dir}
@@ -150,14 +146,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         rm -rf data/${spk_org_set}_tmp
     done
         
-    # If cmvn not specified, calculate using training features.
-    # else, use specified cmvn.
-    if [ -z ${src_cmvn} ]; then
+    # If not using pretrained models statistics, calculate in a speaker-dependent way.
+    if [ ! -z ${pretrained_model} ]; then
+        src_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
+        trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
+    else
         compute-cmvn-stats scp:data/${src_train_set}/feats.scp data/${src_train_set}/cmvn.ark
-        src_cmvn=data/${src_train_set}/cmvn.ark
-    fi
-    if [ -z ${trg_cmvn} ]; then
         compute-cmvn-stats scp:data/${trg_train_set}/feats.scp data/${trg_train_set}/cmvn.ark
+        src_cmvn=data/${src_train_set}/cmvn.ark
         trg_cmvn=data/${trg_train_set}/cmvn.ark
     fi
     
@@ -234,11 +230,10 @@ fi
 
 # If pretrained model specified, add pretrained model info in config
 if [ ! -z ${pretrained_model} ]; then
+    pretrained_model_path=$(find ${db_root}/${pretrained_model} -name "snapshot*" | head -n 1)
     train_config="$(change_yaml.py \
-        -a enc-init="${pretrained_model}" \
-        -a enc-init-mods="${enc_init_mods}" \
-        -a dec-init="${pretrained_model}" \
-        -a dec-init-mods="${dec_init_mods}" \
+        -a enc-init="${pretrained_model_path}" \
+        -a dec-init="${pretrained_model_path}" \
         -o "conf/$(basename "${train_config}" .yaml).${tag}.yaml" "${train_config}")"
 fi
 if [ -z ${tag} ]; then
@@ -273,7 +268,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --config ${train_config}
 fi
 
-[ -z "${model}" ] && model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
+if [ -z "${model}" ]; then
+    model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
+    model=$(basename ${model})
+fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding and synthesis"
@@ -312,10 +310,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         
-        # If cmvn not specified, calculate using training features.
-        # else, use specified cmvn.
-        if [ -z ${trg_cmvn} ]; then
-            trg_cmvn=data/${trgspk}_train/cmvn.ark
+        # Normalization
+        # If not using pretrained models statistics, use statistics of target speaker
+        if [ ! -z ${pretrained_model} ]; then
+            trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
+        else
+            trg_cmvn=data/${trg_train_set}/cmvn.ark
         fi
         apply-cmvn --norm-vars=true --reverse=true ${trg_cmvn} \
             scp:${outdir}/${name}/feats.scp \
@@ -340,8 +340,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         elif [ ${voc} = "PWG" ]; then
             echo "Using Parallel WaveGAN vocoder."
 
+            # check existence
+            voc_expdir=${db_root}/pwg_${trgspk}
+            if [ ! -d ${voc_expdir} ]; then
+                echo "${voc_expdir} does not exist. Please download the pretrained model."
+                exit 1
+            fi
+
             # variable settings
-            [ -z "${voc_checkpoint}" ] && voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
+            voc_checkpoint="$(find "${voc_expdir}" -name "*.pkl" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
             voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
             voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
             wav_dir=${outdir}_denorm/${name}/pwg_wav
@@ -392,6 +399,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         local/ob_eval/evaluate.sh --nj ${nj} \
             --db_root ${db_root} \
             --vocoder ${voc} \
-            ${outdir} ${name} ${srcspk} ${trgspk}
+            ${outdir} ${name}
     done
 fi

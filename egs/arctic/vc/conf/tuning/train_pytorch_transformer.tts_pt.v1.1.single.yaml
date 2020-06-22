@@ -56,6 +56,8 @@ num-heads-applied-guided-attn: 2
 num-layers-applied-guided-attn: 2
 modules-applied-guided-attn: ["encoder-decoder"]
 guided-attn-loss-lambda: 10
+enc-init-mods: encoder
+dec-init-mods: decoder,postnet,feat_out,prob_out
 
 # optimization related
 opt: lamb
