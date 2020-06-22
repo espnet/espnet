@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
+from collections import OrderedDict
 from itertools import permutations
 
 import torch
@@ -33,8 +34,6 @@ class ESPnetFrontendModel(AbsESPnetModel):
     def forward(
             self,
             speech_mix: torch.Tensor,
-            speech_ref1: torch.Tensor,
-            speech_ref2: torch.Tensor,
             speech_mix_lengths: torch.Tensor,
             **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -45,8 +44,11 @@ class ESPnetFrontendModel(AbsESPnetModel):
             speech_ref: (Batch, num_speaker, samples)
             speech_lengths: (Batch,)
         """
+        # (Batch, num_speaker, samples)
+        speech_ref = torch.stack([
+            kwargs['speech_ref{}'.format(spk + 1)] for spk in range(self.num_spk)
+        ], dim=1)
         speech_lengths = speech_mix_lengths
-        speech_ref = torch.stack([speech_ref1, speech_ref2], dim=1)
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
         assert (

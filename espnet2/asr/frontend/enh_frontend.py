@@ -2,7 +2,6 @@ from typing import Tuple
 from typing import Union
 from typing import Dict
 
-import humanfriendly
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
@@ -45,7 +44,6 @@ class EnhFrontend(AbsFrontend):
         self.tf_factor = tf_factor
 
         self.enh_type = enh_type
-
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
         self.num_spk = self.enh_model.num_spk
         self.stft = self.enh_model.stft
@@ -54,15 +52,15 @@ class EnhFrontend(AbsFrontend):
         return self.bins
 
     def forward_rawwav(
-            self, input: torch.Tensor, input_lengths: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        predicted_wavs, ilens = self.enh_model.forward_rawwav(input, input_lengths)
+            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor
+    ):
+        predicted_wavs, ilens, masks = self.enh_model.forward_rawwav(speech_mix, speech_mix_lengths)
 
         return predicted_wavs, ilens, masks
 
     def forward(
             self, input: torch.Tensor, input_lengths: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ):
         """
         Args:
             input (torch.Tensor): raw wave input [batch, samples]
@@ -70,7 +68,7 @@ class EnhFrontend(AbsFrontend):
 
         Returns:
             enhanced spectrum: ComplexTensor, or List[ComplexTensor, ComplexTensor]
-                or enhanced magnitude spectrum: torch.Tensor or List[torch.Tensor]
+                or predicted magnitude spectrum: torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
                 'spk1': List[ComplexTensor(Batch, Frames, Channel, Freq)],
@@ -80,6 +78,7 @@ class EnhFrontend(AbsFrontend):
                 'noise': List[ComplexTensor(Batch, Frames, Channel, Freq)],
             ]
         """
+        # 1. Domain-conversion: e.g. Stft: time -> time-freq
 
         predicted_spectrums, flens, masks = self.enh_model(input, input_lengths)
 
