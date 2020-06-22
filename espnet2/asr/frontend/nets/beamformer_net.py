@@ -116,14 +116,14 @@ class BeamformerNet(torch.nn.Module):
 
         Returns:
             enhanced speech:
-                ComplexTensor, or List[ComplexTensor, ComplexTensor]
+                torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[ComplexTensor(Batch, Frames, Channel, Freq)],
-                'spk2': List[ComplexTensor(Batch, Frames, Channel, Freq)],
+                'spk1': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'spk2': List[torch.Tensor(Batch, Frames, Channel, Freq)],
                 ...
-                'spkn': List[ComplexTensor(Batch, Frames, Channel, Freq)],
-                'noise': List[ComplexTensor(Batch, Frames, Channel, Freq)],
+                'spkn': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'noise': List[torch.Tensor(Batch, Frames, Channel, Freq)],
             ]
         """
         # wave -> stft -> magnitude specturm
@@ -144,26 +144,36 @@ class BeamformerNet(torch.nn.Module):
                 if masks_w is not None:
                     for spk in range(self.num_spk):
                         masks.setdefault('spk{}'.format(spk + 1), []).append(masks_w[spk])
-            return enhanced, flens, masks
 
-        # multi-channel input
-        # 1. WPE
-        if self.use_wpe:
-            # (B, T, C, F)
-            enhanced, flens, masks_w = self.wpe(input_spectrum, flens)
-            if masks_w is not None:
+        elif input_spectrum.dim() == 4:
+            # multi-channel input
+            # 1. WPE
+            if self.use_wpe:
+                # (B, T, C, F)
+                enhanced, flens, masks_w = self.wpe(input_spectrum, flens)
+                if masks_w is not None:
+                    for spk in range(self.num_spk):
+                        masks.setdefault('spk{}'.format(spk + 1), []).append(masks_w[spk])
+
+            # 2. Beamformer
+            if self.use_beamformer:
+                # enhanced: (B, T, C, F) -> (B, T, F)
+                enhanced, flens, masks_b = self.beamformer(enhanced, flens)
                 for spk in range(self.num_spk):
-                    masks.setdefault('spk{}'.format(spk + 1), []).append(masks_w[spk])
+                    masks.setdefault('spk{}'.format(spk + 1), []).append(masks_b[spk])
+                if len(masks_b) > self.num_spk:
+                    masks.setdefault('noise', []).append(masks_b[-1])
+        else:
+            raise ValueError('Invalid spectrum dimension: {}'.format(input_spectrum.shape))
 
-        # 2. Beamformer
-        if self.use_beamformer:
-            # enhanced: (B, T, C, F) -> (B, T, F)
-            enhanced, flens, masks_b = self.beamformer(enhanced, flens)
-            for spk in range(self.num_spk):
-                masks.setdefault('spk{}'.format(spk + 1), []).append(masks_b[spk])
-            if len(masks_b) > self.num_spk:
-                masks.setdefault('noise', []).append(masks_b[-1])
-
+        # Convert ComplexTensor to torch.Tensor
+        # (B, T, F) -> (B, T, F, 2)
+        if isinstance(enhanced, list):
+            # multi-speaker input
+            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
+        else:
+            # single-speaker input
+            enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1)
         return enhanced, flens, masks
 
     def forward_rawwav(
@@ -179,16 +189,16 @@ class BeamformerNet(torch.nn.Module):
                 torch.Tensor(Batch, sample), or List[torch.Tensor(Batch, sample)]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[ComplexTensor],
-                'spk2': List[ComplexTensor],
+                'spk1': List[torch.Tensor],
+                'spk2': List[torch.Tensor],
                 ...
-                'spkn': List[ComplexTensor],
-                'noise': List[ComplexTensor],
+                'spkn': List[torch.Tensor],
+                'noise': List[torch.Tensor],
             ]
         """
         enhanced, flens, masks = self.forward(input, ilens)
         if isinstance(enhanced, list):
-            #  multi-speaker input
+            # multi-speaker input
             predicted_spectrums = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
             predicted_wavs = torch.stack([self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums], dim=1)
         else:

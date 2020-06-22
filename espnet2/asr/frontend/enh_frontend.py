@@ -67,15 +67,15 @@ class EnhFrontend(AbsFrontend):
             input_lengths (torch.Tensor): [batch]
 
         Returns:
-            enhanced spectrum: ComplexTensor, or List[ComplexTensor, ComplexTensor]
-                or predicted magnitude spectrum: torch.Tensor or List[torch.Tensor]
+            enhanced spectrum, or predicted magnitude spectrum:
+                torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[ComplexTensor(Batch, Frames, Channel, Freq)],
-                'spk2': List[ComplexTensor(Batch, Frames, Channel, Freq)],
+                'spk1': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'spk2': List[torch.Tensor(Batch, Frames, Channel, Freq)],
                 ...
-                'spkn': List[ComplexTensor(Batch, Frames, Channel, Freq)],
-                'noise': List[ComplexTensor(Batch, Frames, Channel, Freq)],
+                'spkn': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'noise': List[torch.Tensor(Batch, Frames, Channel, Freq)],
             ]
         """
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
