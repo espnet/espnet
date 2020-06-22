@@ -94,7 +94,7 @@ class NgramFullScorer(Ngrambase, BatchScorerInterface):
         )
         outstates = list()
         for i, (y, state, x) in enumerate(zip(ys, states, xs)):
-            score, outstate = self.score(y, state, x)
+            scores[i, :], outstate = self.score(y, state, x)
             outstates.append(outstate)
         return scores, outstates
 
