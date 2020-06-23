@@ -505,8 +505,16 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
+        # For transformer-transducer, adim declaration is within the block definition.
+        # Thus, we need to retrieve the most dominant value for Noam scheduler.
+        # "enc_out" is adim in the last layer of transformer encoder.
+        if hasattr(args, "enc_block_arch"):
+            adim = model.encoder.enc_out
+        else:
+            adim = args.adim
+
         optimizer = get_std_opt(
-            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
