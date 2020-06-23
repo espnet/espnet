@@ -60,12 +60,8 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Split all_${lang} into data/tr_${lang} data/dt_${lang} data/et_${lang}"
-    # remove utt having more than 200 characters or 0 characters
-    scripts/utils/remove_longshortdata.sh data/all_"${lang}" data/all_trim_"${lang}"
-
     # following split consider prompt duplication (but does not consider speaker overlap instead)
-    local/split_tr_dt_et.sh data/all_trim_"${lang}" data/tr_"${lang}" data/dt_"${lang}" data/et_"${lang}"
-    rm -r data/all_trim_"${lang}"
+    local/split_tr_dt_et.sh data/all_"${lang}" data/tr_"${lang}" data/dt_"${lang}" data/et_"${lang}"
 fi
 
 
