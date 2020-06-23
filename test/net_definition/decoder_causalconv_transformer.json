@@ -1,0 +1,14 @@
+[
+    {
+        "type": "causal-conv1d",
+        "idim": 2,
+        "odim": 8,
+        "kernel_size": 2
+    },
+    {
+        "type": "transformer",
+        "d_hidden": 8,
+        "d_ff": 8,
+        "heads": 2
+    }
+]

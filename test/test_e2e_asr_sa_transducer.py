@@ -4,6 +4,7 @@ import argparse
 import importlib
 import logging
 import numpy
+import os
 import pytest
 import torch
 
@@ -12,21 +13,22 @@ logging.basicConfig(
     format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
 
+config_root = os.path.dirname(os.path.abspath(__file__)) + "/net_definition/"
+
 
 def make_train_args(**kwargs):
     train_defaults = dict(
         transformer_init="pytorch",
-        transformer_input_layer="conv2d",
-        transformer_dec_input_layer="embed",
         etype="transformer",
-        elayers=2,
-        eunits=16,
+        transformer_enc_input_layer="conv2d",
+        enc_block_arch=config_root + "encoder_transformer.json",
+        enc_block_repeat=1,
         dtype="transformer",
-        dlayers=2,
-        dunits=16,
-        adim=16,
-        aheads=2,
+        transformer_dec_input_layer="embed",
+        dec_block_arch=config_root + "decoder_transformer.json",
+        dec_block_repeat=1,
         dropout_rate=0.0,
+        dropout_rate_embed_decoder=0.0,
         dropout_rate_decoder=0.0,
         transformer_attn_dropout_rate_encoder=0.0,
         transformer_attn_dropout_rate_decoder=0.0,
@@ -171,16 +173,30 @@ def test_sa_transducer_mask(module):
     "train_dic, recog_dic",
     [
         ({}, {}),
+        ({"enc_block_arch": config_root + "encoder_tdnn_transformer.json"}, {}),
+        ({"dec_block_arch": config_root + "decoder_causalconv_transformer.json"}, {}),
+        ({"enc_repeat_block": 2}, {}),
+        ({"dec_repeat_block": 2}, {}),
+        (
+            {
+                "enc_block_arch": config_root + "encoder_tdnn_transformer.json",
+                "enc_repeat_block": 2,
+            },
+            {},
+        ),
+        (
+            {
+                "dec_block_arch": config_root + "decoder_causalconv_transformer.json",
+                "dec_repeat_block": 2,
+            },
+            {},
+        ),
         ({}, {"beam_size": 4}),
-        ({}, {"beam_size": 4, "nbest": 4}),
+        ({}, {"beam_size": 4, "nbest": 2}),
         ({}, {"beam_size": 5, "score_norm_transducer": False}),
         ({"num_save_attention": 1}, {}),
         ({"dropout_rate_encoder": 0.1, "dropout_rate_decoder": 0.1}, {}),
-        ({"eunits": 16, "elayers": 2, "joint_dim": 2}, {}),
-        (
-            {"adim": 16, "aheads": 2, "transformer_attn_dropout_rate_encoder": 0.2},
-            {"beam_size": 3},
-        ),
+        ({"transformer_input_layer": "vgg2l"}, {}),
         (
             {
                 "transformer_attn_dropout_rate_encoder": 0.2,
@@ -188,25 +204,11 @@ def test_sa_transducer_mask(module):
             },
             {},
         ),
-        (
-            {"dlayers": 2, "dunits": 16, "joint_dim": 3},
-            {"score_norm_transducer": False},
-        ),
-        ({"transformer_input_layer": "vgg2l"}, {}),
-        (
-            {
-                "transformer_input_layer": "vgg2l",
-                "eunits": 8,
-                "adim": 4,
-                "joint_dim": 2,
-            },
-            {},
-        ),
-        ({"report_cer": True, "beam_size": 1}, {}),
-        ({"report_wer": True, "beam_size": 1}, {}),
+        ({"report_cer": True}, {}),
+        ({"report_wer": True}, {}),
         ({"report_cer": True, "beam_size": 2}, {}),
         ({"report_wer": True, "beam_size": 2}, {}),
-        ({"report_cer": True, "report_wer": True, "beam_size": 1}, {}),
+        ({"report_cer": True, "report_wer": True, "beam_suze": 2}, {}),
         ({"report_wer": True, "report_wer": True, "score_norm_transducer": False}, {}),
     ],
 )

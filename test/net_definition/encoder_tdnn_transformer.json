@@ -1,0 +1,16 @@
+[
+    {
+        "type": "tdnn",
+        "idim": 8,
+        "odim": 8,
+        "ctx_size": 1,
+        "dilation": 1,
+        "stride": 1
+    },
+    {
+        "type": "transformer",
+        "d_hidden": 8,
+        "d_ff": 8,
+        "heads": 2
+    }
+]
