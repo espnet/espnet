@@ -13,6 +13,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from torch_complex.tensor import ComplexTensor
+from functools import reduce
 
 
 class ESPnetFrontendModel(AbsESPnetModel):
@@ -30,6 +31,43 @@ class ESPnetFrontendModel(AbsESPnetModel):
         self.num_spk = frontend.num_spk
         self.fs = frontend.fs
         self.tf_factor = frontend.tf_factor
+        self.mask_type = frontend.mask_type
+
+    def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
+        """
+        :param mix_spec: ComplexTensor(B, T, F)
+        :param ref_spec: [ComplexTensor(B, T, F), ...] or ComplexTensor(B, T, F)
+        :param noise_spec: ComplexTensor(B, T, F)
+        :return: [Tensor(B, T, F), ...] or [ComplexTensor(B, T, F), ...]
+        """
+
+        assert mask_type in ["IBM", "IRM", "IAM", "PSM", "NPSM", "ICM"], f"mask type {mask_type} not supported"
+        eps = 10 - 8
+        mask_label = []
+        for r in ref_spec:
+            mask = None
+            if mask_type == "IBM":
+                flags = [abs(r) >= abs(n) for n in ref_spec]
+                mask = reduce(lambda x, y: x * y, flags)
+                mask = mask.int()
+            elif mask_type == "IRM":
+                mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
+            elif mask_type == "IAM":
+                mask = (abs(r)) / (abs(mix_spec) + eps)
+                mask = mask.clamp(min=0, max=1)
+            elif mask_type == "PSM" or mask_type == "NPSM":
+                phase_r = r / (abs(r) + eps)
+                phase_mix = mix_spec / (abs(mix_spec) + eps)
+                cos_theta = phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                mask = (abs(r) / (abs(mix_spec) + eps)) * cos_theta
+                mask = mask.clamp(min=0, max=1) if mask_label == "NPSM" else mask.clamp(min=-1, max=1)
+            elif mask_type == "ICM":
+                mask = r / (mix_spec + eps)
+                mask.real = mask.real.clamp(min=-1, max=1)
+                mask.imag = mask.imag.clamp(min=-1, max=1)
+            assert mask is not None, f"mask type {mask_type} not supported"
+            mask_label.append(mask)
+        return mask_label
 
     def forward(
             self,
@@ -63,19 +101,23 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         if self.tf_factor:
-            # prepare reference speech and reference magnitude
+            # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
-            magnitude_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
-            magnitude_ref = [abs(ComplexTensor(mr[..., 0], mr[..., 1])) for mr in magnitude_ref]
+            sepctrum_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
+            sepctrum_ref = [ComplexTensor(sr[..., 0], sr[..., 1]) for sr in sepctrum_ref]
+            sepctrum_mix = self.frontend.stft(speech_mix)[0]
+            sepctrum_mix = ComplexTensor(sepctrum_mix[..., 0], sepctrum_mix[..., 1])
+
+            # prepare ideal masks
+            mask_ref = self._create_mask_label(sepctrum_mix, sepctrum_ref, mask_type=self.mask_type)
 
             # predict separated speech and separated magnitude
-            speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
-            magnitude_pre, tf_length = self.frontend(speech_mix, speech_lengths)
-            magnitude_pre = torch.unbind(magnitude_pre, dim=1)
-            speech_pre = torch.unbind(speech_pre, dim=1)
+            spectrum_pre, tf_length, mask_pre = self.frontend(speech_mix, speech_lengths)
 
             # compute TF masking loss
-            tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
+            tf_loss, perm = self._permutation_loss(mask_ref, mask_pre, self.tf_l1_loss)
+
+            speech_pre = [self.frontend.stft.inverse(ps, speech_lengths)[0] for ps in spectrum_pre]
 
             # compute si-snr loss
             si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
@@ -152,11 +194,10 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 [criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
             ) / len(permutation)
 
+        losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
         if perm == None:
-            losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
             loss, perm = torch.min(losses, dim=1)
         else:
-            losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
             loss = losses[torch.arange(losses.shape[0]), perm]
             pass
 

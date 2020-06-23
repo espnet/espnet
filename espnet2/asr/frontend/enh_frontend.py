@@ -29,7 +29,8 @@ class EnhFrontend(AbsFrontend):
     def __init__(
             self,
             enh_type: str = 'tf_maksing',
-            fs: Union[int, str] = 16000,
+            mask_type="IRM",
+            fs: int = 16000,
             tf_factor: float = 0.5,
             enh_conf: Dict = None,
     ):
@@ -42,6 +43,7 @@ class EnhFrontend(AbsFrontend):
         self.tf_factor = tf_factor
 
         self.enh_type = enh_type
+        self.mask_type = mask_type
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
         self.num_spk = self.enh_model.num_spk
         self.stft = self.enh_model.stft

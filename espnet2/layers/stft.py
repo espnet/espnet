@@ -3,6 +3,7 @@ from typing import Tuple
 
 import torch
 from typeguard import check_argument_types
+from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -49,7 +50,7 @@ class Stft(torch.nn.Module, InversibleInterface):
         )
 
     def forward(
-        self, input: torch.Tensor, ilens: torch.Tensor = None
+            self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """STFT forward function.
 
@@ -116,26 +117,27 @@ class Stft(torch.nn.Module, InversibleInterface):
         return output, olens
 
     def inverse(
-        self, input: torch.Tensor, ilens: torch.Tensor = None
+            self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """
 
-        :param input: (batch, T, F, 2)
+        :param input: Tensor (batch, T, F, 2) or ComplexTensor (batch, T, F)
         :param ilens:
         :return:
         """
-
+        if isinstance(input, ComplexTensor):
+            input = torch.stack([input.real, input.imag], dim=-1)
         assert input.shape[-1] == 2
         input = input.transpose(1, 2)
 
         wavs = torchaudio.functional.istft(input,
-                                    n_fft=self.n_fft,
-                                    hop_length=self.hop_length,
-                                    win_length=self.win_length,
-                                    center = self.center,
-                                    pad_mode=self.pad_mode,
-                                    normalized=self.normalized,
-                                    onesided=self.onesided,
-                                    length=ilens.max())
+                                           n_fft=self.n_fft,
+                                           hop_length=self.hop_length,
+                                           win_length=self.win_length,
+                                           center=self.center,
+                                           pad_mode=self.pad_mode,
+                                           normalized=self.normalized,
+                                           onesided=self.onesided,
+                                           length=ilens.max())
 
         return wavs, ilens
