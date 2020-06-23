@@ -335,3 +335,17 @@ class Decoder(torch.nn.Module):
             ]
 
         return nbest_hyps
+
+    def recognize_beam_nsc(self, h, recog_args, rnnlm=None):
+        """Beam search implementation.
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language model module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        raise NotImplementedError
