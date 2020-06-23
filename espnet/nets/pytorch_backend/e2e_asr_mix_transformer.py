@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-# Copyright 2019 Shigeki Karita
+# Copyright 2020 Johns Hopkins University (Xuankai Chang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Transformer speech recognition model (pytorch)."""
+"""
+Transformer speech recognition model for single-channel multi-speaker mixture speech.
+
+It is a fusion of `e2e_asr_mix.py` and `e2e_asr_transformer.py`. Refer to:
+    https://arxiv.org/pdf/2002.03921.pdf
+1. The Transformer-based Encoder now consists of three stages:
+     (a): Enc_mix: encoding input mixture speech;
+     (b): Enc_SD: separating mixed speech representations;
+     (c): Enc_rec: transforming each separated speech representation.
+2. PIT is used in CTC to determine the permutation with minimum loss.
+"""
 
 from argparse import Namespace
 import logging
