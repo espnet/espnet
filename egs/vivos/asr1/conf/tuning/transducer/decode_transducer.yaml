@@ -1,6 +1,6 @@
 # decoding parameters
 batch: 0
-beam-size: 10
+beam-size: 10 # can be lowered for NSC
 score-norm-transducer: True
 search-type: default
 ## NSC beam search
