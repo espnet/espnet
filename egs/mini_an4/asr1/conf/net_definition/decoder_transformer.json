@@ -1,0 +1,8 @@
+[
+    {
+        "type": "transformer",
+        "d_hidden": 32,
+        "d_ff": 30,
+        "heads": 4
+    }
+]

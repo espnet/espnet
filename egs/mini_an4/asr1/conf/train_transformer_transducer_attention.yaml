@@ -17,16 +17,12 @@ transformer-warmup-steps: 10
 # network architecture
 ## encoder related
 etype: transformer
-elayers: 2
-eunits: 32
-subsample: "1_2_2_1_1"
+enc-block-arch: conf/net_definition/encoder_transformer.json
+enc-block-repeat: 2
 ## decoder related
 dtype: transformer
-dlayers: 1
-dunits: 30
-## attention related
-adim: 32
-aheads: 2
+dec-block-arch: conf/net_definition/decoder_transformer.json
+dec-block-repeat: 1
 ## joint network related
 joint-dim: 30
 
