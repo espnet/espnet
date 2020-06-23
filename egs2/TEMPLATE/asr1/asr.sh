@@ -40,9 +40,11 @@ local_data_opts= # The options given to local/data.sh.
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
-feats_type=raw    # Feature type (raw or fbank_pitch).
-audio_format=flac # Audio format (only in feats_type=raw).
-fs=16k            # Sampling rate.
+feats_type=raw         # Feature type (raw or fbank_pitch).
+audio_format=flac      # Audio format (only in feats_type=raw).
+fs=16k                 # Sampling rate.
+min_wav_duration=0.1   # Minimum duration in second
+max_wav_duration=20    # Maximum duration in second
 
 # Tokenization related
 token_type=bpe      # Tokenization type (char or bpe).
@@ -123,9 +125,11 @@ Options:
     --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
-    --fs           # Sampling rate (default="${fs}").
+    --feats_type      # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
+    --audio_format    # Audio format (only in feats_type=raw, default="${audio_format}").
+    --fs              # Sampling rate (default="${fs}").
+    --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
+    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Tokenization related
     --token_type              # Tokenization type (char or bpe, default="${token_type}").
@@ -407,7 +411,7 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
+    log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
 
@@ -418,22 +422,39 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            min_length=2560
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             <"${data_feats}/org/${dset}/utt2num_samples" \
-                awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}/utt2num_samples"
+                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                    >"${data_feats}/${dset}/utt2num_samples"
             <"${data_feats}/org/${dset}/wav.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
         else
-            min_length=10
+            # Get frame shift in ms from conf/fbank.conf
+            _frame_shift=
+            if [ -f conf/fbank.conf ] && [ "$(<conf/fbank.conf grep -c frame-shift)" -gt 0 ]; then
+                # Assume using conf/fbank.conf for feature extraction
+                _frame_shift="$(<conf/fbank.conf grep frame-shift | sed -e 's/[-a-z =]*\([0-9]*\)/\1/g')"
+            fi
+            if [ -z "${_frame_shift}" ]; then
+                # If not existing, use the default number in Kaldi (=10ms).
+                # If you are using different number, you have to change the following value manually.
+                _frame_shift=10
+            fi
+
+            _min_length=$(python3 -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
 
             cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
             <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
-                | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}/feats_shape"
+                | awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length) print $0; }' \
+                    >"${data_feats}/${dset}/feats_shape"
             <"${data_feats}/org/${dset}/feats.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
                 >"${data_feats}/${dset}/feats.scp"
