@@ -1,24 +1,16 @@
 """Decoder definition for transformer-transducer models."""
 
-import six
 import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
-from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
-    DecoderLayer,  # noqa: H301
-)
+from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class Decoder(torch.nn.Module):
@@ -26,17 +18,20 @@ class Decoder(torch.nn.Module):
 
     Args:
         odim (int): dimension of outputs
+        edim (int): dimension of encoder outputs
         jdim (int): dimension of joint-space
-        attention_dim (int): dimension of attention
-        attention_heads (int): number of heads in multi-head attention
-        linear_units (int): number of units in position-wise feed forward
-        num_blocks (int): number of decoder blocks
-        dropout_rate (float): dropout rate for decoder
-        positional_dropout_rate (float): dropout rate for positional encoding
-        attention_dropout_rate (float): dropout rate for attention
-        input_layer (str or torch.nn.Module): input layer type
-        padding_idx (int): padding value for embedding
+        dec_arch (List[dict]): list of layer definitions
+        input_layer (str): input layer type
+        repeat_block (int): if N > 1, repeat block N times
         pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
+        positionwise_layer_type (str): linear of conv1d
+        positionwise_conv_kernel_size (int) : kernel size of positionwise conv1d layer
+        dropout_rate_embed (float): dropout rate for embedding layer
+        dropout_rate (float): dropout rate
+        attention_dropout_rate (float): dropout rate in attention
+        positional_dropout_rate (float): dropout rate after adding positional encoding
+        use_glu (bool): wheter to use GLU in joint network
+        normalize_before (bool): whether to use layer_norm before the first block
         blank (int): blank symbol ID
 
     """
@@ -44,60 +39,49 @@ class Decoder(torch.nn.Module):
     def __init__(
         self,
         odim,
+        edim,
         jdim,
-        attention_dim=512,
-        attention_heads=4,
-        linear_units=2048,
-        num_blocks=6,
-        dropout_rate=0.1,
+        dec_arch,
+        input_layer="embed",
+        repeat_block=0,
+        pos_enc_class=PositionalEncoding,
+        positionwise_layer_type="linear",
+        positionwise_conv_kernel_size=1,
+        dropout_rate_embed=0.0,
+        dropout_rate=0.0,
         positional_dropout_rate=0.0,
         attention_dropout_rate=0.0,
-        input_layer="embed",
-        pos_enc_class=PositionalEncoding,
+        normalize_before=True,
         blank=0,
     ):
         """Construct a Decoder object for transformer-transducer models."""
         torch.nn.Module.__init__(self)
 
-        if input_layer == "embed":
-            self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(odim, attention_dim),
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
-        elif input_layer == "linear":
-            self.embed = torch.nn.Sequential(
-                torch.nn.Linear(odim, attention_dim),
-                torch.nn.LayerNorm(attention_dim),
-                torch.nn.Dropout(dropout_rate),
-                torch.nn.ReLU(),
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
-        elif isinstance(input_layer, torch.nn.Module):
-            self.embed = torch.nn.Sequential(
-                input_layer, pos_enc_class(attention_dim, positional_dropout_rate)
-            )
-        else:
-            raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
-
-        self.decoders = repeat(
-            num_blocks,
-            lambda lnum: DecoderLayer(
-                attention_dim,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
-                ),
-                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate,
-            ),
+        self.embed, self.decoders, ddim = build_blocks(
+            odim,
+            input_layer,
+            dec_arch,
+            repeat_block=repeat_block,
+            pos_enc_class=pos_enc_class,
+            positionwise_layer_type=positionwise_layer_type,
+            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+            dropout_rate_embed=dropout_rate_embed,
+            dropout_rate=dropout_rate,
+            positional_dropout_rate=positional_dropout_rate,
+            att_dropout_rate=attention_dropout_rate,
+            padding_idx=blank,
         )
 
-        self.after_norm = LayerNorm(attention_dim)
+        self.normalize_before = normalize_before
 
-        self.lin_enc = torch.nn.Linear(attention_dim, jdim)
-        self.lin_dec = torch.nn.Linear(attention_dim, jdim, bias=False)
+        if self.normalize_before:
+            self.after_norm = LayerNorm(ddim)
+
+        self.lin_enc = torch.nn.Linear(edim, jdim)
+        self.lin_dec = torch.nn.Linear(ddim, jdim, bias=False)
+
         self.lin_out = torch.nn.Linear(jdim, odim)
 
-        self.attention_dim = attention_dim
         self.odim = odim
 
         self.blank = blank
@@ -295,7 +279,7 @@ class Decoder(torch.nn.Module):
                         new_hyp["lm_state"], ys[:, -1]
                     )
 
-                for k in six.moves.range(self.odim):
+                for k in range(self.odim):
                     beam_hyp = {
                         "score": new_hyp["score"] + float(ytu[k]),
                         "yseq": new_hyp["yseq"][:],

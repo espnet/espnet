@@ -1,6 +1,7 @@
 """Transducer speech recognition model (pytorch)."""
 
 from distutils.util import strtobool
+import json
 import logging
 import math
 
@@ -9,21 +10,24 @@ from chainer import reporter
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
+
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.mask import target_mask
+
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_decoders import decoder_for
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import Decoder
+from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
-from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class Reporter(chainer.Chain):
@@ -85,6 +89,13 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Type of encoder network architecture",
         )
         group.add_argument(
+            "--dropout-rate",
+            default=0.0,
+            type=float,
+            help="Dropout rate for the encoder",
+        )
+        # Encoder - RNN
+        group.add_argument(
             "--elayers",
             default=4,
             type=int,
@@ -99,13 +110,6 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Number of encoder hidden units",
         )
         group.add_argument(
-            "--dropout-rate",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the encoder",
-        )
-        # Encoder - RNN
-        group.add_argument(
             "--eprojs", default=320, type=int, help="Number of encoder projection units"
         )
         group.add_argument(
@@ -115,7 +119,32 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Subsample input frames x_y_z means subsample every x frame "
             "at 1st layer, every y frame at 2nd layer etc.",
         )
-        # Attention - general
+        # Encoder - Transformer
+        group.add_argument(
+            "--enc-block-arch",
+            default=None,
+            help="JSON file containing encoder architecture definition",
+        )
+        group.add_argument(
+            "--enc-block-repeat",
+            default=0,
+            type=int,
+            help="If value is greater than 1, repeat N times the provided block",
+        )
+        group.add_argument(
+            "--transformer-enc-input-layer",
+            type=str,
+            default="conv2d",
+            choices=["conv2d", "vgg2l", "linear", "embed"],
+            help="transformer encoder input layer type",
+        )
+        group.add_argument(
+            "--transformer-attn-dropout-rate-encoder",
+            default=0.0,
+            type=float,
+            help="dropout in transformer decoder attention.",
+        )
+        # Attention - RNN
         group.add_argument(
             "--adim",
             default=320,
@@ -128,19 +157,6 @@ class E2E(ASRInterface, torch.nn.Module):
             type=int,
             help="Number of heads for multi head attention",
         )
-        group.add_argument(
-            "--transformer-attn-dropout-rate-encoder",
-            default=0.0,
-            type=float,
-            help="dropout in transformer decoder attention.",
-        )
-        group.add_argument(
-            "--transformer-attn-dropout-rate-decoder",
-            default=0.0,
-            type=float,
-            help="dropout in transformer decoder attention.",
-        )
-        # Attention - RNN
         group.add_argument(
             "--atype",
             default="location",
@@ -187,16 +203,16 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Type of decoder to use.",
         )
         group.add_argument(
-            "--dlayers", default=1, type=int, help="Number of decoder layers"
-        )
-        group.add_argument(
-            "--dunits", default=320, type=int, help="Number of decoder hidden units"
-        )
-        group.add_argument(
             "--dropout-rate-decoder",
             default=0.0,
             type=float,
             help="Dropout rate for the decoder",
+        )
+        group.add_argument(
+            "--dropout-rate-embed-decoder",
+            default=0.0,
+            type=float,
+            help="Dropout rate for the decoder embeddings",
         )
         # Decoder - RNN
         group.add_argument(
@@ -206,10 +222,35 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Number of decoder embeddings dimensions",
         )
         group.add_argument(
-            "--dropout-rate-embed-decoder",
+            "--dlayers", default=1, type=int, help="Number of decoder layers"
+        )
+        group.add_argument(
+            "--dunits", default=320, type=int, help="Number of decoder hidden units"
+        )
+        # Decoder - Transformer
+        group.add_argument(
+            "--dec-block-arch",
+            default=None,
+            help="JSON file containing encoder architecture definition",
+        )
+        group.add_argument(
+            "--dec-block-repeat",
+            default=0,
+            type=int,
+            help="If value is greater than 1, repeat N times the provided block",
+        )
+        group.add_argument(
+            "--transformer-dec-input-layer",
+            type=str,
+            default="embed",
+            choices=["linear", "embed"],
+            help="transformer decoder input layer type",
+        )
+        group.add_argument(
+            "--transformer-attn-dropout-rate-decoder",
             default=0.0,
             type=float,
-            help="Dropout rate for the decoder embeddings",
+            help="dropout in transformer decoder attention.",
         )
         # Transformer
         group.add_argument(
@@ -230,20 +271,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 "kaiming_normal",
             ],
             help="how to initialize transformer parameters",
-        )
-        group.add_argument(
-            "--transformer-input-layer",
-            type=str,
-            default="conv2d",
-            choices=["conv2d", "vgg2l", "linear", "embed"],
-            help="transformer encoder input layer type",
-        )
-        group.add_argument(
-            "--transformer-dec-input-layer",
-            type=str,
-            default="embed",
-            choices=["linear", "embed"],
-            help="transformer decoder input layer type",
         )
         group.add_argument(
             "--transformer-lr",
@@ -293,19 +320,26 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         torch.nn.Module.__init__(self)
 
-        # fill missing arguments for compatibility
-        args = fill_missing_args(args, self.add_arguments)
+        # # fill missing arguments for compatibility
+        # args = fill_missing_args(args, self.add_arguments)
 
-        if args.etype == "transformer":
+        if "transformer" in args.etype:
+            if args.enc_block_arch is not None:
+                with open(args.enc_block_arch) as config:
+                    enc_arch = json.load(config)
+            else:
+                logging.warning(
+                    "Transformer-based blocks in transducer mode are"
+                    "defined through a JSON file for customization"
+                )
+
             self.subsample = get_subsample(args, mode="asr", arch="transformer")
 
             self.encoder = Encoder(
-                idim=idim,
-                attention_dim=args.adim,
-                attention_heads=args.aheads,
-                linear_units=args.eunits,
-                num_blocks=args.elayers,
-                input_layer=args.transformer_input_layer,
+                idim,
+                enc_arch,
+                input_layer=args.transformer_enc_input_layer,
+                repeat_block=args.enc_block_repeat,
                 dropout_rate=args.dropout_rate,
                 positional_dropout_rate=args.dropout_rate,
                 attention_dropout_rate=args.transformer_attn_dropout_rate_encoder,
@@ -315,22 +349,31 @@ class E2E(ASRInterface, torch.nn.Module):
 
             self.enc = encoder_for(args, idim, self.subsample)
 
-        if args.dtype == "transformer":
+        if "transformer" in args.dtype:
+            if args.dec_block_arch is not None:
+                with open(args.dec_block_arch) as config:
+                    dec_arch = json.load(config)
+            else:
+                logging.warning(
+                    "Transformer blocks in transducer mode are defined"
+                    "using a JSON file for customization"
+                )
+
             self.decoder = Decoder(
-                odim=odim,
-                jdim=args.joint_dim,
-                attention_dim=args.adim,
-                attention_heads=args.aheads,
-                linear_units=args.dunits,
-                num_blocks=args.dlayers,
+                odim,
+                self.encoder.enc_out,
+                args.joint_dim,
+                dec_arch,
                 input_layer=args.transformer_dec_input_layer,
+                repeat_block=args.dec_block_repeat,
+                dropout_rate_embed=args.dropout_rate_embed_decoder,
                 dropout_rate=args.dropout_rate_decoder,
                 positional_dropout_rate=args.dropout_rate_decoder,
                 attention_dropout_rate=args.transformer_attn_dropout_rate_decoder,
             )
         else:
-            if args.etype == "transformer":
-                args.eprojs = args.adim
+            if "transformer" in args.etype:
+                args.eprojs = self.encoder.enc_out
 
             if args.rnnt_mode == "rnnt-att":
                 self.att = att_for(args)
@@ -351,7 +394,6 @@ class E2E(ASRInterface, torch.nn.Module):
         self.blank = args.sym_blank
 
         self.odim = odim
-        self.adim = args.adim
 
         self.reporter = Reporter()
 
@@ -390,7 +432,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         """
         # 1. encoder
-        if self.etype == "transformer":
+        if "transformer" in self.etype:
             xs_pad = xs_pad[:, : max(ilens)]
             src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
 
@@ -403,7 +445,7 @@ class E2E(ASRInterface, torch.nn.Module):
         ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
 
         # 2. decoder
-        if self.dtype == "transformer":
+        if "transformer" in self.dtype:
             ys_mask = target_mask(ys_in_pad, self.blank_id)
             pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad)
         else:
@@ -484,13 +526,13 @@ class E2E(ASRInterface, torch.nn.Module):
             y (list): n-best decoding results
 
         """
-        if self.etype == "transformer":
+        if "transformer" in self.etype:
             h = self.encode_transformer(x)
         else:
             h = self.encode_rnn(x)
         params = [h, recog_args]
 
-        if self.dtype == "transformer":
+        if "transformer" in self.dtype:
             decoder = self.decoder
         else:
             decoder = self.dec
@@ -525,14 +567,14 @@ class E2E(ASRInterface, torch.nn.Module):
 
         """
         if (
-            self.etype == "transformer"
-            and self.dtype != "transformer"
+            "transformer" in self.etype
+            and "transformer" not in self.dtype
             and self.rnnt_mode == "rnnt-att"
         ):
             raise NotImplementedError(
                 "Transformer encoder with rnn attention decoder" "is not supported yet."
             )
-        elif self.etype != "transformer" and self.dtype != "transformer":
+        elif "transformer" not in self.etype and "transformer" not in self.dtype:
             if self.rnnt_mode == "rnnt":
                 return []
             else:
