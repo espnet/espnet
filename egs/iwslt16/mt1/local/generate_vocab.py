@@ -6,28 +6,30 @@
 format: token + whitespace + index
 """
 import argparse
-import fileinput
 from collections import defaultdict
+import fileinput
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='generate vocabulary')
-    parser.add_argument('--input', '-i', default=None, help='files to read, if empty, stdin is used')
+    parser = argparse.ArgumentParser(description="generate vocabulary")
+    parser.add_argument(
+        "--input", "-i", default=None, help="files to read, if empty, stdin is used"
+    )
     args = parser.parse_args()
     return args
 
 
 def main(args):
     vocab = defaultdict(lambda: len(vocab) + 1)
-    vocab['<unk>']
+    vocab["<unk>"]
     for line in fileinput.input(args.input):
         tokens = line.strip().split()
         for token in tokens:
             vocab[token]
-    vocab['<eos>']
+    vocab["<eos>"]
 
     for key, value in sorted(vocab.items(), key=lambda x: x[1]):
-        print('{} {}'.format(key, value))
+        print("{} {}".format(key, value))
 
 
 if __name__ == "__main__":

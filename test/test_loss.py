@@ -14,20 +14,21 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 
-@pytest.mark.parametrize('use_warpctc', [True, False])
-@pytest.mark.parametrize('in_length,out_length',
-                         [([11, 17, 15], [4, 2, 3]),
-                          ([4], [1])])
+@pytest.mark.parametrize("use_warpctc", [True, False])
+@pytest.mark.parametrize(
+    "in_length,out_length", [([11, 17, 15], [4, 2, 3]), ([4], [1])]
+)
 def test_ctc_loss(in_length, out_length, use_warpctc):
     pytest.importorskip("torch")
     if use_warpctc:
         pytest.importorskip("warpctc_pytorch")
         import warpctc_pytorch
+
         torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
     else:
-        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+        if LooseVersion(torch.__version__) < LooseVersion("1.0"):
             pytest.skip("pytorch < 1.0 doesn't support CTCLoss")
-        _ctcloss_sum = torch.nn.CTCLoss(reduction='sum')
+        _ctcloss_sum = torch.nn.CTCLoss(reduction="sum")
 
         def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
             th_pred = th_pred.log_softmax(2)
@@ -39,19 +40,22 @@ def test_ctc_loss(in_length, out_length, use_warpctc):
     n_out = 7
     input_length = numpy.array(in_length, dtype=numpy.int32)
     label_length = numpy.array(out_length, dtype=numpy.int32)
-    np_pred = [numpy.random.rand(il, n_out).astype(
-        numpy.float32) for il in input_length]
-    np_target = [numpy.random.randint(
-        0, n_out, size=ol, dtype=numpy.int32) for ol in label_length]
+    np_pred = [
+        numpy.random.rand(il, n_out).astype(numpy.float32) for il in input_length
+    ]
+    np_target = [
+        numpy.random.randint(0, n_out, size=ol, dtype=numpy.int32)
+        for ol in label_length
+    ]
 
     # NOTE: np_pred[i] seems to be transposed and used axis=-1 in e2e_asr.py
     ch_pred = F.separate(F.pad_sequence(np_pred), axis=-2)
     ch_target = F.pad_sequence(np_target, padding=-1)
     ch_loss = F.connectionist_temporal_classification(
-        ch_pred, ch_target, 0, input_length, label_length).data
+        ch_pred, ch_target, 0, input_length, label_length
+    ).data
 
-    th_pred = pad_list([torch.from_numpy(x)
-                        for x in np_pred], 0.0).transpose(0, 1)
+    th_pred = pad_list([torch.from_numpy(x) for x in np_pred], 0.0).transpose(0, 1)
     th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
     th_olen = torch.from_numpy(label_length)
@@ -64,13 +68,16 @@ def test_attn_loss():
     _eos = n_out - 1
     n_batch = 3
     label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
-    np_pred = numpy.random.rand(n_batch, max(
-        label_length) + 1, n_out).astype(numpy.float32)
+    np_pred = numpy.random.rand(n_batch, max(label_length) + 1, n_out).astype(
+        numpy.float32
+    )
     # NOTE: 0 is only used for CTC, never appeared in attn target
-    np_target = [numpy.random.randint(
-        1, n_out - 1, size=ol, dtype=numpy.int32) for ol in label_length]
+    np_target = [
+        numpy.random.randint(1, n_out - 1, size=ol, dtype=numpy.int32)
+        for ol in label_length
+    ]
 
-    eos = numpy.array([_eos], 'i')
+    eos = numpy.array([_eos], "i")
     ys_out = [F.concat([y, eos], axis=0) for y in np_target]
 
     # padding for ys with -1
@@ -84,15 +91,14 @@ def test_attn_loss():
     # unfortunately, torch cross_entropy does not accept out-of-bound ids
     th_ignore = 0
     th_pred = torch.from_numpy(y_all.data)
-    th_target = pad_list([torch.from_numpy(t.data).long()
-                          for t in ys_out], th_ignore)
-    if LooseVersion(torch.__version__) < LooseVersion('1.0'):
-        reduction_str = 'elementwise_mean'
+    th_target = pad_list([torch.from_numpy(t.data).long() for t in ys_out], th_ignore)
+    if LooseVersion(torch.__version__) < LooseVersion("1.0"):
+        reduction_str = "elementwise_mean"
     else:
-        reduction_str = 'mean'
-    th_loss = torch.nn.functional.cross_entropy(th_pred, th_target.view(-1),
-                                                ignore_index=th_ignore,
-                                                reduction=reduction_str)
+        reduction_str = "mean"
+    th_loss = torch.nn.functional.cross_entropy(
+        th_pred, th_target.view(-1), ignore_index=th_ignore, reduction=reduction_str
+    )
     print(ch_loss)
     print(th_loss)
 
@@ -107,13 +113,16 @@ def test_train_acc():
     _eos = n_out - 1
     n_batch = 3
     label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
-    np_pred = numpy.random.rand(n_batch, max(
-        label_length) + 1, n_out).astype(numpy.float32)
+    np_pred = numpy.random.rand(n_batch, max(label_length) + 1, n_out).astype(
+        numpy.float32
+    )
     # NOTE: 0 is only used for CTC, never appeared in attn target
-    np_target = [numpy.random.randint(
-        1, n_out - 1, size=ol, dtype=numpy.int32) for ol in label_length]
+    np_target = [
+        numpy.random.randint(1, n_out - 1, size=ol, dtype=numpy.int32)
+        for ol in label_length
+    ]
 
-    eos = numpy.array([_eos], 'i')
+    eos = numpy.array([_eos], "i")
     ys_out = [F.concat([y, eos], axis=0) for y in np_target]
 
     # padding for ys with -1
@@ -127,8 +136,7 @@ def test_train_acc():
     # unfortunately, torch cross_entropy does not accept out-of-bound ids
     th_ignore = 0
     th_pred = torch.from_numpy(y_all.data)
-    th_ys = [torch.from_numpy(numpy.append(t, eos)).long()
-             for t in np_target]
+    th_ys = [torch.from_numpy(numpy.append(t, eos)).long() for t in np_target]
     th_target = pad_list(th_ys, th_ignore)
     th_acc = th_accuracy(th_pred, th_target, th_ignore)
 

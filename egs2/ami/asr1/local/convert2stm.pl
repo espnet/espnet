@@ -1,0 +1,1 @@
+../../../../egs/ami/asr1/local/convert2stm.pl

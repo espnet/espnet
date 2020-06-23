@@ -20,7 +20,14 @@ class LabelSmoothingLoss(nn.Module):
     :param torch.nn.Module criterion: loss function to be smoothed
     """
 
-    def __init__(self, size, padding_idx, smoothing, normalize_length=False, criterion=nn.KLDivLoss(reduction="none")):
+    def __init__(
+        self,
+        size,
+        padding_idx,
+        smoothing,
+        normalize_length=False,
+        criterion=nn.KLDivLoss(reduction="none"),
+    ):
         """Construct an LabelSmoothingLoss object."""
         super(LabelSmoothingLoss, self).__init__()
         self.criterion = criterion
@@ -35,7 +42,8 @@ class LabelSmoothingLoss(nn.Module):
         """Compute loss between x and target.
 
         :param torch.Tensor x: prediction (batch, seqlen, class)
-        :param torch.Tensor target: target signal masked with self.padding_id (batch, seqlen)
+        :param torch.Tensor target:
+            target signal masked with self.padding_id (batch, seqlen)
         :return: scalar float value
         :rtype torch.Tensor
         """

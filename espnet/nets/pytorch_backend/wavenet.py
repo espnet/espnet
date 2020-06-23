@@ -104,8 +104,14 @@ class CausalConv1d(nn.Module):
         self.kernel_size = kernel_size
         self.dilation = dilation
         self.padding = padding = (kernel_size - 1) * dilation
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size,
-                              padding=padding, dilation=dilation, bias=bias)
+        self.conv = nn.Conv1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
+        )
 
     def forward(self, x):
         """Calculate forward propagation.
@@ -119,7 +125,7 @@ class CausalConv1d(nn.Module):
         """
         x = self.conv(x)
         if self.padding != 0:
-            x = x[:, :, :-self.padding]
+            x = x[:, :, : -self.padding]
         return x
 
 
@@ -135,10 +141,13 @@ class UpSampling(nn.Module):
         super(UpSampling, self).__init__()
         self.upsampling_factor = upsampling_factor
         self.bias = bias
-        self.conv = nn.ConvTranspose2d(1, 1,
-                                       kernel_size=(1, self.upsampling_factor),
-                                       stride=(1, self.upsampling_factor),
-                                       bias=self.bias)
+        self.conv = nn.ConvTranspose2d(
+            1,
+            1,
+            kernel_size=(1, self.upsampling_factor),
+            stride=(1, self.upsampling_factor),
+            bias=self.bias,
+        )
 
     def forward(self, x):
         """Calculate forward propagation.
@@ -163,15 +172,25 @@ class WaveNet(nn.Module):
         n_aux (int): Number of aux feature dimension.
         n_resch (int): Number of filter channels for residual block.
         n_skipch (int): Number of filter channels for skip connection.
-        dilation_depth (int): Number of dilation depth (e.g. if set 10, max dilation = 2^(10-1)).
+        dilation_depth (int): Number of dilation depth
+            (e.g. if set 10, max dilation = 2^(10-1)).
         dilation_repeat (int): Number of dilation repeat.
         kernel_size (int): Filter size of dilated causal convolution.
         upsampling_factor (int): Upsampling factor.
 
     """
 
-    def __init__(self, n_quantize=256, n_aux=28, n_resch=512, n_skipch=256,
-                 dilation_depth=10, dilation_repeat=3, kernel_size=2, upsampling_factor=0):
+    def __init__(
+        self,
+        n_quantize=256,
+        n_aux=28,
+        n_resch=512,
+        n_skipch=256,
+        dilation_depth=10,
+        dilation_repeat=3,
+        kernel_size=2,
+        upsampling_factor=0,
+    ):
         super(WaveNet, self).__init__()
         self.n_aux = n_aux
         self.n_quantize = n_quantize
@@ -182,7 +201,9 @@ class WaveNet(nn.Module):
         self.dilation_repeat = dilation_repeat
         self.upsampling_factor = upsampling_factor
 
-        self.dilations = [2 ** i for i in range(self.dilation_depth)] * self.dilation_repeat
+        self.dilations = [
+            2 ** i for i in range(self.dilation_depth)
+        ] * self.dilation_repeat
         self.receptive_field = (self.kernel_size - 1) * sum(self.dilations) + 1
 
         # for preprocessing
@@ -199,8 +220,12 @@ class WaveNet(nn.Module):
         self.skip_1x1 = nn.ModuleList()
         self.res_1x1 = nn.ModuleList()
         for d in self.dilations:
-            self.dil_sigmoid += [CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)]
-            self.dil_tanh += [CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)]
+            self.dil_sigmoid += [
+                CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)
+            ]
+            self.dil_tanh += [
+                CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)
+            ]
             self.aux_1x1_sigmoid += [nn.Conv1d(self.n_aux, self.n_resch, 1)]
             self.aux_1x1_tanh += [nn.Conv1d(self.n_aux, self.n_resch, 1)]
             self.skip_1x1 += [nn.Conv1d(self.n_resch, self.n_skipch, 1)]
@@ -228,11 +253,17 @@ class WaveNet(nn.Module):
 
         # residual block
         skip_connections = []
-        for l in range(len(self.dilations)):
+        for i in range(len(self.dilations)):
             output, skip = self._residual_forward(
-                output, h, self.dil_sigmoid[l], self.dil_tanh[l],
-                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                self.skip_1x1[l], self.res_1x1[l])
+                output,
+                h,
+                self.dil_sigmoid[i],
+                self.dil_tanh[i],
+                self.aux_1x1_sigmoid[i],
+                self.aux_1x1_tanh[i],
+                self.skip_1x1[i],
+                self.res_1x1[i],
+            )
             skip_connections.append(skip)
 
         # skip-connection part
@@ -281,36 +312,48 @@ class WaveNet(nn.Module):
 
         # prepare buffer
         output = self._preprocess(x)
-        h_ = h[:, :, :x.size(1)]
+        h_ = h[:, :, : x.size(1)]
         output_buffer = []
         buffer_size = []
-        for l, d in enumerate(self.dilations):
+        for i, d in enumerate(self.dilations):
             output, _ = self._residual_forward(
-                output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                self.skip_1x1[l], self.res_1x1[l])
+                output,
+                h_,
+                self.dil_sigmoid[i],
+                self.dil_tanh[i],
+                self.aux_1x1_sigmoid[i],
+                self.aux_1x1_tanh[i],
+                self.skip_1x1[i],
+                self.res_1x1[i],
+            )
             if d == 2 ** (self.dilation_depth - 1):
                 buffer_size.append(self.kernel_size - 1)
             else:
                 buffer_size.append(d * 2 * (self.kernel_size - 1))
-            output_buffer.append(output[:, :, -buffer_size[l] - 1: -1])
+            output_buffer.append(output[:, :, -buffer_size[i] - 1 : -1])
 
         # generate
         samples = x[0]
         start_time = time.time()
         for i in range(n_samples):
-            output = samples[-self.kernel_size * 2 + 1:].unsqueeze(0)
+            output = samples[-self.kernel_size * 2 + 1 :].unsqueeze(0)
             output = self._preprocess(output)
             h_ = h[:, :, samples.size(0) - 1].contiguous().view(1, self.n_aux, 1)
             output_buffer_next = []
             skip_connections = []
-            for l, d in enumerate(self.dilations):
+            for j, d in enumerate(self.dilations):
                 output, skip = self._generate_residual_forward(
-                    output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                    self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                    self.skip_1x1[l], self.res_1x1[l])
-                output = torch.cat([output_buffer[l], output], dim=2)
-                output_buffer_next.append(output[:, :, -buffer_size[l]:])
+                    output,
+                    h_,
+                    self.dil_sigmoid[j],
+                    self.dil_tanh[j],
+                    self.aux_1x1_sigmoid[j],
+                    self.aux_1x1_tanh[j],
+                    self.skip_1x1[j],
+                    self.res_1x1[j],
+                )
+                output = torch.cat([output_buffer[j], output], dim=2)
+                output_buffer_next.append(output[:, :, -buffer_size[j] :])
                 skip_connections.append(skip)
 
             # update buffer
@@ -333,8 +376,15 @@ class WaveNet(nn.Module):
             # show progress
             if interval is not None and (i + 1) % interval == 0:
                 elapsed_time_per_sample = (time.time() - start_time) / interval
-                logging.info("%d/%d estimated time = %.3f sec (%.3f sec / sample)" % (
-                    i + 1, n_samples, (n_samples - i - 1) * elapsed_time_per_sample, elapsed_time_per_sample))
+                logging.info(
+                    "%d/%d estimated time = %.3f sec (%.3f sec / sample)"
+                    % (
+                        i + 1,
+                        n_samples,
+                        (n_samples - i - 1) * elapsed_time_per_sample,
+                        elapsed_time_per_sample,
+                    )
+                )
                 start_time = time.time()
 
         return samples[-n_samples:].cpu().numpy()
@@ -351,27 +401,47 @@ class WaveNet(nn.Module):
         output = self.conv_post_2(output).transpose(1, 2)  # B x T x C
         return output
 
-    def _residual_forward(self, x, h, dil_sigmoid, dil_tanh,
-                          aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1):
+    def _residual_forward(
+        self,
+        x,
+        h,
+        dil_sigmoid,
+        dil_tanh,
+        aux_1x1_sigmoid,
+        aux_1x1_tanh,
+        skip_1x1,
+        res_1x1,
+    ):
         output_sigmoid = dil_sigmoid(x)
         output_tanh = dil_tanh(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
         aux_output_tanh = aux_1x1_tanh(h)
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
-            torch.tanh(output_tanh + aux_output_tanh)
+        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * torch.tanh(
+            output_tanh + aux_output_tanh
+        )
         skip = skip_1x1(output)
         output = res_1x1(output)
         output = output + x
         return output, skip
 
-    def _generate_residual_forward(self, x, h, dil_sigmoid, dil_tanh,
-                                   aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1):
+    def _generate_residual_forward(
+        self,
+        x,
+        h,
+        dil_sigmoid,
+        dil_tanh,
+        aux_1x1_sigmoid,
+        aux_1x1_tanh,
+        skip_1x1,
+        res_1x1,
+    ):
         output_sigmoid = dil_sigmoid(x)[:, :, -1:]
         output_tanh = dil_tanh(x)[:, :, -1:]
         aux_output_sigmoid = aux_1x1_sigmoid(h)
         aux_output_tanh = aux_1x1_tanh(h)
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
-            torch.tanh(output_tanh + aux_output_tanh)
+        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * torch.tanh(
+            output_tanh + aux_output_tanh
+        )
         skip = skip_1x1(output)
         output = res_1x1(output)
         output = output + x[:, :, -1:]  # B x C x 1

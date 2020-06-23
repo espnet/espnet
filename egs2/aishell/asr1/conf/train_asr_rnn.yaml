@@ -1,0 +1,55 @@
+# network architecture
+# encoder related
+encoder: vgg_rnn
+encoder_conf:
+    rnn_type: lstm
+    bidirectional: True
+    use_projection: False
+    num_layers: 3
+    hidden_size: 1024
+    output_size: 1024
+    dropout: 0.0
+    in_channel: 1
+# decoder related
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 2
+    hidden_size: 1024
+    sampling_probability: 0.0   # scheduled sampling option
+    dropout: 0.0
+    att_conf:
+        adim: 1024
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.0     # label smoothing option
+
+# minibatch related
+batch_type: folded
+batch_size: 30
+
+# optimization related
+init: chainer
+max_epoch: 10
+optim: adadelta
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 3
+val_scheduler_criterion:
+    - valid
+    - acc
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: max
+    factor: 0.5
+    patience: 1

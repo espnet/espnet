@@ -23,15 +23,15 @@
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_dev93_decode_lm_word65000|503|48634|97.4|1.1|1.5|0.6|3.2|62.0|
-  |decode_test_eval92_decode_lm_word65000|330|31739|99.4|0.3|0.3|0.2|0.7|27.0|
+  |decode_test_dev93_decode_lm_word65000|503|48634|96.7|1.4|1.8|0.8|4.1|65.6|
+  |decode_test_eval92_decode_lm_word65000|333|33341|97.9|0.9|1.2|0.6|2.7|52.9|
 
   ### WER
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_dev93_decode_lm_word65000|503|8234|93.7|5.3|0.9|1.1|7.4|55.5|
-  |decode_test_eval92_decode_lm_word65000|330|5353|98.5|1.3|0.1|0.3|1.8|19.1|
+  |decode_test_dev93_decode_lm_word65000|503|8234|92.6|6.3|1.1|1.4|8.8|60.0|
+  |decode_test_eval92_decode_lm_word65000|333|5643|95.4|4.1|0.5|1.0|5.6|44.1|
 
 # RNN (PyTorch 1.3 + builtin CTC)
 - Environments
@@ -58,15 +58,15 @@
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_dev93_decode_rnn_lm_word65000|503|48634|96.7|1.6|1.7|0.7|4.0|66.8|
-  |decode_test_eval92_decode_rnn_lm_word65000|330|31739|99.1|0.4|0.4|0.2|1.1|30.0|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|48634|96.7|1.6|1.7|0.7|4.0|67.0|
+  |decode_test_eval92_decode_rnn_lm_word65000|333|33341|98.2|0.9|0.9|0.5|2.4|51.4|
 
   ### WER
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_dev93_decode_rnn_lm_word65000|503|8234|92.4|6.6|1.0|1.2|8.8|61.2|
-  |decode_test_eval92_decode_rnn_lm_word65000|330|5353|97.8|1.9|0.3|0.3|2.5|22.7|
+  |decode_test_dev93_decode_rnn_lm_word65000|503|8234|92.4|6.6|1.0|1.2|8.8|61.4|
+  |decode_test_eval92_decode_rnn_lm_word65000|333|5643|95.7|3.9|0.4|0.9|5.3|42.9|
 
 
 # Transformer result

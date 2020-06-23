@@ -31,7 +31,7 @@ class NoamOpt(object):
         self._step += 1
         rate = self.rate()
         for p in self.optimizer.param_groups:
-            p['lr'] = rate
+            p["lr"] = rate
         self._rate = rate
         self.optimizer.step()
 
@@ -39,8 +39,11 @@ class NoamOpt(object):
         """Implement `lrate` above."""
         if step is None:
             step = self._step
-        return self.factor * self.model_size ** (-0.5) \
+        return (
+            self.factor
+            * self.model_size ** (-0.5)
             * min(step ** (-0.5), step * self.warmup ** (-1.5))
+        )
 
     def zero_grad(self):
         """Reset gradient."""
@@ -54,7 +57,7 @@ class NoamOpt(object):
             "factor": self.factor,
             "model_size": self.model_size,
             "_rate": self._rate,
-            "optimizer": self.optimizer.state_dict()
+            "optimizer": self.optimizer.state_dict(),
         }
 
     def load_state_dict(self, state_dict):
@@ -66,7 +69,7 @@ class NoamOpt(object):
                 setattr(self, key, value)
 
 
-def get_std_opt(model, d_model, warmup, factor):
+def get_std_opt(model_params, d_model, warmup, factor):
     """Get standard NoamOpt."""
-    base = torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)
+    base = torch.optim.Adam(model_params, lr=0, betas=(0.9, 0.98), eps=1e-9)
     return NoamOpt(d_model, factor, warmup, base)

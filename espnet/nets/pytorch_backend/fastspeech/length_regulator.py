@@ -16,8 +16,10 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class LengthRegulator(torch.nn.Module):
     """Length regulator module for feed-forward Transformer.
 
-    This is a module of length regulator described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
-    The length regulator expands char or phoneme-level embedding features to frame-level by repeating each
+    This is a module of length regulator described in
+    `FastSpeech: Fast, Robust and Controllable Text to Speech`_.
+    The length regulator expands char or
+    phoneme-level embedding features to frame-level by repeating each
     feature based on the corresponding predicted durations.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
@@ -77,6 +79,8 @@ class LengthRegulator(torch.nn.Module):
 
         """
         if d.sum() == 0:
-            logging.warn("all of the predicted durations are 0. fill 0 with 1.")
+            logging.warning("all of the predicted durations are 0. fill 0 with 1.")
             d = d.fill_(1)
-        return torch.cat([x_.repeat(int(d_), 1) for x_, d_ in zip(x, d) if d_ != 0], dim=0)
+        return torch.cat(
+            [x_.repeat(int(d_), 1) for x_, d_ in zip(x, d) if d_ != 0], dim=0
+        )

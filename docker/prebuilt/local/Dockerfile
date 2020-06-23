@@ -2,6 +2,7 @@ ARG FROM_TAG
 FROM espnet/espnet:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
+ARG CUDA_VER
 WORKDIR /
 
 # IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
@@ -25,12 +26,21 @@ WORKDIR /espnet/tools
 # Docker build does not load libcuda.so.1
 # Replace nvidia-smi for nvcc because docker does not load nvidia-smi
 RUN if [ -z "$( nvcc -V )" ]; then \
-        make KALDI=/kaldi CUPY_VERSION=''; \
+        echo "Build without CUDA" && \
+        MY_OPTS="CUPY_VERSION="; \
     else \
-        sed -i '161s|install.py|install.py --no-cupy|' Makefile && \
-        sed -i '21s|nvidia-smi|nvcc|' Makefile && \
-        make KALDI=/kaldi CUDA_VERSION=${CUDA_VER}; \
-    fi
+        echo "Build with CUDA" && \
+        export CFLAGS="-I${CUDA_HOME}/include ${CFLAGS}" && \
+        MY_OPTS="CUDA_VERSION=${CUDA_VER}" && \
+        sed -i 's|_install.py|_install.py --no-cuda|g' Makefile && \
+        sed -i 's|which nvidia-smi|which nvcc|g' Makefile;  \
+    fi; \ 
+    if [ "${CUDA_VER}" = "10.1" ]; then \
+        # Pytorch 1.3.1 is not supported by warpctc
+        MY_OPTS="${MY_OPTS} TH_VERSION=1.3.1";  \
+    fi; \
+    echo "Make with options ${MY_OPTS}"; \
+    make KALDI=/kaldi ${MY_OPTS}
 
 RUN rm -rf ../espnet
 

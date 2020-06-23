@@ -11,8 +11,15 @@ import math
 import torch
 
 
-def _pre_hook(state_dict, prefix, local_metadata, strict,
-              missing_keys, unexpected_keys, error_msgs):
+def _pre_hook(
+    state_dict,
+    prefix,
+    local_metadata,
+    strict,
+    missing_keys,
+    unexpected_keys,
+    error_msgs,
+):
     """Perform pre-hook in load_state_dict for backward compatibility.
 
     Note:
@@ -53,8 +60,10 @@ class PositionalEncoding(torch.nn.Module):
                 return
         pe = torch.zeros(x.size(1), self.d_model)
         position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, self.d_model, 2, dtype=torch.float32) *
-                             -(math.log(10000.0) / self.d_model))
+        div_term = torch.exp(
+            torch.arange(0, self.d_model, 2, dtype=torch.float32)
+            * -(math.log(10000.0) / self.d_model)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -71,7 +80,7 @@ class PositionalEncoding(torch.nn.Module):
 
         """
         self.extend_pe(x)
-        x = x * self.xscale + self.pe[:, :x.size(1)]
+        x = x * self.xscale + self.pe[:, : x.size(1)]
         return self.dropout(x)
 
 
@@ -108,5 +117,5 @@ class ScaledPositionalEncoding(PositionalEncoding):
 
         """
         self.extend_pe(x)
-        x = x + self.alpha * self.pe[:, :x.size(1)]
+        x = x + self.alpha * self.pe[:, : x.size(1)]
         return self.dropout(x)
