@@ -6,6 +6,9 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
+    DecoderLayer,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -61,6 +64,7 @@ class Decoder(torch.nn.Module):
             odim,
             input_layer,
             dec_arch,
+            DecoderLayer,
             repeat_block=repeat_block,
             pos_enc_class=pos_enc_class,
             positionwise_layer_type=positionwise_layer_type,

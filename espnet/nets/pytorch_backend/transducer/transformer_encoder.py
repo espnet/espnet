@@ -6,6 +6,7 @@ from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.custom_layers import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
@@ -53,6 +54,7 @@ class Encoder(torch.nn.Module):
             idim,
             input_layer,
             enc_arch,
+            EncoderLayer,
             repeat_block=repeat_block,
             pos_enc_class=pos_enc_class,
             positionwise_layer_type=positionwise_layer_type,

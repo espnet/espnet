@@ -9,7 +9,6 @@ from espnet.nets.pytorch_backend.transducer.custom_layers import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -76,6 +75,7 @@ def build_input_layer(
 
 
 def build_transformer_layer(
+    transformer_layer_class,
     block_arch,
     pw_layer_type,
     pw_conv_kernel_size,
@@ -86,6 +86,7 @@ def build_transformer_layer(
     """Build function for Transformer layer.
 
     Args:
+        transformer_layer_class (class): whether EncoderLayer or DecoderLayer
         block_arch (dict): layer main arguments
         pos_layer_type (str): positionwise layer type
         pos_conv_kernel_size (int) : kernel size for positionwise conv1d layer
@@ -120,7 +121,7 @@ def build_transformer_layer(
     else:
         raise NotImplementedError("Support only linear or conv1d.")
 
-    return lambda: EncoderLayer(
+    return lambda: transformer_layer_class(
         d_hidden,
         MultiHeadedAttention(heads, d_hidden, att_dropout_rate),
         pw_layer(*pw_layer_args),
@@ -183,6 +184,7 @@ def build_blocks(
     idim,
     input_layer,
     block_arch,
+    transformer_layer_class,
     repeat_block=0,
     pos_enc_class=PositionalEncoding,
     positionwise_layer_type="linear",
@@ -199,6 +201,7 @@ def build_blocks(
         idim (int): dimension of inputs
         input_layer (str): input layer type
         block_arch (list[dict]): list of layer definitions in block
+        transformer_layer_class (class): whether EncoderLayer or DecoderLayer
         repeat_block (int): if N > 1, repeat block N times
         pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
         positionwise_layer_type (str): linear of conv1d
@@ -230,6 +233,7 @@ def build_blocks(
             module = build_tdnn_layer(block_arch[i])
         elif layer_type == "transformer":
             module = build_transformer_layer(
+                transformer_layer_class,
                 block_arch[i],
                 positionwise_layer_type,
                 positionwise_conv_kernel_size,
