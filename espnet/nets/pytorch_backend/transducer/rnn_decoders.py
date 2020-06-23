@@ -346,21 +346,6 @@ class DecoderRNNT(torch.nn.Module):
 
         return nbest_hyps
 
-    @staticmethod
-    def _index_select_lm_state(rnnlm_state, dim, vidx):
-        if isinstance(rnnlm_state, dict):
-            new_state = {}
-
-            for k, v in rnnlm_state.items():
-                new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
-        elif isinstance(rnnlm_state, list):
-            new_state = []
-
-            for i in vidx:
-                new_state.append(rnnlm_state[int(i)][:])
-
-        return new_state
-
     def recognize_beam_nsc(self, h, recog_args, rnnlm=None):
         """N-step constrained beam search implementation.
 
