@@ -11,6 +11,9 @@ from espnet.nets.pytorch_backend.frontends.beamformer import (
     get_power_spectral_density_matrix,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
+from espnet2.asr.frontend.nets.conv_beamformer import get_covariances
+from espnet2.asr.frontend.nets.conv_beamformer import get_WPD_filter_v2
+from espnet2.asr.frontend.nets.conv_beamformer import perform_WPD_filtering
 from torch_complex.tensor import ComplexTensor
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
@@ -29,15 +32,19 @@ class DNN_Beamformer(torch.nn.Module):
     def __init__(
         self,
         bidim,
-        btype="blstmp",
-        blayers=3,
-        bunits=300,
-        bprojs=320,
-        bnmask=2,
-        dropout_rate=0.0,
-        badim=320,
+        btype: str = "blstmp",
+        blayers: int = 3,
+        bunits: int = 300,
+        bprojs: int = 320,
+        bnmask: int = 2,
+        dropout_rate: float = 0.0,
+        badim: int = 320,
         ref_channel: int = -1,
-        beamformer_type="mvdr",
+        beamformer_type: str = "mvdr",
+        eps: float = 1e-7,
+        # only for WPD beamformer
+        btaps: int = 5,
+        bdelay: int = 3,
     ):
         super().__init__()
         self.mask = MaskEstimator(
@@ -48,11 +55,14 @@ class DNN_Beamformer(torch.nn.Module):
 
         self.nmask = bnmask
 
-        if beamformer_type not in ('mvdr', 'mpdr'):
+        if beamformer_type not in ('mvdr', 'mpdr', 'wpd'):
             raise ValueError(
                 "Not supporting beamformer_type={}".format(beamformer_type)
             )
         self.beamformer_type = beamformer_type
+        self.eps = eps
+        self.btaps = btaps
+        self.bdelay = bdelay
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
@@ -74,7 +84,7 @@ class DNN_Beamformer(torch.nn.Module):
             masks (torch.Tensor): (B, T, C, F)
         """
 
-        def apply_beamforming(data, ilens, psd_speech, psd_noise):
+        def apply_beamforming(data, ilens, psd_speech, psd_n, beamformer_type):
             # u: (B, C)
             if self.ref_channel < 0:
                 u, _ = self.ref(psd_speech, ilens)
@@ -85,8 +95,14 @@ class DNN_Beamformer(torch.nn.Module):
                 )
                 u[..., self.ref_channel].fill_(1)
 
-            ws = get_mvdr_vector(psd_speech, psd_noise, u)
-            enhanced = apply_beamforming_vector(ws, data)
+            if beamformer_type in ('mpdr', 'mvdr'):
+                ws = get_mvdr_vector(psd_speech, psd_n, u)
+                enhanced = apply_beamforming_vector(ws, data)
+            elif beamformer_type == 'wpd':
+                ws = get_WPD_filter_v2(psd_speech, psd_n, u)
+                enhanced = perform_WPD_filtering(ws, data, self.bdelay, self.btaps)
+            else:
+                raise ValueError('Not supporting beamformer_type={}'.format(beamformer_type))
 
             return enhanced, ws
 
@@ -103,14 +119,22 @@ class DNN_Beamformer(torch.nn.Module):
             psd_speech = get_power_spectral_density_matrix(data, mask_speech)
             if self.beamformer_type == 'mvdr':
                 # psd of noise
-                psd_noise = get_power_spectral_density_matrix(data, mask_noise)
+                psd_n = get_power_spectral_density_matrix(data, mask_noise)
             elif self.beamformer_type == 'mpdr':
-                # psd of observed speech
-                psd_noise = FC.einsum('...ct,...et->...ce', [data, data.conj()])
+                # psd of observed signal
+                psd_n = FC.einsum('...ct,...et->...ce', [data, data.conj()])
+            elif self.beamformer_type == 'wpd':
+                # Calculate power: (..., C, T)
+                power_speech = (data.real ** 2 + data.imag ** 2) * mask_speech
+                # Averaging along the channel axis: (B, F, C, T) -> (B, F, T)
+                power_speech = power_speech.mean(dim=-2)
+                inverse_power = 1 / torch.clamp(power_speech, min=self.eps)
+                # covariance of expanded observed speech
+                psd_n = get_covariances(data, inverse_power, self.bdelay, self.btaps, get_vector=False)
             else:
                 raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))
 
-            enhanced, ws = apply_beamforming(data, ilens, psd_speech, psd_noise)
+            enhanced, ws = apply_beamforming(data, ilens, psd_speech, psd_n, self.beamformer_type)
 
             # (..., F, T) -> (..., T, F)
             enhanced = enhanced.transpose(-1, -2)
@@ -124,10 +148,22 @@ class DNN_Beamformer(torch.nn.Module):
             ]
             if self.beamformer_type == 'mvdr':
                 # psd of noise
-                psd_noise = get_power_spectral_density_matrix(data, mask_noise)
+                psd_n = get_power_spectral_density_matrix(data, mask_noise)
             elif self.beamformer_type == 'mpdr':
                 # psd of observed speech
-                psd_noise = FC.einsum('...ct,...et->...ce', [data, data.conj()])
+                psd_n = FC.einsum('...ct,...et->...ce', [data, data.conj()])
+            elif self.beamformer_type == 'wpd':
+                # Calculate power: (..., C, T)
+                power = data.real ** 2 + data.imag ** 2
+                power_speeches = [power * mask for mask in mask_speech]
+                # Averaging along the channel axis: (B, F, C, T) -> (B, F, T)
+                power_speeches = [ps.mean(dim=-2) for ps in power_speeches]
+                inverse_poweres = [1 / torch.clamp(ps, min=self.eps) for ps in power_speeches]
+                # covariance of expanded observed speech
+                psd_n = [
+                    get_covariances(data, inv_ps, self.bdelay, self.btaps, get_vector=False)
+                    for inv_ps in inverse_poweres
+                ]
             else:
                 raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))
 
@@ -138,11 +174,15 @@ class DNN_Beamformer(torch.nn.Module):
                 # treat all other speakers' psd_speech as noises
                 if self.beamformer_type == 'mvdr':
                     enh, w = apply_beamforming(
-                        data, ilens, psd_speech, sum(psd_speeches) + psd_noise
+                        data, ilens, psd_speech, sum(psd_speeches) + psd_n, self.beamformer_type
                     )
                 elif self.beamformer_type == 'mpdr':
                     enh, w = apply_beamforming(
-                        data, ilens, psd_speech, psd_noise
+                        data, ilens, psd_speech, psd_n, self.beamformer_type
+                    )
+                elif self.beamformer_type == 'wpd':
+                    enh, w = apply_beamforming(
+                        data, ilens, psd_speech, psd_n[i], self.beamformer_type
                     )
                 else:
                     raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))

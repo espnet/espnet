@@ -1,13 +1,10 @@
 from collections import OrderedDict
-from typing import Tuple
 
 import torch
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.layers.stft import Stft
 from espnet2.asr.frontend.nets.dnn_wpe import DNN_Beamformer
 from espnet2.asr.frontend.nets.dnn_wpe import DNN_WPE
 from torch_complex.tensor import ComplexTensor
-import torchaudio
 
 
 class BeamformerNet(torch.nn.Module):
@@ -85,25 +82,19 @@ class BeamformerNet(torch.nn.Module):
             self.wpe = None
 
         if self.use_beamformer:
-            if beamformer_type == 'mvdr':
-                bnmask = num_spk + 1
-            elif beamformer_type == 'mpdr':
-                bnmask = num_spk
-            else:
-                raise ValueError(
-                    "Not supporting beamformer_type={}".format(beamformer_type)
-                )
             self.beamformer = DNN_Beamformer(
                 btype=bnet_type,
                 bidim=self.num_bin,
                 bunits=bunits,
                 bprojs=bprojs,
                 blayers=blayers,
-                bnmask=bnmask,
+                bnmask=num_spk + 1,
                 dropout_rate=bdropout_rate,
                 badim=badim,
                 ref_channel=ref_channel,
                 beamformer_type=beamformer_type,
+                btaps=taps,
+                bdelay=delay,
             )
         else:
             self.beamformer = None
