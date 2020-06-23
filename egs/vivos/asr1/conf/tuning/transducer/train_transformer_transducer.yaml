@@ -22,19 +22,15 @@ transformer-attn-dropout-rate-decoder: 0.1
 # network architecture
 ## encoder related
 etype: transformer
-transformer-input-layer: vgg2l
-elayers: 8
-eunits: 320
-dropout-rate: 0.4
+transformer-enc-input-layer: vgg2l
+enc-block-arch: conf/tuning/transducer/net_definition/encoder_transformer.json
+enc-block-repeat: 8
 ## decoder related
 dtype: transformer
-dlayers: 2
-dec-embed-dim: 300
-dunits: 300
+transformer-dec-input-layer: embed
+dec-block-arch: conf/tuning/transducer/net_definition/decoder_transformer.json
+dec-block-repeat: 2
 dropout-rate-decoder: 0.1
-## attention related
-adim: 320
-aheads: 4
 ## joint network related
 joint-dim: 300
 

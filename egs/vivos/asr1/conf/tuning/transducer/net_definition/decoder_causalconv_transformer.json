@@ -1,0 +1,38 @@
+[
+    {
+        "type": "causal-conv1d",
+        "idim": 100,
+        "odim": 256,
+        "kernel_size": 5
+    },
+    {
+        "type": "transformer",
+        "d_hidden": 256,
+        "d_ff": 512,
+        "heads": 4
+    },
+    {
+        "type": "causal-conv1d",
+        "idim": 256,
+        "odim": 256,
+        "kernel_size": 5
+    },
+    {
+        "type": "transformer",
+        "d_hidden": 256,
+        "d_ff": 256,
+        "heads": 4
+    },
+    {
+        "type": "causal-conv1d",
+        "idim": 256,
+        "odim": 256,
+        "kernel_size": 5
+    },
+    {
+        "type": "transformer",
+        "d_hidden": 256,
+        "d_ff": 512,
+        "heads": 4
+    }
+]
