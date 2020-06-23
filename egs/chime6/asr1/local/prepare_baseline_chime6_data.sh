@@ -42,6 +42,7 @@ set -e # exit on error
 chime6_corpus=${PWD}/CHiME6
 json_dir=${chime6_corpus}/transcriptions
 audio_dir=${chime6_corpus}/audio
+enhanced_dir=enhanced
 
 if [[ ${enhancement} == *gss* ]]; then
   enhanced_dir=${enhanced_dir}_multiarray
@@ -278,7 +279,7 @@ fi
 #can take around 10hrs for dev and eval set.
 #########################################################################################
 
-if [ $stage -le 1 ] && [[ ${enhancement} == *gss* ]]; then
+if [ $stage -le 15 ] && [[ ${enhancement} == *gss* ]]; then
   echo "$0:  enhance data..."
   # Guided Source Separation (GSS) from Paderborn University
   # http://spandh.dcs.shef.ac.uk/chime_workshop/papers/CHiME_2018_paper_boeddecker.pdf
@@ -288,6 +289,8 @@ if [ $stage -le 1 ] && [[ ${enhancement} == *gss* ]]; then
   #   year      = {2018},
   #   booktitle = {CHiME5 Workshop},
   # }
+
+  conda deactivate
 
   if [ ! -d pb_chime5/ ]; then
     local/install_pb_chime5.sh
@@ -303,31 +306,19 @@ if [ $stage -le 1 ] && [[ ${enhancement} == *gss* ]]; then
     )
   fi
 
-  for dset in dev eval; do
-    local/run_gss.sh \
-      --cmd "$train_cmd --max-jobs-run $gss_nj" --nj 160 \
-      ${dset} \
+  local/run_gss.sh \
+      --cmd "$train_cmd --max-jobs-run 10" --nj 10 \
+      dev \
       ${enhanced_dir} \
       ${enhanced_dir} || exit 1
-  done
 
-  for dset in dev eval; do
-    local/prepare_data.sh --mictype gss ${enhanced_dir}/audio/${dset} \
-      ${json_dir}/${dset} data/${dset}_${enhancement} || exit 1
-  done
-fi
+  local/prepare_data.sh --mictype gss ${enhanced_dir}/audio/dev \
+      ${json_dir}/dev data/dev_${enhancement} || exit 1
+  
+  # make segments file
+  utils/data/get_utt2dur.sh --nj 1 data/dev_gss
+  awk '{ print $1, $1, 0, $2 }' data/dev_gss12/utt2dur > data/dev_gss12/segments
 
-# In GSS enhancement, we do not have array information in utterance ID
-if [ $stage -le 2 ] && [[ ${enhancement} == *gss* ]]; then
-  # Split speakers up into 3-minute chunks.  This doesn't hurt adaptation, and
-  # lets us use more jobs for decoding etc.
-  for dset in ${test_sets}; do
-    utils/copy_data_dir.sh data/${dset} data/${dset}_orig
-  done
-
-  for dset in ${test_sets}; do
-    utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_orig data/${dset}
-  done
 fi
 
 

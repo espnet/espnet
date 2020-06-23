@@ -15,6 +15,8 @@ cd pb_chime5
 git submodule init  
 git submodule update
 
+# sudo apt install libopenmpi-dev -- if you have problem with mpi4py instalation
+
 $miniconda_dir/bin/python -m pip install cython
 $miniconda_dir/bin/python -m pip install pymongo
 $miniconda_dir/bin/python -m pip install fire

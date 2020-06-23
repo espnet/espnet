@@ -8,7 +8,8 @@ if [ -f ./path.sh ]; then . ./path.sh; fi
 # Config:
 cmd=run.pl
 nj=4
-multiarray=outer_array_mics
+#multiarray=outer_array_mics  -- 12 channels for gss
+multiarray=True              #-- 24 channels for gss
 bss_iterations=5
 context_samples=160000
 . utils/parse_options.sh || exit 1;
