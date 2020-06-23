@@ -320,9 +320,6 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         torch.nn.Module.__init__(self)
 
-        # # fill missing arguments for compatibility
-        # args = fill_missing_args(args, self.add_arguments)
-
         if "transformer" in args.etype:
             if args.enc_block_arch is not None:
                 with open(args.enc_block_arch) as config:
