@@ -68,3 +68,7 @@ for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spat
       <(cut -f 2- -d" " ${wsj0_2mix_datadir}/${x_ori}/text_spk2) | sort > ${data}/${x}/text_spk2
   fi
 done
+
+for x in tr cv tt; do
+  cp ${data}/${x}_spatialized_anechoic_multich/wav.scp ${data}/${x}_spatialized_reverb_multich/dereverb.scp
+done

@@ -15,7 +15,6 @@ eval_sets="tt "
     --eval_sets "${eval_sets}" \
     --ngpu 1 \
     --enh_config ./conf/tuning/train_enh_tf0.4.yaml \
+    --use_dereverb_ref false \
+    --use_noise_ref false \
     "$@"
-
-
-

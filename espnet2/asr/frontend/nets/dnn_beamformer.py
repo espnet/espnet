@@ -1,6 +1,7 @@
 from distutils.version import LooseVersion
 from typing import Tuple
 
+import logging
 import torch
 from torch.nn import functional as F
 from torch_complex import functional as FC
@@ -36,7 +37,8 @@ class DNN_Beamformer(torch.nn.Module):
         blayers: int = 3,
         bunits: int = 300,
         bprojs: int = 320,
-        bnmask: int = 2,
+        num_spk: int = 1,
+        use_noise_mask: bool = True,
         dropout_rate: float = 0.0,
         badim: int = 320,
         ref_channel: int = -1,
@@ -47,18 +49,29 @@ class DNN_Beamformer(torch.nn.Module):
         bdelay: int = 3,
     ):
         super().__init__()
+        bnmask = num_spk + 1 if use_noise_mask else num_spk
         self.mask = MaskEstimator(
             btype, bidim, blayers, bunits, bprojs, dropout_rate, nmask=bnmask
         )
         self.ref = AttentionReference(bidim, badim)
         self.ref_channel = ref_channel
 
+        self.use_noise_mask = use_noise_mask
+        assert num_spk >= 1, num_spk
+        self.num_spk = num_spk
         self.nmask = bnmask
 
         if beamformer_type not in ('mvdr', 'mpdr', 'wpd'):
             raise ValueError(
                 "Not supporting beamformer_type={}".format(beamformer_type)
             )
+        if beamformer_type == 'mvdr' and (not use_noise_mask):
+            if num_spk == 1:
+                raise ValueError('Must use noise mask for MVDR beamforming in single-speaker case!')
+            else:
+                logging.warning('Initializing MVDR beamformer without noise mask estimator (multi-speaker case)')
+                logging.warning('Interference speech masks will be used for estimating noise PSD in MVDR beamformer!')
+
         self.beamformer_type = beamformer_type
         self.eps = eps
         self.btaps = btaps
@@ -113,8 +126,15 @@ class DNN_Beamformer(torch.nn.Module):
         masks, _ = self.mask(data, ilens)
         assert self.nmask == len(masks)
 
-        if self.nmask == 2:  # (mask_speech, mask_noise)
-            mask_speech, mask_noise = masks
+        if self.num_spk == 1:   # single-speaker case
+            if self.use_noise_mask:
+                # (mask_speech, mask_noise)
+                mask_speech, mask_noise = masks
+            elif self.beamformer_type == 'mvdr':
+                raise ValueError('Must use noise mask for MVDR beamforming!')
+            else:
+                # (mask_speech,)
+                mask_speech = masks[0]
 
             psd_speech = get_power_spectral_density_matrix(data, mask_speech)
             if self.beamformer_type == 'mvdr':
@@ -139,16 +159,23 @@ class DNN_Beamformer(torch.nn.Module):
             # (..., F, T) -> (..., T, F)
             enhanced = enhanced.transpose(-1, -2)
             mask_speech = mask_speech.transpose(-1, -3)
-        else:  # multi-speaker case: (mask_speech1, ..., mask_noise)
-            mask_speech = list(masks[:-1])
-            mask_noise = masks[-1]
+        else:  # multi-speaker case
+            if self.use_noise_mask:
+                # (mask_speech1, ..., mask_noise)
+                mask_speech = list(masks[:-1])
+                mask_noise = masks[-1]
+            else:
+                # (mask_speech1, ..., mask_speechX)
+                mask_speech = list(masks)
+                mask_noise = None
 
             psd_speeches = [
                 get_power_spectral_density_matrix(data, mask) for mask in mask_speech
             ]
             if self.beamformer_type == 'mvdr':
                 # psd of noise
-                psd_n = get_power_spectral_density_matrix(data, mask_noise)
+                if mask_noise is not None:
+                    psd_n = get_power_spectral_density_matrix(data, mask_noise)
             elif self.beamformer_type == 'mpdr':
                 # psd of observed speech
                 psd_n = FC.einsum('...ct,...et->...ce', [data, data.conj()])
@@ -173,8 +200,12 @@ class DNN_Beamformer(torch.nn.Module):
                 psd_speech = psd_speeches.pop(i)
                 # treat all other speakers' psd_speech as noises
                 if self.beamformer_type == 'mvdr':
+                    psd_noise = sum(psd_speeches)
+                    if mask_noise is not None:
+                        psd_noise = psd_noise + psd_n
+
                     enh, w = apply_beamforming(
-                        data, ilens, psd_speech, sum(psd_speeches) + psd_n, self.beamformer_type
+                        data, ilens, psd_speech, psd_noise, self.beamformer_type
                     )
                 elif self.beamformer_type == 'mpdr':
                     enh, w = apply_beamforming(

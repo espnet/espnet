@@ -38,6 +38,7 @@ class BeamformerNet(torch.nn.Module):
             bprojs: int = 320,
             badim: int = 320,
             ref_channel: int = -1,
+            use_noise_mask: bool = True,
             beamformer_type='mvdr',
             bdropout_rate=0.0,
     ):
@@ -88,7 +89,8 @@ class BeamformerNet(torch.nn.Module):
                 bunits=bunits,
                 bprojs=bprojs,
                 blayers=blayers,
-                bnmask=num_spk + 1,
+                num_spk=num_spk,
+                use_noise_mask=use_noise_mask,
                 dropout_rate=bdropout_rate,
                 badim=badim,
                 ref_channel=ref_channel,
