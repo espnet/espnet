@@ -3,7 +3,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
-from collections import OrderedDict
 from itertools import permutations
 
 import torch
@@ -32,6 +31,8 @@ class ESPnetFrontendModel(AbsESPnetModel):
         self.fs = frontend.fs
         self.tf_factor = frontend.tf_factor
         self.mask_type = frontend.mask_type
+        # for multi-channel signal
+        self.ref_channel = frontend.ref_channel
 
     def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
         """
@@ -78,14 +79,23 @@ class ESPnetFrontendModel(AbsESPnetModel):
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
-            speech_mix: (Batch, samples)
-            speech_ref: (Batch, num_speaker, samples)
+            speech_mix: (Batch, samples) or (Batch, samples, channels)
+            speech_ref: (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
             speech_lengths: (Batch,)
         """
-        # (Batch, num_speaker, samples)
-        speech_ref = torch.stack([
+        # clean speech signal of each speaker
+        speech_ref = [
             kwargs['speech_ref{}'.format(spk + 1)] for spk in range(self.num_spk)
-        ], dim=1)
+        ]
+        if 'speech_ref{}'.format(self.num_spk + 1) in kwargs:
+            # noise signal (optional, required when using frontend models with beamformering)
+            speech_ref.append(kwargs['speech_ref{}'.format(self.num_spk + 1)])
+        # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
+        speech_ref = torch.stack(speech_ref, dim=1)
+
+        # dereverberated noisy signal (optional, only used for frontend models with WPE)
+        dereverb_speech_ref = getattr(kwargs, 'dereverb_ref', None)
+
         speech_lengths = speech_mix_lengths
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
@@ -97,41 +107,98 @@ class ESPnetFrontendModel(AbsESPnetModel):
         batch_size = speech_mix.shape[0]
 
         # for data-parallel
-        speech_ref = speech_ref[:, :, : speech_lengths.max()]
-        speech_mix = speech_mix[:, : speech_lengths.max()]
+        if speech_ref.dim() == 3:   # single-channel
+            speech_ref = speech_ref[:, :, : speech_lengths.max()]
+        else:   # multi-channel
+            speech_ref = speech_ref[:, :, : speech_lengths.max(), :]
+        if speech_mix.dim() == 3:   # single-channel
+            speech_mix = speech_mix[:, : speech_lengths.max()]
+        else:   # multi-channel
+            speech_mix = speech_mix[:, : speech_lengths.max(), :]
 
-        if self.tf_factor:
+        if self.tf_factor > 0:
             # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
-            sepctrum_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
-            sepctrum_ref = [ComplexTensor(sr[..., 0], sr[..., 1]) for sr in sepctrum_ref]
+            spectrum_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
+            # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
+            spectrum_ref = [ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref]
             sepctrum_mix = self.frontend.stft(speech_mix)[0]
             sepctrum_mix = ComplexTensor(sepctrum_mix[..., 0], sepctrum_mix[..., 1])
 
             # prepare ideal masks
-            mask_ref = self._create_mask_label(sepctrum_mix, sepctrum_ref, mask_type=self.mask_type)
+            mask_ref = self._create_mask_label(sepctrum_mix, spectrum_ref, mask_type=self.mask_type)
+            if dereverb_speech_ref is not None:
+                dereverb_spectrum_ref = self.frontend.stft(dereverb_speech_ref)[0]
+                dereverb_spectrum_ref = \
+                    ComplexTensor(dereverb_spectrum_ref[..., 0], dereverb_spectrum_ref[..., 1])
+                # ComplexTensor(B, T, F) or ComplexTensor(B, T, C, F)
+                dereverb_mask_ref = self._create_mask_label(
+                    sepctrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
+                )[0]
 
-            # predict separated speech and separated magnitude
+            # predict separated speech and masks
             spectrum_pre, tf_length, mask_pre = self.frontend(speech_mix, speech_lengths)
 
             # compute TF masking loss
-            tf_loss, perm = self._permutation_loss(mask_ref, mask_pre, self.tf_l1_loss)
+            if mask_pre is None:
+                # compute loss on magnitude spectrum instead
+                magnitude_pre = [abs(ps) for ps in spectrum_pre]
+                magnitude_ref = [abs(sr) for sr in spectrum_ref]
+                tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
+            else:
+                mask_pre_ = [mask_pre['spk{}'.format(spk + 1)] for spk in range(self.num_spk)]
+                if len(mask_ref) > self.num_spk:
+                    mask_noise_ref_ = mask_ref[-1]
+                    mask_ref_ = mask_ref[:-1]
+                else:
+                    mask_noise_ref_ = None
+                    mask_ref_ = mask_ref
 
-            speech_pre = [self.frontend.stft.inverse(ps, speech_lengths)[0] for ps in spectrum_pre]
+                tf_loss, perm = self._permutation_loss(mask_ref_, mask_pre_, self.tf_l1_loss)
 
-            # compute si-snr loss
-            si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
+                if 'dereverb' in mask_pre:
+                    if dereverb_speech_ref is None:
+                        raise ValueError(
+                            'No dereverberated reference for training!\n'
+                            'Please Specify "--use_dereverb_ref true" in run.sh'
+                        )
+                    tf_loss = tf_loss + self.tf_l1_loss(dereverb_mask_ref, mask_pre['dereverb'])
 
-            si_snr = - si_snr_loss
-            loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+                if 'noise' in mask_pre:
+                    if mask_noise_ref_ is None:
+                        raise ValueError(
+                            'No noise reference for training!\n'
+                            'Please Specify "--use_noise_ref true" in run.sh'
+                        )
+                    tf_loss = tf_loss + self.tf_l1_loss(mask_noise_ref_, mask_pre['noise'])
+
+            if self.tf_factor == 1:
+                si_snr_loss = None
+                si_snr = None
+                loss = tf_loss
+            else:
+                speech_pre = [self.frontend.stft.inverse(ps, speech_lengths)[0] for ps in spectrum_pre]
+                if speech_ref.dim() == 4:
+                    # For si_snr loss, only select one channel as the reference
+                    speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
+                # compute si-snr loss
+                si_snr_loss, perm = self._permutation_loss(speech_ref, speech_pre, self.si_snr_loss, perm=perm)
+                si_snr = - si_snr_loss
+
+                loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+
             stats = dict(
-                si_snr=si_snr.detach(),
+                si_snr=si_snr.detach() if si_snr is not None else None,
                 tf_loss=tf_loss.detach(),
                 loss=loss.detach()
             )
         else:
             # TODO:Jing, should find better way to configure for the choice of tf loss and time-only loss.
-            speech_pre, speech_lengths = self.frontend.forward_rawwav(speech_mix, speech_lengths)
+            if speech_ref.dim() == 4:
+                # For si_snr loss of multi-channel input, only select one channel as the reference
+                speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
+
+            speech_pre, speech_lengths, *__ = self.frontend.forward_rawwav(speech_mix, speech_lengths)
             speech_pre = torch.unbind(speech_pre, dim=1)
 
             # compute si-snr loss
@@ -152,12 +219,17 @@ class ESPnetFrontendModel(AbsESPnetModel):
     @staticmethod
     def tf_l1_loss(ref, inf):
         """
-        :param ref: (Batch, T, F)
-        :param inf: (Batch, T, F)
+        :param ref: (Batch, T, F) or (Batch, T, C, F)
+        :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
         """
-        l1loss = abs(ref - inf).mean(dim=[1, 2])
-
+        assert ref.dim() == inf.dim()
+        if ref.dim() == 3:
+            l1loss = abs(ref - inf).mean(dim=[1, 2])
+        elif ref.dim() == 4:
+            l1loss = abs(ref - inf).mean(dim=[1, 2, 3])
+        else:
+            raise ValueError('Invalid input shape: ref={}, inf={}'.format(ref, inf))
         return l1loss
 
     @staticmethod
@@ -195,7 +267,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
             ) / len(permutation)
 
         losses = torch.stack([pair_loss(p) for p in permutations(range(num_spk))], dim=1)
-        if perm == None:
+        if perm is None:
             loss, perm = torch.min(losses, dim=1)
         else:
             loss = losses[torch.arange(losses.shape[0]), perm]

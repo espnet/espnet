@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Tuple
 
 import torch
@@ -74,7 +75,12 @@ class TFMaskingNet(torch.nn.Module):
         Returns:
             separated (list[ComplexTensor]): [(B, T, F), ...]
             ilens (torch.Tensor): (B,)
-            masks (list[torch.Tensor]): [(B, T, F), ...]
+            predcited masks: OrderedDict[
+                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
+                ...
+                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+            ]
         """
 
         # wave -> stft -> magnitude specturm
@@ -91,7 +97,7 @@ class TFMaskingNet(torch.nn.Module):
 
         # predict masks for each speaker
         x, flens, _ = self.rnn(input_magnitude_mvn, flens)
-        masks = []
+        masks = OrderedDict()
         for linear in self.linear:
             y = linear(x)
             y = self.none_linear(y)
@@ -102,6 +108,7 @@ class TFMaskingNet(torch.nn.Module):
 
         predicted_spectrums = [pm * input_phase for pm in predict_magnitude]
 
+        masks = OrderedDict(zip(['spk{}'.format(i + 1) for i in range(len(masks))], masks))
         return predicted_spectrums, flens, masks
 
     def forward_rawwav(
@@ -113,9 +120,14 @@ class TFMaskingNet(torch.nn.Module):
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
             predcited speech [Batch, num_speaker, sample]
             output lengths
+            predcited masks: OrderedDict[
+                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
+                ...
+                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+            ]
         """
 
         # predict spectrum for each speaker

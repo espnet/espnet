@@ -2,8 +2,8 @@ from collections import OrderedDict
 
 import torch
 from espnet2.layers.stft import Stft
-from espnet2.asr.frontend.nets.dnn_wpe import DNN_Beamformer
-from espnet2.asr.frontend.nets.dnn_wpe import DNN_WPE
+from espnet2.asr.frontend.nets.dnn_beamformer import DNN_Beamformer
+from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
 from torch_complex.tensor import ComplexTensor
 
 
@@ -71,7 +71,6 @@ class BeamformerNet(torch.nn.Module):
                 wunits=wunits,
                 wprojs=wprojs,
                 wlayers=wlayers,
-                num_spkr=num_spk,
                 taps=taps,
                 delay=delay,
                 dropout_rate=wdropout_rate,
@@ -81,6 +80,7 @@ class BeamformerNet(torch.nn.Module):
         else:
             self.wpe = None
 
+        self.ref_channel = ref_channel
         if self.use_beamformer:
             self.beamformer = DNN_Beamformer(
                 btype=bnet_type,
@@ -106,15 +106,16 @@ class BeamformerNet(torch.nn.Module):
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            enhanced speech:
+            enhanced speech  (single-channel):
                 torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[torch.Tensor(Batch, Frames, Channel, Freq)],
-                'spk2': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
-                'spkn': List[torch.Tensor(Batch, Frames, Channel, Freq)],
-                'noise': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         # wave -> stft -> magnitude specturm
@@ -131,29 +132,28 @@ class BeamformerNet(torch.nn.Module):
             # single-channel input
             if self.use_wpe:
                 # (B, T, F)
-                enhanced, flens, masks_w = self.wpe(input_spectrum, flens)
-                if masks_w is not None:
-                    for spk in range(self.num_spk):
-                        masks.setdefault('spk{}'.format(spk + 1), []).append(masks_w[spk])
+                enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
+                if mask_w is not None:
+                    masks['derevb'] = mask_w
 
         elif input_spectrum.dim() == 4:
             # multi-channel input
             # 1. WPE
             if self.use_wpe:
                 # (B, T, C, F)
-                enhanced, flens, masks_w = self.wpe(input_spectrum, flens)
-                if masks_w is not None:
-                    for spk in range(self.num_spk):
-                        masks.setdefault('spk{}'.format(spk + 1), []).append(masks_w[spk])
+                enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
+                if mask_w is not None:
+                    masks['derevb'] = mask_w
 
             # 2. Beamformer
             if self.use_beamformer:
                 # enhanced: (B, T, C, F) -> (B, T, F)
                 enhanced, flens, masks_b = self.beamformer(enhanced, flens)
                 for spk in range(self.num_spk):
-                    masks.setdefault('spk{}'.format(spk + 1), []).append(masks_b[spk])
+                    masks['spk{}'.format(spk + 1)] = masks_b[spk]
                 if len(masks_b) > self.num_spk:
-                    masks.setdefault('noise', []).append(masks_b[-1])
+                    masks['noise'] = masks_b[-1]
+
         else:
             raise ValueError('Invalid spectrum dimension: {}'.format(input_spectrum.shape))
 
@@ -176,15 +176,16 @@ class BeamformerNet(torch.nn.Module):
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            predcited speech wavs:
+            predcited speech wavs (single-channel):
                 torch.Tensor(Batch, sample), or List[torch.Tensor(Batch, sample)]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[torch.Tensor],
-                'spk2': List[torch.Tensor],
+                'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
-                'spkn': List[torch.Tensor],
-                'noise': List[torch.Tensor],
+                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         enhanced, flens, masks = self.forward(input, ilens)

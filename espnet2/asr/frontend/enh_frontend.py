@@ -47,6 +47,8 @@ class EnhFrontend(AbsFrontend):
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
         self.num_spk = self.enh_model.num_spk
         self.stft = self.enh_model.stft
+        # for multi-channel signal
+        self.ref_channel = getattr(self.enh_model, 'ref_channel', -1)
 
     def output_size(self) -> int:
         return self.bins
@@ -71,11 +73,11 @@ class EnhFrontend(AbsFrontend):
                 torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': List[torch.Tensor(Batch, Frames, Channel, Freq)],
-                'spk2': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
-                'spkn': List[torch.Tensor(Batch, Frames, Channel, Freq)],
-                'noise': List[torch.Tensor(Batch, Frames, Channel, Freq)],
+                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         # 1. Domain-conversion: e.g. Stft: time -> time-freq

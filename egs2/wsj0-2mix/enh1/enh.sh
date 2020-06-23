@@ -55,6 +55,10 @@ enh_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
 spk_num=2
 feats_normalize=global_mvn  # Normalizaton layer type
 
+# Training data related
+use_dereverb_ref=false
+use_noise_ref=false
+
 # Enhancement related
 inference_args=
 inference_enh_model=valid.si_snr.best.pth
@@ -102,6 +106,11 @@ Options:
                  # Note that it will overwrite args in asr config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
 
+    # Training data related
+    --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
+                         for training a dereverberation model (default="${use_dereverb_ref}")
+    --use_noise_ref    # Whether or not to use noise signal as an additional reference
+                         for training a denoising model (default="${use_noise_ref}")
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -395,6 +404,18 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
     done
 
+    if $use_dereverb_ref; then
+        # reference for dereverberation
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
+    fi
+
+    if $use_noise_ref; then
+        # reference for denoising
+        spk=$(expr $spk_num + 1)
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise.scp,speech_ref${spk},sound "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/noise.scp,speech_ref${spk},sound "
+    fi
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
@@ -474,6 +495,22 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _fold_length_param+="--fold_length ${_fold_length} "
     done
 
+    if $use_dereverb_ref; then
+        # reference for dereverberation
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
+        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref_shape "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref_shape "
+    fi
+
+    if $use_noise_ref; then
+        # reference for denoising
+        spk=$(expr $spk_num + 1)
+        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise.scp,speech_ref${spk},sound "
+        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/noise.scp,speech_ref${spk},sound "
+        _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
+    fi
 
 
     log "enh training started... log: '${enh_exp}/train.log'"
@@ -544,11 +581,10 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${inference_args}
 
         # 3. Concatenates the output files from each jobs
-        for spk in spk1.scp spk2.scp;
-        do
+        for spk in $(seq "${spk_num}"); do
             for i in $(seq "${_nj}"); do
-                cat "${_logdir}/output.${i}/${spk}"
-            done | LC_ALL=C sort -k1 > "${_dir}/${spk}"
+                cat "${_logdir}/output.${i}/spk${spk}.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/spk${spk}.scp"
         done
 
     done
