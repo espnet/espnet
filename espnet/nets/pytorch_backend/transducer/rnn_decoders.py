@@ -346,6 +346,21 @@ class DecoderRNNT(torch.nn.Module):
 
         return nbest_hyps
 
+    @staticmethod
+    def _index_select_lm_state(rnnlm_state, dim, vidx):
+        if isinstance(rnnlm_state, dict):
+            new_state = {}
+
+            for k, v in rnnlm_state.items():
+                new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+        elif isinstance(rnnlm_state, list):
+            new_state = []
+
+            for i in vidx:
+                new_state.append(rnnlm_state[int(i)][:])
+
+        return new_state
+
     def recognize_beam_nsc(self, h, recog_args, rnnlm=None):
         """N-step constrained beam search implementation.
 
@@ -383,6 +398,15 @@ class DecoderRNNT(torch.nn.Module):
             zlist.append(w_zlist[l][0])
             clist.append(w_clist[l][0])
 
+        if rnnlm:
+            w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
+
+            rnnlm_states = w_rnnlm_states[0]
+            rnnlm_scores = w_rnnlm_scores[0]
+        else:
+            rnnlm_states = None
+            rnnlm_scores = None
+
         kept_hyps = [
             {
                 "yseq": [self.blank],
@@ -390,6 +414,8 @@ class DecoderRNNT(torch.nn.Module):
                 "zlist": zlist,
                 "clist": clist,
                 "y": [w_y[0]],
+                "lm_states": rnnlm_states,
+                "lm_scores": rnnlm_scores,
             }
         ]
 
@@ -433,9 +459,20 @@ class DecoderRNNT(torch.nn.Module):
 
                 w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1).view(-1)
 
+                if rnnlm:
+                    w_rnnlm_scores = torch.stack([hyp["lm_scores"] for hyp in hyps])
+
+                    if len(hyps) == 1:
+                        w_rnnlm_scores = w_rnnlm_scores.expand(w_range, -1)
+
+                    w_rnnlm_scores = w_rnnlm_scores.contiguous().view(-1)
+
                 for i, hyp in enumerate(hyps):
                     pos_k = i * self.odim
                     k_i = w_logprobs.narrow(0, pos_k, self.odim)
+
+                    if rnnlm:
+                        lm_k_i = w_rnnlm_scores.narrow(0, pos_k, self.odim)
 
                     for k in range(self.odim):
                         curr_score = float(k_i[k])
@@ -446,12 +483,17 @@ class DecoderRNNT(torch.nn.Module):
                             "zlist": hyp["zlist"],
                             "clist": hyp["clist"],
                             "y": hyp["y"][:],
+                            "lm_states": hyp["lm_states"],
+                            "lm_scores": hyp["lm_scores"],
                         }
 
                         if k == self.blank:
                             S.append(w_hyp)
                         else:
                             w_hyp["yseq"].append(int(k))
+
+                            if rnnlm:
+                                w_hyp["score"] += recog_args.lm_weight * lm_k_i[k]
 
                             V.append(w_hyp)
 
@@ -469,12 +511,23 @@ class DecoderRNNT(torch.nn.Module):
 
                 w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
+                if rnnlm:
+                    w_rnnlm_states = [v["lm_states"] for v in V]
+
+                    w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
+                        w_rnnlm_states, w_tokens, beam
+                    )
+
                 if n < (nstep - 1):
                     for i, v in enumerate(V):
                         v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
                         v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
 
                         v["y"].append(w_y[i])
+
+                        if rnnlm:
+                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_scores"] = w_rnnlm_scores[i]
 
                     hyps = V[:]
                 else:
@@ -489,6 +542,10 @@ class DecoderRNNT(torch.nn.Module):
                         v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
 
                         v["y"].append(w_y[i])
+
+                        if rnnlm:
+                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_scores"] = w_rnnlm_scores[i]
 
             kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[
                 :w_range
@@ -927,6 +984,15 @@ class DecoderRNNTAtt(torch.nn.Module):
             zlist.append(w_zlist[l][0])
             clist.append(w_clist[l][0])
 
+        if rnnlm:
+            w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
+
+            rnnlm_states = w_rnnlm_states[0]
+            rnnlm_scores = w_rnnlm_scores[0]
+        else:
+            rnnlm_states = None
+            rnnlm_scores = None
+
         kept_hyps = [
             {
                 "yseq": [self.blank],
@@ -935,6 +1001,8 @@ class DecoderRNNTAtt(torch.nn.Module):
                 "clist": clist,
                 "alist": w_att_w[0],
                 "y": [w_y[0]],
+                "lm_states": rnnlm_states,
+                "lm_scores": rnnlm_scores,
             }
         ]
 
@@ -978,9 +1046,20 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                 w_logprobs = F.log_softmax(self.joint(h_enc, w_y), dim=-1).view(-1)
 
+                if rnnlm:
+                    w_rnnlm_scores = torch.stack([hyp["lm_scores"] for hyp in hyps])
+
+                    if len(hyps) == 1:
+                        w_rnnlm_scores = w_rnnlm_scores.expand(w_range, -1)
+
+                    w_rnnlm_scores = w_rnnlm_scores.contiguous().view(-1)
+
                 for i, hyp in enumerate(hyps):
                     pos_k = i * self.odim
                     k_i = w_logprobs.narrow(0, pos_k, self.odim)
+
+                    if rnnlm:
+                        lm_k_i = w_rnnlm_scores.narrow(0, pos_k, self.odim)
 
                     for k in range(self.odim):
                         curr_score = float(k_i[k])
@@ -992,12 +1071,17 @@ class DecoderRNNTAtt(torch.nn.Module):
                             "clist": hyp["clist"],
                             "alist": hyp["alist"],
                             "y": hyp["y"][:],
+                            "lm_states": hyp["lm_states"],
+                            "lm_scores": hyp["lm_scores"],
                         }
 
                         if k == self.blank:
                             S.append(w_hyp)
                         else:
                             w_hyp["yseq"].append(int(k))
+
+                            if rnnlm:
+                                w_hyp["score"] += recog_args.lm_weight * lm_k_i[k]
 
                             V.append(w_hyp)
 
@@ -1023,6 +1107,13 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                 w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
+                if rnnlm:
+                    w_rnnlm_states = [v["lm_states"] for v in V]
+
+                    w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
+                        w_rnnlm_states, w_tokens, beam
+                    )
+
                 if n < (nstep - 1):
                     for i, v in enumerate(V):
                         v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
@@ -1031,6 +1122,10 @@ class DecoderRNNTAtt(torch.nn.Module):
                         v["alist"] = w_att_w[i]
 
                         v["y"].append(w_y[i])
+
+                        if rnnlm:
+                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_scores"] = w_rnnlm_scores[i]
 
                     hyps = V[:]
                 else:
@@ -1047,6 +1142,10 @@ class DecoderRNNTAtt(torch.nn.Module):
                         v["alist"] = w_att_w[i]
 
                         v["y"].append(w_y[i])
+
+                        if rnnlm:
+                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_scores"] = w_rnnlm_scores[i]
 
             kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[
                 :w_range
