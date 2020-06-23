@@ -57,35 +57,56 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/prepare_baseline_chime6_data.sh --chime5_corpus ${chime5_corpus}
 fi
 
-train_set=train_worn_simu375k_gss12v0_gss24v0_cleaned_sp
-train_dev=dev_gss24v2_subset-1h
-recog_set=dev_gss24v2
-
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+train_set=train_worn_simu_u400k_cleaned
+train_dev=dev_gss12
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    ### trimming and speed pertrubation for training data
+    echo "stage 1: trimming and speed pertrubation for training data"
+    remove_longshortdata.sh --maxframes 2000 --maxchars 200 data/${train_set} data/${train_set}_trim
+    
+    echo "[INFO]: Using standard speed data perturbation (0.9, 1.0, 1.1)"
+    mkdir -p data/${train_set}_trim_sp
+    utils/perturb_data_dir_speed.sh 0.9 data/${train_set}_trim data/${train_set}_trim/tmp_sp/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${train_set}_trim data/${train_set}_trim/tmp_sp/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${train_set}_trim data/${train_set}_trim/tmp_sp/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set}_trim_sp data/${train_set}_trim/tmp_sp/temp1 data/${train_set}_trim/tmp_sp/temp2 data/${train_set}_trim/tmp_sp/temp3
+    rm -rf data/${train_set}_trim/tmp_sp
+fi
+
+train_set=${train_set}_trim_sp
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    echo "stage 1: Feature Generation"
+    echo "stage 2: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in ${train_set} ${recog_set}; do
+    for x in ${train_set} ${train_dev}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 40 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
+    
+    # subset of dev_set
+    utils/subset_data_dir.sh ${train_dev} 1000 ${train_dev}_u1k
+    
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 fi
+
+train_dev_u1k=${train_dev}_u1k
+feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_dt_u1k_dir=${dumpdir}/${train_dev_u1k}/delta${do_delta}; mkdir -p ${feat_dt_u1k_dir}
 
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    echo "stage 2: Dictionary and Json Data Preparation"
+    echo "stage 3: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
@@ -97,10 +118,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
-
-    # remove 1 or 0 length outputs
-    utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
-    remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -109,12 +126,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_recog_dir}
-    done
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
+        data/${train_dev_u1k}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev_u1k ${feat_dt_u1k_dir}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -123,11 +136,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-    done
+    data2json.sh --feat ${feat_dt_u1k_dir}/feats.scp --nlsyms ${nlsyms} \
+         data/${train_dev_u1k} ${dict} > ${feat_dt_u1k_dir}/data.json
 fi
 
 if [ -z ${tag} ]; then
@@ -158,17 +168,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json
+        --valid-json ${feat_dt_u1k_dir}/data.json
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 5: Decoding"
     nj=32
-    decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
-    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+    decode_dir=decode_${train_dev}_$(basename ${decode_config%.*})_${lmtag}
+    feat_recog_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
     # split data
-    splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+    splitjson.py --parts ${nj} ${feat_dt_dir}/data.json
 
     #### use CPU for decoding
     ngpu=0
@@ -178,7 +188,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --recog-json ${feat_dt_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --rnnlm ${lmexpdir}/rnnlm.model.best
