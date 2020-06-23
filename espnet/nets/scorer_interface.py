@@ -102,7 +102,7 @@ class BatchScorerInterface(ScorerInterface):
 
         """
         warnings.warn(
-            "this {} batch score is implemented throught for loop not parallel".format(
+            "{} batch score is implemented through for loop not parallelized".format(
                 self.__class__.__name__
             )
         )
