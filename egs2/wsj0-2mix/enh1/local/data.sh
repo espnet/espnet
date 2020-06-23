@@ -18,27 +18,6 @@ Usage: $0 [min_or_max]
 EOF
 )
 
-# if [ $# -eq 0 ]; then
-    # min_or_max=min
-# elif [ $# -eq 1 ]; then
-    # case $1 in
-     # min)
-       # min_or_max=min
-       # ;;
-     # max)
-       # min_or_max=max
-       # ;;
-     # *)
-       # log "Error: invalid command line arguments"
-       # log "${help_message}"
-       # exit 1;
-    # esac
-# else
-    # log "Error: invalid command line arguments"
-    # log "${help_message}"
-    # exit 1
-# fi
-
 . ./db.sh
 
 wsj_full_wav=$PWD/data/wsj0/wsj0_wav
