@@ -306,7 +306,11 @@ class Decoder(torch.nn.Module):
 
                         hyps.append(beam_hyp)
 
-                if len(kept_hyps) >= k_range:
+                hyps_max = float(max(hyps, key=lambda x: x["score"])["score"])
+                kept_most_prob = len(
+                    sorted(kept_hyps, key=lambda x: float(x["score"]) > hyps_max)
+                )
+                if kept_most_prob >= k_range:
                     break
 
         if normscore:
