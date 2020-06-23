@@ -60,7 +60,14 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
-- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
+- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
+- Multi-speaker TTS with pretrained speaker embedding
+- Support phoneme-based TTS for En, Jp, and Zn
+- Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
+
+> To train the neural vocoder, please check the following repositories:
+> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/PytorchWaveNetVocoder)
+> - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
