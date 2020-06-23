@@ -328,9 +328,9 @@ class DecoderRNNT(torch.nn.Module):
 
                         hyps.append(beam_hyp)
 
-                hyps_max = max(hyps, key=lambda x: x["score"])["score"]
+                hyps_max = float(max(hyps, key=lambda x: x["score"])["score"])
                 kept_most_prob = len(
-                    sorted(kept_hyps, key=lambda x: x["score"] > hyps_max)
+                    sorted(kept_hyps, key=lambda x: float(x["score"]) > hyps_max)
                 )
                 if kept_most_prob >= k_range:
                     break
@@ -913,9 +913,9 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                         hyps.append(beam_hyp)
 
-                hyps_max = max(hyps, key=lambda x: x["score"])["score"]
+                hyps_max = float(max(hyps, key=lambda x: x["score"])["score"])
                 kept_most_prob = len(
-                    sorted(kept_hyps, key=lambda x: x["score"] > hyps_max)
+                    sorted(kept_hyps, key=lambda x: float(x["score"]) > hyps_max)
                 )
                 if kept_most_prob >= k_range:
                     break
