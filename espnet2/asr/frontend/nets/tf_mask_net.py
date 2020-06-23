@@ -60,10 +60,9 @@ class TFMaskingNet(torch.nn.Module):
             ]
         )
         self.none_linear = {
-            "sigmoid": torch.sigmoid,
-            "relu": torch.relu,
-            "tanh": torch.tanh,
-            "softmax": torch.softmax
+            "sigmoid": torch.nn.Sigmoid(),
+            "relu": torch.nn.ReLU(),
+            "tanh": torch.nn.Tanh(),
         }[none_linear]
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):

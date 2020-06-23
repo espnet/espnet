@@ -18,26 +18,26 @@ Usage: $0 [min_or_max]
 EOF
 )
 
-if [ $# -eq 0 ]; then
-    min_or_max=min
-elif [ $# -eq 1 ]; then
-    case $1 in
-     min)
-       min_or_max=min
-       ;;
-     max)
-       min_or_max=max
-       ;;
-     *)
-       log "Error: invalid command line arguments"
-       log "${help_message}"
-       exit 1;
-    esac
-else
-    log "Error: invalid command line arguments"
-    log "${help_message}"
-    exit 1
-fi
+# if [ $# -eq 0 ]; then
+    # min_or_max=min
+# elif [ $# -eq 1 ]; then
+    # case $1 in
+     # min)
+       # min_or_max=min
+       # ;;
+     # max)
+       # min_or_max=max
+       # ;;
+     # *)
+       # log "Error: invalid command line arguments"
+       # log "${help_message}"
+       # exit 1;
+    # esac
+# else
+    # log "Error: invalid command line arguments"
+    # log "${help_message}"
+    # exit 1
+# fi
 
 . ./db.sh
 
@@ -45,12 +45,15 @@ wsj_full_wav=$PWD/data/wsj0/wsj0_wav
 wsj_2mix_wav=$PWD/data/wsj0_mix/2speakers
 wsj_2mix_scripts=$PWD/data/wsj0_mix/scripts
 
-train_set="tr"
-train_dev="cv"
-recog_set="tt"
 
 other_text=data/local/other_text/text
 nlsyms=data/nlsyms.txt
+min_or_max=min
+sample_rate=8k
+
+
+. utils/parse_options.sh
+
 
 if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' of db.sh"
@@ -61,16 +64,21 @@ if [ ! -e "${WSJ1}" ]; then
     exit 1
 fi
 
+train_set="tr_"${min_or_max}_${sample_rate}
+train_dev="cv_"${min_or_max}_${sample_rate}
+recog_set="tt_"${min_or_max}_${sample_rate}
+
+
 
 ### This part is for WSJ0 mix
 ### Download mixture scripts and create mixtures for 2 speakers
 local/wsj0_create_mixture.sh ${wsj_2mix_scripts} ${WSJ0} ${wsj_full_wav} \
     ${wsj_2mix_wav} || exit 1;
-local/wsj0_2mix_data_prep.sh --min-or-max ${min_or_max} \
-    ${wsj_2mix_wav}/wav16k/${min_or_max} ${wsj_2mix_scripts} ${wsj_full_wav} || exit 1;
+local/wsj0_2mix_data_prep.sh --min-or-max ${min_or_max} --sample-rate ${sample_rate} \
+    ${wsj_2mix_wav}/wav${sample_rate}/${min_or_max} ${wsj_2mix_scripts} ${wsj_full_wav} || exit 1;
 
 ### create .scp file for reference audio
-for folder in tr cv tt;
+for folder in ${train_set} ${train_dev} ${recog_set};
 do
     sed -e 's/\/mix\//\/s1\//g' ./data/$folder/wav.scp > ./data/$folder/spk1.scp
     sed -e 's/\/mix\//\/s2\//g' ./data/$folder/wav.scp > ./data/$folder/spk2.scp

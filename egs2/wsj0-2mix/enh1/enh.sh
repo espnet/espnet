@@ -70,12 +70,11 @@ scoring_protocol="PESQ STOI SDR SAR SIR"
 train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
-srctexts=      # Used for the training of BPE and LM and the creation of a vocabulary list.
 nlsyms_txt=none # Non-linguistic symbol list if existing.
 enh_speech_fold_length=800 # fold_length for speech data during ASR training
 
 help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> --srctexts <srctexts >
+Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> 
 
 Options:
     # General configuration
@@ -173,10 +172,8 @@ fi
 
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats"
-enh_stats_dir="${expdir}/enh_stats"
+enh_stats_dir="${expdir}/enh_stats_${fs}"
 # The directory used for training commands
-asr_exp="${expdir}/asr_${enh_tag}"
 enh_exp="${expdir}/enh_${enh_tag}"
 
 # ========================== Main stages start from here. ==========================
@@ -335,9 +332,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh "${data_feats}/${dset}"
     done
-
-    # shellcheck disable=SC2002
-    cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 fi
 
 
