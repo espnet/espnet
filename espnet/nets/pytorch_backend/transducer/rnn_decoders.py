@@ -379,9 +379,9 @@ class DecoderRNNT(torch.nn.Module):
 
         zlist = []
         clist = []
-        for l in range(self.dlayers):
-            zlist.append(w_zlist[l][0])
-            clist.append(w_clist[l][0])
+        for layer in range(self.dlayers):
+            zlist.append(w_zlist[layer][0])
+            clist.append(w_clist[layer][0])
 
         if rnnlm:
             w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
@@ -488,9 +488,9 @@ class DecoderRNNT(torch.nn.Module):
                 w_tokens = [v["yseq"][-1] for v in V]
                 w_tokens = torch.LongTensor(w_tokens).view(w_range)
 
-                for l in range(self.dlayers):
-                    w_zlist[l] = torch.stack([v["zlist"][l] for v in V])
-                    w_clist[l] = torch.stack([v["clist"][l] for v in V])
+                for layer in range(self.dlayers):
+                    w_zlist[layer] = torch.stack([v["zlist"][layer] for v in V])
+                    w_clist[layer] = torch.stack([v["clist"][layer] for v in V])
 
                 w_ey = self.embed(w_tokens)
 
@@ -505,8 +505,12 @@ class DecoderRNNT(torch.nn.Module):
 
                 if n < (nstep - 1):
                     for i, v in enumerate(V):
-                        v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
-                        v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
+                        v["zlist"] = [
+                            w_zlist[layer][i] for layer in range(self.dlayers)
+                        ]
+                        v["clist"] = [
+                            w_clist[layer][i] for layer in range(self.dlayers)
+                        ]
 
                         v["y"].append(w_y[i])
 
@@ -523,8 +527,12 @@ class DecoderRNNT(torch.nn.Module):
                         if nstep != 1:
                             v["score"] += float(blank_score[i])
 
-                        v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
-                        v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
+                        v["zlist"] = [
+                            w_zlist[layer][i] for layer in range(self.dlayers)
+                        ]
+                        v["clist"] = [
+                            w_clist[layer][i] for layer in range(self.dlayers)
+                        ]
 
                         v["y"].append(w_y[i])
 
@@ -965,9 +973,9 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         zlist = []
         clist = []
-        for l in range(self.dlayers):
-            zlist.append(w_zlist[l][0])
-            clist.append(w_clist[l][0])
+        for layer in range(self.dlayers):
+            zlist.append(w_zlist[layer][0])
+            clist.append(w_clist[layer][0])
 
         if rnnlm:
             w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
@@ -1076,9 +1084,9 @@ class DecoderRNNTAtt(torch.nn.Module):
                 w_tokens = [v["yseq"][-1] for v in V]
                 w_tokens = torch.LongTensor(w_tokens).view(w_range)
 
-                for l in range(self.dlayers):
-                    w_zlist[l] = torch.stack([v["zlist"][l] for v in V])
-                    w_clist[l] = torch.stack([v["clist"][l] for v in V])
+                for layer in range(self.dlayers):
+                    w_zlist[layer] = torch.stack([v["zlist"][layer] for v in V])
+                    w_clist[layer] = torch.stack([v["clist"][layer] for v in V])
 
                 w_att_w = torch.stack([v["alist"] for v in V])
 
@@ -1101,8 +1109,12 @@ class DecoderRNNTAtt(torch.nn.Module):
 
                 if n < (nstep - 1):
                     for i, v in enumerate(V):
-                        v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
-                        v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
+                        v["zlist"] = [
+                            w_zlist[layer][i] for layer in range(self.dlayers)
+                        ]
+                        v["clist"] = [
+                            w_clist[layer][i] for layer in range(self.dlayers)
+                        ]
 
                         v["alist"] = w_att_w[i]
 
@@ -1121,8 +1133,12 @@ class DecoderRNNTAtt(torch.nn.Module):
                         if nstep != 1:
                             v["score"] += float(blank_score[i])
 
-                        v["zlist"] = [w_zlist[l][i] for l in range(self.dlayers)]
-                        v["clist"] = [w_clist[l][i] for l in range(self.dlayers)]
+                        v["zlist"] = [
+                            w_zlist[layer][i] for layer in range(self.dlayers)
+                        ]
+                        v["clist"] = [
+                            w_clist[layer][i] for layer in range(self.dlayers)
+                        ]
 
                         v["alist"] = w_att_w[i]
 
