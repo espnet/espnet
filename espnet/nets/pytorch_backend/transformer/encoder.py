@@ -120,27 +120,13 @@ class Encoder(torch.nn.Module):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
-        if positionwise_layer_type == "linear":
-            positionwise_layer = PositionwiseFeedForward
-            positionwise_layer_args = (attention_dim, linear_units, dropout_rate)
-        elif positionwise_layer_type == "conv1d":
-            positionwise_layer = MultiLayeredConv1d
-            positionwise_layer_args = (
-                attention_dim,
-                linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
-        elif positionwise_layer_type == "conv1d-linear":
-            positionwise_layer = Conv1dLinear
-            positionwise_layer_args = (
-                attention_dim,
-                linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
-        else:
-            raise NotImplementedError("Support only linear or conv1d.")
+        positionwise_layer, positionwise_layer_args = self.get_positionwise_layer(
+            positionwise_layer_type,
+            attention_dim,
+            linear_units,
+            dropout_rate,
+            positionwise_conv_kernel_size,
+        )
         if selfattention_layer_type == "selfattn":
             logging.info("encoder self-attention layer type = self-attention")
             self.encoders = repeat(
@@ -243,6 +229,38 @@ class Encoder(torch.nn.Module):
             )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
+
+    def get_positionwise_layer(
+        self,
+        positionwise_layer_type="linear",
+        attention_dim=256,
+        linear_units=2048,
+        dropout_rate=0.1,
+        positionwise_conv_kernel_size=1,
+    ):
+        """Define positionwise layer."""
+        if positionwise_layer_type == "linear":
+            positionwise_layer = PositionwiseFeedForward
+            positionwise_layer_args = (attention_dim, linear_units, dropout_rate)
+        elif positionwise_layer_type == "conv1d":
+            positionwise_layer = MultiLayeredConv1d
+            positionwise_layer_args = (
+                attention_dim,
+                linear_units,
+                positionwise_conv_kernel_size,
+                dropout_rate,
+            )
+        elif positionwise_layer_type == "conv1d-linear":
+            positionwise_layer = Conv1dLinear
+            positionwise_layer_args = (
+                attention_dim,
+                linear_units,
+                positionwise_conv_kernel_size,
+                dropout_rate,
+            )
+        else:
+            raise NotImplementedError("Support only linear or conv1d.")
+        return positionwise_layer, positionwise_layer_args
 
     def forward(self, xs, masks):
         """Encode input sequence.
