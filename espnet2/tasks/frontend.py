@@ -12,31 +12,17 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.rnn_encoder import RNNEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
+
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.enh_frontend import EnhFrontend
 from espnet2.asr.frontend.espnet_model import ESPnetFrontendModel
-from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.global_mvn import GlobalMVN
-from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -47,27 +33,6 @@ frontend_choices = ClassChoices(
     default="enh",
 )
 
-# normalize_choices = ClassChoices(
-#     "normalize",
-#     classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN, ),
-#     type_check=AbsNormalize,
-#     default="utterance_mvn",
-#     optional=True,
-# )
-# encoder_choices = ClassChoices(
-#     "encoder",
-#     classes=dict(
-#         transformer=TransformerEncoder, vgg_rnn=VGGRNNEncoder, rnn=RNNEncoder,
-#     ),
-#     type_check=AbsEncoder,
-#     default="rnn",
-# )
-# decoder_choices = ClassChoices(
-#     "decoder",
-#     classes=dict(transformer=TransformerDecoder, rnn=RNNDecoder),
-#     type_check=AbsDecoder,
-#     default="rnn",
-# )
 
 
 class FrontendTask(AbsTask):

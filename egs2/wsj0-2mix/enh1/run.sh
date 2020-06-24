@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-min_or_max=max
+min_or_max=min
 sample_rate=8k
 
 

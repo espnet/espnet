@@ -216,6 +216,18 @@ class ESPnetFrontendModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+
+    @staticmethod
+    def tf_l2_loss(ref, inf):
+        """
+        :param ref: (Batch, T, F)
+        :param inf: (Batch, T, F)
+        :return: (Batch)
+        """
+        l1loss = torch.norm((ref - inf), p=2, dim=[1,2])
+
+        return l1loss
+
     @staticmethod
     def tf_l1_loss(ref, inf):
         """
