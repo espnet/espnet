@@ -1,7 +1,7 @@
 """Transducer speech recognition model (pytorch)."""
 
+from collections import Counter
 from distutils.util import strtobool
-import json
 import logging
 import math
 
@@ -122,8 +122,10 @@ class E2E(ASRInterface, torch.nn.Module):
         # Encoder - Transformer
         group.add_argument(
             "--enc-block-arch",
+            type=eval,
+            action="append",
             default=None,
-            help="JSON file containing encoder architecture definition",
+            help="Encoder architecture definition",
         )
         group.add_argument(
             "--enc-block-repeat",
@@ -230,8 +232,10 @@ class E2E(ASRInterface, torch.nn.Module):
         # Decoder - Transformer
         group.add_argument(
             "--dec-block-arch",
+            type=eval,
+            action="append",
             default=None,
-            help="JSON file containing encoder architecture definition",
+            help="Decoder architecture definition",
         )
         group.add_argument(
             "--dec-block-repeat",
@@ -321,46 +325,47 @@ class E2E(ASRInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         if "transformer" in args.etype:
-            if args.enc_block_arch is not None:
-                with open(args.enc_block_arch) as config:
-                    enc_arch = json.load(config)
-            else:
-                logging.warning(
-                    "Transformer-based blocks in transducer mode are"
-                    "defined through a JSON file for customization"
+            if args.enc_block_arch is None:
+                raise ValueError(
+                    "Transformer-based blocks in transducer mode should be"
+                    "defined individually in the YAML file."
                 )
 
             self.subsample = get_subsample(args, mode="asr", arch="transformer")
 
             self.encoder = Encoder(
                 idim,
-                enc_arch,
+                args.enc_block_arch,
                 input_layer=args.transformer_enc_input_layer,
                 repeat_block=args.enc_block_repeat,
                 dropout_rate=args.dropout_rate,
                 positional_dropout_rate=args.dropout_rate,
                 attention_dropout_rate=args.transformer_attn_dropout_rate_encoder,
             )
+
+            encoder_out = self.encoder.enc_out
+            args.eprojs = self.encoder.enc_out
+
+            most_dom_list = args.enc_block_arch
         else:
             self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
             self.enc = encoder_for(args, idim, self.subsample)
 
+            encoder_out = args.eprojs
+
         if "transformer" in args.dtype:
-            if args.dec_block_arch is not None:
-                with open(args.dec_block_arch) as config:
-                    dec_arch = json.load(config)
-            else:
-                logging.warning(
-                    "Transformer blocks in transducer mode are defined"
-                    "using a JSON file for customization"
+            if args.dec_block_arch is None:
+                raise ValueError(
+                    "Transformer-based blocks in transducer mode should be"
+                    "defined individually in the YAML file."
                 )
 
             self.decoder = Decoder(
                 odim,
-                self.encoder.enc_out,
+                encoder_out,
                 args.joint_dim,
-                dec_arch,
+                args.dec_block_arch,
                 input_layer=args.transformer_dec_input_layer,
                 repeat_block=args.dec_block_repeat,
                 dropout_rate_embed=args.dropout_rate_embed_decoder,
@@ -368,15 +373,21 @@ class E2E(ASRInterface, torch.nn.Module):
                 positional_dropout_rate=args.dropout_rate_decoder,
                 attention_dropout_rate=args.transformer_attn_dropout_rate_decoder,
             )
-        else:
-            if "transformer" in args.etype:
-                args.eprojs = self.encoder.enc_out
 
+            if "transformer" in args.etype:
+                most_dom_list += args.dec_block_arch
+            else:
+                most_dom_list = args.dec_block_arch
+        else:
             if args.rnnt_mode == "rnnt-att":
                 self.att = att_for(args)
                 self.dec = decoder_for(args, odim, self.att)
             else:
                 self.dec = decoder_for(args, odim)
+
+        self.most_dom_dim = Counter(d["d_hidden"] for d in most_dom_list).most_common(
+            1
+        )[0][0]
 
         self.etype = args.etype
         self.dtype = args.dtype

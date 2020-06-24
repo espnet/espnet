@@ -506,10 +506,9 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         # For transformer-transducer, adim declaration is within the block definition.
-        # Thus, we need to retrieve the most dominant value for Noam scheduler.
-        # "enc_out" is adim in the last layer of transformer encoder.
-        if hasattr(args, "enc_block_arch"):
-            adim = model.encoder.enc_out
+        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
+        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
+            adim = model.most_dom_dim
         else:
             adim = args.adim
 
