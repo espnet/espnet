@@ -97,7 +97,7 @@ def build_transformer_layer(
         (function): function to create Transformer layer
 
     """
-    if not {"d_hidden", "d_ff", "heads"} <= block_arch.keys():
+    if {"d_hidden", "d_ff", "heads"} > block_arch.keys():
         raise ValueError(
             "Transformer layer format is: {'type: transformer', "
             "'d_hidden': int, 'd_ff': int, 'heads': int}"
@@ -137,7 +137,7 @@ def build_causal_conv1d_layer(block_arch):
         (function): function to create CausalConv1d layer
 
     """
-    if not {"idim", "odim", "kernel_size"} <= block_arch.keys():
+    if {"idim", "odim", "kernel_size"} > block_arch.keys():
         raise ValueError(
             "CausalConv1d layer format is: {'type: causal-conv1d', "
             "'idim': int, 'odim': int, 'kernel_size': int}"
@@ -160,7 +160,7 @@ def build_tdnn_layer(block_arch):
         (function): function to create TDNN layer
 
     """
-    if not {"idim", "odim", "ctx_size", "dilation", "stride"} <= block_arch.keys():
+    if {"idim", "odim", "ctx_size", "dilation", "stride"} > block_arch.keys():
         raise ValueError(
             "TDNN block format is: {'type: tdnn', "
             "'idim': int, 'odim': int, 'ctx_size': int, "
