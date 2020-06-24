@@ -3,10 +3,10 @@
 from argparse import ArgumentParser
 import os
 import re
-from xml.dom.minidom import parse
 import shutil
 import string
 import sys
+from xml.dom.minidom import parse
 
 s = "".join(chr(c) for c in range(sys.maxunicode + 1))
 ws = "".join(re.findall(r"\s", s))
