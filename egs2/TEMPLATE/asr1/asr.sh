@@ -391,16 +391,18 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         exit 1
 
     elif  [ "${feats_type}" = extracted ]; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            # Generate dummy wav.scp to avoid error by copy_data_dir.sh
             <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
 
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
-                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/org/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > "${data_feats}/org/${dset}/feats_dim"
 
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
 
     else
