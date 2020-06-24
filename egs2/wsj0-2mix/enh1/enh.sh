@@ -48,10 +48,10 @@ fs=16k            # Sampling rate.
 
 
 # Enhancement model related
-enh_tag=    # Suffix to the result dir for asr model training.
-enh_config= # Config for asr model training.
-enh_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in asr config.
+enh_tag=    # Suffix to the result dir for enhancement model training.
+enh_config= # Config for ehancement model training.
+enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
+            # Note that it will overwrite args in enhancement config.
 spk_num=2
 feats_normalize=global_mvn  # Normalizaton layer type
 
@@ -71,7 +71,7 @@ train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
 nlsyms_txt=none # Non-linguistic symbol list if existing.
-enh_speech_fold_length=800 # fold_length for speech data during ASR training
+enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> 
@@ -99,10 +99,10 @@ Options:
 
 
     # Enhancemnt model related
-    --enh_tag    # Suffix to the result dir for asr model training (default="${enh_tag}").
-    --enh_config # Config for asr model training (default="${enh_config}").
-    --enh_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${enh_args}").
-                 # Note that it will overwrite args in asr config.
+    --enh_tag    # Suffix to the result dir for enhancement model training (default="${enh_tag}").
+    --enh_config # Config for enhancement model training (default="${enh_config}").
+    --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
+                 # Note that it will overwrite args in enhancement config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
 
     # Training data related
@@ -116,7 +116,7 @@ Options:
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
-    --enh_speech_fold_length # fold_length for speech data during ASR training  (default="${enh_speech_fold_length}").
+    --enh_speech_fold_length # fold_length for speech data during enhancement training  (default="${enh_speech_fold_length}").
 EOF
 )
 
@@ -231,7 +231,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 _opts+="--segments data/${dset}/segments "
             fi
 
-            for spk in "spk1" "spk2" "wav"; do
+            
+            _spk_list=" "
+            for i in $(seq ${spk_num}); do
+                _spk_list+="spk${i} "
+            done
+
+            for spk in ${_spk_list} "wav" ; do
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --out-filename "${spk}.scp" \
@@ -242,49 +248,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
         done
-
-    elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
-
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-
-            # 2. Feature extract
-            _nj=$(min "${nj}" "$(<"${data_feats}/org/${dset}/utt2spk" wc -l)")
-            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/org/${dset}"
-            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
-
-            # 3. Derive the the frame length and feature dimension
-            scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
-
-            # 4. Write feats_dim
-            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
-
-            # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
-        done
-
-    elif [ "${feats_type}" = fbank ]; then
-        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
-        log "${feats_type} is not supported yet."
-        exit 1
-
-    elif  [ "${feats_type}" = extracted ]; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
-
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
-
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
-                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
-
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
-        done
-
+        
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
@@ -297,12 +261,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
 
+        _spk_list=" "
+        for i in $(seq ${spk_num}); do
+            _spk_list+="spk${i} "
+        done
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-        cp "${data_feats}/org/${dset}/spk1.scp" "${data_feats}/${dset}/spk1.scp"
-        cp "${data_feats}/org/${dset}/spk2.scp" "${data_feats}/${dset}/spk2.scp"
-
+        for spk in ${_spk_list};do
+            cp "${data_feats}/org/${dset}/${spk}.scp" "${data_feats}/${dset}/${spk}.scp"
+        done
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
@@ -312,7 +280,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             <"${data_feats}/org/${dset}/utt2num_samples" \
                 awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
                 >"${data_feats}/${dset}/utt2num_samples"
-            for spk in "spk1" "spk2" "wav"; do
+            for spk in ${_spk_list} "wav"; do
                 <"${data_feats}/org/${dset}/${spk}.scp" \
                     utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                     >"${data_feats}/${dset}/${spk}.scp"
@@ -574,11 +542,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${inference_args}
 
+
+        _spk_list=" "
+        for i in $(seq ${spk_num}); do
+            _spk_list+="spk${i} "
+        done
+
         # 3. Concatenates the output files from each jobs
-        for spk in $(seq "${spk_num}"); do
+        for spk in ${_spk_list} ;
+        do
             for i in $(seq "${_nj}"); do
-                cat "${_logdir}/output.${i}/spk${spk}.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/spk${spk}.scp"
+                cat "${_logdir}/output.${i}/${spk}.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/${spk}.scp"
         done
 
     done
@@ -619,20 +594,20 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # 2. Submit decoding jobs
         log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-            python3 -m espnet2.bin.enh_scoring \
-                --key_file "${_logdir}"/keys.JOB.scp \
-                --output_dir "${_logdir}"/output.JOB \
-                ${_ref_scp}\
-                ${_inf_scp}
+        # ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+        #     python3 -m espnet2.bin.enh_scoring \
+        #         --key_file "${_logdir}"/keys.JOB.scp \
+        #         --output_dir "${_logdir}"/output.JOB \
+        #         ${_ref_scp}\
+        #         ${_inf_scp}
 
-        for spk in $(seq "${spk_num}"); do
-            for protocol in ${scoring_protocol}; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
-                done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
-            done
-        done
+        # for spk in $(seq "${spk_num}"); do
+        #     for protocol in ${scoring_protocol}; do
+        #         for i in $(seq "${_nj}"); do
+        #             cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
+        #         done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
+        #     done
+        # done
 
         for protocol in ${scoring_protocol}; do
             echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}/${protocol}_spk${spk_num} "; done)  | 
@@ -642,31 +617,31 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         done > ${_dir}/result.txt
 
         cat ${_dir}/result.txt
-
-
     done
 
+    for dset in "${dev_set}" ${eval_sets} ; do
+         _dir="${enh_exp}/separate_${dset}/scoring" 
+         echo "======= Results in ${dset} ======="
+         cat ${_dir}/result.txt
+    done > ${enh_exp}/RESULTS.TXT
 fi
 
-exit
 
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-    log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    log "[Option] Stage 9: Pack model: ${enh_exp}/packed.tgz"
 
     _opts=
     if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        _opts+="--option ${enh_stats_dir}/train/feats_stats.npz "
     fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
+
     # shellcheck disable=SC2086
-    python -m espnet2.bin.pack asr \
-        --asr_train_config.yaml "${asr_exp}"/config.yaml \
-        --asr_model_file.pth "${asr_exp}"/"${decode_asr_model}" \
+    python -m espnet2.bin.pack enh \
+        --train_config.yaml "${enh_exp}"/config.yaml \
+        --model_file.pth "${enh_exp}"/"${inference_enh_model}" \
         ${_opts} \
-        --option "${asr_exp}"/RESULTS.md \
-        --outpath "${asr_exp}/packed.tgz"
+        --option "${enh_exp}"/RESULTS.TXT \
+        --outpath "${enh_exp}/packed.tgz"
 
 fi
 
