@@ -66,7 +66,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
 
 > To train the neural vocoder, please check the following repositories:
-> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/PytorchWaveNetVocoder)
+> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
 > - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
 ### ST: Speech Translation & MT: Machine Translation
