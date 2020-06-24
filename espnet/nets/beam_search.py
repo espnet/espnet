@@ -7,6 +7,7 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Tuple
+from typing import Union
 
 import torch
 
@@ -19,9 +20,9 @@ class Hypothesis(NamedTuple):
     """Hypothesis data type."""
 
     yseq: torch.Tensor
-    score: float = 0
-    scores: Dict[str, float] = dict()
-    states: Dict[str, Dict] = dict()
+    score: Union[float, torch.Tensor] = 0
+    scores: Dict[str, Union[float, torch.Tensor]] = dict()
+    states: Dict[str, Any] = dict()
 
     def asdict(self) -> dict:
         """Convert data to JSON-friendly dict."""
