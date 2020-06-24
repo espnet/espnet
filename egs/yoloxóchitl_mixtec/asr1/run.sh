@@ -70,7 +70,7 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### Task dependent. You have to make data the following preparation part by yourself.
-    python local/data_prep.py -w $wavdir -a $anndir -t data/${annotation_id} \
+    python local/data_prep.py -w $wavdir -a $annodir -t data/${annotation_id} \
                               -m ${annotation_type} -i local/speaker_wav_mapping_mixtec_remove_reserve.csv \
                               -f ${text_format}
 
