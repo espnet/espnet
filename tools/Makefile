@@ -25,7 +25,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv warp-ctc.done warp-transducer.done chainer_ctc.done
+python: venv warp-ctc.done warp-transducer.done chainer_ctc.done cupy.done
 
 extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 
