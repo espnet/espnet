@@ -385,8 +385,12 @@ class E2E(ASRInterface, torch.nn.Module):
             else:
                 self.dec = decoder_for(args, odim)
 
-        self.most_dom_dim = Counter(d["d_hidden"] for d in most_dom_list).most_common(
-            1
+        self.most_dom_dim = sorted(
+            Counter(
+                d["d_hidden"] for d in most_dom_list if "d_hidden" in d
+            ).most_common(),
+            key=lambda x: x[0],
+            reverse=True,
         )[0][0]
 
         self.etype = args.etype
