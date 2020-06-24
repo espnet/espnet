@@ -82,7 +82,7 @@ nkf.done:
 	./install_nkf.sh
 	touch nkf.done
 
-pyopenjtalk.done: open_jtalk.done
+pyopenjtalk.done: espnet.done
 	. venv/bin/activate && ./install_pyopenjtalk.sh
 	touch pyopenjtalk.done
 
@@ -94,7 +94,7 @@ mwerSegmenter.done:
 	./install_mwerSegmenter.sh
 	touch mwerSegmenter.done
 
-kenlm.done:
+kenlm.done: espnet.done
 	. venv/bin/activate && ./install_kenlm.sh
 	touch kenlm.done
 
