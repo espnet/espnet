@@ -1,12 +1,12 @@
 # -*- coding: UTF-8 -*-
 
-from xml.dom.minidom import parse
 from argparse import ArgumentParser
+from xml.dom.minidom import parse
+import os
+import re
 import shutil
 import string
-import os
 import sys
-import re
 
 s = "".join(chr(c) for c in range(sys.maxunicode + 1))
 ws = "".join(re.findall(r"\s", s))
