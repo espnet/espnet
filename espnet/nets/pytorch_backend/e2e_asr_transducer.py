@@ -346,7 +346,7 @@ class E2E(ASRInterface, torch.nn.Module):
             encoder_out = self.encoder.enc_out
             args.eprojs = self.encoder.enc_out
 
-            most_dom_list = args.enc_block_arch
+            self.most_dom_list = args.enc_block_arch
         else:
             self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
@@ -375,9 +375,9 @@ class E2E(ASRInterface, torch.nn.Module):
             )
 
             if "transformer" in args.etype:
-                most_dom_list += args.dec_block_arch
+                self.most_dom_list += args.dec_block_arch
             else:
-                most_dom_list = args.dec_block_arch
+                self.most_dom_list = args.dec_block_arch
         else:
             if args.rnnt_mode == "rnnt-att":
                 self.att = att_for(args)
@@ -385,13 +385,14 @@ class E2E(ASRInterface, torch.nn.Module):
             else:
                 self.dec = decoder_for(args, odim)
 
-        self.most_dom_dim = sorted(
-            Counter(
-                d["d_hidden"] for d in most_dom_list if "d_hidden" in d
-            ).most_common(),
-            key=lambda x: x[0],
-            reverse=True,
-        )[0][0]
+        if hasattr(self, "most_dom_list"):
+            self.most_dom_dim = sorted(
+                Counter(
+                    d["d_hidden"] for d in self.most_dom_list if "d_hidden" in d
+                ).most_common(),
+                key=lambda x: x[0],
+                reverse=True,
+            )[0][0]
 
         self.etype = args.etype
         self.dtype = args.dtype
