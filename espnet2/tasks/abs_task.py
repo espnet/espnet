@@ -275,7 +275,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--iterator_type",
             type=str,
-            choices=["sequence", "none"],
+            choices=["sequence", "chunk", "none"],
             default="sequence",
             help="Specify iterator type",
         )

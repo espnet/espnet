@@ -2,8 +2,9 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size: 4
-#iterator_type: chunk
+batch_size: 8
+iterator_type: chunk
+chunk_length: 64000
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
@@ -38,7 +39,7 @@ frontend_conf:
         H: 512
         P: 3
         X: 8
-        R: 2
+        R: 4
         num_spk: 2
         norm_type: gLN
         causal: False
