@@ -13,6 +13,7 @@ from typing import Union
 
 import configargparse
 import kaldiio
+import numpy as np
 import soundfile as sf
 import torch
 from typeguard import check_argument_types
@@ -29,6 +30,113 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+class Text2Speech:
+    """Text2speech class
+
+    Examples:
+        >>> text2speech = Text2Speech("config.yaml", "tts.pth")
+        >>> fs, wav, outs, outs_denorm, probs, att_ws = text2speech("Hello World")
+
+        Note that text cleaner, g2p and vocoder are also included in this class.
+
+    """
+
+    def __init__(
+        self,
+        train_config: Union[Path, str],
+        model_file: Union[Path, str] = None,
+        dtype: str = "float32",
+        device: str = "cpu",
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 0.0,
+        vocoder_conf: dict = None,
+    ):
+        # 1. Build model
+        model, train_args = TTSTask.build_model_from_file(
+            train_config, model_file, device
+        )
+        model.to(dtype=getattr(torch, dtype)).eval()
+
+        # 2. Build converter from spectrogram to waveform
+        if vocoder_conf is None:
+            vocoder_conf = {}
+        if model.feats_extract is not None:
+            vocoder_conf.update(model.feats_extract.get_parameters())
+        if (
+            "n_fft" in vocoder_conf
+            and "n_shift" in vocoder_conf
+            and "fs" in vocoder_conf
+        ):
+            # Now supporting only griffin_lim vocoder
+            spc2wav = Spectrogram2Waveform(**vocoder_conf)
+            logging.info(f"Vocoder: {spc2wav}")
+        else:
+            spc2wav = None
+            logging.warning("Vocoder is not used because vocoder_conf is insufficient")
+        self.spc2wav = spc2wav
+
+        self.tts = model.tts
+        self.normalize = model.normalize
+        self.train_args = train_args
+        self.device = device
+        self.threshold = threshold
+        self.minlenratio = minlenratio
+        self.maxlenratio = maxlenratio
+        self.preprocess_fn = TTSTask.build_preprocess_fn(train_args, False)
+        logging.info(f"Normalization:\n{self.normalize}")
+        logging.info(f"TTS:\n{self.tts}")
+
+    def __call__(self, data: Union[dict, torch.Tensor, np.ndarray, str]):
+        assert check_argument_types()
+
+        if isinstance(data, dict):
+            # data comes from data loader
+
+            # Change to single sequence and remove *_length
+            # because inference() requires 1-seq, not mini-batch.
+            batch = {
+                k: v.squeeze(0) for k, v in data.items() if not k.endswith("_lengths")
+            }
+        elif isinstance(data, (torch.Tensor, np.ndarray)):
+            batch = {"text": data}
+        elif isinstance(data, str):
+            batch = {"text": data}
+            # Text to numpy array
+            batch = self.preprocess_fn("<dummy>", batch)
+        else:
+            raise TypeError(f"dict, torch.Tensor, or np.ndarray: {type(data)}")
+        batch = to_device(batch, self.device)
+
+        # TODO(kamo): Now att_ws is not used.
+        with torch.no_grad():
+            outs, probs, att_ws = self.tts.inference(
+                **batch,
+                threshold=self.threshold,
+                maxlenratio=self.maxlenratio,
+                minlenratio=self.minlenratio,
+            )
+
+        insize = next(iter(batch.values())).size(0)
+        logging.info(f"size: {insize}->{outs.size(0)}")
+        if outs.size(0) == insize * self.maxlenratio:
+            logging.warning("output length reaches maximum length.")
+
+        if self.normalize is not None:
+            outs_denorm = self.normalize.inverse(outs[None])[0][0]
+        else:
+            outs_denorm = outs
+
+        if self.spc2wav is not None:
+            wav = self.spc2wav(outs_denorm.cpu().numpy())
+            fs = self.spc2wav.fs
+        else:
+            wav = None
+            fs = None
+
+        return fs, wav, outs, outs_denorm, probs, att_ws
+
+
 @torch.no_grad()
 def inference(
     output_dir: str,
@@ -40,7 +148,7 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    train_config: Optional[str],
+    train_config: str,
     model_file: Optional[str],
     threshold: float,
     minlenratio: float,
@@ -70,13 +178,17 @@ def inference(
     # 1. Set random-seed
     set_all_random_seed(seed)
 
-    # 2. Build model
-    model, train_args = TTSTask.build_model_from_file(train_config, model_file, device)
-    model.to(dtype=getattr(torch, dtype)).eval()
-    tts = model.tts
-    normalize = model.normalize
-    logging.info(f"Normalization:\n{normalize}")
-    logging.info(f"TTS:\n{tts}")
+    # 2. Build text2speech
+    text2speech = Text2Speech(
+        train_config=train_config,
+        model_file=model_file,
+        dtype=dtype,
+        device=device,
+        threshold=threshold,
+        minlenratio=minlenratio,
+        maxlenratio=maxlenratio,
+        vocoder_conf=vocoder_conf,
+    )
 
     # 3. Build data-iterator
     loader = TTSTask.build_streaming_iterator(
@@ -85,23 +197,12 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=TTSTask.build_preprocess_fn(train_args, False),
-        collate_fn=TTSTask.build_collate_fn(train_args),
+        preprocess_fn=TTSTask.build_preprocess_fn(text2speech.train_args, False),
+        collate_fn=TTSTask.build_collate_fn(text2speech.train_args),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
-
-    # 4. Build converter from spectrogram to waveform
-    if model.feats_extract is not None:
-        vocoder_conf.update(model.feats_extract.get_parameters())
-    if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf and "fs" in vocoder_conf:
-        spc2wav = Spectrogram2Waveform(**vocoder_conf)
-        logging.info(f"Vocoder: {spc2wav}")
-    else:
-        spc2wav = None
-        logging.info("Vocoder is not used because vocoder_conf is not sufficient")
-
-    # 5. Start for-loop
+    # 4. Start for-loop
     output_dir = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
@@ -122,36 +223,20 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = to_device(batch, device)
 
-            key = keys[0]
-            # Change to single sequence and remove *_length
-            # because inference() requires 1-seq, not mini-batch.
-            _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
-
-            # TODO(kamo): Now att_ws is not used.
-            outs, probs, att_ws = tts.inference(
-                **_data,
-                threshold=threshold,
-                maxlenratio=maxlenratio,
-                minlenratio=minlenratio,
-            )
-            outs_denorm = normalize.inverse(outs[None])[0][0]
-            insize = next(iter(_data.values())).size(0)
+            fs, wav, outs, outs_denorm, probs, att_ws = text2speech(batch)
+            key = keys[0]
             logging.info(
-                "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
+                "{}: inference speed = {} msec / frame.".format(
+                    key, (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
                 )
             )
-            logging.info(f"{key} (size:{insize}->{outs.size(0)})")
-            if outs.size(0) == insize * maxlenratio:
-                logging.warning(f"output length reaches maximum length ({key}).")
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
 
             # TODO(kamo): Write scp
-            if spc2wav is not None:
-                wav = spc2wav(outs_denorm.cpu().numpy())
-                sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
+            if wav is not None:
+                sf.write(f"{output_dir}/wav/{key}.wav", wav, fs, "PCM_16")
 
 
 def get_parser():
