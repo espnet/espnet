@@ -1,11 +1,10 @@
 """Set of methods to create transformer-based block."""
 
-import logging
 import torch
 
-from espnet.nets.pytorch_backend.transducer.custom_layers import CausalConv1d
-from espnet.nets.pytorch_backend.transducer.custom_layers import TDNN
-from espnet.nets.pytorch_backend.transducer.custom_layers import VGG2L
+from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
+from espnet.nets.pytorch_backend.transducer.tdnn import TDNN
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -99,11 +98,10 @@ def build_transformer_layer(
 
     """
     if not {"d_hidden", "d_ff", "heads"} <= block_arch.keys():
-        logging.warning(
+        raise ValueError(
             "Transformer layer format is: {'type: transformer', "
             "'d_hidden': int, 'd_ff': int, 'heads': int}"
         )
-        exit(1)
 
     d_hidden = block_arch["d_hidden"]
     d_ff = block_arch["d_ff"]
@@ -140,11 +138,10 @@ def build_causal_conv1d_layer(block_arch):
 
     """
     if not {"idim", "odim", "kernel_size"} <= block_arch.keys():
-        logging.warning(
+        raise ValueError(
             "CausalConv1d layer format is: {'type: causal-conv1d', "
             "'idim': int, 'odim': int, 'kernel_size': int}"
         )
-        exit(1)
 
     idim = block_arch["idim"]
     odim = block_arch["odim"]
@@ -164,12 +161,11 @@ def build_tdnn_layer(block_arch):
 
     """
     if not {"idim", "odim", "ctx_size", "dilation", "stride"} <= block_arch.keys():
-        logging.warning(
+        raise ValueError(
             "TDNN block format is: {'type: tdnn', "
             "'idim': int, 'odim': int, 'ctx_size': int, "
             "'dilation': int, 'stride': int}"
         )
-        exit(1)
 
     idim = block_arch["idim"]
     odim = block_arch["odim"]
@@ -224,7 +220,7 @@ def build_blocks(
         if "type" in block_arch[i]:
             layer_type = block_arch[i]["type"]
         else:
-            logging.warning("type is not defined in following block: ", block_arch[i])
+            raise ValueError("type is not defined in following block: ", block_arch[i])
 
         if layer_type == "tdnn":
             if i == 0:
@@ -248,7 +244,8 @@ def build_blocks(
             module = build_causal_conv1d_layer(block_arch[i])
         else:
             raise NotImplementedError(
-                "Layer type Currently supported: " "tdnn, causal-conv1d or transformer"
+                "Transformer layer type currently supported: "
+                "tdnn, causal-conv1d or transformer"
             )
 
         fn_modules.append(module)

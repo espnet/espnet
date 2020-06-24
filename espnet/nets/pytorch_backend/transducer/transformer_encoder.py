@@ -3,7 +3,7 @@
 import torch
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.custom_layers import VGG2L
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
