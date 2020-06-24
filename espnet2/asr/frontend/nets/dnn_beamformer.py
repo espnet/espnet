@@ -67,7 +67,9 @@ class DNN_Beamformer(torch.nn.Module):
             )
         if beamformer_type == 'mvdr' and (not use_noise_mask):
             if num_spk == 1:
-                raise ValueError('Must use noise mask for MVDR beamforming in single-speaker case!')
+                logging.warning('Initializing MVDR beamformer without noise mask estimator (single-speaker case)')
+                logging.warning('(1 - speech_mask) will be used for estimating noise PSD in MVDR beamformer!')
+                # raise ValueError('Must use noise mask for MVDR beamforming in single-speaker case!')
             else:
                 logging.warning('Initializing MVDR beamformer without noise mask estimator (multi-speaker case)')
                 logging.warning('Interference speech masks will be used for estimating noise PSD in MVDR beamformer!')
@@ -130,11 +132,10 @@ class DNN_Beamformer(torch.nn.Module):
             if self.use_noise_mask:
                 # (mask_speech, mask_noise)
                 mask_speech, mask_noise = masks
-            elif self.beamformer_type == 'mvdr':
-                raise ValueError('Must use noise mask for MVDR beamforming!')
             else:
                 # (mask_speech,)
                 mask_speech = masks[0]
+                mask_noise = 1 - mask_speech
 
             psd_speech = get_power_spectral_density_matrix(data, mask_speech)
             if self.beamformer_type == 'mvdr':

@@ -3,7 +3,6 @@ from typing import Union
 from typing import Dict
 
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.nets.tf_mask_net import BeamformerNet

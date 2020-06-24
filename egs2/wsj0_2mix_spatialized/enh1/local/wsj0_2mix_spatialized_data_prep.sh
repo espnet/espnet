@@ -70,5 +70,5 @@ for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spat
 done
 
 for x in tr cv tt; do
-  cp ${data}/${x}_spatialized_anechoic_multich/wav.scp ${data}/${x}_spatialized_reverb_multich/dereverb.scp
+  sed -e "s#_anechoic #_reverb #g" ${data}/${x}_spatialized_anechoic_multich/wav.scp > ${data}/${x}_spatialized_reverb_multich/dereverb.scp
 done
