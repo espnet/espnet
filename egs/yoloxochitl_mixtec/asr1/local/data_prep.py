@@ -2,8 +2,8 @@
 
 from argparse import ArgumentParser
 import os
-from xml.dom.minidom import parse
 import re
+from xml.dom.minidom import parse
 import shutil
 import string
 import sys
