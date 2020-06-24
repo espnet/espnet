@@ -22,7 +22,11 @@ transformer-attn-dropout-rate-encoder: 0.4
 ## encoder related
 etype: transformer
 transformer-enc-input-layer: vgg2l
-enc-block-arch: conf/tuning/transducer/net_definition/encoder_transformer.json
+enc-block-arch:
+        - type: transformer
+          d_hidden: 320
+          d_ff: 320
+          heads: 4
 enc-block-repeat: 6
 dropout-rate: 0.4
 ## decoder related

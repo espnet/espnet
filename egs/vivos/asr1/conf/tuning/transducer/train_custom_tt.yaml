@@ -22,11 +22,71 @@ transformer-attn-dropout-rate-decoder: 0.0
 ## encoder related
 etype: transformer
 transformer-enc-input-layer: linear
-enc-block-arch: conf/tuning/transducer/net_definition/encoder_tdnn_transformer.json
+enc-block-arch:
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+        - type: transformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 3
+          stride: 1
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 3
+          stride: 1
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 3
+          stride: 3
+        - type: transformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 4
 ## decoder related
 dtype: transformer
 transformer-dec-input-layer: embed
-dec-block-arch: conf/tuning/transducer/net_definition/decoder_causalconv_transformer.json
+dec-block-arch:
+        - type: causal-conv1d
+          idim: 100
+          odim: 256
+          kernel_size: 5
+        - type: transformer
+          d_hidden: 256
+          d_ff: 512
+          heads: 4
+        - type: causal-conv1d
+          idim: 256
+          odim: 256
+          kernel_size: 5
+        - type: transformer
+          d_hidden: 256
+          d_ff: 512
+          heads: 4
 ## joint network related
 joint-dim: 256
 # transducer related
