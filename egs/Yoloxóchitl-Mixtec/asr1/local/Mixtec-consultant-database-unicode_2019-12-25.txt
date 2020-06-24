@@ -1,0 +1,1549 @@
+\last_name Adelaido Bruno
+\first_name Benito
+\uid 551
+\code BAB551
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1980-03-21
+\notes Dueño de un restaurante de mariscos. Protagonista en la grabación de un documental.
+\type
+
+\last_name Adelaido Bruno
+\first_name Benitu
+\uid 551
+\code BAB551
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1980-03-21
+\notes Dueño de un restaurante de mariscos. Protagonista en la grabación de un documental.
+\type
+
+\last_name Amith
+\first_name Jonathan D.
+\uid 000
+\code JDA000
+\sex Male
+\village Gettysburg
+\mpio Adams County
+\estado Pennsylvania
+\age
+\birthapprox
+\birthdate 1953-06-23
+\notes Project director
+\type Linguist
+
+\last_name Bautista Guadalupe
+\first_name Leonila
+\uid 541
+\code LBG541
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1932-12-07
+\notes Madre de Constantino Teodoro Bautista
+\type
+
+\last_name Bruno Encarnación
+\first_name Alfonso
+\uid 559
+\code ABE559
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1989-08-10
+\notes Nos acompañó a colectar en lugar de Constantino T. Fue participativo y tenía conocimiento de las plantas. Se incluyó en las grabaciones.
+\type Asesor
+
+\last_name Castillo García
+\first_name Rey
+\uid 500
+\code RCG500
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1972-05-27
+\notes
+\type linguist; recording
+\rights Signed agreement filed with JDA.
+
+\last_name Castiilo García
+\first_name Rey
+\uid 500
+\code RCG500
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1972-05-27
+\notes
+\type linguist; recording
+\rights Signed agreement filed with JDA.
+
+\last_name Castillo García
+\first_name Esteban
+\uid 503
+\code ECG503
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1977-09-12
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Castillo Pantaleón
+\first_name Pedro
+\uid 519
+\code PCP519
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Castillo Pantaleón
+\first_name Martín
+\uid 534
+\code MCP534
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1962
+\birthdate
+\notes En 2016 dijo que tenía 54 años.
+\type
+
+\last_name Castillo Vázquez
+\first_name Simon
+\uid 510
+\code SCV510
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 60 (approx. age in 2007)
+\birthapprox 1947
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Castillo Vázquez
+\first_name Simón
+\uid 510
+\code SCV510
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 60 (approx. age in 2007)
+\birthapprox 1947
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Chavela Carmen
+\first_name Genaro
+\uid 527
+\code GCC527
+\sex Male
+\village Buenavista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type
+
+\last_name Cirilo Anastacio
+\first_name Antonia
+\uid 572
+\code ACA572
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1983-04-28
+\notes Wife of Esteban Guadalupe Sierra. She was filmed in several videos, such as making comales and cooking.
+\type
+
+\last_name Claudio Paulino
+\first_name Silvino
+\uid 526
+\code SCP526
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1963
+\birthdate
+\notes
+\type recording
+\rights Signed agreement filed with JDA
+\notes RFM said he was 49 years old when asked in 2013. He did not remember his birthdate. Thus he was born in 1963 or 1964. 
+
+\last_name Crescencia Carreño
+\first_name Silvio
+\uid 567
+\code SCC567
+\sex Male
+\village Cuanacaxtitlan
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1959-06-02
+\notes Asesor en etnobotánica.
+\type
+
+\last_name DiCanio
+\first_name Christian
+\uid 530
+\code CDC530
+\sex Male
+\village New Haven
+\mpio New Haven
+\estado Connecticut
+\age
+\birthapprox
+\birthdate
+\notes Phonetician and phonologist on project
+\type Linguist
+
+\last_name Dircio Solano
+\first_name Leobardo
+\uid 531
+\code LDS531
+\sex Male
+\village Cuanacaxtitlan
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1951-01-18
+\notes Speaker from Cuanacaxtitlan consulted to record comparative dictionary and some texts. Knows ritual petitions.
+\type recording
+\rights
+
+\last_name Encarnación Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnación Fidencioi
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnació Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnació Fidencioi
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnacioón Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnacón Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnacó Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Enarnación Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encanación Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnación Fidencio
+\first_name Flomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnació Fidencion
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnación
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnacion Fidencio
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnacion
+\first_name Filomeno
+\uid 537
+\code FEF537
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-05-12
+\notes Asesor de flora en varias salidas de mayo 2016 con Kenia Velasco.
+\type
+
+\last_name Encarnación Gertrudis
+\first_name Marcelina 
+\uid 511
+\code MEG511
+\sex female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 58 (approx. age in 2007)
+\birthapprox 1949
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Felipe Margarito
+\first_name Raúl
+\uid 525
+\code RFM525
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1965-06-14
+\notes
+\type recording
+\rights Signed agreement filed with JDA
+\notes RFM said he was 46 years old when asked in 2013. He remembered his birth date as 14 June, not knowing the year. On that basis he would have been born in 1965, having
+turned 47 in 2012 and presently to be 48 in June.
+
+\last_name Felipe Margarito.
+\first_name Raúl
+\uid 525
+\code RFM525
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1965-06-14
+\notes
+\type recording
+\rights Signed agreement filed with JDA
+\notes RFM said he was 46 years old when asked in 2013. He remembered his birth date as 14 June, not knowing the year. On that basis he would have been born in 1965, having
+turned 47 in 2012 and presently to be 48 in June.
+
+\last_name Fidencio Camilo
+\first_name Fidela
+\uid 544
+\code FCF544
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1984-11-14
+\notes Filmed only working on bordados in the house of María Nazaria Fidencio with M. Nazaria and Cidronia García making clay pots and bordados.
+\type
+
+\last_name Flores Martínez
+\first_name Pablo
+\uid 569
+\code PFM569
+\sex Male
+\village Buena Vista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1987-01-02
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Francisco Gabino
+\first_name Cecilia
+\uid 533
+\code CFG533
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 90
+\birthapprox 1925
+\birthdate
+\notes Weaver from Yoloxóchitl, filmed on 11 January 2016 at which time she said she was 90 years old.
+\type
+
+\last_name Francisco González
+\first_name Maximiliano
+\uid 512
+\code MFG512
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 59 (approx. in 2007)
+\birthapprox 1949
+\birthdate
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Galindo González
+\first_name Alejandro
+\uid 554
+\code AGG554
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1984-03-27
+\notes
+\type
+
+\last_name García Bautista
+\first_name Soledad
+\uid 508
+\code SGB508
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1952-04-11
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name García Peñiera
+\first_name Cidronia
+\uid 545
+\code CGP545
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox Approx. 55 to 60 years old in 2016.
+\birthdate
+\notes Filmed in the house of María Nazaria Fidencio with M. Nazaria making clay pots and bordados.
+\type
+
+\last_name García Rey
+\first_name Alfonso
+\uid 524
+\code AGR524
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1943-06-01
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name García Santiago
+\first_name Lamberto
+\uid 514
+\code LGS514
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name González Martínez
+\first_name Pedro
+\uid 535
+\code PGM535
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1966
+\birthdate
+\notes En 2016 dijo que tenía 50 años. Rezandero de las dos grabaciones en el Cerro de la Lluvia Grande, el 19 y 24 de abril, 2016.
+\type
+
+\last_name Guadalupe Sierra
+\first_name Esteban
+\uid 505
+\code EGS505
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1983-12-26
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Guadalupe SIerra
+\first_name Esteban
+\uid 505
+\code EGS505
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1983-12-26
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Guadalupe
+\first_name Esteban
+\uid 505
+\code EGS505
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1983-12-26
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Guadaluope Sierra
+\first_name Esteban
+\uid 505
+\code EGS505
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1983-12-26
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Guadalupe Sierra
+\first_name Zoila
+\uid 507
+\code ZGS507
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1979-09-19
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Guerrero Méndez
+\first_name Isidro
+\uid 561
+\code IGM561
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1967-05-15
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Jiménez Felipe
+\first_name Alfonsa
+\uid 542
+\code AJF542
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1971-01-23
+\notes Filmed making comales by Roberto Olivares, April 2016, with Antonia Cirilo Anastacio, wife of Esteban Guadalupe Sierra.
+\type
+
+\last_name Laureano Galeana
+\first_name Plácido
+\uid 555
+\code PLG555
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1965-10-05
+\notes
+\type
+
+\last_name Ledesma Corral
+\first_name Jaime Canek
+\uid 529
+\code CLC529
+\sex Male
+\village Mexico City
+\mpio
+\estado DF
+\age 35
+\birthapprox 1980
+\birthdate
+\notes
+\type Field botanist
+
+\last_name Librado Gerardo
+\first_name Celsa
+\uid 539
+\code CLG539
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1943-04-06
+\notes Con su hija, Demetria Morales Librado, hizo dos grabaciones (sobre hacer tortillas y ollas de barro) con Roberto Olivares en mayo 2016.
+\type
+
+\last_name Lorenzo Ortega
+\first_name Pánfilo
+\uid 560
+\code PLO560
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1961-05-12
+\notes
+\type Asesor
+
+\last_name Meza Teodoro
+\first_name Maximino
+\uid 517
+\code MMT517
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Morales Librado
+\first_name Demetria
+\uid 538
+\code DML538
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1968-05-08
+\notes Con su mamá, Celsa Librado Gerardo, hizo dos grabaciones (sobre hacer tortillas y ollas de barro) con Roberto Olivares en mayo 2016.
+\type
+
+\last_name Morales Librado
+\first_name María Demetria
+\uid 538
+\code DML538
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1968-05-08
+\notes Con su mamá, Celsa Librado Gerardo, hizo dos grabaciones (sobre hacer tortillas y ollas de barro) con Roberto Olivares en mayo 2016.
+\type
+
+\last_name Molares Librado
+\first_name María Demetria
+\uid 538
+\code DML538
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1968-05-08
+\notes Con su mamá, Celsa Librado Gerardo, hizo dos grabaciones (sobre hacer tortillas y ollas de barro) con Roberto Olivares en mayo 2016.
+\type
+
+\last_name Morales Santiago
+\first_name Silvano
+\uid 563
+\code MRM563
+\sex Male
+\village Buenavista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1976-05-05
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Nazaria Fidencio
+\first_name María
+\uid 543
+\code MNF543
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1946
+\birthdate
+\notes Approximately 70 years old in 2016. Filmed making clay pots and bordados in her house with two other women by Roberto Olivares, April 2016.
+\type
+
+\last_name Nazario Sotero
+\first_name Guillermina
+\uid 506
+\code GNS506
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1988-04-30
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Nazario Sotero
+\first_name Guilermina
+\uid 506
+\code GNS506
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1988-04-30
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Nazario Santiago
+\first_name Guillermina
+\uid 506
+\code GNS506
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1988-04-30
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Niño Leonardo
+\first_name Fernando
+\uid 520
+\code FNL520
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1962
+\birthdate
+\notes In a recording of 2008 F. Niño said he was 46 years old. 
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Niño Leonardo
+\first_name Francisco
+\uid 520
+\code FNL520
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1962
+\birthdate
+\notes In a recording of 2008 F. Niño said he was 46 years old. 
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Nolasco Lorenzo
+\first_name Sixta
+\uid 549
+\code SNL549
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1970
+\birthdate
+\notes Madre del joven asesinado en una tortillería en Acapulco, Rodolfo Porfirio N.
+\type
+
+\last_name Ortiz Gálvez
+\first_name Victoria
+\uid 557
+\code VOG557
+\sex Female
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1966-03-15
+\notes
+\type
+
+\last_name Patricio Castillo
+\first_name Minerva
+\uid 552
+\code MPC552
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1977-07-17
+\notes Esposa de Benito Adelaido Bruno.
+\type
+
+\last_name Plutarco Bonfilio
+\first_name Lorenzo
+\uid 566
+\code LPB566
+\sex Male
+\village Cuanacaxtitlan
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1978-08-10
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Porfirio Nolasco
+\first_name Ismaél
+\uid 547
+\code IPN547
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1992-01-28
+\notes Hermano del joven asesinado en una tortillería en Acapulco, Rodolfo Porfirio N.
+\type
+
+\last_name Porfirio Nolasco
+\first_name Ismael
+\uid 547
+\code IPN547
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1992-01-28
+\notes Hermano del joven asesinado en una tortillería en Acapulco, Rodolfo Porfirio N.
+\type
+
+\last_name Porfirio Nolasco
+\first_name Rodolfo
+\uid 550
+\code RPN550
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1996-02-25
+\notes Joven asesinado en una tortillería en Acapulco el 7 de enero de 2016.
+\type
+
+\last_name Porfirio Paulino
+\first_name Pedro
+\uid 548
+\code PPP548
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1967
+\birthdate
+\notes Padre del joven asesinado en una tortillería en Acapulco, Rodolfo Porfirio N.
+\type
+
+\last_name Prisciliano Federico
+\first_name Alberto
+\uid 521
+\code APx521
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type recording
+\rights Explicado (falleció)
+
+\last_name Ramos Rómulo
+\first_name Victorino
+\uid 504
+\code VRR504
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1959-03-29
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Ramos Rómulo
+\first_name Víctor
+\uid 504
+\code VRR504
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1959-03-29
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Ramírez García
+\first_name Silvino
+\uid 523
+\code SRG523
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1949-09-12
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Ramírez Morales
+\first_name Anel
+\uid 546
+\code ARM546
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1965 (checar)
+\birthdate
+\notes
+\type
+
+\last_name Rivera Mendoza
+\first_name Miguel
+\uid 562
+\code MRM562
+\sex Male
+\village Buenavista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1952
+\birthdate
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Rojas Ángel
+\first_name Juan
+\uid 532
+\code JRA532
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1971-12-00
+\birthdate
+\notes Speaker from Cumiapa consulted to record comparative dictionary and some texts. Stated that he was born in the month of December but did not know what day
+or year. However, in January 2016 he said he was 45 years old which would give his year of birth in 1971 or 1970.
+\type recording
+\rights
+
+\last_name Rómulo Felipe
+\first_name Faustino
+\uid 571
+\code FRF571
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1955-12-31
+\notes Primo de Constantino Teodoro Bautista quien fue filmado en video haciéndole a Teodoro B. la medición de manos.
+\type
+
+\last_name Rómulo Peñaira
+\first_name Faustino
+\uid 536
+\code FRP536
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1955-12-31
+\notes Hizo una grabación en video sobre la medición de brazos. Primo de Constantino Teodoro Bautista (y tienen la misma fecha de nacimiento) quien fue filmado en
+video haciéndole a Teodoro B. la medición de manos.
+\type
+
+\last_name Rómulo Santiago
+\first_name Carlos
+\uid 513
+\code CRS513
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age 62
+\birthapprox 1945
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Salazar Felipe
+\first_name Mario
+\uid 515
+\code MSF515
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1960
+\birthdate
+\notes En octubre 2012 cuando fue preguntado dijo tener 53 años, que pondrá su nacimiento en 1960.
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Salazar Felipe
+\first_name Martín
+\uid 540
+\code MSF540
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1959, given that in 2016, M. Salazar stated he was 57 years old.
+\birthdate
+\notes Rezandero who recorded rain petition on 2016-05-19, video and audio recordings.
+\type
+
+\last_name Santiago
+\first_name Jesús Ricardo
+\uid 528
+\code JRS528
+\sex Male
+\village Mexico City
+\mpio
+\estado DF
+\age 55
+\birthapprox 1955
+\birthdate
+\notes
+\type Field botanist
+
+\last_name Santiago Castillo
+\first_name Estela
+\uid 509
+\code ESC509
+\sex female
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1939-07-16
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Severiano Germán
+\first_name Martín
+\uid 516
+\code MSG516
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-07-02
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Severiamo Germán
+\first_name Martín
+\uid 516
+\code MSG516
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1957-07-02
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Bautista
+\first_name Constantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Bautista
+\first_name Cosntantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Bautista
+\first_name Costantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Bautista
+\first_name Contantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro
+\first_name Constantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Baustista
+\first_name Constantino
+\uid 501
+\code CTB501
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1955-12-31
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Celso
+\first_name Constantino
+\uid 502
+\code CTC502
+\sex male
+\lang Yoloxóchitl Mixtec
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthdate 1980-02-17
+\notes
+\type recording
+\rights Signed agreement filed with JDA.
+
+\last_name Teodoro Celso
+\first_name Edmundo
+\uid 558
+\code ETC558
+\sex Male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1990-01-09
+\notes Hijo de Constantino Teodoro Bautista. Ayudó en acampar y en las grabaciones.
+\type Asesor
+
+\last_name Tiburcio Pastor
+\first_name Santa Cruz
+\uid 522
+\code SCT522
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1959-09-14
+\notes
+\type recording
+\rights Explicado, falta firmar, impreso
+
+\last_name Verónico González
+\first_name Pedro
+\uid 518
+\code PVG518
+\sex male
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate
+\notes
+\type recording
+\rights Explicado, falta firmar
+
+\last_name Villar Patricio
+\first_name Dios Doris
+\uid 553
+\code DVP553
+\sex Female
+\village Yoloxóchitl
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1995-05-18
+\notes Sobrina de Benito Adelaido Bruno.
+\type
+
+\last_name Villegas Mendoza
+\first_name Alejandro
+\uid 564
+\code AVM564
+\sex Male
+\village Buenavista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1971-01-15
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Vásquez Quintero
+\first_name Nicolás
+\uid 565
+\code NVQ565
+\sex Male
+\village Buenavista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1976-09-10
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Zavala Mendoza
+\first_name Emilio
+\uid 556
+\code EZM556
+\sex Male
+\village Arroyo Cumiapa
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1972-01-05
+\notes
+\type
+
+\last_name Zavala Ruiz
+\first_name Miguel
+\uid 568
+\code MZR568
+\sex Male
+\village Buena Vista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox
+\birthdate 1952-02-18
+\notes Asesor en etnobotánica.
+\type
+
+\last_name Zavala Ruiz
+\first_name Armando
+\uid 570
+\code AZR570
+\sex Male
+\village Buena Vista
+\mpio San Luis Acatlán
+\estado Guerrero
+\age
+\birthapprox 1957
+\birthdate
+\notes Asesor en etnobotánica.
+\type
