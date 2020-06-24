@@ -55,6 +55,9 @@ echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_transducer_attention.yaml \
         --decode-config conf/decode_transducer.yaml
 
+echo "SUCCESS"
+exit 1
+
 echo "==== ASR (backend=pytorch num-encs 2) ==="
 ./run.sh --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
 # Remove generated files in order to reduce the disk usage
