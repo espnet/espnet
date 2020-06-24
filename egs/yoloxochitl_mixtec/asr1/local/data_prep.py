@@ -18,7 +18,7 @@ delset = delset.replace("'", "")
 
 
 def TextRefine(text, text_format):
-    text = re.sub("\.\.\.|\*|\[.*?\]", "", text.upper())
+    text = re.sub(r"\.\.\.|\*|\[.*?\]", "", text.upper())
     delset_specific = delset
     if text_format == "underlying_full":
         remove_clear = "()=-"
@@ -38,12 +38,7 @@ def ExtractAudioID(audioname, wav_spk_info=None):
 
 
 def XMLRefine(input_xml, output_xml, readable=False):
-    """
-    refine trs file into
-    :param input_xml: original transcriber xml
-    :param output_xml: refined xml with contant in each trun
-    :param readable: if the output file is readable (for debug & reading only)
-    """
+
     if readable:
         append = "\n"
     else:
@@ -225,7 +220,7 @@ def TimeOrderProcess(time_order_dom):
 def ELANProcess(afile, spk_info, spk_details, text_format):
     try:
         elan_content = parse(afile).documentElement
-    except:
+    except Exception:
         print("encoding failed  %s" % afile)
         return None
     time_order = TimeOrderProcess(elan_content.getElementsByTagName("TIME_ORDER")[0])
@@ -248,7 +243,7 @@ def ELANProcess(afile, spk_info, spk_details, text_format):
                 if "SURFACE" in spk_name:
                     continue
                 code = spk_details[spk_name]
-        except:
+        except Exception:
             print("error speaker: %s" % tier.getAttribute("TIER_ID").strip())
             continue
         if code not in spk_info:
@@ -329,7 +324,7 @@ def TraverseData(
                 audio_name, speakers, segment_info = XMLProcessing(
                     annotation_files[afile]
                 )
-            except:
+            except Exception:
                 print("error process %s" % annotation_files[afile])
             audio_name = audio_name.replace(" ", "")
             audio_name = ExtractAudioID(audio_name)
@@ -351,7 +346,6 @@ def TraverseData(
                 name2spk_prep[speakers[speaker]["name"]] = name2spk_prep.get(
                     speakers[speaker]["name"], spk_id
                 )
-                # spk2name_prep[speakers[speaker]["name"]] = spk2name_prep.get(speakers[speaker]["name"], [])
                 temp_speaker_id[speaker] = name2spk_prep[speakers[speaker]["name"]]
                 if name2spk_prep[speakers[speaker]["name"]] == spk_id:
                     print(
@@ -476,7 +470,7 @@ def TraverseData(
                     ) + " %s" % (segment_id)
                     segment_number += 1
             print(
-                "successfully processing %s -- be aware to remix the signal by remix script"
+                "successfully processing %s"
                 % afile
             )
         for spk in spk2utt_prep.keys():
@@ -495,14 +489,14 @@ if __name__ == "__main__":
         dest="wav_path",
         type=str,
         help="wav path",
-        default="/export/c04/jiatong/data/Yoloxochitl-Mixtec-for-ASR/Sound-files-Narratives-for-ASR",
+        default="",
     )
     parser.add_argument(
         "-a",
         dest="ann_path",
         type=str,
         help="annotation path",
-        default="/export/c04/jiatong/data/Yoloxochitl-Mixtec-for-ASR/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers",
+        default="",
     )
     parser.add_argument(
         "-t", dest="target_dir", type=str, help="target_dir", default="data/mixtec"
