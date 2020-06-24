@@ -469,10 +469,7 @@ def TraverseData(
                         spk_info[1], ""
                     ) + " %s" % (segment_id)
                     segment_number += 1
-            print(
-                "successfully processing %s"
-                % afile
-            )
+            print("successfully processing %s" % afile)
         for spk in spk2utt_prep.keys():
             print("%s %s" % (spk, spk2utt_prep[spk]), file=spk2utt)
     segments.close()
@@ -485,18 +482,10 @@ def TraverseData(
 if __name__ == "__main__":
     parser = ArgumentParser(description="Process Raw data")
     parser.add_argument(
-        "-w",
-        dest="wav_path",
-        type=str,
-        help="wav path",
-        default="",
+        "-w", dest="wav_path", type=str, help="wav path", default="",
     )
     parser.add_argument(
-        "-a",
-        dest="ann_path",
-        type=str,
-        help="annotation path",
-        default="",
+        "-a", dest="ann_path", type=str, help="annotation path", default="",
     )
     parser.add_argument(
         "-t", dest="target_dir", type=str, help="target_dir", default="data/mixtec"
