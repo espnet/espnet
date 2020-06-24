@@ -125,7 +125,7 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
-        retval = ()
+        retval = ("dereverb_ref", "speech_ref3")
         assert check_return_type(retval)
         return retval
 

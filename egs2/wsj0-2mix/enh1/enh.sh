@@ -236,6 +236,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
             done
+            if $use_noise_ref; then
+                # reference for denoising
+                spk=$(expr $spk_num + 1)
+                _spk_list+="spk${spk} "
+            fi
+            if $use_dereverb_ref; then
+                # reference for dereverberation
+                _spk_list+="dereverb_ref "
+            fi
 
             for spk in ${_spk_list} "wav" ; do
                 # shellcheck disable=SC2086
@@ -265,6 +274,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         for i in $(seq ${spk_num}); do
             _spk_list+="spk${i} "
         done
+        if $use_noise_ref; then
+            # reference for denoising
+            spk=$(expr $spk_num + 1)
+            _spk_list+="spk${spk} "
+        fi
+        if $use_dereverb_ref; then
+            # reference for dereverberation
+            _spk_list+="dereverb_ref "
+        fi
+
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
