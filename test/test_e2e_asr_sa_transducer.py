@@ -4,7 +4,6 @@ import argparse
 import importlib
 import logging
 import numpy
-import os
 import pytest
 import torch
 
@@ -13,19 +12,17 @@ logging.basicConfig(
     format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
 
-config_root = os.path.dirname(os.path.abspath(__file__)) + "/net_definition/"
-
 
 def make_train_args(**kwargs):
     train_defaults = dict(
         transformer_init="pytorch",
         etype="transformer",
         transformer_enc_input_layer="conv2d",
-        enc_block_arch=config_root + "encoder_transformer.json",
+        enc_block_arch=[{"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2}],
         enc_block_repeat=1,
         dtype="transformer",
         transformer_dec_input_layer="embed",
-        dec_block_arch=config_root + "decoder_transformer.json",
+        dec_block_arch=[{"type": "transformer", "d_hidden": 4, "d_ff": 4, "heads": 2}],
         dec_block_repeat=1,
         dropout_rate=0.0,
         dropout_rate_embed_decoder=0.0,
@@ -173,20 +170,56 @@ def test_sa_transducer_mask(module):
     "train_dic, recog_dic",
     [
         ({}, {}),
-        ({"enc_block_arch": config_root + "encoder_tdnn_transformer.json"}, {}),
-        ({"dec_block_arch": config_root + "decoder_causalconv_transformer.json"}, {}),
+        (
+            {
+                "enc_block_arch": [
+                    {
+                        "type": "tdnn",
+                        "idim": 8,
+                        "odim": 8,
+                        "ctx_size": 1,
+                        "dilation": 1,
+                        "stride": 1,
+                    },
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ]
+            },
+            {},
+        ),
+        (
+            {
+                "dec_block_arch": [
+                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ]
+            },
+            {},
+        ),
         ({"enc_repeat_block": 2}, {}),
         ({"dec_repeat_block": 2}, {}),
         (
             {
-                "enc_block_arch": config_root + "encoder_tdnn_transformer.json",
+                "enc_block_arch": [
+                    {
+                        "type": "tdnn",
+                        "idim": 8,
+                        "odim": 8,
+                        "ctx_size": 1,
+                        "dilation": 1,
+                        "stride": 1,
+                    },
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ],
                 "enc_repeat_block": 2,
             },
             {},
         ),
         (
             {
-                "dec_block_arch": config_root + "decoder_causalconv_transformer.json",
+                "dec_block_arch": [
+                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ],
                 "dec_repeat_block": 2,
             },
             {},
