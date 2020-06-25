@@ -49,6 +49,9 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+        # VC related
+        "fastdtw",
+        "pyworld",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [
