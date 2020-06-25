@@ -117,7 +117,7 @@ cd egs2/mini_an4/asr1
     utils/spk2utt_to_utt2spk.pl data/train/spk2utt > data/train/utt2spk
     ```
     
-    If your corpus doesn't include speaker information, give the same speaker id as the utterance id to satisfy the directory format, otherwise give the same speaker id for utterances (Actually we don't use speaker information for asr recipe now).
+    If your corpus doesn't include speaker information, give the same speaker id as the utterance id to satisfy the directory format, otherwise give the same speaker id for all utterances (Actually we don't use speaker information for asr recipe now).
     
     ```bash
     uttidA uttidA
@@ -142,7 +142,7 @@ cd egs2/mini_an4/asr1
     ...
     ```
     
-    Note that `<wav_id>` must corresponds to the id in `wav.scp` in this case.
+    Note that if using `segments`, `wav.scp` has `<wav_id>` which corresponds to the `segments` instead of `utterance_id`.
     
     ```
     sw02001-A /path/to/sw02001-A.wav
