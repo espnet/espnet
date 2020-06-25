@@ -1,8 +1,8 @@
 # TEMPLATE
 
-ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we prepare common recipes for each task, which are named as `asr.sh`, `tts.sh`, or etc. We carefully designed these common scripts to perform with any types of corpus, so ideally you can start to train using your own corpus without modifying almost all parts of these recipes. Only you have to do is just creating `local/data.sh`.
+ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we prepare common recipes for each task, which are named as `asr.sh`, `tts.sh`, or etc. We carefully designed these common scripts to perform with any types of corpus, so ideally you can train using your own corpus without modifying almost all parts of these recipes. Only you have to do is just creating `local/data.sh`.
 
-## How to make new recipe? 
+## How to make/port new recipe? 
 
 1. Create directory in egs/
     ```bash
@@ -29,7 +29,11 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
     ```
     
     We use a common recipe, thus you must absorb the difference of each corpus by the command line options of `asr.sh`.
-    We expect that `local/data.sh` generates `data/train`, `data/dev`, `data/test1` and `data/test2`, which have Kaldi style (See stage1 of `asr.sh`).
+    We expect that `local/data.sh` generates `data/train`, `data/dev`, `data/test1` and `data/test2`, which have Kaldi style (See stage1 of `asr.sh`). 
+    
+    If you'll create your recipe from scratch, you have to understand Kaldi data structure. See the next section. 
+    
+    If you'll port the recipe from ESPnet1 or Kaldi, you need to embed the data preparation part of `run.sh` to `local/data.sh`. Note that `Feature extraction`, `Speed Perturbation`, and `Removing long/short utterances` are included in common steps, so you don't need to do them at `local/data.sh`
 
    
 1. If the recipe uses some corpora and they are not listed in `db.sh`, then write it.
@@ -53,7 +57,7 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
 
 ## About Kaldi style data directory
 
-Each directory of training set, development set, and evaluation set, has same directory structure.
+Each directory of training set, development set, and evaluation set, has same directory structure. See also http://kaldi-asr.org/doc/data_prep.html about Kaldi data structure. 
 We recommend you running `mini_an4` recipe and checking the contents of `data/` by yourself.
 
 ```bash
@@ -113,7 +117,7 @@ cd egs2/mini_an4/asr1
     utils/spk2utt_to_utt2spk.pl data/train/spk2utt > data/train/utt2spk
     ```
     
-    If your corpus doesn't include speaker information, give the same speaker id as the utterance id to satisfy the directory format. Actually we don't use speaker information for asr recipe now.
+    If your corpus doesn't include speaker information, give the same speaker id as the utterance id to satisfy the directory format, otherwise give the same speaker id for utterances (Actually we don't use speaker information for asr recipe now).
     
     ```bash
     uttidA uttidA
@@ -121,24 +125,31 @@ cd egs2/mini_an4/asr1
     ...
     ```
     
+    OR
+    
+    ```bash
+    uttidA dummy
+    uttidB dummy
+    ...
+    ```
+    
 - [Option] `segments` format
 
-    If the audio data is originally long recording, about > ~1 hour, and each audio file includes multiple utterances in each section, you need to create `segments` file to specify the start time and end time of each utterance.
-    
+    If the audio data is originally long recording, about > ~1 hour, and each audio file includes multiple utterances in each section, you need to create `segments` file to specify the start time and end time of each utterance. The format is `<utterance_id> <wav_id> <start_time> <end_time>`.
+
     ```
-    # <utterance_id> <wav_id> <start_time> <end_time>
     sw02001-A_000098-001156 sw02001-A 0.98 11.56
     ...
     ```
     
-    Note that `<wav_id>` must corresponds to the id in `wav.scp` in this case:
+    Note that `<wav_id>` must corresponds to the id in `wav.scp` in this case.
     
     ```
     sw02001-A /path/to/sw02001-A.wav
     ...
     ```
 
-Once you complete creating the data directory,it's better to check it by `utils/validate_data_dir.sh`.
+Once you complete creating the data directory, it's better to check it by `utils/validate_data_dir.sh`.
 
 ```bash
 utils/validate_data_dir.sh --no-feats data/train
