@@ -58,7 +58,7 @@ mcd_file=${outdir}_denorm/${set_name}/mcd.log
 minf0=$(awk '{print $1}' conf/${trgspk}.f0)
 maxf0=$(awk '{print $2}' conf/${trgspk}.f0)
 ${decode_cmd} ${mcd_file} \
-    local/ob_eval/mcd_calculate.py \
+    mcd_calculate.py \
         --wavdir ${wavdir} \
         --gtwavdir ${db_root}/cmu_us_${trgspk}_arctic/wav \
         --mcep_dim ${mcep_dim} \
