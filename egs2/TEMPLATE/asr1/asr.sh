@@ -337,7 +337,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
         # shouldn't be used in training process.
         # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
+        # and it can also change the audio-format and sampling rate.
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
 
