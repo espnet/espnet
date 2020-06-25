@@ -43,7 +43,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         """
 
         assert mask_type in ["IBM", "IRM", "IAM", "PSM", "NPSM", "ICM"], f"mask type {mask_type} not supported"
-        eps = 10 - 8
+        eps = 10e-8
         mask_label = []
         for r in ref_spec:
             mask = None
