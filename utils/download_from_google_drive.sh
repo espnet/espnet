@@ -42,8 +42,8 @@ decompress () {
 }
 
 set -e
-# Solution from https://github.com/circulosmeos/gdown.pl
-gdown.pl "https://drive.google.com/uc?export=download&id=${file_id}" "${tmp}"   
+# Solution from https://github.com/wkentaro/gdown
+gdown --id "${file_id}" -O "${tmp}"
 decompress "${tmp}" "${download_dir}"
 
 # remove tmpfiles
