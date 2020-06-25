@@ -33,7 +33,7 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
     
     If you'll create your recipe from scratch, you have to understand Kaldi data structure. See the next section. 
     
-    If you'll port the recipe from ESPnet1 or Kaldi, you need to embed the data preparation part of `run.sh` to `local/data.sh`. Note that `Feature extraction`, `Speed Perturbation`, and `Removing long/short utterances` are included in common steps, so you don't need to do them at `local/data.sh`
+    If you'll port the recipe from ESPnet1 or Kaldi, you need to embed the data preparation part of the original recipe in `local/data.sh`. Note that the common steps include `Feature extraction`, `Speed Perturbation`, and `Removing long/short utterances`, so you don't need to do them at `local/data.sh`
 
    
 1. If the recipe uses some corpora and they are not listed in `db.sh`, then write it.
