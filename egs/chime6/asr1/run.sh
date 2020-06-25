@@ -10,7 +10,7 @@
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=3         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -89,7 +89,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
     
     # subset of dev_set
-    utils/subset_data_dir.sh ${train_dev} 1000 ${train_dev}_u1k
+    utils/subset_data_dir.sh data/${train_dev} 1000 data/${train_dev}_u1k
     
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -120,8 +120,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     wc -l ${dict}
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "[STAGE 3]: dump features for training..."
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "[STAGE 4]: dump features for training..."
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -130,8 +130,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         data/${train_dev_u1k}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev_u1k ${feat_dt_u1k_dir}
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "[STAGE 4]: make json files..."
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "[STAGE 5]: make json files..."
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -151,8 +151,8 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 4: Network Training"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "[STAGE 6]: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -172,8 +172,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 5: Decoding"
-    nj=32
+    echo "[STAGE 6]: Decoding"
+    nj=40
     decode_dir=decode_${train_dev}_$(basename ${decode_config%.*})_${lmtag}
     feat_recog_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
