@@ -168,11 +168,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_u1k_dir}/data.json
+        --valid-json ${feat_dt_u1k_dir}/data.json \
+        --preprocess-conf conf/specaug.yaml
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "[STAGE 6]: Decoding"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "[STAGE 7]: Decoding"
     nj=40
     decode_dir=decode_${train_dev}_$(basename ${decode_config%.*})_${lmtag}
     feat_recog_dir=${dumpdir}/${train_dev}/delta${do_delta}
