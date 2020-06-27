@@ -205,7 +205,7 @@ if [ -z "${decode_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-tts_stats_dir="${expdir}/tts_stats"
+tts_stats_dir="${expdir}/tts_stats_${feats_type}"
 # The directory used for training commands
 tts_exp="${expdir}/tts_${tag}"
 
