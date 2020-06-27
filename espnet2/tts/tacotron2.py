@@ -264,7 +264,7 @@ class Tacotron2(AbsTTS):
 
         batch_size = text.size(0)
         # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", 0.0)
+        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
         for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
