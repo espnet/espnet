@@ -1310,18 +1310,7 @@ def ctc_align(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
-    model.recog_args = args
-
-    # gpu
-    if args.ngpu == 1:
-        gpu_id = list(range(args.ngpu))
-        logging.info("gpu id: " + str(gpu_id))
-        model.cuda()
-
-    # read json data
-    with open(args.align_json, "rb") as f:
-        js = json.load(f)["utts"]
-    new_js = {}
+    model.eval()
 
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="asr",
@@ -1333,6 +1322,20 @@ def ctc_align(args):
         preprocess_args={"train": False},
     )
 
+    if args.ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
+    if args.ngpu == 1:
+        device = "cuda"
+    else:
+        device = "cpu"
+    dtype = getattr(torch, args.dtype)
+    logging.info(f"Decoding device={device}, dtype={dtype}")
+    model.to(device=device, dtype=dtype).eval()
+
+    # read json data
+    with open(args.align_json, "rb") as f:
+        js = json.load(f)["utts"]
+    new_js = {}
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
@@ -1341,7 +1344,8 @@ def ctc_align(args):
                 feat, label = load_inputs_and_targets(batch)
                 feat = feat[0]
                 label = label[0]
-                alignment = model.ctc_align(feat, label)
+                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+                alignment = model.ctc.forced_align(enc, label)
                 new_js[name] = add_alignment_to_json(
                     js[name], alignment, train_args.char_list
                 )

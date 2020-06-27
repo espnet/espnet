@@ -14,7 +14,7 @@ import sys
 
 import numpy as np
 
-from espnet.utils.cli_utils import strtobool
+from espnet.asr.pytorch_backend.asr import ctc_align
 
 # NOTE: you need this func to generate our sphinx doc
 
@@ -97,114 +97,7 @@ def get_parser():
         "--model-conf", type=str, default=None, help="Model config file"
     )
     parser.add_argument(
-        "--num-spkrs",
-        type=int,
-        default=1,
-        choices=[1, 2],
-        help="Number of speakers in the speech",
-    )
-    parser.add_argument(
         "--num-encs", default=1, type=int, help="Number of encoders in the model."
-    )
-    # search related
-    parser.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-    parser.add_argument("--beam-size", type=int, default=1, help="Beam size")
-    parser.add_argument("--penalty", type=float, default=0.0, help="Incertion penalty")
-    parser.add_argument(
-        "--maxlenratio",
-        type=float,
-        default=0.0,
-        help="""Input length ratio to obtain max output length.
-                        If maxlenratio=0.0 (default), it uses a end-detect function
-                        to automatically find maximum hypothesis lengths""",
-    )
-    parser.add_argument(
-        "--minlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain min output length",
-    )
-    parser.add_argument(
-        "--ctc-weight", type=float, default=0.0, help="CTC weight in joint decoding"
-    )
-    parser.add_argument(
-        "--weights-ctc-dec",
-        type=float,
-        action="append",
-        help="ctc weight assigned to each encoder during decoding."
-        "[in multi-encoder mode only]",
-    )
-    parser.add_argument(
-        "--ctc-window-margin",
-        type=int,
-        default=0,
-        help="""Use CTC window with margin parameter to accelerate
-                        CTC/attention decoding especially on GPU. Smaller magin
-                        makes decoding faster, but may increase search errors.
-                        If margin=0 (default), this function is disabled""",
-    )
-    # transducer related
-    parser.add_argument(
-        "--score-norm-transducer",
-        type=strtobool,
-        nargs="?",
-        default=True,
-        help="Normalize transducer scores by length",
-    )
-    # rnnlm related
-    parser.add_argument(
-        "--rnnlm", type=str, default=None, help="RNNLM model file to read"
-    )
-    parser.add_argument(
-        "--rnnlm-conf", type=str, default=None, help="RNNLM model config file to read"
-    )
-    parser.add_argument(
-        "--word-rnnlm", type=str, default=None, help="Word RNNLM model file to read"
-    )
-    parser.add_argument(
-        "--word-rnnlm-conf",
-        type=str,
-        default=None,
-        help="Word RNNLM model config file to read",
-    )
-    parser.add_argument("--word-dict", type=str, default=None, help="Word list to read")
-    parser.add_argument("--lm-weight", type=float, default=0.1, help="RNNLM weight")
-    # ngram related
-    parser.add_argument(
-        "--ngram-model", type=str, default=None, help="ngram model file to read"
-    )
-    parser.add_argument("--ngram-weight", type=float, default=0.1, help="ngram weight")
-    parser.add_argument(
-        "--ngram-scorer",
-        type=str,
-        default="part",
-        choices=("full", "part"),
-        help="""if the ngram is set as a part scorer, similar with CTC scorer,
-                ngram scorer only scores topK hypethesis.
-                if the ngram is set as full scorer, ngram scorer scores all hypthesis
-                the decoding speed of part scorer is musch faster than full one""",
-    )
-    # streaming related
-    parser.add_argument(
-        "--streaming-mode",
-        type=str,
-        default=None,
-        choices=["window", "segment"],
-        help="""Use streaming recognizer for inference.
-                        `--batchsize` must be set to 0 to enable this mode""",
-    )
-    parser.add_argument("--streaming-window", type=int, default=10, help="Window size")
-    parser.add_argument(
-        "--streaming-min-blank-dur",
-        type=int,
-        default=10,
-        help="Minimum blank duration threshold",
-    )
-    parser.add_argument(
-        "--streaming-onset-margin", type=int, default=1, help="Onset margin"
-    )
-    parser.add_argument(
-        "--streaming-offset-margin", type=int, default=1, help="Offset margin"
     )
     return parser
 
@@ -212,7 +105,7 @@ def get_parser():
 def main(args):
     """Run the main decoding function."""
     parser = get_parser()
-    args = parser.parse_args(args)
+    args, extra = parser.parse_known_args(args)
 
     if args.ngpu == 0 and args.dtype == "float16":
         raise ValueError(f"--dtype {args.dtype} does not support the CPU backend.")
@@ -257,36 +150,25 @@ def main(args):
     np.random.seed(args.seed)
     logging.info("set random seed = %d" % args.seed)
 
-    # validate rnn options
-    if args.rnnlm is not None and args.word_rnnlm is not None:
-        logging.error(
-            "It seems that both --rnnlm and --word-rnnlm are specified. "
-            "Please use either option."
-        )
-        sys.exit(1)
-
     # recog
     logging.info("backend = " + args.backend)
-    if args.num_spkrs == 1:
-        if args.backend == "pytorch":
-            if args.num_encs == 1:
-                # Experimental API that supports custom LMs
-                if args.api == "v2":
-                    raise NotImplementedError(f"--api {args.api} is not supported")
-                else:
-                    from espnet.asr.pytorch_backend.asr import ctc_align
-
-                    if args.dtype != "float32":
-                        raise NotImplementedError(
-                            f"`--dtype {args.dtype}` is only available with `--api v2`"
-                        )
-                    ctc_align(args)
+    if args.backend == "pytorch":
+        if args.num_encs == 1:
+            # Experimental API that supports custom LMs
+            if args.api == "v2":
+                raise NotImplementedError(f"--api {args.api} is not supported")
             else:
-                raise NotImplementedError(
-                    f"--num-encs {args.num_encs} > 1 is not supported in --api v2"
-                )
+                if args.dtype != "float32":
+                    raise NotImplementedError(
+                        f"`--dtype {args.dtype}` is only available with `--api v2`"
+                    )
+                ctc_align(args)
         else:
-            raise ValueError("Only chainer and pytorch are supported.")
+            raise NotImplementedError(
+                f"--num-encs {args.num_encs} > 1 is not supported in --api v2"
+            )
+    else:
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == "__main__":

@@ -50,7 +50,6 @@ Options:
     --align_model <path>            # Location of E2E model
     --align_config <path>           # Location of configuration file
     --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
-    --dict <path>                   # Dictionary
     --nlsyms <path>                 # Non-linguistic symbol list
 
 Example:
@@ -158,6 +157,10 @@ if [ -z "${wav}" ]; then
     download_models
     wav=$(find ${download_dir}/${models} -name "*.wav" | head -n 1)
 fi
+if [ -z "${dict}" ]; then
+    download_models
+    dict=$(find ${download_dir}/${models}/data/lang_1char -name "*.txt" | head -n 1)
+fi
 
 # Check file existence
 if [ ! -f "${cmvn}" ]; then
@@ -174,10 +177,6 @@ if [ ! -f "${align_config}" ]; then
 fi
 if [ ! -f "${dict}" ]; then
     echo "No such Dictionary file: ${dict}"
-    exit 1
-fi
-if [ ! -f "${nlsyms}" ]; then
-    echo "No such non-linguistic symbol list file: ${nlsyms}"
     exit 1
 fi
 if [ ! -f "${wav}" ]; then
@@ -217,10 +216,14 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Json Data Preparation"
 
+    nlsyms_opts=""
+    if [ ! -z ${nlsyms} ]; then
+        nlsyms_opts="--nlsyms ${nlsyms}"
+    fi
+
     feat_align_dir=${align_dir}/dump
-    data2json.sh --feat ${feat_align_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_align_dir}/feats.scp ${nlsyms_opts} \
         ${align_dir}/data ${dict} > ${feat_align_dir}/data.json
-    rm -f ${dict}
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -241,5 +244,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --api ${api} \
         ${align_opts}
 
+    echo ""
+    alignment=$(grep ctc_alignment ${align_dir}/result.json | sed -e 's/.*: "\(.*\)".*/\1/' | sed -e 's/<eos>//')
+    echo "Alignment: ${alignment}"
+    echo ""
     echo "Finished"
 fi
