@@ -23,6 +23,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -131,12 +132,20 @@ def inference(
             _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
 
-            # TODO(kamo): Now att_ws is not used.
+            _decode_conf = {
+                "threshold": threshold,
+                "maxlenratio": maxlenratio,
+                "minlenratio": minlenratio,
+            }
+            if isinstance(tts, Tacotron2):
+                _decode_conf.update({
+                    "use_att_constraint": use_att_constraint,
+                    "forward_window": forward_window,
+                    "backward_window": backward_window,
+                })
             outs, probs, att_ws = tts.inference(
                 **_data,
-                threshold=threshold,
-                maxlenratio=maxlenratio,
-                minlenratio=minlenratio,
+                **_decode_conf
             )
             outs_denorm = normalize.inverse(outs[None])[0][0]
             insize = next(iter(_data.values())).size(0) + 1
