@@ -22,7 +22,7 @@ train_set=tr_no_dev
 dev_set=dev
 eval_set=eval1
 
-tts_config=conf/train.yaml
+train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 # pyopenjtalk case: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
 # pyopenjtalk_kana case: ミズヲマレーシアカラカワナクテワナラナイノデス。
@@ -40,7 +40,7 @@ g2p=pyopenjtalk
     --token_type phn \
     --cleaner jaconv \
     --g2p "${g2p}" \
-    --train_config "${tts_config}" \
+    --train_config "${train_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
