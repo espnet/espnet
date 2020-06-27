@@ -5,27 +5,25 @@ set -e
 set -u
 set -o pipefail
 
-lang=it # de, en, es, fr, it, nl, pt, ru
-train_set="tr_${lang}"
-dev_set="dt_${lang}"
-eval_sets="et_${lang}"
+train_set="train_960"
+dev_set="dev"
+eval_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/train_asr_rnn.yaml
+asr_config=conf/train_asr_transformer.yaml
+lm_config=conf/train_lm.yaml
 decode_config=conf/decode_asr.yaml
 
-# FIXME(kamo):
-# The results with norm_vars=True is odd.
-# I'm not sure this is due to bug.
-
 ./asr.sh \
-    --local_data_opts "--lang ${lang}" \
-    --use_lm false \
-    --token_type char \
+    --ngpu 4 \
+    --use_lm true \
+    --token_type bpe \
+    --nbpe 5000 \
     --feats_type raw \
-    --asr_args "--normalize_conf norm_vars=False " \
+    --max_wav_duration 30 \
     --asr_config "${asr_config}" \
+    --lm_config "${lm_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
     --dev_set "${dev_set}" \
     --eval_sets "${eval_sets}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
