@@ -27,12 +27,10 @@ def read_2column_text(path: Union[Path, str]) -> Dict[str, str]:
     with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
             sps = line.rstrip().split(maxsplit=1)
-            if len(sps) != 2:
-                raise RuntimeError(
-                    f"scp file must have two or more columns: "
-                    f"{line} ({path}:{linenum})"
-                )
-            k, v = sps
+            if len(sps) == 1:
+                k, v = sps[0], ""
+            else:
+                k, v = sps
             if k in data:
                 raise RuntimeError(f"{k} is duplicated ({path}:{linenum})")
             data[k] = v.rstrip()
