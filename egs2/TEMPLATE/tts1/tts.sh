@@ -486,7 +486,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _fold_length="$((speech_fold_length * 100))"
+        _fold_length="$((speech_fold_length * n_shift))"
         _opts+="--feats_extract fbank "
         _opts+="--feats_extract_conf fs=${fs} "
         _opts+="--feats_extract_conf fmin=${fmin} "
