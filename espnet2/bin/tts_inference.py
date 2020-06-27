@@ -139,15 +139,14 @@ def inference(
                 "minlenratio": minlenratio,
             }
             if isinstance(tts, Tacotron2):
-                _decode_conf.update({
-                    "use_att_constraint": use_att_constraint,
-                    "forward_window": forward_window,
-                    "backward_window": backward_window,
-                })
-            outs, probs, att_ws = tts.inference(
-                **_data,
-                **_decode_conf
-            )
+                _decode_conf.update(
+                    {
+                        "use_att_constraint": use_att_constraint,
+                        "forward_window": forward_window,
+                        "backward_window": backward_window,
+                    }
+                )
+            outs, probs, att_ws = tts.inference(**_data, **_decode_conf)
             outs_denorm = normalize.inverse(outs[None])[0][0]
             insize = next(iter(_data.values())).size(0) + 1
             logging.info(
@@ -222,7 +221,9 @@ def get_parser():
 
     # Note(kamo): Use "_" instead of "-" as separator.
     # "-" is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
+    parser.add_argument(
+        "--config", is_config_file=True, help="config file path",
+    )
 
     parser.add_argument(
         "--log_level",
@@ -238,7 +239,9 @@ def get_parser():
     parser.add_argument(
         "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
-    parser.add_argument("--seed", type=int, default=0, help="Random seed")
+    parser.add_argument(
+        "--seed", type=int, default=0, help="Random seed",
+    )
     parser.add_argument(
         "--dtype",
         default="float32",
@@ -262,12 +265,20 @@ def get_parser():
         required=True,
         action="append",
     )
-    group.add_argument("--key_file", type=str_or_none)
-    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
+    group.add_argument(
+        "--key_file", type=str_or_none,
+    )
+    group.add_argument(
+        "--allow_variable_data_keys", type=str2bool, default=False,
+    )
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--train_config", type=str)
-    group.add_argument("--model_file", type=str)
+    group.add_argument(
+        "--train_config", type=str, help="Training configuration file.",
+    )
+    group.add_argument(
+        "--model_file", type=str, help="Model parameter file.",
+    )
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(
