@@ -273,7 +273,8 @@ class Tacotron2(AbsTTS):
         olens = speech_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens).to(ys.device, ys.dtype)
+        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
