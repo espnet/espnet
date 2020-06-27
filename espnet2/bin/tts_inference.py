@@ -110,6 +110,7 @@ def inference(
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
+    (output_dir / "probs").mkdir(parents=True, exist_ok=True)
 
     # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
     #  How about numpy or HDF5?
@@ -165,6 +166,7 @@ def inference(
             import matplotlib.pyplot as plt
             from matplotlib.ticker import MaxNLocator
 
+            # Plot attention weight
             att_ws = att_ws.cpu().numpy()
 
             if att_ws.ndim == 2:
@@ -178,8 +180,8 @@ def inference(
             if len(att_ws) == 1:
                 axes = [axes]
 
-            for ax, aw in zip(axes, att_ws):
-                ax.imshow(aw.astype(np.float32), aspect="auto")
+            for ax, att_w in zip(axes, att_ws):
+                ax.imshow(att_w.astype(np.float32), aspect="auto")
                 ax.set_title(f"{key}")
                 ax.set_xlabel("Input")
                 ax.set_ylabel("Output")
@@ -187,6 +189,22 @@ def inference(
                 ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
             fig.savefig(output_dir / f"att_ws/{key}.png")
+            fig.clf()
+
+            # Plot stop token prediction
+            probs = probs.cpu().numpy()
+
+            fig = plt.Figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax.plot(probs)
+            ax.set_title(f"{key}")
+            ax.set_xlabel("Output")
+            ax.set_ylabel("Stop probability")
+            ax.set_ylim(0, 1)
+            ax.grid(which="both")
+
+            fig.savefig(output_dir / f"probs/{key}.png")
+            fig.clf()
 
             # TODO(kamo): Write scp
             if spc2wav is not None:
