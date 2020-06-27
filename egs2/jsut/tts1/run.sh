@@ -6,6 +6,10 @@ set -u
 set -o pipefail
 
 fs=24000
+n_fft=2048
+n_shift=300
+win_length=1200
+
 opts=
 if [ "${fs}" -eq 48000 ]; then
     # To suppress recreation, specify wav format
@@ -30,6 +34,9 @@ g2p=pyopenjtalk
 ./tts.sh \
     --feats_type fbank \
     --fs "${fs}" \
+    --n_fft "${n_fft}" \
+    --n_shift "${n_shift}" \
+    --win_length "${win_length}" \
     --token_type phn \
     --cleaner jaconv \
     --g2p "${g2p}" \
