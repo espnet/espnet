@@ -5,7 +5,7 @@
 # training on Titan V.
 
 ##########################################################
-#                 TTS MODEL SETTING                  #
+#                  TTS MODEL SETTING                     #
 ##########################################################
 tts: tacotron2                   # model architecture
 tts_conf:                        # keyword arguments for the selected model
