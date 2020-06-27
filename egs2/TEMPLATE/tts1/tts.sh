@@ -69,7 +69,7 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=valid.loss.best.pth # Model path for decoding e.g.,
+decode_model=train.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=train.loss.best.pth
                                  # decode_model=3epoch.pth
                                  # decode_model=valid.acc.best.pth
