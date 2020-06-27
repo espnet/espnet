@@ -136,10 +136,10 @@ def inference(
                 minlenratio=minlenratio,
             )
             outs_denorm = normalize.inverse(outs[None])[0][0]
-            insize = next(iter(_data.values())).size(0)
+            insize = next(iter(_data.values())).size(0) + 1
             logging.info(
-                "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
+                "inference speed = {:.1f} frames / sec.".format(
+                    int(outs.size(0)) / (time.perf_counter() - start_time)
                 )
             )
             logging.info(f"{key} (size:{insize}->{outs.size(0)})")
