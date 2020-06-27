@@ -13,6 +13,8 @@ from typing import Union
 
 import configargparse
 import kaldiio
+import matplotlib
+import numpy as np
 import soundfile as sf
 import torch
 from typeguard import check_argument_types
@@ -106,6 +108,7 @@ def inference(
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
+    (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
 
     # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
     #  How about numpy or HDF5?
@@ -147,6 +150,34 @@ def inference(
                 logging.warning(f"output length reaches maximum length ({key}).")
             f[key] = outs.cpu().numpy()
             g[key] = outs_denorm.cpu().numpy()
+
+            # Lazy load to avoid the backend error
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            from matplotlib.ticker import MaxNLocator
+
+            att_ws = att_ws.cpu().numpy()
+
+            if att_ws.ndim == 2:
+                att_ws = att_ws[None]
+            elif att_ws.ndim > 3 or att_ws.ndim == 1:
+                raise RuntimeError(f"Must be 2 or 3 dimension: {att_ws.ndim}")
+
+            w, h = plt.figaspect(1.0 / len(att_ws))
+            fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
+            axes = fig.subplots(1, len(att_ws))
+            if len(att_ws) == 1:
+                axes = [axes]
+
+            for ax, aw in zip(axes, att_ws):
+                ax.imshow(aw.astype(np.float32), aspect="auto")
+                ax.set_title(f"{key}")
+                ax.set_xlabel("Input")
+                ax.set_ylabel("Output")
+                ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+            fig.savefig(output_dir / f"att_ws/{key}.png")
 
             # TODO(kamo): Write scp
             if spc2wav is not None:
@@ -246,7 +277,7 @@ def get_parser():
         help="Forward window value in attention constraint",
     )
 
-    group = parser.add_argument_group(" Grriffin-Lim related")
+    group = parser.add_argument_group("Grriffin-Lim related")
     group.add_argument(
         "--vocoder_conf",
         action=NestedDictAction,

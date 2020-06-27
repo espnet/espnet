@@ -636,7 +636,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav}
+        mkdir -p "${_dir}"/{norm,denorm,wav,att_ws}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -645,7 +645,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+            mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
             rm -rf "${_logdir}/output.${i}/wav"
+            rm -rf "${_logdir}/output.${i}/att_ws"
         done
     done
 
