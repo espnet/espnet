@@ -51,7 +51,7 @@ fmax=7600         # Maximum frequency of Mel basis.
 n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
-win_length=none   # Window length.
+win_length=null   # Window length.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol
