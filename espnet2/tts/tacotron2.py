@@ -363,6 +363,9 @@ class Tacotron2(AbsTTS):
         x = text
         spemb = spembs
 
+        # add eos at the last of sequence
+        x = F.pad(x, [0, 1], "constant", self.eos)
+
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
