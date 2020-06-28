@@ -43,7 +43,7 @@ class DNN_Beamformer(torch.nn.Module):
         badim: int = 320,
         ref_channel: int = -1,
         beamformer_type: str = "mvdr",
-        eps: float = 1e-7,
+        eps: float = 1e-6,
         # only for WPD beamformer
         btaps: int = 5,
         bdelay: int = 3,
@@ -53,7 +53,7 @@ class DNN_Beamformer(torch.nn.Module):
         self.mask = MaskEstimator(
             btype, bidim, blayers, bunits, bprojs, dropout_rate, nmask=bnmask
         )
-        self.ref = AttentionReference(bidim, badim)
+        self.ref = AttentionReference(bidim, badim) if ref_channel < 0 else None
         self.ref_channel = ref_channel
 
         self.use_noise_mask = use_noise_mask
@@ -124,9 +124,11 @@ class DNN_Beamformer(torch.nn.Module):
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
 
-        # mask: (B, F, C, T)
+        # mask: [(B, F, C, T)]
         masks, _ = self.mask(data, ilens)
         assert self.nmask == len(masks)
+        # floor masks with self.eps to increase numerical stability
+        masks = [torch.clamp(m, min=self.eps) for m in masks]
 
         if self.num_spk == 1:   # single-speaker case
             if self.use_noise_mask:
@@ -159,7 +161,6 @@ class DNN_Beamformer(torch.nn.Module):
 
             # (..., F, T) -> (..., T, F)
             enhanced = enhanced.transpose(-1, -2)
-            mask_speech = mask_speech.transpose(-1, -3)
         else:  # multi-speaker case
             if self.use_noise_mask:
                 # (mask_speech1, ..., mask_noise)
@@ -197,7 +198,7 @@ class DNN_Beamformer(torch.nn.Module):
 
             enhanced = []
             ws = []
-            for i in range(self.nmask - 1):
+            for i in range(self.num_spk):
                 psd_speech = psd_speeches.pop(i)
                 # treat all other speakers' psd_speech as noises
                 if self.beamformer_type == 'mvdr':
@@ -222,11 +223,12 @@ class DNN_Beamformer(torch.nn.Module):
 
                 # (..., F, T) -> (..., T, F)
                 enh = enh.transpose(-1, -2)
-                mask_speech[i] = mask_speech[i].transpose(-1, -3)
 
                 enhanced.append(enh)
                 ws.append(w)
 
+        # (..., F, C T) -> (..., T, C, F)
+        masks = [m.transpose(-1, -3) for m in masks]
         return enhanced, ilens, masks
 
 

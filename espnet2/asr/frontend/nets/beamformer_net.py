@@ -58,6 +58,9 @@ class BeamformerNet(torch.nn.Module):
         self.use_wpe = use_wpe
         self.use_dnn_mask_for_wpe = use_dnn_mask_for_wpe
 
+        assert self.use_wpe or self.use_beamformer, \
+            '`use_wpe` and `use_beamformer` cannot be False at the same time.'
+
         if self.use_wpe:
             if self.use_dnn_mask_for_wpe:
                 # Use DNN for power estimation
@@ -117,7 +120,7 @@ class BeamformerNet(torch.nn.Module):
                 'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
                 'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
-                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         # wave -> stft -> magnitude specturm
@@ -136,7 +139,7 @@ class BeamformerNet(torch.nn.Module):
                 # (B, T, F)
                 enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
                 if mask_w is not None:
-                    masks['derevb'] = mask_w
+                    masks['dereverb'] = mask_w
 
         elif input_spectrum.dim() == 4:
             # multi-channel input
@@ -145,7 +148,7 @@ class BeamformerNet(torch.nn.Module):
                 # (B, T, C, F)
                 enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
                 if mask_w is not None:
-                    masks['derevb'] = mask_w
+                    masks['dereverb'] = mask_w
 
             # 2. Beamformer
             if self.use_beamformer:
@@ -154,7 +157,7 @@ class BeamformerNet(torch.nn.Module):
                 for spk in range(self.num_spk):
                     masks['spk{}'.format(spk + 1)] = masks_b[spk]
                 if len(masks_b) > self.num_spk:
-                    masks['noise'] = masks_b[-1]
+                    masks['noise1'] = masks_b[self.num_spk]
 
         else:
             raise ValueError('Invalid spectrum dimension: {}'.format(input_spectrum.shape))
@@ -187,7 +190,7 @@ class BeamformerNet(torch.nn.Module):
                 'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
                 'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
-                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         enhanced, flens, masks = self.forward(input, ilens)

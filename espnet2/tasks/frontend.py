@@ -33,6 +33,7 @@ frontend_choices = ClassChoices(
     default="enh",
 )
 
+MAX_REFERENCE_NUM = 100
 
 
 class FrontendTask(AbsTask):
@@ -116,8 +117,8 @@ class FrontendTask(AbsTask):
     def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
 
-            # TODO:
-            retval = ("speech_mix", "speech_ref1", "speech_ref2")
+            # TODO: combining ref1 and ref2 into one data stream, maybe multi-channel format?
+            retval = ("speech_mix", "speech_ref1")
         else:
             # Recognition mode
             retval = ("speech_mix",)
@@ -125,7 +126,9 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
-        retval = ("dereverb_ref", "speech_ref3")
+        retval = ["dereverb_ref"]
+        retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         assert check_return_type(retval)
         return retval
 

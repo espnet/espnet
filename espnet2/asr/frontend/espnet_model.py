@@ -28,6 +28,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
 
         self.frontend = frontend
         self.num_spk = frontend.num_spk
+        self.num_noise_type = frontend.num_noise_type
         self.fs = frontend.fs
         self.tf_factor = frontend.tf_factor
         self.mask_type = frontend.mask_type
@@ -52,6 +53,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int()
             elif mask_type == "IRM":
+                # TODO (Wangyou): need to fix this, as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
             elif mask_type == "IAM":
                 mask = (abs(r)) / (abs(mix_spec) + eps)
@@ -87,14 +89,21 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_ref = [
             kwargs['speech_ref{}'.format(spk + 1)] for spk in range(self.num_spk)
         ]
-        if 'speech_ref{}'.format(self.num_spk + 1) in kwargs:
-            # noise signal (optional, required when using frontend models with beamformering)
-            speech_ref.append(kwargs['speech_ref{}'.format(self.num_spk + 1)])
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
 
+        if 'noise_ref1' in kwargs:
+            # noise signal (optional, required when using frontend models with beamformering)
+            noise_ref = [
+                kwargs['noise_ref{}'.format(n + 1)] for n in range(self.num_noise_type)
+            ]
+            # (Batch, num_noise_type, samples) or (Batch, num_noise_type, samples, channels)
+            noise_ref = torch.stack(noise_ref, dim=1)
+        else:
+            noise_ref = None
+
         # dereverberated noisy signal (optional, only used for frontend models with WPE)
-        dereverb_speech_ref = getattr(kwargs, 'dereverb_ref', None)
+        dereverb_speech_ref = kwargs.get('dereverb_ref', None)
 
         speech_lengths = speech_mix_lengths
         assert speech_lengths.dim() == 1, speech_lengths.shape
@@ -126,6 +135,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
 
             # prepare ideal masks
             mask_ref = self._create_mask_label(sepctrum_mix, spectrum_ref, mask_type=self.mask_type)
+
             if dereverb_speech_ref is not None:
                 dereverb_spectrum_ref = self.frontend.stft(dereverb_speech_ref)[0]
                 dereverb_spectrum_ref = \
@@ -134,6 +144,16 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 dereverb_mask_ref = self._create_mask_label(
                     sepctrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
                 )[0]
+
+            if noise_ref is not None:
+                noise_ref = torch.unbind(noise_ref, dim=1)
+                noise_spectrum_ref = [self.frontend.stft(nr)[0] for nr in noise_ref]
+                noise_spectrum_ref = [
+                    ComplexTensor(nr[..., 0], nr[..., 1]) for nr in noise_spectrum_ref
+                ]
+                noise_mask_ref = self._create_mask_label(
+                    sepctrum_mix, noise_spectrum_ref, mask_type=self.mask_type
+                )
 
             # predict separated speech and masks
             spectrum_pre, tf_length, mask_pre = self.frontend(speech_mix, speech_lengths)
@@ -146,14 +166,10 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
             else:
                 mask_pre_ = [mask_pre['spk{}'.format(spk + 1)] for spk in range(self.num_spk)]
-                if len(mask_ref) > self.num_spk:
-                    mask_noise_ref_ = mask_ref[-1]
-                    mask_ref_ = mask_ref[:-1]
-                else:
-                    mask_noise_ref_ = None
-                    mask_ref_ = mask_ref
 
-                tf_loss, perm = self._permutation_loss(mask_ref_, mask_pre_, self.tf_l1_loss)
+                # compute TF masking loss
+                # TODO:Chenda, Shall we add options for computing loss on the masked spectrum?
+                tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, self.tf_l2_loss)
 
                 if 'dereverb' in mask_pre:
                     if dereverb_speech_ref is None:
@@ -161,17 +177,23 @@ class ESPnetFrontendModel(AbsESPnetModel):
                             'No dereverberated reference for training!\n'
                             'Please Specify "--use_dereverb_ref true" in run.sh'
                         )
-                    tf_loss = tf_loss + self.tf_l1_loss(dereverb_mask_ref, mask_pre['dereverb'])
+                    tf_loss = tf_loss + self.tf_l1_loss(dereverb_mask_ref, mask_pre['dereverb']).mean()
 
-                if 'noise' in mask_pre:
-                    if mask_noise_ref_ is None:
+                if 'noise1' in mask_pre:
+                    if noise_ref is None:
                         raise ValueError(
                             'No noise reference for training!\n'
                             'Please Specify "--use_noise_ref true" in run.sh'
                         )
-                    tf_loss = tf_loss + self.tf_l1_loss(mask_noise_ref_, mask_pre['noise'])
+                    mask_noise_pre = [
+                        mask_pre['noise{}'.format(n + 1)] for n in range(self.num_noise_type)
+                    ]
+                    tf_noise_loss, perm_n = self._permutation_loss(
+                        noise_mask_ref, mask_noise_pre, self.tf_l2_loss
+                    )
+                    tf_loss = tf_loss + tf_noise_loss
 
-            if self.tf_factor == 1:
+            if self.tf_factor == 1.0:
                 si_snr_loss = None
                 si_snr = None
                 loss = tf_loss
@@ -225,9 +247,15 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :param inf: (Batch, T, F)
         :return: (Batch)
         """
-        l1loss = torch.norm((ref - inf), p=2, dim=[1,2])
+        assert ref.dim() == inf.dim(), (ref.shape, inf.shape)
+        if ref.dim() == 3:
+            l2loss = torch.norm((ref - inf), p=2, dim=[1, 2])
+        elif ref.dim() == 4:
+            l2loss = torch.norm((ref - inf), p=2, dim=[1, 2, 3])
+        else:
+            raise ValueError('Invalid input shape: ref={}, inf={}'.format(ref, inf))
 
-        return l1loss
+        return l2loss
 
     @staticmethod
     def tf_l1_loss(ref, inf):
@@ -236,7 +264,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
         """
-        assert ref.dim() == inf.dim()
+        assert ref.dim() == inf.dim(), (ref.shape, inf.shape)
         if ref.dim() == 3:
             l1loss = abs(ref - inf).mean(dim=[1, 2])
         elif ref.dim() == 4:
@@ -324,7 +352,6 @@ class ESPnetFrontendModel(AbsESPnetModel):
             loss, perm = torch.min(losses, dim=1)
         else:
             loss = losses[torch.arange(losses.shape[0]), perm]
-            pass
 
         return loss.mean(), perm
 

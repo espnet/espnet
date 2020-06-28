@@ -28,7 +28,7 @@ class EnhFrontend(AbsFrontend):
     def __init__(
             self,
             enh_type: str = 'tf_maksing',
-            mask_type="IRM",
+            mask_type: str = "IAM",
             fs: int = 16000,
             tf_factor: float = 0.5,
             enh_conf: Dict = None,
@@ -45,6 +45,7 @@ class EnhFrontend(AbsFrontend):
         self.mask_type = mask_type
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
         self.num_spk = self.enh_model.num_spk
+        self.num_noise_type = getattr(self.enh_model, 'num_noise_type', 1)
         self.stft = self.enh_model.stft
         # for multi-channel signal
         self.ref_channel = getattr(self.enh_model, 'ref_channel', -1)
