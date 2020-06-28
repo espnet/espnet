@@ -25,7 +25,7 @@ train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 ./tts.sh \
-    --feats_type fbank \
+    --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \

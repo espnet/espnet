@@ -32,7 +32,7 @@ g2p=pyopenjtalk
 # toke_type=char doesn't indicate kana, but mean kanji-kana-majiri-moji characters
 
 ./tts.sh \
-    --feats_type fbank \
+    --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
