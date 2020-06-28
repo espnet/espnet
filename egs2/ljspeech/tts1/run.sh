@@ -24,6 +24,9 @@ eval_set=eval1
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
+# g2p=g2p_en # Include word separator
+g2p=g2p_en_no_space # Include no word separator
+
 ./tts.sh \
     --feats_type raw \
     --fs "${fs}" \
@@ -31,7 +34,7 @@ decode_config=conf/decode.yaml
     --n_shift "${n_shift}" \
     --token_type phn \
     --cleaner tacotron \
-    --g2p g2p_en \
+    --g2p "${g2p}" \
     --train_config "${train_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \

@@ -26,7 +26,7 @@ def pyopenjtalk_g2p_kana(text) -> List[str]:
     return list(kanas)
 
 
-def english_g2p(g2p, text) -> List[str]:
+def g2p_en_no_space(g2p, text) -> List[str]:
     # remove space which represents word serapater
     phones = list(filter(lambda s: s != " ", g2p(text)))
     return phones
@@ -42,9 +42,11 @@ class PhonemeTokenizer(AbsTokenizer):
     ):
         assert check_argument_types()
         if g2p_type == "g2p_en":
+            self.g2p = g2p_en.G2p()
+        elif g2p_type == "g2p_en_no_space":
             # TODO(kan-bayashi): Include within a function?
             g2p = g2p_en.G2p()
-            self.g2p = functools.partial(english_g2p, g2p)
+            self.g2p = functools.partial(g2p_en_no_space, g2p)
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
