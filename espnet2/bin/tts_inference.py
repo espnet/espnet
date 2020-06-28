@@ -142,7 +142,6 @@ def inference(
                     }
                 )
             outs, probs, att_ws = tts.inference(**_data, **_decode_conf)
-            outs_denorm = normalize.inverse(outs[None])[0][0]
             insize = next(iter(_data.values())).size(0) + 1
             logging.info(
                 "inference speed = {:.1f} frames / sec.".format(
@@ -153,6 +152,9 @@ def inference(
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(f"output length reaches maximum length ({key}).")
             f[key] = outs.cpu().numpy()
+
+            # NOTE: normalize.inverse is in-place operation
+            outs_denorm = normalize.inverse(outs[None])[0][0]
             g[key] = outs_denorm.cpu().numpy()
 
             # Lazy load to avoid the backend error
