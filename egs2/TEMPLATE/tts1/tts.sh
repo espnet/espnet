@@ -69,7 +69,7 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=valid.loss.best.pth # Model path for decoding e.g.,
+decode_model=train.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=train.loss.best.pth
                                  # decode_model=3epoch.pth
                                  # decode_model=valid.acc.best.pth
@@ -497,7 +497,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _fold_length="$((speech_fold_length * 100))"
+        _fold_length="$((speech_fold_length * n_shift))"
         _opts+="--feats_extract fbank "
         _opts+="--feats_extract_conf fs=${fs} "
         _opts+="--feats_extract_conf fmin=${fmin} "
@@ -647,7 +647,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav}
+        mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -656,7 +656,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-            rm -rf "${_logdir}/output.${i}/wav"
+            mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+            mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+            rm -rf "${_logdir}/output.${i}"/{wav,att_ws,probs}
         done
     done
 
