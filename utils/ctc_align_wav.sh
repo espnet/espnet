@@ -205,7 +205,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 1 --write_utt2num_frames true \
-        ${align_dir}/data ${align_dir}/log ${align_dir}/fbank
+        ${align_dir}/data ${align_dir}/log ${align_dir}/fbank || exit 1;
 
     feat_align_dir=${align_dir}/dump; mkdir -p ${feat_align_dir}
     dump.sh --cmd "$train_cmd" --nj 1 --do_delta ${do_delta} \
@@ -223,7 +223,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     feat_align_dir=${align_dir}/dump
     data2json.sh --feat ${feat_align_dir}/feats.scp ${nlsyms_opts} \
-        ${align_dir}/data ${dict} > ${feat_align_dir}/data.json
+        ${align_dir}/data ${dict} > ${feat_align_dir}/data.json || exit 1;
+
+    unk_id=$(grep "<unk>" ${dict} | awk '{print $2}')
+    n_unks=$(grep tokenid ${feat_align_dir}/data.json | \
+                sed -e 's/.*: "\(.*\)".*/\1/' | \
+                awk -v unk_id=${unk_id} '
+                    BEGIN{cnt=0} 
+                    {for (i=1;i<=NF;i++) {if ($i==unk_id) {cnt+=1}}} 
+                    END{print cnt}
+                '
+            )
+    if [ ${n_unks} -gt 0 ]; then
+        echo "Warning: OOVs in the transcriptions could not be aligned."
+    fi
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -242,7 +255,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --result-label ${align_dir}/result.json \
         --model ${align_model} \
         --api ${api} \
-        ${align_opts}
+        ${align_opts} || exit 1;
 
     echo ""
     alignment=$(grep ctc_alignment ${align_dir}/result.json | sed -e 's/.*: "\(.*\)".*/\1/' | sed -e 's/<eos>//')

@@ -411,6 +411,36 @@ Available pretrained vocoder models in the demo script are listed as follows:
 The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.  
 You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
+
+### CTC Forced Alignment demo
+
+<details><summary>expand</summary><div>
+
+You can align speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/ctc_align_wav.sh` as follows:
+```sh
+# go to recipe directory and source path of espnet tools
+cd egs/wsj/asr1 && . ./path.sh
+# get example wav file
+mkdir -p alignment
+cp ../../../test_utils/ctc_align_test.wav ./alignment
+# let's generate the ctc alignment of the speech!
+# the transcription of the example wav is:
+# "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+ctc_align_wav.sh --align_dir ./alignment --models wsj.transformer.v1 ./alignment/ctc_align_test.wav "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+```
+where `test.wav` is a WAV file to be aligned.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models in the demo script are listed as below.
+
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [wsj.transformer.v1](https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp)            | Transformer-ASR trained on WSJ corpus                  |
+
+</div></details>
+
+
 ## References
 
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
