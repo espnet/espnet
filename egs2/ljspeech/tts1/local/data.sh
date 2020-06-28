@@ -59,8 +59,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     done
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
-    # Initial normalization of the data
-    # Doesn't change sampling frequency and it's done after stages
+    # make text usign the original text
+    # cleaning and phoneme conversion are performed on-the-fly during the training
     paste -d " " \
         <(cut -d "|" -f 1 < ${db_root}/LJSpeech-1.1/metadata.csv) \
         <(cut -d "|" -f 3 < ${db_root}/LJSpeech-1.1/metadata.csv) \
