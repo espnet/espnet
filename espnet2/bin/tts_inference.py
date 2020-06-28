@@ -12,7 +12,6 @@ from typing import Tuple
 from typing import Union
 
 import configargparse
-import kaldiio
 import matplotlib
 import numpy as np
 import soundfile as sf
@@ -20,6 +19,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -112,14 +112,9 @@ def inference(
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
     (output_dir / "probs").mkdir(parents=True, exist_ok=True)
 
-    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
-    #  How about numpy or HDF5?
-    #  >>> with NpyScpWriter() as f:
-    with kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
-    ) as f, kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
-    ) as g:
+    with NpyScpWriter(
+        output_dir / "norm", output_dir / "norm/feats.scp",
+    ) as f, NpyScpWriter(output_dir / "denorm", output_dir / "denorm/feats.scp") as g:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
