@@ -51,7 +51,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: utils/subset_data_dir.sg"
+    log "stage 2: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
     utils/subset_data_dir.sh --first data/train 500 data/deveval
     utils/subset_data_dir.sh --first data/deveval 250 data/${recog_set}
