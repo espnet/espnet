@@ -7,8 +7,8 @@
     - espnet version: `espnet 0.7.0`
     - chainer version: `chainer 6.0.0`
     - pytorch version: `pytorch 1.0.1.post2`
-  - Model files (archived to model.v1.tar.gz)
-    - model link:
+  - Model files (archived to aidatatang_200zh.model.v1.tar.gz)
+    - model link: https://drive.google.com/file/d/1gqWx24qRwu-ZS59wczksRGnEADYkjl3m/view?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_sp/cmvn.ark`
