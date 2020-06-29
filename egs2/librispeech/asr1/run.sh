@@ -15,10 +15,7 @@ decode_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --ngpu 4 \
-    --use_lm true \
-    --token_type bpe \
     --nbpe 5000 \
-    --feats_type raw \
     --max_wav_duration 30 \
     --asr_config "${asr_config}" \
     --lm_config "${lm_config}" \

@@ -1,6 +1,6 @@
 batch_type: numel
 # batch_bins: 16000000 for 4 GPUs
-batch_bins: 10000000
+batch_bins: 8000000
 # accum_grad: 4 for 4 GPUs
 accum_grad: 8
 max_epoch: 200
