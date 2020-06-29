@@ -293,7 +293,7 @@ if [ -z "${decode_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats"
+asr_stats_dir="${expdir}/asr_stats_${feats_type}"
 lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
 asr_exp="${expdir}/asr_${asr_tag}"
@@ -331,7 +331,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${feats_type}" = raw ]; then
-        log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
+        log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -342,8 +342,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         # i.e. the input file format and rate is same as the output.
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -356,51 +361,63 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_feats}/org/${dset}"
+                "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
 
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
             # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
 
             # 2. Feature extract
-            _nj=$(min "${nj}" "$(<"${data_feats}/org/${dset}/utt2spk" wc -l)")
-            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}/org/${dset}"
-            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
+            _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
+            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}${_suf}/${dset}"
+            utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
 
             # 3. Derive the the frame length and feature dimension
             scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
+                "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
 
             # 4. Write feats_dim
-            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
+            head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
+                | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
 
             # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank ]; then
-        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
         log "${feats_type} is not supported yet."
         exit 1
 
     elif  [ "${feats_type}" = extracted ]; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
+        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
+        # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            # Generate dummy wav.scp to avoid error by copy_data_dir.sh
             <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
 
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}/${dset}/feats.scp |" - | \
-                awk '{ print $2 }' | cut -d, -f2 > ${data_feats}/${dset}/feats_dim
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}${_suf}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > "${data_feats}${_suf}/${dset}/feats_dim"
 
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
 
     else
@@ -413,7 +430,8 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+    # NOTE(kamo): Not applying to eval_sets to keep original data
+    for dset in "${train_set}" "${dev_set}"; do
 
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"

@@ -4,10 +4,10 @@ import tarfile
 import pytest
 import yaml
 
-from espnet2.utils.pack_funcs import default_tarinfo
-from espnet2.utils.pack_funcs import find_path_and_change_it_recursive
-from espnet2.utils.pack_funcs import pack
-from espnet2.utils.pack_funcs import unpack
+from espnet2.main_funcs.pack_funcs import default_tarinfo
+from espnet2.main_funcs.pack_funcs import find_path_and_change_it_recursive
+from espnet2.main_funcs.pack_funcs import pack
+from espnet2.main_funcs.pack_funcs import unpack
 
 
 def test_find_path_and_change_it_recursive():

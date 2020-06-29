@@ -69,7 +69,7 @@ decode_config= # Config for decoding.
 decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
                # Note that it will overwrite args in decode config.
 decode_tag=""  # Suffix for decoding directory.
-decode_model=valid.loss.best.pth # Model path for decoding e.g.,
+decode_model=train.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=train.loss.best.pth
                                  # decode_model=3epoch.pth
                                  # decode_model=valid.acc.best.pth
@@ -205,7 +205,7 @@ if [ -z "${decode_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-tts_stats_dir="${expdir}/tts_stats"
+tts_stats_dir="${expdir}/tts_stats_${feats_type}"
 # The directory used for training commands
 tts_exp="${expdir}/tts_${tag}"
 
@@ -221,7 +221,6 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # TODO(kamo): Change kaldi-ark to npy or HDF5?
-    log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
     # ====== Recreating "wav.scp" ======
     # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
     # shouldn't be used in training process.
@@ -231,9 +230,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # i.e. the input file format and rate is same as the output.
 
     if [ "${feats_type}" = raw ]; then
+        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
@@ -241,21 +246,26 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_feats}/org/${dset}"
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+                "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
 
     elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
-        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/org/"
+        log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
         for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
             # 1. Copy datadir
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
 
             # 2. Feature extract
             # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-            _nj=$(min "${nj}" "$(<${data_feats}/org/${dset}/utt2spk wc -l)")
+            _nj=$(min "${nj}" "$(<${data_feats}${_suf}/${dset}/utt2spk wc -l)")
             _opts=
             if [ "${feats_type}" = fbank ] ; then
                 _opts+="--fmax ${fmax} "
@@ -270,19 +280,19 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --n_shift "${n_shift}" \
                 --win_length "${win_length}" \
                 ${_opts} \
-                "${data_feats}/org/${dset}"
-            utils/fix_data_dir.sh "${data_feats}/org/${dset}"
+                "${data_feats}${_suf}/${dset}"
+            utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
 
             # 3. Derive the the frame length and feature dimension
             scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}/org/${dset}/feats.scp" "${data_feats}/org/${dset}/feats_shape"
+                "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
 
             # 4. Write feats_dim
-            head -n 1 "${data_feats}/org/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}/org/${dset}/feats_dim
+            head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
+                | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
 
             # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
     fi
 fi
@@ -291,7 +301,8 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+    # NOTE(kamo): Not applying to eval_sets to keep original data
+    for dset in "${train_set}" "${dev_set}"; do
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -486,7 +497,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
         _type=sound
-        _fold_length="$((speech_fold_length * 100))"
+        _fold_length="$((speech_fold_length * n_shift))"
         _opts+="--feats_extract fbank "
         _opts+="--feats_extract_conf fs=${fs} "
         _opts+="--feats_extract_conf fmin=${fmin} "
@@ -636,7 +647,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav}
+        mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -645,7 +656,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-            rm -rf "${_logdir}/output.${i}/wav"
+            mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+            mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+            rm -rf "${_logdir}/output.${i}"/{wav,att_ws,probs}
         done
     done
 

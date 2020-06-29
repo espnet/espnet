@@ -264,7 +264,7 @@ class Tacotron2(AbsTTS):
 
         batch_size = text.size(0)
         # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", 0.0)
+        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
         for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
@@ -273,7 +273,8 @@ class Tacotron2(AbsTTS):
         olens = speech_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens).to(ys.device, ys.dtype)
+        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
@@ -362,6 +363,9 @@ class Tacotron2(AbsTTS):
         """
         x = text
         spemb = spembs
+
+        # add eos at the last of sequence
+        x = F.pad(x, [0, 1], "constant", self.eos)
 
         # inference
         h = self.enc.inference(x)
