@@ -365,6 +365,8 @@ class ESPnetDataset(Dataset):
         for name, loader in self.loader_dict.items():
             try:
                 value = loader[uid]
+                if isinstance(value, (list, tuple)):
+                    value = np.array(value)
                 if not isinstance(
                     value, (np.ndarray, torch.Tensor, str, numbers.Number)
                 ):
