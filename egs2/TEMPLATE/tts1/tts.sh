@@ -195,7 +195,7 @@ if [ -z "${tag}" ]; then
     else
         tag="train_${feats_type}_${token_type}"
     fi
-    if [ "${cleaner}" != "none" ]; then
+    if [ "${cleaner}" != none ]; then
         tag+="_${cleaner}"
     fi
     if [ "${token_type}" = phn ]; then
