@@ -76,8 +76,10 @@ class EnhFrontend(AbsFrontend):
                 'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
-                'noise': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spkM': torch.Tensor(Batch, Frames, Channel, Freq),
+                'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
+                ...
+                'noiseN': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
         # 1. Domain-conversion: e.g. Stft: time -> time-freq

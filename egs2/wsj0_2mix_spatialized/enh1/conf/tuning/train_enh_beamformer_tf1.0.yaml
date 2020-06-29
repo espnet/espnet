@@ -37,7 +37,7 @@ frontend_conf:
         hop_length: 128
         num_spk: 2
         normalize_input: False
-        use_wpe: True
+        use_wpe: False
         wnet_type: blstmp
         wlayers: 3
         wunits: 300
@@ -52,7 +52,7 @@ frontend_conf:
         bunits: 512
         bprojs: 512
         badim: 320
-        ref_channel: -1
+        ref_channel: 0
         use_noise_mask: False
         beamformer_type: mvdr
         bdropout_rate: 0.0

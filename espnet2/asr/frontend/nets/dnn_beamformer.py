@@ -227,7 +227,7 @@ class DNN_Beamformer(torch.nn.Module):
                 enhanced.append(enh)
                 ws.append(w)
 
-        # (..., F, C T) -> (..., T, C, F)
+        # (..., F, C, T) -> (..., T, C, F)
         masks = [m.transpose(-1, -3) for m in masks]
         return enhanced, ilens, masks
 

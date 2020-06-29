@@ -56,7 +56,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 # TODO (Wangyou): need to fix this, as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
             elif mask_type == "IAM":
-                mask = (abs(r)) / (abs(mix_spec) + eps)
+                mask = abs(r) / (abs(mix_spec) + eps)
                 mask = mask.clamp(min=0, max=1)
             elif mask_type == "PSM" or mask_type == "NPSM":
                 phase_r = r / (abs(r) + eps)
@@ -108,8 +108,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_lengths = speech_mix_lengths
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
-        assert (
-                speech_mix.shape[0]
+        assert (speech_mix.shape[0]
                 == speech_ref.shape[0]
                 == speech_lengths.shape[0]
         ), (speech_mix.shape, speech_ref.shape, speech_lengths.shape)
@@ -163,19 +162,19 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 # compute loss on magnitude spectrum instead
                 magnitude_pre = [abs(ps) for ps in spectrum_pre]
                 magnitude_ref = [abs(sr) for sr in spectrum_ref]
-                tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_l1_loss)
+                tf_loss, perm = self._permutation_loss(magnitude_ref, magnitude_pre, self.tf_mse_loss)
             else:
                 mask_pre_ = [mask_pre['spk{}'.format(spk + 1)] for spk in range(self.num_spk)]
 
                 # compute TF masking loss
                 # TODO:Chenda, Shall we add options for computing loss on the masked spectrum?
-                tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, self.tf_l2_loss)
+                tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, self.tf_mse_loss)
 
                 if 'dereverb' in mask_pre:
                     if dereverb_speech_ref is None:
                         raise ValueError(
                             'No dereverberated reference for training!\n'
-                            'Please Specify "--use_dereverb_ref true" in run.sh'
+                            'Please specify "--use_dereverb_ref true" in run.sh'
                         )
                     tf_loss = tf_loss + self.tf_l1_loss(dereverb_mask_ref, mask_pre['dereverb']).mean()
 
@@ -183,13 +182,13 @@ class ESPnetFrontendModel(AbsESPnetModel):
                     if noise_ref is None:
                         raise ValueError(
                             'No noise reference for training!\n'
-                            'Please Specify "--use_noise_ref true" in run.sh'
+                            'Please specify "--use_noise_ref true" in run.sh'
                         )
                     mask_noise_pre = [
                         mask_pre['noise{}'.format(n + 1)] for n in range(self.num_noise_type)
                     ]
                     tf_noise_loss, perm_n = self._permutation_loss(
-                        noise_mask_ref, mask_noise_pre, self.tf_l2_loss
+                        noise_mask_ref, mask_noise_pre, self.tf_mse_loss
                     )
                     tf_loss = tf_loss + tf_noise_loss
 
@@ -239,9 +238,8 @@ class ESPnetFrontendModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
-
     @staticmethod
-    def tf_l2_loss(ref, inf):
+    def tf_mse_loss(ref, inf):
         """
         :param ref: (Batch, T, F)
         :param inf: (Batch, T, F)
@@ -249,13 +247,13 @@ class ESPnetFrontendModel(AbsESPnetModel):
         """
         assert ref.dim() == inf.dim(), (ref.shape, inf.shape)
         if ref.dim() == 3:
-            l2loss = torch.norm((ref - inf), p=2, dim=[1, 2])
+            mseloss = ((ref - inf) ** 2).mean(dim=[1, 2])
         elif ref.dim() == 4:
-            l2loss = torch.norm((ref - inf), p=2, dim=[1, 2, 3])
+            mseloss = ((ref - inf) ** 2).mean(dim=[1, 2, 3])
         else:
             raise ValueError('Invalid input shape: ref={}, inf={}'.format(ref, inf))
 
-        return l2loss
+        return mseloss
 
     @staticmethod
     def tf_l1_loss(ref, inf):
