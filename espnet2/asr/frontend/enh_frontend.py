@@ -26,12 +26,12 @@ class EnhFrontend(AbsFrontend):
     """
 
     def __init__(
-            self,
-            enh_type: str = 'tf_maksing',
-            mask_type: str = "IAM",
-            fs: int = 16000,
-            tf_factor: float = 0.5,
-            enh_conf: Dict = None,
+        self,
+        enh_type: str = "tf_maksing",
+        mask_type: str = "IAM",
+        fs: int = 16000,
+        tf_factor: float = 0.5,
+        enh_conf: Dict = None,
     ):
         assert check_argument_types()
         super().__init__()
@@ -45,10 +45,10 @@ class EnhFrontend(AbsFrontend):
         self.mask_type = mask_type
         self.enh_model = frontend_choices.get_class(enh_type)(**enh_conf)
         self.num_spk = self.enh_model.num_spk
-        self.num_noise_type = getattr(self.enh_model, 'num_noise_type', 1)
+        self.num_noise_type = getattr(self.enh_model, "num_noise_type", 1)
         self.stft = self.enh_model.stft
         # for multi-channel signal
-        self.ref_channel = getattr(self.enh_model, 'ref_channel', -1)
+        self.ref_channel = getattr(self.enh_model, "ref_channel", -1)
 
     def output_size(self) -> int:
         return self.bins

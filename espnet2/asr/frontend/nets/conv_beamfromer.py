@@ -10,7 +10,9 @@ import torch.nn.functional as F
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.beamformer import get_power_spectral_density_matrix
+from espnet.nets.pytorch_backend.frontends.beamformer import (
+    get_power_spectral_density_matrix,
+)
 
 
 def signal_framing(
@@ -19,7 +21,7 @@ def signal_framing(
     frame_step: int,
     bdelay: int,
     do_padding: bool = False,
-    pad_value: int = 0
+    pad_value: int = 0,
 ) -> Union[torch.Tensor, ComplexTensor]:
     """Expand `signal` into several frames, with each frame of length `frame_length`.
 
@@ -38,15 +40,21 @@ def signal_framing(
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
     if isinstance(signal, ComplexTensor):
-        real = signal_framing(signal.real, frame_length, frame_step, bdelay, do_padding, pad_value)
-        imag = signal_framing(signal.imag, frame_length, frame_step, bdelay, do_padding, pad_value)
+        real = signal_framing(
+            signal.real, frame_length, frame_step, bdelay, do_padding, pad_value
+        )
+        imag = signal_framing(
+            signal.imag, frame_length, frame_step, bdelay, do_padding, pad_value
+        )
         return ComplexTensor(real, imag)
     else:
         frame_length2 = frame_length - 1
         # pad to the right at the last dimension of `signal` (time dimension)
         if do_padding:
             # (..., T) --> (..., T + bdelay + frame_length - 2)
-            signal = F.pad(signal, (bdelay + frame_length2 - 1, 0), 'constant', pad_value)
+            signal = F.pad(
+                signal, (bdelay + frame_length2 - 1, 0), "constant", pad_value
+            )
 
         # indices:
         # [[ 0, 1, ..., frame_length2 - 1,              frame_length2 - 1 + bdelay ],
@@ -54,9 +62,10 @@ def signal_framing(
         #  [ 2, 3, ..., frame_length2 + 1,              frame_length2 + 1 + bdelay ],
         #  ...
         #  [ T-bdelay-frame_length2, ..., T-1-bdelay,   T-1 ]
-        indices = [[*range(i, i + frame_length2), i + frame_length2 + bdelay - 1]
-                    for i in range(0, signal.shape[-1] - frame_length2 - bdelay + 1,
-                                   frame_step)]
+        indices = [
+            [*range(i, i + frame_length2), i + frame_length2 + bdelay - 1]
+            for i in range(0, signal.shape[-1] - frame_length2 - bdelay + 1, frame_step)
+        ]
 
         # (..., T - bdelay - frame_length + 2, frame_length)
         signal = signal[..., indices]
@@ -82,31 +91,33 @@ def get_covariances(
         Correlation vector of shape (B, F, btaps + 1, C, C)
     """
     assert inverse_power.dim() == 3, inverse_power.dim()
-    assert inverse_power.size(0) == Y.size(0), \
-        (inverse_power.size(0), Y.size(0))
+    assert inverse_power.size(0) == Y.size(0), (inverse_power.size(0), Y.size(0))
 
     Bs, Fdim, C, T = Y.shape
 
     # (B, F, C, T - bdelay - btaps + 1, btaps + 1)
-    Psi = signal_framing(
-        Y, btaps + 1, 1, bdelay, do_padding=False)[..., :T - bdelay - btaps + 1, :]
+    Psi = signal_framing(Y, btaps + 1, 1, bdelay, do_padding=False)[
+        ..., : T - bdelay - btaps + 1, :
+    ]
     # Reverse along btaps-axis: [tau, tau-bdelay, tau-bdelay-1, ..., tau-bdelay-frame_length+1]
     Psi = FC.reverse(Psi, dim=-1)
-    Psi_norm = \
-        Psi * inverse_power[..., None, bdelay + btaps - 1:, None]
+    Psi_norm = Psi * inverse_power[..., None, bdelay + btaps - 1 :, None]
 
     # let T' = T - bdelay - btaps + 1
     # (B, F, C, T', btaps + 1) x (B, F, C, T', btaps + 1) -> (B, F, btaps + 1, C, btaps + 1, C)
-    covariance_matrix = FC.einsum('bfdtk,bfetl->bfkdle', (Psi, Psi_norm.conj()))
+    covariance_matrix = FC.einsum("bfdtk,bfetl->bfkdle", (Psi, Psi_norm.conj()))
 
     # (B, F, btaps + 1, C, btaps + 1, C) -> (B, F, (btaps + 1) * C, (btaps + 1) * C)
-    covariance_matrix = covariance_matrix.view(Bs, Fdim, (btaps + 1) * C, (btaps + 1) * C)
+    covariance_matrix = covariance_matrix.view(
+        Bs, Fdim, (btaps + 1) * C, (btaps + 1) * C
+    )
 
     if get_vector:
         # (B, F, C, T', btaps + 1) x (B, F, C, T')
         #    --> (B, F, btaps +1, C, C)
         covariance_vector = FC.einsum(
-            'bfdtk,bfet->bfked', (Psi_norm, Y[..., bdelay + btaps - 1:].conj()))
+            "bfdtk,bfet->bfked", (Psi_norm, Y[..., bdelay + btaps - 1 :].conj())
+        )
         return covariance_matrix, covariance_vector
     else:
         return covariance_matrix
@@ -116,7 +127,7 @@ def get_WPD_filter(
     Phi: ComplexTensor,
     Rf: ComplexTensor,
     reference_vector: torch.Tensor,
-    eps: float = 1e-15
+    eps: float = 1e-15,
 ) -> ComplexTensor:
     """Return the WPD (Weighted Power minimization Distortionless response
         convolutional beamformer) vector:
@@ -146,26 +157,28 @@ def get_WPD_filter(
         inv_Rf = Rf.inverse()
     except:
         try:
-            reg_coeff_tensor = ComplexTensor(torch.rand_like(Rf.real),
-                                             torch.rand_like(Rf.real)) * 1e-4
-            Rf = Rf / 10e+4
-            Phi = Phi / 10e+4
+            reg_coeff_tensor = (
+                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
+            )
+            Rf = Rf / 10e4
+            Phi = Phi / 10e4
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
         except:
-            reg_coeff_tensor = ComplexTensor(torch.rand_like(Rf.real),
-                                             torch.rand_like(Rf.real)) * 1e-1
-            Rf = Rf / 10e+10
-            Phi = Phi / 10e+10
+            reg_coeff_tensor = (
+                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
+            )
+            Rf = Rf / 10e10
+            Phi = Phi / 10e10
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.einsum('...ec,...cd->...ed', [inv_Rf, Phi])
+    numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf, Phi])
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = FC.einsum('...fec,...c->...fe', [ws, reference_vector])
+    beamform_vector = FC.einsum("...fec,...c->...fe", [ws, reference_vector])
     # (B, F, (btaps + 1) * C)
     return beamform_vector
 
@@ -208,35 +221,35 @@ def get_WPD_filter_v2(
         inv_Rf = Rf.inverse()
     except:
         try:
-           reg_coeff_tensor = ComplexTensor(torch.rand_like(Rf.real),
-                                            torch.rand_like(Rf.real)) * 1e-4
-            Rf = Rf / 10e+4
-            Phi = Phi / 10e+4
+            reg_coeff_tensor = (
+                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
+            )
+            Rf = Rf / 10e4
+            Phi = Phi / 10e4
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
         except:
-           reg_coeff_tensor = ComplexTensor(torch.rand_like(Rf.real),
-                                            torch.rand_like(Rf.real)) * 1e-1
-            Rf = Rf / 10e+10
-            Phi = Phi / 10e+10
+            reg_coeff_tensor = (
+                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
+            )
+            Rf = Rf / 10e10
+            Phi = Phi / 10e10
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
     # (B, F, (btaps+1) * C, (btaps+1) * C) --> (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.einsum('...ec,...cd->...ed', [inv_Rf_pruned, Phi])
+    numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf_pruned, Phi])
     # ws: (..., (btaps+1) * C, C) / (...,) -> (..., (btaps+1) * C, C)
     ws = numerator / (FC.trace(numerator[..., :C, :])[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = FC.einsum('...fec,...c->...fe', [ws, reference_vector])
+    beamform_vector = FC.einsum("...fec,...c->...fe", [ws, reference_vector])
     # (B, F, (btaps+1) * C)
     return beamform_vector
 
 
 def perform_WPD_filtering(
-    filter_matrix: ComplexTensor,
-    Y: ComplexTensor,
-    bdelay: int, btaps: int
+    filter_matrix: ComplexTensor, Y: ComplexTensor, bdelay: int, btaps: int
 ) -> ComplexTensor:
     """perform_filter_operation
 
@@ -248,19 +261,18 @@ def perform_WPD_filtering(
         enhanced (ComplexTensor): (B, F, T)
     """
     # (B, F, C, T) --> (B, F, C, T, btaps + 1)
-    Ytilde = signal_framing(
-        Y, btaps + 1, 1, bdelay, do_padding=True, pad_value=0)
+    Ytilde = signal_framing(Y, btaps + 1, 1, bdelay, do_padding=True, pad_value=0)
     Ytilde = FC.reverse(Ytilde, dim=-1)
 
     Bs, Fdim, C, T = Y.shape
     # --> (B, F, T, btaps + 1, C) --> (B, F, T, (btaps + 1) * C)
     Ytilde = Ytilde.permute(0, 1, 3, 4, 2).contiguous().view(Bs, Fdim, T, -1)
     # (B, F, T, 1)
-    enhanced = FC.einsum('...tc,...c->...t', [Ytilde, filter_matrix.conj()])
+    enhanced = FC.einsum("...tc,...c->...t", [Ytilde, filter_matrix.conj()])
     return enhanced
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ############################################
     #                  Example                 #
     ############################################
@@ -285,15 +297,18 @@ if __name__ == '__main__':
     B, Fdim, C, T = Z.shape
 
     # covariance matrix: (B, F, (btaps+1) * C, (btaps+1) * C)
-    covariance_matrix = get_covariances(Z, inverse_power, bdelay, btaps, get_vector=False)
+    covariance_matrix = get_covariances(
+        Z, inverse_power, bdelay, btaps, get_vector=False
+    )
 
     # speech signal PSD: (B, F, C, C)
-    psd_speech = get_power_spectral_density_matrix(Z, mask_speech, btaps, normalization=True)
+    psd_speech = get_power_spectral_density_matrix(
+        Z, mask_speech, btaps, normalization=True
+    )
 
     # reference vector: (B, C)
     ref_channel = 0
-    u = torch.zeros(*(Z.size()[:-3] + (Z.size(-2),)),
-                    device=Z.device)
+    u = torch.zeros(*(Z.size()[:-3] + (Z.size(-2),)), device=Z.device)
     u[..., ref_channel].fill_(1)
 
     # (B, F, (btaps + 1) * C)

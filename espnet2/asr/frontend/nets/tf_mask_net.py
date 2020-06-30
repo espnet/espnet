@@ -107,7 +107,9 @@ class TFMaskingNet(torch.nn.Module):
 
         predicted_spectrums = [pm * input_phase for pm in predict_magnitude]
 
-        masks = OrderedDict(zip(['spk{}'.format(i + 1) for i in range(len(masks))], masks))
+        masks = OrderedDict(
+            zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
+        )
         return predicted_spectrums, flens, masks
 
     def forward_rawwav(
