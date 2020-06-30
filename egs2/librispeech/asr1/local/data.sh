@@ -9,13 +9,6 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
-help_message=$(cat << EOF
-Usage: $0
-
-Options:
-    --lang (str): it, de, en, es, fr, it, nl, pt, ru
-EOF
-)
 SECONDS=0
 
 
@@ -34,10 +27,10 @@ log "$0 $*"
 
 
 if [ $# -ne 0 ]; then
-    log "${help_message}"
     log "Error: No positional arguments are required."
     exit 2
 fi
+
 if [ -z "${LIBRISPEECH}" ]; then
     log "Fill the value of 'LIBRISPEECH' of db.sh"
     exit 1
@@ -62,9 +55,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
-
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: combine all training and development sets and remove long sentences"
+    log "stage 3: combine all training and development sets"
     utils/combine_data.sh --extra_files utt2num_frames data/${train_set} data/train_clean_100 data/train_clean_360 data/train_other_500
     utils/combine_data.sh --extra_files utt2num_frames data/${train_dev} data/dev_clean data/dev_other
 fi
@@ -76,7 +68,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
     fi
     if [ ! -e data/local/other_text/text ]; then
-	# provide utterance id to each texts.
+	# provide utterance id to each texts
+	# e.g., librispeech_lng_00003686 A BANK CHECK
 	zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
 	    awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
     fi
