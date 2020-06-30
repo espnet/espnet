@@ -128,6 +128,7 @@ class FrontendTask(AbsTask):
         retval = ["dereverb_ref"]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
+        retval = tuple(retval)
         assert check_return_type(retval)
         return retval
 

@@ -45,8 +45,6 @@ feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16k            # Sampling rate.
 
-
-
 # Enhancement model related
 enh_tag=    # Suffix to the result dir for enhancement model training.
 enh_config= # Config for ehancement model training.
@@ -66,13 +64,12 @@ inference_enh_model=valid.si_snr.best.pth
 
 # Evaluation related
 scoring_protocol="PESQ STOI SDR SAR SIR"
-ref_channel=
+ref_channel=0
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
 dev_set=       # Name of development set.
 eval_sets=     # Names of evaluation sets. Multiple items can be specified.
-nlsyms_txt=none # Non-linguistic symbol list if existing.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 
 help_message=$(cat << EOF
@@ -80,13 +77,15 @@ Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eva
 
 Options:
     # General configuration
-    --stage      # Processes starts from the specified stage (default="${stage}").
-    --stop_stage # Processes is stopped at the specified stage (default="${stop_stage}").
-    --ngpu       # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes  # The number of nodes
-    --nj         # The number of parallel jobs (default="${nj}").
-    --dumpdir    # Directory to dump features (default="${dumpdir}").
-    --expdir     # Directory to save experiments (default="${expdir}").
+    --stage         # Processes starts from the specified stage (default="${stage}").
+    --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
+    --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes     # The number of nodes
+    --nj            # The number of parallel jobs (default="${nj}").
+    --infernece_nj  # The number of parallel jobs in inference (default="${infernece_nj}").
+    --gpu_inference # Whether to use gpu for inference (default="${gpu_inference}").
+    --dumpdir       # Directory to dump features (default="${dumpdir}").
+    --expdir        # Directory to save experiments (default="${expdir}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -115,11 +114,20 @@ Options:
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
 
+    # Enhancement related
+    --inference_args      # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_enh_model # Enhancement model path for inference (default="${inference_enh_model}").
+
+    # Evaluation related
+    --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
+    --ref_channel         # Reference channel of the reference speech will be used if the model
+                            output is single-channel and reference speech is multi-channel
+                            (default="${ref_channel}")
+
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --dev_set       # Name of development set (required).
     --eval_sets     # Names of evaluation sets (required).
-    --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --enh_speech_fold_length # fold_length for speech data during enhancement training  (default="${enh_speech_fold_length}").
 EOF
 )
@@ -619,20 +627,21 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # 2. Submit decoding jobs
         log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
         # shellcheck disable=SC2086
-        # ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-        #     python3 -m espnet2.bin.enh_scoring \
-        #         --key_file "${_logdir}"/keys.JOB.scp \
-        #         --output_dir "${_logdir}"/output.JOB \
-        #         ${_ref_scp}\
-        #         ${_inf_scp}
+        ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+            python3 -m espnet2.bin.enh_scoring \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}"/output.JOB \
+                ${_ref_scp} \
+                ${_inf_scp} \
+                --ref_channel ${ref_channel}
 
-        # for spk in $(seq "${spk_num}"); do
-        #     for protocol in ${scoring_protocol}; do
-        #         for i in $(seq "${_nj}"); do
-        #             cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
-        #         done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
-        #     done
-        # done
+        for spk in $(seq "${spk_num}"); do
+            for protocol in ${scoring_protocol}; do
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
+                done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
+            done
+        done
 
         for protocol in ${scoring_protocol}; do
             echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}/${protocol}_spk${spk_num} "; done)  | 
