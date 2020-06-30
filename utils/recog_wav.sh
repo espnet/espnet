@@ -30,6 +30,7 @@ lang_model=
 # decoding parameter
 recog_model=
 decode_config=
+nemo_config=
 decode_dir=decode
 api=v2
 
@@ -238,6 +239,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${decode_cmd} ${decode_dir}/log/decode.log \
         asr_recog.py \
         --config ${decode_config} \
+	--config2 ${nemo_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --debugmode ${debugmode} \

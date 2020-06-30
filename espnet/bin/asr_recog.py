@@ -184,6 +184,19 @@ def get_parser():
                 if the ngram is set as full scorer, ngram scorer scores all hypthesis
                 the decoding speed of part scorer is musch faster than full one""",
     )
+    # torchscript model related
+    parser.add_argument(
+        "--nemo_yaml", type=str, required=True, help="To read nemo vocab and feat_dim"
+    )
+    parser.add_argument(
+        "--TORCHSCRIPT_ENCODER", type=str, required=True, help="Model file parameters to read"
+    )
+    parser.add_argument(
+        "--TORCHSCRIPT_DECODER", type=str, required=True, help="Model file parameters to read"
+    )
+    
+    
+    
     # streaming related
     parser.add_argument(
         "--streaming-mode",
@@ -279,6 +292,9 @@ def main(args):
                     from espnet.asr.pytorch_backend.recog import recog_v2
 
                     recog_v2(args)
+                elif args.nemo_yaml:
+                    from espnet.asr.pytorch_backend.recog import recog_nemo
+                    recog_nemo(args)
                 else:
                     from espnet.asr.pytorch_backend.asr import recog
 
