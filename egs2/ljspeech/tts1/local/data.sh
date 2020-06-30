@@ -25,7 +25,7 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-if [ ! -e "${LJSPEECH}" ]; then
+if [ -z "${LJSPEECH}" ]; then
    log "Fill the value of 'JSUT' of db.sh"
    exit 1
 fi
