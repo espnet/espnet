@@ -75,7 +75,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
     def forward(
             self,
             speech_mix: torch.Tensor,
-            speech_mix_lengths: torch.Tensor = None,
+            speech_mix_lengths: torch.Tensor = 0,
             **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -298,15 +298,14 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :param inf: (Batch, samples)
         :return: (Batch)
         """
-        # TODO:shin this seems not the same with SI-SNRi.
-        EPS = 1e-10
-        ref = ref / torch.norm(ref, p=2, dim=1, keepdim=True)
-        inf = inf / torch.norm(inf, p=2, dim=1, keepdim=True)
+        eps = 1e-8
+        ref = ref / (torch.norm(ref, p=2, dim=1, keepdim=True) + eps)
+        inf = inf / (torch.norm(inf, p=2, dim=1, keepdim=True) + eps)
 
         s_target = (ref * inf).sum(dim=1, keepdims=True) * ref
-        e_noise = inf - s_target + EPS
+        e_noise = inf - s_target
 
-        si_snr = 20 * torch.log10(torch.norm(s_target, p=2, dim=1) / torch.norm(e_noise, p=2, dim=1))
+        si_snr = 20 * torch.log10(torch.norm(s_target, p=2, dim=1) / (torch.norm(e_noise, p=2, dim=1)) + eps)
         return -si_snr
 
     @staticmethod
@@ -316,7 +315,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :param inf: (Batch, samples)
         :return: (Batch)
         """
-        EPS = 1e-10
+        eps = 1e-8
 
         assert ref.size() == inf.size()
         B, T = ref.size()
@@ -334,15 +333,15 @@ class ESPnetFrontendModel(AbsESPnetModel):
         s_estimate = zero_mean_estimate  # [B, T]
         # s_target = <s', s>s / ||s||^2
         pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
-        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + EPS  # [B, 1]
+        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + eps  # [B, 1]
         pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
         # e_noise = s' - s_target
         e_noise = s_estimate - pair_wise_proj  # [B, T]
 
         # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
-        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (torch.sum(e_noise ** 2, dim=1) + EPS)
+        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (torch.sum(e_noise ** 2, dim=1) + eps)
         # print('pair_si_snr',pair_wise_si_snr[0,:])
-        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + EPS)  # [B]
+        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + eps)  # [B]
         # print(pair_wise_si_snr)
 
         return -1 * pair_wise_si_snr

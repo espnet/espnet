@@ -5,7 +5,7 @@ set -u
 set -o pipefail
 
 min_or_max=min
-sample_rate=16k
+sample_rate=8k
 
 . utils/parse_options.sh
 . ./path.sh

@@ -30,7 +30,7 @@ scheduler_conf:
 frontend: enh
 frontend_conf:
     enh_type: tasnet
-    fs: 16000
+    fs: 8000
     tf_factor: 0
     enh_conf:
         N: 256
