@@ -38,7 +38,7 @@ if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
-if [ ! -e "${LIBRISPEECH}" ]; then
+if [ -z "${LIBRISPEECH}" ]; then
     log "Fill the value of 'LIBRISPEECH' of db.sh"
     exit 1
 fi
