@@ -66,6 +66,7 @@ inference_enh_model=valid.si_snr.best.pth
 
 # Evaluation related
 scoring_protocol="PESQ STOI SDR SAR SIR"
+ref_channel=
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
