@@ -5,10 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-fs=24000
-n_fft=2048
-n_shift=300
-win_length=1200
+fs=22050
+n_fft=1024
+n_shift=256
 
 opts=
 if [ "${fs}" -eq 48000 ]; then
@@ -24,21 +23,17 @@ eval_set=eval1
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
-# pyopenjtalk case: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
-# pyopenjtalk_kana case: ミズヲマレーシアカラカワナクテワナラナイノデス。
-g2p=pyopenjtalk
-# g2p=pyopenjtalk_kana
 
-# toke_type=char doesn't indicate kana, but mean kanji-kana-majiri-moji characters
+# g2p=g2p_en # Include word separator
+g2p=g2p_en_no_space # Include no word separator
 
 ./tts.sh \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
-    --win_length "${win_length}" \
     --token_type phn \
-    --cleaner jaconv \
+    --cleaner tacotron \
     --g2p "${g2p}" \
     --train_config "${train_config}" \
     --decode_config "${decode_config}" \

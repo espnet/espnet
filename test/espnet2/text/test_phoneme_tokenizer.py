@@ -2,7 +2,7 @@ import pytest
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
-params = ["g2p_en"]
+params = ["g2p_en", "g2p_en_no_space"]
 try:
     import pyopenjtalk
 
@@ -25,6 +25,9 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     if phoneme_tokenizer.g2p_type == "g2p_en":
         input = "Hello World"
         output = ["HH", "AH0", "L", "OW1", " ", "W", "ER1", "L", "D"]
+    elif phoneme_tokenizer.g2p_type == "g2p_en_no_space":
+        input = "Hello World"
+        output = ["HH", "AH0", "L", "OW1", "W", "ER1", "L", "D"]
     elif phoneme_tokenizer.g2p_type == "pyopenjtalk":
         input = "昔は俺も若かった"
         output = [

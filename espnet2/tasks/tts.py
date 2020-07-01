@@ -131,7 +131,13 @@ class TTSTask(AbsTask):
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+            choices=[
+                None,
+                "g2p_en",
+                "g2p_en_no_space",
+                "pyopenjtalk",
+                "pyopenjtalk_kana",
+            ],
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
