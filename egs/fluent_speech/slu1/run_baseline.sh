@@ -159,7 +159,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
         #### use CPU for decoding
-        ngpu=0
+       # ngpu=0
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --config ${decode_config} \
