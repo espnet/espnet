@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-min_or_max=min
+min_or_max=min # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
 sample_rate=8k
 
 
@@ -22,6 +22,3 @@ eval_sets="tt_${min_or_max}_${sample_rate} "
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --enh_config ./conf/tuning/train_enh_mask_tf1.0.yaml \
     "$@"
-
-
-

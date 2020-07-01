@@ -1,12 +1,12 @@
 # TEMPLATE
 
-ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we prepare common recipes for each task, which are named as `asr.sh`, `tts.sh`, or etc. We carefully designed these common scripts to perform with any types of corpus, so ideally you can train using your own corpus without modifying almost all parts of these recipes. Only you have to do is just creating `local/data.sh`.
+ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we prepare common recipes for each task, which are named as `asr.sh`, `enh.sh`, `tts.sh`, or etc. We carefully designed these common scripts to perform with any types of corpus, so ideally you can train using your own corpus without modifying almost all parts of these recipes. Only you have to do is just creating `local/data.sh`.
 
 ## How to make/port new recipe? 
 
 1. Create directory in egs/
     ```bash
-    % task=asr1  # tts1, mt1, st1
+    % task=asr1  # enh1, tts1, mt1, st1
     % egs/TEMPLATE/${task}/setup.sh egs/foo/${task}
     ```
    

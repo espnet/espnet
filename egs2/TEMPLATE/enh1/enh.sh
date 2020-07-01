@@ -434,14 +434,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
 
-    # Append the num-tokens at the last dimensions. This is used for batch-bins count
-    # <"${enh_stats_dir}/train/text_shape" \
-    #     awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-    #     >"${enh_stats_dir}/train/text_shape.${token_type}"
-
-    # <"${enh_stats_dir}/valid/text_shape" \
-    #     awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-    #     >"${enh_stats_dir}/valid/text_shape.${token_type}"
 fi
 
 

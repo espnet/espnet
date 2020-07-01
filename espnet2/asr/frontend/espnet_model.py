@@ -211,10 +211,9 @@ class ESPnetFrontendModel(AbsESPnetModel):
                     )
                     tf_loss = tf_loss + tf_noise_loss
 
-            if self.tf_factor == 1.0:
+            if self.training and self.tf_factor == 1.0:
                 si_snr_loss = None
                 si_snr = None
-                loss = tf_loss
             else:
                 speech_pre = [
                     self.frontend.stft.inverse(ps, speech_lengths)[0]
@@ -229,7 +228,10 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 )
                 si_snr = -si_snr_loss
 
+            if self.tf_factor != 1.0:
                 loss = (1 - self.tf_factor) * si_snr_loss + self.tf_factor * tf_loss
+            else:
+                loss = tf_loss
 
             stats = dict(
                 si_snr=si_snr.detach() if si_snr is not None else None,

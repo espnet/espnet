@@ -71,12 +71,8 @@ def scoring(
             sdr, sir, sar, perm = mir_eval.separation.bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):
-                stoi_score = pystoi.stoi(
-                    ref[i], inf[int(perm[i])], fs_sig=sample_rate
-                )
-                pesq_score = pypesq.pesq(
-                    ref[i], inf[int(perm[i])], fs=sample_rate
-                )
+                stoi_score = pystoi.stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
+                pesq_score = pypesq.pesq(ref[i], inf[int(perm[i])], fs=sample_rate)
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
                 writer[f"PESQ_spk{i + 1}"][key] = str(pesq_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
