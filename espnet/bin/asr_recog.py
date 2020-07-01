@@ -55,6 +55,7 @@ def get_parser():
         choices=["chainer", "pytorch"],
         help="Backend library",
     )
+    parser.add_argument("--maxlen", type=int, default=1000, help="Max Decoding Length")
     parser.add_argument("--debugmode", type=int, default=1, help="Debugmode")
     parser.add_argument("--seed", type=int, default=1, help="Random seed")
     parser.add_argument("--verbose", "-V", type=int, default=1, help="Verbose option")
