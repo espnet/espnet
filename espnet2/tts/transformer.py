@@ -317,7 +317,8 @@ class Transformer(AbsTTS):
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
         # initialize parameters
-        initialize(self, init_type)
+        if init_type != "pytorch":
+            initialize(self, init_type)
 
         # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
