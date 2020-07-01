@@ -10,6 +10,13 @@ try:
     del pyopenjtalk
 except ImportError:
     pass
+try:
+    import pypinyin
+
+    params.extend(["pypinyin_g2p", "pypinyin_g2p_phone"])
+    del pypinyin
+except ImportError:
+    pass
 
 
 @pytest.fixture(params=params)
@@ -57,6 +64,40 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "pyopenjtalk_kana":
         input = "昔は俺も若かった"
         output = ["ム", "カ", "シ", "ワ", "オ", "レ", "モ", "ワ", "カ", "カ", "ッ", "タ"]
+    elif phoneme_tokenizer.g2p_type == "pypinyin_g2p":
+        input = "卡尔普陪外孙玩滑梯。"
+        output = [
+            "ka3",
+            "er3",
+            "pu3",
+            "pei2",
+            "wai4",
+            "sun1",
+            "wan2",
+            "hua2",
+            "ti1",
+            "。",
+        ]
+    elif phoneme_tokenizer.g2p_type == "pypinyin_g2p_phone":
+        input = "卡尔普陪外孙玩滑梯。"
+        output = [
+            "k",
+            "a3",
+            "er3",
+            "p",
+            "u3",
+            "p",
+            "ei2",
+            "uai4",
+            "s",
+            "un1",
+            "uan2",
+            "h",
+            "ua2",
+            "t",
+            "i1",
+            "。",
+        ]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output
