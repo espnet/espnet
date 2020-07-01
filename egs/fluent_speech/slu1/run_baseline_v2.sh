@@ -46,9 +46,10 @@ train_set=train
 train_dev=dev
 recog_set="test" ## Add your test set here
 fbankdir=fbank
-## Removed WSJ Data Prep: Roshan
+
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -85,13 +86,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # Please make sure sentencepiece is installed
     spm_train --input=data/lang_1char/input.txt \
+            --vocab_size=100 \
             --model_prefix=${bpemodel} \
             --model_type=${bpemode} \
             --model_prefix=${bpemodel} \
             --input_sentence_size=100000000 \
             --bos_id=-1 \
             --eos_id=-1 \
-            --unk_id=0 \
+            --unk_id=0 
             
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
