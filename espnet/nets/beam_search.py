@@ -388,14 +388,17 @@ class BeamSearch(torch.nn.Module):
         # report the best result
         best = nbest_hyps[0]
         for k, v in best.scores.items():
-            logging.info(f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}")
+            logging.info(
+                f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
+            )
         logging.info(f"total log probability: {best.score:.2f}")
         logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
         logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
         if self.token_list is not None:
             logging.info(
                 "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[1:-1]]) + "\n"
+                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + "\n"
             )
         return nbest_hyps
 
