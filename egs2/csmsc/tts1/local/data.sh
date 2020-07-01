@@ -68,8 +68,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
     # make text
+    # TODO(kan-bayashi): Use the text cleaner during training
     grep ^0 ${db_root}/CSMSC/ProsodyLabeling/000001-010000.txt \
-        | sed -e "s/\#[1-4]//g" -e "s/：/，/g" -e 's/“//g' -e 's/”//g' > ${text}
+        | sed -e "s/\#[1-4]//g" -e "s/：/，/g" -e 's/“//g' -e 's/”//g' \
+        | sed -e "s/（//g" -e "s/）//g"  -e "s/；/，/g" -e 's/…。/。/g' \
+        | sed -e 's/——/，/g' -e 's/……/，/g' -e "s/、/，/g" \
+        | sed -e 's/…/，/g' -e 's/—/，/g' > ${text}
     # Before: 今天#3，快递员#1拿着#1一个#1快递#1在#1办公室#1喊#3：秦王#1是#1哪个#3，有他#1快递#4？
     # After: 今天，快递员拿着一个快递在办公室喊，秦王是哪个，有他快递？
 
