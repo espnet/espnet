@@ -182,7 +182,8 @@ def recog_nemo(args):
         params = yaml.load(f)
     vocab = params["labels"]
     vocab.append('<blank>')
-    sos_id = 27 # check for the vocab to see
+    vocab.append('<sos>')
+    sos_id = len(vocab) # check for the vocab to see
     feat_dim = 64 # check the nemo_yaml
     encoder_nemo = torch.jit.load(args.TORCHSCRIPT_ENCODER)
     decoder_nemo = torch.jit.load(args.TORCHSCRIPT_DECODER)

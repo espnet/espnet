@@ -35,7 +35,9 @@ class CTCPrefixScorer_nemo(PartialScorerInterface):
        # FIX ME input assert yuekai 
         logp = self.ctc(x.transpose(0,1).unsqueeze(0)).detach().squeeze(0).cpu().numpy()
         # TODO(karita): use CTCPrefixScoreTH
-        self.impl = CTCPrefixScore(logp, 28, 27, np)  # blank_id 28, eos_id 27
+        sos_append = torch.ones(logp.shape[0],1) * (-1000000000.0) # FIX ME using narray
+        logp = np.concatenate((logp,sos_append),1)
+        self.impl = CTCPrefixScore(logp, 28, 29, np)  # blank_id 28, eos_id 29
         return 0, self.impl.initial_state()
 
     def select_state(self, state, i):
