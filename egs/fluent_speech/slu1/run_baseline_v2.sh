@@ -1,8 +1,11 @@
 #!/bin/bash
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2020 Carnegie Mellon University (Roshan Sharma)
+
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
+
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
@@ -14,19 +17,24 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 seed=1
+bpemode=word
 # feature configuration
 do_delta=false
 # sample filtering
 min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
+
 # config files
 preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
+
 # decoding parameter
 n_average=1 # use 1 for RNN models
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
 # exp tag
 tag="" # tag for managing experiments.
+
 . utils/parse_options.sh || exit 1;
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -65,6 +73,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 dict=data/lang_1char/${train_set}_units.txt
+bpemodel=data/lang_1char/${train_set}_${bpemode}
 nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -72,18 +81,30 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "make a dictionary"
+    cut -f 2- -d" " data/${train_set}/text > data/lang_1char/input.txt
+
+    # Please make sure sentencepiece is installed
+    spm_train --input=data/lang_1char/input.txt \
+            --model_prefix=${bpemodel} \
+            --model_type=${bpemode} \
+            --model_prefix=${bpemodel} \
+            --input_sentence_size=100000000 \
+            --bos_id=-1 \
+            --eos_id=-1 \
+            --unk_id=0 \
+            
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set}/text | cut -f 2- -d " " | tr " " "\n" | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
     
     echo "make json files"
-    local/data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel} \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
