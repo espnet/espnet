@@ -28,7 +28,7 @@ scheduler_conf:
 frontend: enh
 frontend_conf:
     enh_type: tf_masking
-    mask_type:  IAM
+    mask_type:  IRM
     fs: 8000
     tf_factor: 1.0
     enh_conf:
