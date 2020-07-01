@@ -72,13 +72,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "make a non-linguistic symbol list"
-    #cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+   # cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     echo "finished making non-linguistic symbol list"
     echo "make a dictionary"
     #echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-	## <Unk> not needed for SLU: Roshan
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR}' >> ${dict}
+    ## <Unk> not needed for SLU: Roshan
+    cat data/${train_set}/text | cut -f 2- -d " " | tr " " "\n" | sort | uniq | awk '{print $0 " " NR}' > ${dict}
     wc -l ${dict}
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -90,17 +89,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
-    ### Filter out short samples which lead to `loss_ctc=inf` during training
-    ###  with the specified configuration.
-    # Samples satisfying `len(input) - len(output) * min_io_ratio < min_io_delta` will be pruned.
-    #local/filtering_samples.py \
-    #    --config ${train_config} \
-    #    --preprocess-conf ${preprocess_config} \
-    #    --data-json ${feat_tr_dir}/data.json \
-    #    --mode-subsample "asr" \
-    #    --arch-subsample "rnn" \
-    #    ${min_io_delta:+--min-io-delta $min_io_delta} \
-    #    --output-json-path ${feat_tr_dir}/data.json
 fi
 # It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
