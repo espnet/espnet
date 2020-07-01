@@ -84,9 +84,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make a dictionary"
     cut -f 2- -d" " data/${train_set}/text > data/lang_1char/input.txt
 
+    vocabsize=`cat data/${train_set}/text | cut -d ' ' -f 2- | tr ' ' '\n' | sort | uniq | wc -l`
     # Please make sure sentencepiece is installed
     spm_train --input=data/lang_1char/input.txt \
-            --vocab_size=100 \
+            --vocab_size=${vocabsize} \
             --model_prefix=${bpemodel} \
             --model_type=${bpemode} \
             --model_prefix=${bpemodel} \
@@ -100,13 +101,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
     
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel} \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel}.model \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel}.model \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel} \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
