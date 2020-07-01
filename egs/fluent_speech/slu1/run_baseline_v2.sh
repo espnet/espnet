@@ -75,9 +75,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    # cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     echo "finished making non-linguistic symbol list"
     echo "make a dictionary"
-    #echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     ## <Unk> not needed for SLU: Roshan
-    cat data/${train_set}/text | cut -f 2- -d " " | tr " " "\n" | sort | uniq | awk '{print $0 " " NR}' > ${dict}
+    cat data/${train_set}/text | cut -f 2- -d " " | tr " " "\n" | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
