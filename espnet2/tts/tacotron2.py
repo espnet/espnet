@@ -110,14 +110,6 @@ class Tacotron2(AbsTTS):
         postnet_chans: int = 512,
         postnet_filts: int = 5,
         output_activation: str = None,
-        use_cbhg: bool = False,
-        cbhg_conv_bank_layers: int = 8,
-        cbhg_conv_bank_chans: int = 128,
-        cbhg_conv_proj_filts: int = 3,
-        cbhg_conv_proj_chans: int = 256,
-        cbhg_highway_layers: int = 4,
-        cbhg_highway_units: int = 128,
-        cbhg_gru_units: int = 256,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
@@ -143,7 +135,6 @@ class Tacotron2(AbsTTS):
         self.spk_embed_dim = spk_embed_dim
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
-        self.use_cbhg = use_cbhg
         self.use_guided_attn_loss = use_guided_attn_loss
 
         # define activation function for the final output
@@ -224,19 +215,6 @@ class Tacotron2(AbsTTS):
             self.attn_loss = GuidedAttentionLoss(
                 sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
             )
-        if self.use_cbhg:
-            self.cbhg = CBHG(
-                idim=odim,
-                odim=spc_dim,
-                conv_bank_layers=cbhg_conv_bank_layers,
-                conv_bank_chans=cbhg_conv_bank_chans,
-                conv_proj_filts=cbhg_conv_proj_filts,
-                conv_proj_chans=cbhg_conv_proj_chans,
-                highway_layers=cbhg_highway_layers,
-                highway_units=cbhg_highway_units,
-                gru_units=cbhg_gru_units,
-            )
-            self.cbhg_loss = CBHGLoss(use_masking=use_masking)
 
     def forward(
         self,
@@ -313,20 +291,6 @@ class Tacotron2(AbsTTS):
             loss = loss + attn_loss
             stats.update(attn_loss=attn_loss.item())
 
-        # caluculate cbhg loss
-        if self.use_cbhg:
-            # remove unnecessary padded part (for multi-gpus)
-            if max_out != spcs.shape[1]:
-                spcs = spcs[:, :max_out]
-
-            # caluculate cbhg outputs & loss and report them
-            cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
-            loss = loss + cbhg_l1_loss + cbhg_mse_loss
-            stats.update(
-                cbhg_l1_loss=cbhg_l1_loss.item(), cbhg_mse_loss=cbhg_mse_loss.item(),
-            )
-
         stats.update(loss=loss.item())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -382,8 +346,4 @@ class Tacotron2(AbsTTS):
             forward_window=forward_window,
         )
 
-        if self.use_cbhg:
-            cbhg_outs = self.cbhg.inference(outs)
-            return cbhg_outs, probs, att_ws
-        else:
-            return outs, probs, att_ws
+        return outs, probs, att_ws
