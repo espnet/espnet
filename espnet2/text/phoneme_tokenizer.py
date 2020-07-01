@@ -32,6 +32,32 @@ def g2p_en_no_space(g2p, text) -> List[str]:
     return phones
 
 
+def pypinyin_g2p(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+
+    phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
+    return phones
+
+
+def pypinyin_g2p_phone(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+    from pypinyin.style._utils import get_finals
+    from pypinyin.style._utils import get_initials
+
+    phones = [
+        p
+        for phone in pinyin(text, style=Style.TONE3)
+        for p in [
+            get_initials(phone[0], strict=True),
+            get_finals(phone[0], strict=True),
+        ]
+        if len(p) != 0
+    ]
+    return phones
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -51,6 +77,10 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pypinyin_g2p":
+            self.g2p = pypinyin_g2p
+        elif g2p_type == "pypinyin_g2p_phone":
+            self.g2p = pypinyin_g2p_phone
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
