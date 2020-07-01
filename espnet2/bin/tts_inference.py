@@ -166,24 +166,30 @@ def inference(
             att_ws = att_ws.cpu().numpy()
 
             if att_ws.ndim == 2:
-                att_ws = att_ws[None]
-            elif att_ws.ndim > 3 or att_ws.ndim == 1:
-                raise RuntimeError(f"Must be 2 or 3 dimension: {att_ws.ndim}")
+                att_ws = att_ws[None][None]
+            elif att_ws.ndim != 4:
+                raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
 
-            w, h = plt.figaspect(1.0 / len(att_ws))
-            fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
-            axes = fig.subplots(1, len(att_ws))
+            w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
+            fig = plt.Figure(
+                figsize=(
+                    w * 1.3 * min(att_ws.shape[0], 2.5),
+                    h * 1.3 * min(att_ws.shape[1], 2.5),
+                )
+            )
+            fig.suptitle(f"{key}")
+            axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
             if len(att_ws) == 1:
-                axes = [axes]
-
+                axes = [[axes]]
             for ax, att_w in zip(axes, att_ws):
-                ax.imshow(att_w.astype(np.float32), aspect="auto")
-                ax.set_title(f"{key}")
-                ax.set_xlabel("Input")
-                ax.set_ylabel("Output")
-                ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-                ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+                for ax_, att_w_ in zip(ax, att_w):
+                    ax_.imshow(att_w_.astype(np.float32), aspect="auto")
+                    ax_.set_xlabel("Input")
+                    ax_.set_ylabel("Output")
+                    ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
+                    ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
 
+            fig.tight_layout(rect=[0, 0.03, 1, 0.95])
             fig.savefig(output_dir / f"att_ws/{key}.png")
             fig.clf()
 
@@ -199,6 +205,7 @@ def inference(
             ax.set_ylim(0, 1)
             ax.grid(which="both")
 
+            fig.tight_layout()
             fig.savefig(output_dir / f"probs/{key}.png")
             fig.clf()
 
