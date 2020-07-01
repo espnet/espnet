@@ -71,28 +71,23 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-    echo "make a non-linguistic symbol list"
-   # cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-    echo "finished making non-linguistic symbol list"
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    ## <Unk> not needed for SLU: Roshan
     cat data/${train_set}/text | cut -f 2- -d " " | tr " " "\n" | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
+    
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    local/data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        local/data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
-# It takes about one day. If you just want to do end-to-end ASR without LM,
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
-## REMOVED RNNLM: Roshan
+
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})_$(basename ${preprocess_config%.*})
     if ${do_delta}; then
@@ -101,6 +96,7 @@ if [ -z ${tag} ]; then
 else
     expname=${train_set}_${backend}_${tag}
 fi
+
 expdir=exp/${expname}
 mkdir -p ${expdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
