@@ -1,6 +1,11 @@
+#! /bin/bash 
+
 # Copyright 2020 Carnegie Mellon University (Roshan Sharma)
+# Copyright 2020 Carnegie Mellon University (Muqiao Yang)
+# Copyright 2020 Carnegie Mellon University (Xuandi Fu)
 
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
@@ -16,10 +21,17 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 seed=1
 bpemode=word
+
+
+## Change the following data directories
+data_path=
+train_set=train
+train_dev=dev
+recog_set="test" ## Add your test set here
+fbankdir=fbank
+
 # feature configuration
 do_delta=false
-# sample filtering
-min_io_delta=4  # samples with `len(input) - len(output) * min_io_ratio < min_io_delta` will be removed.
 
 # config files
 preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
@@ -34,23 +46,51 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
+
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
-## Change the following data directories: Roshan
-train_set=train
-train_dev=dev
-recog_set="test" ## Add your test set here
-fbankdir=fbank
+
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Data Download"
+    if [ -d $datapath/fluent_speech_commands_dataset ]
+    then
+        echo "Fluent Speech Command dataset already exists."
+    else
+        echo "Downloading Fluent Speech Command dataset to $datapath"
+        cwd=`pwd`
+        cd $root
+        wget http://fluent.ai:2052/jf8398hf30f0381738rucj3828chfdnchs.tar.gz
+        tar zxf jf8398hf30f0381738rucj3828chfdnchs.tar.gz
+        rm jf8398hf30f0381738rucj3828chfdnchs.tar.gz
+        cd $cwd
+    fi
+
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    echo "stage 0: Data preparation"
+
+    ## Check that pandas is installed
+    if [ -z `pip freeze | grep pandas` ]; then
+        pip install pandas
+    fi
+    ## Data preparation
+    python local/fluent_data_prep.py $datapath/fluent_speech_commands_dataset
+    for dir in train test dev; do
+        utils/validate_data_dir.sh data/${dir} || utils/fix_data_dir.sh data/${dir}
+        utils/utt2spk_to_spk2utt.pl data/${dir}/utt2spk > data/${dir}/spk2utt
+    done
+fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
-    ### But you can utilize Kaldi recipes in most cases
+    ### Task dependent. 
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in ${train_set} ${train_dev} ${recog_set}; do
@@ -60,6 +100,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+
+    ## Dump into working directory
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -71,10 +113,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             ${feat_recog_dir}
     done
 fi
+
 dict=data/lang_1char/${train_set}_units.txt
 bpemodel=data/lang_1char/${train_set}_${bpemode}
 nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
@@ -121,10 +165,11 @@ fi
 
 expdir=exp/${expname}
 mkdir -p ${expdir}
+
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        slu_train.py \
         --config ${train_config} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
@@ -141,6 +186,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json
 fi
+
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=32
@@ -159,15 +205,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
         #### use CPU for decoding
-       # ngpu=0
+        ngpu=0
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            slu_recog.py \
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  
+            --model ${expdir}/results/${recog_model}  \
+            --maxlen 3
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
     ) &
     pids+=($!) # store background pids
@@ -175,4 +222,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: SLU Evaluation"
+    concatjson.py ${expdir}/${decode_dir}/data.*.json > ${dir}/data.json
+    local/score_outputs.py ${expdir}/${decode_dir}/data.json
+
 fi
