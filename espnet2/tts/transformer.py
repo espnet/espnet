@@ -83,6 +83,13 @@ class Transformer(AbsTTS):
         use_gst (str, optional): Whether to use global style token.
         gst_tokens (int, optional): The number of GST embeddings.
         gst_heads (int, optional): The number of heads in GST multihead attention.
+        gst_conv_layers (int, optional): The number of conv layers in GST.
+        gst_conv_chans_list: (List[int], optional):
+            List of the number of channels of conv layers in GST.
+        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
+        gst_conv_stride (int, optional): Stride size of conv layers in GST.
+        gst_gru_layers (int, optional): The number of GRU layers in GST.
+        gst_gru_units (int, optional): The number of GRU units in GST.
         transformer_lr (float, optional): Initial value of learning rate.
         transformer_warmup_steps (int, optional): Optimizer warmup steps.
         transformer_enc_dropout_rate (float, optional):
@@ -161,6 +168,12 @@ class Transformer(AbsTTS):
         use_gst: bool = False,
         gst_tokens: int = 10,
         gst_heads: int = 4,
+        gst_conv_layers: int = 6,
+        gst_conv_chans_list: List[int] = [32, 32, 64, 64, 128, 128],
+        gst_conv_kernel_size: int = 3,
+        gst_conv_stride: int = 2,
+        gst_gru_layers: int = 1,
+        gst_gru_units: int = 128,
         # training related
         transformer_enc_dropout_rate: float = 0.1,
         transformer_enc_positional_dropout_rate: float = 0.1,
@@ -267,6 +280,12 @@ class Transformer(AbsTTS):
                 gst_tokens=gst_tokens,
                 gst_token_dim=eunits,
                 gst_heads=gst_heads,
+                conv_layers=gst_conv_layers,
+                conv_chans_list=gst_conv_chans_list,
+                conv_kernel_size=gst_conv_kernel_size,
+                conv_stride=gst_conv_stride,
+                gru_layers=gst_gru_layers,
+                gru_units=gst_gru_units,
             )
 
         # define projection layer
