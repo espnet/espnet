@@ -11,7 +11,7 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser(description='SLU1_Baseline')
-parser.add_argument('--expdir', type=str, default='../exp/train_pytorch_train_rnn_no_preprocess/decode_test',
+parser.add_argument('--expdir', type=str, default='../exp/train_pytorch_train_rnn_no_preprocess/decode_test_decode',
                     help='location of the decoded result')
 parser.add_argument('--dict_file', type=str, default='data/lang_1char/train_units.txt',
                     help='path of the dict file')
