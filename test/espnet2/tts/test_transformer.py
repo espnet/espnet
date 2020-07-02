@@ -15,6 +15,7 @@ from espnet2.tts.transformer import Transformer
     "spk_embed_dim, spk_embed_integration_type",
     [(None, "add"), (2, "add"), (2, "concat")],
 )
+@pytest.mark.parametrize("use_gst", [True, False])
 @pytest.mark.parametrize("loss_type", ["L1+L2", "L1"])
 @pytest.mark.parametrize("use_guided_attn_loss", [True, False])
 @pytest.mark.parametrize(
@@ -28,6 +29,7 @@ def test_tranformer(
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
+    use_gst,
     loss_type,
     use_guided_attn_loss,
     modules_applied_guided_attn,
@@ -56,6 +58,7 @@ def test_tranformer(
         reduction_factor=reduction_factor,
         spk_embed_dim=spk_embed_dim,
         spk_embed_integration_type=spk_embed_integration_type,
+        use_gst=use_gst,
         loss_type=loss_type,
         use_guided_attn_loss=use_guided_attn_loss,
         modules_applied_guided_attn=modules_applied_guided_attn,
@@ -75,6 +78,8 @@ def test_tranformer(
     with torch.no_grad():
         model.eval()
         inputs = dict(text=torch.randint(0, 10, (2,)),)
+        if use_gst:
+            inputs.update(speech=torch.randn(5, 5))
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs, maxlenratio=1.0)
