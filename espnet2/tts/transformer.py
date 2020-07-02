@@ -27,6 +27,7 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Transformer(AbsTTS):
@@ -79,6 +80,9 @@ class Transformer(AbsTTS):
         reduction_factor (int, optional): Reduction factor.
         spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
         spk_embed_integration_type (str, optional): How to integrate speaker embedding.
+        use_gst (str, optional): Whether to use global style token.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
         transformer_lr (float, optional): Initial value of learning rate.
         transformer_warmup_steps (int, optional): Optimizer warmup steps.
         transformer_enc_dropout_rate (float, optional):
@@ -154,6 +158,9 @@ class Transformer(AbsTTS):
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
+        use_gst: bool = False,
+        gst_tokens: int = 10,
+        gst_heads: int = 4,
         # training related
         transformer_enc_dropout_rate: float = 0.1,
         transformer_enc_positional_dropout_rate: float = 0.1,
@@ -189,6 +196,7 @@ class Transformer(AbsTTS):
         self.eos = idim - 1
         self.spk_embed_dim = spk_embed_dim
         self.reduction_factor = reduction_factor
+        self.use_gst = use_gst
         self.use_guided_attn_loss = use_guided_attn_loss
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.loss_type = loss_type
@@ -251,6 +259,15 @@ class Transformer(AbsTTS):
             positionwise_layer_type=positionwise_layer_type,
             positionwise_conv_kernel_size=positionwise_conv_kernel_size,
         )
+
+        # define GST
+        if self.use_gst:
+            self.gst = StyleEncoder(
+                idim=idim,
+                gst_tokens=gst_tokens,
+                gst_token_dim=eunits,
+                gst_heads=gst_heads,
+            )
 
         # define projection layer
         if self.spk_embed_dim is not None:
@@ -383,6 +400,11 @@ class Transformer(AbsTTS):
         x_masks = self._source_mask(ilens)
         hs, h_masks = self.encoder(xs, x_masks)
 
+        # integrate with GST
+        if self.use_gst:
+            style_embs = self.gst(ys, olens)
+            hs = hs + style_embs.unsqueeze(1)
+
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
@@ -507,6 +529,7 @@ class Transformer(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
+        speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -516,6 +539,7 @@ class Transformer(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T,).
+            speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
             threshold (float, optional): Threshold in inference.
             minlenratio (float, optional): Minimum length ratio in inference.
@@ -528,6 +552,7 @@ class Transformer(AbsTTS):
 
         """
         x = text
+        y = speech
         spemb = spembs
 
         # add eos at the last of sequence
@@ -536,6 +561,11 @@ class Transformer(AbsTTS):
         # forward encoder
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
+
+        # integrate GST
+        if self.use_gst:
+            style_embs = self.gst(y.unsqueeze(0), y.new_tensor([y.size(0)]).long())
+            hs = hs + style_embs.unsqueeze(1)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
