@@ -9,11 +9,12 @@ import json
 from sklearn.metrics import classification_report, accuracy_score
 import numpy as np
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description='SLU1_Baseline')
 parser.add_argument('--expdir', type=str, default='../exp/train_pytorch_train_rnn_no_preprocess/decode_test_decode',
                     help='location of the decoded result')
-parser.add_argument('--dict_file', type=str, default='data/lang_1char/train_units.txt',
+parser.add_argument('--dict', type=str, default='../data/lang_1char/train_units.txt',
                     help='path of the dict file')
 
 
@@ -25,6 +26,7 @@ def read_test_result(path):
     rec_tokenid = []
     tokenid = []
     filepath = os.path.join(path,'data.json')
+    print(filepath)
     with open(filepath, 'r') as f:
         data = json.load(f)
         for key, outputs in data['utts'].items():
@@ -52,7 +54,7 @@ def acc_score(tokenid, rec_tokenid,num_utter,file):
     with open(file, 'r') as f:
 
         for i in f.readlines():
-            target.append(i.decode('utf-8').split(' ')[0])
+            target.append(i.split(' ')[0])
     classrep = classification_report(tokenid, rec_tokenid, labels=np.arange(0, len(target)), target_names=target)
     print(classrep)
     acc_score = accuracy_score(tokenid, rec_tokenid)
@@ -72,13 +74,15 @@ def writeToFile(classrep, acc_score, acc_score_all,path):
     output += "accuracy with three tokens (action+object+location): " + str(acc_score_all)+"\n"
     output += classrep + "\n"
     f = open(path+'/acc_score.txt','w+')
-    f.write(output.encode("utf-8"))
+    f.write(output)
     print("Done!(Report in: {}".format(os.path.join(path,"acc_score.txt)")))
 
 if __name__ == "__main__":
     args = parser.parse_args()
     path = args.expdir
     dict_file = args.dict 
+    #print(os.path.dirname(__file__))
+    print("path in python ",path)
     num_utter, tokenid, rec_tokenid = read_test_result(path)
     # classification_report, acc_score(tokenid, rec_tokenid)
     classrep, acc_score, acc_score_all = acc_score(tokenid, rec_tokenid,num_utter,dict_file)
@@ -89,3 +93,4 @@ if __name__ == "__main__":
 # print('number of length mismatch: ' + str(len_mismatch))
 # print('number of content mismatch: ' + str(content_mismatch))
 # print('ground truth len is 3 and pred is 4: ' + str(pred4))
+
