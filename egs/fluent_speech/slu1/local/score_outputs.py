@@ -12,9 +12,9 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description='SLU1_Baseline')
-parser.add_argument('--expdir', type=str, default='../exp/train_pytorch_train_rnn_no_preprocess/decode_test_decode',
+parser.add_argument('--expdir', type=str, default='exp/train_pytorch_train_rnn_no_preprocess/decode_test_decode',
                     help='location of the decoded result')
-parser.add_argument('--dict', type=str, default='../data/lang_1char/train_units.txt',
+parser.add_argument('--dict', type=str, default='data/lang_1char/train_units.txt',
                     help='path of the dict file')
 
 
