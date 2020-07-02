@@ -13,7 +13,30 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 
 
 class StyleEncoder(torch.nn.Module):
-    """Style token encoder."""
+    """Style encoder.
+
+    This module is style encoder introduced in `Style Tokens: Unsupervised Style
+    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+
+    .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
+        Speech Synthesis`: https://arxiv.org/abs/1803.09017
+
+    Args:
+        idim (int, optional): Dimension of the input mel-spectrogram.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_token_dim (int, optional): Dimension of each GST embedding.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
+        conv_layers (int, optional): The number of conv layers in the reference encoder.
+        conv_chans_list: (List[int], optional):
+            List of the number of channels of conv layers in the referece encoder.
+        conv_kernel_size (int, optional):
+            Kernal size of conv layers in the reference encoder.
+        conv_stride (int, optional):
+            Stride size of conv layers in the reference encoder.
+        gru_layers (int, optional): The number of GRU layers in the reference encoder.
+        gru_units (int, optional): The number of GRU units in the reference encoder.
+
+    """
 
     def __init__(
         self,
@@ -65,7 +88,27 @@ class StyleEncoder(torch.nn.Module):
 
 
 class ReferenceEncoder(torch.nn.Module):
-    """Reference encoder module."""
+    """Reference encoder module.
+
+    This module is refernece encoder introduced in `Style Tokens: Unsupervised Style
+    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+
+    .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
+        Speech Synthesis`: https://arxiv.org/abs/1803.09017
+
+    Args:
+        idim (int, optional): Dimension of the input mel-spectrogram.
+        conv_layers (int, optional): The number of conv layers in the reference encoder.
+        conv_chans_list: (List[int], optional):
+            List of the number of channels of conv layers in the referece encoder.
+        conv_kernel_size (int, optional):
+            Kernal size of conv layers in the reference encoder.
+        conv_stride (int, optional):
+            Stride size of conv layers in the reference encoder.
+        gru_layers (int, optional): The number of GRU layers in the reference encoder.
+        gru_units (int, optional): The number of GRU units in the reference encoder.
+
+    """
 
     def __init__(
         self,
@@ -146,7 +189,22 @@ class ReferenceEncoder(torch.nn.Module):
 
 
 class StyleTokenLayer(torch.nn.Module):
-    """Style token layer module."""
+    """Style token layer module.
+
+    This module is style token layer introduced in `Style Tokens: Unsupervised Style
+    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+
+    .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
+        Speech Synthesis`: https://arxiv.org/abs/1803.09017
+
+    Args:
+        ref_embed_dim (int, optional): Dimension of the input reference embedding.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_token_dim (int, optional): Dimension of each GST embedding.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
+        dropout_rate (float, optional): Dropout rate in multi-head attention.
+
+    """
 
     def __init__(
         self,
