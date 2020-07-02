@@ -20,7 +20,7 @@ Current Version Result:<br>
 |---------|-------|-------|------|-----|-----|-----|-----|-------|
 | Sum/Avg | 3793  | 3793  | 96.5 | 3.5 | 0.0 | 0.0 | 3.5 | 3.5   |
 
-Slot ACC, Recall, F1
+**Slot ACC, Recall, F1**
 ~~~~ 
                   precision    recall  f1-score   support
 
