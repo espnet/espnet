@@ -69,9 +69,7 @@ class StyleEncoder(torch.nn.Module):
             gst_heads=gst_heads,
         )
 
-    def forward(
-        self, speech: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, speech: torch.Tensor) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
@@ -161,9 +159,7 @@ class ReferenceEncoder(torch.nn.Module):
         gru_in_units *= conv_out_chans
         self.gru = torch.nn.GRU(gru_in_units, gru_units, gru_layers, batch_first=True)
 
-    def forward(
-        self, speech: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, speech: torch.Tensor) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
@@ -178,8 +174,8 @@ class ReferenceEncoder(torch.nn.Module):
         hs = self.convs(xs).transpose(1, 2)  # (B, Lmax', conv_out_chans, idim')
         # NOTE(kan-bayashi): We need to care the length?
         time_length = hs.size(1)
-        hs = hs.transpose(1, 2).contiguous().view(
-            batch_size, time_length, -1
+        hs = (
+            hs.transpose(1, 2).contiguous().view(batch_size, time_length, -1)
         )  # (B, Lmax', gru_units)
         self.gru.flatten_parameters()
         _, ref_embs = self.gru(hs)  # (gru_layers, batch_size, gru_units)
@@ -222,10 +218,7 @@ class StyleTokenLayer(torch.nn.Module):
         self.projection = torch.nn.Linear(ref_embed_dim, gst_token_dim)
         self.mha = MultiHeadedAttention(gst_heads, gst_token_dim, dropout_rate)
 
-    def forward(
-        self,
-        ref_embs: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref_embs: torch.Tensor) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
