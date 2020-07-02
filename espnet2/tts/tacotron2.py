@@ -1,7 +1,7 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Tacotron 2 related modules."""
+"""Tacotron 2 related modules for ESPnet2."""
 
 import logging
 from typing import Dict
@@ -27,54 +27,55 @@ class Tacotron2(AbsTTS):
     """Tacotron2 module for end-to-end text-to-speech.
 
     This is a module of Spectrogram prediction network in Tacotron2 described
-    in `Natural TTS Synthesis
-    by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts
-    the sequence of characters into the sequence of Mel-filterbanks.
+    in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_,
+    which converts the sequence of characters into the sequence of Mel-filterbanks.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
 
     Args:
-        idim: Dimension of the inputs.
-        odim: Dimension of the outputs.
-        spk_embed_dim: Dimension of the speaker embedding.
-        embed_dim: Dimension of character embedding.
-        elayers: The number of encoder blstm layers.
-        eunits: The number of encoder blstm units.
-        econv_layers: The number of encoder conv layers.
-        econv_filts: The number of encoder conv filter size.
-        econv_chans: The number of encoder conv filter channels.
-        dlayers: The number of decoder lstm layers.
-        dunits: The number of decoder lstm units.
-        prenet_layers: The number of prenet layers.
-        prenet_units: The number of prenet units.
-        postnet_layers: The number of postnet layers.
-        postnet_filts: The number of postnet filter size.
-        postnet_chans: The number of postnet filter channels.
-        output_activation: The name of activation function for outputs.
-        adim: The number of dimension of mlp in attention.
-        aconv_chans: The number of attention conv filter channels.
-        aconv_filts: The number of attention conv filter size.
-        cumulate_att_w: Whether to cumulate previous attention weight.
-        use_batch_norm: Whether to use batch normalization.
-        use_concate: Whether to concatenate encoder embedding with decoder
-            lstm outputs.
-        dropout_rate: Dropout rate.
-        zoneout_rate: Zoneout rate.
-        reduction_factor: Reduction factor.
-        spk_embed_dim: Number of speaker embedding dimenstions.
-        use_masking: Whether to mask padded part in loss calculation.
-        use_weighted_masking: Whether to apply weighted masking in
+        idim (int): Dimension of the inputs.
+        odim: (int) Dimension of the outputs.
+        spk_embed_dim (int, optional): Dimension of the speaker embedding.
+        embed_dim (int, optional): Dimension of character embedding.
+        elayers (int, optional): The number of encoder blstm layers.
+        eunits (int, optional): The number of encoder blstm units.
+        econv_layers (int, optional): The number of encoder conv layers.
+        econv_filts (int, optional): The number of encoder conv filter size.
+        econv_chans (int, optional): The number of encoder conv filter channels.
+        dlayers (int, optional): The number of decoder lstm layers.
+        dunits (int, optional): The number of decoder lstm units.
+        prenet_layers (int, optional): The number of prenet layers.
+        prenet_units (int, optional): The number of prenet units.
+        postnet_layers (int, optional): The number of postnet layers.
+        postnet_filts (int, optional): The number of postnet filter size.
+        postnet_chans (int, optional): The number of postnet filter channels.
+        output_activation (str, optional): The name of activation function for outputs.
+        adim (int, optional): The number of dimension of mlp in attention.
+        aconv_chans (int, optional): The number of attention conv filter channels.
+        aconv_filts (int, optional): The number of attention conv filter size.
+        cumulate_att_w (bool, optional): Whether to cumulate previous attention weight.
+        use_batch_norm (bool, optional): Whether to use batch normalization.
+        use_concate (bool, optional): Whether to concatenate encoder embedding with
+            decoder lstm outputs.
+        reduction_factor (int, optional): Reduction factor.
+        spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
+        dropout_rate (float, optional): Dropout rate.
+        zoneout_rate (float, optional): Zoneout rate.
+        use_masking (bool, optional): Whether to mask padded part in loss calculation.
+        use_weighted_masking (bool, optional): Whether to apply weighted masking in
             loss calculation.
-        bce_pos_weight: Weight of positive sample of stop token
+        bce_pos_weight (float, optional): Weight of positive sample of stop token
             (only for use_masking=True).
-        use_guided_attn_loss: Whether to use guided attention loss.
-        guided_attn_loss_sigma: Sigma in guided attention loss.
-        guided_attn_loss_lamdba: Lambda in guided attention loss.
+        use_guided_attn_loss (bool, optional): Whether to use guided attention loss.
+        guided_attn_loss_sigma (float, optional): Sigma in guided attention loss.
+        guided_attn_loss_lamdba (float, optional): Lambda in guided attention loss.
+
     """
 
     def __init__(
         self,
+        # network structure related
         idim: int,
         odim: int,
         embed_dim: int = 512,
@@ -99,10 +100,11 @@ class Tacotron2(AbsTTS):
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
-        dropout_rate: float = 0.5,
-        zoneout_rate: float = 0.1,
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
+        # training related
+        dropout_rate: float = 0.5,
+        zoneout_rate: float = 0.1,
         use_masking: bool = True,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
@@ -110,6 +112,7 @@ class Tacotron2(AbsTTS):
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
+        """Initialize Tacotron2 module."""
         assert check_argument_types()
         super().__init__()
 
@@ -208,19 +211,21 @@ class Tacotron2(AbsTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        spcs: torch.Tensor = None,
-        spcs_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
-            text: Batch of padded character ids (B, Tmax).
-            text_lengths: Batch of lengths of each input batch (B,).
-            speech: Batch of padded target features (B, Lmax, odim).
-            speech_lengths: Batch of the lengths of each target (B,).
-            spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
-            spcs_lengths:
+            text (LongTensor): Batch of padded character ids (B, Tmax).
+            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Loss scalar value.
+            Dict: Statistics to be monitored.
+            Tensor: Weight value.
+
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
@@ -295,14 +300,14 @@ class Tacotron2(AbsTTS):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            text: Input sequence of characters (T,).
-            spembs: Speaker embedding vector (spk_embed_dim,).
-            threshold: Threshold in inference.
-            minlenratio: Minimum length ratio in inference.
-            maxlenratio: Maximum length ratio in inference.
-            use_att_constraint: Whether to apply attention constraint.
-            backward_window: Backward window in attention constraint.
-            forward_window: Forward window in attention constraint.
+            text (LongTensor): Input sequence of characters (T,).
+            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
+            threshold (float, optional): Threshold in inference.
+            minlenratio (float, optional): Minimum length ratio in inference.
+            maxlenratio (float, optional): Maximum length ratio in inference.
+            use_att_constraint (bool, optional): Whether to apply attention constraint.
+            backward_window (int, optional): Backward window in attention constraint.
+            forward_window (int, optional): Forward window in attention constraint.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
