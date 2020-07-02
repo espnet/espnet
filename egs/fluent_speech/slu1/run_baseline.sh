@@ -24,7 +24,7 @@ bpemode=word
 
 
 ## Change the following data directories
-data_path=
+data_path=data
 train_set=train
 train_dev=dev
 recog_set="test" ## Add your test set here
@@ -56,11 +56,11 @@ set -o pipefail
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    if [ -d $datapath/fluent_speech_commands_dataset ]
+    if [ -d ${data_path}/fluent_speech_commands_dataset ]
     then
         echo "Fluent Speech Command dataset already exists."
     else
-        echo "Downloading Fluent Speech Command dataset to $datapath"
+        echo "Downloading Fluent Speech Command dataset to ${data_path}"
         cwd=`pwd`
         cd $root
         wget http://fluent.ai:2052/jf8398hf30f0381738rucj3828chfdnchs.tar.gz
@@ -79,10 +79,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         pip install pandas
     fi
     ## Data preparation
-    python local/fluent_data_prep.py $datapath/fluent_speech_commands_dataset
+    python local/fluent_data_prep.py `realpath ${data_path}`/fluent_speech_commands_dataset
     for dir in train test dev; do
-        utils/validate_data_dir.sh data/${dir} || utils/fix_data_dir.sh data/${dir}
         utils/utt2spk_to_spk2utt.pl data/${dir}/utt2spk > data/${dir}/spk2utt
+        utils/validate_data_dir.sh data/${dir} || utils/fix_data_dir.sh data/${dir}
     done
 fi
 
