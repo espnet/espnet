@@ -65,6 +65,10 @@ class Transformer(AbsTTS):
             layer's input and output in encoder.
         decoder_concat_after (bool): Whether to concatenate attention
             layer's input and output in decoder.
+        positionwise_layer_type (str):
+            Position-wise operation type.
+        positionwise_conv_kernel_size (int):
+            Kernel size in position wise conv 1d.
         reduction_factor (int): Reduction factor.
         spk_embed_dim (int): Number of speaker embedding dimenstions.
         spk_embed_integration_type: How to integrate speaker embedding.
@@ -84,10 +88,6 @@ class Transformer(AbsTTS):
             Dropout rate in deocoder self-attention module.
         transformer_enc_dec_attn_dropout_rate (float):
             Dropout rate in encoder-deocoder attention module.
-        positionwise_layer_type (str):
-            Position-wise operation type.
-        positionwise_conv_kernel_size (int):
-            Kernel size in position wise conv 1d.
         init_type (str):
             How to initialize transformer parameters.
         init_enc_alpha (float):
@@ -118,6 +118,7 @@ class Transformer(AbsTTS):
 
     def __init__(
         self,
+        # network structure related
         idim: int,
         odim: int,
         embed_dim: int = 512,
@@ -135,6 +136,8 @@ class Transformer(AbsTTS):
         postnet_layers: int = 5,
         postnet_chans: int = 256,
         postnet_filts: int = 5,
+        positionwise_layer_type: str = "conv1d",
+        positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
         use_batch_norm: bool = True,
         encoder_normalize_before: bool = False,
@@ -144,6 +147,7 @@ class Transformer(AbsTTS):
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
+        # dropout related
         transformer_enc_dropout_rate: float = 0.1,
         transformer_enc_positional_dropout_rate: float = 0.1,
         transformer_enc_attn_dropout_rate: float = 0.1,
@@ -151,14 +155,14 @@ class Transformer(AbsTTS):
         transformer_dec_positional_dropout_rate: float = 0.1,
         transformer_dec_attn_dropout_rate: float = 0.1,
         transformer_enc_dec_attn_dropout_rate: float = 0.1,
-        positionwise_layer_type: str = "conv1d",
-        positionwise_conv_kernel_size: int = 1,
-        init_type: str = "xavier_uniform",
-        init_enc_alpha: float = 1.0,
-        init_dec_alpha: float = 1.0,
         eprenet_dropout_rate: float = 0.5,
         dprenet_dropout_rate: float = 0.5,
         postnet_dropout_rate: float = 0.5,
+        # initialization related
+        init_type: str = "xavier_uniform",
+        init_enc_alpha: float = 1.0,
+        init_dec_alpha: float = 1.0,
+        # loss related
         use_masking: bool = False,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
