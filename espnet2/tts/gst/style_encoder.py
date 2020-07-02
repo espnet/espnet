@@ -8,14 +8,13 @@
 from typing import List
 
 import torch
-import torch.nn.functional as F
 
 from torch.nn.utils.rnn import pack_padded_sequence
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 
-class StyleTokenEncoder(torch.nn.Module):
+class StyleEncoder(torch.nn.Module):
     """Style token encoder."""
 
     def __init__(
@@ -32,7 +31,7 @@ class StyleTokenEncoder(torch.nn.Module):
         gru_units: int = 128,
     ):
         """Initilize global style encoder module."""
-        super(StyleTokenEncoder, self).__init__()
+        super(StyleEncoder, self).__init__()
         self.ref_enc = ReferenceEncoder(
             idim=idim,
             conv_layers=conv_layers,
@@ -106,7 +105,7 @@ class ReferenceEncoder(torch.nn.Module):
                 torch.nn.BatchNorm2d(conv_out_chans),
                 torch.nn.ReLU(inplace=True),
             ]
-        self.convs = torch.nn.Sequential(**convs)
+        self.convs = torch.nn.Sequential(*convs)
 
         self.conv_layers = conv_layers
         self.kernel_size = conv_kernel_size
@@ -165,13 +164,15 @@ class StyleTokenLayer(torch.nn.Module):
         gst_tokens: int = 10,
         gst_token_dim: int = 256,
         gst_heads: int = 4,
+        dropout_rate: float = 0.0,
     ):
         """Initilize style token layer module."""
         super(StyleTokenLayer, self).__init__()
 
-        self.register_parameter("gst_embs", torch.tensor(gst_tokens, gst_token_dim))
+        gst_embs = torch.randn(gst_tokens, gst_token_dim)
+        self.register_parameter("gst_embs", torch.nn.Parameter(gst_embs))
         self.projection = torch.nn.Linear(ref_embed_dim, gst_token_dim)
-        self.mha = MultiHeadedAttention(gst_heads, gst_token_dim)
+        self.mha = MultiHeadedAttention(gst_heads, gst_token_dim, dropout_rate)
 
     def forward(
         self,
@@ -188,9 +189,9 @@ class StyleTokenLayer(torch.nn.Module):
         """
         batch_size = ref_embs.size(0)
         # (num_tokens, token_dim) -> (batch_size, num_tokens, token_dim)
-        gst_embs = F.tanh(self.style_embs).unsqueeze(0).expand(batch_size, -1, -1)
+        gst_embs = torch.tanh(self.gst_embs).unsqueeze(0).expand(batch_size, -1, -1)
         # NOTE(kan-bayashi): Projection is needed?
         ref_embs = self.projection(ref_embs).unsqueeze(1)
-        style_embs = self.mha(ref_embs, gst_embs, gst_embs)
+        style_embs = self.mha(ref_embs, gst_embs, gst_embs, None)
 
         return style_embs.squeeze(1)
