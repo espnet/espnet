@@ -392,7 +392,7 @@ def get_subsample(train_args, mode, arch):
     Returns:
         np.ndarray / List[np.ndarray]: subsampling factors.
     """
-    if arch == "transformer":
+    if arch == "transformer" or arch == "contextnet" or arch == "conformer":
         return np.array([1])
 
     elif mode == "mt" and arch == "rnn":

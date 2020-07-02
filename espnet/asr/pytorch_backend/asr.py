@@ -497,6 +497,18 @@ def train(args):
         optimizer = get_std_opt(
             model, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
+    elif args.opt == "contextnet":
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+
+        optimizer = get_std_opt(
+            model, args.filters[-1], args.contextnet_warmup_steps, args.contextnet_lr
+        )
+    elif args.opt == "conformer":
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+
+        optimizer = get_std_opt(
+            model, args.adim, args.conformer_warmup_steps, args.conformer_lr
+        )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
