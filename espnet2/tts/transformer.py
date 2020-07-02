@@ -203,6 +203,8 @@ class Transformer(AbsTTS):
             else:
                 self.num_heads_applied_guided_attn = num_heads_applied_guided_attn
             self.modules_applied_guided_attn = modules_applied_guided_attn
+        if self.spk_embed_dim is not None:
+            self.spk_embed_integration_type = spk_embed_integration_type
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -272,7 +274,7 @@ class Transformer(AbsTTS):
         else:
             decoder_input_layer = "linear"
         self.decoder = Decoder(
-            odim=-1,
+            odim=odim,  # odim is needed when no prenet is used
             attention_dim=adim,
             attention_heads=aheads,
             linear_units=dunits,
