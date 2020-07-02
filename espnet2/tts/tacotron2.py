@@ -17,8 +17,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
-from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
-from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -65,18 +63,6 @@ class Tacotron2(AbsTTS):
         zoneout_rate: Zoneout rate.
         reduction_factor: Reduction factor.
         spk_embed_dim: Number of speaker embedding dimenstions.
-        spc_dim: Number of spectrogram embedding dimenstions
-            (only for use_cbhg=True).
-        use_cbhg: Whether to use CBHG module.
-        cbhg_conv_bank_layers: The number of convoluional banks in CBHG.
-        cbhg_conv_bank_chans: The number of channels of convolutional bank in
-            CBHG.
-        cbhg_proj_filts: The number of filter size of projection layeri in
-            CBHG.
-        cbhg_proj_chans: The number of channels of projection layer in CBHG.
-        cbhg_highway_layers: The number of layers of highway network in CBHG.
-        cbhg_highway_units: The number of units of highway network in CBHG.
-        cbhg_gru_units: The number of units of GRU in CBHG.
         use_masking: Whether to mask padded part in loss calculation.
         use_weighted_masking: Whether to apply weighted masking in
             loss calculation.
@@ -117,7 +103,6 @@ class Tacotron2(AbsTTS):
         zoneout_rate: float = 0.1,
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
-        spc_dim: int = None,
         use_masking: bool = True,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
