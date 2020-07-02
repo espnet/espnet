@@ -8,8 +8,10 @@ from espnet2.tts.tacotron2 import Tacotron2
 @pytest.mark.parametrize("prenet_layers", [0, 1])
 @pytest.mark.parametrize("postnet_layers", [0, 1])
 @pytest.mark.parametrize("reduction_factor", [1, 2, 3])
-@pytest.mark.parametrize("spk_embed_dim", [None, 2])
-@pytest.mark.parametrize("spk_embed_integration_type", ["add", "concat"])
+@pytest.mark.parametrize(
+    "spk_embed_dim, spk_embed_integration_type",
+    [(None, "add"), (2, "add"), (2, "concat")],
+)
 @pytest.mark.parametrize("loss_type", ["L1+L2", "L1"])
 @pytest.mark.parametrize("use_guided_attn_loss", [True, False])
 def test_tacotron2(
