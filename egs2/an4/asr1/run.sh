@@ -8,6 +8,6 @@ set -o pipefail
 ./asr.sh \
     --train_set train_nodev \
     --lm_config conf/train_lm.yaml \
-    --dev_set train_dev \
-    --eval_sets "test " \
+    --valid_set train_dev \
+    --test_sets "train_dev test" \
     --srctexts "data/train_nodev/text" "$@"
