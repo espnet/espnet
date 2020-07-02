@@ -9,8 +9,6 @@ from typing import List
 
 import torch
 
-from torch.nn.utils.rnn import pack_padded_sequence
-
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 
@@ -49,19 +47,18 @@ class StyleEncoder(torch.nn.Module):
         )
 
     def forward(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor,
+        self, speech: torch.Tensor,
     ) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
             Tensor: Style token embeddings (B, token_dim).
 
         """
-        ref_embs = self.ref_enc(speech, speech_lengths)
+        ref_embs = self.ref_enc(speech)
         style_embs = self.stl(ref_embs)
 
         return style_embs
@@ -122,13 +119,12 @@ class ReferenceEncoder(torch.nn.Module):
         self.gru = torch.nn.GRU(gru_in_units, gru_units, gru_layers, batch_first=True)
 
     def forward(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor,
+        self, speech: torch.Tensor,
     ) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
             speech (Tensor): Batch of padded target features (B, Lmax, idim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
             Tensor: Reference embedding (B, gru_units)
@@ -136,23 +132,17 @@ class ReferenceEncoder(torch.nn.Module):
         """
         batch_size = speech.size(0)
         xs = speech.unsqueeze(1)  # (B, 1, Lmax, idim)
-        hs = self.convs(xs)  # (B, conv_out_chans, Lmax', idim')
+        hs = self.convs(xs).transpose(1, 2)  # (B, Lmax', conv_out_chans, idim')
         # NOTE(kan-bayashi): We need to care the length?
-        hlens = self._get_output_lengths(speech_lengths)
-        hs = hs.transpose(1, 2).view(
-            batch_size, hlens.max(), -1
+        time_length = hs.size(1)
+        hs = hs.transpose(1, 2).contiguous().view(
+            batch_size, time_length, -1
         )  # (B, Lmax', gru_units)
-        hs = pack_padded_sequence(hs, hlens, batch_first=True)
         self.gru.flatten_parameters()
         _, ref_embs = self.gru(hs)  # (gru_layers, batch_size, gru_units)
         ref_embs = ref_embs[-1]  # (batch_size, gru_units)
 
         return ref_embs
-
-    def _get_output_lengths(self, lengths: torch.Tensor) -> torch.Tensor:
-        for i in range(self.conv_layers):
-            lengths = (lengths - self.kernel_size + 2 * self.padding) // self.stride + 1
-        return lengths
 
 
 class StyleTokenLayer(torch.nn.Module):

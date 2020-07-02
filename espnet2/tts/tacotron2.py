@@ -171,7 +171,7 @@ class Tacotron2(AbsTTS):
 
         if self.use_gst:
             self.gst = StyleEncoder(
-                idim=idim,
+                idim=odim,  # the input is mel-spectrogram
                 gst_tokens=gst_tokens,
                 gst_token_dim=eunits,
                 gst_heads=gst_heads,
@@ -279,7 +279,7 @@ class Tacotron2(AbsTTS):
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.use_gst:
-            style_embs = self.gst(ys, olens)
+            style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
@@ -368,7 +368,7 @@ class Tacotron2(AbsTTS):
         # inference
         h = self.enc.inference(x)
         if self.use_gst:
-            style_emb = self.gst(y.unsqueeze(0), y.new_tensor([y.size(0)]).long())
+            style_emb = self.gst(y.unsqueeze(0))
             hs = h + style_emb
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)

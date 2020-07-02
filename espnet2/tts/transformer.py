@@ -263,7 +263,7 @@ class Transformer(AbsTTS):
         # define GST
         if self.use_gst:
             self.gst = StyleEncoder(
-                idim=idim,
+                idim=odim,  # the input is mel-spectrogram
                 gst_tokens=gst_tokens,
                 gst_token_dim=eunits,
                 gst_heads=gst_heads,
@@ -402,7 +402,7 @@ class Transformer(AbsTTS):
 
         # integrate with GST
         if self.use_gst:
-            style_embs = self.gst(ys, olens)
+            style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
 
         # integrate speaker embedding
@@ -564,7 +564,7 @@ class Transformer(AbsTTS):
 
         # integrate GST
         if self.use_gst:
-            style_embs = self.gst(y.unsqueeze(0), y.new_tensor([y.size(0)]).long())
+            style_embs = self.gst(y.unsqueeze(0))
             hs = hs + style_embs.unsqueeze(1)
 
         # integrate speaker embedding
