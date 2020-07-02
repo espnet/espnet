@@ -219,7 +219,9 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: SLU Evaluation"
-    concatjson.py ${expdir}/${decode_dir}/data.*.json > ${expdir}/${decode_dir}/data.json #no need to concate
-    local/score_outputs.py --dict ${dict} --expdir ${expdir}/${decode_dir}
-
+    for rtask in ${recog_set}; do
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        concatjson.py ${expdir}/${decode_dir}/data.*.json > ${expdir}/${decode_dir}/data.json #no need to concate
+        local/score_outputs.py --dict ${dict} --expdir ${expdir}/${decode_dir}
+    done
 fi

@@ -40,8 +40,6 @@ requirements = {
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
-        "jaconv",
-        "g2p_en",
         "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related
