@@ -20,31 +20,33 @@ class StyleTokenEncoder(torch.nn.Module):
 
     def __init__(
         self,
-        num_mels: int = 80,
-        num_tokens: int = 10,
-        token_dim: int = 256,
-        num_heads: int = 4,
+        idim: int = 80,
+        gst_tokens: int = 10,
+        gst_token_dim: int = 256,
+        gst_heads: int = 4,
         conv_layers: int = 6,
         conv_chans_list: List[int] = [32, 32, 64, 64, 128, 128],
         conv_kernel_size: int = 3,
         conv_stride: int = 2,
         gru_layers: int = 1,
+        gru_units: int = 128,
     ):
         """Initilize global style encoder module."""
         super(StyleTokenEncoder, self).__init__()
         self.ref_enc = ReferenceEncoder(
-            num_mels=num_mels,
+            idim=idim,
             conv_layers=conv_layers,
             conv_chans_list=conv_chans_list,
             conv_kernel_size=conv_kernel_size,
             conv_stride=conv_stride,
             gru_layers=gru_layers,
-            gru_units=token_dim,
+            gru_units=gru_units,
         )
         self.stl = StyleTokenLayer(
-            num_tokens=num_tokens,
-            token_dim=token_dim,
-            num_heads=num_heads,
+            ref_embed_dim=gru_units,
+            gst_tokens=gst_tokens,
+            gst_token_dim=gst_token_dim,
+            gst_heads=gst_heads,
         )
 
     def forward(
@@ -71,7 +73,7 @@ class ReferenceEncoder(torch.nn.Module):
 
     def __init__(
         self,
-        num_mels=80,
+        idim=80,
         conv_layers: int = 6,
         conv_chans_list: List[int] = [32, 32, 64, 64, 128, 128],
         conv_kernel_size: int = 3,
@@ -112,7 +114,7 @@ class ReferenceEncoder(torch.nn.Module):
         self.padding = padding
 
         # get the number of GRU input units
-        gru_in_units = num_mels
+        gru_in_units = idim
         for i in range(conv_layers):
             gru_in_units = (
                 gru_in_units - conv_kernel_size + 2 * padding
@@ -126,7 +128,7 @@ class ReferenceEncoder(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech (Tensor): Batch of padded target features (B, Lmax, idim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
@@ -134,8 +136,8 @@ class ReferenceEncoder(torch.nn.Module):
 
         """
         batch_size = speech.size(0)
-        xs = speech.unsqueeze(1)  # (B, 1, Lmax, num_mels)
-        hs = self.convs(xs)  # (B, conv_out_chans, Lmax', num_mels')
+        xs = speech.unsqueeze(1)  # (B, 1, Lmax, idim)
+        hs = self.convs(xs)  # (B, conv_out_chans, Lmax', idim')
         # NOTE(kan-bayashi): We need to care the length?
         hlens = self._get_output_lengths(speech_lengths)
         hs = hs.transpose(1, 2).view(
@@ -159,15 +161,17 @@ class StyleTokenLayer(torch.nn.Module):
 
     def __init__(
         self,
-        num_tokens: int = 10,
-        token_dim: int = 256,
-        num_heads: int = 4,
+        ref_embed_dim: int = 128,
+        gst_tokens: int = 10,
+        gst_token_dim: int = 256,
+        gst_heads: int = 4,
     ):
         """Initilize style token layer module."""
         super(StyleTokenLayer, self).__init__()
 
-        self.register_parameter("gst_embs", torch.tensor(num_tokens, token_dim))
-        self.mha = MultiHeadedAttention(num_heads, token_dim)
+        self.register_parameter("gst_embs", torch.tensor(gst_tokens, gst_token_dim))
+        self.projection = torch.nn.Linear(ref_embed_dim, gst_token_dim)
+        self.mha = MultiHeadedAttention(gst_heads, gst_token_dim)
 
     def forward(
         self,
@@ -176,15 +180,17 @@ class StyleTokenLayer(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            ref_embs (Tensor): Reference embeddings (B, token_dim).
+            ref_embs (Tensor): Reference embeddings (B, ref_embed_dim).
 
         Returns:
-            Tensor: Style token embeddings (B, token_dim).
+            Tensor: Style token embeddings (B, gst_token_dim).
 
         """
         batch_size = ref_embs.size(0)
         # (num_tokens, token_dim) -> (batch_size, num_tokens, token_dim)
         gst_embs = F.tanh(self.style_embs).unsqueeze(0).expand(batch_size, -1, -1)
-        style_embs = self.mha(ref_embs.unsqueeze(1), gst_embs, gst_embs)
+        # NOTE(kan-bayashi): Projection is needed?
+        ref_embs = self.projection(ref_embs).unsqueeze(1)
+        style_embs = self.mha(ref_embs, gst_embs, gst_embs)
 
         return style_embs.squeeze(1)
