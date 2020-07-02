@@ -226,7 +226,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: SLU Evaluation"
-    #concatjson.py ${expdir}/${decode_dir}/data.*.json > ${dir}/data.json #no need to concate
+    concatjson.py ${expdir}/${decode_dir}/data.*.json > ${dir}/data.json #no need to concate
     local/score_outputs.py --dict ${dict} --expdir ${expdir}/${decode_dir}
 
 fi
