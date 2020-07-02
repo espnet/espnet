@@ -332,9 +332,9 @@ class Tacotron2(AbsTTS):
             forward_window (int, optional): Forward window in attention constraint.
 
         Returns:
-            Tensor: Output sequence of features (B, L, odim).
-            Tensor: Output sequence of stop probabilities (B, L,).
-            Tensor: Attention weights (B, L, T).
+            Tensor: Output sequence of features (L, odim).
+            Tensor: Output sequence of stop probabilities (L,).
+            Tensor: Attention weights (L, T).
 
         """
         x = text
@@ -358,7 +358,7 @@ class Tacotron2(AbsTTS):
             forward_window=forward_window,
         )
 
-        return outs.unsqueeze(0), probs.unsqueeze(0), att_ws.unsqueeze(0)
+        return outs, probs, att_ws
 
     def _integrate_with_spk_embed(self, hs, spembs):
         """Integrate speaker embedding with hidden states.
