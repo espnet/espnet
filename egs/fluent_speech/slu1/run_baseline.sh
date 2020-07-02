@@ -35,7 +35,7 @@ do_delta=false
 
 # config files
 preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
-train_config=conf/train.yaml
+train_config=conf/train_rnn.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
@@ -190,13 +190,6 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        recog_model=model.last${n_average}.avg.best
-        average_checkpoints.py --backend ${backend} \
-                               --snapshots ${expdir}/results/snapshot.ep.* \
-                               --out ${expdir}/results/${recog_model} \
-                               --num ${n_average}
-    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
@@ -215,7 +208,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --maxlen 3
-        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        ## score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
     ) &
     pids+=($!) # store background pids
     done
@@ -226,7 +219,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: SLU Evaluation"
-    concatjson.py ${expdir}/${decode_dir}/data.*.json > ${dir}/data.json #no need to concate
+    concatjson.py ${expdir}/${decode_dir}/data.*.json > ${expdir}/${decode_dir}/data.json #no need to concate
     local/score_outputs.py --dict ${dict} --expdir ${expdir}/${decode_dir}
 
 fi
