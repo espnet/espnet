@@ -415,47 +415,13 @@ class Transformer(AbsTTS):
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
-        # forward encoder
-        x_masks = self._source_mask(ilens)
-        hs, h_masks = self.encoder(xs, x_masks)
-
-        # integrate with GST
-        if self.use_gst:
-            style_embs = self.gst(ys)
-            hs = hs + style_embs.unsqueeze(1)
-
-        # integrate speaker embedding
-        if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_embed(hs, spembs)
-
-        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
-        if self.reduction_factor > 1:
-            ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
-            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
-        else:
-            ys_in, olens_in = ys, olens
-
-        # add first zero frame and remove last frame for auto-regressive
-        ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
-
-        # forward decoder
-        y_masks = self._target_mask(olens_in)
-        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
-        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
-        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        # (B, Lmax//r, r) -> (B, Lmax//r * r)
-        logits = self.prob_out(zs).view(zs.size(0), -1)
-
-        # postnet -> (B, Lmax//r * r, odim)
-        if self.postnet is None:
-            after_outs = before_outs
-        else:
-            after_outs = before_outs + self.postnet(
-                before_outs.transpose(1, 2)
-            ).transpose(1, 2)
+        # calculate transformer outputs
+        after_outs, before_outs, logits = self._forward(xs, ilens, ys, olens, spembs)
 
         # modifiy mod part of groundtruth
+        olens_in = olens
         if self.reduction_factor > 1:
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
@@ -545,6 +511,48 @@ class Transformer(AbsTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def _forward(self, xs, ilens, ys, olens, spembs):
+        # forward encoder
+        x_masks = self._source_mask(ilens)
+        hs, h_masks = self.encoder(xs, x_masks)
+
+        # integrate with GST
+        if self.use_gst:
+            style_embs = self.gst(ys)
+            hs = hs + style_embs.unsqueeze(1)
+
+        # integrate speaker embedding
+        if self.spk_embed_dim is not None:
+            hs = self._integrate_with_spk_embed(hs, spembs)
+
+        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+        if self.reduction_factor > 1:
+            ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+        else:
+            ys_in, olens_in = ys, olens
+
+        # add first zero frame and remove last frame for auto-regressive
+        ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
+
+        # forward decoder
+        y_masks = self._target_mask(olens_in)
+        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
+        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
+        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+        # (B, Lmax//r, r) -> (B, Lmax//r * r)
+        logits = self.prob_out(zs).view(zs.size(0), -1)
+
+        # postnet -> (B, Lmax//r * r, odim)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(
+                before_outs.transpose(1, 2)
+            ).transpose(1, 2)
+
+        return after_outs, before_outs, logits
+
     def inference(
         self,
         text: torch.Tensor,
@@ -553,6 +561,7 @@ class Transformer(AbsTTS):
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
+        teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -563,6 +572,7 @@ class Transformer(AbsTTS):
             threshold (float, optional): Threshold in inference.
             minlenratio (float, optional): Minimum length ratio in inference.
             maxlenratio (float, optional): Maximum length ratio in inference.
+            teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -576,6 +586,25 @@ class Transformer(AbsTTS):
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
+
+        # inference with teacher forcing
+        if teacher_forcing:
+            assert speech is not None, "speech must be provided with teacher forcing."
+
+            # get teacher forcing outputs
+            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            spembs = None if spemb is None else spemb.unsqueeze(0)
+            ilens = x.new_tensor([xs.size(1)]).long()
+            olens = y.new_tensor([ys.size(1)]).long()
+            outs, *_ = self._forward(xs, ilens, ys, olens, spembs)
+
+            # get attention weights
+            att_ws = []
+            for i in range(len(self.decoder.decoders)):
+                att_ws += [self.decoder.decoders[i].src_attn.attn]
+            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_out, T_in)
+
+            return outs[0], None, att_ws[0]
 
         # forward encoder
         xs = x.unsqueeze(0)

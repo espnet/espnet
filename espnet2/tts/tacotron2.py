@@ -283,6 +283,7 @@ class Tacotron2(AbsTTS):
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
+
         # Add eos at the last of sequence
         xs = F.pad(text, [0, 1], "constant", self.padding_idx)
         for i, l in enumerate(text_lengths):
@@ -297,13 +298,9 @@ class Tacotron2(AbsTTS):
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
-        hs, hlens = self.enc(xs, ilens)
-        if self.use_gst:
-            style_embs = self.gst(ys)
-            hs = hs + style_embs.unsqueeze(1)
-        if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_embed(hs, spembs)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self._forward(
+            xs, ilens, ys, olens, spembs
+        )
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
@@ -347,6 +344,15 @@ class Tacotron2(AbsTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def _forward(self, xs, ilens, ys, olens, spembs):
+        hs, hlens = self.enc(xs, ilens)
+        if self.use_gst:
+            style_embs = self.gst(ys)
+            hs = hs + style_embs.unsqueeze(1)
+        if self.spk_embed_dim is not None:
+            hs = self._integrate_with_spk_embed(hs, spembs)
+        return self.dec(hs, hlens, ys)
+
     def inference(
         self,
         text: torch.Tensor,
@@ -358,6 +364,7 @@ class Tacotron2(AbsTTS):
         use_att_constraint: bool = False,
         backward_window: int = 1,
         forward_window: int = 3,
+        teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -371,6 +378,7 @@ class Tacotron2(AbsTTS):
             use_att_constraint (bool, optional): Whether to apply attention constraint.
             backward_window (int, optional): Backward window in attention constraint.
             forward_window (int, optional): Forward window in attention constraint.
+            teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -384,6 +392,18 @@ class Tacotron2(AbsTTS):
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
+
+        # inference with teacher forcing
+        if teacher_forcing:
+            assert speech is not None, "speech must be provided with teacher forcing."
+
+            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            spembs = None if spemb is None else spemb.unsqueeze(0)
+            ilens = x.new_tensor([xs.size(1)]).long()
+            olens = y.new_tensor([ys.size(1)]).long()
+            outs, _, _, att_ws = self._forward(xs, ilens, ys, olens, spembs)
+
+            return outs[0], None, att_ws[0]
 
         # inference
         h = self.enc.inference(x)
