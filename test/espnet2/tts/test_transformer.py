@@ -77,9 +77,15 @@ def test_tranformer(
 
     with torch.no_grad():
         model.eval()
+
+        # free running
         inputs = dict(text=torch.randint(0, 10, (2,)),)
         if use_gst:
             inputs.update(speech=torch.randn(5, 5))
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs, maxlenratio=1.0)
+
+        # teacher forcing
+        inputs.update(speech=torch.randn(5, 5))
+        model.inference(**inputs, teacher_forcing=True)
