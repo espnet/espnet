@@ -48,6 +48,7 @@ def inference(
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
+    use_teacher_forcing: bool,
     use_att_constraint: bool,
     backward_window: int,
     forward_window: int,
@@ -78,6 +79,7 @@ def inference(
     model.to(dtype=getattr(torch, dtype)).eval()
     tts = model.tts
     normalize = model.normalize
+    feats_extract = model.feats_extract
     logging.info(f"Normalization:\n{normalize}")
     logging.info(f"TTS:\n{tts}")
 
@@ -95,8 +97,8 @@ def inference(
     )
 
     # 4. Build converter from spectrogram to waveform
-    if model.feats_extract is not None:
-        vocoder_conf.update(model.feats_extract.get_parameters())
+    if feats_extract is not None:
+        vocoder_conf.update(feats_extract.get_parameters())
     if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf and "fs" in vocoder_conf:
         spc2wav = Spectrogram2Waveform(**vocoder_conf)
         logging.info(f"Vocoder: {spc2wav}")
@@ -122,6 +124,16 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = to_device(batch, device)
 
+            # Extract features for teacher forcing or GST
+            _speech = {
+                k.replace("speech", "input"): v
+                for k, v in batch.items()
+                if k.startswith("speech")
+            }
+            if feats_extract is not None and len(_speech) != 0:
+                speech, speech_lengths = feats_extract(**_speech)
+                batch.update(speech=speech, speech_lengths=speech_lengths)
+
             key = keys[0]
             # Change to single sequence and remove *_length
             # because inference() requires 1-seq, not mini-batch.
@@ -132,6 +144,7 @@ def inference(
                 "threshold": threshold,
                 "maxlenratio": maxlenratio,
                 "minlenratio": minlenratio,
+                "use_teacher_forcing": use_teacher_forcing,
             }
             if isinstance(tts, Tacotron2):
                 _decode_conf.update(
@@ -163,51 +176,53 @@ def inference(
             from matplotlib.ticker import MaxNLocator
 
             # Plot attention weight
-            att_ws = att_ws.cpu().numpy()
+            if att_ws is not None:
+                att_ws = att_ws.cpu().numpy()
 
-            if att_ws.ndim == 2:
-                att_ws = att_ws[None][None]
-            elif att_ws.ndim != 4:
-                raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
+                if att_ws.ndim == 2:
+                    att_ws = att_ws[None][None]
+                elif att_ws.ndim != 4:
+                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
 
-            w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
-            fig = plt.Figure(
-                figsize=(
-                    w * 1.3 * min(att_ws.shape[0], 2.5),
-                    h * 1.3 * min(att_ws.shape[1], 2.5),
+                w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
+                fig = plt.Figure(
+                    figsize=(
+                        w * 1.3 * min(att_ws.shape[0], 2.5),
+                        h * 1.3 * min(att_ws.shape[1], 2.5),
+                    )
                 )
-            )
-            fig.suptitle(f"{key}")
-            axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
-            if len(att_ws) == 1:
-                axes = [[axes]]
-            for ax, att_w in zip(axes, att_ws):
-                for ax_, att_w_ in zip(ax, att_w):
-                    ax_.imshow(att_w_.astype(np.float32), aspect="auto")
-                    ax_.set_xlabel("Input")
-                    ax_.set_ylabel("Output")
-                    ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
-                    ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+                fig.suptitle(f"{key}")
+                axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
+                if len(att_ws) == 1:
+                    axes = [[axes]]
+                for ax, att_w in zip(axes, att_ws):
+                    for ax_, att_w_ in zip(ax, att_w):
+                        ax_.imshow(att_w_.astype(np.float32), aspect="auto")
+                        ax_.set_xlabel("Input")
+                        ax_.set_ylabel("Output")
+                        ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
+                        ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-            fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-            fig.savefig(output_dir / f"att_ws/{key}.png")
-            fig.clf()
+                fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+                fig.savefig(output_dir / f"att_ws/{key}.png")
+                fig.clf()
 
             # Plot stop token prediction
-            probs = probs.cpu().numpy()
+            if probs is not None:
+                probs = probs.cpu().numpy()
 
-            fig = plt.Figure()
-            ax = fig.add_subplot(1, 1, 1)
-            ax.plot(probs)
-            ax.set_title(f"{key}")
-            ax.set_xlabel("Output")
-            ax.set_ylabel("Stop probability")
-            ax.set_ylim(0, 1)
-            ax.grid(which="both")
+                fig = plt.Figure()
+                ax = fig.add_subplot(1, 1, 1)
+                ax.plot(probs)
+                ax.set_title(f"{key}")
+                ax.set_xlabel("Output")
+                ax.set_ylabel("Stop probability")
+                ax.set_ylim(0, 1)
+                ax.grid(which="both")
 
-            fig.tight_layout()
-            fig.savefig(output_dir / f"probs/{key}.png")
-            fig.clf()
+                fig.tight_layout()
+                fig.savefig(output_dir / f"probs/{key}.png")
+                fig.clf()
 
             # TODO(kamo): Write scp
             if spc2wav is not None:
@@ -317,6 +332,12 @@ def get_parser():
         type=int,
         default=3,
         help="Forward window value in attention constraint",
+    )
+    group.add_argument(
+        "--use_teacher_forcing",
+        type=str2bool,
+        default=False,
+        help="Whether to use teacher forcing",
     )
 
     group = parser.add_argument_group("Grriffin-Lim related")
