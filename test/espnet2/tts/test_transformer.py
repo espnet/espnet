@@ -44,7 +44,7 @@ def test_tranformer(
         dprenet_units=4,
         elayers=1,
         eunits=4,
-        adim=4,
+        adim=2,
         aheads=2,
         dlayers=1,
         dunits=4,

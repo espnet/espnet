@@ -278,7 +278,7 @@ class Transformer(AbsTTS):
             self.gst = StyleEncoder(
                 idim=odim,  # the input is mel-spectrogram
                 gst_tokens=gst_tokens,
-                gst_token_dim=eunits,
+                gst_token_dim=adim,
                 gst_heads=gst_heads,
                 conv_layers=gst_conv_layers,
                 conv_chans_list=gst_conv_chans_list,
