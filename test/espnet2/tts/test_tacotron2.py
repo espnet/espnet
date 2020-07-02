@@ -59,9 +59,7 @@ def test_tacotron2(
 
     with torch.no_grad():
         model.eval()
-        inputs = dict(
-            text=torch.randint(0, 10, (2,)),
-        )
+        inputs = dict(text=torch.randint(0, 10, (2,)),)
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs, maxlenratio=1.0)
