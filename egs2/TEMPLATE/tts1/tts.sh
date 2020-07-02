@@ -620,16 +620,30 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _feats_type="$(<${data_feats}/${train_set}/feats_type)"
 
     # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
-    if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
+    _scp=wav.scp
+    _type=sound
+    if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
         _opts+="--vocoder_conf n_fft=${n_fft} "
         _opts+="--vocoder_conf n_shift=${n_shift} "
         _opts+="--vocoder_conf win_length=${win_length} "
         _opts+="--vocoder_conf fs=${fs} "
+        _scp=feats.scp
+        _type=kaldi_ark
     fi
-    if [ "${_feats_type}" == fbank ]; then
+    if [ "${_feats_type}" = fbank ]; then
         _opts+="--vocoder_conf n_mels=${n_mels} "
         _opts+="--vocoder_conf fmin=${fmin} "
         _opts+="--vocoder_conf fmax=${fmax} "
+    fi
+
+    # If we use teacher forcing or GST embedding in inference,
+    # we need to pass speech as well as text
+    # TODO(kan-bayashi): Make this part more smarter
+    _use_teacher_forcing="$(pyscripts/utils/get_yaml.py "${decode_config}" use_teacher_forcing)"
+    _use_gst="$(pyscripts/utils/get_yaml.py "${train_config}" tts_conf.use_gst)"
+    _use_speech=false
+    if [ "${_use_teacher_forcing,,}" = "true" ] || [ "${_use_gst,,}" = "true" ]; then
+        _use_speech=true
     fi
 
     for dset in "${dev_set}" ${eval_sets}; do
@@ -651,7 +665,15 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Submit decoding jobs
+        # 2. Check extra options
+        # NOTE(kan-bayashi): Using opts here causes duplicated option errors
+        _ex_opts=
+        if "${_use_speech}"; then
+            _ex_opts+="--allow_variable_data_keys true "
+            _ex_opts+="--data_path_and_name_and_type ${_data}/${_scp},speech,${_type} "
+        fi
+
+        # 3. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
         # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
@@ -664,9 +686,9 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
                 --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                ${_opts} ${decode_args}
+                ${_opts} ${_ex_opts} ${decode_args}
 
-        # 3. Concatenates the output files from each jobs
+        # 4. Concatenates the output files from each jobs
         mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
