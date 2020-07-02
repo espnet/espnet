@@ -389,10 +389,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
             # maxlen >= 1
             maxlen = max(1, int(recog_args.maxlenratio * maxlen))
         minlen = int(recog_args.minlenratio * maxlen)
-        ## handle SLU with fixed length output
-        if recog_args.maxlen is not None:
-            maxlen = recog_args.maxlen
-            minlen = 1
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
@@ -693,10 +689,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
         else:
             maxlen = max(1, int(recog_args.maxlenratio * max_hlen))
         minlen = int(recog_args.minlenratio * max_hlen)
-        ## handle SLU with fixed length output
-        if recog_args.maxlen is not None:
-            maxlen = recog_args.maxlen
-            minlen = 1
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
