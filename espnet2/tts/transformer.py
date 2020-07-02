@@ -78,7 +78,7 @@ class Transformer(AbsTTS):
             Kernel size in position wise conv 1d.
         reduction_factor (int, optional): Reduction factor.
         spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
-        spk_embed_integration_type: How to integrate speaker embedding.
+        spk_embed_integration_type (str, optional): How to integrate speaker embedding.
         transformer_lr (float, optional): Initial value of learning rate.
         transformer_warmup_steps (int, optional): Optimizer warmup steps.
         transformer_enc_dropout_rate (float, optional):
@@ -672,7 +672,7 @@ class Transformer(AbsTTS):
             spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
-            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim)
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).
 
         """
         if self.spk_embed_integration_type == "add":
