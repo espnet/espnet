@@ -88,4 +88,4 @@ def test_tranformer(
 
         # teacher forcing
         inputs.update(speech=torch.randn(5, 5))
-        model.inference(**inputs, teacher_forcing=True)
+        model.inference(**inputs, use_teacher_forcing=True)

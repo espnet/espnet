@@ -364,7 +364,7 @@ class Tacotron2(AbsTTS):
         use_att_constraint: bool = False,
         backward_window: int = 1,
         forward_window: int = 3,
-        teacher_forcing: bool = False,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -378,7 +378,7 @@ class Tacotron2(AbsTTS):
             use_att_constraint (bool, optional): Whether to apply attention constraint.
             backward_window (int, optional): Backward window in attention constraint.
             forward_window (int, optional): Forward window in attention constraint.
-            teacher_forcing (bool, optional): Whether to use teacher forcing.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -394,7 +394,7 @@ class Tacotron2(AbsTTS):
         x = F.pad(x, [0, 1], "constant", self.eos)
 
         # inference with teacher forcing
-        if teacher_forcing:
+        if use_teacher_forcing:
             assert speech is not None, "speech must be provided with teacher forcing."
 
             xs, ys = x.unsqueeze(0), y.unsqueeze(0)

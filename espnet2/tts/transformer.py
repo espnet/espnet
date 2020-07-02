@@ -561,7 +561,7 @@ class Transformer(AbsTTS):
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
-        teacher_forcing: bool = False,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -572,7 +572,7 @@ class Transformer(AbsTTS):
             threshold (float, optional): Threshold in inference.
             minlenratio (float, optional): Minimum length ratio in inference.
             maxlenratio (float, optional): Maximum length ratio in inference.
-            teacher_forcing (bool, optional): Whether to use teacher forcing.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -588,7 +588,7 @@ class Transformer(AbsTTS):
         x = F.pad(x, [0, 1], "constant", self.eos)
 
         # inference with teacher forcing
-        if teacher_forcing:
+        if use_teacher_forcing:
             assert speech is not None, "speech must be provided with teacher forcing."
 
             # get teacher forcing outputs
