@@ -112,6 +112,10 @@ class RelPositionMultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout_rate)
 
     def rel_shift(self, x, zero_triu=False):
+        """ A effective algorithm to get relative postional encoding.
+        :param torch.Tensor x: (batch, time, size)
+        :param bool zero_triu: return the lower triangular part of the matrix
+        """
         zero_pad = torch.zeros((*x.size()[:3], 1), device=x.device, dtype=x.dtype)
         x_padded = torch.cat([zero_pad, x], dim=-1)
 
