@@ -60,6 +60,7 @@ class Tacotron2(AbsTTS):
             decoder lstm outputs.
         reduction_factor (int, optional): Reduction factor.
         spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
+        spk_embed_integration_type (str, optional): How to integrate speaker embedding.
         dropout_rate (float, optional): Dropout rate.
         zoneout_rate (float, optional): Zoneout rate.
         use_masking (bool, optional): Whether to mask padded part in loss calculation.
@@ -67,6 +68,7 @@ class Tacotron2(AbsTTS):
             loss calculation.
         bce_pos_weight (float, optional): Weight of positive sample of stop token
             (only for use_masking=True).
+        loss_type (str, optional): How to calculate loss.
         use_guided_attn_loss (bool, optional): Whether to use guided attention loss.
         guided_attn_loss_sigma (float, optional): Sigma in guided attention loss.
         guided_attn_loss_lamdba (float, optional): Lambda in guided attention loss.
@@ -102,12 +104,14 @@ class Tacotron2(AbsTTS):
         use_residual: bool = False,
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
+        spk_embed_integration_type: str = "concat",
         # training related
         dropout_rate: float = 0.5,
         zoneout_rate: float = 0.1,
         use_masking: bool = True,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
+        loss_type: str = "L1+L2",
         use_guided_attn_loss: bool = True,
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
@@ -124,6 +128,9 @@ class Tacotron2(AbsTTS):
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
         self.use_guided_attn_loss = use_guided_attn_loss
+        self.loss_type = loss_type
+        if self.spk_embed_dim is not None:
+            self.spk_embed_integration_type = spk_embed_integration_type
 
         # define activation function for the final output
         if output_activation is None:
@@ -154,7 +161,16 @@ class Tacotron2(AbsTTS):
             padding_idx=padding_idx,
         )
 
-        dec_idim = eunits if spk_embed_dim is None else eunits + spk_embed_dim
+        if spk_embed_dim is None:
+            dec_idim = eunits
+        elif spk_embed_integration_type == "concat":
+            dec_idim = eunits + spk_embed_dim
+        elif spk_embed_integration_type == "add":
+            dec_idim = eunits
+            self.projection = torch.nn.Linear(self.spk_embed_dim, eunits)
+        else:
+            raise ValueError(f"{spk_embed_integration_type} is not supported.")
+
         if atype == "location":
             att = AttLoc(dec_idim, dunits, adim, aconv_chans, aconv_filts)
         elif atype == "forward":
@@ -247,8 +263,7 @@ class Tacotron2(AbsTTS):
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = torch.cat([hs, spembs], dim=-1)
+            hs = self._integrate_with_spk_embed(hs, spembs)
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
         # modify mod part of groundtruth
@@ -263,7 +278,14 @@ class Tacotron2(AbsTTS):
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens
         )
-        loss = l1_loss + mse_loss + bce_loss
+        if self.loss_type == "L1+L2":
+            loss = l1_loss + mse_loss + bce_loss
+        elif self.loss_type == "L1":
+            loss = l1_loss + bce_loss
+        elif self.loss_type == "L2":
+            loss = mse_loss + bce_loss
+        else:
+            raise ValueError(f"unknown --loss-type {self.loss_type}")
 
         stats = dict(
             l1_loss=l1_loss.item(), mse_loss=mse_loss.item(), bce_loss=bce_loss.item(),
@@ -310,9 +332,9 @@ class Tacotron2(AbsTTS):
             forward_window (int, optional): Forward window in attention constraint.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            Tensor: Output sequence of stop probabilities (L,).
-            Tensor: Attention weights (L, T).
+            Tensor: Output sequence of features (B, L, odim).
+            Tensor: Output sequence of stop probabilities (B, L,).
+            Tensor: Attention weights (B, L, T).
 
         """
         x = text
@@ -324,8 +346,8 @@ class Tacotron2(AbsTTS):
         # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
-            spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
-            h = torch.cat([h, spemb], dim=-1)
+            hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
+            h = self._integrate_with_spk_embed(hs, spembs)[0]
         outs, probs, att_ws = self.dec.inference(
             h,
             threshold=threshold,
@@ -336,4 +358,29 @@ class Tacotron2(AbsTTS):
             forward_window=forward_window,
         )
 
-        return outs, probs, att_ws
+        return outs.unsqueeze(0), probs.unsqueeze(0), att_ws.unsqueeze(0)
+
+    def _integrate_with_spk_embed(self, hs, spembs):
+        """Integrate speaker embedding with hidden states.
+
+        Args:
+            hs (Tensor): Batch of hidden state sequences (B, Tmax, eunits).
+            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, eunits) if
+                integration_type is "add" else (B, Tmax, eunits + spk_embed_dim).
+
+        """
+        if self.spk_embed_integration_type == "add":
+            # apply projection and then add to hidden states
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
+        elif self.spk_embed_integration_type == "concat":
+            # concat hidden states with spk embeds
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
+        else:
+            raise NotImplementedError("support only add or concat.")
+
+        return hs
