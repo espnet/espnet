@@ -66,7 +66,7 @@ class Tacotron2(AbsTTS):
         gst_tokens (int, optional): The number of GST embeddings.
         gst_heads (int, optional): The number of heads in GST multihead attention.
         gst_conv_layers (int, optional): The number of conv layers in GST.
-        gst_conv_chans_list: (Tuple[int], optional):
+        gst_conv_chans_list: (Tuple, optional):
             List of the number of channels of conv layers in GST.
         gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
         gst_conv_stride (int, optional): Stride size of conv layers in GST.
@@ -120,7 +120,7 @@ class Tacotron2(AbsTTS):
         gst_tokens: int = 10,
         gst_heads: int = 4,
         gst_conv_layers: int = 6,
-        gst_conv_chans_list: Tuple[int] = (32, 32, 64, 64, 128, 128),
+        gst_conv_chans_list: Tuple = (32, 32, 64, 64, 128, 128),
         gst_conv_kernel_size: int = 3,
         gst_conv_stride: int = 2,
         gst_gru_layers: int = 1,
