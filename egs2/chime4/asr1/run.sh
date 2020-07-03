@@ -9,7 +9,7 @@ set -o pipefail
 
 train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 valid_set=dt05_multi_isolated_1ch_track
-test_set="\
+test_sets="\
 dt05_real_isolated_1ch_track dt05_simu_isolated_1ch_track et05_real_isolated_1ch_track et05_simu_isolated_1ch_track \
 dt05_real_beamformit_2mics dt05_simu_beamformit_2mics et05_real_beamformit_2mics et05_simu_beamformit_2mics \
 dt05_real_beamformit_5mics dt05_simu_beamformit_5mics et05_real_beamformit_5mics et05_simu_beamformit_5mics \
@@ -34,5 +34,5 @@ word_vocab_size=65000
     --word_vocab_size ${word_vocab_size}   \
     --train_set "${train_set}"             \
     --valid_set "${valid_set}"             \
-    --test_sets "${test_set}"              \
+    --test_sets "${test_sets}"             \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
