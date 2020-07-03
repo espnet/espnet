@@ -6,6 +6,7 @@
 from typing import Dict
 from typing import List
 from typing import Tuple
+from typing import Union
 
 import torch
 import torch.nn.functional as F
@@ -84,7 +85,7 @@ class Transformer(AbsTTS):
         gst_tokens (int, optional): The number of GST embeddings.
         gst_heads (int, optional): The number of heads in GST multihead attention.
         gst_conv_layers (int, optional): The number of conv layers in GST.
-        gst_conv_chans_list: (Tuple, optional):
+        gst_conv_chans_list: (Union[Tuple, List], optional):
             List of the number of channels of conv layers in GST.
         gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
         gst_conv_stride (int, optional): Stride size of conv layers in GST.
@@ -127,7 +128,7 @@ class Transformer(AbsTTS):
             Number of heads in each layer to apply guided attention loss.
         num_layers_applied_guided_attn (int, optional):
             Number of layers to apply guided attention loss.
-        modules_applied_guided_attn (List, optional):
+        modules_applied_guided_attn (Union[Tuple, List], optional):
             List of module names to apply guided attention loss.
         guided_attn_loss_sigma (float, optional) Sigma in guided attention loss.
         guided_attn_loss_lambda (float, optional): Lambda in guided attention loss.
@@ -169,7 +170,7 @@ class Transformer(AbsTTS):
         gst_tokens: int = 10,
         gst_heads: int = 4,
         gst_conv_layers: int = 6,
-        gst_conv_chans_list: Tuple = (32, 32, 64, 64, 128, 128),
+        gst_conv_chans_list: Union[Tuple, List] = (32, 32, 64, 64, 128, 128),
         gst_conv_kernel_size: int = 3,
         gst_conv_stride: int = 2,
         gst_gru_layers: int = 1,
@@ -195,7 +196,7 @@ class Transformer(AbsTTS):
         use_guided_attn_loss: bool = True,
         num_heads_applied_guided_attn: int = 2,
         num_layers_applied_guided_attn: int = 2,
-        modules_applied_guided_attn: List[str] = ["encoder-decoder"],
+        modules_applied_guided_attn: Union[Tuple, List] = ("encoder-decoder"),
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
@@ -380,8 +381,6 @@ class Transformer(AbsTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        *args,
-        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -511,7 +510,14 @@ class Transformer(AbsTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
-    def _forward(self, xs, ilens, ys, olens, spembs):
+    def _forward(
+        self,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
+        spembs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, h_masks = self.encoder(xs, x_masks)
@@ -683,7 +689,7 @@ class Transformer(AbsTTS):
 
         return outs, probs, att_ws
 
-    def _add_first_frame_and_remove_last_frame(self, ys):
+    def _add_first_frame_and_remove_last_frame(self, ys: torch.Tensor) -> torch.Tensor:
         ys_in = torch.cat(
             [ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1
         )
@@ -693,7 +699,7 @@ class Transformer(AbsTTS):
         """Make masks for self-attention.
 
         Args:
-            ilens (LongTensor or List): Batch of lengths (B,).
+            ilens (LongTensor): Batch of lengths (B,).
 
         Returns:
             Tensor: Mask tensor for self-attention.
@@ -710,16 +716,16 @@ class Transformer(AbsTTS):
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
         return x_masks.unsqueeze(-2)
 
-    def _target_mask(self, olens):
+    def _target_mask(self, olens: torch.Tensor) -> torch.Tensor:
         """Make masks for masked self-attention.
 
         Args:
-            olens (LongTensor or List): Batch of lengths (B,).
+            olens (LongTensor): Batch of lengths (B,).
 
         Returns:
             Tensor: Mask tensor for masked self-attention.
-                    dtype=torch.uint8 in PyTorch 1.2-
-                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+                dtype=torch.uint8 in PyTorch 1.2-
+                dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> olens = [5, 3]
@@ -740,7 +746,9 @@ class Transformer(AbsTTS):
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
 
-    def _integrate_with_spk_embed(self, hs, spembs):
+    def _integrate_with_spk_embed(
+        self, hs: torch.Tensor, spembs: torch.Tensor
+    ) -> torch.Tensor:
         """Integrate speaker embedding with hidden states.
 
         Args:
