@@ -40,7 +40,7 @@ if [ ! -e pyopenjtalk.done ]; then
     git clone https://github.com/r9y9/pyopenjtalk.git
     (
         set -euo pipefail
-        cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(pwd) pip install -e .
+        cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(pwd)/../ pip install -e .
     )
     touch pyopenjtalk.done
 else

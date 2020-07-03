@@ -25,6 +25,7 @@ class LogMelFbank(AbsFeatsExtract):
         n_fft: int = 1024,
         win_length: int = None,
         hop_length: int = 256,
+        window: Optional[str] = "hann",
         center: bool = True,
         pad_mode: str = "reflect",
         normalized: bool = False,
@@ -33,7 +34,6 @@ class LogMelFbank(AbsFeatsExtract):
         fmin: Optional[int] = 80,
         fmax: Optional[int] = 7600,
         htk: bool = False,
-        norm=1,
     ):
         assert check_argument_types()
         super().__init__()
@@ -45,6 +45,7 @@ class LogMelFbank(AbsFeatsExtract):
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
+        self.window = window
         self.fmin = fmin
         self.fmax = fmax
 
@@ -52,6 +53,7 @@ class LogMelFbank(AbsFeatsExtract):
             n_fft=n_fft,
             win_length=win_length,
             hop_length=hop_length,
+            window=window,
             center=center,
             pad_mode=pad_mode,
             normalized=normalized,
@@ -59,7 +61,13 @@ class LogMelFbank(AbsFeatsExtract):
         )
 
         self.logmel = LogMel(
-            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
+            fs=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            htk=htk,
+            log_base=10.0,
         )
 
     def output_size(self) -> int:
@@ -71,6 +79,7 @@ class LogMelFbank(AbsFeatsExtract):
             fs=self.fs,
             n_fft=self.n_fft,
             n_shift=self.hop_length,
+            window=self.window,
             n_mels=self.n_mels,
             win_length=self.win_length,
             fmin=self.fmin,
@@ -87,8 +96,12 @@ class LogMelFbank(AbsFeatsExtract):
         # "2" refers to the real/imag parts of Complex
         assert input_stft.shape[-1] == 2, input_stft.shape
 
+        # NOTE(kamo): We use different definition for log-spec between TTS and ASR
+        #   TTS: log_10(abs(stft))
+        #   ASR: log_e(power(stft))
+
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
-        input_amp = torch.sqrt(input_power + 1.0e-20)
+        input_amp = torch.sqrt(torch.clamp(input_power, min=1.0e-10))
         input_feats, _ = self.logmel(input_amp, feats_lens)
         return input_feats, feats_lens

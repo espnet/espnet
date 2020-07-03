@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -25,6 +26,38 @@ def pyopenjtalk_g2p_kana(text) -> List[str]:
     return list(kanas)
 
 
+def g2p_en_no_space(g2p, text) -> List[str]:
+    # remove space which represents word serapater
+    phones = list(filter(lambda s: s != " ", g2p(text)))
+    return phones
+
+
+def pypinyin_g2p(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+
+    phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
+    return phones
+
+
+def pypinyin_g2p_phone(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+    from pypinyin.style._utils import get_finals
+    from pypinyin.style._utils import get_initials
+
+    phones = [
+        p
+        for phone in pinyin(text, style=Style.TONE3)
+        for p in [
+            get_initials(phone[0], strict=True),
+            get_finals(phone[0], strict=True),
+        ]
+        if len(p) != 0
+    ]
+    return phones
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -36,10 +69,18 @@ class PhonemeTokenizer(AbsTokenizer):
         assert check_argument_types()
         if g2p_type == "g2p_en":
             self.g2p = g2p_en.G2p()
+        elif g2p_type == "g2p_en_no_space":
+            # TODO(kan-bayashi): Include within a function?
+            g2p = g2p_en.G2p()
+            self.g2p = functools.partial(g2p_en_no_space, g2p)
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pypinyin_g2p":
+            self.g2p = pypinyin_g2p
+        elif g2p_type == "pypinyin_g2p_phone":
+            self.g2p = pypinyin_g2p_phone
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

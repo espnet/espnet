@@ -129,7 +129,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
-    for f in egs2/*/tts1/conf/train_*.yaml; do
+    for f in egs2/*/tts1/conf/train*.yaml; do
         python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi

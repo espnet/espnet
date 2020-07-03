@@ -43,6 +43,7 @@ from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
+from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -60,7 +61,6 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.model_summary import model_summary
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import int_or_none
