@@ -5,7 +5,7 @@
 
 """Style encoder of GST-Tacotron."""
 
-from typing import List
+from typing import Tuple
 
 import torch
 
@@ -27,7 +27,7 @@ class StyleEncoder(torch.nn.Module):
         gst_token_dim (int, optional): Dimension of each GST embedding.
         gst_heads (int, optional): The number of heads in GST multihead attention.
         conv_layers (int, optional): The number of conv layers in the reference encoder.
-        conv_chans_list: (List[int], optional):
+        conv_chans_list: (Tuple[int], optional):
             List of the number of channels of conv layers in the referece encoder.
         conv_kernel_size (int, optional):
             Kernal size of conv layers in the reference encoder.
@@ -45,7 +45,7 @@ class StyleEncoder(torch.nn.Module):
         gst_token_dim: int = 256,
         gst_heads: int = 4,
         conv_layers: int = 6,
-        conv_chans_list: List[int] = [32, 32, 64, 64, 128, 128],
+        conv_chans_list: Tuple[int] = (32, 32, 64, 64, 128, 128),
         conv_kernel_size: int = 3,
         conv_stride: int = 2,
         gru_layers: int = 1,
@@ -97,7 +97,7 @@ class ReferenceEncoder(torch.nn.Module):
     Args:
         idim (int, optional): Dimension of the input mel-spectrogram.
         conv_layers (int, optional): The number of conv layers in the reference encoder.
-        conv_chans_list: (List[int], optional):
+        conv_chans_list: (Tuple[int], optional):
             List of the number of channels of conv layers in the referece encoder.
         conv_kernel_size (int, optional):
             Kernal size of conv layers in the reference encoder.
@@ -112,7 +112,7 @@ class ReferenceEncoder(torch.nn.Module):
         self,
         idim=80,
         conv_layers: int = 6,
-        conv_chans_list: List[int] = [32, 32, 64, 64, 128, 128],
+        conv_chans_list: Tuple[int] = (32, 32, 64, 64, 128, 128),
         conv_kernel_size: int = 3,
         conv_stride: int = 2,
         gru_layers: int = 1,
