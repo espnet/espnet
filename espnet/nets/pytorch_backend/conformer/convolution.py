@@ -64,7 +64,7 @@ class ConvolutionBlock(nn.Module):
         self.act = activation
 
     def forward(self, x):
-        """Compute Covolution Block
+        """Compute Covolution Block.
 
         :param torch.Tensor x: (batch, time, size)
         :return torch.Tensor: convoluted `value` (batch, time, d_model)
