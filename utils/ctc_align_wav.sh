@@ -22,10 +22,6 @@ verbose=1      # verbose option
 do_delta=false
 cmvn=
 
-# rnnlm related
-use_lang_model=false
-lang_model=
-
 # decoding parameter
 align_model=
 align_config=
