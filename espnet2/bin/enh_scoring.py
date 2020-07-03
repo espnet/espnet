@@ -3,14 +3,12 @@ import logging
 import sys
 from typing import Union
 from typing import List
-from typing import Optional
 
 import configargparse
 from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.utils.types import str_or_none
 import pypesq
 import pystoi
 import mir_eval
@@ -37,8 +35,7 @@ def scoring(
     num_spk = len(ref_scp)
 
     keys = [
-        line.rstrip().split(maxsplit=1)[0]
-        for line in open(key_file, encoding="utf-8")
+        line.rstrip().split(maxsplit=1)[0] for line in open(key_file, encoding="utf-8")
     ]
 
     ref_readers = [SoundScpReader(f, dtype=dtype) for f in ref_scp]
@@ -68,7 +65,9 @@ def scoring(
                     network output is multi-channel."
                 )
 
-            sdr, sir, sar, perm = mir_eval.separation.bss_eval_sources(ref, inf, compute_permutation=True)
+            sdr, sir, sar, perm = mir_eval.separation.bss_eval_sources(
+                ref, inf, compute_permutation=True
+            )
 
             for i in range(num_spk):
                 stoi_score = pystoi.stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
@@ -109,16 +108,10 @@ def get_parser():
 
     group = parser.add_argument_group("Input data related")
     group.add_argument(
-        "--ref_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--ref_scp", type=str, required=True, action="append",
     )
     group.add_argument(
-        "--inf_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--inf_scp", type=str, required=True, action="append",
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)

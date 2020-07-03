@@ -89,7 +89,7 @@ class DNN_Beamformer(torch.nn.Module):
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
-    ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
+    ) -> Tuple[ComplexTensor, torch.LongTensor, torch.Tensor]:
         """The forward function
 
         Notation:
@@ -150,7 +150,7 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_noise = 1 - mask_speech
 
             psd_speech = get_power_spectral_density_matrix(data, mask_speech)
-            if self.beamformer_type == 'mvdr':
+            if self.beamformer_type == "mvdr":
                 # psd of noise
                 psd_n = get_power_spectral_density_matrix(data, mask_noise)
             elif self.beamformer_type == "mpdr":
@@ -167,7 +167,9 @@ class DNN_Beamformer(torch.nn.Module):
                     data, inverse_power, self.bdelay, self.btaps, get_vector=False
                 )
             else:
-                raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))
+                raise ValueError(
+                    "Not supporting beamformer_type={}".format(self.beamformer_type)
+                )
 
             enhanced, ws = apply_beamforming(
                 data, ilens, psd_speech, psd_n, self.beamformer_type
@@ -188,7 +190,7 @@ class DNN_Beamformer(torch.nn.Module):
             psd_speeches = [
                 get_power_spectral_density_matrix(data, mask) for mask in mask_speech
             ]
-            if self.beamformer_type == 'mvdr':
+            if self.beamformer_type == "mvdr":
                 # psd of noise
                 if mask_noise is not None:
                     psd_n = get_power_spectral_density_matrix(data, mask_noise)
@@ -212,7 +214,9 @@ class DNN_Beamformer(torch.nn.Module):
                     for inv_ps in inverse_poweres
                 ]
             else:
-                raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))
+                raise ValueError(
+                    "Not supporting beamformer_type={}".format(self.beamformer_type)
+                )
 
             enhanced = []
             ws = []
@@ -236,7 +240,9 @@ class DNN_Beamformer(torch.nn.Module):
                         data, ilens, psd_speech, psd_n[i], self.beamformer_type
                     )
                 else:
-                    raise ValueError('Not supporting beamformer_type={}'.format(self.beamformer_type))
+                    raise ValueError(
+                        "Not supporting beamformer_type={}".format(self.beamformer_type)
+                    )
                 psd_speeches.insert(i, psd_speech)
 
                 # (..., F, T) -> (..., T, F)

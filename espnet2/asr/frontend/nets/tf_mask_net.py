@@ -6,8 +6,6 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.layers.stft import Stft
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from torch_complex.tensor import ComplexTensor
-import torchaudio
-from espnet2.train.class_choices import ClassChoices
 
 
 class TFMaskingNet(torch.nn.Module):
@@ -16,28 +14,24 @@ class TFMaskingNet(torch.nn.Module):
     """
 
     def __init__(
-            self,
-            n_fft: int = 512,
-            win_length: int = None,
-            hop_length: int = 128,
-            rnn_type: str = 'blstm',
-            layer: int = 3,
-            unit: int = 512,
-            dropout: float = 0.0,
-            num_spk: int = 2,
-            none_linear: str = "sigmoid",
-            utt_mvn: bool = False,
+        self,
+        n_fft: int = 512,
+        win_length: int = None,
+        hop_length: int = 128,
+        rnn_type: str = "blstm",
+        layer: int = 3,
+        unit: int = 512,
+        dropout: float = 0.0,
+        num_spk: int = 2,
+        none_linear: str = "sigmoid",
+        utt_mvn: bool = False,
     ):
         super(TFMaskingNet, self).__init__()
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
 
-        self.stft = Stft(
-            n_fft=n_fft,
-            win_length=win_length,
-            hop_length=hop_length,
-        )
+        self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
 
         if utt_mvn:
             self.utt_mvn = UtteranceMVN(norm_means=True, norm_vars=True)
@@ -51,13 +45,11 @@ class TFMaskingNet(torch.nn.Module):
             cdim=unit,
             hdim=unit,
             dropout=dropout,
-            typ=rnn_type)
+            typ=rnn_type,
+        )
 
         self.linear = torch.nn.ModuleList(
-            [
-                torch.nn.Linear(unit, self.num_bin)
-                for _ in range(self.num_spk)
-            ]
+            [torch.nn.Linear(unit, self.num_bin) for _ in range(self.num_spk)]
         )
         self.none_linear = {
             "sigmoid": torch.nn.Sigmoid(),
@@ -96,7 +88,7 @@ class TFMaskingNet(torch.nn.Module):
 
         # predict masks for each speaker
         x, flens, _ = self.rnn(input_magnitude_mvn, flens)
-        masks = OrderedDict()
+        masks = []
         for linear in self.linear:
             y = linear(x)
             y = self.none_linear(y)
@@ -113,7 +105,7 @@ class TFMaskingNet(torch.nn.Module):
         return predicted_spectrums, flens, masks
 
     def forward_rawwav(
-            self, input: torch.Tensor, ilens: torch.Tensor
+        self, input: torch.Tensor, ilens: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:

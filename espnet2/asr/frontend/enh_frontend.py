@@ -1,11 +1,9 @@
-from typing import Tuple
-from typing import Union
 from typing import Dict
 
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr.frontend.nets.tf_mask_net import BeamformerNet
+from espnet2.asr.frontend.nets.beamformer_net import BeamformerNet
 from espnet2.asr.frontend.nets.tf_mask_net import TFMaskingNet
 from espnet2.asr.frontend.nets.tasnet import TasNet
 from espnet2.train.class_choices import ClassChoices
@@ -20,9 +18,8 @@ frontend_choices = ClassChoices(
 
 
 class EnhFrontend(AbsFrontend):
-    """Speech separation frontend 
-
-    STFT -> T-F masking -> [STFT_0, ... , STFT_S]
+    """
+        Speech separation frontend
     """
 
     def __init__(
@@ -35,9 +32,7 @@ class EnhFrontend(AbsFrontend):
     ):
         assert check_argument_types()
         super().__init__()
-        if isinstance(fs, str):
-            fs = humanfriendly.parse_size(fs)
-
+        self.fs = fs
         assert (tf_factor <= 1.0) and (tf_factor >= 0), "tf_factor must in 0~1"
         self.tf_factor = tf_factor
 
@@ -54,15 +49,15 @@ class EnhFrontend(AbsFrontend):
         return self.bins
 
     def forward_rawwav(
-            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor
     ):
-        predicted_wavs, ilens, masks = self.enh_model.forward_rawwav(speech_mix, speech_mix_lengths)
+        predicted_wavs, ilens, masks = self.enh_model.forward_rawwav(
+            speech_mix, speech_mix_lengths
+        )
 
         return predicted_wavs, ilens, masks
 
-    def forward(
-            self, input: torch.Tensor, input_lengths: torch.Tensor
-    ):
+    def forward(self, input: torch.Tensor, input_lengths: torch.Tensor):
         """
         Args:
             input (torch.Tensor): raw wave input [batch, samples]
@@ -82,7 +77,6 @@ class EnhFrontend(AbsFrontend):
                 'noiseN': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
-        # 1. Domain-conversion: e.g. Stft: time -> time-freq
 
         predicted_spectrums, flens, masks = self.enh_model(input, input_lengths)
 

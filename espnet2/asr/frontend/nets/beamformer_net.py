@@ -46,11 +46,7 @@ class BeamformerNet(torch.nn.Module):
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
 
-        self.stft = Stft(
-            n_fft=n_fft,
-            win_length=win_length,
-            hop_length=hop_length,
-        )
+        self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
 
         self.normalize_input = normalize_input
         self.use_beamformer = use_beamformer
@@ -174,9 +170,7 @@ class BeamformerNet(torch.nn.Module):
             enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1)
         return enhanced, flens, masks
 
-    def forward_rawwav(
-            self, input: torch.Tensor, ilens: torch.Tensor
-    ):
+    def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):
         """
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]

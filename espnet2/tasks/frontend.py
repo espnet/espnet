@@ -1,5 +1,4 @@
 import argparse
-import logging
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -45,7 +44,6 @@ class FrontendTask(AbsTask):
         frontend_choices,
     ]
 
-
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
@@ -87,7 +85,6 @@ class FrontendTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
 
-
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -95,7 +92,7 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def build_collate_fn(
-            cls, args: argparse.Namespace
+        cls, args: argparse.Namespace
     ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -106,7 +103,7 @@ class FrontendTask(AbsTask):
 
     @classmethod
     def build_preprocess_fn(
-            cls, args: argparse.Namespace, train: bool
+        cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         retval = None
@@ -136,12 +133,10 @@ class FrontendTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetFrontendModel:
         assert check_argument_types()
 
-        frontend = frontend_choices.get_class(args.frontend)(** args.frontend_conf)
+        frontend = frontend_choices.get_class(args.frontend)(**args.frontend_conf)
 
         # 1. Build model
-        model = ESPnetFrontendModel(
-            frontend=frontend
-        )
+        model = ESPnetFrontendModel(frontend=frontend)
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize

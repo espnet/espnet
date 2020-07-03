@@ -1,8 +1,6 @@
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
 from itertools import permutations
 
 import torch
@@ -16,11 +14,10 @@ from functools import reduce
 
 
 class ESPnetFrontendModel(AbsESPnetModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """Speech enhancement or separation Frontend model"""
 
     def __init__(
-            self,
-            frontend: Optional[AbsFrontend],
+        self, frontend: Optional[AbsFrontend],
     ):
         assert check_argument_types()
 
@@ -43,7 +40,14 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :return: [Tensor(B, T, F), ...] or [ComplexTensor(B, T, F), ...]
         """
 
-        assert mask_type in ["IBM", "IRM", "IAM", "PSM", "NPSM", "ICM"], f"mask type {mask_type} not supported"
+        assert mask_type in [
+            "IBM",
+            "IRM",
+            "IAM",
+            "PSM",
+            "NPSM",
+            "ICM",
+        ], f"mask type {mask_type} not supported"
         eps = 10e-8
         mask_label = []
         for r in ref_spec:
@@ -61,9 +65,16 @@ class ESPnetFrontendModel(AbsESPnetModel):
             elif mask_type == "PSM" or mask_type == "NPSM":
                 phase_r = r / (abs(r) + eps)
                 phase_mix = mix_spec / (abs(mix_spec) + eps)
-                cos_theta = phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
+                cos_theta = (
+                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                )
                 mask = (abs(r) / (abs(mix_spec) + eps)) * cos_theta
-                mask = mask.clamp(min=0, max=1) if mask_label == "NPSM" else mask.clamp(min=-1, max=1)
+                mask = (
+                    mask.clamp(min=0, max=1)
+                    if mask_label == "NPSM"
+                    else mask.clamp(min=-1, max=1)
+                )
             elif mask_type == "ICM":
                 mask = r / (mix_spec + eps)
                 mask.real = mask.real.clamp(min=-1, max=1)
@@ -73,10 +84,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return mask_label
 
     def forward(
-            self,
-            speech_mix: torch.Tensor,
-            speech_mix_lengths: torch.Tensor = 0,
-            **kwargs
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -108,35 +116,33 @@ class ESPnetFrontendModel(AbsESPnetModel):
         speech_lengths = speech_mix_lengths
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
-        assert (speech_mix.shape[0]
-                == speech_ref.shape[0]
-                == speech_lengths.shape[0]
-        ), (speech_mix.shape, speech_ref.shape, speech_lengths.shape)
+        assert speech_mix.shape[0] == speech_ref.shape[0] == speech_lengths.shape[0], (
+            speech_mix.shape,
+            speech_ref.shape,
+            speech_lengths.shape,
+        )
+        batch_size = speech_mix.shape[0]
 
-        # for data-parallel
-        if speech_ref.dim() == 3:  # single-channel
-            speech_ref = speech_ref[:, :, : speech_lengths.max()]
-        else:  # multi-channel
-            speech_ref = speech_ref[:, :, : speech_lengths.max(), :]
-        if speech_mix.dim() == 3:  # single-channel
-            speech_mix = speech_mix[:, : speech_lengths.max()]
-        else:  # multi-channel
-            speech_mix = speech_mix[:, : speech_lengths.max(), :]
+        # for data-parallel, (Chenda, here do not need to distinguish multi- and single- channel)
+        speech_ref = speech_ref[:, :, : speech_lengths.max()]
+        speech_mix = speech_mix[:, : speech_lengths.max()]
+
 
         if self.tf_factor > 0:
             # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
             spectrum_ref = [self.frontend.stft(sr)[0] for sr in speech_ref]
+
             # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
             spectrum_ref = [
                 ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref
             ]
-            sepctrum_mix = self.frontend.stft(speech_mix)[0]
-            sepctrum_mix = ComplexTensor(sepctrum_mix[..., 0], sepctrum_mix[..., 1])
+            spectrum_mix = self.frontend.stft(speech_mix)[0]
+            spectrum_mix = ComplexTensor(spectrum_mix[..., 0], spectrum_mix[..., 1])
 
             # prepare ideal masks
             mask_ref = self._create_mask_label(
-                sepctrum_mix, spectrum_ref, mask_type=self.mask_type
+                spectrum_mix, spectrum_ref, mask_type=self.mask_type
             )
 
             if dereverb_speech_ref is not None:
@@ -146,7 +152,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 )
                 # ComplexTensor(B, T, F) or ComplexTensor(B, T, C, F)
                 dereverb_mask_ref = self._create_mask_label(
-                    sepctrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
+                    spectrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
                 )[0]
 
             if noise_ref is not None:
@@ -156,7 +162,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
                     ComplexTensor(nr[..., 0], nr[..., 1]) for nr in noise_spectrum_ref
                 ]
                 noise_mask_ref = self._create_mask_label(
-                    sepctrum_mix, noise_spectrum_ref, mask_type=self.mask_type
+                    spectrum_mix, noise_spectrum_ref, mask_type=self.mask_type
                 )
 
             # predict separated speech and masks
@@ -164,6 +170,8 @@ class ESPnetFrontendModel(AbsESPnetModel):
                 speech_mix, speech_lengths
             )
 
+            # TODO:Chenda, Shall we add options for computing loss on
+            #  the masked spectrum?
             # compute TF masking loss
             if mask_pre is None:
                 # compute loss on magnitude spectrum instead
@@ -219,7 +227,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
                     self.frontend.stft.inverse(ps, speech_lengths)[0]
                     for ps in spectrum_pre
                 ]
-                if speech_ref.dim() == 4:
+                if speech_ref[0].dim() == 3:
                     # For si_snr loss, only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # compute si-snr loss
@@ -253,8 +261,9 @@ class ESPnetFrontendModel(AbsESPnetModel):
             si_snr_loss, perm = self._permutation_loss(
                 speech_ref, speech_pre, self.si_snr_loss
             )
-
-        loss = si_snr_loss
+            si_snr = -si_snr_loss
+            loss = si_snr_loss
+            stats = dict(si_snr=si_snr.detach(), loss=loss.detach())
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -300,53 +309,16 @@ class ESPnetFrontendModel(AbsESPnetModel):
         :param inf: (Batch, samples)
         :return: (Batch)
         """
-        eps = 1e-8
-        ref = ref / (torch.norm(ref, p=2, dim=1, keepdim=True) + eps)
-        inf = inf / (torch.norm(inf, p=2, dim=1, keepdim=True) + eps)
+        ref = ref / torch.norm(ref, p=2, dim=1, keepdim=True)
+        inf = inf / torch.norm(inf, p=2, dim=1, keepdim=True)
 
         s_target = (ref * inf).sum(dim=1, keepdims=True) * ref
         e_noise = inf - s_target
 
-        si_snr = 20 * torch.log10(torch.norm(s_target, p=2, dim=1) / (torch.norm(e_noise, p=2, dim=1)) + eps)
+        si_snr = 20 * torch.log10(
+            torch.norm(s_target, p=2, dim=1) / torch.norm(e_noise, p=2, dim=1)
+        )
         return -si_snr
-
-    @staticmethod
-    def si_snr_loss_zeromean(ref, inf):
-        """
-        :param ref: (Batch, samples)
-        :param inf: (Batch, samples)
-        :return: (Batch)
-        """
-        eps = 1e-8
-
-        assert ref.size() == inf.size()
-        B, T = ref.size()
-        # mask padding position along T
-
-        # Step 1. Zero-mean norm
-        mean_target = torch.sum(ref, dim=1, keepdim=True) / T
-        mean_estimate = torch.sum(inf, dim=1, keepdim=True) / T
-        zero_mean_target = ref - mean_target
-        zero_mean_estimate = inf - mean_estimate
-
-        # Step 2. SI-SNR with order
-        # reshape to use broadcast
-        s_target = zero_mean_target  # [B, T]
-        s_estimate = zero_mean_estimate  # [B, T]
-        # s_target = <s', s>s / ||s||^2
-        pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
-        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + eps  # [B, 1]
-        pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
-        # e_noise = s' - s_target
-        e_noise = s_estimate - pair_wise_proj  # [B, T]
-
-        # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
-        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (torch.sum(e_noise ** 2, dim=1) + eps)
-        # print('pair_si_snr',pair_wise_si_snr[0,:])
-        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + eps)  # [B]
-        # print(pair_wise_si_snr)
-
-        return -1 * pair_wise_si_snr
 
     @staticmethod
     def _permutation_loss(ref, inf, criterion, perm=None):
@@ -377,10 +349,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return loss.mean(), perm
 
     def collect_feats(
-            self,
-            speech_mix: torch.Tensor,
-            speech_mix_lengths: torch.Tensor,
-            **kwargs
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
     ) -> Dict[str, torch.Tensor]:
         # for data-parallel
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]

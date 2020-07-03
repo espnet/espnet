@@ -188,6 +188,11 @@ enh_stats_dir="${expdir}/enh_stats_${fs}"
 # The directory used for training commands
 enh_exp="${expdir}/enh_${enh_tag}"
 
+if [ -n "${speed_perturb_factors}" ]; then
+  enh_stats_dir="${enh_stats_dir}_sp"
+  enh_exp="${enh_exp}_sp"
+fi
+
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -199,16 +204,22 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+
+        _scp_list="wav.scp "
+        for i in $(seq ${spk_num}); do
+            _scp_list+="spk${i}.scp "
+        done
+
        for factor in ${speed_perturb_factors}; do
            if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-               scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+               scripts/utils/perturb_enh_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                _dirs+="data/${train_set}_sp${factor} "
            else
                # If speed factor is 1, same as the original
                _dirs+="data/${train_set} "
            fi
        done
-       utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
+       utils/combine_data.sh --extra-files "${_scp_list}" "data/${train_set}_sp" ${_dirs}
     else
        log "Skip stage 2: Speed perturbation"
     fi
@@ -264,9 +275,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                     "data/${dset}/${spk}.scp" "${data_feats}/org/${dset}" \
                     "${data_feats}/org/${dset}/logs/${spk}" "${data_feats}/org/${dset}/data/${spk}"
-            done
 
+            done
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+
         done
         
     else
@@ -279,7 +291,8 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+    for dset in "${train_set}" "${dev_set}"; do
+    # NOTE: Not applying to eval_sets to keep original data
 
         _spk_list=" "
         for i in $(seq ${spk_num}); do
@@ -398,7 +411,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if $use_dereverb_ref; then
         # reference for dereverberation
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
     fi
 
     if $use_noise_ref; then
