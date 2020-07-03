@@ -19,8 +19,8 @@ else
 fi
 
 train_set=tr_no_dev
-dev_set=dev
-eval_set=eval1
+valid_set=dev
+test_sets="dev eval1"
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
@@ -44,7 +44,7 @@ g2p=pypinyin_g2p_phone
     --train_config "${train_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     ${opts} "$@"

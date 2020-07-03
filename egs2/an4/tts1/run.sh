@@ -7,6 +7,6 @@ set -o pipefail
 
 ./tts.sh \
     --train_set train_nodev \
-    --dev_set train_dev \
-    --eval_sets "test " \
+    --valid_set train_dev \
+    --test_sets "train_dev test" \
     --srctexts "data/train_nodev/text" "$@"

@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set="train_960"
-dev_set="dev"
-eval_sets="test_clean test_other dev_clean dev_other"
+valid_set="dev"
+test_sets="test_clean test_other dev_clean dev_other"
 
 asr_config=conf/train_asr_transformer.yaml
 lm_config=conf/train_lm.yaml
@@ -21,6 +21,6 @@ decode_config=conf/decode_asr.yaml
     --lm_config "${lm_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"

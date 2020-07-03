@@ -5,17 +5,17 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
+train_set=data/train
+valid_set=data/dev
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 recog="107 201 307 404"
 
-train_test=""
+test_sets=""
 for l in ${recog}; do
-  train_test="eval_${l} ${train_test}"
+  test_sets="data/dev_${l} data/eval_${l} ${test_sets}"
 done
-train_test=${train_test%% }
+test_sets=${test_sets%% }
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
@@ -33,6 +33,6 @@ nlsyms_txt=data/nlsym.txt
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${train_dev}" \
-    --eval_sets "${train_test}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --srctexts "${train_set}/text" "$@"

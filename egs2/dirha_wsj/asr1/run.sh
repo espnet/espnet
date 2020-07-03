@@ -11,8 +11,8 @@ local_data_opts="--mic ${mic}"
 
 
 train_set=train_si284_$mic
-dev_set=dirha_sim_$mic
-eval_set=dirha_real_$mic
+valid_set=dirha_sim_$mic
+test_sets=dirha_real_$mic
 
 # config files
 #preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
@@ -33,7 +33,7 @@ word_vocab_size=65000
     --use_word_lm ${use_word_lm}                \
     --word_vocab_size ${word_vocab_size}        \
     --train_set "${train_set}"                  \
-    --dev_set "${dev_set}"                      \
-    --eval_sets "${eval_set}"                   \
+    --valid_set "${valid_set}"                  \
+    --test_sets "${test_sets}"                  \
     --local_data_opts "${local_data_opts}"      \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
