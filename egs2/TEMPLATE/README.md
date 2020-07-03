@@ -23,17 +23,18 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
     # The contents of run.sh
     ./asr.sh \
       --train_set train \
-      --dev_set dev \
-      --eval_sets "test1 test2" \
+      --valid_set dev \
+      --test_sets "dev test1 test2" \
       --srctexts "data/train/text" "$@"
     ```
     
-    We use a common recipe, thus you must absorb the difference of each corpus by the command line options of `asr.sh`.
-    We expect that `local/data.sh` generates `data/train`, `data/dev`, `data/test1` and `data/test2`, which have Kaldi style (See stage1 of `asr.sh`). 
-    
-    If you'll create your recipe from scratch, you have to understand Kaldi data structure. See the next section. 
-    
-    If you'll port the recipe from ESPnet1 or Kaldi, you need to embed the data preparation part of the original recipe in `local/data.sh`. Note that the common steps include `Feature extraction`, `Speed Perturbation`, and `Removing long/short utterances`, so you don't need to do them at `local/data.sh`
+    - We use a common recipe, thus you must absorb the difference of each corpus by the command line options of `asr.sh`.
+    - We expect that `local/data.sh` generates training data (e.g., `data/train`), validation data (e.g., `data/dev`), and (multiple) test data (e.g, `data/test1` and `data/test2`), which have Kaldi style (See stage1 of `asr.sh`). 
+    - Note that some corpora only provide the test data and would not officially prepare the development set. In this case, you can prepare the validation data by extracting the part of the training data and regard the rest of training data as a new training data by yourself (e.g., check `egs2/csj/asr1/local/data.sh`).
+    - Also, the validation data used during training must be a single data directory. If you have multiple validation data directories, you must combine them by using `utils/combine_data.sh`.
+    - On the other hand, the recipe accepts multiple test data directories during inference. So, you can include the validation data to evaluate the ASR performance of the validation data.
+    - If you'll create your recipe from scratch, you have to understand Kaldi data structure. See the next section. 
+    - If you'll port the recipe from ESPnet1 or Kaldi, you need to embed the data preparation part of the original recipe in `local/data.sh`. Note that the common steps include `Feature extraction`, `Speed Perturbation`, and `Removing long/short utterances`, so you don't need to do them at `local/data.sh`
 
    
 1. If the recipe uses some corpora and they are not listed in `db.sh`, then write it.
