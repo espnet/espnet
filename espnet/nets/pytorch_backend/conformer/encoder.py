@@ -10,23 +10,25 @@
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
-from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.conformer.activation import get_activation
 from espnet.nets.pytorch_backend.conformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.conformer.attention import (
-    RelPositionMultiHeadedAttention,
+    RelPositionMultiHeadedAttention,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.conformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionBlock
+from espnet.nets.pytorch_backend.conformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.conformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.conformer.subsampling import Conv2dSubsampling
-from espnet.nets.pytorch_backend.conformer.activation import get_activation
+from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
+from espnet.nets.pytorch_backend.transformer.repeat import repeat
+
+
 
 
 def _pre_hook(

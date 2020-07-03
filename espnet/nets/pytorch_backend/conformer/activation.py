@@ -12,11 +12,13 @@ import torch.nn as nn
 
 
 class Swish(nn.Module):
+    """Construct an Swish object."""
     def forward(self, x):
         return x * torch.sigmoid(x)
 
 
 def get_activation(act):
+    """Return activation function."""
     activation_funcs = {
         "hardtanh": nn.Hardtanh,
         "relu": nn.ReLU,

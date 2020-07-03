@@ -89,7 +89,7 @@ class RelPositionMultiHeadedAttention(nn.Module):
     """
 
     def __init__(self, n_head, n_feat, dropout_rate):
-        """Construct an MultiHeadedAttention object."""
+        """Construct an RelPositionMultiHeadedAttention object."""
         super(RelPositionMultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
@@ -112,7 +112,7 @@ class RelPositionMultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout_rate)
 
     def rel_shift(self, x, zero_triu=False):
-        """A effective algorithm to get relative postional encoding.
+        """Compute relative positinal encoding.
 
         :param torch.Tensor x: (batch, time, size)
         :param bool zero_triu: return the lower triangular part of the matrix

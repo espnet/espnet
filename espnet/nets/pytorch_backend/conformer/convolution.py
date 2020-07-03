@@ -64,6 +64,11 @@ class ConvolutionBlock(nn.Module):
         self.act = activation
 
     def forward(self, x):
+        """Compute Covolution Block
+
+        :param torch.Tensor x: (batch, time, size)
+        :return torch.Tensor: convoluted `value` (batch, time, d_model)
+        """
         # exchange the temporal dimension and the feature dimension
         # pad the input from (batch, len, dim) to (batch, dim, len+(k-1))
         x = self.pad_left(x.transpose(1, 2))

@@ -25,7 +25,7 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.conformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.conformer.attention import (
-    RelPositionMultiHeadedAttention,
+    RelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
