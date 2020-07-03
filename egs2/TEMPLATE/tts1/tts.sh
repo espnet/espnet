@@ -638,10 +638,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     # If we use teacher forcing or GST embedding in inference,
     # we need to pass speech as well as text
-    # TODO(kan-bayashi): Make this part more smarter
-    _use_teacher_forcing="$(pyscripts/utils/get_yaml.py "${decode_config}" use_teacher_forcing)"
-    _use_gst="$(pyscripts/utils/get_yaml.py "${train_config}" tts_conf.use_gst)"
+    # TODO(kan-bayashi): Need to check train_args and decode_args as well
     _use_speech=false
+    _use_teacher_forcing=false
+    _use_gst=false
+    if [ -n "${train_config}" ]; then
+        _use_gst="$(pyscripts/utils/get_yaml.py \
+            "${train_config}" tts_conf.use_gst)"
+    fi
+    if [ -n "${decode_config}" ]; then
+        _use_teacher_forcing="$(pyscripts/utils/get_yaml.py \
+            "${decode_config}" use_teacher_forcing)"
+    fi
     if [ "${_use_teacher_forcing,,}" = "true" ] || [ "${_use_gst,,}" = "true" ]; then
         _use_speech=true
     fi
