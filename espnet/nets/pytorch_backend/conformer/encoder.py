@@ -29,8 +29,6 @@ from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayere
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
-
-
 def _pre_hook(
     state_dict,
     prefix,
