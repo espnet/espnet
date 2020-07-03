@@ -5,15 +5,15 @@ set -e
 set -u
 set -o pipefail
 
-train_set=data/train
-valid_set=data/dev
+train_set=train
+valid_set=dev
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 recog="107 201 307 404"
 
 test_sets=""
 for l in ${recog}; do
-  test_sets="data/dev_${l} data/eval_${l} ${test_sets}"
+  test_sets="dev_${l} eval_${l} ${test_sets}"
 done
 test_sets=${test_sets%% }
 
@@ -35,4 +35,4 @@ nlsyms_txt=data/nlsym.txt
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "${train_set}/text" "$@"
+    --srctexts "data/${train_set}/text" "$@"
