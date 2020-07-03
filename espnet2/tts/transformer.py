@@ -4,9 +4,8 @@
 """TTS-Transformer related modules."""
 
 from typing import Dict
-from typing import List
+from typing import Sequence
 from typing import Tuple
-from typing import Union
 
 import torch
 import torch.nn.functional as F
@@ -85,7 +84,7 @@ class Transformer(AbsTTS):
         gst_tokens (int, optional): The number of GST embeddings.
         gst_heads (int, optional): The number of heads in GST multihead attention.
         gst_conv_layers (int, optional): The number of conv layers in GST.
-        gst_conv_chans_list: (Union[Tuple, List], optional):
+        gst_conv_chans_list: (Sequence[int], optional):
             List of the number of channels of conv layers in GST.
         gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
         gst_conv_stride (int, optional): Stride size of conv layers in GST.
@@ -128,7 +127,7 @@ class Transformer(AbsTTS):
             Number of heads in each layer to apply guided attention loss.
         num_layers_applied_guided_attn (int, optional):
             Number of layers to apply guided attention loss.
-        modules_applied_guided_attn (Union[Tuple, List], optional):
+        modules_applied_guided_attn (Sequence[str], optional):
             List of module names to apply guided attention loss.
         guided_attn_loss_sigma (float, optional) Sigma in guided attention loss.
         guided_attn_loss_lambda (float, optional): Lambda in guided attention loss.
@@ -170,7 +169,7 @@ class Transformer(AbsTTS):
         gst_tokens: int = 10,
         gst_heads: int = 4,
         gst_conv_layers: int = 6,
-        gst_conv_chans_list: Union[Tuple, List] = (32, 32, 64, 64, 128, 128),
+        gst_conv_chans_list: Sequence[int] = (32, 32, 64, 64, 128, 128),
         gst_conv_kernel_size: int = 3,
         gst_conv_stride: int = 2,
         gst_gru_layers: int = 1,
@@ -196,7 +195,7 @@ class Transformer(AbsTTS):
         use_guided_attn_loss: bool = True,
         num_heads_applied_guided_attn: int = 2,
         num_layers_applied_guided_attn: int = 2,
-        modules_applied_guided_attn: Union[Tuple, List] = ("encoder-decoder"),
+        modules_applied_guided_attn: Sequence[str] = ("encoder-decoder"),
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
