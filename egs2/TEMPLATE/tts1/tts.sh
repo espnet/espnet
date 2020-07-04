@@ -579,7 +579,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         # CASE 2: Knowledge distillation training
         _teacher_train_dir="${teacher_dumpdir}/${train_set}"
         _teacher_dev_dir="${teacher_dumpdir}/${dev_set}"
-        _feats_type="$(<${_teacher_train_dir}/feats_type)"
         _scp=feats.scp
         _type=npy
         _fold_length="${speech_fold_length}"
@@ -739,7 +738,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _ex_opts=
         if "${_use_speech}"; then
             _ex_opts+="--allow_variable_data_keys true "
-            _ex_opts+="--data_path_and_name_and_type ${_data}/${_scp},speech,${_type} "
+            if [ -z "${teacher_dumpdir}" ]; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/${_scp},speech,${_type} "
+            else
+                _teacher_data=${teacher_dumpdir}/${dset}
+                _ex_opts+="--data_path_and_name_and_type ${_teacher_data}/norm/feats.scp,speech,npy "
+            fi
         fi
 
         # 3. Submit decoding jobs
