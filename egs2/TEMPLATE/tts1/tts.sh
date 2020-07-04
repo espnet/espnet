@@ -78,8 +78,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
-dev_set=         # Name of development set.
-eval_sets=       # Names of evaluation sets. Multiple items can be specified.
+valid_set=       # Name of validation set used for monitoring/tuning network training
+test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=        # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
@@ -89,7 +89,7 @@ text_fold_length=150   # fold_length for text data
 speech_fold_length=800 # fold_length for speech data
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
 Options:
     # General configuration
@@ -139,9 +139,9 @@ Options:
 
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set  # Name of training set (required).
-    --dev_set    # Name of development set (required).
-    --eval_sets  # Names of evaluation sets (required).
-                 # Note that multiple items can be specified.
+    --valid_set  # Name of validation set used for monitoring/tuning network training (required).
+    --test_sets  # Names of test sets (required).
+                 # Note that multiple items (e.g., both dev and eval sets) can be specified.
     --srctexts   # Texts to create token list (required).
                  # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
@@ -234,7 +234,7 @@ tts_exp="${expdir}/tts_${tag}"
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
@@ -252,8 +252,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
@@ -275,8 +275,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
@@ -322,8 +322,8 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
-    # NOTE(kamo): Not applying to eval_sets to keep original data
-    for dset in "${train_set}" "${dev_set}"; do
+    # NOTE(kamo): Not applying to test_sets to keep original data
+    for dset in "${train_set}" "${valid_set}"; do
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -407,8 +407,8 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _train_dir="${data_feats}/${train_set}"
-    _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 5: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    _valid_dir="${data_feats}/${valid_set}"
+    log "Stage 5: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -442,7 +442,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     mkdir -p "${_logdir}"
 
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_dev_dir}/${_scp} wc -l)")
+    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_valid_dir}/${_scp} wc -l)")
 
     key_file="${_train_dir}/${_scp}"
     split_scps=""
@@ -452,10 +452,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_dev_dir}/${_scp}"
+    key_file="${_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
-        split_scps+=" ${_logdir}/dev.${n}.scp"
+        split_scps+=" ${_logdir}/valid.${n}.scp"
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
@@ -475,10 +475,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --normalize none \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --valid_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${train_args}
 
@@ -502,8 +502,8 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     _train_dir="${data_feats}/${train_set}"
-    _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 6: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    _valid_dir="${data_feats}/${valid_set}"
+    log "Stage 6: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -588,8 +588,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --g2p "${g2p}" \
             --normalize global_mvn \
             --normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},speech,${_type}" \
             --valid_shape_file "${tts_stats_dir}/valid/text_shape.${token_type}" \
             --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --resume true \
@@ -632,7 +632,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--vocoder_conf fmax=${fmax} "
     fi
 
-    for dset in "${dev_set}" ${eval_sets}; do
+    for dset in ${test_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${tts_exp}/${decode_tag}_${dset}"
         _logdir="${_dir}/log"
