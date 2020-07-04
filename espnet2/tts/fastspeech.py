@@ -161,6 +161,7 @@ class FastSpeech(AbsTTS):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.eos = idim - 1
         self.reduction_factor = reduction_factor
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
@@ -374,8 +375,14 @@ class FastSpeech(AbsTTS):
 
         batch_size = text.size(0)
 
-        xs, ys, ds = text, speech, duration
-        ilens, olens = text_lengths, speech_lengths
+        # Add eos at the last of sequence
+        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
+        for i, l in enumerate(text_lengths):
+            xs[i, l] = self.eos
+        ilens = text_lengths + 1
+
+        ys, ds = speech, duration
+        olens = speech_lengths
 
         # forward propagation
         before_outs, after_outs, ds, d_outs = self._forward(
@@ -435,6 +442,9 @@ class FastSpeech(AbsTTS):
         x = text
         y = speech
         spemb = spembs
+
+        # add eos at the last of sequence
+        x = F.pad(x, [0, 1], "constant", self.eos)
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
