@@ -203,7 +203,7 @@ def inference(
                         ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
                         ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-                fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+                fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
                 fig.savefig(output_dir / f"att_ws/{key}.png")
                 fig.clf()
 
@@ -220,7 +220,7 @@ def inference(
                 ax.set_ylim(0, 1)
                 ax.grid(which="both")
 
-                fig.tight_layout()
+                fig.set_tight_layout(True)
                 fig.savefig(output_dir / f"probs/{key}.png")
                 fig.clf()
 
