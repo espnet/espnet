@@ -86,8 +86,6 @@ class FastSpeech(AbsTTS):
             Dropout rate after decoder positional encoding.
         transformer_dec_attn_dropout_rate (float, optional):
             Dropout rate in deocoder self-attention module.
-        transformer_enc_dec_attn_dropout_rate (float, optional):
-            Dropout rate in encoder-deocoder attention module.
         init_type (str, optional):
             How to initialize transformer parameters.
         init_enc_alpha (float, optional):
@@ -145,7 +143,6 @@ class FastSpeech(AbsTTS):
         transformer_dec_dropout_rate: float = 0.1,
         transformer_dec_positional_dropout_rate: float = 0.1,
         transformer_dec_attn_dropout_rate: float = 0.1,
-        transformer_enc_dec_attn_dropout_rate: float = 0.1,
         duration_predictor_dropout_rate: float = 0.1,
         postnet_dropout_rate: float = 0.5,
         init_type: str = "xavier_uniform",
