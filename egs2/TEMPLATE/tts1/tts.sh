@@ -656,7 +656,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${tts_exp}/${decode_tag}_${dset}"
+        _dir="${tts_exp}/${decode_tag}/${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
 
@@ -696,7 +696,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${_ex_opts} ${decode_args}
 
         # 4. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
+        mkdir -p "${_dir}"/{norm,denorm,speech_shape,wav,att_ws,probs}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -704,11 +704,23 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
              cat "${_logdir}/output.${i}/denorm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+        done | LC_ALL=C sort -k1 > "${_dir}/speech_shape/speech_shape"
+        for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
             mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
             mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
             rm -rf "${_logdir}/output.${i}"/{wav,att_ws,probs}
         done
+        if [ -e "${_logdir}/output.${i}/durations" ]; then
+            mkdir -p "${_dir}"/{durations,focus_rates}
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/durations/durations"
+            done | LC_ALL=C sort -k1 > "${_dir}/durations/durations"
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates/focus_rates"
+        fi
     done
 
 fi
