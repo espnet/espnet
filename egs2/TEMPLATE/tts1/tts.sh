@@ -674,7 +674,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    if [ -z "${teacher_dumpdir}" ]; then
+        _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    else
+        _feats_type="$(<${_teacher_train_dir}/feats_type)"
+    fi
 
     # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
     _scp=wav.scp
