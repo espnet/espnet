@@ -637,18 +637,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     fi
 
     # If we use teacher forcing or GST embedding in inference,
-    # we need to pass speech as well as text
-    # TODO(kan-bayashi): Need to check train_args and decode_args as well
+    # it is necessary to pass both speech and text
+    # TODO(kan-bayashi): Need to check train_args and decode_args
     _use_speech=false
     _use_teacher_forcing=false
     _use_gst=false
     if [ -n "${train_config}" ]; then
-        _use_gst="$(pyscripts/utils/get_yaml.py \
-            "${train_config}" tts_conf.use_gst)"
+        _use_gst=$(pyscripts/utils/get_yaml.py \
+            "${train_config}" tts_conf.use_gst)
     fi
     if [ -n "${decode_config}" ]; then
-        _use_teacher_forcing="$(pyscripts/utils/get_yaml.py \
-            "${decode_config}" use_teacher_forcing)"
+        _use_teacher_forcing=$(pyscripts/utils/get_yaml.py \
+            "${decode_config}" use_teacher_forcing)
     fi
     if [ "${_use_teacher_forcing,,}" = "true" ] || [ "${_use_gst,,}" = "true" ]; then
         _use_speech=true
@@ -674,7 +674,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Check extra options
-        # NOTE(kan-bayashi): Using opts here causes duplicated option errors
+        # NOTE(kan-bayashi): Using opts causes duplicated option errors
         _ex_opts=
         if "${_use_speech}"; then
             _ex_opts+="--allow_variable_data_keys true "
@@ -684,7 +684,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # 3. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
-        # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
             python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
