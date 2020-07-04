@@ -24,6 +24,7 @@ from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -47,7 +48,7 @@ normalize_choices = ClassChoices(
 )
 tts_choices = ClassChoices(
     "tts",
-    classes=dict(tacotron2=Tacotron2, transformer=Transformer),
+    classes=dict(tacotron2=Tacotron2, transformer=Transformer, fastspeech=FastSpeech),
     type_check=AbsTTS,
     default="tacotron2",
 )
@@ -197,7 +198,7 @@ class TTSTask(AbsTask):
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "spcs")
+            retval = ("spembs", "duration")
         else:
             # Inference mode
             retval = ("spembs",)
