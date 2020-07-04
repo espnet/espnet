@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import torch
 import math
 import torch.nn as nn
@@ -119,7 +120,11 @@ class TasNet(nn.Module):
         T_origin = mixture.size(-1)
         T_conv = est_source.size(-1)
         est_source = F.pad(est_source, (0, T_origin - T_conv))
-        return est_source, ilens
+        masks = OrderedDict(
+            zip(["spk{}".format(i + 1) for i in range(self.num_spk)],
+                [None for __ in range(self.num_spk)], )
+        )
+        return est_source, ilens, masks
 
     @classmethod
     def load_model(cls, path):

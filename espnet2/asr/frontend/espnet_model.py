@@ -84,14 +84,16 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return mask_label
 
     def forward(
-        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
+            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor = 0, **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
             speech_mix: (Batch, samples) or (Batch, samples, channels)
             speech_ref: (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
-            speech_lengths: (Batch,)
+            speech_lengths: (Batch,), default 0 for chunk interator, because the chunk-interator
+                            has not the speech_lenghts returned.
+                            see in espnet2/iterators/chunk_iter_factory.py
         """
         # clean speech signal of each speaker
         speech_ref = [
@@ -113,7 +115,9 @@ class ESPnetFrontendModel(AbsESPnetModel):
         # dereverberated noisy signal (optional, only used for frontend models with WPE)
         dereverb_speech_ref = kwargs.get("dereverb_ref", None)
 
-        speech_lengths = speech_mix_lengths
+        batch_size = speech_mix.shape[0]
+        speech_lengths = speech_mix_lengths if speech_mix_lengths else torch.ones(batch_size).int() * speech_mix.shape[
+            1]
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
         assert speech_mix.shape[0] == speech_ref.shape[0] == speech_lengths.shape[0], (
@@ -126,7 +130,6 @@ class ESPnetFrontendModel(AbsESPnetModel):
         # for data-parallel, (Chenda, here do not need to distinguish multi- and single- channel)
         speech_ref = speech_ref[:, :, : speech_lengths.max()]
         speech_mix = speech_mix[:, : speech_lengths.max()]
-
 
         if self.tf_factor > 0:
             # prepare reference speech and reference spectrum
@@ -248,18 +251,17 @@ class ESPnetFrontendModel(AbsESPnetModel):
             )
         else:
             # TODO:Jing, should find better way to configure for the choice of tf loss and time-only loss.
-            if speech_ref.dim() == 4:
-                # For si_snr loss of multi-channel input, only select one channel as the reference
-                speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
-
+            assert speech_ref.dim() == 3, speech_ref.dim()
             speech_pre, speech_lengths, *__ = self.frontend.forward_rawwav(
                 speech_mix, speech_lengths
             )
+            assert speech_pre.dim() == 3, speech_pre.dim()
+            speech_ref = torch.unbind(speech_ref, dim=1)
             speech_pre = torch.unbind(speech_pre, dim=1)
 
             # compute si-snr loss
             si_snr_loss, perm = self._permutation_loss(
-                speech_ref, speech_pre, self.si_snr_loss
+                speech_ref, speech_pre, self.si_snr_loss_zeromean
             )
             si_snr = -si_snr_loss
             loss = si_snr_loss
@@ -321,6 +323,44 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return -si_snr
 
     @staticmethod
+    def si_snr_loss_zeromean(ref, inf):
+        """
+        :param ref: (Batch, samples)
+        :param inf: (Batch, samples)
+        :return: (Batch)
+        """
+        eps = 1e-8
+
+        assert ref.size() == inf.size()
+        B, T = ref.size()
+        # mask padding position along T
+
+        # Step 1. Zero-mean norm
+        mean_target = torch.sum(ref, dim=1, keepdim=True) / T
+        mean_estimate = torch.sum(inf, dim=1, keepdim=True) / T
+        zero_mean_target = ref - mean_target
+        zero_mean_estimate = inf - mean_estimate
+
+        # Step 2. SI-SNR with order
+        # reshape to use broadcast
+        s_target = zero_mean_target  # [B, T]
+        s_estimate = zero_mean_estimate  # [B, T]
+        # s_target = <s', s>s / ||s||^2
+        pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
+        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + eps  # [B, 1]
+        pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
+        # e_noise = s' - s_target
+        e_noise = s_estimate - pair_wise_proj  # [B, T]
+
+        # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
+        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (torch.sum(e_noise ** 2, dim=1) + eps)
+        # print('pair_si_snr',pair_wise_si_snr[0,:])
+        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + eps)  # [B]
+        # print(pair_wise_si_snr)
+
+        return -1 * pair_wise_si_snr
+
+    @staticmethod
     def _permutation_loss(ref, inf, criterion, perm=None):
         """
         Args:
@@ -349,7 +389,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return loss.mean(), perm
 
     def collect_feats(
-        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
+            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
     ) -> Dict[str, torch.Tensor]:
         # for data-parallel
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]
