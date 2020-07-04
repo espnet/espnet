@@ -34,6 +34,7 @@ def inference(
     enh_train_config: str,
     enh_model_file: str,
     allow_variable_data_keys: bool,
+    normalize_output_wav: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -93,11 +94,16 @@ def inference(
             batch = to_device(batch, device)
             # b. Forward Enhancement Frontend
             waves, _, _ = enh_model.frontend.forward_rawwav(**batch)
-            assert len(waves[0]) == batch_size, len(waves[0])
+            assert waves.shape[0] == batch_size, waves.shape[0]
 
         # FIXME(Chenda): will be incorrect when
         #  batch size is not 1 or multi-channel case
-        waves = [w.T.cpu().numpy() for w in waves]
+        if normalize_output_wav:
+            waves = [(w / torch.max(torch.abs(w))).T.cpu().numpy() for w in waves]
+            print('normalized wavs max,', waves[0].max(),waves[0].min())
+        else:
+            waves = [w.T.cpu().numpy() for w in waves]
+            print('not normalized wavs max,', waves[0].max(),waves[0].min())
         for (i, w) in enumerate(waves):
             writers[i][keys[0]] = fs, w
 
@@ -151,6 +157,14 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
+
+    group = parser.add_argument_group("Output data related")
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Weather to normalize the predicted wav to [-1~1]"
+    )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--enh_train_config", type=str, required=True)
